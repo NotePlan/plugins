@@ -92,24 +92,21 @@ function prepareReactWindowData(
   // at the time of the HTML window creation
   // globalSharedData is a global variable in the HTML window
   const globalSharedDataScriptStr = `
-      <script type="text/javascript" >
-        console.log('JS baked into page HTML: Setting globalSharedData');
-        globalSharedData = ${JSON.stringify(globalSharedData)};
-        // This setting comes from ${pluginJson['plugin.id']}
-        // if (typeof DataStore === 'undefined') {
-        //   let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
-        // }
-      </script>
-    `
+  <script type="text/javascript" >
+    console.log('JS baked into page HTML: Setting globalSharedData');
+    globalSharedData = ${JSON.stringify(globalSharedData)};
+  </script>
+  `
+
   // set up bridge to NP
   const pluginToHTMLCommsBridge = `
-    <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
-    <script>
-      const receivingPluginID = "${pluginJson['plugin.id']}";
-      const onMessageFromPlugin = ()=>{}; // np.Shared/pluginToHTMLCommsBridge wants to see this function, but we don't use it in React because we will set up our own listener in Root
-    </script>
-    <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
-    `
+  <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
+  <script>
+    const receivingPluginID = "${pluginJson['plugin.id']}";
+    const onMessageFromPlugin = ()=>{}; // np.Shared/pluginToHTMLCommsBridge wants to see this function, but we don't use it in React because we will set up our own listener in Root
+  </script>
+  <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
+  `
 
   const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.dev.js"></script>\n`
 

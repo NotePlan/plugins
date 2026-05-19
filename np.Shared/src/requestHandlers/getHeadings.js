@@ -18,12 +18,12 @@ export type RequestResponse = {
 
 /**
  * Get list of headings from a specified note
- * @param {Object} params - Request parameters
- * @param {string} params.noteFilename - Filename of the note to get headings from
- * @param {boolean} params.optionAddTopAndBottom - Add "top" and "bottom" options (default: true)
- * @param {boolean} params.includeArchive - Include archived headings (default: false)
+ * @param {Object} params - Request parameters:
+ * - @param {string} params.noteFilename - Filename of the note to get headings from
+ * - @param {boolean} params.optionAddTopAndBottom - Add "top" and "bottom" options (default: true)
+ * - @param {boolean} params.includeArchive - Include archived headings (default: false)
  * @param {Object} pluginJson - Plugin JSON object for logging
- * @returns {RequestResponse}
+ * @returns {RequestResponse} {success: true, data: headingsArray} or {success: false, message: error message, data: null}
  */
 export function getHeadings(params: { noteFilename: string, optionAddTopAndBottom?: boolean, includeArchive?: boolean }, pluginJson: any): RequestResponse {
   const startTime: number = Date.now()
@@ -37,10 +37,7 @@ export function getHeadings(params: { noteFilename: string, optionAddTopAndBotto
     }
 
     const resolvedFilename = resolveNoteChooserFilenameForLookup(params.noteFilename)
-    logDebug(
-      pluginJson,
-      `[np.Shared/requestHandlers] getHeadings START: noteFilename="${params.noteFilename}" resolved="${resolvedFilename}"`,
-    )
+    logDebug(pluginJson, `[np.Shared/requestHandlers] getHeadings START: noteFilename="${params.noteFilename}" resolved="${resolvedFilename}"`)
 
     // Get the note by filename (relative chooser values like <today> are resolved first)
     const note = getNoteByFilename(resolvedFilename)
