@@ -169,6 +169,30 @@ export async function waitForCondition(condition: () => boolean | Promise<boolea
 }
 
 /**
+ * Poll until a condition is true using a synchronous busy-wait (no Promise).
+ * Use in NotePlan JSContext when Promise constructor is unavailable or broken (e.g. NotePlan Beta JSPromiseConstructor).
+ * @param {() => boolean} condition - returns true when ready
+ * @param {{ maxWaitMs?: number, checkIntervalMs?: number }} options
+ * @returns {boolean} true if condition was met before timeout
+ */
+export function pollUntilSync(condition: () => boolean, options: { maxWaitMs?: number, checkIntervalMs?: number } = {}): boolean {
+  const maxWaitMs = options.maxWaitMs ?? 2000
+  const checkIntervalMs = options.checkIntervalMs ?? 50
+  const startTime = Date.now()
+
+  while (Date.now() - startTime < maxWaitMs) {
+    if (condition()) {
+      return true
+    }
+    const spinUntil = Date.now() + checkIntervalMs
+    while (Date.now() < spinUntil) {
+      // intentional busy-wait between checks
+    }
+  }
+  return condition()
+}
+
+/**
  * Initialize Promise polyfills if needed
  * This should be called early in plugin initialization
  */

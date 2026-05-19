@@ -17,7 +17,7 @@ import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { addParagraphsToNote, findHeading } from '@helpers/paragraph'
 import { chooseNoteV2 } from '@helpers/NPnote'
-import { highlightSelectionInEditor } from '@helpers/NPParagraph'
+import { highlightSelectionInEditor } from '@helpers/NPEditor'
 import { chooseHeadingV2, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------

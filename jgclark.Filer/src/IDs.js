@@ -12,7 +12,7 @@ import { getSelectedParagraphsToUse } from '@helpers/NPEditor'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { chooseNoteV2 } from '@helpers/NPnote'
-import { highlightSelectionInEditor } from '@helpers/NPParagraph'
+import { highlightSelectionInEditor } from '@helpers/NPEditor'
 import { addParagraphsToNote, parasToText, smartAppendPara, smartPrependPara } from '@helpers/paragraph'
 import { chooseHeadingV2 } from '@helpers/userInput'
 

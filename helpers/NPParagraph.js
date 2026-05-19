@@ -1303,7 +1303,7 @@ export function findParagraph(
 
 /**
  * Take a static object with a subset of Paragraph fields from HTML or wherever and return the actual paragraph in the note
- * @param {*} staticObject - the static object from the HTML must have fields:
+ * @param {any} staticObject - the static object from the HTML must have fields:
  *    filename, lineIndex, noteType
  * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex) -- these two fields are required. default is ['filename', 'rawContent']
  * @returns {TParagraph|null} - the paragraph or null if not found
@@ -1333,70 +1333,6 @@ export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: A
     clo(staticObject, `getParagraphFromStaticObject could not open note '${filename}' type "${noteType}"`)
   }
   return null
-}
-
-/**
- * Highlight the given Paragraph details in the open editor.
- * The static object that's passed in must have at least the following TParagraph-type fields populated: filename and rawContent (or content, though this is naturally less exact).
- * If 'thenStopHighlight' is true, the cursor will be moved to the start of the paragraph after briefly flashing the whole line. This is to prevent starting to type and inadvertdently removing the whole line.
- * If 'andFocusEditor' is true, the editor will be focused after highlighting.
- * @author @jgclark
- * @param {({ rawContent: string } | { content: string }) & {filename: string} & Partial<TParagraph>} paraObjectToTest - the paragraph data to highlight
- * @param {boolean} thenStopHighlight? (default: false)
- * @param {boolean} andFocusEditor? (default: true)
- * @returns {boolean} true if successful, false if paragraph not found or error occurred
- */
-export function highlightParagraphInEditor(
-  paraObjectToTest: ({ rawContent: string } | { content: string }) & { filename: string } & Partial<TParagraph>,
-  thenStopHighlight: boolean = false,
-  andFocusEditor: boolean = true
-): boolean {
-  try {
-    logDebug('highlightParagraphInEditor', `Looking for <${paraObjectToTest.rawContent ?? paraObjectToTest.content ?? '?'}>`)
-
-    const { paragraphs } = Editor
-    const resultPara: TParagraph | null = paraObjectToTest.rawContent
-      ? findParagraph(paragraphs, paraObjectToTest, ['filename', 'rawContent'])
-      : findParagraph(paragraphs, paraObjectToTest, ['filename', 'content'])
-    if (!resultPara) {
-      logWarn('highlightParagraphInEditor', `Sorry, couldn't find paragraph with rawContent <${paraObjectToTest.rawContent ?? paraObjectToTest.content ?? '?'}> to highlight in open note`)
-      return false
-    }
-
-    const lineIndex = resultPara.lineIndex
-    Editor.highlight(resultPara)
-    logDebug('highlightParagraphInEditor', `Found para to highlight at lineIndex ${String(lineIndex)}`)
-    const paraRange = resultPara.contentRange
-    if (thenStopHighlight && paraRange) {
-      logDebug('highlightParagraphInEditor', `Now moving cursor to highlight at charIndex ${String(paraRange.start)}`)
-      Editor.highlightByIndex(paraRange.start, 0)
-    }
-    if (andFocusEditor) {
-      Editor.focus()
-    }
-    return true
-  } catch (error) {
-    logError('highlightParagraphInEditor', `highlightParagraphInEditor: ${error.message}`)
-    return false
-  }
-}
-
-/**
- * Highlight the given Paragraph range (including just a single line) in the open editor.
- * @author @jgclark
- * @param {Array<TParagraph>} paras
- */
-export function highlightSelectionInEditor(paras: Array<TParagraph>): void {
-  const firstStartCharIndex = paras[0].contentRange?.start ?? NaN
-  const lastEndCharIndex = paras[paras.length - 1].contentRange?.end ?? null
-  if (firstStartCharIndex && lastEndCharIndex) {
-    const parasCharIndexRange: TRange = Range.create(firstStartCharIndex,
-      lastEndCharIndex)
-    logDebug('highlightSelectionInEditor', `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
-    Editor.highlightByRange(parasCharIndexRange)
-  } else {
-    logWarn('highlightSelectionInEditor', `- could not highlight automatic block selection range for ${paras.length} paragraphs. firstStartCharIndex=${String(firstStartCharIndex)}, lastEndCharIndex=${String(lastEndCharIndex)}`)
-  }
 }
 
 /**

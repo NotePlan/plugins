@@ -2,8 +2,8 @@
 // -----------------------------------------------------------------
 // Editor helpers that only need ./dev (no NPParagraph / userInput).
 // Split from NPEditor.js so plugin code (e.g. repeat generation) can use
-// these without creating Rollup circular dependency:
-// NPParagraph → … → NPEditor → NPParagraph
+// these without importing full NPEditor (which depends on NPParagraph for findParagraph).
+// Editor highlight helpers live in NPEditor.js; repeat code should keep using NPEditorBasics only.
 // -----------------------------------------------------------------
 
 import { logDebug, logError } from './dev'

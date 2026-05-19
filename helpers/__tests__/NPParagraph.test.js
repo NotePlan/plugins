@@ -775,6 +775,20 @@ describe('NPParagraphs()', () => {
       expect(result).not.toEqual(null)
       expect(result.lineIndex).toEqual(2)
     })
+    test('should find a paragraph by rawContent when paras lack filename (Editor.paragraphs pattern)', () => {
+      const parasToLookIn = [
+        new Paragraph({ rawContent: '* not a match?', lineIndex: 0 }),
+        new Paragraph({ rawContent: '* Shabbos dessert?', lineIndex: 1 }),
+        new Paragraph({ rawContent: '* no match here?', lineIndex: 2 }),
+      ]
+      const obj = {
+        rawContent: '* Shabbos dessert?',
+        filename: '20230210.md',
+      }
+      const result = p.findParagraph(parasToLookIn, obj, ['rawContent'], true)
+      expect(result).not.toEqual(null)
+      expect(result?.rawContent).toEqual(obj.rawContent)
+    })
     test('should find a paragraph whose content has been edited', () => {
       const parasToLookIn = [
         new Paragraph({ rawContent: '* not a match?', filename: '20230210.md' }),

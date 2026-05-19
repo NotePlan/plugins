@@ -4,7 +4,7 @@
 // See also HTMLView for specifics of working in HTML
 // ----------------------------------------------------------------------------
 
-import { getOpenEditorFromFilename } from './NPEditorBasics'
+import { getOpenEditorFromFilename, getLastOpenedOpenEditorFromFilename } from './NPEditorBasics'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 import { usersVersionHas } from '@helpers/NPVersions'
@@ -375,7 +375,7 @@ export async function openNoteInNewWindow(
   try {
     // If note is already open, then simply focus it
     if (onlyIfNotAlreadyOpen && isEditorWindowOpen(filename)) {
-      const thisEditor = getOpenEditorFromFilename(filename, true)
+      const thisEditor = getLastOpenedOpenEditorFromFilename(filename)
       if (!thisEditor) {
         throw new Error(`Couldn't find open Editor window for filename '${filename}'`)
       }

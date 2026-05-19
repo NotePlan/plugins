@@ -10,7 +10,8 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from 
 import { getFolderDisplayName, getFolderFromFilename, getRegularNotesInFolder } from '@helpers/folders'
 import { displayTitle, isValidUUID } from '@helpers/general'
 import { calendarNotesSortedByChanged, noteType } from '@helpers/note'
-import { displayTitleWithRelDate, getDateStrFromRelativeDateString, getRelativeDates } from '@helpers/NPdateTime'
+import { getRelativeDates, type RelativeDate } from '@helpers/NPDateStrings'
+import { displayTitleWithRelDate, getDateStrFromRelativeDateString } from '@helpers/NPdateTime'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes, getFrontmatterAttribute } from '@helpers/NPFrontMatter'
 import { getBlockUnderHeading } from '@helpers/NPParagraph'
 import { usersVersionHas } from '@helpers/NPVersions'
@@ -61,9 +62,6 @@ export const noteIconsToUse: Array<TFolderIcon> = [
   { firstLevelFolder: '@Templates', icon: 'clipboard', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
   { firstLevelFolder: '@Trash', icon: 'trash-can', color: 'gray-500', alpha: 0.7, darkAlpha: 0.7 },
 ]
-
-// For speed, pre-compute the relative dates
-const relativeDates = getRelativeDates(true) // use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -121,6 +119,7 @@ export async function chooseNoteV2(
   if (includeFutureCalendarNotes) {
     const weekAgoMom = moment().subtract(7, 'days')
     const weekAgoDate = weekAgoMom.toDate()
+    const relativeDates: Array<RelativeDate> = await getRelativeDates(true) // use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
     for (const rd of relativeDates) {
       const matchingNote = sortedNoteList.find((note) => note.title === rd.dateStr)
       if (!matchingNote) {
@@ -766,7 +765,7 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
 
     // Use .backlinks, which is described as "Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The headings of the linked paragraphs are also listed here, although they don't have to contain a link."
     // Note: @jgclark reckons that the subItem.headingLevel data returned by this might be wrong.
-    // FIXME: Seems this might be returning only backlinks at indent 0. Need to test.
+    // Note: @EM confirms that this returns backlinks only with indent 0, by design. @jgclark has added a helper to help with this issue.
     const backlinkParas: Array<TParagraph> = getFlatListOfBacklinks(calNote) // an array of notes which link to this note
     logDebug(`getReferencedParagraphs`, `found ${String(backlinkParas.length)} backlinked paras for ${displayTitle(calNote)}:`)
 
@@ -1709,7 +1708,7 @@ export function getOrMakeCalendarNote(dateStrIn: string): ?TNote {
 
 /**
  * Get the noteType of a note from its filename
- * Probably FIXME: need to update to support Teamspace notes
+ * TODO: update to support Teamspace notes?
  * @author @jgclark
  * @param {string} filename of either Calendar or Notes type
  * @returns {NoteType} Calendar | Notes

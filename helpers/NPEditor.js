@@ -2,12 +2,12 @@
 
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import { getFolderFromFilename } from './folders'
+import { rangeToString } from './general'
 import { getOpenEditorFromFilename } from './NPEditorBasics'
 import { getNoteTitleFromTemplate } from './NPFrontMatter'
-import { getSelectedParagraphsWithCorrectLineIndex, highlightParagraphInEditor } from './NPParagraph'
+import { findParagraph, getSelectedParagraphsWithCorrectLineIndex } from './NPParagraph'
 import { openNoteInSplitViewIfNotOpenAlready } from './NPWindows'
 import { usersVersionHas } from './NPVersions'
-import { waitForCondition } from './promisePolyfill'
 import { showMessageYesNo, showMessage, chooseFolder } from './userInput'
 
 export { getOpenEditorFromFilename, saveEditorIfNecessary } from './NPEditorBasics'
@@ -299,7 +299,7 @@ export async function smartOpenNoteInEditorFromFilename(filename: string, newWin
 
 /**
  * Handle a show line call by opening the note in an Editor, and then finding and moving the cursor to the start of that line.
- * Uses {@link getOrOpenEditorFromFilename} (split → reuseSplitView; window → main editor).
+ * It applies 'content' first trying to match it against the note's rawContent, then content.
  * Note: Handles Teamspace notes from b1375 (v3.17.0).
  * @param {string} filename - the filename of the note to open
  * @param {string} content - the content of the note to open
@@ -311,17 +311,11 @@ export async function smartShowLineInEditorFromFilename(filename: string, conten
     if (!filename) throw new Error('No filename: stopping.')
     if (!content) throw new Error('No content: stopping.')
 
-    const thisEditor = await getOrOpenEditorFromFilename(filename, newWindowType)
-    if (thisEditor) {
-      logDebug('smartShowLineInEditorFromFilename', `Focused Editor window '${thisEditor.id}' for filename '${filename}'`)
-      // $FlowIgnore[prop-missing]
-      // $FlowIgnore[incompatible-call]
-      const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
-      if (!res) {
-        logWarn('smartShowLineInEditorFromFilename', `Failed to highlight paragraph in already-open note '${filename}'`)
-      }
+    const res = await highlightParagraphInEditorByContent(filename, content, true, true, newWindowType)
+    if (!res) {
+      logInfo('smartShowLineInEditorFromFilename', `Failed to highlight paragraph in note '${filename}'`)
     }
-    return true
+    return res
   } catch (error) {
     logError('smartShowLineInEditorFromFilename', `Error "${error.message}" for note '${filename}' and content {${content || '?'}}.`)
     return false
@@ -329,9 +323,30 @@ export async function smartShowLineInEditorFromFilename(filename: string, conten
 }
 
 /**
+ * Find an open Editor pane for a note filename (editor.filename or editor.note.filename).
+ * Prefers the last matching pane (most recently opened).
+ * @param {string} filename
+ * @returns {TEditor | false}
+ */
+function resolveOpenEditorForFilename(filename: string): TEditor | false {
+  const fromBasics = getOpenEditorFromFilename(filename, true)
+  if (fromBasics) {
+    return fromBasics
+  }
+  const allEditors = NotePlan.editors ?? []
+  for (let i = allEditors.length - 1; i >= 0; i--) {
+    const ed = allEditors[i]
+    if (ed.filename === filename || (ed.note != null && ed.note.filename === filename)) {
+      return ed
+    }
+  }
+  return false
+}
+
+/**
  * Get the open Editor that matches a given filename.  [Related: getOpenEditorFromFilename(), getLastOpenedOpenEditorFromFilename()]
  * If the original Editor is still open, then return it, otherwise open the note and return the new Editor.
- * - `split`: uses {@link openNoteInSplitViewIfNotOpenAlready} (reuseSplitView / splitView x-callback) and waits for the editor when newly opened.
+ * - `split`: uses {@link openNoteInSplitViewIfNotOpenAlready} (reuseSplitView / splitView x-callback); does not wait for the editor to appear (highlight may fail if the pane is not ready yet).
  * - `window`: uses `Editor.openNoteByFilename` in the main editor (sync).
  * On failure, return false.
  * @param {string} filename - the filename of the note to find
@@ -341,7 +356,7 @@ export async function smartShowLineInEditorFromFilename(filename: string, conten
 export async function getOrOpenEditorFromFilename(filename: string, newWindowType: 'window' | 'split' = 'window'): Promise<TEditor | false> {
   try {
     if (!filename) throw new Error('No filename passed: stopping.')
-    let thisEditor = getOpenEditorFromFilename(filename)
+    let thisEditor = resolveOpenEditorForFilename(filename)
     if (thisEditor) {
       return thisEditor
     }
@@ -349,28 +364,133 @@ export async function getOrOpenEditorFromFilename(filename: string, newWindowTyp
     if (newWindowType === 'split') {
       const openedNewSplit = openNoteInSplitViewIfNotOpenAlready(filename, 'getOrOpenEditorFromFilename')
       if (!openedNewSplit) {
-        thisEditor = getOpenEditorFromFilename(filename)
-        return thisEditor || false
+        // Note was already open in an Editor pane; openNoteInSplitViewIfNotOpenAlready focused it.
+        thisEditor = resolveOpenEditorForFilename(filename)
+        if (thisEditor) {
+          logDebug('getOrOpenEditorFromFilename', `Using existing Editor for filename '${filename}'`)
+          return thisEditor
+        }
+        logWarn('getOrOpenEditorFromFilename', `Split open reported note already open but no Editor matched filename '${filename}'`)
+        return false
       }
-      const editorReady = await waitForCondition(
-        () => !!getOpenEditorFromFilename(filename),
-        { maxWaitMs: 3000, checkIntervalMs: 50 },
-      )
-      if (!editorReady) {
-        logWarn('getOrOpenEditorFromFilename', `Timed out waiting for editor for '${filename}' after split open`)
+
+      // New split opened via x-callback; editor may not be registered yet — no wait/poll (caller accepts highlight may fail).
+      logDebug('getOrOpenEditorFromFilename', `Triggered split open for filename '${filename}'; checking once for Editor pane`)
+      thisEditor = resolveOpenEditorForFilename(filename)
+      if (thisEditor) {
+        return thisEditor
       }
-      thisEditor = getOpenEditorFromFilename(filename)
-      if (!thisEditor) throw new Error('Failed to get Editor window after split x-callback open.')
-      return thisEditor
+      logDebug('getOrOpenEditorFromFilename', `Split open triggered for '${filename}' but Editor pane not visible yet (no wait)`)
+      return false
     }
 
+    logDebug('getOrOpenEditorFromFilename', `Opening filename '${filename}' in the main Editor via Editor.openNoteByFilename`)
     const res = await Editor.openNoteByFilename(filename, false, 0, 0, false, false)
-    if (!res) throw new Error('Failed to open note in the main Editor: stopping.')
-    thisEditor = getOpenEditorFromFilename(filename)
-    if (!thisEditor) throw new Error('Failed to get Editor window after trying to open Editor for filename: stopping.')
+    if (!res) {
+      logWarn('getOrOpenEditorFromFilename', `Failed to open note '${filename}' in the main Editor`)
+      return false
+    }
+    thisEditor = resolveOpenEditorForFilename(filename)
+    if (!thisEditor) {
+      logWarn('getOrOpenEditorFromFilename', `Failed to get Editor window after trying to open Editor for filename '${filename}'`)
+      return false
+    }
+    logDebug('getOrOpenEditorFromFilename', `Opened note '${filename}' in the main Editor`)
     return thisEditor
   } catch (error) {
     logError('getOrOpenEditorFromFilename', error.message)
     return false
+  }
+}
+
+/**
+ * Highlight the given paragraph in a specific Editor pane (note must already be open in that pane).
+ * Editor.paragraphs lines often lack .filename; match rawContent or content only (see shared.AI chat.js).
+ * @param {TEditor} thisEditor - the Editor pane to search and highlight in
+ * @param {string} paraContentToTest - the content or rawContent of the paragraph to highlight -- it will search for both
+ * @param {boolean} thenStopHighlight? (default: false)
+ * @param {boolean} andFocusEditor? (default: true)
+ * @returns {boolean} true if the paragraph was found and highlighted
+ */
+export function highlightParagraphInEditorPane(
+  thisEditor: TEditor,
+  paraContentToTest: string,
+  thenStopHighlight: boolean = false,
+  andFocusEditor: boolean = true,
+): boolean {
+  try {
+    const editorFilename = thisEditor.filename ?? thisEditor.note?.filename ?? '?'
+    logDebug('highlightParagraphInEditorPane', `Looking for <${paraContentToTest}> in Editor '${editorFilename}'`)
+
+    const paragraphs = thisEditor.paragraphs ?? []
+    let resultPara: TParagraph | null = findParagraph(paragraphs, { rawContent: paraContentToTest }, ['rawContent'], true)
+    if (!resultPara) {
+      resultPara = findParagraph(paragraphs, { content: paraContentToTest }, ['content'], true)
+    }
+    if (!resultPara) {
+      logWarn('highlightParagraphInEditorPane', `Couldn't find paragraph with rawContent/content <${paraContentToTest}> in Editor '${editorFilename}'`)
+      return false
+    }
+
+    const lineIndex = resultPara.lineIndex
+    thisEditor.highlight(resultPara)
+    logDebug('highlightParagraphInEditorPane', `Found para to highlight at lineIndex ${String(lineIndex)} in Editor '${editorFilename}'`)
+    const paraRange = resultPara.contentRange
+    if (thenStopHighlight && paraRange) {
+      logDebug('highlightParagraphInEditorPane', `Now moving cursor to highlight at charIndex ${String(paraRange.start)}`)
+      thisEditor.highlightByIndex(paraRange.start, 0)
+    }
+    if (andFocusEditor) {
+      thisEditor.focus()
+    }
+    return true
+  } catch (error) {
+    logError('highlightParagraphInEditorPane', error.message)
+    return false
+  }
+}
+
+/**
+ * Open (or focus) the note via {@link getOrOpenEditorFromFilename}, then highlight a paragraph matched by rawContent or content.
+ * @author @jgclark
+ * @param {string} filename - the filename of the note
+ * @param {string} paraContentToTest - the content or rawContent of the paragraph to highlight -- it will search for both
+ * @param {boolean} thenStopHighlight? (default: false)
+ * @param {boolean} andFocusEditor? (default: true)
+ * @param {string} newWindowType - 'window' (main editor) or 'split' if not already open
+ * @returns {boolean} true if the paragraph was highlighted
+ */
+export async function highlightParagraphInEditorByContent(
+  filename: string,
+  paraContentToTest: string,
+  thenStopHighlight: boolean = false,
+  andFocusEditor: boolean = true,
+  newWindowType: 'window' | 'split' = 'window',
+): Promise<boolean> {
+  if (!filename) throw new Error('highlightParagraphInEditorByContent: No filename.')
+  const thisEditor = await getOrOpenEditorFromFilename(filename, newWindowType)
+  if (!thisEditor) {
+    logInfo('highlightParagraphInEditorByContent', `Cannot resolve Editor for filename '${filename}' (split may still be opening)`)
+    return false
+  }
+  logDebug('highlightParagraphInEditorByContent', `Using Editor '${thisEditor.id ?? '?'}' for filename '${filename}'`)
+  return highlightParagraphInEditorPane(thisEditor, paraContentToTest, thenStopHighlight, andFocusEditor)
+}
+
+/**
+ * Highlight the given Paragraph range (including just a single line) in the open editor.
+ * @author @jgclark
+ * @param {Array<TParagraph>} paras
+ */
+export function highlightSelectionInEditor(paras: Array<TParagraph>): void {
+  const firstStartCharIndex = paras[0].contentRange?.start ?? NaN
+  const lastEndCharIndex = paras[paras.length - 1].contentRange?.end ?? null
+  if (firstStartCharIndex && lastEndCharIndex) {
+    const parasCharIndexRange: TRange = Range.create(firstStartCharIndex,
+      lastEndCharIndex)
+    logDebug('highlightSelectionInEditor', `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
+    Editor.highlightByRange(parasCharIndexRange)
+  } else {
+    logWarn('highlightSelectionInEditor', `- could not highlight automatic block selection range for ${paras.length} paragraphs. firstStartCharIndex=${String(firstStartCharIndex)}, lastEndCharIndex=${String(lastEndCharIndex)}`)
   }
 }
