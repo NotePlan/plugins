@@ -1049,6 +1049,27 @@ describe(`${PLUGIN_NAME}`, () => {
         const startTime = getStartTimeFromPara(para)
         expect(startTime).toBe('23:00')
       })
+      test('should return 12:00 from 12:00 PM (noon)', () => {
+        const para = {
+          content: 'Lunch 12:00 PM',
+        }
+        const startTime = getStartTimeFromPara(para)
+        expect(startTime).toBe('12:00')
+      })
+      test('should return 12:30 from 12:30 PM', () => {
+        const para = {
+          content: 'Lunch 12:30 PM',
+        }
+        const startTime = getStartTimeFromPara(para)
+        expect(startTime).toBe('12:30')
+      })
+      test('should return 09:00 from single-digit hour 9:00 AM', () => {
+        const para = {
+          content: 'Standup 9:00 AM',
+        }
+        const startTime = getStartTimeFromPara(para)
+        expect(startTime).toBe('09:00')
+      })
       test('should return "none" if the para does not have a valid time', () => {
         const para = {
           content: '2025-05-09 10-11',

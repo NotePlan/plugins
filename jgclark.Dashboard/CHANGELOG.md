@@ -9,6 +9,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b3] 2026-05-189
+- dev: small improvements to  `dashboardHelpers` that CursorAI found
+
 ## [2.4.0.b38] 2026-05-18
 - fix: PROJ* next-action child rows look up paragraphs by `rawContent` first (not `content`), removing spurious `findParaFromStringAndFilename` warnings on startup when Reviews supplies list markers.
 - add: When Dashboard **included/excluded folder** settings change and Reviews **Rich project list** is open, invokes Reviews `onDashboardFolderFiltersChanged` to regenerate `allProjectsList.json` and re-render (before PROJ* section refresh). Shared helper `src/reviewsListSync.js`.

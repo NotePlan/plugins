@@ -146,8 +146,10 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     return (parsedDashboardSettings: any)
   } catch (err) {
     logError('getDashboardSettings', `${err.name}: ${err.message}`)
-    // $FlowFixMe[incompatible-return]
-    return
+    logWarn('getDashboardSettings', `Returning defaults after load error`)
+    const defaults = getDashboardSettingsDefaults()
+    // $FlowFixMe[prop-missing]
+    return ({ ...defaults, showSearchSection: true }: any)
   }
 }
 
@@ -246,10 +248,17 @@ export async function getLogSettings(): Promise<TDashboardLoggingConfig> {
     // $FlowIgnore
     return logBits
   } catch (err) {
-    logError('getLogSettings', `${err.name}: ${err.message}`)
-    // $FlowFixMe[incompatible-return]
-    return
+    logError('getLogSettings', `Error: ${err.message}\nNote: will use default of INFO / no timing.`)
+    return getLogSettingsDefaults()
   }
+}
+
+/**
+ * Safe defaults when log settings cannot be loaded from settings.json.
+ * @returns {TDashboardLoggingConfig}
+ */
+export function getLogSettingsDefaults(): TDashboardLoggingConfig {
+  return { _logLevel: 'INFO', _logTimer: false }
 }
 
 /**
@@ -268,9 +277,21 @@ export function getNotePlanSettings(): TNotePlanSettings {
       currentTeamspaces: getAllTeamspaceIDsAndTitles(),
     }
   } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
-    // $FlowFixMe[incompatible-return]
-    return
+    logError('getNotePlanSettings', `Error: ${err.message}\nNote: will use default values instead.`)
+    return getNotePlanSettingsDefaults()
+  }
+}
+
+/**
+ * Safe defaults when NotePlan app preferences cannot be read.
+ * @returns {TNotePlanSettings}
+ */
+export function getNotePlanSettingsDefaults(): TNotePlanSettings {
+  return {
+    timeblockMustContainString: '',
+    defaultFileExtension: 'md',
+    doneDatesAvailable: false,
+    currentTeamspaces: [],
   }
 }
 
@@ -305,6 +326,29 @@ export function cloneDashboardSettingsBeforeSave(raw: mixed): { [string]: any } 
  */
 function getNoteFromPara(para: TParagraph): TNote | null {
   return para.note ?? getNoteFromFilename(para.filename ?? '') ?? null
+}
+
+/**
+ * Normalize the start segment of a time-block string to 24h HH:mm (e.g. "12:00PM" -> "12:00").
+ * @param {string} startTimeStr - text before '-' in a time block
+ * @returns {string}
+ */
+function normalizeTimeBlockStartToHHMM(startTimeStrIn: string): string {
+  let startTimeStr = startTimeStrIn
+  if (startTimeStr.length > 0 && startTimeStr.length < 2) {
+    startTimeStr = `0${startTimeStr}`
+  } else if (startTimeStr.length > 1 && startTimeStr[1] === ':') {
+    startTimeStr = `0${startTimeStr}`
+  }
+  if (startTimeStr.endsWith('AM')) {
+    startTimeStr = startTimeStr.slice(0, 5)
+  }
+  if (startTimeStr.endsWith('PM')) {
+    const hour = Number(startTimeStr.slice(0, 2))
+    const adjustedHour = hour === 12 ? 12 : hour + 12
+    startTimeStr = String(adjustedHour).padStart(2, '0') + startTimeStr.slice(2, 5)
+  }
+  return startTimeStr
 }
 
 /**
@@ -754,6 +798,18 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
 }
 
 /**
+ * Safely call Paragraph.children() when the API exposes it. Otherwise returns [].
+ * @param {TParagraph} para
+ * @returns {Array<TParagraph>}
+ */
+function getChildrenFromPara(para: TParagraph): Array<TParagraph> {
+  if (typeof para.children === 'function' && para.children != null) {
+    return para.children() ?? []
+  }
+  return []
+}
+
+/**
  * Return an optimised set of fields based on each paragraph (plus filename + computed priority + title - many).
  * Note: can range from 7-70ms/para in JGC tests.
  *
@@ -782,9 +838,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
       let priorityDelta = 0
       if (note) {
         // Note: seems to be a quick operation (1ms), but leaving a timer for now to indicate if >10ms
-        // Changed: Check if p.children exists before calling
-        // $FlowIgnore[method-unbinding]
-        const anyChildren = (typeof p.children === 'function' && p.children != null) ? (p.children() ?? []) : []
+        const anyChildren = getChildrenFromPara(p)
         const hasChild = anyChildren.length > 0
         const isAChild = isAChildPara(p, note)
 
@@ -1083,22 +1137,7 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
       const thisTimeStr = getTimeBlockString(p.content)
       const extendedPara = p
       if (thisTimeStr !== '') {
-        let startTimeStr = thisTimeStr.split('-')[0]
-        if (startTimeStr.length > 0 && startTimeStr.length < 2) {
-          // Handle single digit hour (e.g., "9:00")
-          startTimeStr = `0${startTimeStr}`
-        } else if (startTimeStr.length > 1 && startTimeStr[1] === ':') {
-          startTimeStr = `0${startTimeStr}`
-        }
-        if (startTimeStr.endsWith('AM')) {
-          startTimeStr = startTimeStr.slice(0, 5)
-        }
-        if (startTimeStr.endsWith('PM')) {
-          const hour = Number(startTimeStr.slice(0, 2))
-          // 12:00 PM should stay as 12:00, not become 24:00
-          const adjustedHour = hour === 12 ? 12 : hour + 12
-          startTimeStr = String(adjustedHour).padStart(2, '0') + startTimeStr.slice(2, 5)
-        }
+        const startTimeStr = normalizeTimeBlockStartToHHMM(thisTimeStr.split('-')[0])
         // logDebug('extendParaToAddStartTime', `found timeStr: ${thisTimeStr} from timeblock ${thisTimeStr}`)
         // $FlowIgnore(prop-missing)
         extendedPara.startTime = startTimeStr
@@ -1132,22 +1171,7 @@ export function getStartTimeFromPara(para: TParagraph | TParagraphForDashboard):
     let startTimeStr = 'none'
     const thisTimeStr = getTimeBlockString(para.content)
     if (thisTimeStr !== '') {
-      startTimeStr = thisTimeStr.split('-')[0]
-      if (startTimeStr.length > 0 && startTimeStr.length < 2) {
-        // Handle single digit hour (e.g., "9:00")
-        startTimeStr = `0${startTimeStr}`
-      } else if (startTimeStr.length > 1 && startTimeStr[1] === ':') {
-        startTimeStr = `0${startTimeStr}`
-      }
-      if (startTimeStr.endsWith('AM')) {
-        startTimeStr = startTimeStr.slice(0, 5)
-      }
-      if (startTimeStr.endsWith('PM')) {
-        const hour = Number(startTimeStr.slice(0, 2))
-        // 12:00 PM should stay as 12:00, not become 24:00
-        const adjustedHour = hour === 12 ? 12 : hour + 12
-        startTimeStr = String(adjustedHour).padStart(2, '0') + startTimeStr.slice(2, 5)
-      }
+      startTimeStr = normalizeTimeBlockStartToHHMM(thisTimeStr.split('-')[0])
       // logDebug('getStartTimeFromPara', `timeStr = ${startTimeStr} from timeblock ${thisTimeStr}`)
     }
     return startTimeStr
