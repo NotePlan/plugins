@@ -31,34 +31,22 @@ export default class FrontmatterModule {
   }
 
   /**
-   * Whether the string begins with a `--` or `---` fence whose inner lines are YAML-like (see `isValidYamlContent`).
-   * If the inner region is not YAML (e.g. markdown / HRs only), returns false so the text is treated as body content.
+   * Whether the string begins with `---` … `---` template processing frontmatter (YAML-like inner region).
+   * Leading `--` … `--` blocks are **new-note / output** frontmatter only: they are not peeled here so they stay in the
+   * rendered body for `templateNew` / `analyzeTemplateStructure` (see `findSeparatorPositions` there).
    * @param {string} templateData - Note or template fragment (often starts at the first line).
    * @returns {boolean}
    */
   isFrontmatterTemplate(templateData: string): boolean {
-    // Opening fence must be first line: `---` … `---` or `--` … `--` (output FM / template FM).
-    // Inner region must be YAML-like; otherwise the whole thing is plain content (e.g. HRs around markdown).
-    const lines = (templateData || '').split('\n')
-    if (lines.length < 2) return false
-    const head = lines[0]?.trim() || ''
-    if (head === '---') {
+    if (!templateData.startsWith('---')) return false
+    const lines = templateData.split('\n')
+    if (lines.length >= 2 && lines[0].trim() === '---') {
       for (let i = 1; i < lines.length; i++) {
         if (lines[i].trim() === '---') {
           const inner = lines.slice(1, i).join('\n')
           return isValidYamlContent(inner)
         }
       }
-      return false
-    }
-    if (head === '--') {
-      for (let i = 1; i < lines.length; i++) {
-        if (lines[i].trim() === '--') {
-          const inner = lines.slice(1, i).join('\n')
-          return isValidYamlContent(inner)
-        }
-      }
-      return false
     }
     return false
   }

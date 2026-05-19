@@ -757,6 +757,23 @@ end body`
       expect(result.bodyContent).toContain('not-closing-triple')
       expect(result.bodyContent).toContain('end body')
     })
+
+    test('full template: template --- FM then body -- output FM is not peeled by analyze as template FM twice', () => {
+      const template = `---
+title: _Frontmatter basic test
+type: meeting-note, empty-note
+---
+--
+foo: bar
+--
+note content`
+      const result = analyzeTemplateStructure(template)
+      expect(result.templateFrontmatter.title).toBe('_Frontmatter basic test')
+      expect(result.hasOutputFrontmatter).toBe(true)
+      expect(result.outputFrontmatter.foo).toBe('bar')
+      expect(result.bodyContent).toContain('note content')
+      expect(result.bodyContent).toContain('foo: bar')
+    })
   })
 
   describe('template vs rendered content handling', () => {

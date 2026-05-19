@@ -174,15 +174,16 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toBe(false)
       })
 
-      test('getSanitizedFmParts strips leading -- fence when inner is valid YAML', () => {
+      test('getSanitizedFmParts does not strip leading -- fences (those are new-note output FM, not template peel)', () => {
         const doc = `--\ntitle: Double Dash FM\ntype: test\n--\nRest`
         const result = f.getSanitizedFmParts(doc)
-        expect(result.attributes.title).toBe('Double Dash FM')
-        expect(result.attributes.type).toBe('test')
-        expect(result.body).toBe('Rest')
+        expect(result.attributes).toEqual({})
+        expect(result.body).toContain('title: Double Dash FM')
+        expect(result.body).toContain('--')
+        expect(result.body).toContain('Rest')
       })
 
-      test('getSanitizedFmParts leaves full text as body when leading -- fence inner is not YAML', () => {
+      test('getSanitizedFmParts leaves -- block as body so template render passes it through to templateNew', () => {
         const doc = `--\n## Nope:**\n--\nTail`
         const result = f.getSanitizedFmParts(doc)
         expect(result.attributes).toEqual({})

@@ -18,6 +18,7 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 
 ## [2.0.0.b33] - 2026-05-18
 - Removed project-list demo mode (`useDemoData` setting, toggle command, and `allProjectsDemoListDefault.json` tooling). Project lists always use live notes / `allProjectsList.json`.
+- dev: Update shared theme conversion system to support "IBM Plex" font families
 
 ## [2.0.0.b32] - 2026-05-10
 - dev: `writeAllProjectsList` supports `skipUpdateDashboardIfOpen`; `updateAllProjectsListAfterChange` accepts options to pass it when **Dashboard** refreshes PROJ* in-process after the JSON write (avoids same-plugin `invokePluginCommandByName` ordering with a stale bridge `UPDATE_DATA`).

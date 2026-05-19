@@ -6,21 +6,27 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
-## [2.4.2] 2026-05-14 @dwertheimer
+## [2.4.3] 2026-05-14 @dwertheimer
 
 ### Fixed
 
+- **templateNew / `render` with `--` output blocks:** Leading `--` … `--` in the body (after the template’s `---` frontmatter) is **new-note output** frontmatter only. It must not be peeled by `FrontmatterModule.isFrontmatterTemplate` / `getSanitizedFmParts` during `frontmatterProcessed` render, or the note loses that block and only trailing lines are written. Only `---` … `---` opens template-processing frontmatter on a fragment.
 - **`isValidYamlContent` vs markdown headings:** Headings such as `## Event:**` include a colon and were counted as YAML key lines. A template body framed with `---` horizontal rules (start and end) was then misclassified as a frontmatter block, `parse` returned an empty body, and Meeting Notes / renders produced no output. Markdown ATX heading lines (`#` … `######` followed by whitespace) are ignored for YAML detection so `---` around normal note text is not treated as frontmatter.
 
 ### Changed
 
-- **New-note / output frontmatter rules:** Fences at the **first line of the template body** (after the template’s own YAML frontmatter) may use `--` or `---`. The enclosed region is treated as output frontmatter **only** if it is YAML-like (`isValidYamlContent`); otherwise the fences and text between stay normal content. Closing delimiter pairs match the opener (`---` with the next `---`, not an intervening `--` line). Leading `--` blocks are parsed in `getSanitizedFmParts` because `front-matter` ignores `--` fences. `FrontmatterModule.isFrontmatterTemplate` accepts both `--` and `---` openers with the same YAML gate.
+- **New-note / output frontmatter (`--` … `--` on first body line):** Detected only in `analyzeTemplateStructure` / `templateNew` flows. It is **not** parsed as template peel frontmatter in `FrontmatterModule.isFrontmatterTemplate` or `getSanitizedFmParts`, so bodies like `--\nfoo: bar\n--\n` survive render and are written into the new note. **`---` … `---`** pairing still uses delimiter-aware `findSeparatorPositions` so a `---` body block does not close at a stray `--` line.
+
+### Added
+
+- **Regression tests (templateNew / `frontmatterProcessed` path):** `np.Templating/__tests__/templating.test.js` — `processFrontmatterTags` then `render(..., { frontmatterProcessed: true })` must preserve leading `--` … `--` output blocks, non-YAML `---` … `---` body starts (markdown / HR), and invalid `--` … `--` inner lines; plus EJS after the preserved block. Lower-level coverage: `helpers/__tests__/NPFrontMatter/*`, `np.Templating/__tests__/frontmatter-module.test.js`.
 
 ### Edited in this release
 
 - `helpers/NPFrontMatter.js`, `helpers/__tests__/NPFrontMatter/NPFrontMatterMisc.test.js`, `helpers/__tests__/NPFrontMatter/NPFrontMatter.analyzeTemplateStructure.test.js`
 - `np.Templating/lib/support/modules/FrontmatterModule.js`
-- `np.Templating/CHANGELOG.md`, `np.Templating/plugin.json` — version **2.4.2**
+- `np.Templating/__tests__/frontmatter-module.test.js`, `np.Templating/__tests__/templating.test.js`
+- `np.Templating/CHANGELOG.md`, `np.Templating/plugin.json` — version **2.4.3**
 
 ## [2.4.1] 2026-05-03 @dwertheimer
 

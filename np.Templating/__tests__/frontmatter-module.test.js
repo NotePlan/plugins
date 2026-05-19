@@ -65,6 +65,13 @@ Some content here`
       expect(result).toEqual(true) // The first block is valid frontmatter
     })
 
+    it(`should return false for leading -- … -- block (new-note output FM, not template peel)`, async () => {
+      const data = `--\nfoo: bar\n--\nnote content`
+      const result = new FrontmatterModule().isFrontmatterTemplate(data)
+      expect(result).toEqual(false)
+      expect(new FrontmatterModule().body(data)).toBe(data)
+    })
+
     it(`should extract frontmatter attributes using ${method('.attributes')}`, async () => {
       const data = await factory('frontmatter-minimal.ejs')
 

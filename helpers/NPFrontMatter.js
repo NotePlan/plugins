@@ -816,9 +816,6 @@ export type FrontMatterDocumentObject = { attributes: { [string]: string }, body
  * @returns {Object} - the frontmatter object (or empty object if none)
  */
 export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: boolean = false): FrontMatterDocumentObject {
-  const doubleDashFm = tryExtractLeadingDoubleDashFm(noteText || '')
-  if (doubleDashFm) return doubleDashFm
-
   let fmData = { attributes: {}, body: noteText, frontmatter: '' } //default
 
   // we need to pre-process the text to sanitize it instead of running fm because we need to
@@ -1474,8 +1471,9 @@ export async function getValuesForFrontmatterTag(
  *
  * **Output (new-note) frontmatter** may appear in `--` … `--` or `---` … `---` pairs only when the pair opens on
  * the **first line of the template body** (the first line after the template’s own YAML frontmatter, if any).
- * If the fenced region contains no valid YAML-like lines, it is **not** treated as frontmatter: the fences and
- * everything between stay ordinary note content (e.g. horizontal rules and headings).
+ * Those blocks are classified here for `templateNew`; they are **not** peeled by `FrontmatterModule` / `getSanitizedFmParts`
+ * (only `---` … `---` at the start of a *fragment* is “template processing” frontmatter there).
+ * If the fenced region is not YAML-like, it stays ordinary body content (horizontal rules, headings, etc.).
  *
  * @param {string} templateData - The template content to analyze
  * @returns {Object} Analysis results with the following properties:
@@ -1705,27 +1703,6 @@ function extractAndParseFrontmatter(lines: Array<string>, startIndex: number, en
   }
 
   return { attributes: {}, isValid: false }
-}
-
-/**
- * `front-matter` does not recognize `--` fences. When the document starts with `--` … `--` and the inner region is
- * YAML-like output frontmatter, parse it here so render/new-note logic matches `---` behavior.
- * If the inner region is not valid YAML-like content, return null so the whole string stays body text.
- * @param {string} noteText - Full template or fragment
- * @returns {FrontMatterDocumentObject | null}
- */
-function tryExtractLeadingDoubleDashFm(noteText: string): FrontMatterDocumentObject | null {
-  const lines = (noteText || '').split('\n')
-  if (lines.length < 2 || lines[0].trim() !== '--') return null
-
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() !== '--') continue
-    const { attributes, isValid } = extractAndParseFrontmatter(lines, 0, i)
-    if (!isValid) return null
-    const body = lines.slice(i + 1).join('\n')
-    return { attributes, body, frontmatter: '' }
-  }
-  return null
 }
 
 /**

@@ -740,6 +740,110 @@ This is the actual template body.
       expect(result).not.toContain('---')
     })
 
+    /**
+     * Related: invalid text between --- (not YAML) is covered in:
+     * - `helpers/__tests__/NPFrontMatter/NPFrontMatterMisc.test.js` — `isValidYamlContent()` (e.g. `## Event:**`, ATX headings)
+     * - `helpers/__tests__/NPFrontMatter/NPFrontMatter.analyzeTemplateStructure.test.js` — `treats --- … --- at body start as content when inner is not YAML`, `should not consider non-frontmatter separators as output frontmatter`
+     * - `np.Templating/__tests__/frontmatter-module.test.js` — `should return false for content with non-frontmatter separators`
+     *
+     * This block covers the gap: after template `---` … `---` is peeled, `render(..., { frontmatterProcessed: true })` must not strip
+     * a leading `--` … `--` new-note output block (regression when `--` was treated like template peel frontmatter).
+     */
+    describe(section('Output (--/---) body + frontmatterProcessed render'), () => {
+      it('preserves leading -- … -- new-note frontmatter through processFrontmatterTags then render(frontmatterProcessed)', async () => {
+        const fullTemplate = `---
+title: _Frontmatter basic test
+type: meeting-note, empty-note
+---
+--
+foo: bar
+--
+note content`
+
+        const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(fullTemplate, {})
+
+        expect(frontmatterBody).toContain('foo: bar')
+        expect(frontmatterBody).toContain('note content')
+        expect(frontmatterBody.trim().startsWith('--')).toBe(true)
+
+        const result = await templateInstance.render(
+          frontmatterBody,
+          { data: { ...frontmatterAttributes }, methods: {} },
+          { frontmatterProcessed: true, extended: true },
+        )
+
+        expect(result).toContain('--')
+        expect(result).toContain('foo: bar')
+        expect(result).toContain('note content')
+        expect(result.trim()).toMatch(/^--/m)
+      })
+
+      it('preserves --- … --- at body start when inner is not YAML-like (markdown / HR), second render does not empty body', async () => {
+        const fullTemplate = `---
+title: T1
+---
+---
+## Event:** note
+
+### Agenda
+-
+---
+After para`
+
+        const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(fullTemplate, {})
+        const result = await templateInstance.render(
+          frontmatterBody,
+          { data: { ...frontmatterAttributes }, methods: {} },
+          { frontmatterProcessed: true, extended: true },
+        )
+
+        expect(result).toContain('## Event:** note')
+        expect(result).toContain('After para')
+        expect(result).toContain('---')
+      })
+
+      it('preserves leading -- … -- when inner is not YAML (markdown heading with colon)', async () => {
+        const fullTemplate = `---
+title: T2
+---
+--
+## Nope:** heading
+--
+after`
+
+        const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(fullTemplate, {})
+        const result = await templateInstance.render(
+          frontmatterBody,
+          { data: { ...frontmatterAttributes }, methods: {} },
+          { frontmatterProcessed: true, extended: true },
+        )
+
+        expect(result).toContain('## Nope:** heading')
+        expect(result).toContain('after')
+        expect(result).toContain('--')
+      })
+
+      it('still evaluates EJS in the part after a preserved -- output block', async () => {
+        const fullTemplate = `---
+title: Shell
+---
+--
+out: "1"
+--
+Hello <%= data.title %>.`
+
+        const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(fullTemplate, {})
+        const result = await templateInstance.render(
+          frontmatterBody,
+          { data: { ...frontmatterAttributes }, methods: {} },
+          { frontmatterProcessed: true, extended: true },
+        )
+
+        expect(result).toContain('out: "1"')
+        expect(result).toContain('Hello Shell.')
+      })
+    })
+
     //FIXME: (@codedungeon): - I added this test to illustrate an edge case that a user was running into
     // Even though the above test on .render passes using Jest, in the real NotePlan app,
     // if the templateBody starts with three dashes, then for some reason, renderFrontmatter gets called on that body as if it's frontmatter and fails
