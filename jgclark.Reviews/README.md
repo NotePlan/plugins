@@ -3,10 +3,14 @@ Unlike most task or project management apps, NotePlan has very little enforced s
 
 This plugin lets you easily a single list of active **Projects**, and their progress towards completion. It helps regularly **review** Project notes -- an approach that will be familiar to people who use David Allen's **Getting Things Done** methodology, or any other where **regular reviews** are important.
 
+- [Walk-through of Project + Reviews Plugin v2](https://youtu.be/EOuOHk4f2d8) by the plugin author.
+
+  [![thumbnail](P+R-v2-walkthrough-thumbnail.jpg)](https://youtu.be/EOuOHk4f2d8)
+
 ## Overview
 The **/project lists** command shows the Project Review List screen, showing the projects due for review from various different NotePlan folders:
 
-![Project Lists (v2): example in 'Rich' style](review-list-rich-2.0b.png)
+![Project Lists (v2): example in 'Rich' style](review-list-rich-2.0.0.png)
 
 Each Project row show the following details:
 
@@ -21,22 +25,17 @@ Each Project row show the following details:
 8. Latest 'progress' you've noted for the project
 9. Any 'next action' on the project
 
-User George (@george65) has recorded two video walkthroughs that show most of what the plugin does (recorded using a rather earlier version of the plugin, so the UI is different):
 
-- [Inside Look: How George, CMO of Verge.io, Uses NotePlan for Effective Project Management](https://www.youtube.com/watch?v=J-FlyffE9iA) featuring this and my Dashboard plugin.
+
+- [Inside Look: How George, CMO of Verge.io, Uses NotePlan for Effective Project Management](https://www.youtube.com/watch?v=J-FlyffE9iA) featuring a rather earlier version of this plugin and my Dashboard plugin.
 
   [![thumbnail](effective-PM-with-George-thumbnail.jpg)](https://www.youtube.com/watch?v=J-FlyffE9iA)
-
-- [Walk-through of Reviews in NotePlan with Project + Reviews Plugin](https://youtu.be/R-3qn6wdDLk) (Note: this was using v0.10, and there have been many important improvements since then.)
-
-  [![thumbnail](georgec-video2-thumbnail.jpg)](https://youtu.be/R-3qn6wdDLk)
 
 You might also like:
 - [my description of using PARA in NotePlan at scale](https://noteplan.co/n/BCC8CAFA-273F-4513-9A88-53CA811F3C8D)
 - [Antony's description of his process which includes this and other plugins](https://noteplan.co/n/381AC6DF-FB8F-49A5-AF8D-1B43B3092922).
 
 ## Using NotePlan for Projects (or Project-like work)
-
 
 Each **Project** is described by a separate note. If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.
 
@@ -73,7 +72,7 @@ The fields it uses are:
 - `completed`: date project was completed (if relevant)
 - `cancelled`: date project was cancelled (if relevant)
 - `Aim`: optional. The plugin doesn't read or display the Aim, but the `/convert to project` form will write it to an `aim:` frontmatter field if you supply one.
-- `Progress: N@YYYY-MM-DD one-line description`: your latest summary of progress for this N% (optional). If present this is shown in the projects list; if not, the % completion is calculated as the number of open and closed tasks. (From v1.3 the default format omits the colon after the date; older lines with a colon are still parsed.)
+- `Progress: N@YYYY-MM-DD one-line description`: your latest summary of progress for this N% (optional). If present this is shown in the projects list; if not, the % progress is calculated as the number of open and closed tasks. (From v1.3 the default format omits the colon after the date; older lines with a colon are still parsed.)
 
 An example of an Area-type note:
 
@@ -156,7 +155,7 @@ It defaults to a colourful '**Rich**' style, shown above. The window opens by de
 
 Or you can use '**Output style to use**' setting to the original '**Markdown**' (normal NotePlan) output style, shown here:
 
-![Example of 'Markdown' style of Project Lists](review-list-markdown-0.11@2x.png)
+![Example of 'Markdown' style of Project Lists](review-list-markdown-2.0.0.png)
 
 ### Project Lists: 2 styles of display
 The **Rich style** presents a list of all your matching projects, ordered and further filtered according to controls in the Filter & Order... dropdown: ![New Filter & Order options in a dropdown:](filter+order-v2.0b.png)
@@ -397,7 +396,7 @@ Note each date/interval is enclosed in a `@mention(...)`.
 Since then, frontmatter support has been added to NotePlan, and now **v2** of the plugin uses that instead. When you first run v2, it will offer to migrate the metadata in all project notes in a single operation. If you decline, then it will migrate the metadata on each individual note any time the metadata changes.
 
 ## Thanks
-Particular thanks to George C, 'John1' and David W for their suggestions and beta testing, plus others on the NotePlan Discord server.
+Particular thanks to @MC-1848, George C, @John1, @dwertheimer, @cbkadel and @Garba for their suggestions and beta testing, plus others on the NotePlan Discord server.
 
 ## Known issues
 Due to limitations in the NotePlan API for plugins:
@@ -407,7 +406,7 @@ Due to limitations in the NotePlan API for plugins:
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise an ['Issue' of a Bug or Feature Request](https://github.com/NotePlan/plugins/issues).
 
-I'm not part of the NotePlan team, but I've spent at least 3.5 working weeks on this particular plugin. If you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through
+I'm not part of the NotePlan team, but I've spent at least 5 working weeks on this particular plugin. If you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 

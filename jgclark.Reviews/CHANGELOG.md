@@ -1,9 +1,31 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
+<!--
+## v2.0.0 Summary - 2026-05-19
 
-## [2.0.0.b36] - 2026-05-19
-- fix: Markdown project lists now include cancelled projects (with `[-]` title prefix and cancelled date line) when **Show completed/cancelled projects?** is on — cached list rows with a `cancelled` frontmatter date but a stale `isCancelled` flag are recognised again
-- tweaks to Markdown style output
+### New features
+- **Modernised Rich project list** — denser layout with more metadata visible; status lozenges for review/due; optional multi-column layout; **Order by** control in the top bar (including sort by first project tag in your configured display order).
+- **Much faster generation** — uses caching between runs.
+- **Convert to project** — form-driven command to turn a regular note into a project (NotePlan v3.21+).
+- **Complete / cancel project workflow** — form for archive, quarterly/yearly log entry, and final progress comment.
+- **Add progress update** — single Command Bar Form step on newer NotePlan versions.
+- **Automatic Rich list refresh** — optional interval (minutes) to refresh the open Rich window.
+<!-- - **Progress reporting** — weekly per-folder CSVs use full folder paths and totals; optional heatmaps for notes progressed and tasks completed per week. -->
+- **Rich list interactions** — clickable next-action lines (open project note and highlight task where possible); project title links prefer an existing split view; scroll position kept on refresh.
+- **Dashboard integration** — respects Dashboard perspectives and folder filters; list stays in sync when completing tasks from Dashboard or when filters change.
+
+### Changed features
+- **Metadata model**: this now lives by default in the note's **Frontmatter**. So, the dates and tags are now separate keys (`start`, `due`, `reviewed`, `completed`, `cancelled`, `nextReview`). This allows for use in **folder views**. Plus a combined `project:` key for the project's tags.
+- **Migrate all projects** — batch migration command with log file for legacy metadata. Body metadata is migrated automatically when commands update a note.
+- **Review lifecycle** — finish review uses the focused editor; works when metadata is YAML-only; split-window and race-condition fixes for pause/complete/cancel.
+- **Next actions** — sequential projects skip future-dated tasks unless explicitly tagged as next action; completed/cancelled projects no longer show next actions in Rich or Markdown lists.
+- **Defaults & display** — **Group by folder** off by default; mention-string settings no longer include a leading `@`; paused projects shown with reduced opacity; demo list mode removed.
+- **Markdown project lists** — fully aligned with Rich list behaviour.
+- **Upgrade path** — on first run at v2.0.0, optional offer to migrate all project metadata, with instructions to run migration later if skipped.
+-->
+## [2.0.0.b36] - 2026-05-20
+- fix: Rich project list now shows a new progress comment immediately after adding one from the edit dialog
+- fixes and tweaks to Markdown style output
 - change: when it is looking for "next action" tasks to show, when using "sequential" logic it now skips future-dated tasks. However, if marking a task explicitly as a next action (using your specific `#na`) tag, it will still use it if future-dated.
 - change: project lists (Rich and Markdown) no longer show next actions for completed or cancelled projects (`Project` constructor skips gathering them).
 

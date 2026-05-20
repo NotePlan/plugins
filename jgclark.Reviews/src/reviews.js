@@ -37,9 +37,10 @@ import {
   getNextNoteToReview,
   getSpecificProjectFromList,
   generateAllProjectsList,
+  updateAllProjectsListAfterChange,
   updateProjectInAllProjectsList,
 } from './allProjectsListHelpers.js'
-import { clearNextReviewMetadataFields, Project } from './projectClass'
+import { Project } from './projectClass'
 import { calcReviewFieldsForProject } from './projectClassCalculations.js'
 import {
   buildProjectLineForStyle,
@@ -862,37 +863,10 @@ async function finishReviewCoreLogic(note: CoreNoteFields, scrollPos: number = 0
       DataStore.updateCache(note, true)
     }
 
-    // Then update the Project instance
-    logDebug('finishReviewCoreLogic', `- updating Project instance`)
-    // v1:
-    // const thisNoteAsProject = new Project(noteToUse)
-    // v2: Try to find this project in allProjects, and update that as well
-    let thisNoteAsProject: ?Project = await getSpecificProjectFromList(note.filename)
-    if (thisNoteAsProject) {
-      thisNoteAsProject.reviewedDate = moment().format('YYYY-MM-DD') // ISO date string (local timezone)
-      // Clear nextReviewDateStr so it recalculates from the new reviewedDate and reviewInterval
-      thisNoteAsProject.nextReviewDateStr = null
-      thisNoteAsProject = calcReviewFieldsForProject(thisNoteAsProject)
-      const nextReviewDays = thisNoteAsProject.nextReviewDays
-      if (nextReviewDays < 0) {
-        logWarn('finishReviewCoreLogic', `- project.nextReviewDays is still negative (${String(nextReviewDays)}). This should not happen.`)
-      } else {
-        logDebug('finishReviewCoreLogic', `- PI now shows next review due in ${String(thisNoteAsProject.nextReviewDays)} days (${String(thisNoteAsProject.nextReviewDateStr)})`)
-      }
-
-      // Clear next-review fields on the project list entry TEST:
-      clearNextReviewMetadataFields(thisNoteAsProject)
-
-      // Save changes to allProjects list
-      await updateProjectInAllProjectsList(thisNoteAsProject)
-      // Update display for user (if window is already open)
-      await renderProjectListsIfOpen(config, scrollPos)
-    } else {
-      // Regenerate whole list (and display if window is already open)
-      logInfo('finishReviewCoreLogic', `- In allProjects list couldn't find project '${note.filename}'. So regenerating whole list and will display if list is open.`)
-      // TODO: Split the following into just generate...(), and then move the renderProjectListsIfOpen() above to serve both if/else clauses
-      await generateProjectListsAndRenderIfOpen(scrollPos)
-    }
+    // Rebuild this project from the updated note so progress comments and other note changes
+    // are reflected in allProjectsList.json (patching the cached JSON row left lastProgressComment stale).
+    logDebug('finishReviewCoreLogic', `- updating Project instance from note`)
+    await updateAllProjectsListAfterChange(note.filename, false, config, scrollPos)
 
     // Ensure the Project List window (if open) no longer shows this project as being actively reviewed
     await clearProjectReviewingInHTML()

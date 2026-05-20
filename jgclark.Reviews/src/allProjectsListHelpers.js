@@ -566,10 +566,10 @@ export async function generateAllProjectsList(
 
     // Log the start this full generation to a special log note
     // TODO: Remove when v1.3.0 or v1.4.0 is released
-    if (configIn?._logLevel === 'DEBUG' || configIn?._logLevel === 'DEV') {
+    if (configIn?._logTimer === true || configIn?._logLevel === 'DEV') {
       const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
       if (logNote) {
-        const newLogLine = `${new Date().toLocaleString()}: Reviews (generateAllProjectsList) -> ${projectInstances.length} Project(s) generated, in ${timer(startTime)}`
+        const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Reviews: (generateAllProjectsList) -> ${projectInstances.length} Project(s) generated, in ${timer(startTime)}`
         smartPrependPara(logNote, newLogLine, 'list')
       }
     }

@@ -176,7 +176,7 @@ export async function getProjectReviewSectionData(config: TDashboardSettings, us
   if (config?.FFlag_ShowSectionTimings) {
     const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
     if (logNote) {
-      const newLogLine = `${new Date().toLocaleString()}: Dashboard -> ${nextProjectsToReview.length} Project(s) ready to Review, in ${timer(thisStartTime)}`
+      const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Dashboard: ${nextProjectsToReview.length} Project(s) ready to Review, in ${timer(thisStartTime)}`
       smartPrependPara(logNote, newLogLine, 'list')
     }
   }
@@ -282,7 +282,7 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
   if (config?.FFlag_ShowSectionTimings) {
     const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
     if (logNote) {
-      const newLogLine = `${new Date().toLocaleString()}: Dashboard -> ${allActiveProjects.length} Active Project(s), in ${timer(thisStartTime)}`
+      const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Dashboard: ${allActiveProjects.length} Active Project(s), in ${timer(thisStartTime)}`
       smartPrependPara(logNote, newLogLine, 'list')
     }
   }

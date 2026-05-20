@@ -330,7 +330,7 @@ input, label {
 /* allow multi-column flow: set max columns and min width, and some other bits and pieces */
 .multi-cols {
   column-count: 3; 
-  column-width: 30rem;
+  column-width: 40rem;
   column-gap: 0.3rem;
   column-rule: 1px dotted rgb(from var(--tint-color) r g b / 0.5);
 }

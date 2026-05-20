@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.com/plugins/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "2.0.0.b35",
+  "plugin.version": "2.0.0.b36",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "2.0.0: Significantly modernised layout for Rich project list.\nFrontmatter metadata support, including configurable combined key and migration from body.\n1.3.1: Fixed edge case with adding progress updates and frontmatter.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
   "plugin.script": "script.js",
@@ -367,26 +367,6 @@
     },
     {
       "type": "heading",
-      "title": "Calculating Progress"
-    },
-    {
-      "key": "ignoreChecklistsInProgress",
-      "title": "Ignore checklists in progress?",
-      "description": "If set, then checklists in progress will not be counted as part of the project's completion percentage.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "numberDaysForFutureToIgnore",
-      "title": "Ignore tasks set more than these days in the future",
-      "description": "If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 1 day: all items with future scheduled dates are ignored.)",
-      "type": "number",
-      "default": 1,
-      "required": true
-    },
-    {
-      "type": "heading",
       "title": "Display settings for 'project lists' command"
     },
     {
@@ -425,8 +405,8 @@
     },
     {
       "key": "folderToStore",
-      "title": "Folder to store markdown-style review notes",
-      "description": "Folder where review notes will be stored (will be created if necessary). Note: this only applies to the markdown-style review notes, not the HTML-style ones.",
+      "title": "Folder to store Markdown review notes",
+      "description": "Folder where review notes will be stored (will be created if necessary). Note: this only applies if using the Markdown style of output.",
       "type": "string",
       "default": "Reviews",
       "required": true
@@ -434,7 +414,7 @@
     {
       "key": "displayOrder",
       "title": "Project Display order",
-      "description": "Order projects by next review date, due date, title, or first project tag (primary hashtag) then review date.",
+      "description": "Order projects by next review date, due date, title, or first project tag (primary hashtag) then review date. Note: Can also be set in the window's Filter… menu.",
       "type": "string",
       "choices": [
         "due",
@@ -464,7 +444,7 @@
     {
       "key": "displayFinished",
       "title": "Show completed/cancelled projects?",
-      "description": "If set, then completed/cancelled projects will be shown at the end of the list of active projects.",
+      "description": "Whether to hide or show completed/cancelled projects. Note: Can also be set in the window's Filter… menu.",
       "type": "bool",
       "default": false,
       "required": true
@@ -472,7 +452,7 @@
     {
       "key": "displayOnlyDue",
       "title": "Only show projects/areas ready for review?",
-      "description": "If not ticked then it will show all project/area notes, not just ones ready for review. (Paused ones are always shown.)",
+      "description": "Whether to only show project/area notes that are ready for review. (Paused ones are always shown.) Note: Can also be set in the window's Filter… menu.",
       "type": "bool",
       "default": false,
       "required": true
@@ -496,7 +476,7 @@
     {
       "key": "displayNextActions",
       "title": "Display next actions in output?",
-      "description": "Whether to display the next action in the output? Note: these are defined as the first item with the following 'next action tags' (below), or the first open task/checklist if the 'Sequential tag' (below) is set.",
+      "description": "Whether to display the next action in the output? These are defined as the first item with the following 'next action tags' (below), or the first open task/checklist if the 'Sequential tag' (below) is set. Note: Can also be set in the window's Filter… menu.",
       "type": "bool",
       "default": true,
       "required": true
@@ -507,6 +487,26 @@
       "description": "If set to any number > 0, the Project List will automatically refresh when the window is idle for a certain number of minutes. Set to 0 to disable.\nNote: this only works for the 'Rich' style of list.",
       "type": "number",
       "default": 0,
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Calculating Progress"
+    },
+    {
+      "key": "ignoreChecklistsInProgress",
+      "title": "Ignore checklists in progress?",
+      "description": "If set, then checklists in progress will not be counted as part of the project's completion percentage.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "numberDaysForFutureToIgnore",
+      "title": "Ignore tasks set more than these days in the future",
+      "description": "If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 1 day: all items with future scheduled dates are ignored.)",
+      "type": "number",
+      "default": 1,
       "required": true
     },
     {
