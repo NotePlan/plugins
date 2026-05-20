@@ -7,8 +7,7 @@
 
 import pluginJson from "../plugin.json"
 import { getRepeatSettings, RE_CANCELLED_TASK, RE_EXTENDED_REPEAT, type RepeatConfig } from './repeatHelpers'
-import { generateRepeats } from "./repeatMain"
-import { generateRepeatForCancelledPara } from './repeatPara'
+import { generateRepeatForCancelledPara, generateRepeatForPara } from './repeatPara'
 import { RE_DONE_DATE_TIME } from "@helpers/dateTime"
 import { logDebug, logError } from "@helpers/dev"
 import { makeBasicParasFromContent, selectedLinesIndex } from "@helpers/NPParagraph"
@@ -54,8 +53,22 @@ export async function onEditorWillSave(): Promise<void> {
       if (changedExtent.match(RE_EXTENDED_REPEAT)) {
         // Future improvement: run this check in the same per-line loop used below.
         if (changedExtent.match(RE_DONE_DATE_TIME)) {
-          logDebug('repeatExtensions/onEditorWillSave', `Found @done(...) so will call generatedRepeats() ...`)
-          await generateRepeats(true) // Future improvement: call generateRepeatForPara directly where possible.
+          for (let i = startParaIndex; i <= endParaIndex; i++) {
+            const origPara = Editor.paragraphs[i]
+            if (!origPara || typeof origPara.content !== 'string') {
+              continue
+            }
+            const content = origPara.content
+            if (RE_EXTENDED_REPEAT.test(content) && RE_DONE_DATE_TIME.test(content)) {
+              logDebug('repeatExtensions/onEditorWillSave', `Found @done(...) at line ${String(i)}; calling generateRepeatForPara() (skipEditorSave)`)
+              const newPara = await generateRepeatForPara(origPara, Editor, config, true, true)
+              if (newPara) {
+                logDebug('repeatExtensions/onEditorWillSave', `New repeat generated: {${newPara.content}} at line ${String(i)}`)
+              } else {
+                throw new Error(`No new repeat generated from completed task at line ${String(i)}`)
+              }
+            }
+          }
         }
 
         // For cancelled tasks, check line-by-line against previous content.

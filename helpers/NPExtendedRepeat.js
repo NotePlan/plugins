@@ -146,12 +146,14 @@ export function generateNewRepeatDate(noteToUse: CoreNoteFields, currentContent:
 /**
  * Generate a repeat task for a single paragraph that contains a completed task with extended @repeat(interval) tag.
  * @param {boolean} allowedToUseEditor - If false, never use Editor.* funcs (e.g. Tidy onAsyncThread).
+ * @param {boolean} skipEditorSave - If true, never call Editor.save() (e.g. onEditorWillSave trigger, where a mid-flow save can persist @done stripping but drop the new repeat line).
  */
 export async function generateRepeatForPara(
   origPara: TParagraph,
   origNote: CoreNoteFields,
   config: RepeatConfig,
   allowedToUseEditor: boolean = true,
+  skipEditorSave: boolean = false,
 ): Promise<TParagraph | null> {
   try {
     if (!origPara) {
@@ -199,7 +201,6 @@ export async function generateRepeatForPara(
     if (noteIsOpenInEditor) {
       Editor.updateParagraph(origPara)
       logDebug('generateRepeatForPara', `- after change origPara.content in Editor: "${origPara.content}"`)
-      await saveEditorIfNecessary()
     } else {
       origNote.updateParagraph(origPara)
     }
@@ -290,6 +291,10 @@ export async function generateRepeatForPara(
       } else {
         origNote.updateParagraph(origPara)
       }
+    }
+
+    if (noteIsOpenInEditor && !skipEditorSave) {
+      await saveEditorIfNecessary()
     }
 
     return newPara
