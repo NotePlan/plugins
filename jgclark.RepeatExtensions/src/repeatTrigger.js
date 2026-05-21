@@ -7,14 +7,15 @@
 
 import pluginJson from "../plugin.json"
 import { getRepeatSettings, RE_CANCELLED_TASK, RE_EXTENDED_REPEAT, type RepeatConfig } from './repeatHelpers'
+import { recordRepeatHeading, runTaskSorterAfterRepeats } from './repeatMain'
 import { generateRepeatForCancelledPara, generateRepeatForPara } from './repeatPara'
 import { RE_DONE_DATE_TIME } from "@helpers/dateTime"
-import { logDebug, logError } from "@helpers/dev"
+import { logDebug, logError, logInfo } from "@helpers/dev"
 import { makeBasicParasFromContent, selectedLinesIndex } from "@helpers/NPParagraph"
 
 /**
  * Respond to onEditorWillSave trigger for the currently open note. 
- * Will fire generateRepeats() if the a changed text region includes @repeat(...) with extended interval syntax, and:
+ * Will generate repeats (and run task sorter when configured) if a changed text region includes @repeat(...) with extended interval syntax, and:
  * - either @done(...) with a datetime tag
  * - or a newly cancelled task.
  */
@@ -51,7 +52,10 @@ export async function onEditorWillSave(): Promise<void> {
       logDebug('repeatExtensions/onEditorWillSave', `startParaIndex: ${String(startParaIndex)} / endParaIndex: ${String(endParaIndex)} / changedExtent: ${changedExtent}`)
 
       if (changedExtent.match(RE_EXTENDED_REPEAT)) {
-        // Future improvement: run this check in the same per-line loop used below.
+        let repeatCount = 0
+        let lastHeading = ''
+        const headingList: Array<string> = []
+
         if (changedExtent.match(RE_DONE_DATE_TIME)) {
           for (let i = startParaIndex; i <= endParaIndex; i++) {
             const origPara = Editor.paragraphs[i]
@@ -63,6 +67,10 @@ export async function onEditorWillSave(): Promise<void> {
               logDebug('repeatExtensions/onEditorWillSave', `Found @done(...) at line ${String(i)}; calling generateRepeatForPara() (skipEditorSave)`)
               const newPara = await generateRepeatForPara(origPara, Editor, config, true, true)
               if (newPara) {
+                repeatCount++
+                if (config.runTaskSorter) {
+                  lastHeading = recordRepeatHeading(headingList, lastHeading, Editor, origPara)
+                }
                 logDebug('repeatExtensions/onEditorWillSave', `New repeat generated: {${newPara.content}} at line ${String(i)}`)
               } else {
                 throw new Error(`No new repeat generated from completed task at line ${String(i)}`)
@@ -88,14 +96,28 @@ export async function onEditorWillSave(): Promise<void> {
             const prevIsCancelled = prevPara.type === 'cancelled' || prevPara.type === 'checklistCancelled' || RE_CANCELLED_TASK.test(prevPara.rawContent)
             if (latestIsCancelled && !prevIsCancelled && latestPara.content.match(RE_EXTENDED_REPEAT)) {
               logDebug('repeatExtensions/onEditorWillSave', `Found newly cancelled extended repeat at line ${String(i)} so will call generateRepeatForCancelledPara() ...`)
-              const newPara = await generateRepeatForCancelledPara(Editor.paragraphs[i], noteReadOnly, true)
+              const origPara = Editor.paragraphs[i]
+              const newPara = await generateRepeatForCancelledPara(origPara, noteReadOnly, true)
               if (newPara) {
+                repeatCount++
+                if (config.runTaskSorter) {
+                  lastHeading = recordRepeatHeading(headingList, lastHeading, Editor, origPara)
+                }
                 logDebug('repeatExtensions/onEditorWillSave', `New repeat generated: {${newPara.content}} at line ${String(i)}`)
               } else {
                 throw new Error(`No new repeat generated from cancelled task at line ${String(i)}`)
               }
             }
           }
+        }
+
+        if (repeatCount > 0) {
+          logInfo(
+            'repeatExtensions/onEditorWillSave',
+            `Generated ${String(repeatCount)} repeat(s); runTaskSorter=${String(config.runTaskSorter)} headings=[${headingList.join(', ')}]`,
+          )
+          // Defer: sortTasksUnderHeading calls Editor.save() at start; must not run mid-onEditorWillSave.
+          await runTaskSorterAfterRepeats(headingList, Editor, config, true)
         }
       }
     } else {

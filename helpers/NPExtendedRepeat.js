@@ -220,18 +220,31 @@ export async function generateRepeatForPara(
     newRepeatContent = textWithoutSyncedCopyTag(newRepeatContent).trim()
     logDebug('generateRepeatForPara', `- newRepeatContent: "${newRepeatContent}"`)
 
-    if (syncCopiesInRegularNotes.length > 0) {
+    const insertInOpenEditor =
+      noteIsOpenInEditor &&
+      typeof Editor !== 'undefined' &&
+      Editor != null &&
+      Editor.filename != null &&
+      origNote.filename === Editor.filename
+
+    if (syncCopiesInRegularNotes.length > 0 && !insertInOpenEditor) {
       const syncSourceNote: ?TNote = syncCopiesInRegularNotes[0]?.note
       if (syncSourceNote == null) {
         throw new Error(`generateRepeatForPara: Cannot get syncSourceNote for origPara: "${origPara.content}" in ${origNote.filename}`)
       }
+      const syncCopyPara = syncCopiesInRegularNotes[0]
       logDebug('generateRepeatForPara', `- adding repeat to regular note where origPara is synced (${syncSourceNote.filename})`)
       newRepeatContent += ` >${newRepeatDateStr}`
-      await syncSourceNote.insertParagraphBeforeParagraph(newRepeatContent, syncCopiesInRegularNotes[0], 'open')
-      newPara = syncSourceNote.paragraphs[newParaLineIndex]
+      await syncSourceNote.insertParagraphBeforeParagraph(newRepeatContent, syncCopyPara, 'open')
+      const syncNewLineIndex = syncCopyPara.lineIndex
+      newPara = syncSourceNote.paragraphs[syncNewLineIndex]
       noteContainingNewPara = syncSourceNote
     } else if (origNote.type === 'Notes') {
-      logDebug('generateRepeatForPara', `- adding repeat to regular note ${origNote.filename}`)
+      if (syncCopiesInRegularNotes.length > 0) {
+        logDebug('generateRepeatForPara', `- adding repeat in open Editor for synced block in ${origNote.filename}`)
+      } else {
+        logDebug('generateRepeatForPara', `- adding repeat to regular note ${origNote.filename}`)
+      }
       newRepeatContent += ` >${newRepeatDateStr}`
       if (noteIsOpenInEditor) {
         noteContainingNewPara = Editor
@@ -293,7 +306,15 @@ export async function generateRepeatForPara(
       }
     }
 
-    if (noteIsOpenInEditor && !skipEditorSave) {
+    const newParaInOpenEditor =
+      noteIsOpenInEditor &&
+      noteContainingNewPara != null &&
+      typeof Editor !== 'undefined' &&
+      Editor != null &&
+      Editor.filename != null &&
+      (noteContainingNewPara === Editor || noteContainingNewPara.filename === Editor.filename)
+
+    if (newParaInOpenEditor && !skipEditorSave) {
       await saveEditorIfNecessary()
     }
 

@@ -15,16 +15,12 @@ See below for more details.
 
 Compared with the built-in functionality, it also allows you to easily change the text of an existing repeated task, which otherwise means visiting all the future notes with repeats.
 
-## Configuration
-For this feature to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**, and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed.
+### Task sorting and section headings
 
-Note: because NotePlan never appends the completion date to completed **checklists**, this plugin cannot be used to generate repeats from checklists.
+It also gives you the option of (re)sorting the tasks in a section after new repeat(s) have been generated. This is helpful if you want tasks in date order.  It will only runs when the completed repeat _sits under a sectoin heading_ (`## …` or `### …`, etc.) in the note. The plugin finds that heading from the line above the task.
 
-There are some settings in the Plugin Settings pane for this plugin:
-- 'Delete completed item?', which deletes the completed repeated item (on either done or cancelled tasks).
-- Don't look for repeats in Done or Archive note sections? If set, it will not look for repeats in the ## Done or ## Archive sections of notes.
-- Allow repeats in cancelled paragraphs? If set, it will generate a new repeat when a task with `@repeat(...)` is newly changed to cancelled (`[-]`) in a note that has the save trigger enabled.
-- Run Task Sorter after changes? If turned on, it will run the '/Tasks Sort by User Default' command (from 'Task Sorting & Tools' plugin) on the section that includes the new repeat, using the user's default sort order (set in that plugin's settings).
+When using the `onEditWillSave trigger`, sorting kicks in 50ms after the new repeat is generated, to avoid race conditions in the Editor.
+
 
 ## Running it Automatically
 The plugin can **automatically generate** the new repeated task immediately after you complete an existing one. Here's an example where it will repeat 6 weeks after completion:
@@ -71,6 +67,17 @@ You can specify scheduled dates to all the other calendar note types supported b
 - yearly (e.g. `>2023`)
 
 The resulting repeat lines will also be specified using that same note type, and will write to the appropriate new calendar note (unless it came from a project note, in which case it will stay in the same project note).
+
+## Configuration
+For Repeat Extensions plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**, and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed.
+
+Note: because NotePlan never appends the completion date to **completed checklists** or **cancelled tasks**, this plugin unfortunately cannot be used to generate repeats from checklists. (Though if you use the trigger, it then does have enough data to pick up cancelled tasks.)
+
+There are some settings in the Plugin Settings pane for this plugin:
+- 'Delete completed item?', which deletes the completed repeated item (on either done or cancelled tasks).
+- Don't look for repeats in Done or Archive note sections? If set, it will not look for repeats in the ## Done or ## Archive sections of notes.
+- Allow repeats in cancelled paragraphs? If set, it will generate a new repeat when a task with `@repeat(...)` is newly changed to cancelled (`[-]`) in a note that has the save trigger enabled.
+- Run Task Sorter after changes? If turned on, it will run the Task Sorting plugin on the section that includes the new repeat, using the sort order from the 'Order for Task Sorting' setting above (or Task Sorting defaults). Requires the [Task Sorting & Tools](https://noteplan.co/plugins/dwertheimer.TaskSorting/) plugin to be installed.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).
