@@ -30,6 +30,15 @@ CRITICAL: Never use dynamic imports. Rollup will not process them correctly. Alw
 - If you are rewriting a full file, make sure to include all import statements also. 
 - Do not remove any console.logs or comments (or clo, logDebug, logWarn, logInfo, logError statements).
 
+## Plugin settings lookup (runtime)
+
+When unsure what a particular plugin setting is or what values the user has configured, read the live `settings.json` from NotePlan's plugin data directory:
+
+- Base path: `/Users/jonathan/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins/data/`
+- Full path: `{base}/{plugin.id}/settings.json` (e.g. `.../data/jgclark.RepeatExtensions/settings.json`)
+
+Use `plugin.id` from the relevant `plugin.json` (not the folder name under the repo if they differ).
+
 ## Common Helper Functions
 The most frequently used functions in the codebase are:
 - Logging: logDebug, logError, clo, logInfo, logWarn
