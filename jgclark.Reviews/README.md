@@ -3,18 +3,15 @@ Unlike most task or project management apps, NotePlan has very little enforced s
 
 This plugin lets you easily a single list of active **Projects**, and their progress towards completion. It helps regularly **review** Project notes -- an approach that will be familiar to people who use David Allen's **Getting Things Done** methodology, or any other where **regular reviews** are important.
 
-- [Walk-through of Project + Reviews Plugin v2](https://youtu.be/EOuOHk4f2d8) by the plugin author.
-
-  [![thumbnail](P+R-v2-walkthrough-thumbnail.jpg)](https://youtu.be/EOuOHk4f2d8)
+See the [Walk-through of Project + Reviews Plugin v2](https://youtu.be/EOuOHk4f2d8) by the plugin author @jgclark:
+  [<img width="450px" alt="Walk-through of Project + Reviews Plugin v2" src="P+R-v2-walkthrough-thumbnail.jpg">](https://youtu.be/EOuOHk4f2d8")
 
 ## Overview
 The **/project lists** command shows the Project Review List screen, showing the projects due for review from various different NotePlan folders:
-
-![Project Lists (v2): example in 'Rich' style](review-list-rich-2.0.0.png)
+  ![Project Lists (v2): example in 'Rich' style](review-list-rich-2.0.0.png)
 
 Each Project row show the following details:
-
-![Each Project row show the following details:](project-detail-numbered.png)
+  ![Each Project row show the following details:](project-detail-numbered.png)
 1. Title, with its icon
 2. Edit button, brings up edit dialog
 3. Any hashtags defined on the project
@@ -26,18 +23,11 @@ Each Project row show the following details:
 9. Any 'next action' on the project
 
 
-
-- [Inside Look: How George, CMO of Verge.io, Uses NotePlan for Effective Project Management](https://www.youtube.com/watch?v=J-FlyffE9iA) featuring a rather earlier version of this plugin and my Dashboard plugin.
-
-  [![thumbnail](effective-PM-with-George-thumbnail.jpg)](https://www.youtube.com/watch?v=J-FlyffE9iA)
-
-You might also like:
-- [my description of using PARA in NotePlan at scale](https://noteplan.co/n/BCC8CAFA-273F-4513-9A88-53CA811F3C8D)
-- [Antony's description of his process which includes this and other plugins](https://noteplan.co/n/381AC6DF-FB8F-49A5-AF8D-1B43B3092922).
-
 ## Using NotePlan for Projects (or Project-like work)
 
-Each **Project** is described by a separate note. If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.
+Each **Project** is described by a separate note. If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes. In more detail:
+
+  ![Project-like activities](project-like-activities-600w.jpg)
 
 Each such project/area note contains some **metadata** fields including a hashtag (e.g. `#project`), a `review: <interval>`, and a number of optional dates. For example:
 
@@ -134,6 +124,14 @@ You can therefore:
 The first hashtag in the note defines its type, so as well as `#project`, `#area` you could have a `#goal` or whatever makes most sense for you. 
 -->
 
+### You might also like ...
+- [my description of using PARA in NotePlan at scale](https://noteplan.co/n/BCC8CAFA-273F-4513-9A88-53CA811F3C8D)
+- [Antony's description of his process which includes this and other plugins](https://noteplan.co/n/381AC6DF-FB8F-49A5-AF8D-1B43B3092922).
+<!-- - [Antony's separate 'Roadmap' plugin](https://github.com/asktru/noteplan-roadmap) which extends the ideas here to allow basic Gantt-style project management across multiple sub-projects -->
+- [Inside Look: How George, CMO of Verge.io, Uses NotePlan for Effective Project Management](https://www.youtube.com/watch?v=J-FlyffE9iA) featuring a rather earlier version of this plugin and my Dashboard plugin.
+
+  [![thumbnail](effective-PM-with-George-thumbnail.jpg)](https://www.youtube.com/watch?v=J-FlyffE9iA)
+
 ## Selecting notes to include
 There are 2 parts of this:
 1. Use the '**Hashtags to review**' setting to control which notes are included in the review lists. If it is set (e.g. `#project, #area, #goal`), then it will include just those notes which also have one or more of those tags. If this setting is empty, then it will include all notes for review that include `review: <interval>` metadata.
@@ -158,7 +156,9 @@ Or you can use '**Output style to use**' setting to the original '**Markdown**' 
 ![Example of 'Markdown' style of Project Lists](review-list-markdown-2.0.0.png)
 
 ### Project Lists: 2 styles of display
-The **Rich style** presents a list of all your matching projects, ordered and further filtered according to controls in the Filter & Order... dropdown: ![New Filter & Order options in a dropdown:](filter+order-v2.0b.png)
+The **Rich style** presents a list of all your matching projects, ordered and further filtered according to controls in the Filter & Order... dropdown:
+
+![New Filter & Order options in a dropdown:](filter+order-v2.0b.png)
 
 There's a top bar that 'sticks' to the top of the window as you scroll the list. It grows/shrinks depending how wide the window is. It includes a Refresh button, and at the right end are buttons to control running Reviews:
 
@@ -295,6 +295,16 @@ The fields on the form are:
 - **Aim** (optional) — if you enter text, it is written to an `aim:` frontmatter field.
 - **Treat project as sequential?** (optional checkbox) — only shown if your **Sequential project marker** setting is non-empty. If you turn it on, that marker (default `#sequential`) is added to the `project:` metadata field so the first open task/checklist is treated as the next action, as described [above](#capturing-and-displaying-next-actions).
 
+### "/migrate all projects" command
+(New for v2.) This runs a **batch metadata migration** on every project note that matches your current set of relevant project-like notes. This is the same command that was offered for you to use when upgrading from v1.x to v2.0.
+
+When the command finishes, a dialog reports how many notes **actually** had a successful metadata migration (`ok` in the log), how many had migration issues logged, how many needed no migration, and how many failed in the constructor.
+
+**Migration log (`migration_log.tsv`):** Rows are appended to `NotePlan/Plugins/Data/jgclark.Reviews/migration_log.tsv` (same folder as `allProjectsList.json`). Columns are **`filename`**, **`title`**, **`date`** (ISO timestamp when the row was written), and **`detail`** (`ok` or an error message). The file is append-only.
+
+- **During `/migrate all projects`:** you get **at most one row per project note/tag pair** in that run. A row is written only when a migration step actually changed the note (or reported an error), or when the `Project` constructor throws — **notes that needed no migration do not get a log row.** Nested migration steps still do not add extra or duplicate rows.
+- **During normal plugin use** (e.g. opening a project or finishing a review when body metadata is merged into frontmatter), a row is written when that migration runs, independently of the batch command.
+
 ### "/weeklyProjectsProgress" command
 This scans your Area/Project folders and writes two CSV files into the plugin's hidden data folder (`NotePlan/Plugins/Data/jgclark.Reviews/`):
 
@@ -308,16 +318,6 @@ This first runs the same scan as `/weeklyProjectsProgress` (so the CSVs are kept
 - tasks completed per week per folder of notes
 
 For those with lots of different projects or project groups, this is a handy way of seeing over time which of them are getting more or less attention.
-
-### "/migrate all projects" command
-(New for v2.) This runs a **batch metadata migration** on every project note that matches your current set of relevant project-like notes. This is the same command that was offered for you to use when upgrading from v1.x to v2.0.
-
-When the command finishes, a dialog reports how many notes **actually** had a successful metadata migration (`ok` in the log), how many had migration issues logged, how many needed no migration, and how many failed in the constructor.
-
-**Migration log (`migration_log.tsv`):** Rows are appended to `NotePlan/Plugins/Data/jgclark.Reviews/migration_log.tsv` (same folder as `allProjectsList.json`). Columns are **`filename`**, **`title`**, **`date`** (ISO timestamp when the row was written), and **`detail`** (`ok` or an error message). The file is append-only.
-
-- **During `/migrate all projects`:** you get **at most one row per project note/tag pair** in that run. A row is written only when a migration step actually changed the note (or reported an error), or when the `Project` constructor throws — **notes that needed no migration do not get a log row.** Nested migration steps still do not add extra or duplicate rows.
-- **During normal plugin use** (e.g. opening a project or finishing a review when body metadata is merged into frontmatter), a row is written when that migration runs, independently of the batch command.
 
 
 ## Capturing and Displaying 'Next Actions'

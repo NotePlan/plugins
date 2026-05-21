@@ -1,9 +1,9 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
-<!--
-## v2.0.0 Summary - 2026-05-19
 
-### New features
+## [2.0.0] - 2026-05-20
+
+### Summary of New features
 - **Modernised Rich project list** — denser layout with more metadata visible; status lozenges for review/due; optional multi-column layout; **Order by** control in the top bar (including sort by first project tag in your configured display order).
 - **Much faster generation** — uses caching between runs.
 - **Convert to project** — form-driven command to turn a regular note into a project (NotePlan v3.21+).
@@ -22,7 +22,7 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 - **Defaults & display** — **Group by folder** off by default; mention-string settings no longer include a leading `@`; paused projects shown with reduced opacity; demo list mode removed.
 - **Markdown project lists** — fully aligned with Rich list behaviour.
 - **Upgrade path** — on first run at v2.0.0, optional offer to migrate all project metadata, with instructions to run migration later if skipped.
--->
+<!--
 ## [2.0.0.b36] - 2026-05-20
 - fix: Rich project list now shows a new progress comment immediately after adding one from the edit dialog
 - fixes and tweaks to Markdown style output
