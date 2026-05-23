@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-05-18 for v2.4.0.b35 by @jgclark + @CursorAI
+// Last updated 2026-05-23 for v2.4.0.b43 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -57,7 +57,7 @@ import {
 import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickHandlers'
 import { scheduleAllOverdueOpenToToday, scheduleTodayToTomorrow, scheduleYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
-import { findSectionItems, getDashboardSettings, getListOfEnabledSections, setPluginData } from './dashboardHelpers'
+import { findSectionItems, getDashboardSettings, getListOfEnabledSections, removeStaleTagSections, setPluginData } from './dashboardHelpers'
 import { loadDashboardPluginSettings } from './dashboardPluginSettings'
 import { copyUpdatedSectionItemData } from './dataGeneration'
 import { externallyStartSearch } from './dataGenerationSearch'
@@ -682,7 +682,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     if (actionsOnSuccess.includes('CLOSE_UNNEEDED_SECTIONS')) {
       // Identify which sections to close (only rows present in plugin JSON; synthetic sections e.g. WINS are injected in React only)
       const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-      const sections = reactWindowData.pluginData.sections
+      let sections = reactWindowData.pluginData.sections
 
       // WebView snapshot can lag behind settings just saved to disk; merge dashboard settings from source of truth
       // so client-only sections (e.g. WINS from `winsPriorityMarker`) update on the same `UPDATE_DATA` as section splices.
@@ -697,6 +697,8 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
           ? { perspectiveSettings: persistedPerspectiveSettings }
           : {}),
       }
+      sections = removeStaleTagSections(sections, config)
+      reactWindowData.pluginData.sections = sections
       // `getListOfEnabledSections` omits synthetic WINS (generated in React); include it here when Wins is on so logs / client-only notes stay accurate
       const enabledForClose: Array<TSectionCode> = [...enabledSections]
       if (config.showWinsSection !== false && !enabledForClose.includes('WINS')) {

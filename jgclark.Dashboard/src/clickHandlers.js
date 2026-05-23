@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-05-13 for v2.4.0.b33, @jgclark + @CursorAI
+// Last updated 2026-05-23 for v2.4.0.b43, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -22,6 +22,7 @@ import {
   makeDashboardParas,
   setPluginData,
 } from './dashboardHelpers'
+import { removeInvalidTagSections } from './dashboardSettingsClean'
 import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } from './perspectiveSettingsOnDashboardSave'
 import { validateAndFlattenMessageObject } from './shared'
@@ -688,7 +689,9 @@ export async function doSaveDashboardSettingsFromBridge(data: MessageDataObject,
     const pluginSettingsBeforeSave = await loadDashboardPluginSettings()
     // Deep snapshot before save: `saveSettings` / shared caches may mutate `pluginSettingsBeforeSave.dashboardSettings` in place, which made `compareObjects(prevMerged, nextMerged)` falsely empty (e.g. `winsPriorityMarker` >> !!!)
     const priorDashboardSettingsSnapshot: { [string]: any } = cloneDashboardSettingsBeforeSave(pluginSettingsBeforeSave?.dashboardSettings)
-    const settingsToSave = isDashboardSettings ? normalizedDashboardSettings : settingsFromBridge
+    const settingsToSave = isDashboardSettings
+      ? removeInvalidTagSections({ ...getDashboardSettingsDefaults(), ...normalizedDashboardSettings })
+      : settingsFromBridge
     const pluginSettingsToWrite = { ...pluginSettingsBeforeSave, [settingName]: settingsToSave }
 
     if (perspectivesToSave && Array.isArray(perspectivesToSave)) {

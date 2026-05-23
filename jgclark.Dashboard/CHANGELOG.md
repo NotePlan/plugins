@@ -9,15 +9,19 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b43] 2026-05-23
+- dev: improvements to **Diagnostics note** — title as H1 after frontmatter; 🔄 Refresh pseudo-button at top; new Tag/Mention Cache section (settings, definitions, cache stats) before Current Perspective.
+- fix: **Stale tag sections after changing `tagsToShow`** — refresh and `CLOSE_UNNEEDED_SECTIONS` no longer keep old TAG rows (e.g. `@father` after switching a perspective to `@friend`); Save Perspective now syncs live dashboard settings to disk and triggers section cleanup/refresh. (Thanks, @Ryan.)
+
 ## [2.4.0.b42] 2026-05-23
 - dev: **Perspective settings cleaning** — `cleanDashboardSettingsInAPerspective()` runs once per perspective def on save/repair (`saveDashboardPluginSettings`); removed redundant pre-save cleans in save/switch handlers. `switchToPerspective` returns sanitized defs from cache after save so React matches disk.
 
 ## [2.4.0.b41] 2026-05-23
 - dev: fix: **Spaces to Include setting** — when no Team Spaces are enabled, Settings no longer logs repeated `MultiSelectSpaces :: No teamspaces available` errors or hides the field; shows "You are not a member of any Spaces." instead (Private space remains the implicit default).
-- fix: **Timeblock must-contain preference (emoji marker)** — React item rendering no longer calls `DataStore.preference('timeblockTextMustContainString')` from the WebView (which returned a non-JSON-serializable bridged String and could halt Dashboard load). Plugin reads the preference once via `getPlainPreferenceString()` and passes it through `notePlanSettings`; `isTimeBlockLine()` only reads the preference when the arg is omitted, not when `''` is passed explicitly. (@dbw)
+- fix: **Timeblock must-contain preference (emoji marker)** — React item rendering no longer calls `DataStore.preference('timeblockTextMustContainString')` from the WebView (which returned a non-JSON-serializable bridged String and could halt Dashboard load). Plugin reads the preference once via `getPlainPreferenceString()` and passes it through `notePlanSettings`; `isTimeBlockLine()` only reads the preference when the arg is omitted, not when `''` is passed explicitly. (Thanks, @dwertheimer for the PR.)
 
 ## [2.4.0.b40] 2026-05-23
-- fix: **Modified perspective asterisk** — toggling section visibility (e.g. `showQuarterSection`) on a named perspective sets `isModified` again; `CLOSE_UNNEEDED_SECTIONS` no longer overwrites `perspectiveSettings` from a stale WebView snapshot. Shared `isNamedPerspectiveModified()` drives the `*` label, **Save Perspective**, and `doSavePerspective` when live settings differ from the saved def (not only the `isModified` flag). After switching perspectives, `*` uses a `dashboardSettingsBaseline` snapshot so merge carryover from the previous perspective does not show as modified when `isModified` is false on disk. **Save Perspective** uses `forSave` (live-vs-def OR live-vs-baseline), WebView `dashboardSettings`, and optional `settings` from React so save is not blocked when carryover matches baseline but the saved def is still stale.
+- fix: **Modified perspective asterisk** — toggling section visibility (e.g. `showQuarterSection`) on a named perspective sets `isModified` again; `CLOSE_UNNEEDED_SECTIONS` no longer overwrites `perspectiveSettings` from a stale WebView snapshot. Shared `isNamedPerspectiveModified()` drives the `*` label, **Save Perspective**, and `doSavePerspective` when live settings differ from the saved def (not only the `isModified` flag). After switching perspectives, `*` uses a `dashboardSettingsBaseline` snapshot so merge carryover from the previous perspective does not show as modified when `isModified` is false on disk. **Save Perspective** uses `forSave` (live-vs-def OR live-vs-baseline), WebView `dashboardSettings`, and optional `settings` from React so save is not blocked when carryover matches baseline but the saved def is still stale. (Thanks, @Ryan for help debugging this.)
 
 ## Summary from [2.4.0.b19] (through [2.4.0.b39])
 ### New

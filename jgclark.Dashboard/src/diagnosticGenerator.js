@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate diagnostics file for Dashboard plugin to help with debugging
-// Last updated 2026-05-16 for v2.4.0
+// Last updated 2026-05-23 for v2.4.0.b43 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -13,7 +13,7 @@ import {
 } from './dashboardHelpers'
 import { logPerspectives, logPerspectiveNames, getActivePerspectiveName, loadPerspectiveDefsFromPluginSettings } from './perspectiveHelpers'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
-import { getTagMentionCacheSummary } from './tagMentionCache'
+import { getTagMentionCacheDiagnosticsLines } from './tagMentionCache'
 import type { TPerspectiveDef } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink } from '@helpers/general'
@@ -28,8 +28,10 @@ const diagnosticsNoteTitle = 'Diagnostics for Dashboard'
 /**
  * Generate a list of all the main settings in the Dashboard plugin for the current user to help with debugging.
  * Write out to a file in the user's plugin folder.
+ * @param {string} refreshArg - pass 'refresh' from the in-note pseudo-button to skip the open-note prompt
  */
-export async function generateDiagnosticsFile() {
+export async function generateDiagnosticsFile(refreshArg: string = '') {
+  const isInNoteRefresh = refreshArg === 'refresh'
   try {
     // do counts
     const calNotesCount = DataStore.calendarNotes.length // count all types of calendar notes
@@ -58,6 +60,12 @@ export async function generateDiagnosticsFile() {
     output.push('icon-style: solid')
     output.push('icon-color: blue-400')
     output.push('---')
+    output.push('')
+    output.push(`# ${diagnosticsNoteTitle}`)
+    const refreshButton = createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Dashboard', 'Generate Diagnostics file', ['refresh'])
+    output.push(`Last generated ${moment().format('YYYY-MM-DD HH:mm:ss')}. ${refreshButton}`)
+    output.push('')
+    output.push('## Environment')
     output.push(`- NP v${NotePlan.environment.version} build ${NotePlan.environment.buildVersion} running on ${NotePlan.environment.platform} ${NotePlan.environment.osVersion ?? ''}`)
     output.push(`- Screen dimensions: ${String(NotePlan.environment.screenWidth)}w x ${String(NotePlan.environment.screenHeight)}h`)
     output.push(`- Plugin '${pluginJson['plugin.name']}' v${pluginJson['plugin.version']}`)
@@ -69,10 +77,6 @@ export async function generateDiagnosticsFile() {
     output.push(`- + 📋 Templates: ${templatesCount.toLocaleString()}`)
     output.push(`- + 📔 Archived notes: ${archivedCount.toLocaleString()}`)
     output.push(`- ${foldersCount.toLocaleString()} Folders: [${DataStore.folders.map((f) => getFolderDisplayName(f)).join(', ')}]`)
-    if (ds.FFlag_UseTagCache) {
-      output.push('')
-      output.push(getTagMentionCacheSummary())
-    }
     output.push('')
     output.push('## Current NotePlan settings for Dashboard')
     output.push('```json')
@@ -84,22 +88,28 @@ export async function generateDiagnosticsFile() {
     output.push(JSON.stringify(ds, null, 2))
     output.push('```')
     output.push('')
-    output.push(`### Current Perspective = ${getActivePerspectiveName(perspectiveDefs)}`)
+    output.push('## Tag/Mention Cache')
+    output.push(...getTagMentionCacheDiagnosticsLines(ds))
+    output.push('')
+    output.push(`## Perspectives`)
+    output.push(`Current Perspective = **${getActivePerspectiveName(perspectiveDefs)}**`)
     output.push(`- Enabled sections: ${String(getListOfEnabledSections(ds)) || 'none?'}`)
     output.push(`- Allowed folders: [${String(getCurrentlyAllowedFolders(ds))}]`)
     output.push('')
     output.push('### Perspectives: short list')
     for (const thisP of perspectiveDefs) {
-      output.push(` - ${thisP.name}${thisP.isModified ? ' (modified)' : ''}${thisP.isActive ? ' <isActive>' : ''}`)
+      output.push(` - ${thisP.name}${thisP.isModified ? ' _(isModified)_' : ''}${thisP.isActive ? ' **<isActive>**' : ''}`)
     }
     output.push('')
-    output.push('### Perspectives: full settings')
+    output.push('### Perspectives: full settings …')
     output.push('```json')
     output.push(JSON.stringify(perspectiveDefs, null, 2))
     output.push('```')
     output.push('')
+    output.push('### Tools')
+    output.push('')
     output.push(
-      `(If settings.json looks corrupt: ${createPrettyRunPluginLink('Repair Dashboard settings file', 'jgclark.Dashboard', 'repairDashboardSettings')})`,
+      `If settings.json looks corrupt: ${createPrettyRunPluginLink('Repair Dashboard settings file', 'jgclark.Dashboard', 'repairDashboardSettings')}.`,
     )
 
     // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
@@ -108,11 +118,12 @@ export async function generateDiagnosticsFile() {
       throw new Error(`Failed to create output note '${diagnosticsNoteTitle}'`)
     }
     outputNote.content = output.join('\n')
-    const res = await showMessageYesNo(`Diagnostics for Dashboard written to note '${diagnosticsNoteTitle}' in your root folder. Use 'Show in Finder' from the note '...' menu to find it and send it to plugin authors. Would you like me to open this note now?`)
     logInfo('generateDiagnosticsFile', `Diagnostics written to note ${diagnosticsNoteTitle} (hopefully)`)
-    if (res === 'Yes') {
-      await Editor.openNoteByFilename(outputNote.filename, false, 0, 0, false, false)
+    if (isInNoteRefresh) {
+      return
     }
+    await Editor.openNoteByFilename(outputNote.filename, false, 0, 0, false, false)
+    const res = await showMessageYesNo(`Diagnostics for Dashboard written to note '${diagnosticsNoteTitle}' in your root folder. Use 'Show in Finder' from the note '...' menu to find it and send it to plugin authors.`)
   } catch (error) {
     logError('generateDiagnosticsFile', `Error: ${error.message}`)
   }

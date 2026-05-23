@@ -3,12 +3,21 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-03-30 for v2.4.0.b23 by @jgclark
+// Last updated 2026-05-23 for v2.4.0.b43 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import { getDashboardSettings, getDisplayListOfSectionCodes, getNotePlanSettings, handlerResult, mergeSections, setPluginData } from './dashboardHelpers'
+import {
+  getDashboardSettings,
+  getDashboardSettingsForOpenWebView,
+  getDisplayListOfSectionCodes,
+  getNotePlanSettings,
+  handlerResult,
+  mergeSections,
+  removeStaleTagSections,
+  setPluginData,
+} from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from './tagMentionCache'
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData } from './types'
@@ -46,8 +55,9 @@ export async function refreshDashboard(): Promise<void> {
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     await setPluginData({ refreshing: true, currentMaxPriorityFromAllVisibleSections: 0 }, 'Starting Refreshing all sections')
 
+    const config = await getDashboardSettingsForOpenWebView(reactWindowData?.pluginData?.dashboardSettings)
     // refresh all sections' data
-    const newSections = await getAllSectionsData(reactWindowData.demoMode, false, false)
+    const newSections = await getAllSectionsData(reactWindowData.demoMode, false, false, config)
     const changedData = {
       refreshing: false,
       firstRun: false,
@@ -179,7 +189,8 @@ export async function refreshSectionsBatch(data: MessageDataObject): Promise<TBr
 
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     const demoMode = reactWindowData?.pluginData?.demoMode ?? false
-    const newSections = await getSomeSectionsData(sectionCodes, demoMode, false)
+    const config = await getDashboardSettingsForOpenWebView(reactWindowData?.pluginData?.dashboardSettings)
+    const newSections = await getSomeSectionsData(sectionCodes, demoMode, false, config)
 
     await setPluginData(
       { sections: newSections, refreshing: false, firstRun: false },
@@ -214,6 +225,13 @@ export async function refreshSectionsBatch(data: MessageDataObject): Promise<TBr
 /**
  * Tell the React window to update by re-generating a subset of Sections.
  * Returns them all in one shot vs incrementallyRefreshSomeSections which updates one at a time.
+ *
+ * NOTE: We now call getDashboardSettingsForOpenWebView() instead of getDashboardSettings() in order to always use
+ * the live, in-memory settings as configured in the React window (which may include unsaved or temporarily overridden values),
+ * rather than re-reading from disk or plugin settings. 
+ * This ensures that section refreshes accurately reflect any UI-changes made by the user that haven't yet been persisted, 
+ * keeping the view consistent with the current dashboard experience (rather than the stale settings on disk).
+ *
  * @param {MessageDataObject} data
  * @param {boolean} calledByTrigger? (default: false)
  * @returns {TBridgeClickHandlerResult}
@@ -251,6 +269,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
         `Starting refresh for sections ${sectionCodesToRefresh.toString()}`,
       )
     }
+    const config = await getDashboardSettingsForOpenWebView(pluginData.dashboardSettings)
     let existingSections = pluginData.sections
 
     // Now remove any referenced sections if separateSectionForReferencedNotes is now off
@@ -260,11 +279,11 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
       logDebug('refreshSomeSections', `removal -> ${existingSections.length} sections [${getDisplayListOfSectionCodes(existingSections)}]`)
     }
 
-    // Now remove any sections that no longer match the sectionCodes to display.
-    // Note: this is clearly done somewhere else! (so won't do here as well)
+    // Drop TAG sections for tags no longer in tagsToShow (merge by ID alone cannot remove them).
+    existingSections = removeStaleTagSections(existingSections, config)
 
     // Force the wanted sections to refresh
-    const newSections = await getSomeSectionsData(sectionCodesToRefresh, pluginData.demoMode, calledByTrigger)
+    const newSections = await getSomeSectionsData(sectionCodesToRefresh, pluginData.demoMode, calledByTrigger, config)
     // logTimer('refreshSomeSections', startTime, `- after getSomeSectionsData(): [${getDisplayListOfSectionCodes(newSections)}]`)
     const mergedSections = mergeSections(existingSections, newSections)
     // logTimer('refreshSomeSections', startTime, `- after mergeSections(): [${getDisplayListOfSectionCodes(mergedSections)}]`)

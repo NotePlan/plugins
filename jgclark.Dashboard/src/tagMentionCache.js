@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2025-12-15 for v2.4.0.b2, @jgclark
+// last updated 2026-05-23 for v2.4.0.b43 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -435,22 +435,83 @@ export async function updateTagMentionCache(): Promise<void> {
 }
 
 /**
- * Return a human-readable summary of the tag mention cache.
- * @returns {string} A human-readable summary of the tag mention cache.
+ * Count tag/mention hits stored in a cache notes array.
+ * @param {Array<{ items?: Array<string> }>} notesArray
+ * @returns {number}
  */
-export function getTagMentionCacheSummary(): string {
-  const cache = DataStore.loadData(tagMentionCacheFile, true) ?? ''
-  const parsedCache = JSON.parse(cache) ?? {}
-  // const wantedItems = parsedCache.wantedItems ?? []
-  const wantedItems = getTagMentionCacheDefinitions()
-  const summary = `## Tag/Mention Cache Stats:
-- Wanted items: ${wantedItems.join(', ')}
-- Generated at: ${parsedCache.generatedAt}
-- Last updated: ${parsedCache.lastUpdated} (according to the cache file)
-- Last updated: ${String(DataStore.preference(lastTimeThisWasRunPref))} (according to the preference)
-- # Regular notes: ${parsedCache.regularNotes.length}
-- # Calendar notes: ${parsedCache.calendarNotes.length}`
-  return summary
+function countCachedItemHits(notesArray: Array<{ items?: Array<string> }>): number {
+  if (!Array.isArray(notesArray)) return 0
+  return notesArray.reduce((sum, note) => sum + (note.items?.length ?? 0), 0)
+}
+
+/**
+ * Return markdown lines for the Tag/Mention Cache section in diagnostics output.
+ * @param {Object} dashboardSettings - current dashboard settings (for feature flags)
+ * @returns {Array<string>}
+ */
+export function getTagMentionCacheDiagnosticsLines(dashboardSettings: any): Array<string> {
+  const lines: Array<string> = []
+  const wantedItemsFromDefinitions = getTagMentionCacheDefinitions()
+  const cacheFileExists = isTagMentionCacheAvailable()
+  const definitionsFileExists = DataStore.fileExists(wantedTagMentionsListFile)
+  const generationScheduled = isTagMentionCacheGenerationScheduled()
+  const lastRunPref = DataStore.preference(lastTimeThisWasRunPref)
+
+  lines.push('### Settings')
+  lines.push(`- FFlag_UseTagCache: ${String(dashboardSettings?.FFlag_UseTagCache ?? false)}`)
+  lines.push(`- FFlag_UseTagCacheAPIComparison: ${String(dashboardSettings?.FFlag_UseTagCacheAPIComparison ?? false)}`)
+  lines.push(`- TAG_CACHE_ONLY_FOR_OPEN_ITEMS (code): ${String(TAG_CACHE_ONLY_FOR_OPEN_ITEMS)}`)
+  lines.push(`- TAG_CACHE_FOR_ALL_TAGS (code): ${String(TAG_CACHE_FOR_ALL_TAGS)}`)
+  lines.push(`- Update interval: ${String(TAG_CACHE_UPDATE_INTERVAL_HOURS)} hour(s)`)
+  lines.push(`- Full regenerate interval: ${String(TAG_CACHE_GENERATE_INTERVAL_HOURS)} hour(s)`)
+  lines.push(`- Regeneration scheduled (pref): ${String(generationScheduled)}`)
+  lines.push(`- Last run: ${lastRunPref != null ? String(lastRunPref) : '(not set)'} (from pref)`)
+  lines.push('')
+  lines.push('### Definitions (`wantedTagMentionsList.json`)')
+  if (definitionsFileExists) {
+    lines.push(`- Count: ${wantedItemsFromDefinitions.length}`)
+    lines.push(`- Items: ${wantedItemsFromDefinitions.length > 0 ? wantedItemsFromDefinitions.join(', ') : '(none)'}`)
+  } else {
+    lines.push('- File not present')
+  }
+  lines.push('')
+  lines.push('### Cache stats (`tagMentionCache.json`)')
+  if (!cacheFileExists) {
+    lines.push('- Cache file not present')
+    return lines
+  }
+
+  try {
+    const cacheRaw = DataStore.loadData(tagMentionCacheFile, true) ?? ''
+    const parsedCache = JSON.parse(cacheRaw) ?? {}
+    const regularNotes = parsedCache.regularNotes ?? []
+    const calendarNotes = parsedCache.calendarNotes ?? []
+    const wantedItemsInCache = parsedCache.wantedItems ?? []
+    const regularHitCount = countCachedItemHits(regularNotes)
+    const calendarHitCount = countCachedItemHits(calendarNotes)
+
+    lines.push(`- Generated at: ${parsedCache.generatedAt ?? '(not set)'}`)
+    lines.push(`- Last updated (cache file): ${parsedCache.lastUpdated ?? '(not set)'}`)
+    lines.push(`- Wanted items in cache file (${wantedItemsInCache.length}): ${wantedItemsInCache.length > 0 ? wantedItemsInCache.join(', ') : '(none)'}`)
+    if (wantedItemsFromDefinitions.length > 0 || wantedItemsInCache.length > 0) {
+      const definitionsSet = new Set(wantedItemsFromDefinitions.map((item) => item.toLowerCase()))
+      const cacheOnly = wantedItemsInCache.filter((item) => !definitionsSet.has(String(item).toLowerCase()))
+      const definitionsOnly = wantedItemsFromDefinitions.filter((item) => !wantedItemsInCache.some((c) => String(c).toLowerCase() === item.toLowerCase()))
+      if (cacheOnly.length > 0) {
+        lines.push(`- In cache file but not definitions: ${cacheOnly.join(', ')}`)
+      }
+      if (definitionsOnly.length > 0) {
+        lines.push(`- In definitions but not cache file: ${definitionsOnly.join(', ')}`)
+      }
+    }
+    lines.push(`- Regular notes with hits: ${regularNotes.length} (${regularHitCount} tag/mention entries)`)
+    lines.push(`- Calendar notes with hits: ${calendarNotes.length} (${calendarHitCount} tag/mention entries)`)
+    lines.push(`- Total tag/mention entries cached: ${regularHitCount + calendarHitCount}`)
+  } catch (err) {
+    lines.push(`- Error reading cache file: ${err instanceof Error ? err.message : String(err)}`)
+  }
+
+  return lines
 }
 
 /**

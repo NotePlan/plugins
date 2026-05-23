@@ -3,11 +3,11 @@
 // Clean dashboard settings objects (per-perspective strip list).
 // Extracted from perspectiveHelpers.js to avoid circular imports with
 // dashboardPluginSettings.js / dashboardHelpers.js.
-// Last updated 2026-05-23 for v2.4.0.b42 by @CursorAI
+// Last updated 2026-05-23 for v2.4.0.b43 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
-import type { TDashboardSettings } from './types'
+import type { TDashboardSettings, TSection } from './types'
 import { logDebug, logError } from '@helpers/dev'
 
 /**
@@ -105,5 +105,37 @@ export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashb
   } catch (error) {
     logError('removeInvalidTagSections', `Error: ${error.message}. Returning original settings.`)
     return settingsIn
+  }
+}
+
+/**
+ * Drop generated TAG sections that are no longer listed in `tagsToShow`.
+ * Why? `CLOSE_UNNEEDED_SECTIONS` only checks sectionCode `TAG`, so stale tag rows (e.g. @father after switching to @friend) were left in pluginData until a perspective switch cleared `sections`.
+ * @author @CursorAI
+ * @param {Array<TSection>} sections
+ * @param {TDashboardSettings} dashboardSettings
+ * @returns {Array<TSection>}
+ */
+export function removeStaleTagSections(sections: Array<TSection>, dashboardSettings: TDashboardSettings): Array<TSection> {
+  try {
+    const tagsCsv = (dashboardSettings.tagsToShow ?? '').trim()
+    if (!tagsCsv) {
+      return sections.filter((s) => s.sectionCode !== 'TAG')
+    }
+    const wantedTagNames = new Set(getTagSectionDetails(removeInvalidTagSections(dashboardSettings)).map((d) => d.sectionName))
+    const removed: Array<string> = []
+    const kept = sections.filter((s) => {
+      if (s.sectionCode !== 'TAG') return true
+      if (wantedTagNames.has(s.name)) return true
+      removed.push(s.name)
+      return false
+    })
+    if (removed.length > 0) {
+      logDebug('removeStaleTagSections', `- Removed stale TAG section(s): [${removed.join(', ')}]`)
+    }
+    return kept
+  } catch (error) {
+    logError('removeStaleTagSections', `Error: ${error.message}. Returning original sections.`)
+    return sections
   }
 }

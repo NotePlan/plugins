@@ -1,13 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-05-18 for v2.4.0.b37, @CursorAI
+// Last updated 2026-05-23 for v2.4.0.b43, @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { WEBVIEW_WINDOW_ID, allSectionDetails } from './constants'
 import { dashboardSettingDefs, dashboardFilterDefs, normaliseDashboardNumberSettings } from './dashboardSettings'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
+import { removeInvalidTagSections, removeStaleTagSections } from './dashboardSettingsClean'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import type {
@@ -70,6 +71,22 @@ const pluginID = 'jgclark.Dashboard' // normally this could come from pluginJson
  * Note: this does not include logSettings or copies of NP app-level settings.
  * These can potentially be changed by setSetting(s) calls.
  */
+/**
+ * Dashboard settings for an open WebView: disk plus live pluginData (what the user sees), with invalid tag section keys stripped.
+ * @author @CursorAI
+ * @param {Partial<TDashboardSettings>} [pluginDataDashboardSettings]
+ * @returns {Promise<TDashboardSettings>}
+ */
+export async function getDashboardSettingsForOpenWebView(pluginDataDashboardSettings?: Partial<TDashboardSettings>): Promise<TDashboardSettings> {
+  const fromDisk = await getDashboardSettings()
+  if (!pluginDataDashboardSettings || Object.keys(pluginDataDashboardSettings).length === 0) {
+    return removeInvalidTagSections(fromDisk)
+  }
+  return removeInvalidTagSections({ ...fromDisk, ...pluginDataDashboardSettings })
+}
+
+export { removeStaleTagSections } from './dashboardSettingsClean'
+
 export async function getDashboardSettings(): Promise<TDashboardSettings> {
   try {
     // Note: Cursor recommends breaking out the I/O into a separate function, to make testing easier.

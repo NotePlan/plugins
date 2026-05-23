@@ -3,14 +3,14 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-05-23 for v2.4.0.b42 by @jgclark + @CursorAI
+// Last updated 2026-05-23 for v2.4.0.b43 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
-import { getGlobalSharedData } from '@helpers/HTMLView'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
+import { removeInvalidTagSections } from './dashboardSettingsClean'
 import {
   addNewPerspective,
   cleanDashboardSettingsInAPerspective,
@@ -28,6 +28,7 @@ import {
   isNamedPerspectiveModified,
 } from './perspectiveHelpers'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { getGlobalSharedData } from '@helpers/HTMLView'
 
 /**
  * Live dashboard settings for perspective save: prefer WebView state (what the user sees), then disk.
@@ -137,19 +138,34 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
     return handlerResult(false, [], { errorMsg: `Perspective ${activeDef.name} is not modified. Not saving.` })
   }
 
-  const newDef = { ...activeDef, dashboardSettings, isModified: false }
+  const cleanedLiveSettings = removeInvalidTagSections({
+    ...getDashboardSettingsDefaults(),
+    ...dashboardSettings,
+  })
+  const newDef = {
+    ...activeDef,
+    dashboardSettings: cleanDashboardSettingsInAPerspective(cleanedLiveSettings),
+    isModified: false,
+  }
   const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
-  const result = await savePerspectiveSettings(revisedDefs)
-  if (!result) return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
+  const res = await saveDashboardPluginSettings({
+    ...(await loadDashboardPluginSettings()),
+    perspectiveSettings: revisedDefs,
+    dashboardSettings: cleanedLiveSettings,
+  })
+  if (!res) return handlerResult(false, [], { errorMsg: `saveDashboardPluginSettings failed` })
   const savedPerspectives = (await loadDashboardPluginSettings()).perspectiveSettings
+  const cleanedBaseline = cleanDashboardSettingsInAPerspective(cleanedLiveSettings)
   await setPluginData(
     {
       perspectiveSettings: Array.isArray(savedPerspectives) ? savedPerspectives : revisedDefs,
-      dashboardSettingsBaseline: cleanDashboardSettingsInAPerspective(dashboardSettings),
+      dashboardSettings: cleanedLiveSettings,
+      dashboardSettingsBaseline: cleanedBaseline,
+      pushFromServer: { dashboardSettings: true, perspectiveSettings: true },
     },
     `_Saved perspective ${activeDef.name}`,
   )
-  return handlerResult(true, [])
+  return handlerResult(true, ['CLOSE_UNNEEDED_SECTIONS', 'REFRESH_ALL_ENABLED_SECTIONS'])
 }
 
 /**

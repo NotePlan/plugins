@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-05-15 for v2.4.0.b35 by @CursorAI
+// Last updated 2026-05-23 for v2.4.0.b43 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -40,18 +40,24 @@ import { getLiveWindowRect, getStoredWindowRect, logWindowsList, rectToString } 
  * Note: don't forget there's also refreshClickHandlers.js::refreshAllSections().
  * @param {boolean} useDemoData? (default: false)
  * @param {boolean} useEditorWherePossible?
+ * @param {?TDashboardSettings} configOverride - when set, used instead of disk-only settings (open WebView refresh)
  * @returns {Array<TSection>} array of sections
  */
-export async function getAllSectionsData(useDemoData: boolean = false, forceLoadAll: boolean = false, useEditorWherePossible: boolean): Promise<Array<TSection>> {
+export async function getAllSectionsData(
+  useDemoData: boolean = false,
+  forceLoadAll: boolean = false,
+  useEditorWherePossible: boolean,
+  configOverride?: ?TDashboardSettings,
+): Promise<Array<TSection>> {
   try {
-    const config: any = await getDashboardSettings()
+    const config: any = configOverride ?? (await getDashboardSettings())
     // clo(config, 'getAllSectionsData config is currently',2)
 
     // V2
     // Work out which sections to show
     const sectionsToShow: Array<TSectionCode> = forceLoadAll ? allSectionCodes : getListOfEnabledSections(config)
     logDebug('getAllSectionsData', `>>>>> Starting with ${String(sectionsToShow.length)} sections to show: ${String(sectionsToShow)}`)
-    const sections: Array<TSection> = await getSomeSectionsData(sectionsToShow, useDemoData, useEditorWherePossible)
+    const sections: Array<TSection> = await getSomeSectionsData(sectionsToShow, useDemoData, useEditorWherePossible, config)
     // logDebug('getAllSectionsData', `=> sections ${getDisplayListOfSectionCodes(sections)} (unfiltered)`)
     logDebug('getAllSectionsData', `<<<<< Finished`)
 
@@ -69,16 +75,18 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
  * @param {Array<string>} sectionCodesToGet (default: allSectionCodes)
  * @param {boolean} useDemoData (default: false)
  * @param {boolean} useEditorWherePossible?
+ * @param {?TDashboardSettings} configOverride - when set (e.g. open WebView live settings), used instead of disk-only `getDashboardSettings()`
  * @returns {Array<TSection>} array of sections
  */
 export async function getSomeSectionsData(
   sectionCodesToGet: Array<TSectionCode> = allSectionCodes,
   useDemoData: boolean = false,
   useEditorWherePossible: boolean,
+  configOverride?: ?TDashboardSettings,
 ): Promise<Array<TSection>> {
   try {
     logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
-    const config: TDashboardSettings = await getDashboardSettings()
+    const config: TDashboardSettings = configOverride ?? (await getDashboardSettings())
 
     // TODO: change generation order to suit the new custom section display order.  Note: Cursor's attempt on 24.1.2026 to do this broke generation of Project sections.
 
