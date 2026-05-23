@@ -9,6 +9,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b40] 2026-05-23
+- fix: **Timeblock must-contain preference (emoji marker)** — React item rendering no longer calls `DataStore.preference('timeblockTextMustContainString')` from the WebView (which returned a non-JSON-serializable bridged String and could halt Dashboard load). Plugin reads the preference once via `getPlainPreferenceString()` and passes it through `notePlanSettings`; `isTimeBlockLine()` only reads the preference when the arg is omitted, not when `''` is passed explicitly.
+
 ## [2.4.0.b39] 2026-05-19
 - dev: small improvements to  `dashboardHelpers` that CursorAI found
 
