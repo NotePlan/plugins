@@ -15,9 +15,262 @@ import { RE_DONE_DATE_TIME } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logInfo, logWarn, logError } from "@helpers/dev"
 import { logAllEnvironmentSettings } from "@helpers/NPdev"
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { getCurrentHeading } from '@helpers/headings'
+import { getOpenEditorFromFilename, saveEditorIfNecessary } from '@helpers/NPEditorBasics'
 import { showMessage } from '@helpers/userInput'
 
 //------------------------------------------------------------------
+
+/**
+ * Resolve the section heading for a paragraph (Editor.paragraphs often lack .heading until after save).
+ * @param {CoreNoteFields} note - note containing the paragraph
+ * @param {TParagraph} origPara - paragraph a repeat was generated from
+ * @returns {string} heading text, or '' if none found
+ */
+export function getRepeatSectionHeading(note: CoreNoteFields, origPara: TParagraph): string {
+  if (typeof origPara.heading === 'string' && origPara.heading.trim() !== '') {
+    return origPara.heading.trim()
+  }
+  const headingPara = getCurrentHeading(note, origPara)
+  return headingPara?.content?.trim() ?? ''
+}
+
+/**
+ * Drop empty/duplicate heading names before sorting.
+ * @param {Array<string>} headingList - raw headings collected
+ * @returns {Array<string>} normalized list
+ */
+export function normalizeRepeatHeadingList(headingList: Array<string>): Array<string> {
+  const seen = new Set<string>()
+  const out: Array<string> = []
+  for (const h of headingList) {
+    if (typeof h === 'string' && h.trim() !== '' && !seen.has(h)) {
+      const trimmed = h.trim()
+      seen.add(trimmed)
+      out.push(trimmed)
+    }
+  }
+  return out
+}
+
+/**
+ * Log at INFO why post-repeat task sorting cannot run (no ## section heading above the task).
+ * @param {string} filename - note filename
+ */
+export function logTaskSortSkippedNoSectionHeading(filename: string): void {
+  logInfo(
+    'runTaskSorterAfterRepeats',
+    `Task sort skipped for '${filename}': the completed repeat has no section heading above it. Task Sorting works on tasks under a heading, so there is nothing to sort without one.`,
+  )
+}
+
+/**
+ * Make global Editor the window for filename. Task Sorting uses global Editor (saveEditorIfNecessary, beginEdits, etc.), not a separate TEditor reference.
+ * @param {string} filename - note filename
+ * @returns {typeof Editor | false} global Editor when it matches filename, else false
+ */
+export function focusEditorForFilename(filename: string): typeof Editor | false {
+  if (typeof Editor === 'undefined' || Editor == null || Editor.filename == null) {
+    return false
+  }
+  if (Editor.filename === filename) {
+    return Editor
+  }
+
+  const editorWin = getOpenEditorFromFilename(filename, true)
+  if (editorWin === false) {
+    logDebug('focusEditorForFilename', `No open Editor window for '${filename}'`)
+    return false
+  }
+
+  logDebug('focusEditorForFilename', `Focusing Editor for '${filename}' (global Editor was '${Editor.filename}')`)
+  if (typeof editorWin.focus === 'function') {
+    editorWin.focus()
+  }
+
+  if (Editor.filename === filename) {
+    return Editor
+  }
+
+  logWarn(
+    'focusEditorForFilename',
+    `Task sort needs global Editor on '${filename}', but Editor is still '${Editor.filename}' after focus()`,
+  )
+  return false
+}
+
+/**
+ * Record a section heading for post-repeat task sorting (skips consecutive duplicates).
+ * @param {Array<string>} headingList - headings collected so far
+ * @param {string} lastHeading - heading from the previous recorded paragraph
+ * @param {CoreNoteFields} note - note containing the paragraph
+ * @param {TParagraph} origPara - paragraph a repeat was generated from
+ * @returns {string} updated lastHeading
+ */
+export function recordRepeatHeading(headingList: Array<string>, lastHeading: string, note: CoreNoteFields, origPara: TParagraph): string {
+  const heading = getRepeatSectionHeading(note, origPara)
+  if (heading === '') {
+    return lastHeading
+  }
+  if (heading !== lastHeading) {
+    headingList.push(heading)
+  }
+  return heading
+}
+
+/**
+ * Sort tasks under headings where repeats were just generated.
+ * @param {Array<string>} headingList - section headings to sort
+ * @param {CoreNoteFields} noteToUse - note being edited
+ * @param {RepeatConfig} config - Repeat Extensions settings
+ * @param {boolean} noteIsKnownOpenEditor - true when noteToUse came from getOpenEditorFromFilename (may not be the global Editor)
+ */
+async function runTaskSorterAfterRepeatsImpl(
+  headingList: Array<string>,
+  noteToUse: CoreNoteFields,
+  config: RepeatConfig,
+  noteIsKnownOpenEditor: boolean = false,
+): Promise<void> {
+  if (!config.runTaskSorter || headingList.length === 0) {
+    return
+  }
+  if (DataStore.isPluginInstalledByID('dwertheimer.TaskSorting')) {
+    const editorIsActiveForThisNote =
+      noteIsKnownOpenEditor ||
+      (typeof Editor !== 'undefined' &&
+        Editor != null &&
+        Editor.filename != null &&
+        noteToUse.filename === Editor.filename)
+    if (editorIsActiveForThisNote) {
+      // Attempt to update the cache, so that the task sorter can find the new repeats. Note: it doesn't seem to make a difference.
+      // Note: using noteToUse instead of Editor.note generates an Objective-C error.
+      const cacheNote =
+        typeof Editor !== 'undefined' && Editor != null && Editor.filename === noteToUse.filename && Editor.note != null
+          ? Editor.note
+          : noteToUse.note
+      if (cacheNote != null) {
+        // $FlowIgnore[incompatible-call]
+        DataStore.updateCache(cacheNote, false)
+      }
+      const sortFields = config.taskSortingOrder
+        ? stringListOrArrayToArray(config.taskSortingOrder, ',')
+        : ['due', '-priority', 'content']
+
+      logInfo('runTaskSorterAfterRepeats', `Will sort tasks according to user defaults from Task Sorting plugin`)
+      for (const heading of headingList) {
+        logInfo('runTaskSorterAfterRepeats', `- Sorting tasks under heading '${heading}'`)
+        // $FlowIgnore[incompatible-call] TNote vs CoreNoteFields
+        await sortTasksUnderHeading(heading, sortFields, noteToUse)
+      }
+    } else {
+      logDebug('runTaskSorterAfterRepeats', `Task sorter plugin is installed, but we are not working in the Editor, so can't run it.`)
+    }
+  } else {
+    logWarn('runTaskSorterAfterRepeats', `Task Sorting plugin is not installed, so can't run it. Set "Run Task Sorter after changes?" to false to disable this message.`)
+  }
+}
+
+/**
+ * Run task sort after onEditorWillSave returns (save must finish first; sortTasksUnderHeading calls Editor.save()).
+ * Uses invokePluginCommandByName so we do not use Promise/setTimeout in the trigger handler (broken in some NotePlan builds, e.g. Beta JSPromiseConstructor).
+ * @param {string} filename - note filename
+ * @param {Array<string>} headingList - section headings to sort
+ * @param {RepeatConfig} config - Repeat Extensions settings (unused here; re-loaded in sortRepeatsAfterSave)
+ */
+function deferTaskSortAfterSave(filename: string, headingList: Array<string>, config: RepeatConfig): void {
+  const headings = normalizeRepeatHeadingList(headingList)
+  if (headings.length === 0) {
+    logTaskSortSkippedNoSectionHeading(filename)
+    return
+  }
+
+  logInfo('runTaskSorterAfterRepeats', `Deferring task sort for '${filename}' under: ${headings.join(', ')}`)
+  logDebug(
+    'runTaskSorterAfterRepeats',
+    `Queueing 'sort repeats after save' via invokePluginCommandByName (headings: ${headings.join(', ')})`,
+  )
+
+  try {
+    DataStore.invokePluginCommandByName('sort repeats after save', pluginJson['plugin.id'], [filename, JSON.stringify(headings)])
+  } catch (error) {
+    logError(pluginJson, `deferTaskSortAfterSave invokePluginCommandByName: ${JSP(error)}`)
+  }
+}
+
+export async function runTaskSorterAfterRepeats(
+  headingList: Array<string>,
+  noteToUse: CoreNoteFields,
+  config: RepeatConfig,
+  deferUntilAfterSave: boolean = false,
+): Promise<void> {
+  if (!config.runTaskSorter) {
+    logDebug('runTaskSorterAfterRepeats', 'Task sort skipped: runTaskSorter setting is off')
+    return
+  }
+
+  const headings = normalizeRepeatHeadingList(headingList)
+  if (headings.length === 0) {
+    logTaskSortSkippedNoSectionHeading(noteToUse.filename ?? '?')
+    return
+  }
+
+  if (deferUntilAfterSave) {
+    deferTaskSortAfterSave(noteToUse.filename, headings, config)
+    return
+  }
+
+  await runTaskSorterAfterRepeatsImpl(headings, noteToUse, config)
+}
+
+/**
+ * Hidden command: sort sections after repeats generated from onEditorWillSave (runs after save completes).
+ * @param {string} filename - note filename to sort in
+ * @param {string} headingsJson - JSON array of heading strings
+ */
+export async function sortRepeatsAfterSave(filename: string = '', headingsJson: string = '[]'): Promise<{}> {
+  try {
+    logInfo('sortRepeatsAfterSave', `Starting for '${filename}'`)
+    let headings: Array<string> = []
+    try {
+      const parsed = JSON.parse(headingsJson)
+      if (Array.isArray(parsed)) {
+        headings = normalizeRepeatHeadingList(parsed.filter((h) => typeof h === 'string'))
+      }
+    } catch (parseError) {
+      logError(pluginJson, `sortRepeatsAfterSave: invalid headingsJson: ${JSP(parseError)}`)
+      return {}
+    }
+    if (filename === '') {
+      logInfo('sortRepeatsAfterSave', 'Task sort skipped: no note filename supplied')
+      return {}
+    }
+    if (headings.length === 0) {
+      logTaskSortSkippedNoSectionHeading(filename)
+      return {}
+    }
+
+    const config: RepeatConfig = await getRepeatSettings()
+    if (config == null) {
+      return {}
+    }
+
+    // Invoked commands may run off the main thread; Task Sorting must run on main thread with global Editor.
+    await CommandBar.onMainThread()
+
+    const activeEditor = focusEditorForFilename(filename)
+    if (activeEditor === false) {
+      logInfo('sortRepeatsAfterSave', `Deferred task sort skipped: '${filename}' is not the active Editor window`)
+      return {}
+    }
+
+    await runTaskSorterAfterRepeatsImpl(headings, activeEditor, config, true)
+    await saveEditorIfNecessary()
+    logInfo('sortRepeatsAfterSave', `Finished deferred task sort for '${filename}'`)
+  } catch (error) {
+    logError(pluginJson, `sortRepeatsAfterSave: ${JSP(error)}`)
+  }
+  return {}
+}
 
 /**
  * Main Command entry point for Repeat Extensions plugin.
@@ -89,16 +342,13 @@ export async function generateRepeats(
       // Test if this is a special extended repeat with a datetime to shorten
       const content = origPara.content
       if (RE_EXTENDED_REPEAT.test(content) && RE_DONE_DATE_TIME.test(content)) {
-        // Do the main generation work
-        const newPara = await generateRepeatForPara(origPara, noteToUse, config, allowedToUseEditor)
+        // Defer Editor.save until all repeats are generated (mid-loop save can drop the latest repeat line; same as onEditorWillSave trigger path).
+        const skipEditorSave = allowedToUseEditor
+        const newPara = await generateRepeatForPara(origPara, noteToUse, config, allowedToUseEditor, skipEditorSave)
         if (newPara) {
           repeatCount++
-          // (For later sorting use) Add this para's heading to the list if it's not already there
           if (config.runTaskSorter) {
-            if (origPara.heading !== lastHeading) {
-              headingList.push(origPara.heading)
-            }
-            lastHeading = origPara.heading
+            lastHeading = recordRepeatHeading(headingList, lastHeading, noteToUse, origPara)
           }
         }
       }
@@ -114,41 +364,11 @@ export async function generateRepeats(
     }
     logInfo('generateRepeats', `${String(repeatCount)} new repeats were generated`)
 
-    // Run task sorter if its installed, and we want it, and the same note is open in the Editor
-    // Note: This latter constraint is self-imposed, not because of the task sorter plugin.
-    if (config.runTaskSorter) {
-      if (DataStore.isPluginInstalledByID('dwertheimer.TaskSorting')) {
-        const editorIsActiveForThisNote =
-          typeof Editor !== 'undefined' &&
-          Editor != null &&
-          Editor.filename != null &&
-          noteToUse.filename === Editor.filename
-        if (editorIsActiveForThisNote) {
-          // Attempt to update the cache, so that the task sorter can find the new repeats. Note: it doesn't seem to make a difference.
-          // Note: using noteToUse instead of Editor.note generates an Objective-C error.
-          // $FlowIgnore[incompatible-call] checked Editor.note is not null
-          const res = DataStore.updateCache(Editor.note, false)
-          const sortFields = config.taskSortingOrder
-            ? stringListOrArrayToArray(config.taskSortingOrder, ',')
-            : ["due", "-priority", "content"]
-
-          logInfo('generateRepeats', `Will sort tasks according to user defaults from Task Sorting plugin`)
-          // For each changed section, sort the tasks under that heading.
-          for (const heading of headingList) {
-            logInfo('generateRepeats', `- Sorting tasks under heading '${heading}'`)
-            // v1: indirect call via invokePluginCommandByName()
-            // await DataStore.invokePluginCommandByName('Sort tasks under heading (choose)', 'dwertheimer.TaskSorting', [heading, sortFields, noteToUse])
-            // v2: direct call
-            // $FlowIgnore[incompatible-call] TNote vs CoreNoteFields
-            await sortTasksUnderHeading(heading, sortFields, noteToUse)
-          }
-        } else {
-          logDebug('generateRepeats', `Task sorter plugin is installed, but we are not working in the Editor, so can't run it.`)
-        }
-      } else {
-        logWarn('generateRepeats', `Task Sorting plugin is not installed, so can't run it. Set "Run Task Sorter after changes?" to false to disable this message.`)
-      }
+    if (allowedToUseEditor) {
+      await saveEditorIfNecessary()
     }
+
+    await runTaskSorterAfterRepeats(headingList, noteToUse, config)
     return repeatCount
   } catch (error) {
     logError(pluginJson, `generateRepeats(): ${JSP(error)}`)

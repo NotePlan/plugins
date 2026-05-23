@@ -17,7 +17,7 @@ import { updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentio
 import type { TDashboardSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getPeriodOfNPDateStr } from '@helpers/dateTime'
-import { clo, clof, clvt, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { clo, clof, clvt, compareObjects, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getFolderFromFilename, getFoldersMatching } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
@@ -337,6 +337,106 @@ function addPerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, newDef: 
  */
 function deletePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, name: string): Array<TPerspectiveDef> {
   return perspectiveSettings.filter((s) => s.name !== name)
+}
+
+/** Keys omitted when comparing live dashboard settings to a saved perspective def. */
+const PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT: Array<string> = ['lastModified', 'lastChange', 'usePerspectives']
+
+/**
+ * Diff between a named perspective's saved def and live dashboard settings (null if equivalent).
+ * Same rules as `resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload` (defaults, tag sections).
+ * @param {TPerspectiveDef} perspectiveDef
+ * @param {Partial<TDashboardSettings>} liveDashboardSettings
+ * @returns {?{ [string]: any }}
+ */
+export function getPerspectiveLiveVsSavedDiff(
+  perspectiveDef: TPerspectiveDef,
+  liveDashboardSettings: Partial<TDashboardSettings>,
+): ?{ [string]: any } {
+  if (!perspectiveDef || perspectiveDef.name === '-') return null
+  const dashboardSettingsDefaults = getDashboardSettingsDefaults()
+  const newSettingsWithDefaults = { ...dashboardSettingsDefaults, ...liveDashboardSettings }
+  const activePerspDefDashboardSettingsWithDefaults = { ...dashboardSettingsDefaults, ...perspectiveDef.dashboardSettings }
+  // $FlowFixMe[incompatible-call]
+  const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettingsWithDefaults)
+  const activePerspDefShowTagSectionKeys = Object.keys(perspectiveDef.dashboardSettings || {}).filter((k) => k.startsWith('showTagSection_'))
+  // $FlowIgnore[prop-missing] - Dynamic property access for tag section keys
+  const activePerspDefShowTagSectionObject = activePerspDefShowTagSectionKeys.reduce((acc, k) => {
+    acc[k] = perspectiveDef.dashboardSettings[k]
+    return acc
+  }, ({}: { [string]: any }))
+  // $FlowIgnore[cannot-spread-indexer]
+  const activePerspDefDashboardSettingsWithDefaultsAndTAGs = {
+    ...activePerspDefDashboardSettingsWithDefaults,
+    ...activePerspDefShowTagSectionObject,
+  }
+  const diff = compareObjects(activePerspDefDashboardSettingsWithDefaultsAndTAGs, cleanedSettings, PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT)
+  if (diff === null || Object.keys(diff).length === 0) return null
+  return diff
+}
+
+/**
+ * Whether live top-level dashboard settings differ from a named perspective's saved def.
+ * @param {TPerspectiveDef} perspectiveDef
+ * @param {Partial<TDashboardSettings>} liveDashboardSettings
+ * @returns {boolean}
+ */
+export function perspectiveDefDiffersFromLiveDashboard(
+  perspectiveDef: TPerspectiveDef,
+  liveDashboardSettings: Partial<TDashboardSettings>,
+): boolean {
+  return getPerspectiveLiveVsSavedDiff(perspectiveDef, liveDashboardSettings) !== null
+}
+
+/**
+ * Whether live dashboard settings differ from the baseline snapshot (after switch or Save Perspective).
+ * @param {Partial<TDashboardSettings>} baselineDashboardSettings
+ * @param {Partial<TDashboardSettings>} liveDashboardSettings
+ * @returns {boolean}
+ */
+export function liveDashboardDiffersFromBaseline(
+  baselineDashboardSettings: Partial<TDashboardSettings>,
+  liveDashboardSettings: Partial<TDashboardSettings>,
+): boolean {
+  const dashboardSettingsDefaults = getDashboardSettingsDefaults()
+  const cleanedLive = cleanDashboardSettingsInAPerspective({ ...dashboardSettingsDefaults, ...liveDashboardSettings })
+  const cleanedBaseline = cleanDashboardSettingsInAPerspective({ ...dashboardSettingsDefaults, ...baselineDashboardSettings })
+  const diff = compareObjects(cleanedBaseline, cleanedLive, PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT)
+  return diff !== null && Object.keys(diff).length > 0
+}
+
+export type TIsNamedPerspectiveModifiedOptions = {
+  /** When true, also treat live-vs-saved-def as modified (needed for Save after switch carryover). */
+  forSave?: boolean,
+}
+
+/**
+ * Whether a named perspective should be treated as modified (`isModified` flag, drift from baseline, or live-vs-saved def).
+ * Display: prefer baseline when set (avoids false `*` after switch when merge carryover ≠ raw def).
+ * Save (`forSave: true`): also allow save when live differs from the saved def even if live matches baseline.
+ * @param {TPerspectiveDef} perspectiveDef
+ * @param {Partial<TDashboardSettings>} liveDashboardSettings
+ * @param {Partial<TDashboardSettings>} [dashboardSettingsBaseline] - from pluginData after switch/save
+ * @param {TIsNamedPerspectiveModifiedOptions} [options]
+ * @returns {boolean}
+ */
+export function isNamedPerspectiveModified(
+  perspectiveDef: TPerspectiveDef,
+  liveDashboardSettings: Partial<TDashboardSettings>,
+  dashboardSettingsBaseline?: Partial<TDashboardSettings>,
+  options?: TIsNamedPerspectiveModifiedOptions,
+): boolean {
+  if (!perspectiveDef || perspectiveDef.name === '-') return false
+  if (perspectiveDef.isModified) return true
+  const hasBaseline = Boolean(dashboardSettingsBaseline && Object.keys(dashboardSettingsBaseline).length > 0)
+  const differsFromBaseline = hasBaseline && liveDashboardDiffersFromBaseline(dashboardSettingsBaseline, liveDashboardSettings)
+  const differsFromDef = perspectiveDefDiffersFromLiveDashboard(perspectiveDef, liveDashboardSettings)
+  if (options?.forSave) {
+    return differsFromBaseline || differsFromDef
+  }
+  if (differsFromBaseline) return true
+  if (hasBaseline) return false
+  return differsFromDef
 }
 
 /**

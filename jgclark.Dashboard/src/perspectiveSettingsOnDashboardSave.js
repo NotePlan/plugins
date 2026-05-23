@@ -5,12 +5,12 @@
 // Last updated 2026-05-13 for v2.4.0.b33, @CursorAI
 //-----------------------------------------------------------------------------
 
-import { getDashboardSettingsDefaults, handlerResult } from './dashboardHelpers'
+import { handlerResult } from './dashboardHelpers'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
-import { cleanDashboardSettingsInAPerspective, getActivePerspectiveDef, loadPerspectiveDefsFromPluginSettings } from './perspectiveHelpers'
+import { getActivePerspectiveDef, getPerspectiveLiveVsSavedDiff, loadPerspectiveDefsFromPluginSettings } from './perspectiveHelpers'
 import type { TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
-import { clo, compareObjects, JSP, logDebug, logError } from '@helpers/dev'
+import { clo, JSP, logDebug, logError } from '@helpers/dev'
 
 const logFn = 'doSaveDashboardSettingsFromBridge'
 
@@ -38,33 +38,10 @@ export async function resolvePerspectivesWhenDashboardSettingsWithoutPerspective
     logDebug(logFn, `activePerspDef.name=${String(activePerspDef?.name || '')} Array.isArray(newSettings)=${String(Array.isArray(newSettings))}`)
 
     if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(dashboardNewSettings)) {
-      // Clean up the settings before then comparing them with the active perspective settings
-      const dashboardSettingsDefaults = getDashboardSettingsDefaults()
-      const newSettingsWithDefaults = { ...dashboardSettingsDefaults, ...dashboardNewSettings }
-      const activePerspDefDashboardSettingsWithDefaults = { ...dashboardSettingsDefaults, ...activePerspDef.dashboardSettings }
-      // $FlowIgnore[prop-missing]
-      // $FlowIgnore[incompatible-call]
-      const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettingsWithDefaults)
-
-      // Now add all the TAG sections, which otherwise aren't included in the active perspective settings.
-      // Get any active perspective setting keys that start 'showTagSection_'
-      const activePerspDefShowTagSectionKeys = Object.keys(activePerspDef.dashboardSettings).filter((k) => k.startsWith('showTagSection_'))
-      clo(activePerspDefShowTagSectionKeys, `${logFn}: activePerspDefShowTagSectionKeys`)
-      // Add all the TAG sections to the active perspective settings
-      // $FlowIgnore[prop-missing] - Dynamic property access for tag section keys
-      const activePerspDefShowTagSectionObject = activePerspDefShowTagSectionKeys.reduce((acc, k) => {
-        acc[k] = activePerspDef.dashboardSettings[k]
-        return acc
-      }, ({}: { [string]: any }))
-      // $FlowIgnore[cannot-spread-indexer] - Dynamic property spread for tag section keys
-      const activePerspDefDashboardSettingsWithDefaultsAndTAGs = { ...activePerspDefDashboardSettingsWithDefaults, ...activePerspDefShowTagSectionObject }
-
-      // Compare the cleaned settings with the active perspective settings
-      const diff = compareObjects(activePerspDefDashboardSettingsWithDefaultsAndTAGs, cleanedSettings, ['lastModified', 'lastChange', 'usePerspectives'])
-      clo(diff, `${logFn}: diff`)
+      const diff = getPerspectiveLiveVsSavedDiff(activePerspDef, dashboardNewSettings)
 
       // No perspective-relevant diff: still save top-level dashboardSettings (e.g. usePerspectives), do not set isModified
-      if (!diff || Object.keys(diff).length === 0) {
+      if (!diff) {
         logDebug(logFn, `No perspective-relevant diff vs saved def; continuing to save dashboardSettings only`)
         return { kind: 'continue' }
       }
@@ -79,12 +56,7 @@ export async function resolvePerspectivesWhenDashboardSettingsWithoutPerspective
 
       clo(diff, `${logFn}: Setting perspective.isModified because of changes to settings: ${Object.keys(diff).length} keys: ${Object.keys(diff).join(', ')}`)
       Object.keys(diff).forEach((d) => {
-        logDebug(
-          logFn,
-          // $FlowIgnore[invalid-computed-prop]
-          `activePerspDefDashboardSettingsWithDefaults['${String(d)}']=${d ? activePerspDefDashboardSettingsWithDefaults[d] : ''} vs. sent to save: cleanedSettings['${String(d)}']=${d ? cleanedSettings[d] : ''
-          }`,
-        )
+        logDebug(logFn, `perspective-relevant diff key '${String(d)}'`)
       })
 
       // ignore dashboard changes in the perspective definition until it is saved explicitly

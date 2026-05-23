@@ -9,8 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## Summary from [2.4.0.b19] (through [2.4.0.b39])
+## [2.4.0.b40] 2026-05-23
+- fix: **Modified perspective asterisk** — toggling section visibility (e.g. `showQuarterSection`) on a named perspective sets `isModified` again; `CLOSE_UNNEEDED_SECTIONS` no longer overwrites `perspectiveSettings` from a stale WebView snapshot. Shared `isNamedPerspectiveModified()` drives the `*` label, **Save Perspective**, and `doSavePerspective` when live settings differ from the saved def (not only the `isModified` flag). After switching perspectives, `*` uses a `dashboardSettingsBaseline` snapshot so merge carryover from the previous perspective does not show as modified when `isModified` is false on disk. **Save Perspective** uses `forSave` (live-vs-def OR live-vs-baseline), WebView `dashboardSettings`, and optional `settings` from React so save is not blocked when carryover matches baseline but the saved def is still stale.
 
+## Summary from [2.4.0.b19] (through [2.4.0.b39])
 ### New
 - New **Wins section** - optional section for top-priority tasks (default `>>`) drawn from enabled Calendar sections; turn on via "Show '>>' priority marker as a separate section"; configurable "Wins priority marker" (`>>`, `!!!`, or `!!`).
 - **Active Projects** section has new setting "Show only projects with next actions" (includes Sequential projects); section de-duplicates projects when the Projects plugin returns duplicates; ordering method described in the section header.
@@ -38,7 +40,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Fixes to **Add Task** top/bottom-of-note placement; relative NoteChooser values (`<today>`, etc.).
 - Daily note tasks with `>today` missing from Today section.
 
-## [2.4.0.b39] 2026-05-19
+## [2.4.0.b39] 2026-05-19 (released briefly)
+>>>>>>> a4776c4e2664a6f046965c2443c6e9740d41563e
 - dev: small improvements to  `dashboardHelpers` that CursorAI found
 
 ## [2.4.0.b38] 2026-05-18

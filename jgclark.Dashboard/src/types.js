@@ -432,6 +432,8 @@ export type TPluginData = {
     dashboardSettings?: boolean,
     perspectiveSettings?: boolean,
   },
+  /** Live dashboard snapshot after switch/save; used for `*` when `isModified` is false (merge carryover ≠ raw def). */
+  dashboardSettingsBaseline?: Partial<TDashboardSettings>,
   demoMode: boolean /* use fake content for demo/test purposes */,
   totalDoneCount?: number,
   startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands */,

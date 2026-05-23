@@ -146,12 +146,14 @@ export function generateNewRepeatDate(noteToUse: CoreNoteFields, currentContent:
 /**
  * Generate a repeat task for a single paragraph that contains a completed task with extended @repeat(interval) tag.
  * @param {boolean} allowedToUseEditor - If false, never use Editor.* funcs (e.g. Tidy onAsyncThread).
+ * @param {boolean} skipEditorSave - If true, never call Editor.save() (e.g. onEditorWillSave trigger, where a mid-flow save can persist @done stripping but drop the new repeat line).
  */
 export async function generateRepeatForPara(
   origPara: TParagraph,
   origNote: CoreNoteFields,
   config: RepeatConfig,
   allowedToUseEditor: boolean = true,
+  skipEditorSave: boolean = false,
 ): Promise<TParagraph | null> {
   try {
     if (!origPara) {
@@ -199,7 +201,6 @@ export async function generateRepeatForPara(
     if (noteIsOpenInEditor) {
       Editor.updateParagraph(origPara)
       logDebug('generateRepeatForPara', `- after change origPara.content in Editor: "${origPara.content}"`)
-      await saveEditorIfNecessary()
     } else {
       origNote.updateParagraph(origPara)
     }
@@ -219,18 +220,31 @@ export async function generateRepeatForPara(
     newRepeatContent = textWithoutSyncedCopyTag(newRepeatContent).trim()
     logDebug('generateRepeatForPara', `- newRepeatContent: "${newRepeatContent}"`)
 
-    if (syncCopiesInRegularNotes.length > 0) {
+    const insertInOpenEditor =
+      noteIsOpenInEditor &&
+      typeof Editor !== 'undefined' &&
+      Editor != null &&
+      Editor.filename != null &&
+      origNote.filename === Editor.filename
+
+    if (syncCopiesInRegularNotes.length > 0 && !insertInOpenEditor) {
       const syncSourceNote: ?TNote = syncCopiesInRegularNotes[0]?.note
       if (syncSourceNote == null) {
         throw new Error(`generateRepeatForPara: Cannot get syncSourceNote for origPara: "${origPara.content}" in ${origNote.filename}`)
       }
+      const syncCopyPara = syncCopiesInRegularNotes[0]
       logDebug('generateRepeatForPara', `- adding repeat to regular note where origPara is synced (${syncSourceNote.filename})`)
       newRepeatContent += ` >${newRepeatDateStr}`
-      await syncSourceNote.insertParagraphBeforeParagraph(newRepeatContent, syncCopiesInRegularNotes[0], 'open')
-      newPara = syncSourceNote.paragraphs[newParaLineIndex]
+      await syncSourceNote.insertParagraphBeforeParagraph(newRepeatContent, syncCopyPara, 'open')
+      const syncNewLineIndex = syncCopyPara.lineIndex
+      newPara = syncSourceNote.paragraphs[syncNewLineIndex]
       noteContainingNewPara = syncSourceNote
     } else if (origNote.type === 'Notes') {
-      logDebug('generateRepeatForPara', `- adding repeat to regular note ${origNote.filename}`)
+      if (syncCopiesInRegularNotes.length > 0) {
+        logDebug('generateRepeatForPara', `- adding repeat in open Editor for synced block in ${origNote.filename}`)
+      } else {
+        logDebug('generateRepeatForPara', `- adding repeat to regular note ${origNote.filename}`)
+      }
       newRepeatContent += ` >${newRepeatDateStr}`
       if (noteIsOpenInEditor) {
         noteContainingNewPara = Editor
@@ -290,6 +304,18 @@ export async function generateRepeatForPara(
       } else {
         origNote.updateParagraph(origPara)
       }
+    }
+
+    const newParaInOpenEditor =
+      noteIsOpenInEditor &&
+      noteContainingNewPara != null &&
+      typeof Editor !== 'undefined' &&
+      Editor != null &&
+      Editor.filename != null &&
+      (noteContainingNewPara === Editor || noteContainingNewPara.filename === Editor.filename)
+
+    if (newParaInOpenEditor && !skipEditorSave) {
+      await saveEditorIfNecessary()
     }
 
     return newPara

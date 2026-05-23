@@ -13,7 +13,7 @@ import { editSettings } from '@helpers/NPSettings'
 
 const pluginID = "jgclark.RepeatExtensions"
 
-export { generateRepeats } from './repeatMain'
+export { generateRepeats, sortRepeatsAfterSave } from './repeatMain'
 export { onEditorWillSave } from './repeatTrigger'
 
 export function init(): void {

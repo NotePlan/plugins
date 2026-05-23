@@ -571,6 +571,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
       dashboardSettings: true,
       perspectiveSettings: true,
     },
+    dashboardSettingsBaseline: dashboardSettings,
     totalDoneCount: 0,
     firstRun: true,
     currentMaxPriorityFromAllVisibleSections: 0,

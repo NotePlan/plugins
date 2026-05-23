@@ -54,5 +54,26 @@
     "author": "MarcoBarna",
     "description": "Lightweight CRM for managing contacts, logging interactions, and scheduling follow-up reminders",
     "repo": "MarcoBarna/noteplan-crm-dashboard"
+  },
+  {
+    "id": "asktru.Roadmap",
+    "name": "Roadmap",
+    "author": "asktru",
+    "description": "Interactive Gantt chart of project notes driven by frontmatter (roadmap, start, end, due, defer, prerequisites, progress)",
+    "repo": "asktru/noteplan-roadmap"
+  },
+  {
+    "id": "marginalreader.ZettelGraphView",
+    "name": "Zettel Graph View",
+    "author": "Marginal Reader",
+    "description": "Obsidian-style graph view of your NotePlan vault, with note-backed saved views you can favorite in the sidebar",
+    "repo": "marginalreader/zettel-graph-view"
+  },
+  {
+    "id": "marginalreader.RoleFocus",
+    "name": "Role Focus",
+    "author": "Marginal Reader",
+    "description": "Manage tasks by life role with an interactive panel",
+    "repo": "marginalreader/role-focus"
   }
 ]

@@ -1,8 +1,18 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
+## [1.1.4] - 2026-05-21
+- Now runs task sorter after repeats are generated from trigger.
+- When task sort cannot run because there is no `##` section heading above the repeat, logs an INFO message explaining why.
+- Fixes issue when using the trigger.
+- dev: `generate repeats` defers `Editor.save` until all repeats are generated (`skipEditorSave` in the loop, one save before optional task sort), same approach as the trigger fix below.
+- Fix: Synced-block repeats (`^blockId`) with the note open in Editor now insert the new open task in that Editor window instead of only in the linked source note; avoids `Editor.save()` dropping the last repeat when `Editor.content` does not include the off-note insert.
+- Fix: `onEditorWillSave` trigger now calls `generateRepeatForPara()` on changed lines only (with `skipEditorSave`), instead of `generateRepeats()`. A mid-flow `Editor.save()` was persisting the shortened `@done(...)` but dropping the new repeat line during save.
+- dev: Trigger path defers task sorting via hidden `sort repeats after save` (`invokePluginCommandByName`) command.
+- dev: Deferred `sortRepeatsAfterSave` focuses the target note’s Editor and sorts via global `Editor` on the main thread (Task Sorting was updating a non-active editor reference).
+
 ## [1.1.3] - 2026-05-02 (unreleased)
-- **Dev:** Moved extended `@repeat` implementation into `/helpers/extendedRepeat.js` (plus `NPEditorBasics.js` for editor save / open-window helpers only). Plugin `repeatHelpers.js` / `repeatPara.js` re-export from `@helpers/NPExtendedRepeat`. This removes Rollup circular dependency warnings when bundling plugins that use `NPParagraph` (e.g. **Filer**) without changing command behavior.
+- Dev: Moved extended `@repeat` implementation into `/helpers/extendedRepeat.js` (plus `NPEditorBasics.js` for editor save / open-window helpers only). Plugin `repeatHelpers.js` / `repeatPara.js` re-export from `@helpers/NPExtendedRepeat`. This removes Rollup circular dependency warnings when bundling plugins that use `NPParagraph` (e.g. **Filer**) without changing command behavior.
 
 ## [1.1.2] - 2026-04-28
 - under the hood changes [dev: update to fix a possible crash Tidy's **Generate @repeats in recent notes** command, caused by Editor/onAsyncThread. Also code quality improvements.]

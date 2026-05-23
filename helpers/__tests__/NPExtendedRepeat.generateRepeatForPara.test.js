@@ -23,6 +23,9 @@ beforeEach(() => {
   DataStore.referencedBlocks = jest.fn(() => [])
   DataStore.calendarNoteByDateString = jest.fn(async () => null)
   Editor.skipNextRepeatDeletionCheck = false
+  Editor.save = jest.fn(async () => {})
+  Editor.note = { content: '' }
+  Editor.content = ''
 })
 
 describe('NPExtendedRepeat generateRepeatForPara', () => {
@@ -104,5 +107,129 @@ describe('NPExtendedRepeat generateRepeatForPara', () => {
     const inserted = origNote.paragraphs[0]
     expect(inserted.lineIndex).toBe(0)
     expect(inserted.content).not.toMatch(/@done\(/)
+  })
+
+  test('synced block with open Editor: inserts in Editor, not sync source note', async () => {
+    const taskLine = '* [x] Task-Test-A @done(2026-05-21 10:00 AM) @repeat(+2w) ^6itdjd'
+    const origPara = new Paragraph({
+      type: 'done',
+      content: taskLine.slice(5),
+      lineIndex: 2,
+      rawContent: taskLine,
+    })
+    const origNote = new Note({
+      type: 'Notes',
+      filename: 'TEST/Repeat TESTs/TEST Repeats.md',
+      paragraphs: [
+        new Paragraph({ type: 'title', content: 'Tasks', headingLevel: 3, lineIndex: 0 }),
+        new Paragraph({ type: 'done', content: 'other', lineIndex: 1 }),
+        origPara,
+      ],
+    })
+    origPara.note = origNote
+    origNote.resetLineIndexesAndContent()
+
+    const syncCopyPara = new Paragraph({
+      type: 'open',
+      content: 'Task-Test-A @repeat(+2w) ^6itdjd',
+      lineIndex: 5,
+      rawContent: '* [ ] Task-Test-A @repeat(+2w) ^6itdjd',
+    })
+    const syncSourceNote = new Note({
+      type: 'Notes',
+      filename: 'Home Areas/Garden.md',
+      paragraphs: [syncCopyPara],
+    })
+    syncCopyPara.note = syncSourceNote
+    syncSourceNote.insertParagraphBeforeParagraph = jest.fn(async () => {})
+    DataStore.referencedBlocks = jest.fn(() => [syncCopyPara])
+
+    global.NotePlan.editors = [Editor]
+    Editor.filename = origNote.filename
+    Editor.note = { content: 'stale' }
+    Editor.content = origNote.content
+    Editor.paragraphs = origNote.paragraphs
+    Editor.updateParagraph = jest.fn()
+    Editor.insertParagraphBeforeParagraph = jest.fn(async () => {})
+    Editor.save = jest.fn(async () => {})
+
+    await generateRepeatForPara(origPara, origNote, repeatConfig, true, true)
+
+    expect(Editor.insertParagraphBeforeParagraph).toHaveBeenCalled()
+    expect(syncSourceNote.insertParagraphBeforeParagraph).not.toHaveBeenCalled()
+    expect(Editor.save).not.toHaveBeenCalled()
+  })
+
+  test('synced block without open Editor: inserts in sync source note only', async () => {
+    const taskLine = '* [x] Task-Test-A @done(2026-05-21 10:00 AM) @repeat(+2w) ^6itdjd'
+    const origPara = new Paragraph({
+      type: 'done',
+      content: taskLine.slice(5),
+      lineIndex: 1,
+      rawContent: taskLine,
+    })
+    const origNote = new Note({
+      type: 'Notes',
+      filename: 'TEST/Repeat TESTs/TEST Repeats.md',
+      paragraphs: [origPara],
+    })
+    origPara.note = origNote
+    origNote.resetLineIndexesAndContent()
+
+    const syncCopyPara = new Paragraph({
+      type: 'open',
+      content: 'Task-Test-A @repeat(+2w) ^6itdjd',
+      lineIndex: 3,
+      rawContent: '* [ ] Task-Test-A @repeat(+2w) ^6itdjd',
+    })
+    const syncSourceNote = new Note({
+      type: 'Notes',
+      filename: 'Home Areas/Garden.md',
+      paragraphs: [syncCopyPara],
+    })
+    syncCopyPara.note = syncSourceNote
+    syncSourceNote.insertParagraphBeforeParagraph = jest.fn(async () => {})
+    DataStore.referencedBlocks = jest.fn(() => [syncCopyPara])
+
+    global.NotePlan.editors = []
+    Editor.filename = 'other.md'
+    Editor.save = jest.fn(async () => {})
+
+    await generateRepeatForPara(origPara, origNote, repeatConfig, true, false)
+
+    expect(syncSourceNote.insertParagraphBeforeParagraph).toHaveBeenCalled()
+    expect(Editor.save).not.toHaveBeenCalled()
+  })
+
+  test('skipEditorSave: does not call Editor.save (onEditorWillSave trigger path)', async () => {
+    const taskLine = '* [x] Water plants @done(2026-05-03 10:30 AM) @repeat(+1d)'
+    const origPara = new Paragraph({
+      type: 'done',
+      content: taskLine.slice(5),
+      lineIndex: 1,
+      rawContent: taskLine,
+    })
+    const origNote = new Note({
+      type: 'Notes',
+      filename: 'Projects/chores.md',
+      paragraphs: [
+        new Paragraph({ type: 'title', content: 'Chores', headingLevel: 1, lineIndex: 0 }),
+        origPara,
+      ],
+    })
+    origPara.note = origNote
+    origNote.resetLineIndexesAndContent()
+
+    global.NotePlan.editors = [Editor]
+    Editor.filename = origNote.filename
+    Editor.note = { content: 'stale saved content' }
+    Editor.content = origNote.content
+    Editor.paragraphs = origNote.paragraphs
+    Editor.updateParagraph = jest.fn()
+    Editor.insertParagraphBeforeParagraph = jest.fn(async () => {})
+    Editor.save = jest.fn(async () => {})
+
+    await generateRepeatForPara(origPara, origNote, repeatConfig, true, true)
+    expect(Editor.save).not.toHaveBeenCalled()
   })
 })

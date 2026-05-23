@@ -61,14 +61,18 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashbo
     // $FlowIgnore[incompatible-call] - settingsIn is Partial<TDashboardSettings> but removeInvalidTagSections accepts TDashboardSettings; this is safe as it creates a copy
     const perspSettingsWithoutIrrelevantTags = removeInvalidTagSections(settingsIn) // OK
 
+    const removedKeys: Array<string> = []
     const settingsOut = Object.keys(perspSettingsWithoutIrrelevantTags).reduce((acc: Partial<TDashboardSettings>, key) => {
       if (!shouldRemoveKey(key)) {
         acc[key] = perspSettingsWithoutIrrelevantTags[key]
       } else {
-        logDebug('cleanDashboardSettingsInAPerspective', `- Removing key '${key}'`)
+        removedKeys.push(key)
       }
       return acc
     }, {})
+    if (removedKeys.length > 0) {
+      logDebug('cleanDashboardSettingsInAPerspective', `- Removed keys: [${removedKeys.join(', ')}]`)
+    }
 
     return settingsOut
   } catch (error) {
