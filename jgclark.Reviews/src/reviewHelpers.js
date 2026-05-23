@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-05-12 for v2.0.0.b32, @CursorAI & @jgclark
+// Last updated 2026-05-23 for v2.0.1, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -22,6 +22,7 @@ import {
   getJSDateStartOfToday,
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
+  getTodaysDateUnhyphenated,
   todaysDateISOString,
   toISODateString,
 } from '@helpers/dateTime'
@@ -76,8 +77,7 @@ export type ReviewConfig = {
   showFolderName: boolean,
   startMentionStr: string,
   nextReviewMentionStr: string,
-  // width: number, // TEST: removing -- can't have hidden numeric settings, unfortunately
-  // height: number, // TEST: removing
+  progressStr: string, // new in 2.0.1
   archiveUsingFolderStructure: boolean,
   archiveFolder: string,
   removeDueDatesOnPause?: boolean,
@@ -93,28 +93,48 @@ export type ReviewConfig = {
 }
 
 /**
- * Convert mention preference string into a frontmatter key name.
+ * Lookup user's preferred metadata item string ready to use as a frontmatter key. Note: Any leading # or @ is stripped off.
  * @param {string} prefName
  * @param {string} defaultKey
  * @returns {string}
  */
-function getFrontmatterFieldKeyFromMentionPreference(prefName: string, defaultKey: string): string {
+function getFieldKeyStringFromPreference(prefName: string, defaultKey: string): string {
   return checkString(DataStore.preference(prefName) || '').replace(/^[@#]/, '') || defaultKey
 }
 
 /**
- * Map date mention names (e.g. '@reviewed') to separate frontmatter keys (e.g. 'reviewed'), taking account that user may localise the mention strings.
+ * Field name prefix for progress body lines (e.g. 'Progress' when the configured key is 'progress').
+ * Uses DataStore preference set by getReviewSettings().
+ * @returns {string}
+ */
+export function getProgressFieldNameForBodyLines(): string {
+  const key = getFieldKeyStringFromPreference('progressStr', 'progress')
+  return key.charAt(0).toUpperCase() + key.slice(1)
+}
+
+/**
+ * Frontmatter key for progress metadata (e.g. 'progress' or 'this_is_progress' when configured).
+ * Uses DataStore preference set by getReviewSettings().
+ * @returns {string}
+ */
+export function getProgressFrontmatterKey(): string {
+  return getFieldKeyStringFromPreference('progressStr', 'progress')
+}
+
+/**
+ * Map metadata mention names (e.g. '@reviewed') to separate frontmatter keys (e.g. 'reviewed'), taking account that user may localise the mention strings.
  * @returns {{ [string]: string }}
  */
-function getDateMentionNameToFrontmatterKeyMap(): { [string]: string } {
+function getMetadataMentionNameToFrontmatterKeyMap(): { [string]: string } {
   const map: { [string]: string } = {}
-  map[checkString(DataStore.preference('startMentionStr') || '@start')] = getFrontmatterFieldKeyFromMentionPreference('startMentionStr', 'start')
-  map[checkString(DataStore.preference('dueMentionStr') || '@due')] = getFrontmatterFieldKeyFromMentionPreference('dueMentionStr', 'due')
-  map[checkString(DataStore.preference('reviewedMentionStr') || '@reviewed')] = getFrontmatterFieldKeyFromMentionPreference('reviewedMentionStr', 'reviewed')
-  map[checkString(DataStore.preference('completedMentionStr') || '@completed')] = getFrontmatterFieldKeyFromMentionPreference('completedMentionStr', 'completed')
-  map[checkString(DataStore.preference('cancelledMentionStr') || '@cancelled')] = getFrontmatterFieldKeyFromMentionPreference('cancelledMentionStr', 'cancelled')
-  map[checkString(DataStore.preference('nextReviewMentionStr') || '@nextReview')] = getFrontmatterFieldKeyFromMentionPreference('nextReviewMentionStr', 'nextReview')
-  map[checkString(DataStore.preference('reviewIntervalMentionStr') || '@review')] = getFrontmatterFieldKeyFromMentionPreference('reviewIntervalMentionStr', 'review')
+  map[checkString(DataStore.preference('startMentionStr') || '@start')] = getFieldKeyStringFromPreference('startMentionStr', 'start')
+  map[checkString(DataStore.preference('dueMentionStr') || '@due')] = getFieldKeyStringFromPreference('dueMentionStr', 'due')
+  map[checkString(DataStore.preference('reviewedMentionStr') || '@reviewed')] = getFieldKeyStringFromPreference('reviewedMentionStr', 'reviewed')
+  map[checkString(DataStore.preference('completedMentionStr') || '@completed')] = getFieldKeyStringFromPreference('completedMentionStr', 'completed')
+  map[checkString(DataStore.preference('cancelledMentionStr') || '@cancelled')] = getFieldKeyStringFromPreference('cancelledMentionStr', 'cancelled')
+  map[checkString(DataStore.preference('nextReviewMentionStr') || '@nextReview')] = getFieldKeyStringFromPreference('nextReviewMentionStr', 'nextReview')
+  map[checkString(DataStore.preference('reviewIntervalMentionStr') || '@review')] = getFieldKeyStringFromPreference('reviewIntervalMentionStr', 'review')
+  map[checkString(DataStore.preference('progressStr') || 'progress')] = getFieldKeyStringFromPreference('progressStr', 'progress')
   return map
 }
 
@@ -152,7 +172,7 @@ function populateSeparateDateKeysFromCombinedValue(
   fmAttrs: { [string]: any },
   keysToRemove: Array<string>,
 ): void {
-  const mentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
+  const metadataMentionToFrontmatterKeyMap = getMetadataMentionNameToFrontmatterKeyMap()
   const intervalMentionName = checkString(DataStore.preference('reviewIntervalMentionStr') || '@review')
 
   const reISODate = new RegExp(`^${RE_ISO_DATE}$`)
@@ -162,7 +182,7 @@ function populateSeparateDateKeysFromCombinedValue(
 
   for (const embeddedMention of embeddedMentions) {
     const mentionName = embeddedMention.split('(', 1)[0]
-    const frontmatterKeyName = mentionToFrontmatterKeyMap[mentionName]
+    const frontmatterKeyName = metadataMentionToFrontmatterKeyMap[mentionName]
     if (!frontmatterKeyName) continue
 
     const mentionParamMatch = embeddedMention.match(/\(([^)]*)\)\s*$/)
@@ -246,6 +266,7 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     DataStore.setPreference('reviewIntervalMentionStr', config.reviewIntervalMentionStr)
     DataStore.setPreference('reviewedMentionStr', config.reviewedMentionStr)
     DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
+    DataStore.setPreference('progressStr', config.progressStr)
     DataStore.setPreference('numberDaysForFutureToIgnore', config.numberDaysForFutureToIgnore)
     DataStore.setPreference('ignoreChecklistsInProgress', config.ignoreChecklistsInProgress)
 
@@ -395,54 +416,114 @@ export function isProjectNoteIsMarkedSequential(note: TNote, sequentialTag: stri
 }
 
 /**
+ * Normalise a progress date to YYYYMMDD, defaulting to today when missing or unrecognised.
+ * @param {?string} progressDateStr
+ * @returns {string}
+ */
+function normalizeProgressDateToYYYYMMDD(progressDateStr?: ?string): string {
+  const raw = checkString(progressDateStr ?? '').trim()
+  if (raw === '') return getTodaysDateUnhyphenated()
+  if (new RegExp(`^${RE_ISO_DATE}$`).test(raw)) {
+    return raw.replace(/-/g, '')
+  }
+  if (new RegExp(`^${RE_YYYYMMDD_DATE}$`).test(raw)) {
+    return raw
+  }
+  logWarn('normalizeProgressDateToYYYYMMDD', `Unrecognised progress date '${raw}', so will use today's date`)
+  return getTodaysDateUnhyphenated()
+}
+
+/**
+ * Format optional completion percentage for a progress comment value string.
+ * @param {?number | ?string} percentComplete
+ * @returns {string}
+ */
+function formatProgressPercentForOutput(percentComplete?: ?number | ?string): string {
+  if (percentComplete == null) return ''
+  const raw = checkString(String(percentComplete)).trim()
+  if (raw === '') return ''
+  const num = Number(raw)
+  if (!isNaN(num)) {
+    return String(Math.min(100, Math.max(0, Math.round(num))))
+  }
+  return raw
+}
+
+/**
+ * Format a canonical progress comment value string ready for body lines or frontmatter.
+ * Form: [N]@YYYYMMDD comment (N = optional 0-100 completion %; date defaults to today as YYYYMMDD).
+ * @param {string} comment - progress comment text (required)
+ * @param {?number | ?string} [percentComplete] - optional completion percentage
+ * @param {?string} [progressDateStr] - optional date (ISO or YYYYMMDD); defaults to today as YYYYMMDD
+ * @returns {string}
+ */
+export function formatProgressCommentString(
+  comment: string,
+  percentComplete?: ?number | ?string,
+  progressDateStr?: ?string,
+): string {
+  const trimmedComment = checkString(comment).trim()
+  const dateStr = normalizeProgressDateToYYYYMMDD(progressDateStr)
+  const percentStr = formatProgressPercentForOutput(percentComplete)
+  return `${percentStr}@${dateStr} ${trimmedComment}`
+}
+
+/**
+ * Parse a single progress value string (body line content or frontmatter value).
+ * See Project::processProgressLines() for allowed formats.
+ * @param {string} progressLine
+ * @param {number} [lineIndex] - paragraph line index when parsing a body line; NaN for frontmatter
+ * @returns {Progress}
+ */
+export function parseProgressValueString(progressLine: string, lineIndex: number = NaN): Progress {
+  const isoMatch = progressLine.match(RE_ISO_DATE)
+  const yyyymmddMatch = progressLine.match(RE_YYYYMMDD_DATE)
+  const dateStr = isoMatch ? isoMatch[0] : yyyymmddMatch ? yyyymmddMatch[0] : null
+  const thisDate: Date =
+    isoMatch
+      ? // $FlowIgnore
+        getDateObjFromDateString(isoMatch[0])
+      : yyyymmddMatch
+      ? // $FlowIgnore
+        getDateFromYYYYMMDDString(yyyymmddMatch[0])
+      : new Date('0001-01-01')
+  // Comment: support both "date: comment" and "date comment" by taking everything after the date and stripping optional colon
+  let comment = ''
+  if (dateStr != null) {
+    const afterDate = progressLine.slice(progressLine.indexOf(dateStr) + dateStr.length).replace(/^[\s:]+/, '').trim()
+    comment = afterDate
+  } else {
+    const tempSplitParts = progressLine.split(/[:@]/)
+    comment = tempSplitParts[3] ?? ''
+  }
+
+  const tempNumberMatches = progressLine.match(/(\d{1,3})@/)
+  const rawPercent = tempNumberMatches && tempNumberMatches.length > 0 ? Number(tempNumberMatches[1]) : NaN
+  const percent: number = !isNaN(rawPercent) ? Math.min(100, Math.max(0, rawPercent)) : NaN
+
+  return {
+    lineIndex,
+    percentComplete: percent,
+    date: thisDate,
+    comment,
+  }
+}
+
+/**
  * Return the (paragraph index of) the most recent progress line from the array, based upon the most recent YYYYMMDD or YYYY-MM-DD date found. If it can't find any it default to the first paragraph.
  * See Project::processProgressLines() for allowed formats.
  * @param {Array<TParagraph>} progressParas
- * @returns {number} lineIndex of the most recent line
+ * @returns {Progress}
  */
 export function processMostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress {
   try {
     let maxDate: Date = new Date('0000-01-01') // earliest possible YYYY-MM-DD date
     let outputProgress: ?Progress = null
     for (const progressPara of progressParas) {
-      const progressLine = progressPara.content
-      // logDebug('processMostRecentProgressParagraph', progressLine)
-      const isoMatch = progressLine.match(RE_ISO_DATE)
-      const yyyymmddMatch = progressLine.match(RE_YYYYMMDD_DATE)
-      const dateStr = isoMatch ? isoMatch[0] : yyyymmddMatch ? yyyymmddMatch[0] : null
-      const thisDate: Date =
-        isoMatch
-          ? // $FlowIgnore
-            getDateObjFromDateString(isoMatch[0])
-          : yyyymmddMatch
-          ? // $FlowIgnore
-            getDateFromYYYYMMDDString(yyyymmddMatch[0])
-          : new Date('0001-01-01')
-      // Comment: support both "date: comment" and "date comment" by taking everything after the date and stripping optional colon
-      let comment = ''
-      if (dateStr != null) {
-        const afterDate = progressLine.slice(progressLine.indexOf(dateStr) + dateStr.length).replace(/^[\s:]+/, '').trim()
-        comment = afterDate
-      } else {
-        const tempSplitParts = progressLine.split(/[:@]/)
-        comment = tempSplitParts[3] ?? ''
-      }
-
-      const tempNumberMatches = progressLine.match(/(\d{1,3})@/)
-      // logDebug('processMostRecentProgressParagraph', `tempNumberMatches: ${String(tempNumberMatches)}`)
-      const rawPercent = tempNumberMatches && tempNumberMatches.length > 0 ? Number(tempNumberMatches[1]) : NaN
-      const percent: number = !isNaN(rawPercent) ? Math.min(100, Math.max(0, rawPercent)) : NaN
-      // logDebug('processMostRecentProgressParagraph', `-> ${String(percent)}`)
-
-      if (thisDate > maxDate) {
-        // logDebug('Project::processMostRecentProgressParagraph', `Found latest datePart ${thisDatePart}`)
-        outputProgress = {
-          lineIndex: progressPara.lineIndex,
-          percentComplete: percent,
-          date: thisDate,
-          comment: comment,
-        }
-        maxDate = thisDate
+      const parsed = parseProgressValueString(progressPara.content, progressPara.lineIndex)
+      if (parsed.date > maxDate) {
+        outputProgress = parsed
+        maxDate = parsed.date
       }
     }
     // clo(outputProgress, 'processMostRecentProgressParagraph ->')
@@ -767,9 +848,9 @@ function migrateProjectMetadataLineCore(
         return match && match[1] != null ? match[1].trim() : ''
       }
 
-      const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
-      for (const mentionName of Object.keys(dateMentionToFrontmatterKeyMap)) {
-        const frontmatterKeyName = dateMentionToFrontmatterKeyMap[mentionName]
+      const metadataMentionToFrontmatterKeyMap = getMetadataMentionNameToFrontmatterKeyMap()
+      for (const mentionName of Object.keys(metadataMentionToFrontmatterKeyMap)) {
+        const frontmatterKeyName = metadataMentionToFrontmatterKeyMap[mentionName]
         const mentionTokenStr = getParamMentionFromList(mentionTokens, mentionName)
         if (!mentionTokenStr) continue
         const bracketContent = readBracketContent(mentionTokenStr)
@@ -942,7 +1023,7 @@ function updateMetadataCore(
 
     if (isFrontmatterLine) {
       let valueOnly = origLine.replace(frontmatterPrefixRe, '')
-      const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
+      const metadataMentionToFrontmatterKeyMap = getMetadataMentionNameToFrontmatterKeyMap()
       const fmAttrs: { [string]: any } = {}
       const keysToRemove: Array<string> = []
 
@@ -956,12 +1037,12 @@ function updateMetadataCore(
         const mentionParam = mentionParamMatch && mentionParamMatch[1] != null ? mentionParamMatch[1].trim() : ''
         const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
         valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
-        const separateDateKey = dateMentionToFrontmatterKeyMap[mentionName]
-        if (separateDateKey) {
+        const separateMetadataKey = metadataMentionToFrontmatterKeyMap[mentionName]
+        if (separateMetadataKey) {
           if (mentionParam !== '') {
-            fmAttrs[separateDateKey] = mentionParam
+            fmAttrs[separateMetadataKey] = mentionParam
           } else {
-            keysToRemove.push(separateDateKey)
+            keysToRemove.push(separateMetadataKey)
           }
         } else {
           valueOnly += ` ${item}`
@@ -1083,7 +1164,7 @@ function deleteMetadataMentionCore(
 
     if (isFrontmatterLine) {
       let valueOnly = origLine.replace(frontmatterPrefixRe, '')
-      const dateMentionToFrontmatterKeyMap = getDateMentionNameToFrontmatterKeyMap()
+      const metadataMentionToFrontmatterKeyMap = getMetadataMentionNameToFrontmatterKeyMap()
       const fmAttrs: { [string]: any } = {}
       const keysToRemove: Array<string> = []
 
@@ -1094,9 +1175,9 @@ function deleteMetadataMentionCore(
       for (const mentionName of mentionsToDeleteArr) {
         const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
         valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
-        const separateDateKey = dateMentionToFrontmatterKeyMap[mentionName]
-        if (separateDateKey) {
-          keysToRemove.push(separateDateKey)
+        const separateMetadataKey = metadataMentionToFrontmatterKeyMap[mentionName]
+        if (separateMetadataKey) {
+          keysToRemove.push(separateMetadataKey)
         }
         logDebug(logContext, `-> ${valueOnly}`)
       }
@@ -1176,7 +1257,7 @@ export function deleteMetadataMentionInNote(noteToUse: CoreNoteFields, metadataL
 export function clearNextReviewFrontmatterField(noteLike: CoreNoteFields | TEditor): void {
   try {
     const noteForRemoval = getNoteFromNoteLike(noteLike)
-    const configuredKey = getFrontmatterFieldKeyFromMentionPreference('nextReviewMentionStr', 'nextReview')
+    const configuredKey = getFieldKeyStringFromPreference('nextReviewMentionStr', 'nextReview')
     removeFrontMatterField(noteForRemoval, configuredKey)
     if (configuredKey !== 'nextReview') {
       removeFrontMatterField(noteForRemoval, 'nextReview')

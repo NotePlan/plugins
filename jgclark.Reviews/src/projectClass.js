@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-05-18 for v2.0.0.b35 by @Cursor
+// Last updated 2026-05-23 for v2.0.1 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -14,9 +14,13 @@ import {
   getProjectMetadataLineIndex,
   getParamMentionFromList,
   PROJECT_METADATA_MIGRATED_MESSAGE,
+  formatProgressCommentString,
+  getProgressFieldNameForBodyLines,
+  getProgressFrontmatterKey,
   getReviewSettings,
   migrateProjectMetadataLineInEditor,
   migrateProjectMetadataLineInNote,
+  parseProgressValueString,
   processMostRecentProgressParagraph,
 } from './reviewHelpers'
 import {
@@ -1206,23 +1210,24 @@ gatherAnyNextActionContent(nextActionTags: Array < string >, paras: Array < Para
   }
       }
 
+const config = await getReviewSettings()
+const progressKey = separateFmKeyFromMentionPref(checkString(config?.progressStr || 'progress'), 'progress')
+const progressFieldName = progressKey.length > 0 ? progressKey.charAt(0).toUpperCase() + progressKey.slice(1) : 'Progress'
+const progressHeading = config?.progressHeading?.trim() ?? ''
+const progressHeadingLevel = config?.progressHeadingLevel ?? 2
+const writeMostRecentProgressToFrontmatter = config?.writeMostRecentProgressToFrontmatter ?? false
+
 // Update the project's metadata (label "today" when the chosen date is today)
 const progressDateLabel = progressDateStr === todaysDateISOString ? 'today' : progressDateStr
 this.lastProgressComment = `${comment} (${progressDateLabel})`
-const newProgressLine = `Progress: ${percentStr}@${progressDateStr} ${comment}`
-const newProgressLineForFrontmatter = `${percentStr}@${progressDateStr} ${comment}`
-
-      // Get progress heading and level from config
-      const config = await getReviewSettings()
-      const progressHeading = config?.progressHeading?.trim() ?? ''
-      const progressHeadingLevel = config?.progressHeadingLevel ?? 2
-      const writeMostRecentProgressToFrontmatter = config?.writeMostRecentProgressToFrontmatter ?? false
+const newProgressLineForFrontmatter = formatProgressCommentString(comment, percentStr !== '' ? percentStr : undefined, progressDateStr)
+const newProgressLine = `${progressFieldName}: ${newProgressLineForFrontmatter}`
 
       // Optionally mirror the most recent progress line into frontmatter
       if (writeMostRecentProgressToFrontmatter) {
         const frontmatterTarget: TEditor | TNote = possibleThisEditor ? possibleThisEditor : this.note
         const noteForCache: TNote = possibleThisEditor && possibleThisEditor.note ? possibleThisEditor.note : this.note
-        const success = updateFrontMatterVars(frontmatterTarget, { progress: newProgressLineForFrontmatter })
+        const success = updateFrontMatterVars(frontmatterTarget, { [progressKey]: newProgressLineForFrontmatter })
         if (success) {
           logDebug('Project::addProgressLine', `Updated frontmatter progress OK for '${this.title}'`)
           DataStore.updateCache(noteForCache, true)
@@ -1236,7 +1241,7 @@ const newProgressLineForFrontmatter = `${percentStr}@${progressDateStr} ${commen
         logDebug('Project::addProgressLine', `Using progress heading: '${progressHeading}'`)
         
         // Check if Progress lines already exist
-        const existingProgressLines = getFieldParagraphsFromNote(this.note, 'progress')
+        const existingProgressLines = getFieldParagraphsFromNote(this.note, progressFieldName)
         
         if (existingProgressLines.length > 0) {
           // Progress lines exist - check if heading exists
@@ -1373,7 +1378,7 @@ clearNextReviewMetadata(): void {
    */
   processProgressLines(): void {
     // Get specific 'Progress' field lines
-    const progressParas = getFieldParagraphsFromNote(this.note, 'Progress')
+    const progressParas = getFieldParagraphsFromNote(this.note, getProgressFieldNameForBodyLines())
     // logDebug('Project::processProgressLines', `  - found ${String(progressParas.length)} progress lines for ${this.title}`)
 
     if (progressParas.length > 0) {
@@ -1384,8 +1389,17 @@ clearNextReviewMetadata(): void {
       this.mostRecentProgressLineIndex = progressItem.lineIndex
       // logDebug('Project::processProgressLines', `  -> ${String(this.percentComplete)}% from progress line`)
       // logDebug('Project::processProgressLines', `  -> lastProgressComment: ${this.lastProgressComment}`)
-    } else {
-      // logDebug('Project::processProgressLines', `- no progress fields found`)
+    }
+
+    const bodyProgressFound = this.lastProgressComment !== '' && !isNaN(this.percentComplete)
+    if (!bodyProgressFound) {
+      const progressField = readRawFrontmatterField(this.note, getProgressFrontmatterKey())
+      if (progressField.exists && String(progressField.value ?? '').trim() !== '') {
+        const progressItem = parseProgressValueString(String(progressField.value))
+        this.lastProgressComment = progressItem.comment
+        this.percentComplete = progressItem.percentComplete
+        // logDebug('Project::processProgressLines', `  -> ${String(this.percentComplete)}% from frontmatter progress key`)
+      }
     }
   }
 

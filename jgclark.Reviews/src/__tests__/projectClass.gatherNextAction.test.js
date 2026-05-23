@@ -19,6 +19,7 @@ beforeAll(() => {
   preferenceValues['cancelledMentionStr'] = '@cancelled'
   preferenceValues['reviewIntervalMentionStr'] = '@review'
   preferenceValues['nextReviewMentionStr'] = '@nextReview'
+  preferenceValues['progressStr'] = '@progress'
   preferenceValues['ignoreChecklistsInProgress'] = true
   preferenceValues['numberDaysForFutureToIgnore'] = 0
 })

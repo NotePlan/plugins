@@ -293,7 +293,7 @@ export async function saveDashboardPluginSettings(settings: any, triggerUpdateMe
 export async function repairDashboardSettings(): Promise<void> {
   try {
     invalidateDashboardPluginSettingsCache()
-    logInfo('repairDashboardSettings', 'Starting settings.json repair …')
+    logInfo('repairDashboardSettings', 'Starting repair of settings.json')
     const backedUp = await backupSettings(pluginID, 'before_repairDashboardSettings', true)
     if (!backedUp) {
       logWarn('repairDashboardSettings', 'Backup before repair failed; continuing with repair anyway')

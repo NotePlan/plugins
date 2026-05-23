@@ -15,7 +15,7 @@ import { getReviewSettings, updateDashboardIfOpen, updateRichProjectListIfOpen }
 import type { ReviewConfig } from './reviewHelpers.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toISODateString } from '@helpers/dateTime'
-import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
+import { getFolderFromFilename, getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { findNotesMatchingHashtagOrMentionFromList, getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
@@ -393,6 +393,105 @@ export type ProjectNoteTagPair = {|
 |}
 
 /**
+ * Build folder include list with subdirectories collapsed (same rules as list generation).
+ * @param {ReviewConfig} config
+ * @returns {Array<string>}
+ */
+function getFilteredFolderListWithoutSubdirs(config: ReviewConfig): Array<string> {
+  const useIncludeBranch = (config.foldersToInclude?.length ?? 0) > 0
+  const filteredFolderList = useIncludeBranch
+    ? getFoldersMatching(config.foldersToInclude, false).sort()
+    : getFolderListMinusExclusions(config.foldersToIgnore, false, false).sort()
+  return filteredFolderList.reduce((acc: Array<string>, f: string) => {
+    const exists = acc.some((s) => f.startsWith(s))
+    if (!exists) acc.push(f)
+    return acc
+  }, [])
+}
+
+/**
+ * Return true when a note matches the current project selection (folder, teamspace, and tag rules).
+ * @param {TNote} note
+ * @param {ReviewConfig} config
+ * @param {string} projectTypeTag
+ * @returns {boolean}
+ */
+export function isNoteInCurrentProjectSelection(note: TNote, config: ReviewConfig, projectTypeTag: string): boolean {
+  if (projectTypeTag === '') {
+    return false
+  }
+  const projectTypeTags =
+    config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
+      ? [config.projectTypeTags]
+      : (config.projectTypeTags ?? [])
+  if (projectTypeTags.length > 0 && !projectTypeTags.includes(projectTypeTag)) {
+    return false
+  }
+
+  const filteredFolderListWithoutSubdirs = getFilteredFolderListWithoutSubdirs(config)
+  const folderFiltered = filterProjectNotesByFolders([note], filteredFolderListWithoutSubdirs, config.foldersToIgnore ?? [])
+  if (folderFiltered.length === 0) {
+    return false
+  }
+
+  if (config.usePerspectives && config.includedTeamspaces && config.includedTeamspaces.length > 0) {
+    const teamspaceFiltered = filterProjectNotesByTeamspaces([note], config.includedTeamspaces)
+    if (teamspaceFiltered.length === 0) {
+      return false
+    }
+  }
+
+  const noteFolder = getFolderFromFilename(note.filename ?? '')
+  const tagMatches = findNotesMatchingHashtagOrMentionFromList(projectTypeTag, [note], true, false, noteFolder, false, [])
+  return tagMatches.some((n) => n.filename === note.filename)
+}
+
+/**
+ * Append or replace one Project row in allProjectsList.json when the note is in current project selection.
+ * Does not call generateAllProjectsList.
+ * @param {TNote} note
+ * @param {string} projectTypeTag
+ * @param {ReviewConfig} config
+ * @param {number} scrollPosForRichList
+ * @param {{ skipUpdateDashboardIfOpen?: boolean }} options
+ * @returns {Promise<boolean>} true when a row was written
+ */
+export async function addNewProjectToAllProjectsListIfInScope(
+  note: TNote,
+  projectTypeTag: string,
+  config: ReviewConfig,
+  scrollPosForRichList: number = 0,
+  options?: { skipUpdateDashboardIfOpen?: boolean },
+): Promise<boolean> {
+  try {
+    if (!isNoteInCurrentProjectSelection(note, config, projectTypeTag)) {
+      logDebug('addNewProjectToAllProjectsListIfInScope', `Note '${note.filename ?? '?'}' with tag '${projectTypeTag}' is outside current project selection; skipping list update`)
+      return false
+    }
+
+    let allProjects = await getAllProjectsFromList()
+    const cacheKey = makeProjectListCacheKey(note.filename ?? '', projectTypeTag)
+    allProjects = allProjects.filter((project) => makeProjectListCacheKey(project.filename ?? '', getLeadingProjectTag(project)) !== cacheKey)
+
+    const newProject = new Project(
+      note,
+      projectTypeTag,
+      true,
+      config.nextActionTags,
+      config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT,
+      false,
+    )
+    allProjects.push(newProject)
+    logInfo('addNewProjectToAllProjectsListIfInScope', `- Added Project '${newProject.title ?? note.filename ?? '?'}' (${projectTypeTag}) to allProjects list`)
+    await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true, config)
+    return true
+  } catch (error) {
+    logError('addNewProjectToAllProjectsListIfInScope', JSP(error))
+    return false
+  }
+}
+
+/**
  * Enumerate project notes that match the same folder, tag, and teamspace rules as `allProjectsList.json` / `getAllMatchingProjects`.
  * Does not instantiate `Project` or read the projects-list cache.
  * @author @jgclark
@@ -408,25 +507,13 @@ export async function enumerateMatchingProjectNoteTagPairs(
 
   const startTime = moment().toDate() // use moment to ensure we get a date in the local timezone
 
-  // Get list of folders, excluding our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore. Doesn't ignore @special folders.
   const useIncludeBranch = (config.foldersToInclude?.length ?? 0) > 0
   const filteredFolderList = useIncludeBranch
     ? getFoldersMatching(config.foldersToInclude, false).sort()
     : getFolderListMinusExclusions(config.foldersToIgnore, false, false).sort()
 
   logDebug('enumerateMatchingProjectNoteTagPairs', `${config.usePerspectives ? `using Perspective '${config.perspectiveName ?? '?'}': ` : ''}foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(config.foldersToIgnore)}]`)
-  // logDebug('enumerateMatchingProjectNoteTagPairs', `- filteredFolderList: ${filteredFolderList.length} folders [${String(filteredFolderList)}]`)
-
-  // Filter out subdirectories from the list of folders.
-  // It iterates over each folder in the filteredFolderList and checks if it is already represented in the accumulator array (acc).
-  // The check is done by seeing if any folder in the accumulator starts with the current folder (f).
-  // If the current folder is not a subdirectory of any folder already in the accumulator, it is added to the accumulator.
-  // The result is an array of folders that do not include any subdirectories of folders already in the list.
-  const filteredFolderListWithoutSubdirs = filteredFolderList.reduce((acc: Array<string>, f: string) => {
-    const exists = acc.some((s) => f.startsWith(s))
-    if (!exists) acc.push(f)
-    return acc
-  }, [])
+  const filteredFolderListWithoutSubdirs = getFilteredFolderListWithoutSubdirs(config)
   logDebug('enumerateMatchingProjectNoteTagPairs', `-> ${String(filteredFolderListWithoutSubdirs.length)} filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
 
   // Filter the list of project notes from the DataStore.
@@ -908,7 +995,29 @@ export async function updateAllProjectsListAfterChange(
     // Find right project to update
     const reviewedProject = allProjects.find((project) => project.filename === filename)
     if (!reviewedProject) {
-      logWarn('updateAllProjectsListAfterChange', `Couldn't find '${filename}' to update in allProjects list, so will regenerate whole list.`)
+      logWarn('updateAllProjectsListAfterChange', `Couldn't find '${filename}' to update in allProjects list; trying incremental add if in scope`)
+      const noteForAdd = getNoteFromFilename(filename)
+      if (noteForAdd && !simplyDelete) {
+        const projectTypeTags =
+          config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
+            ? [config.projectTypeTags]
+            : (config.projectTypeTags ?? [])
+        const tagsToTry =
+          projectTypeTags.length > 0
+            ? projectTypeTags
+            : (noteForAdd.hashtags ?? []).filter((tag: string) => tag.startsWith('#') && tag.length > 1)
+        let added = false
+        for (const tag of tagsToTry) {
+          if (await addNewProjectToAllProjectsListIfInScope(noteForAdd, tag, config, scrollPosForRichList, options)) {
+            added = true
+          }
+        }
+        if (added) {
+          logInfo('updateAllProjectsListAfterChange', `- Incrementally added '${filename}' to allProjects list`)
+          return
+        }
+      }
+      logWarn('updateAllProjectsListAfterChange', `Incremental add failed or note out of scope; will regenerate whole list.`)
       await generateAllProjectsList(config, false, scrollPosForRichList)
       return
     }

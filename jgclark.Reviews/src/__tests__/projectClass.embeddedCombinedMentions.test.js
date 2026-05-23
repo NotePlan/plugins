@@ -25,6 +25,7 @@ describe('Project constructor: embedded combined mentions', () => {
     delete preferenceValues.cancelledMentionStr
     delete preferenceValues.reviewIntervalMentionStr
     delete preferenceValues.nextReviewMentionStr
+    delete preferenceValues.progressStr
 
     const note = new Note({
       title: 'Migrate me',
@@ -61,6 +62,7 @@ describe('Project constructor: embedded combined mentions', () => {
     preferenceValues['cancelledMentionStr'] = '@cancelled'
     preferenceValues['reviewIntervalMentionStr'] = '@review'
     preferenceValues['nextReviewMentionStr'] = '@nextReview'
+    preferenceValues['progressStr'] = '@progress'
     preferenceValues['ignoreChecklistsInProgress'] = true
     preferenceValues['numberDaysForFutureToIgnore'] = 0
 

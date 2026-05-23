@@ -9,6 +9,35 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## Summary from [2.4.0.b19] (through [2.4.0.b39])
+
+### New
+- New **Wins section** - optional section for top-priority tasks (default `>>`) drawn from enabled Calendar sections; turn on via "Show '>>' priority marker as a separate section"; configurable "Wins priority marker" (`>>`, `!!!`, or `!!`).
+- **Active Projects** section has new setting "Show only projects with next actions" (includes Sequential projects); section de-duplicates projects when the Projects plugin returns duplicates; ordering method described in the section header.
+- Added "Start review" button and latest progress comment to **Project dialog**.
+- **Next actions in project sections**: items in **Projects to Review** and **Active Projects** can be completed or cancelled like other Dashboard rows; completing a next action in **Active Projects** round-trips to the Projects plugin for an updated next action.
+- Added link to new **`repairDashboardSettings`** command at the end of the generated Diagnostics file.
+
+### Improved
+- Better **two-way sync with Projects + Reviews** plugin
+- **Add Task to note** from Today/Week section headings
+- **Current time block** in headings will now be shown
+- **Search Extensions** - searches work with V2 or V3 (beta) of that plugin.
+- **Default Dashboard Window Type** - moved from the NP plugin settings pane into the main Dashboard settings dialog.
+- **Note title links** - folder segment de-emphasised (grey); link icons use the light weight.
+- **Active Projects display** - next actions and progress comments use the same rich-text rendering as other task rows (hashtags, mentions, links, dates, hide-scheduled/hide-priority settings).
+- **Calendar note Sections to Include** - heading match is case-insensitive prefix (e.g. `Wins` matches `Wins for 2026-04-13`).
+- **Auto-refresh** timers stopped/restarted when Dashboard view is hidden. Now always fires at just after midnight, if open.
+- **Perspective switch** - sections refresh in one batch (no optimistic per-section redraw).
+- Will only now **refresh display after changing settings** if needed.
+- **Search section** - removed from the view when its last item is completed.
+- Performance when changing **Perspectives**
+
+### Fixed
+- Indents API workaround so **indented tasks** can be moved to different calendar notes.
+- Fixes to **Add Task** top/bottom-of-note placement; relative NoteChooser values (`<today>`, etc.).
+- Daily note tasks with `>today` missing from Today section.
+
 ## [2.4.0.b39] 2026-05-19
 - dev: small improvements to  `dashboardHelpers` that CursorAI found
 
@@ -17,16 +46,16 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - add: When Dashboard **included/excluded folder** settings change and Reviews **Rich project list** is open, invokes Reviews `onDashboardFolderFiltersChanged` to regenerate `allProjectsList.json` and re-render (before PROJ* section refresh). Shared helper `src/reviewsListSync.js`.
 
 ## [2.4.0.b37] 2026-05-18
-- fix: **Perspective switch** — restore section refresh before Reviews list generation (b37 had awaited Reviews first, leaving sections empty while React could echo settings). Set `perspectiveChanging: true` on the initial `setPluginData` so the sync hook does not send `dashboardSettingsChanged` mid-switch. Fix reducer/sync hook so plugin `lastChange` (e.g. `_Switched to perspective…`) is preserved and `pushFromServer` is not cleared before the echo guard runs.
+- fix: **Perspective switch** - restore section refresh before Reviews list generation is preserved and `pushFromServer` is not cleared before the echo guard runs.
 
 ## [2.4.0.b36] 2026-05-16
 - add link to otherwise hidden **`repairDashboardSettings`** command to the end of the Diagnostics file
 
 ## [2.4.0.b35] 2026-05-15
-- fix: **Settings dialog save on a named perspective** — `setPluginData` now updates `globalSharedData` synchronously before `UPDATE_DATA`, so a follow-up `CLOSE_UNNEEDED_SECTIONS` pass cannot overwrite `perspectiveSettings.isModified` with a stale snapshot (perspective name shows `*` again). Restores `pushFromServer` when pushing settings to the WebView so React does not echo changes back to the plugin.
-- fix: **Settings dialog save** — folder/space/filter changes (e.g. included/excluded folders) now trigger `REFRESH_ALL_ENABLED_SECTIONS` after save, not only `CLOSE_UNNEEDED_SECTIONS`.
-- fix: **`dashboardTheme` change** — planned via `APPLY_THEME` in `actionsOnSuccess` (with `REFRESH_ALL_ENABLED_SECTIONS` when other content settings change); `processActionOnReturn` sends `CHANGE_THEME`, updates `pluginData.themeName`, and skips redundant `showDashboardReact('full')` on `dashboardSettingsChanged`.
-- fix: **settings.json sanitization** — load/refresh only repairs **structural** corruption (stray `"0"`/`"1"` keys, string blobs, mis-shaped arrays), caches settings for the session, and dedupes WARN logs; `cleanDashboardSettingsInAPerspective()` runs on **save** and **`repairDashboardSettings`** only (not once per section on every refresh).
+- fix: **Settings dialog save on a named perspective** - `setPluginData` now updates `globalSharedData` synchronously before `UPDATE_DATA`, so a follow-up `CLOSE_UNNEEDED_SECTIONS` pass cannot overwrite `perspectiveSettings.isModified` with a stale snapshot (perspective name shows `*` again). Restores `pushFromServer` when pushing settings to the WebView so React does not echo changes back to the plugin.
+- fix: **Settings dialog save** - folder/space/filter changes (e.g. included/excluded folders) now trigger `REFRESH_ALL_ENABLED_SECTIONS` after save, not only `CLOSE_UNNEEDED_SECTIONS`.
+- fix: **`dashboardTheme` change** - planned via `APPLY_THEME` in `actionsOnSuccess` (with `REFRESH_ALL_ENABLED_SECTIONS` when other content settings change); `processActionOnReturn` sends `CHANGE_THEME`, updates `pluginData.themeName`, and skips redundant `showDashboardReact('full')` on `dashboardSettingsChanged`.
+- fix: **settings.json sanitization** - load/refresh only repairs **structural** corruption (stray `"0"`/`"1"` keys, string blobs, mis-shaped arrays), caches settings for the session, and dedupes WARN logs; `cleanDashboardSettingsInAPerspective()` runs on **save** and **`repairDashboardSettings`** only (not once per section on every refresh).
 - dev: hidden **`repairDashboardSettings`** command (x-callback / Command Bar): backs up `settings.json`, runs sanitization, saves if needed, and shows a summary dialog. `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=repairDashboardSettings`
 - dev: `cleanDashboardSettingsInAPerspective` / `removeInvalidTagSections` moved to `dashboardSettingsClean.js` (also strips `settingsMigrated` from perspective blobs).
 - fix: x-callback `setSettings` / `updateSectionFlagsToShowOnly` no longer double-`JSON.stringify` `dashboardSettings`.
@@ -36,7 +65,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - fix: **Edit All Perspectives / JSON bulk save** (`doSavePerspectiveSettingsFromBridge`) no longer builds live `dashboardSettings` by spreading the entire plugin `getSettings()` object (which incorrectly injected `perspectiveSettings` and other top-level keys). Uses new `mergeDashboardSettingsForPerspectiveDef()` with the same merge rules as perspective switch.
 - fix: **Save Perspective As / add new perspective** (`addNewPerspective`) now updates top-level `dashboardSettings` in `settings.json` and pushes both `dashboardSettings` and `perspectiveSettings` to the WebView with `pushFromServer`, so reopening the Dashboard matches the new active perspective.
 - fix: **Save+Switch** in the perspective dropdown uses a single bridge command `savePerspectiveAndSwitch` (`doSavePerspectiveAndSwitchToPerspective`) so save completes before switch; avoids race where `switchToPerspective` cleared `isModified` before save finished.
-- fix: **Dashboard settings save while a named perspective is active** — when `resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload` finds no perspective-relevant diff (e.g. only `usePerspectives` or other keys stripped before compare), it no longer returns early without saving; top-level `dashboardSettings` are still written via `doSaveDashboardSettingsFromBridge`.
+- fix: **Dashboard settings save while a named perspective is active** - when `resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload` finds no perspective-relevant diff (e.g. only `usePerspectives` or other keys stripped before compare), it no longer returns early without saving; top-level `dashboardSettings` are still written via `doSaveDashboardSettingsFromBridge`.
 - fix: **`/update current perspective`** (`updateCurrentPerspectiveDef`) now stores `cleanDashboardSettingsInAPerspective()` in the def instead of raw `getDashboardSettings()` (avoids FFlags, `lastChange`, etc. in saved perspective blobs).
 - fix: **Delete active perspective** (`deletePerspective`) sends post-`switchToPerspective('-')` defs to React so `isActive` flags are correct; `deleteAllNamedPerspectiveSettings` skips `setPluginData` if switch fails.
 - fix: race condition in **DynamicDialog** when pressing enter, leaving empty return string.
@@ -83,11 +112,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - fix: "Add Task → Note": choosing **All spaces** now loads notes from every space via np.Shared `getNotes` (`space: '__all__'`). Previously the UI could send no space filter and the handler only returned Private notes, so the chooser looked “stuck” at ~25 items and search could not find teamspace notes.
 
 ## [2.4.0.b29] 2026-04-17
-- fix: **SpaceChooser / getTeamspaces**: `unwrapPluginRequestData` plus `@helpers/react/routerUtils` `normalizeSharedInvokeResult` (peel extra `invokePluginCommandByName` wrapper around np.Shared `RequestResponse`) so the WebView receives a teamspace **array**, not a nested `{ success, data }` — fixes `[DIAG] loadSpaces: Invalid response format`
+- fix: **SpaceChooser / getTeamspaces**: `unwrapPluginRequestData` plus `@helpers/react/routerUtils` `normalizeSharedInvokeResult` (peel extra `invokePluginCommandByName` wrapper around np.Shared `RequestResponse`) so the WebView receives a teamspace **array**, not a nested `{ success, data }` - fixes `[DIAG] loadSpaces: Invalid response format`
 - fix: **Add Task** resolves NoteChooser relative note values (`<today>`, `<thisweek>`, etc.) to real filenames via `resolveNoteChooserFilenameForLookup` in `@helpers/noteChooserFilenameResolve` before opening the note (requires matching **np.Shared** `getHeadings` fix for heading chooser)
 
 ## [2.4.0.b28] 2026-04-16
-- fix: Add Task (and QuickCapture checklist path) with **top of note** or **bottom of note** now succeeds — `coreAddTaskToNoteHeading` / `coreAddChecklistToNoteHeading` in `@helpers/NPAddItems` now return the new paragraph for those branches (previously returned nothing, so Dashboard reported "Failed to add task to note")
+- fix: Add Task (and QuickCapture checklist path) with **top of note** or **bottom of note** now succeeds - `coreAddTaskToNoteHeading` / `coreAddChecklistToNoteHeading` in `@helpers/NPAddItems` now return the new paragraph for those branches (previously returned nothing, so Dashboard reported "Failed to add task to note")
 
 ## [2.4.0.b27] 2026-04-16 @dwertheimer
 - dev: `requestFromPlugin` now resolves with shared `PluginRequestEnvelope` (`@helpers/react/pluginRequestEnvelope`) so success, `data`, and `message` are explicit; Add Task dialog uses this contract
@@ -112,9 +141,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - add check for window visibility before running any of the refreshes. (Caused by Dashboard timers still operating even when the Dashboard window is closed by NP.)
 
 ## [2.4.0.b22] 2026-02-27
-- fix: avoid runtime error when opening Dashboard if Reviews plugin triggers a refresh before React has sent pluginData — guard in refreshSomeSections and setPluginData when shared data is not ready yet
+- fix: avoid runtime error when opening Dashboard if Reviews plugin triggers a refresh before React has sent pluginData - guard in refreshSomeSections and setPluginData when shared data is not ready yet
 - fix: when switching perspective, only refresh the Projects List (Reviews plugin) if that window is actually open; use exact window ID match so we don't trigger when another Reviews window is open
-- UX: reduce multi-step redraw when switching perspective via dropdown — no optimistic UI for sections; sections refresh in one batch instead of per-section updates
+- UX: reduce multi-step redraw when switching perspective via dropdown - no optimistic UI for sections; sections refresh in one batch instead of per-section updates
 - fix (hopefully): work around indents API bug that stopped indented tasks being moved to different calendar notes
 - dev: ensure numeric dashboard settings (for example `maxItemsToShowInSection` and `newTaskSectionHeadingLevel`) are always stored and loaded as numbers, not strings
 - dev: normalise number-type settings in both the React settings dialog and `setSetting`/`setSettings` x-callback paths to avoid subtle type mismatches in future

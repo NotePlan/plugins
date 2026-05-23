@@ -2,18 +2,19 @@
 //-----------------------------------------------------------------------------
 // Convert a regular note into a project note (frontmatter metadata).
 // by @jgclark
-// Last updated 2026-05-06 for v2.0.0.b30 by @Cursor+@jgclark
+// Last updated 2026-05-23 for v2.0.1 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
-import { updateAllProjectsListAfterChange } from './allProjectsListHelpers'
+import { addNewProjectToAllProjectsListIfInScope } from './allProjectsListHelpers'
 import { normalizeProgressDateFromForm, separateFmKeyFromMentionPref } from './projectClassHelpers'
-import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
+import { formatProgressCommentString, getReviewSettings, type ReviewConfig } from './reviewHelpers'
 import { renderProjectListsIfOpen } from './reviews'
 import { checkString } from '@helpers/checkType'
 import { RE_DATE } from '@helpers/dateTime'
 import { JSP, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getOpenEditorFromFilename } from '@helpers/NPEditor'
+import { getNoteFromFilename } from '@helpers/NPnote'
 import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { showMessage } from '@helpers/userInput'
@@ -29,6 +30,9 @@ type ConvertToProjectInputs = {
   reviewInterval: string,
   aim: ?string,
   isSequential: boolean,
+  // startingProgressNumber: ?number,
+  // startingProgressComment: ?string,
+  startingProgress: ?string,
 }
 
 /**
@@ -86,7 +90,18 @@ function parseConvertToProjectFormValues(formResult: CommandBarFormResult, seque
     const aimTrimmed = typeof aimRaw === 'string' ? aimRaw.trim() : String(aimRaw ?? '').trim()
     const aim = aimTrimmed !== '' ? aimTrimmed : null
     const isSequential = sequentialFieldOffered ? parseBoolFromForm(fieldMap.isSequential) : false
-    return { projectTag, startDate, dueDate, reviewedDate, reviewInterval, aim, isSequential }
+    const startingProgressNumberAsString: string = fieldMap.startingProgressNumber != null ? String(Number(fieldMap.startingProgressNumber)) : ''
+    const startingProgressComment = fieldMap.startingProgressComment != null && fieldMap.startingProgressComment !== '' ? String(fieldMap.startingProgressComment) : ''
+    const startingProgress =
+      startingProgressComment !== ''
+        ? formatProgressCommentString(
+          startingProgressComment,
+          startingProgressNumberAsString !== '' ? startingProgressNumberAsString : undefined,
+        )
+        : startingProgressNumberAsString !== ''
+          ? formatProgressCommentString('Started', startingProgressNumberAsString)
+          : null
+    return { projectTag, startDate, dueDate, reviewedDate, reviewInterval, aim, isSequential, startingProgress }
   } catch (error) {
     logError('parseConvertToProjectFormValues', `Error parsing form result: ${error.message}`)
     return null
@@ -105,14 +120,19 @@ function buildFrontmatterAttrs(inputs: ConvertToProjectInputs, config: ReviewCon
   const dueKey = separateFmKeyFromMentionPref(checkString(DataStore.preference('dueMentionStr') || '@due'), 'due')
   const reviewedKey = separateFmKeyFromMentionPref(checkString(DataStore.preference('reviewedMentionStr') || '@reviewed'), 'reviewed')
   const reviewIntervalKey = separateFmKeyFromMentionPref(checkString(DataStore.preference('reviewIntervalMentionStr') || '@review'), 'review')
+  const progressKey = separateFmKeyFromMentionPref(checkString(config.progressStr || 'progress'), 'progress')
   const sequentialTag = (config.sequentialTag ?? '').trim()
   const combinedTagValue =
     inputs.isSequential && sequentialTag !== '' ? `${inputs.projectTag} ${sequentialTag}`.replace(/\s+/g, ' ').trim() : inputs.projectTag
+  const startingProgress = inputs.startingProgress != null && inputs.startingProgress !== '' ? inputs.startingProgress : null
   const attrs: { [string]: string } = {
     [singleKeyName]: combinedTagValue,
     [startKey]: inputs.startDate,
     [reviewedKey]: inputs.reviewedDate,
     [reviewIntervalKey]: inputs.reviewInterval,
+  }
+  if (startingProgress != null) {
+    attrs[progressKey] = startingProgress
   }
   if (inputs.dueDate != null && inputs.dueDate !== '') {
     attrs[dueKey] = inputs.dueDate
@@ -121,21 +141,6 @@ function buildFrontmatterAttrs(inputs: ConvertToProjectInputs, config: ReviewCon
     attrs.aim = inputs.aim
   }
   return attrs
-}
-
-/**
- * Validate note can be converted (project-style note, not calendar).
- * @param {CoreNoteFields} note
- * @returns {boolean}
- */
-function isValidNoteForConvert(note: CoreNoteFields): boolean {
-  if (note == null || note.title == null) {
-    return false
-  }
-  if (note.type === 'Calendar' || (note.paragraphs?.length ?? 0) < 2) {
-    return false
-  }
-  return true
 }
 
 /**
@@ -214,6 +219,25 @@ export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> 
         description: 'Optional one-line statement of the project aim',
         required: false,
       },
+      {
+        type: 'number',
+        key: 'startingProgressNumber',
+        title: 'Starting progress (optional)',
+        description: 'Optional starting progress percentage (0-100)',
+        default: 0,
+        min: 0,
+        max: 100,
+        placeholder: '',
+        required: false,
+      },
+      {
+        type: 'string',
+        key: 'startingProgressComment',
+        title: 'Starting progress comment',
+        description: 'Optional starting progress comment',
+        placeholder: 'Started',
+        required: false,
+      },
     ]
     if (sequentialFieldOffered) {
       fields.push({
@@ -246,6 +270,7 @@ export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> 
 
     const attrs = buildFrontmatterAttrs(inputs, config)
     const possibleEditor = getOpenEditorFromFilename(resolvedNote.filename)
+    // $FlowFixMe[incompatible-type]
     const targetForFm: TEditor | TNote = possibleEditor || resolvedNote
     const noteForCache: TNote = (possibleEditor && possibleEditor.note) ? possibleEditor.note : ((resolvedNote: any): TNote)
 
@@ -258,13 +283,11 @@ export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> 
     }
     DataStore.updateCache(noteForCache, true)
 
-    await updateAllProjectsListAfterChange(resolvedNote.filename ?? '', false, config)
+    const refreshedNote = getNoteFromFilename(resolvedNote.filename ?? '') ?? noteForCache
+    await addNewProjectToAllProjectsListIfInScope(refreshedNote, inputs.projectTag, config)
     await renderProjectListsIfOpen(config)
 
-    logInfo(
-      'convertToProject',
-      `Convert to project succeeded for '${displayTitle(resolvedNote)}' (${resolvedNote.filename ?? ''}); wrote project metadata to frontmatter.`,
-    )
+    logInfo('convertToProject', `Convert to project succeeded for '${displayTitle(resolvedNote)}' (${resolvedNote.filename ?? ''}); wrote project metadata to frontmatter.`)
     await showMessage(`Converted '${displayTitle(resolvedNote)}' to a project and updated frontmatter metadata.`, 'OK', 'Convert to Project')
   } catch (error) {
     logError('convertToProject', JSP(error))

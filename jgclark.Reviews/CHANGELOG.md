@@ -1,8 +1,12 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
-## [2.0.0] - 2026-05-20
+## [2.0.1] - 2026-05-23 (unreleased)
+- New setting: 'Project progress string' that allows user to override the 'progress' string in project note body and frontmatter key
+- Change: **convert to project** command now also asks user for optional starting comment and %, and will update the **project list** view to include it (if it's in scope).
+- dev: Fix: project list now reads progress from the configured frontmatter key as well as from body progress lines.
 
+## [2.0.0] - 2026-05-20
 ### Summary of New features
 - **Modernised Rich project list** — denser layout with more metadata visible; status lozenges for review/due; optional multi-column layout; **Order by** control in the top bar (including sort by first project tag in your configured display order).
 - **Much faster generation** — uses caching between runs.
@@ -15,7 +19,9 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 - **Dashboard integration** — respects Dashboard perspectives and folder filters; list stays in sync when completing tasks from Dashboard or when filters change.
 
 ### Changed features
-- **Metadata model**: this now lives by default in the note's **Frontmatter**. So, the dates and tags are now separate keys (`start`, `due`, `reviewed`, `completed`, `cancelled`, `nextReview`). This allows for use in **folder views**. Plus a combined `project:` key for the project's tags.
+- **Metadata model**: this now lives by default in the note's **Frontmatter**. So, the dates and tags are now separate keys (`start`, `due`, `reviewed`, `completed`, `cancelled`, `nextReview`, `progress`). This allows for use in **folder views**. Plus a combined `project:` key for the project's tags.
+- New **`progressStr`** setting (default: `progress`) — customises the progress body-line prefix and frontmatter key, consistent with the other `*MentionStr` settings.
+- New **`formatProgressCommentString()`** helper — canonical formatter for progress comment values (`N@YYYYMMDD comment`).
 - **Migrate all projects** — batch migration command with log file for legacy metadata. Body metadata is migrated automatically when commands update a note.
 - **Review lifecycle** — finish review uses the focused editor; works when metadata is YAML-only; split-window and race-condition fixes for pause/complete/cancel.
 - **Next actions** — sequential projects skip future-dated tasks unless explicitly tagged as next action; completed/cancelled projects no longer show next actions in Rich or Markdown lists.

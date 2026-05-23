@@ -1,4 +1,5 @@
 /* globals describe, expect, test, beforeAll, beforeEach */
+// @flow
 
 import { Project } from '../projectClass'
 import { Note } from '@mocks/index'
@@ -30,6 +31,7 @@ describe('Project constructor: default review interval in frontmatter', () => {
     preferenceValues['cancelledMentionStr'] = '@cancelled'
     preferenceValues['reviewIntervalMentionStr'] = '@review'
     preferenceValues['nextReviewMentionStr'] = '@nextReview'
+    preferenceValues['progressStr'] = '@progress'
     preferenceValues['ignoreChecklistsInProgress'] = true
     preferenceValues['numberDaysForFutureToIgnore'] = 0
   })
