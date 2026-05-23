@@ -262,6 +262,23 @@ export function getLogSettingsDefaults(): TDashboardLoggingConfig {
 }
 
 /**
+ * Read a NotePlan preference as a plain JS string (safe to pass through the React WebView bridge).
+ * @param {string} prefKey
+ * @returns {string}
+ */
+function getPlainPreferenceString(prefKey: string): string {
+  try {
+    const prefValue = DataStore.preference(prefKey)
+    if (prefValue == null || prefValue === 'undefined') {
+      return ''
+    }
+    return String(prefValue)
+  } catch (err) {
+    return ''
+  }
+}
+
+/**
  * Get config settings from NotePlan's app-level preferences, which we need available for when NotePlan object isn't available to React.
  */
 export function getNotePlanSettings(): TNotePlanSettings {
@@ -269,9 +286,8 @@ export function getNotePlanSettings(): TNotePlanSettings {
     // Extend settings with value we might want to use when DataStore isn't available etc.
     return {
       // Note: this is a workaround for a bug in NotePlan where the timeblockTextMustContainString preference is sometimes undefined.
-      timeblockMustContainString: String(DataStore.preference('timeblockTextMustContainString') && DataStore.preference('timeblockTextMustContainString') !== 'undefined')
-        ? String(DataStore.preference('timeblockTextMustContainString'))
-        : '',
+      // String() coerces NP bridged String objects (e.g. emoji markers) to plain strings for WebView bridge serialization.
+      timeblockMustContainString: getPlainPreferenceString('timeblockTextMustContainString'),
       defaultFileExtension: DataStore.defaultFileExtension,
       doneDatesAvailable: !!DataStore.preference('isAppendCompletionLinks'),
       currentTeamspaces: getAllTeamspaceIDsAndTitles(),
