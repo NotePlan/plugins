@@ -10,7 +10,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useReducer, useEffect, useCallback } from 'react'
-import type { TPerspectiveDef } from '../../../types.js'
+import type { TDashboardSettings, TPerspectiveDef } from '../../../types.js'
 import { PERSPECTIVE_ACTIONS } from '../../reducers/actionTypes'
 import { cleanDashboardSettingsInAPerspective, endsWithStar } from '../../../perspectiveHelpers'
 import {
@@ -18,6 +18,7 @@ import {
   getPerspectiveNamed,
   getActivePerspectiveDef,
   getActivePerspectiveName,
+  isNamedPerspectiveModified,
   type TPerspectiveOptionObject,
 } from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
@@ -53,8 +54,12 @@ const saveAsOption = [{ label: 'Save Perspective As...', value: 'Add New Perspec
  * @param {boolean} item.isModified - Indicates if the perspective or option is modified.
  * @returns {string} The formatted name.
  */
-const formatNameWithStarIfModified = (item: TPerspectiveDef): string => {
-  return item.isModified ? `${item.name}*` : item.name
+const formatNameWithStarIfModified = (
+  item: TPerspectiveDef,
+  liveDashboardSettings: TDashboardSettings,
+  dashboardSettingsBaseline?: Partial<TDashboardSettings>,
+): string => {
+  return isNamedPerspectiveModified(item, liveDashboardSettings, dashboardSettingsBaseline) ? `${item.name}*` : item.name
 }
 
 //--------------------------------------------------------------------------
@@ -65,6 +70,7 @@ const PerspectiveSelector = (): React$Node => {
   // Context
   //----------------------------------------------------------------------
   const { dashboardSettings, perspectiveSettings, /*dispatchDashboardSettings,*/ dispatchPerspectiveSettings, sendActionToPlugin, pluginData, setReactSettings } = useAppContext()
+  const dashboardSettingsBaseline = pluginData?.dashboardSettingsBaseline
 
   //--------------------------------------------------------------------------
   // Reducer Function with Comprehensive Logging
@@ -78,7 +84,10 @@ const PerspectiveSelector = (): React$Node => {
         // Determine if "Save Perspective" should be included
         const thisPersp = getActivePerspectiveDef(perspectiveSettings)
         const notIsDash = thisPersp && thisPersp.name && thisPersp.name !== '-'
-        const saveModifiedOption = notIsDash && thisPersp?.isModified ? [{ label: 'Save Perspective', value: 'Save Perspective' }] : []
+        const saveModifiedOption =
+          notIsDash && thisPersp && isNamedPerspectiveModified(thisPersp, dashboardSettings, dashboardSettingsBaseline)
+            ? [{ label: 'Save Perspective', value: 'Save Perspective' }]
+            : []
         const renamePerspective = notIsDash ? [{ label: 'Rename Perspective…', value: 'Rename Perspective' }] : []
         const copySettings = notIsDash ? [{ label: 'Copy Settings to…', value: 'Copy Perspective' }] : []
         const deletePersp = notIsDash ? [{ label: 'Delete Perspective…', value: 'Delete Perspective' }] : []
@@ -154,7 +163,7 @@ const PerspectiveSelector = (): React$Node => {
     if (newActivePerspectiveName !== activePerspectiveName) {
       dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: newActivePerspectiveName })
     }
-  }, [perspectiveSettings, pluginData.perspectiveSettings])
+  }, [perspectiveSettings, pluginData.perspectiveSettings, dashboardSettings])
 
   //----------------------------------------------------------------------
   // Effect to Update Active Perspective Name When It Changes Externally
@@ -185,7 +194,8 @@ const PerspectiveSelector = (): React$Node => {
   // Use getActivePerspectiveDef to get the current active perspective directly from perspectiveSettings
   // This ensures we get the most up-to-date isModified flag, rather than looking up by name which might be stale
   const thisPersp = getActivePerspectiveDef(perspectiveSettings)
-  const nameToDisplay = thisPersp ? formatNameWithStarIfModified(thisPersp) : '-'
+  const nameToDisplay = thisPersp ? formatNameWithStarIfModified(thisPersp, dashboardSettings, dashboardSettingsBaseline) : '-'
+  const isPerspDisplayModified = thisPersp ? isNamedPerspectiveModified(thisPersp, dashboardSettings, dashboardSettingsBaseline) : false
 
   /**
    * Handles a perspective change event. If the selected option's value
@@ -265,10 +275,15 @@ const PerspectiveSelector = (): React$Node => {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `savePerspective "${selectedOption.value}".`)
         // const perspName = state.activePerspectiveName
         const thisPersp = getActivePerspectiveDef(perspectiveSettings)
-        if (thisPersp && thisPersp.isModified && thisPersp.name !== '-') {
+        if (thisPersp && isNamedPerspectiveModified(thisPersp, dashboardSettings, dashboardSettingsBaseline) && thisPersp.name !== '-') {
           sendActionToPlugin(
             'savePerspective',
-            { actionType: 'savePerspective', perspectiveName: thisPersp.name, logMessage: `Save Perspective (${thisPersp.name}) selected from dropdown` },
+            {
+              actionType: 'savePerspective',
+              perspectiveName: thisPersp.name,
+              settings: dashboardSettings,
+              logMessage: `Save Perspective (${thisPersp.name}) selected from dropdown`,
+            },
             `Save Perspective (${thisPersp.name}) selected from dropdown`,
           )
           logDebug('PerspectiveSelector/handlePerspectiveChange', `${thisPersp.name} saved!`)
@@ -351,7 +366,7 @@ const PerspectiveSelector = (): React$Node => {
       const apn = getActivePerspectiveName(perspectiveSettings)
       logDebug('PerspectiveSelector/handlePerspectiveChange', `selectedOption.label: "${selectedOption.label}" apn: "${apn}"`)
       const currentPersp = getPerspectiveNamed(apn, perspectiveSettings)
-      const currentPerspIsModified = currentPersp?.isModified || false
+      const currentPerspIsModified = currentPersp ? isNamedPerspectiveModified(currentPersp, dashboardSettings, dashboardSettingsBaseline) : false
       if (currentPerspIsModified) {
         // find diff between currentPersp.dashboardSettings and dashboardSettings
         const diff = compareObjects(currentPersp?.dashboardSettings, cleanDashboardSettingsInAPerspective(dashboardSettings))
@@ -384,6 +399,7 @@ const PerspectiveSelector = (): React$Node => {
                 actionType: 'savePerspectiveAndSwitch',
                 perspectiveName: perspToSave.name,
                 switchToPerspectiveName: selectedOption.value,
+                settings: dashboardSettings,
                 logMessage: `Save+Switch: ${perspToSave.name} -> ${selectedOption.value}`,
               },
               `Save+Switch to ${selectedOption.value}`,
@@ -453,7 +469,7 @@ const PerspectiveSelector = (): React$Node => {
   const selectedValue = { label: nameToDisplay, value: thisPersp ? thisPersp.name : '-' }
   logDebug(
     'PerspectiveSelector',
-    `selectedValue: ${JSON.stringify(selectedValue)} value(activePerspectiveName)=${activePerspectiveName} ${thisPersp?.isModified ? '<modified>' : ''}`,
+    `selectedValue: ${JSON.stringify(selectedValue)} value(activePerspectiveName)=${activePerspectiveName} ${isPerspDisplayModified ? '<modified>' : ''}`,
   )
 
   return (

@@ -9,7 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b39] 2026-05-19
+## [2.4.0.b40] 2026-05-23
+- fix: **Modified perspective asterisk** — toggling section visibility (e.g. `showQuarterSection`) on a named perspective sets `isModified` again; `CLOSE_UNNEEDED_SECTIONS` no longer overwrites `perspectiveSettings` from a stale WebView snapshot. Shared `isNamedPerspectiveModified()` drives the `*` label, **Save Perspective**, and `doSavePerspective` when live settings differ from the saved def (not only the `isModified` flag). After switching perspectives, `*` uses a `dashboardSettingsBaseline` snapshot so merge carryover from the previous perspective does not show as modified when `isModified` is false on disk. **Save Perspective** uses `forSave` (live-vs-def OR live-vs-baseline), WebView `dashboardSettings`, and optional `settings` from React so save is not blocked when carryover matches baseline but the saved def is still stale.
+
+## [2.4.0.b39] 2026-05-19 (released briefly)
 - dev: small improvements to  `dashboardHelpers` that CursorAI found
 
 ## [2.4.0.b38] 2026-05-18

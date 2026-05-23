@@ -7,6 +7,8 @@
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
+import { WEBVIEW_WINDOW_ID } from './constants'
+import { getGlobalSharedData } from '@helpers/HTMLView'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
 import {
@@ -23,8 +25,30 @@ import {
   savePerspectiveSettings,
   mergeDashboardSettingsForPerspectiveDef,
   logPerspectiveNames,
+  isNamedPerspectiveModified,
 } from './perspectiveHelpers'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+
+/**
+ * Live dashboard settings for perspective save: prefer WebView state (what the user sees), then disk.
+ * @param {Partial<TDashboardSettings>} [settingsFromBridge] - optional `data.settings` from React
+ * @returns {Promise<TDashboardSettings>}
+ */
+async function getLiveDashboardSettingsForPerspectiveSave(settingsFromBridge?: Partial<TDashboardSettings>): Promise<TDashboardSettings> {
+  if (settingsFromBridge && typeof settingsFromBridge === 'object' && !Array.isArray(settingsFromBridge) && Object.keys(settingsFromBridge).length > 0) {
+    const defaults = getDashboardSettingsDefaults()
+  // $FlowIgnore[cannot-spread-indexer]
+    return { ...defaults, ...settingsFromBridge, showSearchSection: true }
+  }
+  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+  const fromReact = reactWindowData?.pluginData?.dashboardSettings
+  if (fromReact && typeof fromReact === 'object' && !Array.isArray(fromReact) && Object.keys(fromReact).length > 0) {
+    const defaults = getDashboardSettingsDefaults()
+  // $FlowIgnore[cannot-spread-indexer]
+    return { ...defaults, ...fromReact, showSearchSection: true }
+  }
+  return getDashboardSettings()
+}
 
 /**
  * -----------------------------------------------------------------------------
@@ -98,19 +122,36 @@ export async function doDeletePerspective(data: MessageDataObject): Promise<TBri
 }
 
 export async function doSavePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  clo(data, `doSavePerspective starting ... with mbo`)
+  // clo(data, `doSavePerspective starting ... with mbo`)
+  logInfo('doSavePerspective', `Starting for perspective ${data?.perspectiveName || ''}`)
   const perspectiveSettings = await loadPerspectiveDefsFromPluginSettings()
   const activeDef = getActivePerspectiveDef(perspectiveSettings)
+  logInfo('doSavePerspective', `- Active perspective: ${activeDef?.name || ''}`)
   if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
-  if (!activeDef.isModified) return handlerResult(false, [], { errorMsg: `Perspective ${activeDef.name} is not modified. Not saving.` })
   if (activeDef.name === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" is not allowed to be saved.` })
-  const dashboardSettings = await getDashboardSettings()
-  if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
+  const dashboardSettings = await getLiveDashboardSettingsForPerspectiveSave(data?.settings)
+  if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettinFfgs failed` })
+  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+  const dashboardSettingsBaseline = reactWindowData?.pluginData?.dashboardSettingsBaseline
+  if (!isNamedPerspectiveModified(activeDef, dashboardSettings, dashboardSettingsBaseline, { forSave: true })) {
+    return handlerResult(false, [], { errorMsg: `Perspective ${activeDef.name} is not modified. Not saving.` })
+  }
+
+  logDebug('doSavePerspective', `- About to clean dashboard settings`)
+  // Note: There will also be a second 'clean' when re-render after sendActionToPlugin
   const newDef = { ...activeDef, dashboardSettings: cleanDashboardSettingsInAPerspective(dashboardSettings), isModified: false }
+  logDebug('doSavePerspective', `- About to replace perspective definition}`)
   const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
+  logDebug('doSavePerspective', `- About to save perspective settings}`)
   const result = await savePerspectiveSettings(revisedDefs)
   if (!result) return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
-  await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${activeDef.name}`)
+  await setPluginData(
+    {
+      perspectiveSettings: revisedDefs,
+      dashboardSettingsBaseline: cleanDashboardSettingsInAPerspective(dashboardSettings),
+    },
+    `_Saved perspective ${activeDef.name}`,
+  )
   return handlerResult(true, [])
 }
 
@@ -211,6 +252,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
     perspectiveChanging: true,
     perspectiveSettings: revisedDefs,
     dashboardSettings: newDashboardSettings,
+    dashboardSettingsBaseline: newDashboardSettings,
     pushFromServer: { dashboardSettings: true, perspectiveSettings: true },
     sections: [],
     lastChange: `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,

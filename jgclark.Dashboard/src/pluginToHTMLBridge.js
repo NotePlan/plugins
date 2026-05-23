@@ -58,6 +58,7 @@ import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickH
 import { scheduleAllOverdueOpenToToday, scheduleTodayToTomorrow, scheduleYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
 import { findSectionItems, getDashboardSettings, getListOfEnabledSections, setPluginData } from './dashboardHelpers'
+import { loadDashboardPluginSettings } from './dashboardPluginSettings'
 import { copyUpdatedSectionItemData } from './dataGeneration'
 import { externallyStartSearch } from './dataGenerationSearch'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TSectionCode } from './types'
@@ -685,7 +686,17 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
 
       // WebView snapshot can lag behind settings just saved to disk; merge dashboard settings from source of truth
       // so client-only sections (e.g. WINS from `winsPriorityMarker`) update on the same `UPDATE_DATA` as section splices.
-      reactWindowData.pluginData = { ...(reactWindowData.pluginData || {}), dashboardSettings: config }
+      // Re-attach perspectiveSettings from the plugin settings cache so a stale WebView copy cannot clear isModified
+      // (e.g. after dashboardSettingsChanged on a named perspective, before the user saves the perspective).
+      const persistedPluginSettings = await loadDashboardPluginSettings()
+      const persistedPerspectiveSettings = persistedPluginSettings?.perspectiveSettings
+      reactWindowData.pluginData = {
+        ...(reactWindowData.pluginData || {}),
+        dashboardSettings: config,
+        ...(Array.isArray(persistedPerspectiveSettings) && persistedPerspectiveSettings.length > 0
+          ? { perspectiveSettings: persistedPerspectiveSettings }
+          : {}),
+      }
       // `getListOfEnabledSections` omits synthetic WINS (generated in React); include it here when Wins is on so logs / client-only notes stay accurate
       const enabledForClose: Array<TSectionCode> = [...enabledSections]
       if (config.showWinsSection !== false && !enabledForClose.includes('WINS')) {
