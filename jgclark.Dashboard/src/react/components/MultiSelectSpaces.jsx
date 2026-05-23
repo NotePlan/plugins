@@ -7,7 +7,6 @@
 import React from 'react'
 import { useAppContext } from './AppContext.jsx'
 import { PRIVATE_FA_ICON,TEAMSPACE_FA_ICON } from '@helpers/teamspace'
-import { logDebug, logError } from '@helpers/dev'
 import '../css/MultiSelectSpaces.css'
 
 //-----------------------------------------------------------
@@ -29,11 +28,6 @@ function MultiSelectSpaces({ value, onChange, disabled = false, label, descripti
   const { pluginData } = useAppContext()
   // const teamspaces: Array<string> = ['private'] // for Testing only
   const teamspaces: Array<TTeamspace> = pluginData?.notePlanSettings?.currentTeamspaces ?? []
-
-  if (teamspaces.length === 0) {
-    logError('MultiSelectSpaces', 'No teamspaces available')
-    return null
-  }
 
   // Ensure value is an array
   const selectedValues = Array.isArray(value) ? value : (value ? [value] : ['private'])
@@ -79,8 +73,8 @@ function MultiSelectSpaces({ value, onChange, disabled = false, label, descripti
       {label && (
         <label className="input-box-label">{label}</label>
       )}
-      {/* If only one teamspace available, show message instead */}
-      {(teamspaces.length === 1 && teamspaces[0] === 'private')
+      {/* If user has no Team Spaces, show message instead of checkboxes (Private space is implicit) */}
+      {teamspaces.length === 0
         ? (
           <div className="item-description italicText">
             You are not a member of any Spaces.

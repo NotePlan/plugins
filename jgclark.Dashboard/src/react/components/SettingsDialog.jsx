@@ -82,7 +82,6 @@ const SettingsDialog = ({
   const [sectionOrderChange, setSectionOrderChange] = useState<?Array<TSectionCode>>(null)
 
   if (!updatedSettings) return null // Prevent rendering before items are loaded
-  logDebug('SettingsDialog/main', `Starting`)
 
   // Return whether the controlling setting item is checked or not
   function stateOfControllingSetting(item: TSettingItem): boolean {
@@ -165,6 +164,11 @@ const SettingsDialog = ({
   //----------------------------------------------------------------------
   // Effects
   //----------------------------------------------------------------------
+
+  // Log once when settings dialog opens (not on every re-render)
+  useEffect(() => {
+    logDebug('SettingsDialog/main', `Starting`)
+  }, [])
 
   // Effect to handle scrolling to target when dialog opens
   useEffect(() => {
