@@ -9,6 +9,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b41] 2026-05-23 (@dbw)
+- fix: **Timeblock must-contain preference (emoji marker)** — React item rendering no longer calls `DataStore.preference('timeblockTextMustContainString')` from the WebView (which returned a non-JSON-serializable bridged String and could halt Dashboard load). Plugin reads the preference once via `getPlainPreferenceString()` and passes it through `notePlanSettings`; `isTimeBlockLine()` only reads the preference when the arg is omitted, not when `''` is passed explicitly.
+
 ## [2.4.0.b40] 2026-05-23
 - fix: **Modified perspective asterisk** — toggling section visibility (e.g. `showQuarterSection`) on a named perspective sets `isModified` again; `CLOSE_UNNEEDED_SECTIONS` no longer overwrites `perspectiveSettings` from a stale WebView snapshot. Shared `isNamedPerspectiveModified()` drives the `*` label, **Save Perspective**, and `doSavePerspective` when live settings differ from the saved def (not only the `isModified` flag). After switching perspectives, `*` uses a `dashboardSettingsBaseline` snapshot so merge carryover from the previous perspective does not show as modified when `isModified` is false on disk. **Save Perspective** uses `forSave` (live-vs-def OR live-vs-baseline), WebView `dashboardSettings`, and optional `settings` from React so save is not blocked when carryover matches baseline but the saved def is still stale.
 

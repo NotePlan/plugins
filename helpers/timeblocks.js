@@ -154,6 +154,23 @@ export const RE_TIMEBLOCK_IN_LINE = `${RE_START_OF_LINE}${RE_TIMEBLOCK}`
 // ------------------------------------------------------------------------------------
 
 /**
+ * Read timeblockTextMustContainString from NP preferences as a plain JS string (safe for WebView bridge).
+ * @returns {string}
+ */
+function getTimeblockMustContainStringFromPreference(): string {
+  try {
+    const preferenceValue = DataStore?.preference('timeblockTextMustContainString')
+    if (preferenceValue == null || preferenceValue === 'undefined') {
+      return ''
+    }
+    // String() coerces NP bridged String objects to JSON-serializable plain strings
+    return String(preferenceValue)
+  } catch (error) {
+    return ''
+  }
+}
+
+/**
  * Decide whether this line contains an active time block.
  * WARNING: can only be used from HTMLWindow if the second parameter is given (which can be the empty string), as otherwise it calls DataStore.preference("timeblockTextMustContainString").
  * Also now defeats on timeblock in middle of a [...](filename) or URL or in @done(...) mention.
@@ -161,24 +178,18 @@ export const RE_TIMEBLOCK_IN_LINE = `${RE_START_OF_LINE}${RE_TIMEBLOCK}`
  * @author @dwertheimer
  *
  * @param {string} contentString
- * @param {string?} mustContainStringArg? if not given, then will read from NP app setting instead (if available)
+ * @param {string?} mustContainStringArg? if omitted, reads from NP app setting; if '' is passed explicitly, no must-contain check is done (and preference is not read)
  * @returns {boolean}
  */
-export function isTimeBlockLine(contentString: string, mustContainStringArg: string = ''): boolean {
+export function isTimeBlockLine(contentString: string, mustContainStringArg?: string): boolean {
   try {
-    // Get the setting from arg or from NP setting
-    // console.log(typeof mustContainStringArg, typeof DataStore)
-    let mustContainString = mustContainStringArg && typeof mustContainStringArg === 'string' ? mustContainStringArg : ''
-    if (mustContainString === '') {
-      // If DataStore.preference gives an error, or is not available, or gives an undefined answer, then treat as an empty string
-      try {
-        const preferenceValue = DataStore?.preference('timeblockTextMustContainString')
-        mustContainString = preferenceValue && typeof preferenceValue === 'string' ? preferenceValue : ''
-      } catch (error) {
-        // ignore error
-        mustContainString = ''
-      }
-    }
+    // Get the setting from arg or from NP setting (only when arg is omitted — not when explicitly '')
+    const mustContainString =
+      mustContainStringArg === undefined
+        ? getTimeblockMustContainStringFromPreference()
+        : typeof mustContainStringArg === 'string'
+          ? mustContainStringArg
+          : ''
     // Check for the mustContainString (if given)
     const normalizedContent = contentString.normalize('NFC')
     // logDebug('isTimeBlockLine', `- with '${mustContainString}' for {${normalizedContent}}`)
@@ -243,7 +254,7 @@ export function isTypeThatCanHaveAnActiveTimeBlock(para: TParagraph): boolean {
  * @param {string} timeblockTextMustContainString which may be empty.
  * @returns {boolean}
  */
-export function isTimeBlockPara(para: TParagraph, timeblockTextMustContainString: string = ''): boolean {
+export function isTimeBlockPara(para: TParagraph, timeblockTextMustContainString?: string): boolean {
   // To keep the code simpler, this now just calls a very similar function
   return isTimeBlockLine(para.content, timeblockTextMustContainString)
 }
