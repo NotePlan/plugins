@@ -3,7 +3,7 @@
 // Clean dashboard settings objects (per-perspective strip list).
 // Extracted from perspectiveHelpers.js to avoid circular imports with
 // dashboardPluginSettings.js / dashboardHelpers.js.
-// Last updated 2026-05-15 for v2.4.0.b35 by @CursorAI
+// Last updated 2026-05-23 for v2.4.0.b42 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'

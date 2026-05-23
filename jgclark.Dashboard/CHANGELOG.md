@@ -9,6 +9,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b42] 2026-05-23
+- dev: **Perspective settings cleaning** — `cleanDashboardSettingsInAPerspective()` runs once per perspective def on save/repair (`saveDashboardPluginSettings`); removed redundant pre-save cleans in save/switch handlers. `switchToPerspective` returns sanitized defs from cache after save so React matches disk.
+
 ## [2.4.0.b41] 2026-05-23
 - dev: fix: **Spaces to Include setting** — when no Team Spaces are enabled, Settings no longer logs repeated `MultiSelectSpaces :: No teamspaces available` errors or hides the field; shows "You are not a member of any Spaces." instead (Private space remains the implicit default).
 - fix: **Timeblock must-contain preference (emoji marker)** — React item rendering no longer calls `DataStore.preference('timeblockTextMustContainString')` from the WebView (which returned a non-JSON-serializable bridged String and could halt Dashboard load). Plugin reads the preference once via `getPlainPreferenceString()` and passes it through `notePlanSettings`; `isTimeBlockLine()` only reads the preference when the arg is omitted, not when `''` is passed explicitly. (@dbw)

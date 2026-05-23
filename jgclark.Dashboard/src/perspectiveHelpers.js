@@ -623,9 +623,6 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
     const newPerspectiveSettings = setActivePerspective(name, allDefs).map((p) => ({
       ...p,
       isModified: false,
-      // the following is a little bit inefficient, but given that people can change tags in numerous ways
-      // we need to clean the dashboardSettings for each perspective just to be sure
-      dashboardSettings: cleanDashboardSettingsInAPerspective(p.dashboardSettings),
     }))
 
     // logDebug('switchToPerspective', `New perspectiveSettings:`)
@@ -651,7 +648,9 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
 
     logTimer('switchToPerspective', startTime, `End of switchToPerspective`) // Note: never seems to get here?
 
-    return newPerspectiveSettings
+    const savedPluginSettings = await loadDashboardPluginSettings()
+    const savedPerspectives = savedPluginSettings?.perspectiveSettings
+    return Array.isArray(savedPerspectives) && savedPerspectives.length > 0 ? savedPerspectives : newPerspectiveSettings
   } catch (error) {
     logError('switchToPerspective', `Error: ${error.message}`)
     return false
@@ -675,7 +674,7 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
     }
     activeDef.isModified = false
     const dSet: Partial<TDashboardSettings> = await getDashboardSettings()
-    activeDef.dashboardSettings = cleanDashboardSettingsInAPerspective(dSet)
+    activeDef.dashboardSettings = dSet
     const newDefs = replacePerspectiveDef(allDefs, activeDef)
     logDebug('updateCurrentPerspectiveDef', `Will update def '${activeDef.name}'`)
     const res = await savePerspectiveSettings(newDefs)
@@ -731,7 +730,7 @@ export async function addNewPerspective(nameArg?: string): Promise<void> {
     isActive: true,
     isModified: false,
     dashboardSettings: {
-      ...cleanDashboardSettingsInAPerspective(currentDashboardSettings),
+      ...currentDashboardSettings,
     },
   }
   logInfo('addPerspectiveSetting', `... adding Perspective #${String(allDefs.length)}:\n${JSON.stringify(newDef, null, 2)}`) // ✅

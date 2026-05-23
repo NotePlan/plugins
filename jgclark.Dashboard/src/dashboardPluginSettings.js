@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Load/save jgclark.Dashboard settings.json with sanitization (repair corrupt root
 // structure from array-spread bugs, double-encoded JSON, etc.).
-// Last updated 2026-05-15, @Cursor
+// Last updated 2026-05-23 for v2.4.0.b42, @Cursor
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -151,19 +151,6 @@ function normalizePerspectiveSettingsArray(perspectiveSettingsRaw: any): { persp
 }
 
 /**
- * True when cleanDashboardSettingsInAPerspective would change persisted perspective dashboardSettings.
- * Uses double-clean so tag-section stripping is idempotent before comparing to the original.
- * @param {any} dashboardSettings
- * @returns {boolean}
- */
-function perspectiveDashboardSettingsNeedCleaning(dashboardSettings: any): boolean {
-  if (!dashboardSettings || typeof dashboardSettings !== 'object') return false
-  const cleaned = cleanDashboardSettingsInAPerspective(dashboardSettings)
-  const reCleaned = cleanDashboardSettingsInAPerspective(cleaned)
-  return JSON.stringify(reCleaned) !== JSON.stringify(dashboardSettings)
-}
-
-/**
  * @param {TDashboardPluginSettingsSanitizeReport} report
  * @returns {boolean}
  */
@@ -229,8 +216,9 @@ export function sanitizeDashboardPluginSettings(
     if (!cleanPerspectiveDefs) {
       return p
     }
-    const cleaned = cleanDashboardSettingsInAPerspective(p.dashboardSettings || {})
-    if (perspectiveDashboardSettingsNeedCleaning(p.dashboardSettings)) {
+    const original = p.dashboardSettings || {}
+    const cleaned = cleanDashboardSettingsInAPerspective(original)
+    if (JSON.stringify(cleaned) !== JSON.stringify(original)) {
       report.cleanedPerspectiveDefCount += 1
     }
     return { ...p, dashboardSettings: cleaned }
