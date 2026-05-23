@@ -49,17 +49,9 @@ Make sure you have the proper version of `node` installed (if you need to instal
 
 **Step 3: Initialize Local Development Environment**
 
-Run the following 3 commands from the root of your local GitHub repository for `NotePlan/plugins`.
+Run the following 2 commands from the root of your local GitHub repository for `NotePlan/plugins`.
 
-1) Update node-gyp
-
-```shell
-npm i -g node-gyp@latest && npm config set node_gyp "/usr/local/lib/node_modules/node-gyp/bin/node-gyp.js"
-```
-
-> **Note**: Don't be surprised if this command fails. It is only necessary in certain cases. If it fails, it probably means you didn't need it. Just continue on.
-
-2) Install the node_modules
+1) Install the node_modules
 
 ```shell
 npm install
@@ -67,7 +59,7 @@ npm install
 
 > **NOTE**: if you are running node >= 16 and you get failure messages on the vanilla install command above, you will need to use this command instead: `npm install --legacy-peer-deps`
 
-3) Link the files to make them run properly from the command line (especially the `noteplan-cli`)
+2) Link the files to make them run properly from the command line (especially the `noteplan-cli`)
 
 ```shell
 npm run init
