@@ -84,7 +84,7 @@ function IdleTimer({ idleTime, onIdleTimeout, userIsInteracting = false }: IdleT
         }
         setLastActivity(Date.now()) // Reset the timer after calling onIdleTimeout
       } else {
-        logDebug('IdleTimer', `${dt().padEnd(19)} Still under the ${msToMinutes(idleTime)}m limit; It has been ${msToSeconds(Date.now() - lastActivity)}s since last activity`)
+        // logDebug('IdleTimer', `${dt().padEnd(19)} Still under the ${msToMinutes(idleTime)}m limit; It has been ${msToSeconds(Date.now() - lastActivity)}s since last activity`)
       }
     }, TICK_INTERVAL)
 

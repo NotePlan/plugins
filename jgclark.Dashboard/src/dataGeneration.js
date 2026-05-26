@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-05-23 for v2.4.0.b43 by @CursorAI
+// Last updated 2026-05-26 for v2.4.0.b44 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -26,7 +26,6 @@ import { getTaggedSectionData } from './dataGenerationTags'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
 import { openMonthParas, refMonthParas, tagParasFromNote } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
-import { removeInvalidTagSections } from './perspectiveHelpers'
 import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
 import { getNPMonthStr, getNPQuarterStr, getNPYearStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -123,7 +122,7 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('SAVEDSEARCH')) sections.push(...(await getSavedSearchResults(config, useDemoData)))
     if (sectionCodesToGet.includes('TAG') && config.tagsToShow) {
       // TODO: change so that tags can be generated separately from each other, letting them be specified in the section order component.
-      const tagSections = getTagSectionDetails(removeInvalidTagSections(config))
+      const tagSections = getTagSectionDetails(config)
       // clo(tagSections, 'getSomeSectionsData tagSections')
       let index = 0
       for (const tagSection of tagSections) {

@@ -74,23 +74,11 @@ export const useSyncDashboardSettingsWithPlugin = (
     const dashboardSettingsChanged = dashboardSettings && diff !== null
     const realDiff = getDiff(lastDashboardSettingsRef.current, dashboardSettings)
     if (dashboardSettingsChanged) {
-      logDebug(
-        `useSyncDashboardSettingsWithPlugin dashboardSettings in REACT changed BB dashboardSettingsChanged: ${String(
-          dashboardSettingsChanged,
-        )} pluginData.perspectiveChanging:${String(pluginData.perspectiveChanging)}`,
-        { dashboardSettings, realDiff, pushFromServer: pluginData?.pushFromServer?.dashboardSettings },
-      )
+      logDebug(`useSyncDashboardSettingsWithPlugin dashboardSettings in REACT changed BB dashboardSettingsChanged: ${String(dashboardSettingsChanged)} pluginData.perspectiveChanging:${String(pluginData.perspectiveChanging)} /  realDiff:${realDiff}`)
       if (pluginData?.perspectiveChanging) {
-        logDebug(
-          `useSyncDashboardSettingsWithPlugin`,
-          `NOT SENDING because perspectiveChanging=${String(pluginData.perspectiveChanging)}`,
-        )
+        logDebug(`useSyncDashboardSettingsWithPlugin`, `NOT SENDING because perspectiveChanging=${String(pluginData.perspectiveChanging)}`,)
       } else if (pluginData?.pushFromServer?.dashboardSettings) {
-        logDebug(
-          `useSyncDashboardSettingsWithPlugin pluginData changed; pushFromServer=${JSON.stringify(
-            pluginData.pushFromServer,
-          )} changing pushFromServer.dashboardSettings to false; not sending to server`,
-        )
+        logDebug(`useSyncDashboardSettingsWithPlugin pluginData changed; pushFromServer=${JSON.stringify(pluginData.pushFromServer)} changing pushFromServer.dashboardSettings to false; not sending to server`)
         const newPluginData = { ...pluginData, pushFromServer: { ...pluginData.pushFromServer, dashboardSettings: false } }
         updatePluginData(newPluginData, `acknowledging server push`)
         // was a server push so don't need to send to server

@@ -296,12 +296,9 @@ export async function generateProjectListsAndRenderIfOpen(
       invalidateDashboardPluginSettingsCache()
       const reloaded = await getReviewSettings()
       if (reloaded) config = reloaded
-      logInfo(
-        'generateProjectListsAndRenderIfOpen',
-        `usePerspectives: perspective '${config.perspectiveName ?? '?'}' foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(config.foldersToIgnore)}]`,
-      )
+      logInfo('generateProjectListsAndRenderIfOpen',  `using perspective '${config.perspectiveName ?? '?'}': foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(config.foldersToIgnore)}]`)
     }
-    logDebug(pluginJson, `generateProjectListsAndRenderIfOpen() starting with scrollPos ${String(scrollPos)}`)
+    logDebug(pluginJson, `generateProjectListsAndRenderIfOpen() starting (with scrollPos ${String(scrollPos)})`)
     const richWindowOpen = isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)
     const htmlWindowSummary = NotePlan.htmlWindows.map((w) => `${w.customId ?? '-'}:${w.isVisible ? 'visible' : 'hidden'}`).join(', ')
     logInfo('generateProjectListsAndRenderIfOpen', `pre-render visibility: ${RICH_PROJECT_LIST_WIN_ID} open=${String(richWindowOpen)}; htmlWindows=[${htmlWindowSummary}]`)

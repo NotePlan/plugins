@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate Project section data
-// Last updated 2026-02-19 for v2.4.0.b21, @jgclark
+// Last updated 2026-05-25 for v2.4.0.b44, @jgclark
 //-----------------------------------------------------------------------------
 
 import { getNextProjectsToReview, getAllActiveProjects } from '../../jgclark.Reviews/src/allProjectsListHelpers'
@@ -176,7 +176,9 @@ export async function getProjectReviewSectionData(config: TDashboardSettings, us
   if (config?.FFlag_ShowSectionTimings) {
     const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
     if (logNote) {
-      const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Dashboard: ${nextProjectsToReview.length} Project(s) ready to Review, in ${timer(thisStartTime)}`
+      // TODO: finish this ...
+      const perspName = config?.usePerspectives ? "?" : '_no_'
+      const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Dashboard PROJREVIEW for ${perspName} persp: ${nextProjectsToReview.length} in ${timer(thisStartTime)}`
       smartPrependPara(logNote, newLogLine, 'list')
     }
   }
@@ -282,7 +284,9 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
   if (config?.FFlag_ShowSectionTimings) {
     const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
     if (logNote) {
-      const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Dashboard: ${allActiveProjects.length} Active Project(s), in ${timer(thisStartTime)}`
+      // TODO: finish this ...
+      const perspName = config?.usePerspectives ? "?" : '_no_'
+      const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Dashboard PROJACT with ${perspName} persp: ${allActiveProjects.length} in ${timer(thisStartTime)}`
       smartPrependPara(logNote, newLogLine, 'list')
     }
   }

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-05-23 for v2.4.0.b43, @CursorAI
+// Last updated 2026-05-26 for v2.4.0.b44, @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -79,10 +79,11 @@ const pluginID = 'jgclark.Dashboard' // normally this could come from pluginJson
  */
 export async function getDashboardSettingsForOpenWebView(pluginDataDashboardSettings?: Partial<TDashboardSettings>): Promise<TDashboardSettings> {
   const fromDisk = await getDashboardSettings()
-  if (!pluginDataDashboardSettings || Object.keys(pluginDataDashboardSettings).length === 0) {
-    return removeInvalidTagSections(fromDisk)
-  }
-  return removeInvalidTagSections({ ...fromDisk, ...pluginDataDashboardSettings })
+  const merged =
+    pluginDataDashboardSettings && Object.keys(pluginDataDashboardSettings).length > 0
+      ? { ...fromDisk, ...pluginDataDashboardSettings }
+      : fromDisk
+  return removeInvalidTagSections(merged)
 }
 
 export { removeStaleTagSections } from './dashboardSettingsClean'
@@ -877,11 +878,11 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
 
         // Note: debugging why sometimes hasChild is wrong
         // TODO(later): remove this debugging
-        if (hasChild) {
-          logInfo('makeDashboardParas', `FYI 👉 makeDashboardParas: found indented children for #${p.lineIndex}:in "${note.filename}" (indents:${effectiveIndents}) {${p.rawContent}}`)
-          // clo(p.contentRange, `contentRange for paragraph`)
+        if (hasChild && p.content.toUpperCase().includes('TEST')) {
+          logDebug('makeDashboardParas', `FYI 👉 makeDashboardParas: found indented children for #${p.lineIndex}:in "${note.filename}" (indents:${effectiveIndents}) {${p.rawContent}}`)
+          clo(p.contentRange, `contentRange for paragraph`)
           clof(anyChildren, `Children of paragraph`, ['lineIndex', 'indents', 'content'])
-          // clo(anyChildren[0].contentRange, `contentRange for child[0]`)
+          clo(anyChildren[0].contentRange, `contentRange for child[0]`)
 
         }
         if (checkForPriorityDelta) {

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2026-05-23 for v2.4.0.b43 by @jgclark + @CursorAI
+// last updated 2026-05-23 for v2.4.0.b44 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -15,6 +15,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { WEBVIEW_WINDOW_ID } from './constants'
+// import { isTagCacheEnabled } from './dashboardSettingsClean'
 import type { TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
@@ -252,8 +253,10 @@ export async function getFilenamesOfNotesWithTagOrMentions(
  * @param {boolean} forceRebuild If true, the cache will be rebuilt from scratch, otherwise it will revert to the quicker 'updateTagMentionCache' function if the WANTED_PARA_TYPES are all already in the cache.
  */
 export async function generateTagMentionCache(forceRebuild: boolean = true): Promise<void> {
+  const startTime = new Date()
+  let processingOnAsyncThread = false
+  let progressBannerShown = false
   try {
-    const startTime = new Date()
     // Note: this doesn't get the current definitions, if the perspective definition has changed and not yet saved. However, getTaggedSectionData() notices this and updates the list and asks for a Cache rebuild, so it quickly gets resolved.
     const wantedItems = getTagMentionCacheDefinitions()
     // const config = await getDashboardSettings()
@@ -279,24 +282,28 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     }
     logDebug('generateTagMentionCache', `- something requested a forced cache rebuild`)
 
-    // add a banner to say what we're doing
-    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Generating tag/mention cache for ${String(wantedItems)}${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' from all open items' : ''} ...`, 'INFO')
-
-    // Start background thread
-    await CommandBar.onAsyncThread()
-
-    // Get all notes to scan
+    // Get all notes to scan on the main thread (banner messages must reach the WebView from the main thread)
     const allCalNotes = DataStore.calendarNotes
     const allRegularNotes = DataStore.projectNotes.filter((note) => !note.filename.startsWith('@'))
+    const openItemsSuffix = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' from all open items' : ''
+    await sendBannerMessage(
+      WEBVIEW_WINDOW_ID,
+      `Generating tag/mention cache for ${String(wantedItems)}${openItemsSuffix} in ${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes ...`,
+      'INFO',
+    )
+    progressBannerShown = true
     logTimer('generateTagMentionCache', startTime, `- processing ${allCalNotes.length} calendar + ${allRegularNotes.length} regular notes ...`)
 
-    // add a banner to say what we're doing
-    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Generating tag/mention cache for ${String(wantedItems)} from ${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes ...`, 'INFO')
+    // Start background thread for the heavy scanning work
+    await CommandBar.onAsyncThread()
+    processingOnAsyncThread = true
 
     // Iterate over all notes and get all open paras with tags and mentions
     // First, get all calendar notes ...
     const calWantedItems = []
     let ccal = 0
+    let totalFoundItems = 0
+    let totalMatchingNotes = 0
     logDebug('generateTagMentionCache', `- Processing ${allCalNotes.length} calendar notes ...`)
     for (const note of allCalNotes) {
       const foundItems = getFoundItemsFromNote(note, wantedItems)
@@ -304,14 +311,14 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
         ccal++
         // logDebug('generateTagMentionCache', `-> ${String(foundItems.length)} foundItems [${String(foundItems)}]`)
         calWantedItems.push({ filename: note.filename, items: foundItems })
+        totalFoundItems += foundItems.length
+        totalMatchingNotes++
       }
     }
 
     // ... then all regular notes.
     const regularWantedItems = []
     let creg = 0
-    let totalFoundItems = 0
-    let totalMatchingNotes = 0
     logDebug('generateTagMentionCache', `- Processing ${allRegularNotes.length} regular notes ...`)
     for (const note of allRegularNotes) {
       // logInfo('generateTagMentionCache', `- Processing ${note.filename}`)
@@ -335,19 +342,38 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
       calendarNotes: calWantedItems,
     }
 
-    // Finish backgroud thread
+    // Finish background thread before WebView messages and DataStore writes
     await CommandBar.onMainThread()
+    processingOnAsyncThread = false
 
     DataStore.saveData(JSON.stringify(cache), tagMentionCacheFile, true)
     logTimer('generateTagMentionCache', startTime, `- after saving to mentionTagCacheFile`)
 
-    // add a banner to say what we've done
+    // Replace progress banner with a timed completion message (progress banners have no timeout and would persist otherwise)
     await sendBannerMessage(WEBVIEW_WINDOW_ID, `Tag/mention cache found ${String(totalFoundItems)} matching open items in ${String(totalMatchingNotes)} notes`, 'INFO', 4000)
+    progressBannerShown = false
 
     // Clear the preference that was set to trigger a regeneration
     clearTagMentionCacheGenerationPref()
   } catch (err) {
     logError('generateTagMentionCache', JSP(err))
+    if (progressBannerShown) {
+      await sendBannerMessage(WEBVIEW_WINDOW_ID, '', 'REMOVE')
+      const errMessage = err instanceof Error ? err.message : String(err)
+      await sendBannerMessage(WEBVIEW_WINDOW_ID, `Tag/mention cache generation failed: ${errMessage}`, 'ERROR', 5000)
+      progressBannerShown = false
+    }
+  } finally {
+    if (processingOnAsyncThread) {
+      try {
+        await CommandBar.onMainThread()
+      } catch (threadErr) {
+        logError('generateTagMentionCache', `onMainThread in finally: ${JSP(threadErr)}`)
+      }
+    }
+    if (progressBannerShown) {
+      await sendBannerMessage(WEBVIEW_WINDOW_ID, '', 'REMOVE')
+    }
   }
 }
 
@@ -458,7 +484,10 @@ export function getTagMentionCacheDiagnosticsLines(dashboardSettings: any): Arra
   const lastRunPref = DataStore.preference(lastTimeThisWasRunPref)
 
   lines.push('### Settings')
-  lines.push(`- FFlag_UseTagCache: ${String(dashboardSettings?.FFlag_UseTagCache ?? false)}`)
+  const tagCacheFlag = dashboardSettings?.FFlag_UseTagCache
+  lines.push(
+    `- FFlag_UseTagCache: ${tagCacheFlag === undefined ? 'not set (so, cache enabled)' : String(tagCacheFlag)}`,
+  )
   lines.push(`- FFlag_UseTagCacheAPIComparison: ${String(dashboardSettings?.FFlag_UseTagCacheAPIComparison ?? false)}`)
   lines.push(`- TAG_CACHE_ONLY_FOR_OPEN_ITEMS (code): ${String(TAG_CACHE_ONLY_FOR_OPEN_ITEMS)}`)
   lines.push(`- TAG_CACHE_FOR_ALL_TAGS (code): ${String(TAG_CACHE_FOR_ALL_TAGS)}`)
@@ -544,7 +573,7 @@ export function getWantedTagOrMentionListFromNote(
         (wantedTagsOrMentions.length === 0 || caseInsensitiveArrayIncludes(tag, wantedTagsOrMentions)) &&
         (excludedTagsOrMentions.length === 0 || !caseInsensitiveArrayIncludes(tag, excludedTagsOrMentions))
       ) {
-        logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${tag} in '${note.filename}'`)
+        // logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${tag} in '${note.filename}'`)
         seenWantedTags.push(tag)
       }
     }
@@ -565,7 +594,7 @@ export function getWantedTagOrMentionListFromNote(
         (wantedTagsOrMentions.length === 0 || caseInsensitiveArrayIncludes(trimmedMention, wantedTagsOrMentions)) &&
         (excludedTagsOrMentions.length === 0 || !caseInsensitiveArrayIncludes(trimmedMention, excludedTagsOrMentions))
       ) {
-        logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${mention} from '${note.filename}'`)
+        // logDebug('getWantedTagOrMentionListFromNote', `- Found matching occurrence ${mention} from '${note.filename}'`)
         seenWantedMentions.push(trimmedMention)
       }
     }

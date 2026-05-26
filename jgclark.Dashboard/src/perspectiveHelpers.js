@@ -356,7 +356,8 @@ export function getPerspectiveLiveVsSavedDiff(
   if (!perspectiveDef || perspectiveDef.name === '-') return null
   const dashboardSettingsDefaults = getDashboardSettingsDefaults()
   const newSettingsWithDefaults = { ...dashboardSettingsDefaults, ...liveDashboardSettings }
-  const activePerspDefDashboardSettingsWithDefaults = { ...dashboardSettingsDefaults, ...perspectiveDef.dashboardSettings }
+  const cleanedDefSettings = cleanDashboardSettingsInAPerspective(perspectiveDef.dashboardSettings || {})
+  const activePerspDefDashboardSettingsWithDefaults = { ...dashboardSettingsDefaults, ...cleanedDefSettings }
   // $FlowFixMe[incompatible-call]
   const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettingsWithDefaults)
   const activePerspDefShowTagSectionKeys = Object.keys(perspectiveDef.dashboardSettings || {}).filter((k) => k.startsWith('showTagSection_'))
@@ -370,7 +371,9 @@ export function getPerspectiveLiveVsSavedDiff(
     ...activePerspDefDashboardSettingsWithDefaults,
     ...activePerspDefShowTagSectionObject,
   }
-  const diff = compareObjects(activePerspDefDashboardSettingsWithDefaultsAndTAGs, cleanedSettings, PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT)
+  // $FlowFixMe[incompatible-call]
+  const cleanedSavedSettings = cleanDashboardSettingsInAPerspective(activePerspDefDashboardSettingsWithDefaultsAndTAGs)
+  const diff = compareObjects(cleanedSavedSettings, cleanedSettings, PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT)
   if (diff === null || Object.keys(diff).length === 0) return null
   return diff
 }
@@ -593,10 +596,11 @@ export function mergeDashboardSettingsForPerspectiveDef(
   const prevWithoutTagSections: Partial<TDashboardSettings> = (Object.fromEntries(
     Object.entries(prevDashboardSettings).filter(([k]) => !k.startsWith('showTagSection_') && k !== 'includedTeamspaces'),
   ): any)
+  const perspectiveOnly = cleanDashboardSettingsInAPerspective(perspectiveDef.dashboardSettings || {})
   let newDashboardSettings: TDashboardSettings = {
     ...dashboardSettingsDefaults,
     ...prevWithoutTagSections,
-    ...(perspectiveDef.dashboardSettings || {}),
+    ...perspectiveOnly,
   }
   newDashboardSettings = removeInvalidTagSections(newDashboardSettings)
   if (lastChange) {

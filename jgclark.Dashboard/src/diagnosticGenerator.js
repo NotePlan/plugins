@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate diagnostics file for Dashboard plugin to help with debugging
-// Last updated 2026-05-23 for v2.4.0.b43 by @CursorAI
+// Last updated 2026-05-23 for v2.4.0.b44 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -106,11 +106,13 @@ export async function generateDiagnosticsFile(refreshArg: string = '') {
     output.push(JSON.stringify(perspectiveDefs, null, 2))
     output.push('```')
     output.push('')
-    output.push('### Tools')
-    output.push('')
+    output.push('## Tools')
     output.push(
       `If settings.json looks corrupt: ${createPrettyRunPluginLink('Repair Dashboard settings file', 'jgclark.Dashboard', 'repairDashboardSettings')}.`,
     )
+    output.push('')
+    output.push('To show the Feature Flags menu outside DEV logging mode, set `"showFeatureFlagMenu": true` in top-level `dashboardSettings` in settings.json.')
+    output.push('')
 
     // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
     const outputNote = await getOrMakeRegularNoteInFolder(diagnosticsNoteTitle, '')

@@ -43,7 +43,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppress
   if (!suppressTeamspaceName && isFromTeamspace) {
     // Show Teamspace indicator and name, if this is a Teamspace note
     const teamspaceTitle = item.teamspaceTitle && item.teamspaceTitle !== 'Unknown Teamspace' ? item.teamspaceTitle : ''
-    logInfo('ItemNoteLink', `- teamspaceTitle=${teamspaceTitle}`)
+    // logDebug('ItemNoteLink', `- teamspaceTitle=${teamspaceTitle}`)
     teamspaceName = (
       <span className="teamspaceName pad-right">
         <i className={`${TEAMSPACE_FA_ICON} pad-right`}></i>

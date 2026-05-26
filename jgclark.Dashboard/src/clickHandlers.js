@@ -4,14 +4,15 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-05-23 for v2.4.0.b43, @jgclark + @CursorAI
+// Last updated 2026-05-25 for v2.4.0.b44, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
-  WEBVIEW_WINDOW_ID,
   allCalendarSectionCodes,
   allSectionDetails,
+  DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH,
   SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS,
+  WEBVIEW_WINDOW_ID,
 } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import {
@@ -563,11 +564,6 @@ function getDiffTopLevelKeys(diff: any): Array<string> {
 }
 
 /**
- * Dashboard setting keys that can change without re-fetching section item lists (theme uses CHANGE_THEME CSS regen instead).
- */
-const DASHBOARD_SETTINGS_KEYS_WITHOUT_SECTION_REFRESH: Set<string> = new Set(['dashboardTheme', 'autoUpdateAfterIdleTime', 'preferredWindowType'])
-
-/**
  * Regenerate dashboard theme CSS and send CHANGE_THEME to the WebView (stylesheet swap, not a section refresh).
  * @param {string} themeName - dashboardTheme setting value
  * @returns {Promise<boolean>} true if CHANGE_THEME was sent successfully
@@ -634,17 +630,14 @@ function planSectionRefreshAfterDashboardSettingsChange(
         )
       }
     } else {
-      const keysNeedingContentRefresh = diffKeys.filter((k) => !DASHBOARD_SETTINGS_KEYS_WITHOUT_SECTION_REFRESH.has(k))
+      const keysNeedingContentRefresh = diffKeys.filter((k) => !DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH.has(k))
       if (keysNeedingContentRefresh.length > 0) {
         resultsToHandle.push('REFRESH_ALL_ENABLED_SECTIONS')
         logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: content-affecting settings changed (keys: ${keysNeedingContentRefresh.join(', ')}); will REFRESH_ALL_ENABLED_SECTIONS`)
       }
       if (dashboardFolderFilterSettingsChanged(diffKeys)) {
         resultsToHandle.push('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED')
-        logInfo(
-          'doSaveDashboardSettingsFromBridge',
-          `Section refresh plan: folder filter settings changed; will ACTIVE_PERSPECTIVE_DEFINITION_CHANGED when Rich list is open`,
-        )
+        logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: folder filter settings changed; will ACTIVE_PERSPECTIVE_DEFINITION_CHANGED when Rich list is open`)
       }
       if (diffKeys.length > 0 && keysNeedingContentRefresh.length === 0) {
         logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: settings changed but excluded from section refresh (keys: ${diffKeys.join(', ')}); incremental section refresh: none`)
@@ -657,6 +650,7 @@ function planSectionRefreshAfterDashboardSettingsChange(
 /**
  * Save settings from the React bridge into DataStore, update the WebView pluginData, and return post-save actions.
  * For `dashboardSettings` without a full `perspectiveSettings` payload, see `resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload`.
+ * TODO: Add more comments inline
  * @param {MessageDataObject} data - MDO with `settings` (and optionally `perspectiveSettings` from the client)
  * @param {string} settingName - DataStore key to update (`dashboardSettings` or `perspectiveSettings`)
  * @returns {TBridgeClickHandlerResult}
@@ -667,7 +661,8 @@ export async function doSaveDashboardSettingsFromBridge(data: MessageDataObject,
     // clo(data, `doSaveDashboardSettingsFromBridge() starting with data = `)
     // $FlowFixMe[incompatible-type]
     const settingsFromBridge: Partial<TDashboardSettings> = data.settings
-    if (!DataStore.settings || !settingsFromBridge) {
+    // DataStore.settings is not reliable in HTMLView JSContexts; use the settings helpers instead.
+    if (!settingsFromBridge) {
       throw new Error(`settingsFromBridge is null or undefined.`)
     }
     const isDashboardSettings = settingName === 'dashboardSettings'

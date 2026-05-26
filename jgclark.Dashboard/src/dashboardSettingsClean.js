@@ -3,12 +3,66 @@
 // Clean dashboard settings objects (per-perspective strip list).
 // Extracted from perspectiveHelpers.js to avoid circular imports with
 // dashboardPluginSettings.js / dashboardHelpers.js.
-// Last updated 2026-05-23 for v2.4.0.b43 by @CursorAI
+// Last updated 2026-05-25 for v2.4.0.b44 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import type { TDashboardSettings, TSection } from './types'
 import { logDebug, logError } from '@helpers/dev'
+
+/** Tag cache is used unless FFlag_UseTagCache is explicitly false in dashboardSettings. */
+export function isTagCacheEnabled(dashboardSettings?: Partial<TDashboardSettings>): boolean {
+  return dashboardSettings?.FFlag_UseTagCache !== false
+}
+
+/**
+ * Build strip patterns for keys that belong in top-level dashboardSettings only (not in perspective defs).
+ * @param {boolean} deleteAllShowTagSections
+ * @returns {Array<RegExp>}
+ */
+function buildDashboardGlobalSettingPatterns(deleteAllShowTagSections?: boolean): Array<RegExp> {
+  const patternsToRemove = [
+    'perspectivesEnabled',
+    'usePerspectives',
+    'showFeatureFlagMenu',
+    /FFlag_/,
+    /_log/,
+    'pluginID',
+    'lastChange',
+    'timeblockMustContainString',
+    'defaultFileExtension',
+    'doneDatesAvailable',
+    'migratedSettingsFromOriginalDashboard',
+    'settingsMigrated',
+    'triggerLogging',
+    /separator\d/,
+    /heading\d/,
+    'searchOptions',
+    'preferredWindowType',
+  ].map((pattern) => (typeof pattern === 'string' ? new RegExp(`^${pattern}$`) : pattern))
+  if (deleteAllShowTagSections) {
+    patternsToRemove.push(/showTagSection_/)
+  }
+  return patternsToRemove
+}
+
+/**
+ * Whether a dashboardSettings key is dashboard-global (stored only in top-level dashboardSettings).
+ * @param {string} key
+ * @returns {boolean}
+ */
+export function isDashboardGlobalSettingKey(key: string): boolean {
+  return buildDashboardGlobalSettingPatterns(false).some((pattern) => pattern.test(key))
+}
+
+/**
+ * Whether every key in a settings diff is dashboard-global (FFlags, showFeatureFlagMenu, etc.).
+ * @param {Array<string>} diffKeys
+ * @returns {boolean}
+ */
+export function isDashboardGlobalOnlySettingsDiff(diffKeys: Array<string>): boolean {
+  return diffKeys.length > 0 && diffKeys.every((key) => isDashboardGlobalSettingKey(key))
+}
 
 /**
  * Clean a Dashboard settings object of properties we don't want to use or see
@@ -22,31 +76,7 @@ import { logDebug, logError } from '@helpers/dev'
  * @returns {Partial<TDashboardSettings>}
  */
 export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashboardSettings>, deleteAllShowTagSections?: boolean): Partial<TDashboardSettings> {
-  // Define keys to remove
-  const patternsToRemove = [
-    // the following shouldn't be persisted in the perspectiveSettings object, but only in the top-level dashboardSettings object
-    'perspectivesEnabled',
-    'usePerspectives',
-    /FFlag_/,
-    /_log/,
-    'pluginID',
-    'lastChange',
-    'timeblockMustContainString',
-    'defaultFileExtension',
-    'doneDatesAvailable',
-    'migratedSettingsFromOriginalDashboard',
-    'settingsMigrated',
-    'triggerLogging',
-    /separator\d/,
-    /heading\d/,
-    // the following were added in v2.2.0
-    'searchOptions',
-    // the following were added in v2.4.0
-    'preferredWindowType',
-  ].map((pattern) => (typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern))
-  if (deleteAllShowTagSections) {
-    patternsToRemove.push(/showTagSection_/)
-  }
+  const patternsToRemove = buildDashboardGlobalSettingPatterns(deleteAllShowTagSections)
 
   function shouldRemoveKey(key: string): boolean {
     return patternsToRemove.some((pattern) => pattern.test(key))
@@ -71,7 +101,7 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashbo
       return acc
     }, {})
     if (removedKeys.length > 0) {
-      logDebug('cleanDashboardSettingsInAPerspective', `- Removed keys: [${removedKeys.join(', ')}]`)
+      // logDebug('cleanDashboardSettingsInAPerspective', `- Removed keys: [${removedKeys.join(', ')}]`)
     }
 
     return settingsOut
@@ -82,8 +112,20 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashbo
 }
 
 /**
+ * Tag section names currently listed in `tagsToShow` (source of truth for TAG section sync).
+ * @param {TDashboardSettings} dashboardSettings
+ * @returns {Set<string>}
+ */
+export function getWantedTagNamesFromSettings(dashboardSettings: TDashboardSettings): Set<string> {
+  const tagsCsv = (dashboardSettings.tagsToShow ?? '').trim()
+  if (!tagsCsv) return new Set()
+  return new Set(getTagSectionDetails(dashboardSettings).map((d) => d.sectionName))
+}
+
+/**
  * Remove tag sections from the dashboard settings that are not relevant to the current perspective
  * (e.g. leaving only the tags included in dashboardSettings.tagsToShow)
+ * Related: {@link removeStaleTagSections} cleans the same tag drift in `pluginData.sections` (TAG rows), not settings keys.
  * @param {TDashboardSettings} settingsIn
  * @returns {TDashboardSettings} - settings without irrelevant tag sections
  */
@@ -111,6 +153,7 @@ export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashb
 /**
  * Drop generated TAG sections that are no longer listed in `tagsToShow`.
  * Why? `CLOSE_UNNEEDED_SECTIONS` only checks sectionCode `TAG`, so stale tag rows (e.g. @father after switching to @friend) were left in pluginData until a perspective switch cleared `sections`.
+ * Related: {@link removeInvalidTagSections} cleans the same tag drift in dashboard settings (`showTagSection_*` keys), not section rows.
  * @author @CursorAI
  * @param {Array<TSection>} sections
  * @param {TDashboardSettings} dashboardSettings
@@ -118,11 +161,10 @@ export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashb
  */
 export function removeStaleTagSections(sections: Array<TSection>, dashboardSettings: TDashboardSettings): Array<TSection> {
   try {
-    const tagsCsv = (dashboardSettings.tagsToShow ?? '').trim()
-    if (!tagsCsv) {
+    const wantedTagNames = getWantedTagNamesFromSettings(dashboardSettings)
+    if (wantedTagNames.size === 0) {
       return sections.filter((s) => s.sectionCode !== 'TAG')
     }
-    const wantedTagNames = new Set(getTagSectionDetails(removeInvalidTagSections(dashboardSettings)).map((d) => d.sectionName))
     const removed: Array<string> = []
     const kept = sections.filter((s) => {
       if (s.sectionCode !== 'TAG') return true

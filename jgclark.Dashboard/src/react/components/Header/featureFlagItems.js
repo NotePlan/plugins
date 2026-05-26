@@ -1,5 +1,5 @@
 // @flow
-// Last updated 2025-12-16 for v2.4.0.b2 by @jgclark
+// Last updated 2026-05-23 for v2.4.0.b44 by @CursorAI
 
 import type { TSettingItem, TDashboardSettings } from '../../../types.js'
 
@@ -26,7 +26,7 @@ export const createFeatureFlagItems = (dashboardSettings: TDashboardSettings): A
     label: setting.label,
     key: setting.key,
     type: 'switch',
-    checked: (typeof dashboardSettings !== undefined && dashboardSettings[setting.key]) ?? false,
+    checked: setting.key === 'FFlag_UseTagCache' ? dashboardSettings[setting.key] !== false : Boolean(dashboardSettings[setting.key]),
     description: setting.description,
   }))
 }

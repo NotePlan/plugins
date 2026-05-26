@@ -5,7 +5,7 @@
 // Note: the changes-pending message and logic was added late in 2.1.0 beta by @DBW
 // "because there were massive race conditions which would happen when you made a change and it started a refresh and then made another change and it would start another refresh, etc."
 //
-// Last updated 2025-11-14 for v2.3.0.b14 by @jgclark
+// Last updated 2026-05-25 for v2.4.0.b44 by @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -55,10 +55,10 @@ type DropdownMenuProps = {
 function DropdownMenu({
   sectionItems = [],
   otherItems,
-  handleSwitchChange = (key: string) => (e: any) => {},
+  handleSwitchChange: _handleSwitchChange = (_key: string) => (_e: any) => {},
   handleInputChange = (_key, _e) => {},
   handleComboChange = (_key, _e) => {},
-  handleSaveInput = (key: string) => (_newValue: string) => {},
+  handleSaveInput = (_key: string) => (_newValue: string) => {},
   onSaveChanges,
   iconClass = 'fa-solid fa-filter',
   className = '',
@@ -148,9 +148,14 @@ function DropdownMenu({
   // Effects
   //----------------------------------------------------------------------
 
-  // Update localSwitchStates from the sectionItems or otherItems only when
-  // the menu is closed. This prevents overwriting user toggles while open.
+  // When the menu closes with pending toggles, save first (while localSwitchStates still
+  // reflects user edits). Syncing from props before save wiped FFlags when closing via the header icon.
   useEffect(() => {
+    if (!isOpen && changesMade) {
+      logDebug('DropdownMenu', `Menu "${className}" closing with pending changes; calling handleSaveChanges`)
+      handleSaveChanges(false)
+      return
+    }
     if (!isOpen) {
       const updatedStates: SwitchStateMap = {}
       ;[...otherItems, ...sectionItems].forEach((item) => {
@@ -158,22 +163,12 @@ function DropdownMenu({
           updatedStates[item.key] = item.checked || false
         }
       })
-      // Only update state if there is a change
       setLocalSwitchStates((prevStates) => {
         const hasChanged = Object.keys(updatedStates).some((key) => updatedStates[key] !== prevStates[key])
-        // Note: this appears to log every minute, even when Dashboard isn't touched. And presents no other information.
-        // logDebug(
-        //   `DropdownMenu: useEffect sectionItems or otherItems changed, updating localSwitchStates`,
-        //   {
-        //     updatedStates,
-        //   },
-        //   { prevStates },
-        //   { hasChanged },
-        // )
         return hasChanged ? updatedStates : prevStates
       })
     }
-  }, [isOpen, sectionItems, otherItems])
+  }, [isOpen, changesMade, handleSaveChanges, sectionItems, otherItems, className])
 
   useEffect(() => {
     if (isOpen) {
@@ -185,14 +180,6 @@ function DropdownMenu({
       document.removeEventListener('keydown', handleEscapeKey)
     }
   }, [isOpen, handleClickOutside, handleEscapeKey])
-
-  // Added useEffect to detect when isOpen changes from true to false
-  useEffect(() => {
-    if (!isOpen && changesMade) {
-      logDebug('DropdownMenu', 'Menu is closing; calling handleSaveChanges')
-      handleSaveChanges(false) // We pass false to avoid toggling the menu again
-    }
-  }, [isOpen, changesMade, handleSaveChanges])
 
   //----------------------------------------------------------------------
   // Render

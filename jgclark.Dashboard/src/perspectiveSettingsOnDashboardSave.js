@@ -2,11 +2,10 @@
 //-----------------------------------------------------------------------------
 // Resolve perspectiveSettings when saving dashboardSettings without a full
 // perspective payload from the client (bridge). Extracted from clickHandlers.
-// Last updated 2026-05-13 for v2.4.0.b33, @CursorAI
+// Last updated 2026-05-25 for v2.4.0.b44, @CursorAI
 //-----------------------------------------------------------------------------
 
-import { handlerResult } from './dashboardHelpers'
-import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
+import { isDashboardGlobalOnlySettingsDiff } from './dashboardSettingsClean'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import { getActivePerspectiveDef, getPerspectiveLiveVsSavedDiff, loadPerspectiveDefsFromPluginSettings } from './perspectiveHelpers'
 import type { TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
@@ -45,13 +44,9 @@ export async function resolvePerspectivesWhenDashboardSettingsWithoutPerspective
         logDebug(logFn, `No perspective-relevant diff vs saved def; continuing to save dashboardSettings only`)
         return { kind: 'continue' }
       }
-      if (Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
-        logDebug(logFn, `Was just a FFlag change. Saving dashboardSettings to DataStore.settings`)
-        const res = await saveDashboardPluginSettings({
-          ...(await loadDashboardPluginSettings()),
-          dashboardSettings: newSettings,
-        })
-        return { kind: 'done', result: handlerResult(res) }
+      if (isDashboardGlobalOnlySettingsDiff(Object.keys(diff))) {
+        logDebug(logFn, `Dashboard-global-only diff (${Object.keys(diff).join(', ')}); continuing through doSaveDashboardSettingsFromBridge (setPluginData + disk)`)
+        return { kind: 'continue' }
       }
 
       clo(diff, `${logFn}: Setting perspective.isModified because of changes to settings: ${Object.keys(diff).length} keys: ${Object.keys(diff).join(', ')}`)

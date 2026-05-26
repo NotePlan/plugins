@@ -157,6 +157,46 @@ Routed in `pluginToHTMLBridge.js` -> `perspectiveClickHandlers.js` (and helpers 
 - **Not** used for ordinary filter/settings toggles; those go through `dispatchDashboardSettings`.
 
 
+## Tag mention cache (`tagMentionCache.js`)
+
+The Dashboard keeps a **plugin-local cache** of which notes contain which tags/mentions, so TAG sections can avoid scanning the whole vault on every refresh. Implementation lives in `src/tagMentionCache.js`; TAG section generation uses it from `dataGenerationTags.js` when tag cache is enabled (default since v2.4.0.b44 — cache is **on** unless `FFlag_UseTagCache: false` is present in top-level `dashboardSettings`; the key is not persisted until explicitly set). The Feature Flags menu (where devs can toggle this) is shown only in DEV logging mode or when hidden `showFeatureFlagMenu: true` is set in `dashboardSettings`.
+
+### Two files
+
+| File | Role |
+|------|------|
+| `wantedTagMentionsList.json` | **Definitions:** union of tags/mentions the cache should index (`items` array) |
+| `tagMentionCache.json` | **Body:** per-note hits for those wanted items (`regularNotes`, `calendarNotes`, `wantedItems`, timestamps) |
+
+`TAG_CACHE_FOR_ALL_TAGS` is `false`, so only tags on the wanted list are indexed (not every hashtag in the vault). `TAG_CACHE_ONLY_FOR_OPEN_ITEMS` limits which paragraph types are considered when building the cache.
+
+### Which perspectives’ `tagsToShow` are tracked?
+
+**All saved perspectives — not only the active one.** The wanted list is the **union** of every perspective def’s `tagsToShow`, not the current perspective alone.
+
+- `getListOfWantedTagsAndMentionsFromAllPerspectives()` (in `tagMentionCache.js`) walks every `TPerspectiveDef` and adds each `dashboardSettings.tagsToShow` entry to a `Set`.
+- `updateTagMentionCacheDefinitionsFromAllPerspectives(allDefs)` writes that union to `wantedTagMentionsList.json` via `setTagMentionCacheDefinitions()`.
+- `savePerspectiveSettings()` in `perspectiveHelpers.js` calls `updateTagMentionCacheDefinitionsFromAllPerspectives(allDefs)` before persisting — so the wanted list is refreshed when perspective defs are saved (including copy/delete-all-named flows that save defs).
+- `generateTagMentionCache()` / `updateTagMentionCache()` read the wanted list with `getTagMentionCacheDefinitions()`; they do not read live `dashboardSettings.tagsToShow` for the active perspective directly.
+
+**Switching perspective** does **not** rebuild the wanted list. Only saving perspective settings (or related save paths above) replaces the union from all defs.
+
+### Unsaved edits and on-demand additions
+
+If `tagsToShow` changes in the UI but the user has not saved perspectives yet, the wanted list can be stale until the next `savePerspectiveSettings`. `generateTagMentionCache` documents this; it is usually corrected when TAG sections run:
+
+- `ensureCacheIsReadyForTags()` — if a requested tag is missing from the wanted list, logs a warning, calls `addTagMentionCacheDefinitions()`, and schedules regeneration.
+- `getTaggedSectionData()` — if the cache flag is on but the cache is not ready for that tag, adds the tag and schedules generation.
+
+So the steady state is “union of all saved perspectives,” with **lazy** additions for tags the dashboard is actively generating before save.
+
+### Refresh cadence
+
+- **Update** (`updateTagMentionCache`): notes changed since last run (~**1 hour** threshold via `updateTagMentionCacheIfTooOld`).
+- **Full regenerate** (`generateTagMentionCache`): ~**24 hours** or when new wanted items appear / scheduled via preference `regenerateTagMentionCachePref`.
+- Plugin install/update may force a full rebuild (`index.js` `onUpdateOrInstall`).
+
+
 ## Interactive Processing
 
 - The interactive processing is initiated by clicking the button on the Task dialog.

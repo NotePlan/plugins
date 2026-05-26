@@ -9,6 +9,18 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b44] 2026-05-23
+### Fixed
+- **Feature Flags (`FFlag_*`)** — all flags from the menu are written to top-level `dashboardSettings` in `settings.json`; closing via the header icon no longer resets toggles before save; dashboard-global saves always run through `doSaveDashboardSettingsFromBridge` so `setPluginData` and the plugin cache match React immediately.
+- **Tag/mention cache progress banner** — "Generating tag/mention cache …" banner is now dismissed on success or failure (was left visible because progress messages had no timeout and the completion banner was sent from the async thread).
+### Changed
+- **Tag/Mention cache on by default** — tag cache is used unless `FFlag_UseTagCache: false` is set in top-level `dashboardSettings`.
+- **Feature Flags menu** — shown only in DEV logging mode, or when hidden `showFeatureFlagMenu: true` is set in `dashboardSettings` (not when individual FFlags are on).
+- Updating Dashboard settings will now not refresh the display unless it needs to. dev: Added more settings to DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH
+### Dev
+- Dashboard-global settings (`FFlag_*`, `showFeatureFlagMenu`) are stripped from perspective defs on save and no longer override live globals on perspective switch.
+- Set `"showFeatureFlagMenu": true` in `dashboardSettings` in settings.json to expose the FF menu outside DEV mode.
+
 ## [2.4.0.b43] 2026-05-23
 - dev: improvements to **Diagnostics note** — title as H1 after frontmatter; 🔄 Refresh pseudo-button at top; new Tag/Mention Cache section (settings, definitions, cache stats) before Current Perspective.
 - fix: **Stale tag sections after changing `tagsToShow`** — refresh and `CLOSE_UNNEEDED_SECTIONS` no longer keep old TAG rows (e.g. `@father` after switching a perspective to `@friend`); Save Perspective now syncs live dashboard settings to disk and triggers section cleanup/refresh. (Thanks, @Ryan.)

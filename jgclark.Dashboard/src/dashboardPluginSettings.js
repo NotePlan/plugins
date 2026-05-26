@@ -8,22 +8,13 @@
 import pluginJson from '../plugin.json'
 import { cleanDashboardSettingsInAPerspective } from './dashboardSettingsClean'
 import { parseSettings } from './shared'
+import { ALLOWED_ROOT_KEYS } from './types'
 import type { TPerspectiveDef } from './types'
 import { logError, logInfo, logWarn } from '@helpers/dev'
 import { backupSettings, getSettings, saveSettings } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
 
 const pluginID = pluginJson['plugin.id']
-
-/** Keys allowed at the root of settings.json (from plugin.json + logging). */
-const ALLOWED_ROOT_KEYS: Set<string> = new Set([
-  'pluginID',
-  'dashboardSettings',
-  'perspectiveSettings',
-  '_logLevel',
-  '_logFunctionRE',
-  '_logTimer',
-])
 
 export type TDashboardPluginSettingsSanitizeReport = {
   removedRootKeys: Array<string>,

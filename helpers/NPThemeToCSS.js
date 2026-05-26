@@ -151,7 +151,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
       if (styleObj?.lineSpacing) {
         // borrowed from convertStyleObjectBlock()
-        const lineSpacingRem = (Number(styleObj?.lineSpacing) * 1.5).toPrecision(3) // some fudge factor seems to be needed
+        const lineSpacingRem = (Number(styleObj?.lineSpacing) * 1.25).toPrecision(3) // some fudge factor seems to be needed
         rootSel.push(`--body-line-height: ${String(lineSpacingRem)}rem`)
       }
 

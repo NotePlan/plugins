@@ -30,6 +30,7 @@ const msToMinutes = (ms: number): number => Math.round(ms / 1000 / 60)
 // When the computer goes to sleep and wakes up, it can fire multiple queued events at once.
 // We only want to execute the onIdleTimeout function once, so we try to ignore events that seem to have happened during sleep/wake
 const LEGAL_DRIFT_THRESHHOLD = 10000 // 10 seconds
+const TICK_INTERVAL = 15000 // 15 seconds
 
 /**
  * IdleTimer component to keep track of user idle time and perform an action when the user is idle.
@@ -102,7 +103,7 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
       } else {
         // logDebug('IdleTimer', `${dt().padEnd(19)} Still under the ${msToMinutes(idleTime)}m limit; It has been ${(Date.now() - lastActivity) / 1000}s since last activity`)
       }
-    }, /* idleTime */ 15000)
+    }, TICK_INTERVAL)
 
     return () => {
       clearInterval(interval)

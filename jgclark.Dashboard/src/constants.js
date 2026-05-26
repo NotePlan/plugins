@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code.
 // Check each of them when adding a new Section.
-// Last updated 2026-05-11 for v2.4.0.b32, @jgclark + @CursorAI
+// Last updated 2026-05-25 for v2.4.0.b44, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -58,14 +58,22 @@ export const dontDedupeSectionCodes = ['INFO', 'PROJACT', 'PROJREVIEW', 'SEARCH'
 // Enable interactive processing for these itemTypes:
 export const interactiveProcessingPossibleSectionTypes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY']
 
-// Treat these itemTypes as if they are zero items, so we don't show the Interactive or other Processing buttons, and correct the count in the description
-export const treatSingleItemTypesAsZeroItems = ['itemCongrats', 'winsCongrats', 'projectCongrats', 'noSearchResults', 'preLimitOverdues']
-
 /** When the user toggles visibility of a calendar period section only, refresh these sections (if enabled) so Wins / Priority / Overdue deduping stays correct. */
 export const SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS: Array<TSectionCode> = ['WINS', 'PRIORITY', 'OVERDUE']
+
+export const SEARCH_RELATED_SECTION_CODES: Array<TSectionCode> = ['SEARCH', 'SAVEDSEARCH']
+
+// i.e. build in React front end, not in back end
+export const SYNTHETIC_SECTION_CODES: Array <TSectionCode> = ['WINS']
+
+// Treat these itemTypes as if they are zero items, so we don't show the Interactive or other Processing buttons, and correct the count in the description
+export const treatSingleItemTypesAsZeroItems = ['itemCongrats', 'winsCongrats', 'projectCongrats', 'noSearchResults', 'preLimitOverdues']
 
 /** Font Awesome classes for the Item and Wins congrats messages (`section.FAIconClass`); use the same for `winsCongrats` message rows. */
 export const winsSectionHeaderFAIconClass = 'fa-regular fa-trophy'
 export const itemCongratsFAIconClass = 'fa-light fa-champagne-glasses'
 
-export const SEARCH_AND_SAVED_SECTION_CODES: Array<TSectionCode> = ['SEARCH', 'SAVEDSEARCH']
+/**
+ * Dashboard setting keys that can change without re-fetching section item lists (theme uses CHANGE_THEME CSS regen instead).
+ */
+export const DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH: Set<string> = new Set(['applyCurrentFilteringToSearch', 'autoUpdateAfterIdleTime', 'dashboardTheme', 'dontSearchFutureItems', 'enableInteractiveProcessing', 'enableInteractiveProcessingTransitions', 'interactiveProcessingHighlightTask', 'lastModified', 'moveSubItems', 'newTaskSectionHeading', 'newTaskSectionHeadingLevel', 'preferredWindowType', 'settingsMigrated', 'useLiteScheduleMethod'])

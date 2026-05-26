@@ -100,6 +100,26 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(needsWrite).toBe(false)
       })
 
+      test('save-style sanitize strips showFeatureFlagMenu from perspective dashboardSettings', () => {
+        const raw = {
+          dashboardSettings: {},
+          perspectiveSettings: [
+            {
+              name: 'Work',
+              dashboardSettings: { showFeatureFlagMenu: true, FFlag_UseTagCache: true, showTodaySection: true },
+              isModified: false,
+              isActive: true,
+            },
+          ],
+        }
+        const { settings, report, needsWrite } = sanitizeDashboardPluginSettings(raw, { cleanPerspectiveDefs: true })
+        expect(needsWrite).toBe(true)
+        expect(report.cleanedPerspectiveDefCount).toBe(1)
+        expect(settings.perspectiveSettings[0].dashboardSettings.showFeatureFlagMenu).toBeUndefined()
+        expect(settings.perspectiveSettings[0].dashboardSettings.FFlag_UseTagCache).toBeUndefined()
+        expect(settings.perspectiveSettings[0].dashboardSettings.showTodaySection).toBe(true)
+      })
+
       test('save-style sanitize can clean perspective dashboardSettings', () => {
         const raw = {
           dashboardSettings: {},

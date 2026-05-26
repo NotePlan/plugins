@@ -642,21 +642,20 @@ export async function generateAllProjectsList(
 ): Promise<Array<Project>> {
   try {
     logDebug('generateAllProjectsList', `starting`)
-    logInfo(
-      'generateAllProjectsList',
-      `usePerspectives=${String(configIn?.usePerspectives)} perspective='${configIn?.perspectiveName ?? '-'}' foldersToInclude=[${String(configIn?.foldersToInclude)}] foldersToIgnore=[${String(configIn?.foldersToIgnore)}]`,
-    )
+    logInfo('generateAllProjectsList', `usePerspectives=${String(configIn?.usePerspectives)} perspective='${configIn?.perspectiveName ?? '-'}' foldersToInclude=[${String(configIn?.foldersToInclude)}] foldersToIgnore=[${String(configIn?.foldersToIgnore)}]`)
     const startTime = moment().toDate()
+
     // Get all project notes as Project instances
     const projectInstances = await getAllMatchingProjects(configIn, runInForeground)
     logInfo('generateAllProjectsList', `enumerated ${projectInstances.length} project instance(s) to write`)
 
     // Log the start this full generation to a special log note
-    // TODO: Remove when v1.3.0 or v1.4.0 is released
+    // TODO: Remove when v2.1.0 is released
     if (configIn?._logTimer === true || configIn?._logLevel === 'DEV') {
       const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
       if (logNote) {
-        const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Reviews: (generateAllProjectsList) -> ${projectInstances.length} Project(s) generated, in ${timer(startTime)}`
+        const perspName = configIn.usePerspectives ? configIn.perspectiveName : '_no_'
+        const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Reviews: (generateAllProjectsList with ${perspName} perspective) -> ${projectInstances.length} Project(s) generated, in ${timer(startTime)}`
         smartPrependPara(logNote, newLogLine, 'list')
       }
     }

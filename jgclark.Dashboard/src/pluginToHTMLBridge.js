@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-05-23 for v2.4.0.b43 by @CursorAI
+// Last updated 2026-05-26 for v2.4.0.b44 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,7 +29,7 @@ import {
   doUnscheduleItem,
   doWindowResized,
 } from './clickHandlers'
-import { allCalendarSectionCodes, allSectionCodes, SEARCH_AND_SAVED_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
+import { allCalendarSectionCodes, allSectionCodes, SEARCH_RELATED_SECTION_CODES, SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
 import { updateProjectsListIfProjectSection } from './projectsListSync'
 import { syncReviewsAfterDashboardFolderFilterChange } from './reviewsListSync'
 import {
@@ -57,7 +57,14 @@ import {
 import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickHandlers'
 import { scheduleAllOverdueOpenToToday, scheduleTodayToTomorrow, scheduleYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
-import { findSectionItems, getDashboardSettings, getListOfEnabledSections, removeStaleTagSections, setPluginData } from './dashboardHelpers'
+import {
+  findSectionItems,
+  getDashboardSettings,
+  getDashboardSettingsForOpenWebView,
+  getListOfEnabledSections,
+  removeStaleTagSections,
+  setPluginData,
+} from './dashboardHelpers'
 import { loadDashboardPluginSettings } from './dashboardPluginSettings'
 import { copyUpdatedSectionItemData } from './dataGeneration'
 import { externallyStartSearch } from './dataGenerationSearch'
@@ -76,12 +83,12 @@ import { formatReactError } from '@helpers/react/reactDev'
  * @returns section codes removed from plugin JSON
  */
 function removeEmptySearchOrSavedSections(sections: Array<any>, _handlerResult: TBridgeClickHandlerResult): Array<string> {
-  const codesToMatch: Set<TSectionCode> = new Set(SEARCH_AND_SAVED_SECTION_CODES)
+  const codesToMatch: Set<TSectionCode> = new Set(SEARCH_RELATED_SECTION_CODES)
   const removed: Array<string> = []
   for (let i = sections.length - 1; i >= 0; i--) {
     const sec = sections[i]
     if (!codesToMatch.has(sec.sectionCode)) continue
-    if (!SEARCH_AND_SAVED_SECTION_CODES.includes(sec.sectionCode)) continue
+    if (!SEARCH_RELATED_SECTION_CODES.includes(sec.sectionCode)) continue
     const len = sec.sectionItems?.length ?? 0
     if (len === 0) {
       sections.splice(i, 1)
@@ -669,19 +676,21 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
 
     // Re-read settings after awaited work above (e.g. APPLY_THEME fallbacks, REMOVE_LINE / P+R sync) so enabled list + payload
     // match the latest persisted dashboardSettings before CLOSE / full refresh / perspective batch.
+    let reactWindowDataForCloseOrRefresh = null
     if (
       actionsOnSuccess.includes('CLOSE_UNNEEDED_SECTIONS') ||
       actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS') ||
       actionsOnSuccess.includes('PERSPECTIVE_CHANGED') ||
       actionsOnSuccess.includes('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED')
     ) {
-      config = await getDashboardSettings()
+      reactWindowDataForCloseOrRefresh = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      config = await getDashboardSettingsForOpenWebView(reactWindowDataForCloseOrRefresh?.pluginData?.dashboardSettings)
       enabledSections = getListOfEnabledSections(config)
     }
 
     if (actionsOnSuccess.includes('CLOSE_UNNEEDED_SECTIONS')) {
       // Identify which sections to close (only rows present in plugin JSON; synthetic sections e.g. WINS are injected in React only)
-      const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      const reactWindowData = reactWindowDataForCloseOrRefresh ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID))
       let sections = reactWindowData.pluginData.sections
 
       // WebView snapshot can lag behind settings just saved to disk; merge dashboard settings from source of truth
@@ -698,6 +707,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
           : {}),
       }
       sections = removeStaleTagSections(sections, config)
+      // TODO: Do we need an addNewTagSections(sections, config) ??
       reactWindowData.pluginData.sections = sections
       // `getListOfEnabledSections` omits synthetic WINS (generated in React); include it here when Wins is on so logs / client-only notes stay accurate
       const enabledForClose: Array<TSectionCode> = [...enabledSections]
@@ -705,8 +715,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         enabledForClose.push('WINS')
       }
       const enabledSectionIDs = enabledForClose.map((s) => sections.find((section) => section.sectionCode === s)?.ID ?? '')
-      logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: currently enabled sections: [${String(enabledForClose)}]`)
-      logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: currently enabled sectiond IDs: [${String(enabledSectionIDs)}]`)
+      logDebug('processActionOnReturn', `CLOSE_UNNEEDED_SECTIONS: enabledForClose: [${String(enabledForClose)}] / [${String(enabledSectionIDs)}]`)
 
       // Section codes present in plugin JSON before any splice (used to explain empty removals when UI hides client-only sections)
       const sectionCodesInPluginJson = new Set(sections.map((s) => s.sectionCode))
@@ -724,9 +733,9 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
           actuallyClosedCodes.push(code)
         }
       }
-      // Built only in React (`injectSyntheticWinsSection`), never in plugin `sections` JSON
-      const syntheticSectionCodesNotInPluginJson: Array<TSectionCode> = ['WINS']
-      const clientOnlyHiddenBySettings = syntheticSectionCodesNotInPluginJson.filter(
+
+      // Handle sections built only in React (`injectSyntheticWinsSection`), not in plugin `sections`
+      const clientOnlyHiddenBySettings = SYNTHETIC_SECTION_CODES.filter(
         (code) => !enabledForClose.includes(code) && !sectionCodesInPluginJson.has(code),
       )
       const removedFromJson = actuallyClosedCodes.length ? actuallyClosedCodes.join(',') : 'none'

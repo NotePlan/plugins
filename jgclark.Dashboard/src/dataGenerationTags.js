@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-01-18 for v2.4.0.b, @jgclark
+// Last updated 2026-05-23 for v2.4.0.b44 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -9,6 +9,7 @@ import type { TDashboardSettings, TSection, TSectionItem, TSectionDetails } from
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import { createSectionItemObject, isLineDisallowedByIgnoreTerms, isNoteFromAllowedTeamspace, makeDashboardParas } from './dashboardHelpers'
 import { tagParasFromNote } from './demoData'
+import { isTagCacheEnabled } from './dashboardSettingsClean'
 import {
   addTagMentionCacheDefinitions,
   getFilenamesOfNotesWithTagOrMentions,
@@ -79,7 +80,8 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         // Use Cache if wanted (and available), otherwise the API.
         let notesWithTag: Array<TNote> = []
         const cacheIsAvailableForThisTag = isTagMentionCacheAvailableForItem(thisTag)
-        if (config.FFlag_UseTagCache && cacheIsAvailableForThisTag) {
+        const useTagCache = isTagCacheEnabled(config)
+        if (useTagCache && cacheIsAvailableForThisTag) {
           // Use Cache
           logInfo('getTaggedSectionData', `- using cache for ${thisTag}`)
           let filenamesWithTagFromCache: Array<string> = []
@@ -236,7 +238,7 @@ export async function getTaggedSectionData(config: TDashboardSettings, useDemoDa
         }
 
         // If we wanted to use the cache but it wasn't available or populated correctly, schedule it to be generated at the next opportunity, and ensure thisTag is in the cache definitions.
-        if (config?.FFlag_UseTagCache && !cacheIsAvailableForThisTag) {
+        if (isTagCacheEnabled(config) && !cacheIsAvailableForThisTag) {
           logInfo('getTaggedSectionData', `- adding ${thisTag} to the tagCache definitions, and scheduling a regeneration`)
           addTagMentionCacheDefinitions([thisTag])
           scheduleTagMentionCacheGeneration()

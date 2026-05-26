@@ -217,7 +217,7 @@ export function Root(/* props: Props */): Node {
     }
 
     const bannerMessage = { type, msg, timeout, color: colorClass, border: borderClass, icon: iconClass, floating }
-    logDebug(`Root`, `showBanner: ${JSON.stringify(bannerMessage, null, 2)}`)
+    logDebug(`Root`, `showBanner: ${type} '${msg}'`)
     // $FlowFixMe - bannerMessage object matches the expected shape
     setBannerMessage(bannerMessage)
   }, []) // State setters are stable, no dependencies needed

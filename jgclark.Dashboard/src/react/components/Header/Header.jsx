@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2026-01-09 for v2.4.0.b14 by @jgclark
+// Last updated 2026-05-23 for v2.4.0.b44 by @jgclark + @CursorAI
 // --------------------------------------------------------------------------
 
 // --------------------------------------------------------------------------
@@ -117,11 +117,9 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
     (dropdown: string) => {
       console.log('Header/handleToggleDropdownMenu', `Toggling dropdown menu: "${dropdown}"; current openDropdownMenu=${String(openDropdownMenu)}`)
       if (openDropdownMenu === dropdown) {
-        // Closing the dropdown menu
+        // Closing the dropdown menu — DropdownMenu saves pending toggles on isOpen=false; do not reset temp here (stale vs live toggles).
         logDebug('Header/handleToggleDropdownMenu', `Closing dropdown menu ${dropdown}`)
-        // handleChangesInSettings()
         setOpenDropdownMenu(null)
-        setTempDashboardSettings({ ...dashboardSettings }) // Reset temp settings
       } else {
         // Opening a new dropdown menu
         logDebug('Header/handleToggleDropdownMenu', `Opening dropdown menu ${dropdown}`)
@@ -149,9 +147,20 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
       })
       // Update tempDashboardSettings with the new settings
       setTempDashboardSettings(newSettings)
-      //TODO: REFACTOR:Maybe update isModified & sendActionToPlugin to save the settings and remove from the useDashboardSettings hook
+      // Explicitly persist dashboardSettings for dropdown-based changes (e.g. Feature Flags) so
+      // the plugin always receives the latest values even if the sync hook bails.
+      sendActionToPlugin(
+        'dashboardSettingsChanged',
+        {
+          actionType: 'dashboardSettingsChanged',
+          settings: newSettings,
+          logMessage: `dashboardSettingsChanged (Header.handleChangesInSettings)`,
+        },
+        `dashboardSettings updated from Header`,
+        true,
+      )
     },
-    [dashboardSettings, tempDashboardSettings, dispatchDashboardSettings],
+    [dashboardSettings, tempDashboardSettings, dispatchDashboardSettings, sendActionToPlugin],
   )
 
   /**
@@ -282,16 +291,9 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
   const dashboardSettingsItems = useMemo(() => createDashboardSettingsItems(tempDashboardSettings), [tempDashboardSettings])
   const featureFlagItems = useMemo(() => createFeatureFlagItems(tempDashboardSettings), [tempDashboardSettings])
 
-  // Show Feature Flags menu if any FF is set, or we're in DEV logging mode (and not in demo mode)
+  // Show Feature Flags menu in DEV logging mode, or when hidden showFeatureFlagMenu is true (not in demo mode)
   const showFeatureFlagsMenu =
-    (logSettings._logLevel === 'DEV' ||
-      dashboardSettings.FFlag_DebugPanel ||
-      dashboardSettings.FFlag_ShowTestingPanel ||
-      dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging ||
-      dashboardSettings.FFlag_HardRefreshButton ||
-      dashboardSettings.FFlag_ShowSectionTimings ||
-      dashboardSettings.FFlag_UseTagCache) &&
-    !pluginData.demoMode
+    (logSettings._logLevel === 'DEV' || dashboardSettings.showFeatureFlagMenu === true) && !pluginData.demoMode
   const showRefreshButton = pluginData.platform !== 'iOS'
   const showHardRefreshButton = dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
   const isNarrowWidth = window.innerWidth <= 700

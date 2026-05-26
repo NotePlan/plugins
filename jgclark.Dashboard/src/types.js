@@ -1,8 +1,9 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-05-13 for v2.4.0.b33 by @jgclark
+// Last updated 2026-05-25 for v2.4.0.b44 by @jgclark
 //-----------------------------------------------------------------------------
+
 // Types for Settings
 
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
@@ -26,10 +27,11 @@ export type TNotePlanSettings = {
  */
 export type TDashboardSettings = {
   /* "GLOBAL" SETTINGS WHICH APPLY TO ALL PERSPECTIVES ------------------- */
-  // Note: add all of these to the list of items in cleanDashboardSettingsInAPerspective() so that they do not get saved to any specific perspective
+  // Note: add all of these to the list of items in ALLOWED_ROOT_KEYS (below) and cleanDashboardSettingsInAPerspective() so that they do not get saved to any specific perspective
   usePerspectives: boolean,
   applyIgnoreTermsToCalendarHeadingSections: boolean,
   preferredWindowType: string, // 'Window' | 'Main' | 'Split'
+  showFeatureFlagMenu?: boolean, // hidden; when true, shows Feature Flags menu outside DEV logging mode
 
   /* FEATURE FLAGS ------------------------------------------------------ */
   FFlag_ShowSearchPanel?: boolean,
@@ -84,9 +86,9 @@ export type TDashboardSettings = {
   includedCalendarSections: string, // Note: Run through stringListOrArrayToArray() before use
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
   includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
-  showFolderName: boolean, // Note: was includeFolderName before 2.2.0.
-  showScheduledDates: boolean, // Note: was includeScheduledDates before 2.2.0.rename to show...
-  showTaskContext: boolean, // Note: was includeTaskContext before 2.2.0.
+  showFolderName: boolean,
+  showScheduledDates: boolean,
+  showTaskContext: boolean,
   includeFutureTagMentions: boolean, // from v2.3.0
   interactiveProcessingHighlightTask: boolean,
   lastModified?: string,
@@ -126,6 +128,19 @@ export type TDashboardSettings = {
   winsPriorityMarker: string, // '>>', '!!!' or '!!' -- which priority marker to treat as a 'Win'/'big rock' when treatTopPriorityAsWins is true
   customSectionDisplayOrder: ?Array<TSectionCode>
 }
+
+/** Keys allowed at the root of settings.json (from plugin.json + logging). */
+export const ALLOWED_ROOT_KEYS: Set<string> = new Set([
+  'pluginID',
+  'dashboardSettings',
+  'perspectiveSettings',
+  '_logLevel',
+  '_logFunctionRE',
+  '_logTimer',
+])
+
+//-----------------------------------------------------------------------------
+// Perspectives
 
 // Type for a perspective definition; this includes (most) TDashboardSettings
 export type TPerspectiveDef = {

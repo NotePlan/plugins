@@ -12,7 +12,12 @@ import { getDashboardSettings, getDashboardSettingsDefaults, getLogSettings, get
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { dashboardFilterDefs, dashboardSettingDefs, normaliseDashboardNumberSettings } from './dashboardSettings'
 import { getAllSectionsData } from './dataGeneration'
-import { loadPerspectiveDefsFromPluginSettings, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
+import {
+  getActivePerspectiveDef,
+  loadPerspectiveDefsFromPluginSettings,
+  mergeDashboardSettingsForPerspectiveDef,
+  switchToPerspective,
+} from './perspectiveHelpers'
 import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
 import { onMessageFromHTMLView } from './routeRequestsFromReact'
 import { generateTagMentionCache, isTagMentionCacheGenerationScheduled } from './tagMentionCache'
@@ -438,11 +443,7 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
     // Merge order: defaults -> prevDashboardSettings -> perspective settings
     // This ensures that if a perspective doesn't have a section show setting (like showProjectActiveSection),
     // it will use the default value (true for most sections) from defaults or prevDashboardSettings
-    const newDashboardSettings = {
-      ...defaults,
-      ...prevDashboardSettings,
-      ...(activeDef.dashboardSettings || {}),
-    }
+    const newDashboardSettings = mergeDashboardSettingsForPerspectiveDef(activeDef, prevDashboardSettings, defaults)
 
     // use specialised helpers to save settings
     const res = await saveDashboardPluginSettings({
