@@ -17,6 +17,7 @@
 - No semicolons (enforced by ESLint/Prettier)
 - Single quotes for strings
 - Max line length: 180 characters
+- Keep `logDebug`, `logInfo`, `logWarn`, `logError`, and `clo()` calls on a single line when possible; do not wrap them across multiple lines to satisfy the max line length rule
 - Use template literals instead of string concatenation
 - Use ES6+ features (const/let, arrow functions)
 - Use async/await and handle promises properly (no floating promises)
