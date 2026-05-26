@@ -849,8 +849,18 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
       endDate = newMom.endOf('week').toDate()
     } else {
       weekNumber = Calendar.weekNumber(date)
+      // Note: In some environments the Calendar API can return non-Date objects (e.g. {}) during early startup / WebView contexts.
+      // Treat that as equivalent to Calendar being unavailable and fall back to moment-based week boundaries.
+      // $FlowIgnore[incompatible-type]
       startDate = Calendar.startOfWeek(date)
+      // $FlowIgnore[incompatible-type]
       endDate = Calendar.endOfWeek(date)
+      if (!dt.isValidDateObject(startDate) || !dt.isValidDateObject(endDate)) {
+        logWarn('NPdateTime::getNPWeekData', `Calendar returned invalid week boundaries (start=${String(startDate)} end=${String(endDate)}), falling back to moment week boundaries`,)
+        weekNumber = newMom.week() // uses moment locale
+        startDate = newMom.startOf('week').toDate()
+        endDate = newMom.endOf('week').toDate()
+      }
     }
 
     const weekStartYear = startDate.getFullYear()
@@ -1196,33 +1206,24 @@ export function getRelativeDates(useISODailyDates: boolean = false): Array<Relat
 
     // Weeks
     // Note: can't start with moment as NP weeks count differently
-    // $FlowIgnore[incompatible-type]
-    let thisNPWeekInfo: NotePlanWeekInfo = getNPWeekData(new Date())
-    thisDateStr = thisNPWeekInfo.weekString
-    relativeDates.push({ relName: 'this week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    // $FlowIgnore[incompatible-type]
-    thisNPWeekInfo = getNPWeekData(new Date(), -1)
-    // $FlowIgnore[incompatible-use]
-    thisDateStr = thisNPWeekInfo.weekString
-    relativeDates.push({ relName: 'last week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    // $FlowIgnore[incompatible-type]
-    thisNPWeekInfo = getNPWeekData(new Date(), 1)
-    // $FlowIgnore[incompatible-use]
-    thisDateStr = thisNPWeekInfo.weekString
-    relativeDates.push({ relName: 'next week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    for (let i = -11; i < -1; i++) {
+    const addRelativeWeek = (relName: string, offset: number = 0): void => {
       // $FlowIgnore[incompatible-type]
-      thisNPWeekInfo = getNPWeekData(new Date(), i)
-      // $FlowIgnore[incompatible-use]
-      thisDateStr = thisNPWeekInfo.weekString
-      relativeDates.push({ relName: `${-i} weeks ago`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+      const thisNPWeekInfo: ?NotePlanWeekInfo = getNPWeekData(new Date(), offset)
+      if (!thisNPWeekInfo || !thisNPWeekInfo.weekString) {
+        logWarn('NPdateTime::getRelativeDates', `Couldn't calculate '${relName}' (offset=${String(offset)}), skipping`)
+        return
+      }
+      const weekStr = thisNPWeekInfo.weekString
+      relativeDates.push({ relName, dateStr: weekStr, note: DataStore.calendarNoteByDateString(weekStr) })
+    }
+    addRelativeWeek('this week', 0)
+    addRelativeWeek('last week', -1)
+    addRelativeWeek('next week', 1)
+    for (let i = -11; i < -1; i++) {
+      addRelativeWeek(`${-i} weeks ago`, i)
     }
     for (let i = 2; i < 11; i++) {
-      // $FlowIgnore[incompatible-type]
-      thisNPWeekInfo = getNPWeekData(new Date(), i)
-      // $FlowIgnore[incompatible-use]
-      thisDateStr = thisNPWeekInfo.weekString
-      relativeDates.push({ relName: `${i} weeks' time`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+      addRelativeWeek(`${i} weeks' time`, i)
     }
 
     // Months
@@ -1558,7 +1559,12 @@ export function getDateStrForStartofPeriodFromCalendarFilename(filename: string)
  */
 export function relativeDateFromDate(date: Date): string {
   // Wrapper to relativeDateFromNumber(), accepting JS date instead of number
-  const diff = Calendar.unitsBetween(date, new Date(), 'day')
+  if (typeof Calendar !== 'undefined' && Calendar && typeof Calendar.unitsBetween === 'function') {
+    const diff = Calendar.unitsBetween(date, new Date(), 'day')
+    return dt.relativeDateFromNumber(diff)
+  }
+  // Fallback for environments where Calendar isn't available (e.g. WebView): approximate using moment day boundaries
+  const diff = moment(date).startOf('day').diff(moment().startOf('day'), 'days')
   return dt.relativeDateFromNumber(diff)
 }
 
@@ -1586,8 +1592,14 @@ export function formatNPWeek(date: Date): string {
   // Use NotePlan's Calendar API when available (respects user's week start preference)
   if (typeof Calendar !== 'undefined' && Calendar && typeof Calendar.weekNumber === 'function') {
     const weekNumber = Calendar.weekNumber(date)
+    // $FlowIgnore[incompatible-type]
     const startDate = Calendar.startOfWeek(date)
+    // $FlowIgnore[incompatible-type]
     const endDate = Calendar.endOfWeek(date)
+    if (!dt.isValidDateObject(startDate) || !dt.isValidDateObject(endDate)) {
+      logWarn('formatNPWeek', `Calendar returned invalid week boundaries (start=${String(startDate)} end=${String(endDate)}), falling back to ISO week`)
+      return formatISOWeek(date)
+    }
     const weekStartYear = startDate.getFullYear()
     const weekEndYear = endDate.getFullYear()
     // Determine week year: if week spans year boundary, use end year for week 1, otherwise start year

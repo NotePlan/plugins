@@ -330,10 +330,19 @@ export function convertISODateFilenameToNPDayFilename(dailyNoteFilename: string)
   }
 }
 
+/**
+ * Returns true if value is a valid JS Date object (not null/undefined and not NaN).
+ * @param {mixed} dateObj
+ * @returns {boolean}
+ */
+export function isValidDateObject(dateObj: mixed): boolean {
+  return dateObj instanceof Date && !isNaN(dateObj.getTime())
+}
+
 // Note: ? This does not work to get reliable date string from note.date for daily notes
 export function toISODateString(dateObj: Date): string {
   // Guard against null/invalid Date objects to avoid runtime errors
-  if (dateObj == null || !(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
+  if (!isValidDateObject(dateObj)) {
     logDebug('dateTime / toISODateString', `Invalid Date object passed: ${String(dateObj)}`)
     return ''
   }
