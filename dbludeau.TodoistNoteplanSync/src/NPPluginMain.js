@@ -46,6 +46,7 @@ const setup: {
   teamAccount: boolean,
   addUnassigned: boolean,
   header: string,
+  projectDateFilter: string,
   newFolder: any,
   newToken: any,
   useTeamAccount: any,
@@ -54,6 +55,7 @@ const setup: {
   syncTags: any,
   syncUnassigned: any,
   newHeader: any,
+  newProjectDateFilter: any,
 } = {
   token: '',
   folder: 'Todoist',
@@ -63,6 +65,7 @@ const setup: {
   teamAccount: false,
   addUnassigned: false,
   header: '',
+  projectDateFilter: 'overdue | today',
 
   /**
    * @param {string} passedToken
@@ -114,6 +117,12 @@ const setup: {
    */
   set newHeader(passedHeader: string) {
     setup.header = passedHeader
+  },
+  /**
+   * @param {string} passedProjectDateFilter
+   */
+  set newProjectDateFilter(passedProjectDateFilter: string) {
+    setup.projectDateFilter = passedProjectDateFilter
   },
 }
 
@@ -174,7 +183,7 @@ export async function syncEverything() {
 
           // grab the tasks and write them out with sections
           const id: string = projects[i].project_id
-          await projectSync(note, id)
+          await projectSync(note, id, null)
         }
       }
 
@@ -189,13 +198,41 @@ export async function syncEverything() {
 }
 
 /**
+ * Parse the date filter argument from command line
+ *
+ * @param {string} arg - the argument passed to the command
+ * @returns {string | null} - the filter string or null if no override
+ */
+function parseDateFilterArg(arg: ?string): ?string {
+  if (!arg || arg.trim() === '') {
+    return null
+  }
+  const trimmed = arg.trim().toLowerCase()
+  if (trimmed === 'today') {
+    return 'today'
+  } else if (trimmed === 'overdue') {
+    return 'overdue'
+  } else if (trimmed === 'current') {
+    return 'overdue | today'
+  }
+  logWarn(pluginJson, `Unknown date filter argument: ${arg}. Using setting value.`)
+  return null
+}
+
+/**
  * Synchronize the current linked project.
  *
+ * @param {string} filterArg - optional date filter override (today, overdue, current)
  * @returns {Promise<void>} A promise that resolves once synchronization is complete
  */
 // eslint-disable-next-line require-await
-export async function syncProject() {
+export async function syncProject(filterArg: ?string) {
   setSettings()
+  const commandLineFilter = parseDateFilterArg(filterArg)
+  if (commandLineFilter) {
+    logInfo(pluginJson, `Using command-line filter override: ${commandLineFilter}`)
+  }
+
   const note: ?TNote = Editor.note
   if (note) {
     // check to see if this has any frontmatter
@@ -206,6 +243,15 @@ export async function syncProject() {
       if ('todoist_id' in frontmatter) {
         logDebug(pluginJson, `Frontmatter has link to Todoist project -> ${frontmatter.todoist_id}`)
 
+        // Determine filter priority: command-line > frontmatter > settings
+        let filterOverride = commandLineFilter
+        if (!filterOverride && 'todoist_filter' in frontmatter && frontmatter.todoist_filter) {
+          filterOverride = parseDateFilterArg(frontmatter.todoist_filter)
+          if (filterOverride) {
+            logInfo(pluginJson, `Using frontmatter filter: ${filterOverride}`)
+          }
+        }
+
         const paragraphs: ?$ReadOnlyArray<TParagraph> = note.paragraphs
         if (paragraphs) {
           paragraphs.forEach((paragraph) => {
@@ -213,7 +259,7 @@ export async function syncProject() {
           })
         }
 
-        await projectSync(note, frontmatter.todoist_id)
+        await projectSync(note, frontmatter.todoist_id, filterOverride)
 
         //close the tasks in Todoist if they are complete in Noteplan`
         closed.forEach(async (t) => {
@@ -229,6 +275,30 @@ export async function syncProject() {
       logWarn(pluginJson, 'Current note has no Todoist project linked currently')
     }
   }
+}
+
+/**
+ * Sync project with 'today' filter
+ * @returns {Promise<void>}
+ */
+export async function syncProjectToday(): Promise<void> {
+  await syncProject('today')
+}
+
+/**
+ * Sync project with 'overdue' filter
+ * @returns {Promise<void>}
+ */
+export async function syncProjectOverdue(): Promise<void> {
+  await syncProject('overdue')
+}
+
+/**
+ * Sync project with 'current' (overdue | today) filter
+ * @returns {Promise<void>}
+ */
+export async function syncProjectCurrent(): Promise<void> {
+  await syncProject('current')
 }
 
 /**
@@ -288,7 +358,7 @@ async function syncThemAll() {
           id = id.trim()
 
           logInfo(pluginJson, `Matches up to Todoist project id: ${id}`)
-          await projectSync(note, id)
+          await projectSync(note, id, null)
 
           //close the tasks in Todoist if they are complete in Noteplan`
           closed.forEach(async (t) => {
@@ -364,38 +434,130 @@ async function syncTodayTasks() {
 }
 
 /**
+ * Parse an ISO date string (YYYY-MM-DD) into a local Date object at midnight.
+ * This avoids timezone issues that occur when using new Date('YYYY-MM-DD'),
+ * which interprets the date as UTC midnight rather than local midnight.
+ *
+ * @param {string} isoDateString - date string in YYYY-MM-DD format
+ * @returns {Date} - Date object at local midnight
+ */
+function parseLocalDate(isoDateString: string): Date {
+  const parts = isoDateString.split('-')
+  const year = parseInt(parts[0], 10)
+  const month = parseInt(parts[1], 10) - 1 // JavaScript months are 0-indexed
+  const day = parseInt(parts[2], 10)
+  return new Date(year, month, day, 0, 0, 0, 0)
+}
+
+/**
+ * Filter tasks by date based on the filter setting
+ * Note: Todoist API ignores filter param when project_id is specified, so we filter client-side
+ *
+ * @param {Array<Object>} tasks - array of task objects from Todoist
+ * @param {string} dateFilter - the date filter to apply (today, overdue, overdue | today, 3 days, 7 days, all)
+ * @returns {Array<Object>} - filtered tasks
+ */
+function filterTasksByDate(tasks: Array<Object>, dateFilter: ?string): Array<Object> {
+  if (!dateFilter || dateFilter === 'all') {
+    return tasks
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const threeDaysFromNow = new Date(today)
+  threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3)
+
+  const sevenDaysFromNow = new Date(today)
+  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
+
+  return tasks.filter((task) => {
+    if (!task.due || !task.due.date) {
+      // Tasks without due dates: only include if filter is 'all'
+      return false
+    }
+
+    // Parse the due date as a local date to avoid timezone issues
+    // Todoist returns dates in YYYY-MM-DD format
+    const dueDate = parseLocalDate(task.due.date)
+
+    switch (dateFilter) {
+      case 'today':
+        return dueDate.getTime() === today.getTime()
+      case 'overdue':
+        return dueDate.getTime() < today.getTime()
+      case 'overdue | today':
+        return dueDate.getTime() <= today.getTime()
+      case '3 days':
+        return dueDate.getTime() <= threeDaysFromNow.getTime()
+      case '7 days':
+        return dueDate.getTime() <= sevenDaysFromNow.getTime()
+      default:
+        return true
+    }
+  })
+}
+
+/**
  * Get Todoist project tasks and write them out one by one
  *
  * @param {TNote} note - note that will be written to
  * @param {string} id - Todoist project ID
+ * @param {string} filterOverride - optional date filter override
  * @returns {Promise<void>}
  */
-async function projectSync(note: TNote, id: string): Promise<void> {
-  const task_result = await pullTodoistTasksByProject(id)
+async function projectSync(note: TNote, id: string, filterOverride: ?string): Promise<void> {
+  const task_result = await pullTodoistTasksByProject(id, filterOverride)
   const tasks: Array<Object> = JSON.parse(task_result)
-  
-  tasks.results.forEach(async (t) => { 
+
+  // Determine which filter to use
+  const dateFilter = filterOverride ?? setup.projectDateFilter
+
+  // Filter tasks client-side (Todoist API ignores filter when project_id is specified)
+  const filteredTasks = filterTasksByDate(tasks.results || [], dateFilter)
+  logInfo(pluginJson, `Filtered ${tasks.results?.length || 0} tasks to ${filteredTasks.length} based on filter: ${dateFilter}`)
+
+  // Use for...of to properly await each task write
+  for (const t of filteredTasks) {
     await writeOutTask(note, t)
-  })
+  }
 }
 
 /**
  * Pull todoist tasks from list matching the ID provided
  *
  * @param {string} project_id - the id of the Todoist project
+ * @param {string} filterOverride - optional date filter override (bypasses setting)
  * @returns {Promise<any>} - promise that resolves into array of task objects or null
  */
-async function pullTodoistTasksByProject(project_id: string): Promise<any> {
+async function pullTodoistTasksByProject(project_id: string, filterOverride: ?string): Promise<any> {
   if (project_id !== '') {
-    let filter = ''
+    const filterParts: Array<string> = []
+
+    // Add date filter: use override if provided, otherwise use setting
+    const dateFilter = filterOverride ?? setup.projectDateFilter
+    if (dateFilter && dateFilter !== 'all') {
+      filterParts.push(dateFilter)
+    }
+
+    // Add team account filter if applicable
     if (setup.useTeamAccount) {
       if (setup.addUnassigned) {
-        filter = '& filter=!assigned to: others'
+        filterParts.push('!assigned to: others')
       } else {
-        filter = '& filter=assigned to: me'
+        filterParts.push('assigned to: me')
       }
     }
-    const result = await fetch(`${todo_api}/tasks?project_id=${project_id}${filter}`, getRequestObject())
+
+    // Build the URL with proper encoding
+    let url = `${todo_api}/tasks?project_id=${project_id}`
+    if (filterParts.length > 0) {
+      const filterString = filterParts.join(' & ')
+      url = `${url}&filter=${encodeURIComponent(filterString)}`
+    }
+
+    logDebug(pluginJson, `Fetching tasks from URL: ${url}`)
+    const result = await fetch(url, getRequestObject())
     return result
   }
   return null
@@ -556,6 +718,10 @@ function setSettings() {
 
     if ('headerToUse' in settings && settings.headerToUse !== '') {
       setup.newHeader = settings.headerToUse
+    }
+
+    if ('projectDateFilter' in settings && settings.projectDateFilter !== '') {
+      setup.newProjectDateFilter = settings.projectDateFilter
     }
   }
 }
