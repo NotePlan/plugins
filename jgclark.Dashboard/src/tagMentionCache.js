@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2026-05-23 for v2.4.0.b44 by @jgclark + @CursorAI
+// last updated 2026-05-27 for v2.4.0.b45 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -33,7 +33,7 @@ const tagMentionCacheFile = 'tagMentionCache.json'
 const lastTimeThisWasRunPref = 'jgclark.Dashboard.tagMentionCache.lastTimeUpdated'
 const regenerateTagMentionCachePref = 'jgclark.Dashboard.tagMentionCache.regenerateTagMentionCache'
 const TAG_CACHE_UPDATE_INTERVAL_HOURS = 1 // how often to update the cache
-const TAG_CACHE_GENERATE_INTERVAL_HOURS = 24 // how often to re-generate the cache
+const TAG_CACHE_GENERATE_INTERVAL_DAYS = 5 // how often to re-generate the cache from scratch
 
 // TODO(later): remove some of these in time
 const TAG_CACHE_ONLY_FOR_OPEN_ITEMS = true // Note: if false, then for JGC the cache file is 20x larger.
@@ -83,7 +83,7 @@ export function scheduleTagMentionCacheGenerationIfTooOld(generatedAtStr: string
   const nowMom = moment()
   const generatedAtMom = moment(generatedAtStr)
   const diffHours = nowMom.diff(generatedAtMom, 'hours', true)
-  if (diffHours >= TAG_CACHE_GENERATE_INTERVAL_HOURS) {
+  if (diffHours >= (TAG_CACHE_GENERATE_INTERVAL_DAYS * 24)) {
     logInfo('scheduleTagMentionCacheGenerationIfTooOld', `Tag mention cache is too old (${diffHours}hours), so scheduling a regeneration.`)
     scheduleTagMentionCacheGeneration()
   } else {
@@ -151,7 +151,7 @@ export function addTagMentionCacheDefinitions(mentionOrTagsIn: Array<string>): v
   if (!TAG_CACHE_FOR_ALL_TAGS && newItems.length > existingItems.length) {
     logInfo('addTagMentionCacheDefinitions', `- added new wanted items '${String(newItems)}', and so need to kick off regeneration of the cache now.`)
     // eslint-disable-next-line require-await
-    const _promise = generateTagMentionCache() // note: no await, as we don't want to block the UI
+    const _promise = generateTagMentionCache('After adding new wanted tag/mention item') // note: no await, as we don't want to block the UI
   }
 }
 
@@ -174,7 +174,7 @@ export function setTagMentionCacheDefinitions(wantedItems: Array<string>): void 
     if (missingItems.length > 0) {
       logInfo('setTagMentionCacheDefinitions', `- ${missingItems.length} new items not in old list, and so need to kick off regeneration of the cache now`)
       // eslint-disable-next-line require-await
-      const _promise = generateTagMentionCache()
+      const _promise = generateTagMentionCache('After setting tag/mention cache definitions')
     }
   }
 }
@@ -250,9 +250,10 @@ export async function getFilenamesOfNotesWithTagOrMentions(
  * Generate the mention tag cache from scratch.
  * Writes all instances of wanted mentions and tags (from the wantedTagMentionsList) to the tagMentionCacheFile, by filename.
  * Note: this includes all calendar notes, and all regular notes, apart from those in special folders (starts with '@'), including @Templates, @Archive and @Trash folders.
+ * @param {string} generationReason The reason for the generation, for info & logging purposes.
  * @param {boolean} forceRebuild If true, the cache will be rebuilt from scratch, otherwise it will revert to the quicker 'updateTagMentionCache' function if the WANTED_PARA_TYPES are all already in the cache.
  */
-export async function generateTagMentionCache(forceRebuild: boolean = true): Promise<void> {
+export async function generateTagMentionCache(generationReason: string = 'unknown', forceRebuild: boolean = true): Promise<void> {
   const startTime = new Date()
   let processingOnAsyncThread = false
   let progressBannerShown = false
@@ -288,7 +289,7 @@ export async function generateTagMentionCache(forceRebuild: boolean = true): Pro
     const openItemsSuffix = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' from all open items' : ''
     await sendBannerMessage(
       WEBVIEW_WINDOW_ID,
-      `Generating tag/mention cache for ${String(wantedItems)}${openItemsSuffix} in ${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes ...`,
+      `Generating cache for tags & mentions for ${String(wantedItems)}${openItemsSuffix} in ${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes ...`,
       'INFO',
     )
     progressBannerShown = true
@@ -492,7 +493,7 @@ export function getTagMentionCacheDiagnosticsLines(dashboardSettings: any): Arra
   lines.push(`- TAG_CACHE_ONLY_FOR_OPEN_ITEMS (code): ${String(TAG_CACHE_ONLY_FOR_OPEN_ITEMS)}`)
   lines.push(`- TAG_CACHE_FOR_ALL_TAGS (code): ${String(TAG_CACHE_FOR_ALL_TAGS)}`)
   lines.push(`- Update interval: ${String(TAG_CACHE_UPDATE_INTERVAL_HOURS)} hour(s)`)
-  lines.push(`- Full regenerate interval: ${String(TAG_CACHE_GENERATE_INTERVAL_HOURS)} hour(s)`)
+  lines.push(`- Full regenerate interval: ${String(TAG_CACHE_GENERATE_INTERVAL_DAYS)} day(s)`)
   lines.push(`- Regeneration scheduled (pref): ${String(generationScheduled)}`)
   lines.push(`- Last run: ${lastRunPref != null ? String(lastRunPref) : '(not set)'} (from pref)`)
   lines.push('')

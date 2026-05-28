@@ -3,10 +3,10 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-05-23 for v2.4.0.b43 by @CursorAI
+// Last updated 2026-05-28 for v2.4.0.b45 by @CursorAI
 //-----------------------------------------------------------------------------
 
-import { WEBVIEW_WINDOW_ID } from './constants'
+import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import {
   getDashboardSettings,
@@ -15,15 +15,32 @@ import {
   getNotePlanSettings,
   handlerResult,
   mergeSections,
-  removeStaleTagSections,
   setPluginData,
 } from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
+import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
 import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from './tagMentionCache'
-import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData } from './types'
+import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData, TSection } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
+
+/**
+ * TAG names that appear more than once in the section list.
+ * @param {Array<TSection>} sections
+ * @returns {Array<string>}
+ */
+function getDuplicateTagSectionNames(sections: Array<TSection>): Array<string> {
+  const counts: Map<string, number> = new Map()
+  sections.forEach((section) => {
+    if (section.sectionCode !== 'TAG') return
+    const name = section.name ?? ''
+    counts.set(name, (counts.get(name) ?? 0) + 1)
+  })
+  return Array.from(counts.entries())
+    .filter(([, count]) => count > 1)
+    .map(([name]) => name)
+}
 
 /********************************************************************************
  *                             Data types + constants
@@ -82,7 +99,7 @@ export async function refreshDashboard(): Promise<void> {
     // TEST: Now *not* rebuilding the tag mention cache.
     // if (isTagMentionCacheGenerationScheduled()) {
     //   logInfo('refreshDashboard', `- now generating scheduled tag mention cache`)
-    //   await generateTagMentionCache()
+    //   await generateTagMentionCache('After refresh')
     // }
   }
   catch (error) {
@@ -151,7 +168,7 @@ export async function incrementallyRefreshSomeSections(
     // Finally, if relevant, rebuild the tag mention cache.
     if (isTagMentionCacheGenerationScheduled()) {
       logInfo('incrementallyRefreshSomeSections', `- generating scheduled tag mention cache`)
-      const _promise = generateTagMentionCache() // no await, as we don't want to block the UI
+      const _promise = generateTagMentionCache('After incrementallyRefreshSomeSections') // no await, as we don't want to block the UI
     }
 
     return handlerResult(true)
@@ -211,7 +228,7 @@ export async function refreshSectionsBatch(data: MessageDataObject): Promise<TBr
     }
     if (isTagMentionCacheGenerationScheduled()) {
       logInfo('refreshSectionsBatch', `- generating scheduled tag mention cache`)
-      const _promise = generateTagMentionCache()
+      const _promise = generateTagMentionCache('After incremental refresh of sections')
     }
     return handlerResult(true)
   }
@@ -279,16 +296,25 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
       logDebug('refreshSomeSections', `removal -> ${existingSections.length} sections [${getDisplayListOfSectionCodes(existingSections)}]`)
     }
 
-    // Drop TAG sections for tags no longer in tagsToShow (merge by ID alone cannot remove them).
-    existingSections = removeStaleTagSections(existingSections, config)
+    // Optional hardening: synthetic sections are React-only; strip them from pluginData before merge.
+    existingSections = existingSections.filter((section) => !SYNTHETIC_SECTION_CODES.includes(section.sectionCode))
+
+    // Keep TAG rows in sync with current tagsToShow + showTagSection_* toggles, and dedupe by name.
+    existingSections = syncTagSectionsWithSettings(existingSections, config)
 
     // Force the wanted sections to refresh
     const newSections = await getSomeSectionsData(sectionCodesToRefresh, pluginData.demoMode, calledByTrigger, config)
     // logTimer('refreshSomeSections', startTime, `- after getSomeSectionsData(): [${getDisplayListOfSectionCodes(newSections)}]`)
     const mergedSections = mergeSections(existingSections, newSections)
-    // logTimer('refreshSomeSections', startTime, `- after mergeSections(): [${getDisplayListOfSectionCodes(mergedSections)}]`)
+    let mergedSectionsClean = mergedSections.filter((section) => !SYNTHETIC_SECTION_CODES.includes(section.sectionCode))
+    mergedSectionsClean = syncTagSectionsWithSettings(mergedSectionsClean, config)
+    const duplicateTagNames = getDuplicateTagSectionNames(mergedSectionsClean)
+    if (duplicateTagNames.length > 0) {
+      logWarn('refreshSomeSections', `Found duplicate TAG section names after merge: [${duplicateTagNames.join(', ')}] in [${getDisplayListOfSectionCodes(mergedSectionsClean)}]`)
+    }
+    // logTimer('refreshSomeSections', startTime, `- after mergeSections(): [${getDisplayListOfSectionCodes(mergedSectionsClean)}]`)
 
-    const updates: TAnyObject = { sections: mergedSections }
+    const updates: TAnyObject = { sections: mergedSectionsClean }
 
     // Update the total done counts. 
     // Note: this is being done somewhere else, so turning off here
@@ -298,7 +324,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
     await setPluginData(updates, `Finished refreshSomeSections for [${String(sectionCodesToRefresh)}] (${timer(startTime)})`)
 
     // count sectionItems in all sections
-    const totalSectionItems = mergedSections.reduce((acc, section) => acc + section.sectionItems.length, 0)
+    const totalSectionItems = mergedSectionsClean.reduce((acc, section) => acc + section.sectionItems.length, 0)
     // logDebug('refreshSomeSections', `Total section items: ${totalSectionItems} from [${sectionCodes.toString()}]`)
     logTimer('refreshSomeSections', startTime, `for section(s) ${sectionCodesToRefresh.toString()}`, 2000)
     return handlerResult(true, [], { sectionItems: totalSectionItems })

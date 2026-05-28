@@ -9,6 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b45] 2026-05-23
+- Fix edge case where **TAG/WINS section could be shown twice during refresh/close flows**. dev: TAG rows are now synced by current settings (`tagsToShow` + `showTagSection_*`), deduped by tag name, and synthetic sections (for example `WINS`) are stripped from pluginData before merge/close to prevent client-only duplicates from persisting.
+- dev: Added calling info to the tagMentionCache log file
+
 ## [2.4.0.b44] 2026-05-23
 ### Fixed
 - **Feature Flags (`FFlag_*`)** — all flags from the menu are written to top-level `dashboardSettings` in `settings.json`; closing via the header icon no longer resets toggles before save; dashboard-global saves always run through `doSaveDashboardSettingsFromBridge` so `setPluginData` and the plugin cache match React immediately.

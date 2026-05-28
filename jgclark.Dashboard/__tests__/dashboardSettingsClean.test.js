@@ -9,6 +9,7 @@ import {
   isDashboardGlobalSettingKey,
   isTagCacheEnabled,
   removeStaleTagSections,
+  syncTagSectionsWithSettings,
 } from '../src/dashboardSettingsClean'
 import { getDashboardSettingsDefaults } from '../src/dashboardHelpers'
 import { getPerspectiveLiveVsSavedDiff, mergeDashboardSettingsForPerspectiveDef } from '../src/perspectiveHelpers'
@@ -51,6 +52,26 @@ describe('removeStaleTagSections', () => {
     const sections = [{ ID: 'TAG_0', sectionCode: 'TAG', name: '@friend', sectionItems: [] }]
     const result = removeStaleTagSections(sections, { tagsToShow: '' })
     expect(result).toEqual([])
+  })
+})
+
+describe('syncTagSectionsWithSettings', () => {
+  it('removes disabled TAG sections and dedupes TAG names', () => {
+    const settings = {
+      tagsToShow: '@dbw, @jgc',
+      'showTagSection_@dbw': true,
+      'showTagSection_@jgc': false,
+    }
+    const sections = [
+      { ID: 'DT', sectionCode: 'DT', name: 'Today', sectionItems: [] },
+      { ID: 'TAG_0', sectionCode: 'TAG', name: '@dbw', sectionItems: [] },
+      { ID: 'TAG_1', sectionCode: 'TAG', name: '@jgc', sectionItems: [] },
+      { ID: 'TAG_2', sectionCode: 'TAG', name: '@dbw', sectionItems: [] },
+    ]
+
+    const result = syncTagSectionsWithSettings(sections, settings)
+    expect(result.filter((s) => s.sectionCode === 'TAG').map((s) => s.name)).toEqual(['@dbw'])
+    expect(result.find((s) => s.ID === 'TAG_2')).toBeDefined()
   })
 })
 

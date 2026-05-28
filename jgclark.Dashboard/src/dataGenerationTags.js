@@ -36,10 +36,21 @@ import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
  * Only find paras with this *single* tag/mention which include open tasks, and that by default aren't scheduled in the future.
  * Uses all the 'ignore' settings, apart from 'ignoreItemsWithTerms' if it includes this particular tag/mention.
  * Now also implements noteTags feature to include all open items in a note, based on 'note-tag' attribute in frontmatter.
+ * Note: TAG section IDs are currently index-based (`TAG_${index}`), where `index` is the generation order among currently generated/enabled tag sections in this refresh pass. 
+ * They are therefore not stable across tag toggle/reorder changes; `syncTagSectionsWithSettings()` in `dashboardSettingsClean.js` now normalizes
+ * persisted TAG sections (stale/disabled removal + dedupe by tag name) after refresh/close flows.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
+ * @param {TSectionDetails} sectionDetail
+ * @param {number} index - generation order index for this TAG section in current pass
+ * @returns {?TSection}
  */
-export async function getTaggedSectionData(config: TDashboardSettings, useDemoData: boolean = false, sectionDetail: TSectionDetails, index: number): Promise<?TSection> {
+export async function getTaggedSectionData(
+  config: TDashboardSettings,
+  useDemoData: boolean = false,
+  sectionDetail: TSectionDetails,
+  index: number,
+): Promise<?TSection> {
   try {
     const thisStartTime = new Date()
     const sectionID = `TAG_${String(index)}`

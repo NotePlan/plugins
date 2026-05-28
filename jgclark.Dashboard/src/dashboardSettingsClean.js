@@ -3,7 +3,7 @@
 // Clean dashboard settings objects (per-perspective strip list).
 // Extracted from perspectiveHelpers.js to avoid circular imports with
 // dashboardPluginSettings.js / dashboardHelpers.js.
-// Last updated 2026-05-25 for v2.4.0.b44 by @CursorAI
+// Last updated 2026-05-28 for v2.4.0.b45 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
@@ -178,6 +178,69 @@ export function removeStaleTagSections(sections: Array<TSection>, dashboardSetti
     return kept
   } catch (error) {
     logError('removeStaleTagSections', `Error: ${error.message}. Returning original sections.`)
+    return sections
+  }
+}
+
+/**
+ * Synchronise TAG sections in `pluginData.sections` with current dashboard settings.
+ * This performs three passes:
+ * - remove stale tags not present in `tagsToShow`
+ * - remove TAG sections explicitly toggled off via `showTagSection_*`
+ * - dedupe repeated TAG sections by tag name (keep latest / last)
+ * @author @CursorAI
+ * @param {Array<TSection>} sections
+ * @param {TDashboardSettings} dashboardSettings
+ * @returns {Array<TSection>}
+ */
+export function syncTagSectionsWithSettings(sections: Array<TSection>, dashboardSettings: TDashboardSettings): Array<TSection> {
+  try {
+    const withoutStale = removeStaleTagSections(sections, dashboardSettings)
+    const tagDetails = getTagSectionDetails(dashboardSettings)
+    const enabledByTagName: Map<string, boolean> = new Map(
+      tagDetails.map((detail) => {
+        // $FlowIgnore[invalid-computed-prop]
+        const showSettingValue = dashboardSettings[detail.showSettingName]
+        return [detail.sectionName, showSettingValue !== false]
+      }),
+    )
+
+    const removedDisabled: Array<string> = []
+    const withoutDisabled = withoutStale.filter((section) => {
+      if (section.sectionCode !== 'TAG') return true
+      if (!enabledByTagName.has(section.name)) return false
+      const isEnabled = enabledByTagName.get(section.name) === true
+      if (!isEnabled) removedDisabled.push(section.name)
+      return isEnabled
+    })
+    if (removedDisabled.length > 0) {
+      logDebug('syncTagSectionsWithSettings', `- Removed disabled TAG section(s): [${removedDisabled.join(', ')}]`)
+    }
+
+    // Keep the latest TAG row for a given tag name (last in array wins), preserve overall order.
+    const seen = new Set()
+    const dedupedReversed: Array<TSection> = []
+    const removedDupes: Array<string> = []
+    for (let i = withoutDisabled.length - 1; i >= 0; i--) {
+      const section = withoutDisabled[i]
+      if (section.sectionCode !== 'TAG') {
+        dedupedReversed.push(section)
+        continue
+      }
+      const tagName = section.name
+      if (seen.has(tagName)) {
+        removedDupes.push(tagName)
+        continue
+      }
+      seen.add(tagName)
+      dedupedReversed.push(section)
+    }
+    if (removedDupes.length > 0) {
+      logDebug('syncTagSectionsWithSettings', `- Removed duplicate TAG section(s): [${removedDupes.join(', ')}]`)
+    }
+    return dedupedReversed.reverse()
+  } catch (error) {
+    logError('syncTagSectionsWithSettings', `Error: ${error.message}. Returning original sections.`)
     return sections
   }
 }

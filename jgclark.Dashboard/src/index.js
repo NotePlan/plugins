@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2026-05-15 for v2.4.0.b35 by @CursorAI
+// last updated 2026-05-27 for v2.4.0.b45 by @CursorAI
 // ----------------------------------------------------------------------------
 
 /**
@@ -140,7 +140,7 @@ export async function onUpdateOrInstall(): Promise<void> {
 
     // Now get the tagMentionCache up to date, by forcing a rebuild.
     // Note: DBW thinks that if we don't await this, NotePlan will kill the thread, and stop this from finishing.
-    await generateTagMentionCache(true)
+    await generateTagMentionCache('After plugin install or update', true)
   } catch (err) {
     logError(pluginJson, `onUpdateOrInstall() error: ${err.message}`)
   }
