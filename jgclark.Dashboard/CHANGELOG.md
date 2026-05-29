@@ -9,9 +9,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b45] 2026-05-23
+## [2.4.0.b45] 2026-05-29
+- Fix to TAG sections after saving perspective. dev: the tagMentionsCache's  joint `wantedTagMentionsList.json` was not getting updated correctly when a Perspective was saved.
 - Fix edge case where **TAG/WINS section could be shown twice during refresh/close flows**. dev: TAG rows are now synced by current settings (`tagsToShow` + `showTagSection_*`), deduped by tag name, and synthetic sections (for example `WINS`) are stripped from pluginData before merge/close to prevent client-only duplicates from persisting.
 - dev: Added calling info to the tagMentionCache log file
+- dev: Renamed `refreshSectionsBatch()` to `batchRefreshSomeSections()` for naming consistency with the other `*refreshSomeSections` functions.
 
 ## [2.4.0.b44] 2026-05-23
 ### Fixed

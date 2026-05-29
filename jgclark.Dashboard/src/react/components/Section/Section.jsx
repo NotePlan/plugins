@@ -284,12 +284,12 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Update global max priority when this section finds a higher priority
   // Use a ref to prevent duplicate updates to the same value
   useEffect(() => {
-    logDebug(
-      'Section',
-      `Section ${section.sectionCode}${
-        section.sectionCode === 'TAG' ? ` (${section.name})` : ''
-      } useEffect running: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}, currentMaxPriorityFromAllVisibleSections=${currentMaxPriorityFromAllVisibleSections}`,
-    )
+    // logDebug(
+    //   'Section',
+    //   `Section ${section.sectionCode}${
+    //     section.sectionCode === 'TAG' ? ` (${section.name})` : ''
+    //   } useEffect running: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}, currentMaxPriorityFromAllVisibleSections=${currentMaxPriorityFromAllVisibleSections}`,
+    // )
 
     // Only update if we found a higher priority AND we haven't already updated to this value
     if (maxPrioritySeenInThisSection > currentMaxPriorityFromAllVisibleSections && lastMaxPriorityUpdateRef.current !== maxPrioritySeenInThisSection) {

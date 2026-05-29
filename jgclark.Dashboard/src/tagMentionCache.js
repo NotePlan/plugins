@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2026-05-27 for v2.4.0.b45 by @jgclark + @CursorAI
+// last updated 2026-05-28 for v2.4.0.b45 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -253,7 +253,10 @@ export async function getFilenamesOfNotesWithTagOrMentions(
  * @param {string} generationReason The reason for the generation, for info & logging purposes.
  * @param {boolean} forceRebuild If true, the cache will be rebuilt from scratch, otherwise it will revert to the quicker 'updateTagMentionCache' function if the WANTED_PARA_TYPES are all already in the cache.
  */
-export async function generateTagMentionCache(generationReason: string = 'unknown', forceRebuild: boolean = true): Promise<void> {
+export async function generateTagMentionCache(
+  generationReason: string = 'unknown',
+  forceRebuild: boolean = true,
+): Promise<void> {
   const startTime = new Date()
   let processingOnAsyncThread = false
   let progressBannerShown = false
@@ -261,7 +264,8 @@ export async function generateTagMentionCache(generationReason: string = 'unknow
     // Note: this doesn't get the current definitions, if the perspective definition has changed and not yet saved. However, getTaggedSectionData() notices this and updates the list and asks for a Cache rebuild, so it quickly gets resolved.
     const wantedItems = getTagMentionCacheDefinitions()
     // const config = await getDashboardSettings()
-    logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}]${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' ONLY FOR OPEN ITEMS' : ' ON ANY PARA TYPE'}`)
+    logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}] for ${generationReason}`)
+    // logDebug('generateTagMentionCache', `- ${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' ONLY FOR OPEN ITEMS' : ' ON ANY PARA TYPE'}`)
 
     // If we're not forcing a rebuild, and the WANTED_PARA_TYPES are the same as (or less than) what is in the cache, then use the quicker 'updateTagMentionCache' function
     if (!forceRebuild) {
@@ -289,7 +293,7 @@ export async function generateTagMentionCache(generationReason: string = 'unknow
     const openItemsSuffix = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' from all open items' : ''
     await sendBannerMessage(
       WEBVIEW_WINDOW_ID,
-      `Generating cache for tags & mentions for ${String(wantedItems)}${openItemsSuffix} in ${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes ...`,
+      `Generating cache for tags & mentions for ${String(wantedItems)}${openItemsSuffix} from ${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes ...`,
       'INFO',
     )
     progressBannerShown = true
@@ -306,7 +310,10 @@ export async function generateTagMentionCache(generationReason: string = 'unknow
     let totalFoundItems = 0
     let totalMatchingNotes = 0
     logDebug('generateTagMentionCache', `- Processing ${allCalNotes.length} calendar notes ...`)
+    let noteCounter = 0
+    // Note: v1 method taking avg. 20ms/note for @jgclark
     for (const note of allCalNotes) {
+      noteCounter++
       const foundItems = getFoundItemsFromNote(note, wantedItems)
       if (foundItems.length > 0) {
         ccal++
@@ -315,12 +322,23 @@ export async function generateTagMentionCache(generationReason: string = 'unknow
         totalFoundItems += foundItems.length
         totalMatchingNotes++
       }
+      if (noteCounter % 200 === 0) {
+        logTimer('generateTagMentionCache', startTime, `- Processed ${noteCounter} of ${allCalNotes.length} calendar notes ...`)
+        // Removing this as it probably breaks the rules of writing to UI from async thread
+        // await sendBannerMessage(
+        //   WEBVIEW_WINDOW_ID,
+        //   `Generating cache for tags & mentions for ${String(wantedItems)}${openItemsSuffix} from ${String(noteCounter)}/${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes ...`,
+        //   'INFO',
+        // )
+      }
     }
 
     // ... then all regular notes.
     const regularWantedItems = []
     let creg = 0
+    noteCounter = 0
     logDebug('generateTagMentionCache', `- Processing ${allRegularNotes.length} regular notes ...`)
+    // Note: v1 method taking avg. 4ms/note for @jgclark
     for (const note of allRegularNotes) {
       // logInfo('generateTagMentionCache', `- Processing ${note.filename}`)
       const foundItems = getFoundItemsFromNote(note, wantedItems)
@@ -330,6 +348,16 @@ export async function generateTagMentionCache(generationReason: string = 'unknow
         regularWantedItems.push({ filename: note.filename, items: foundItems })
         totalFoundItems += foundItems.length
         totalMatchingNotes++
+      }
+      noteCounter++
+      if (noteCounter % 200 === 0) {
+        logTimer('generateTagMentionCache', startTime, `- Processed ${noteCounter} of ${allRegularNotes.length} regular notes ...`)
+        // Removing this as it probably breaks the rules of writing to UI from async thread
+        // await sendBannerMessage(
+        //   WEBVIEW_WINDOW_ID,
+        //   `Generating cache for tags & mentions for ${String(wantedItems)}${openItemsSuffix} from ${String(allCalNotes.length)} calendar + ${String(noteCounter)}/${String(allRegularNotes.length)} regular notes ...`,
+        //   'INFO',
+        // )
       }
     }
     logTimer('generateTagMentionCache', startTime, `to find ${ccal} calendar notes with wanted items / ${creg} regular notes with wanted items`)
@@ -911,7 +939,7 @@ function filterTagsOrMentionsInNoteByWantedParaTypesOrNoteTags(
  * @param {Array<TPerspectiveDef>} allPerspectives
  * @returns {Array<string>} An array containing the list of mentions and tags
  */
-function getListOfWantedTagsAndMentionsFromAllPerspectives(allPerspectives: Array<TPerspectiveDef>): Array<string> {
+export function getListOfWantedTagsAndMentionsFromAllPerspectives(allPerspectives: Array<TPerspectiveDef>): Array<string> {
   const wantedItems = new Set<string>()
   for (const perspective of allPerspectives) {
     logDebug('getListOfWantedTagsAndMentionsFromAllPerspectives', `- reading perspective: [${String(perspective.name)}]`)

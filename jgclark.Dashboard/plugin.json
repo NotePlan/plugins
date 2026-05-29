@@ -232,36 +232,14 @@
       "alias": [
         "utc"
       ]
-    },
-    {
-      "comment": "TODO: remove me in time",
-      "hidden": false,
-      "name": "testTagCache",
-      "description": "test tag cache for Dashboard",
-      "jsFunction": "testTagCache",
-      "alias": [
-        "ttc"
-      ]
-    },
-    {
-      "comment": "TODO: remove me in time",
-      "hidden": false,
-      "name": "updateDoneCountsFromChangedNotes",
-      "description": "updateDoneCountsFromChangedNotes",
-      "jsFunction": "updateDoneCountsFromChangedNotes",
-      "alias": [
-        "udc"
-      ]
-    },
-    {
-      "comment": "TODO: remove me in time",
-      "name": "test Perspective Filter",
-      "description": "show filtering results for a note",
-      "jsFunction": "logPerspectiveFiltering",
-      "hidden": false
     }
   ],
   "plugin.commands.unused": [
+    {
+      "name": "Dashboard: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "editSettings"
+    },
     {
       "name": "Add new Perspective",
       "description": "Add new Perspective from current settings.",
@@ -281,9 +259,21 @@
       "hidden": false
     },
     {
-      "name": "Dashboard: update plugin settings",
-      "description": "Settings interface (even for iOS)",
-      "jsFunction": "editSettings"
+      "comment": "TODO: remove me in time",
+      "hidden": false,
+      "name": "updateDoneCountsFromChangedNotes",
+      "description": "updateDoneCountsFromChangedNotes",
+      "jsFunction": "updateDoneCountsFromChangedNotes",
+      "alias": [
+        "udc"
+      ]
+    },
+    {
+      "comment": "TODO: remove me in time",
+      "name": "test Perspective Filter",
+      "description": "show filtering results for a note",
+      "jsFunction": "logPerspectiveFiltering",
+      "hidden": false
     }
   ],
   "plugin.settings": [

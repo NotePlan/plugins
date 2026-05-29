@@ -11,7 +11,7 @@
 import pluginJson from '../plugin.json'
 import { loadDashboardPluginSettings } from './dashboardPluginSettings'
 import { parseSettings } from './shared'
-import { generateTagMentionCache } from './tagMentionCache'
+import { generateTagMentionCache, updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentionCache'
 import {
   clo, JSP, logDebug, logError, logInfo, logWarn,
 } from '@helpers/dev'
@@ -137,6 +137,12 @@ export async function onUpdateOrInstall(): Promise<void> {
     // npc.pluginUpdated(pluginJson, { code: 1, message: `Plugin Installed or Updated.` })
     // await showDashboardReact()
     // logInfo(`onUpdateOrInstall`, `- finished.`)
+
+    // Rebuild wantedTagMentionsList.json from every saved perspective (fixes stale file after upgrade).
+    const perspectiveDefs = initialSettings?.perspectiveSettings
+    if (Array.isArray(perspectiveDefs) && perspectiveDefs.length > 0) {
+      updateTagMentionCacheDefinitionsFromAllPerspectives(perspectiveDefs)
+    }
 
     // Now get the tagMentionCache up to date, by forcing a rebuild.
     // Note: DBW thinks that if we don't await this, NotePlan will kill the thread, and stop this from finishing.

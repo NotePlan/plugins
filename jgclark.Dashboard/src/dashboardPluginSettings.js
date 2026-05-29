@@ -2,12 +2,13 @@
 //-----------------------------------------------------------------------------
 // Load/save jgclark.Dashboard settings.json with sanitization (repair corrupt root
 // structure from array-spread bugs, double-encoded JSON, etc.).
-// Last updated 2026-05-23 for v2.4.0.b42, @Cursor
+// Last updated 2026-05-28 for v2.4.0.b45, @jgclark + @Cursor
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { cleanDashboardSettingsInAPerspective } from './dashboardSettingsClean'
 import { parseSettings } from './shared'
+import { updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentionCache'
 import { ALLOWED_ROOT_KEYS } from './types'
 import type { TPerspectiveDef } from './types'
 import { logError, logInfo, logWarn } from '@helpers/dev'
@@ -255,6 +256,14 @@ export async function saveDashboardPluginSettings(settings: any, triggerUpdateMe
   if (needsWrite) {
     logSanitizeReport(report)
   }
+
+  // Keep wantedTagMentionsList.json in sync whenever perspective defs are persisted (union of all tagsToShow).
+  // Note: Save Perspective uses this path directly; copy/rename/delete use savePerspectiveSettings() which also ends up here.
+  const perspectiveDefs = sanitized?.perspectiveSettings
+  if (Array.isArray(perspectiveDefs) && perspectiveDefs.length > 0) {
+    updateTagMentionCacheDefinitionsFromAllPerspectives(perspectiveDefs)
+  }
+
   const res = await saveSettings(pluginID, sanitized, triggerUpdateMechanism)
   if (res) {
     pluginSettingsCache = sanitized
@@ -279,13 +288,20 @@ export async function repairDashboardSettings(): Promise<void> {
     }
     const raw = await getSettings(pluginID, {})
     const { settings, report, needsWrite } = sanitizeDashboardPluginSettings(raw, { cleanPerspectiveDefs: true })
+
+    // Repair may be run only to fix a stale wantedTagMentionsList.json; refresh union from all perspective defs.
+    const perspectiveDefs = settings?.perspectiveSettings
+    if (Array.isArray(perspectiveDefs) && perspectiveDefs.length > 0) {
+      updateTagMentionCacheDefinitionsFromAllPerspectives(perspectiveDefs)
+    }
+    
     if (!needsWrite) {
       pluginSettingsCache = settings
       await showMessage('Dashboard settings.json: no repairs were needed.', 'OK', 'Dashboard settings')
       return
     }
     logSanitizeReport(report)
-    const res = await saveSettings(pluginID, settings, true)
+    const res = await saveDashboardPluginSettings(settings, true)
     const lines = buildSanitizeReportLines(report)
     const detail = lines.map((line) => `• ${line}`).join('\n')
     if (res) {

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate diagnostics file for Dashboard plugin to help with debugging
-// Last updated 2026-05-23 for v2.4.0.b44 by @CursorAI
+// Last updated 2026-05-28 for v2.4.0.b45 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'

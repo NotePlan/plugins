@@ -42,7 +42,7 @@ import {
   doSwitchToPerspective,
   doSavePerspectiveSettingsFromBridge,
 } from './perspectiveClickHandlers'
-import { incrementallyRefreshSomeSections, refreshSectionsBatch, refreshSomeSections } from './refreshClickHandlers'
+import { incrementallyRefreshSomeSections, batchRefreshSomeSections, refreshSomeSections } from './refreshClickHandlers'
 import {
   doAddProgressUpdate,
   doCancelProject,
@@ -792,9 +792,9 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     }
 
     if (actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
-      logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling refreshSectionsBatch (for ${String(enabledSections)}) ...`)
+      logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling batchRefreshSomeSections (for ${String(enabledSections)}) ...`)
       await setPluginData({ perspectiveChanging: true }, `Starting perspective change`)
-      await refreshSectionsBatch({ ...data, sectionCodes: enabledSections })
+      await batchRefreshSomeSections({ ...data, sectionCodes: enabledSections })
       logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (should hide modal spinner)`)
       await setPluginData({ perspectiveChanging: false }, `Ending perspective change`)
 

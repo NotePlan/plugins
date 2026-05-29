@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2026-05-18 for v2.4.0.b37, @jgclark + @CursorAI
+// Last updated 2026-05-28 for v2.4.0.b45, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -444,14 +444,13 @@ export function isNamedPerspectiveModified(
 
 /**
  * Save all perspective definitions. The array will be serialized by DataStore.saveJSON().
- * NOTE: from this NP automatically triggers NPHooks::onSettingsUpdated()
  * @param {Array<TPerspectiveDef>} allDefs perspective definitions
  * @return {boolean} true if successful
  */
 export async function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): Promise<boolean> {
   try {
     logDebug(`savePerspectiveSettings saving ${allDefs.length} perspectives in DataStore.settings`)
-    // First, update the tagMentionCache with the list of wanted tags and mentions (in case the list has changed)
+    // Update union of all perspectives' tagsToShow → wantedTagMentionsList.json (also done in saveDashboardPluginSettings below)
     updateTagMentionCacheDefinitionsFromAllPerspectives(allDefs)
     const pluginSettings = await loadDashboardPluginSettings()
     pluginSettings.perspectiveSettings = allDefs

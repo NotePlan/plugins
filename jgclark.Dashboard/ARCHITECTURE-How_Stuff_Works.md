@@ -176,14 +176,16 @@ The Dashboard keeps a **plugin-local cache** of which notes contain which tags/m
 
 - `getListOfWantedTagsAndMentionsFromAllPerspectives()` (in `tagMentionCache.js`) walks every `TPerspectiveDef` and adds each `dashboardSettings.tagsToShow` entry to a `Set`.
 - `updateTagMentionCacheDefinitionsFromAllPerspectives(allDefs)` writes that union to `wantedTagMentionsList.json` via `setTagMentionCacheDefinitions()`.
-- `savePerspectiveSettings()` in `perspectiveHelpers.js` calls `updateTagMentionCacheDefinitionsFromAllPerspectives(allDefs)` before persisting — so the wanted list is refreshed when perspective defs are saved (including copy/delete-all-named flows that save defs).
+- **`saveDashboardPluginSettings()`** calls `updateTagMentionCacheDefinitionsFromAllPerspectives()` whenever `perspectiveSettings` is written — including **Save Perspective** (`doSavePerspective`), perspective switch saves, and JSON bulk edit. This is the main persistence path.
+- `savePerspectiveSettings()` in `perspectiveHelpers.js` also calls the updater before delegating to `saveDashboardPluginSettings()` (copy/rename/add/delete flows).
+- **`onUpdateOrInstall`** and **`repairDashboardSettings`** refresh the wanted list from all saved defs before cache rebuild or when repair is run (covers stale files after upgrade).
 - `generateTagMentionCache()` / `updateTagMentionCache()` read the wanted list with `getTagMentionCacheDefinitions()`; they do not read live `dashboardSettings.tagsToShow` for the active perspective directly.
 
 **Switching perspective** does **not** rebuild the wanted list. Only saving perspective settings (or related save paths above) replaces the union from all defs.
 
 ### Unsaved edits and on-demand additions
 
-If `tagsToShow` changes in the UI but the user has not saved perspectives yet, the wanted list can be stale until the next `savePerspectiveSettings`. `generateTagMentionCache` documents this; it is usually corrected when TAG sections run:
+If `tagsToShow` changes in the UI but the user has not saved perspectives yet, the wanted list can be stale until the next save that persists `perspectiveSettings` (e.g. **Save Perspective**). `generateTagMentionCache` documents this; it is usually corrected when TAG sections run:
 
 - `ensureCacheIsReadyForTags()` — if a requested tag is missing from the wanted list, logs a warning, calls `addTagMentionCacheDefinitions()`, and schedules regeneration.
 - `getTaggedSectionData()` — if the cache flag is on but the cache is not ready for that tag, adds the tag and schedules generation.
@@ -212,6 +214,16 @@ Additionally, synthetic sections (e.g. `WINS`) are stripped from pluginData in t
 - **Full regenerate** (`generateTagMentionCache`): ~**24 hours** or when new wanted items appear / scheduled via preference `regenerateTagMentionCachePref`.
 - Plugin install/update may force a full rebuild (`index.js` `onUpdateOrInstall`).
 
+
+## Section refresh functions (`refreshClickHandlers.js`)
+
+There are three related backend functions that re-generate a subset of Sections and push them to the React window. They differ mainly in **how many `setPluginData()` calls (and therefore React redraws)** they trigger:
+
+- **`refreshSomeSections(data, calledByTrigger?)`** — the core worker. Refreshes the `sectionCodes` in `data` and does the merge logic: it generates the wanted sections via `getSomeSectionsData()`, then **merges** them into the existing `pluginData.sections` (stripping synthetic sections, removing referenced sections when `separateSectionForReferencedNotes` is off, and de-duping TAG rows via `syncTagSectionsWithSettings()`). Uses the live in-memory settings (`getDashboardSettingsForOpenWebView()`), not the on-disk settings. One `setPluginData()` per call.
+- **`incrementallyRefreshSomeSections(data, calledByTrigger?, setFullRefreshDate?)`** — loops over `sectionCodes` and calls `refreshSomeSections()` **once per section**, so each section is sent to React as soon as it is generated (**N updates**, sections "pop in" progressively). Used on **first launch** (kicked off from a `useEffect` in `Dashboard.jsx` after Today loads) to improve perceived speed.
+- **`batchRefreshSomeSections(data)`** (formerly `refreshSectionsBatch`) — generates **all** the requested sections in one `getSomeSectionsData(sectionCodes, ...)` call and sends a **single** `setPluginData()` that **replaces** `sections` wholesale (**1 update**, no intermediate flicker). It does **not** run the merge logic, so the caller must pass the complete set of sectionCodes to show. Used for **perspective switching** to avoid N separate redraws.
+
+All three share the same tail behaviour: recalculate done-task counts (when `doneDatesAvailable`) and kick off a scheduled tag-mention-cache rebuild if one is pending.
 
 ## Interactive Processing
 

@@ -96,11 +96,11 @@ export async function refreshDashboard(): Promise<void> {
       await setPluginData(changedData, 'Updating doneCounts at end of refreshAllSections')
     }
 
-    // TEST: Now *not* rebuilding the tag mention cache.
-    // if (isTagMentionCacheGenerationScheduled()) {
-    //   logInfo('refreshDashboard', `- now generating scheduled tag mention cache`)
-    //   await generateTagMentionCache('After refresh')
-    // }
+    // Finally, if relevant, rebuild the tag mention cache.
+    if (isTagMentionCacheGenerationScheduled()) {
+      logInfo('refreshDashboard', `- now generating scheduled tag mention cache`)
+      await generateTagMentionCache('After batch refresh (pre-scheduled)') // TEST: with await: does it in practice block the UI?
+    }
   }
   catch (error) {
     // try to close the modal spinner and reset firstRun flag, if necessary
@@ -183,11 +183,12 @@ export async function incrementallyRefreshSomeSections(
 
 /**
  * Refresh the given sections in one batch and send a single setPluginData.
+ * Note: this replaces all sections, not a merge of existing sections with new ones, as incrementallyRefreshSomeSections() does.
  * Used for perspective switch to avoid multiple redraws (one update instead of N).
  * @param {MessageDataObject} data - must include sectionCodes
  * @returns {TBridgeClickHandlerResult}
  */
-export async function refreshSectionsBatch(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function batchRefreshSomeSections(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     const start = new Date()
     const { sectionCodes } = data
@@ -197,11 +198,11 @@ export async function refreshSectionsBatch(data: MessageDataObject): Promise<TBr
 
     // - add check for window visibility to prevent errors when window is not visible
     if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
-      logInfo('refreshSectionsBatch', `- my window is not visible, so not refreshing`)
+      logInfo('batchRefreshSomeSections', `- my window is not visible, so not refreshing`)
       return handlerResult(false, [], { errorMsg: 'Dashboard window not visible, so not refreshing', errorMessageLevel: 'INFO' })
     }
 
-    logDebug('refreshSectionsBatch', `Starting batch refresh for sections [${String(sectionCodes)}]`)
+    logDebug('batchRefreshSomeSections', `Starting batch refresh for sections [${String(sectionCodes)}]`)
     await setPluginData({ refreshing: true }, `Starting batch refresh for sections ${String(sectionCodes)}`)
 
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
@@ -213,28 +214,30 @@ export async function refreshSectionsBatch(data: MessageDataObject): Promise<TBr
       { sections: newSections, refreshing: false, firstRun: false },
       `Finished batch refresh for [${String(sectionCodes)}] (${timer(start)})`,
     )
-    logTimer('refreshSectionsBatch', start, `- ${sectionCodes.length} sections: ${sectionCodes.toString()}`)
+    logTimer('batchRefreshSomeSections', start, `- ${sectionCodes.length} sections: ${sectionCodes.toString()}`)
 
     const NPSettings = await getNotePlanSettings()
     if (NPSettings.doneDatesAvailable) {
       const startTime = new Date()
       const config: any = await getDashboardSettings()
       const totalDoneCount = await updateDoneCountsFromChangedNotes(
-        `update done counts at end of refreshSectionsBatch (for [${sectionCodes.join(',')}])`,
+        `update done counts at end of batchRefreshSomeSections (for [${sectionCodes.join(',')}])`,
         config.FFlag_ShowSectionTimings === true,
       )
-      await setPluginData({ totalDoneCount, firstRun: false }, 'Updating doneCounts at end of refreshSectionsBatch')
-      logTimer('refreshSectionsBatch', startTime, `- done counts`, 200)
+      await setPluginData({ totalDoneCount, firstRun: false }, 'Updating doneCounts at end of batchRefreshSomeSections')
+      logTimer('batchRefreshSomeSections', startTime, `- done counts`, 200)
     }
+
+    // Finally, if scheduled, rebuild the tag/mention cache.
     if (isTagMentionCacheGenerationScheduled()) {
-      logInfo('refreshSectionsBatch', `- generating scheduled tag mention cache`)
-      const _promise = generateTagMentionCache('After incremental refresh of sections')
+      logInfo('batchRefreshSomeSections', `- generating scheduled tag mention cache`)
+      const _promise = generateTagMentionCache('After batch refresh of some sections')
     }
     return handlerResult(true)
   }
   catch (error) {
-    await setPluginData({ refreshing: false, firstRun: false }, `Error in refreshSectionsBatch; closing modal spinner`)
-    logError('refreshSectionsBatch', error)
+    await setPluginData({ refreshing: false, firstRun: false }, `Error in batchRefreshSomeSections; closing modal spinner`)
+    logError('batchRefreshSomeSections', error)
     return handlerResult(false, [], { errorMsg: error.message, errorMessageLevel: 'ERROR' })
   }
 }
