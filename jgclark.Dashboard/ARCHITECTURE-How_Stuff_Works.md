@@ -168,7 +168,7 @@ The Dashboard keeps a **plugin-local cache** of which notes contain which tags/m
 | `wantedTagMentionsList.json` | **Definitions:** union of tags/mentions the cache should index (`items` array) |
 | `tagMentionCache.json` | **Body:** per-note hits for those wanted items (`regularNotes`, `calendarNotes`, `wantedItems`, timestamps) |
 
-`TAG_CACHE_FOR_ALL_TAGS` is `false`, so only tags on the wanted list are indexed (not every hashtag in the vault). `TAG_CACHE_ONLY_FOR_OPEN_ITEMS` limits which paragraph types are considered when building the cache.
+Only tags/mentions on the wanted list (`wantedTagMentionsList.json`) are indexed — caching every tag in a note was tried but made the cache file ~20x larger. `TAG_CACHE_ONLY_FOR_OPEN_ITEMS` limits which paragraph types are considered when building the cache.
 
 ### Which perspectives’ `tagsToShow` are tracked?
 

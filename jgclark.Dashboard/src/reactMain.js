@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2026-05-27 for v2.4.0.b45 by @CursorAI
+// Last updated 2026-05-30 for v2.4.0.b45 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -408,10 +408,10 @@ export async function reactWindowInitialisedSoStartGeneratingData(): Promise<voi
     // Now is the time to do any other background processing after the initial display is done
     // ---------------------------------------------------------------
 
-    // Rebuild the tag mention cache. (Ideally this would be triggered by NotePlan once a day, but for now we will do it here.)
+    // Rebuild the tag mention cache, if scheduled to do so.
     if (isTagMentionCacheGenerationScheduled()) {
       logInfo('reactWindowInitialisedSoStartGeneratingData', `- now generating tag mention cache`)
-      await generateTagMentionCache('After initial display', true)
+      await generateTagMentionCache('After initial display, as scheduled', true)
       // Now that the cache is generated, we want to re-generate any enabled tag section(s), just in case
       if (enabledSections.length > 0 && enabledSections.includes('TAG')) {
         logInfo('reactWindowInitialisedSoStartGeneratingData', `- now re-generating tag section(s)`)

@@ -99,7 +99,7 @@ export async function refreshDashboard(): Promise<void> {
     // Finally, if relevant, rebuild the tag mention cache.
     if (isTagMentionCacheGenerationScheduled()) {
       logInfo('refreshDashboard', `- now generating scheduled tag mention cache`)
-      await generateTagMentionCache('After batch refresh (pre-scheduled)') // TEST: with await: does it in practice block the UI?
+      await generateTagMentionCache('After refreshing all sections, as scheduled') // TEST: with await: does it in practice block the UI?
     }
   }
   catch (error) {
@@ -168,7 +168,7 @@ export async function incrementallyRefreshSomeSections(
     // Finally, if relevant, rebuild the tag mention cache.
     if (isTagMentionCacheGenerationScheduled()) {
       logInfo('incrementallyRefreshSomeSections', `- generating scheduled tag mention cache`)
-      const _promise = generateTagMentionCache('After incrementallyRefreshSomeSections') // no await, as we don't want to block the UI
+      const _promise = generateTagMentionCache('After incrementally refreshing some sections, as scheduled') // no await, as we don't want to block the UI
     }
 
     return handlerResult(true)
@@ -231,7 +231,7 @@ export async function batchRefreshSomeSections(data: MessageDataObject): Promise
     // Finally, if scheduled, rebuild the tag/mention cache.
     if (isTagMentionCacheGenerationScheduled()) {
       logInfo('batchRefreshSomeSections', `- generating scheduled tag mention cache`)
-      const _promise = generateTagMentionCache('After batch refresh of some sections')
+      const _promise = generateTagMentionCache('After batch refreshing some sections, as scheduled')
     }
     return handlerResult(true)
   }
