@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Cache helper functions for Dashboard
-// last updated 2026-05-30 for v2.4.0.b45 by @jgclark + @CursorAI
+// last updated 2026-05-31 for v2.4.0.b45 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -58,6 +58,69 @@ export type TagMentionLookupContext = {
 function clearTagMentionCacheGenerationPref(): void {
   logDebug('clearTagMentionCacheGenerationPref', `Clearing tag mention cache generation pref.`)
   DataStore.setPreference(regenerateTagMentionCachePref, null)
+}
+
+/**
+ * Serialize a cache timestamp for `tagMentionCache.json` as ISO 8601 UTC (e.g. `2026-05-31T20:07:41.123Z`).
+ * Age comparisons use absolute instants; UTC ISO avoids ambiguity when the file is read back as a string.
+ * @param {Date} when
+ * @returns {string}
+ */
+function serializeTagMentionCacheTimestamp(when: Date): string {
+  return when.toISOString()
+}
+
+/**
+ * Parse `generatedAt` / `lastUpdated` from the cache file or from `DataStore.preference`.
+ * Accepts `Date` (from preferences) or ISO string (from JSON). Returns null if missing/invalid.
+ * @param {Date | string | null | void} value
+ * @returns {Date | null}
+ */
+function parseTagMentionCacheTimestamp(value: ?(Date | string)): ?Date {
+  if (value == null || value === '') return null
+  const m = moment(value)
+  if (!m.isValid()) return null
+  return m.toDate()
+}
+
+/**
+ * Record when the tag mention cache was last built or incrementally updated.
+ * Keeps `lastTimeThisWasRunPref` in sync with `cache.lastUpdated` in `tagMentionCache.json`.
+ * Both `generateTagMentionCache` and `updateTagMentionCache` must call this after saving the file —
+ * otherwise a full rebuild updates the JSON but the next refresh still sees a stale pref age (see updateTagMentionCache log).
+ * @param {Date} when
+ */
+function recordTagMentionCacheLastRunTime(when: Date): void {
+  DataStore.setPreference(lastTimeThisWasRunPref, when)
+  logDebug('recordTagMentionCacheLastRunTime', `set ${lastTimeThisWasRunPref} to ${when.toISOString()} (local ${moment(when).format()})`)
+}
+
+/**
+ * Resolve the last cache run instant for incremental update / age checks.
+ * Uses the newer of `cache.lastUpdated` (file) and `lastTimeThisWasRunPref` (preference) so a full rebuild
+ * is recognised even if the pref was not updated in older plugin versions.
+ * @param {Object} cache - parsed tagMentionCache.json
+ * @returns {{ lastRun: Date | null, source: string }}
+ */
+function getTagMentionCacheLastRunInfo(cache: Object): { lastRun: ?Date, source: string } {
+  const fromPref = parseTagMentionCacheTimestamp(DataStore.preference(lastTimeThisWasRunPref))
+  const fromFile = parseTagMentionCacheTimestamp(cache?.lastUpdated)
+  if (fromPref == null && fromFile == null) {
+    return { lastRun: null, source: 'none' }
+  }
+  if (fromPref == null) {
+    return { lastRun: fromFile, source: 'cache.lastUpdated' }
+  }
+  if (fromFile == null) {
+    return { lastRun: fromPref, source: 'pref' }
+  }
+  if (fromFile.getTime() > fromPref.getTime()) {
+    return { lastRun: fromFile, source: 'cache.lastUpdated (newer than pref)' }
+  }
+  if (fromPref.getTime() > fromFile.getTime()) {
+    return { lastRun: fromPref, source: 'pref (newer than cache.lastUpdated)' }
+  }
+  return { lastRun: fromFile, source: 'cache.lastUpdated and pref' }
 }
 
 /**
@@ -227,8 +290,14 @@ function processNotesForTagMentionCache(
   let matchingNoteCount = 0
   let totalFoundItems = 0
   let notesSkippedByPrefilter = 0
+  let noteCount = 0
 
   for (const note of notes) {
+    noteCount++
+    // Note: This is not actually being shown, as we get spinning beachball instead.
+    if (noteCount % 100 === 0) {
+      CommandBar.showLoading(true, `Generating tag/mention cache`, noteCount/notes.length)
+    }
     if (!noteMayContainCacheItems(note, ctx)) {
       notesSkippedByPrefilter++
       continue
@@ -240,6 +309,7 @@ function processNotesForTagMentionCache(
       matchingNoteCount++
     }
   }
+  CommandBar.showLoading(false)
 
   return { entries, matchingNoteCount, totalFoundItems, notesSkippedByPrefilter }
 }
@@ -499,7 +569,7 @@ export async function generateTagMentionCache(
     // This is very quick
     const lookupCtx = buildTagMentionLookupContext(wantedItems)
 
-    // Do NOT move the scan below to CommandBar.onAsyncThread(). See function JSDoc: async-thread runs have failed to
+    // Do NOT move the scan below to CommandBar.onAsyncThread. See function JSDoc: async-thread runs have failed to
     // finish (cache file not saved, no completion logs), especially from external command invocations. Use showLoading
     // for progress feedback while the main thread does the work; save + WebView banners also require main thread.
     CommandBar.showLoading(true, `Generating tag/mention cache (${String(allCalNotes.length + allRegularNotes.length)} notes) ...`)
@@ -507,11 +577,11 @@ export async function generateTagMentionCache(
 
     logInfo('generateTagMentionCache', `- scanning ${String(allCalNotes.length)} calendar notes ...`)
     const calResult = processNotesForTagMentionCache(allCalNotes, lookupCtx)
-    logDebug('generateTagMentionCache', `  - prefilter skipped ${String(calResult.notesSkippedByPrefilter)} calendar notes with no possible wanted items`)
+    logDebug('generateTagMentionCache', `  - pre-filter skipped ${String(calResult.notesSkippedByPrefilter)} calendar notes with no possible wanted items`)
 
     logInfo('generateTagMentionCache', `- scanning ${String(allRegularNotes.length)} regular notes ...`)
     const regResult = processNotesForTagMentionCache(allRegularNotes, lookupCtx)
-    logDebug('generateTagMentionCache', `  - prefilter skipped ${String(regResult.notesSkippedByPrefilter)} regular notes with no possible wanted items`)
+    logDebug('generateTagMentionCache', `  - pre-filter skipped ${String(regResult.notesSkippedByPrefilter)} regular notes with no possible wanted items`)
 
     const calWantedItems = calResult.entries
     const regularWantedItems = regResult.entries
@@ -521,14 +591,15 @@ export async function generateTagMentionCache(
     const totalMatchingNotes = ccal + creg
     // $FlowIgnore[unsafe-arithmetic]
     const elapsedSecs = Math.max((new Date() - startTime) / 1000, 0.001)
-    const notesPerSec = ((allCalNotes.length + allRegularNotes.length) / elapsedSecs).toFixed(3)
+    const notesPerSec = ((allCalNotes.length + allRegularNotes.length - calResult.notesSkippedByPrefilter - regResult.notesSkippedByPrefilter) / elapsedSecs).toFixed(3)
     logInfo('generateTagMentionCache', `-> found ${String(ccal)} calendar + ${String(creg)} regular notes with wanted items (${String(totalFoundItems)} matching open items)`)
-    logTimer('generateTagMentionCache', startTime, `-> finished cache generation at ${String(notesPerSec)} notes/second`)
+    logTimer('generateTagMentionCache', startTime, `-> finished cache generation at ${String(notesPerSec)} checked notes/second`)
 
     // Save the filteredMentions and filteredTags to the mentionTagCacheFile
+    const cacheTimestamp = serializeTagMentionCacheTimestamp(startTime)
     const cache = {
-      generatedAt: startTime,
-      lastUpdated: startTime,
+      generatedAt: cacheTimestamp,
+      lastUpdated: cacheTimestamp,
       wantedItems: wantedItems,
       regularNotes: regularWantedItems,
       calendarNotes: calWantedItems,
@@ -537,8 +608,11 @@ export async function generateTagMentionCache(
     DataStore.saveData(JSON.stringify(cache), tagMentionCacheFile, true)
     logTimer('generateTagMentionCache', startTime, `- after saving ${String(totalFoundItems)} items to mentionTagCacheFile`)
 
+    // Keep pref in sync with cache.lastUpdated so the next refresh/updateTagMentionCache sees age ~0 (not stale pref).
+    recordTagMentionCacheLastRunTime(startTime)
+
     // Replace progress banner with a timed completion message (progress banners have no timeout and would persist otherwise)
-    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Tag/mention cache found ${String(totalFoundItems)} matching open items in ${String(totalMatchingNotes)} notes`, 'INFO', 4000)
+    await sendBannerMessage(WEBVIEW_WINDOW_ID, `Tag/mention cache re-generated; it contains ${String(totalFoundItems)} matching open items in ${String(totalMatchingNotes)} notes`, 'INFO', 5000)
     progressBannerShown = false
 
     // Clear the preference that was set to trigger a regeneration
@@ -564,7 +638,8 @@ export async function generateTagMentionCache(
 
 /**
  * Update the tagMentionCacheFile.
- * It works smartly: it only recalculates notes that have been updated since the last time this was run, according to JS date saved in 'lastTimeThisWasRunPref'.
+ * It works smartly: it only recalculates notes that have been updated since the last run.
+ * Last-run time comes from `cache.lastUpdated` (ISO UTC in JSON) and `lastTimeThisWasRunPref` (Date in preferences); see `getTagMentionCacheLastRunInfo`.
  */
 // eslint-disable-next-line require-await
 export async function updateTagMentionCache(): Promise<void> {
@@ -572,8 +647,6 @@ export async function updateTagMentionCache(): Promise<void> {
     // const config = await getDashboardSettings()
     const startTime = new Date() // just for timing this function
 
-    // Read current list from tagMentionCacheFile, and get time of it.
-    // Note: can't get a timestamp from plugin files, so need to use a separate preference
     logDebug('updateTagMentionCache', `About to read ${tagMentionCacheFile} ...`)
     if (!isTagMentionCacheAvailable()) {
       logWarn('updateTagMentionCache', `${tagMentionCacheFile} file does not exist, so will schedule a re-generation of the cache from scratch.`)
@@ -586,16 +659,18 @@ export async function updateTagMentionCache(): Promise<void> {
     const data = DataStore.loadData(tagMentionCacheFile, true) ?? ''
     const cache = JSON.parse(data)
 
-    // Get last updated time from special preference
-    const previousJSDate = DataStore.preference(lastTimeThisWasRunPref) ?? null
-    if (!previousJSDate) {
-      logWarn('updateTagMentionCache', `No previous cache update time found (as pref '${lastTimeThisWasRunPref}' appears not to be set)`)
+    const { lastRun, source } = getTagMentionCacheLastRunInfo(cache)
+    if (lastRun == null) {
+      logWarn('updateTagMentionCache', `No valid last-run timestamp (pref or cache.lastUpdated); treating cache as stale`)
     }
-    const momPrevious = moment(previousJSDate)
+    const momPrevious = lastRun != null ? moment(lastRun) : moment(0)
     const momNow = moment()
-    const fileAgeMins = momNow.diff(momPrevious, 'minutes')
-    logDebug('updateTagMentionCache', `Last updated ${fileAgeMins.toFixed(3)} mins ago (previous time: ${momPrevious.format()} / now time: ${momNow.format()})`)
-    if (momNow.diff(momPrevious, 'seconds') < 5) {
+    const fileAgeMins = momNow.diff(momPrevious, 'minutes', true)
+    logDebug(
+      'updateTagMentionCache',
+      `Last updated ${fileAgeMins.toFixed(3)} mins ago (source: ${source}; previous: ${momPrevious.format()} / now: ${momNow.format()})`,
+    )
+    if (lastRun != null && momNow.diff(momPrevious, 'seconds') < 5) {
       logInfo('updateTagMentionCache', `- Not updating cache as it was updated less than 5 seconds ago`)
       return
     }
@@ -628,15 +703,13 @@ export async function updateTagMentionCache(): Promise<void> {
     logTimer('updateTagMentionCache', startTime, `-> ${c} recently changed notes with wanted items`)
 
     // Update the last updated time and wanted items (which should be the same,)
-    cache.lastUpdated = startTime
+    cache.lastUpdated = serializeTagMentionCacheTimestamp(startTime)
     cache.wantedItems = wantedItems
 
     DataStore.saveData(JSON.stringify(cache), tagMentionCacheFile, true)
     logTimer('updateTagMentionCache', startTime, `- after saving to mentionTagCacheFile`)
 
-    // Update the preference for current time
-    DataStore.setPreference(lastTimeThisWasRunPref, new Date())
-    logDebug('updateTagMentionCache', `pref is now ${moment(DataStore.preference(lastTimeThisWasRunPref)).format()}`)
+    recordTagMentionCacheLastRunTime(startTime)
 
     logTimer(`updateTagMentionCache`, startTime, `total runtime`, 1000)
     return
@@ -998,6 +1071,7 @@ function compareCacheWithAPI(
 
 /**
  * Builds a string describing the age of the cache.
+ * `cache.generatedAt` / `cache.lastUpdated` are ISO UTC strings (see serializeTagMentionCacheTimestamp); moment parses them as absolute instants.
  * @param {Object} cache - The cache object with generatedAt and lastUpdated
  * @returns {string} Cache age information string
  */
@@ -1071,3 +1145,6 @@ export function getListOfWantedTagsAndMentionsFromAllPerspectives(allPerspective
   logDebug('', `=> wantedItems: ${String(Array.from(wantedItems))}`)
   return Array.from(wantedItems)
 }
+
+// Exported for unit tests (timestamp round-trip / timezone-safe parsing).
+export { parseTagMentionCacheTimestamp, serializeTagMentionCacheTimestamp }

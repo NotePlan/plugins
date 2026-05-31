@@ -12,6 +12,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.4.0.b45] 2026-05-29
 - speed up **tag/mention cache build performance**. dev: new pre-filter notes before full scan; single-pass extraction on open/checklist/scheduled paragraphs; O(1) wanted-item lookup via precomputed Sets. Removed unused `TAG_CACHE_FOR_ALL_TAGS` / blacklist code.
 - dev: **tag/mention cache generation** — run full rebuild on the main thread (not async thread) so external commands complete and `tagMentionCache.json` is saved; fix completion timer rate calculation.
+- dev: **tag/mention cache timestamps** — `generateTagMentionCache` now updates `lastTimeThisWasRunPref` in sync with `cache.lastUpdated`; incremental update uses the newer of file vs pref; timestamps stored as ISO UTC in JSON.
 - Fix to TAG sections after saving perspective. dev: the tagMentionsCache's  joint `wantedTagMentionsList.json` was not getting updated correctly when a Perspective was saved.
 - Fix edge case where **TAG/WINS section could be shown twice during refresh/close flows**. dev: TAG rows are now synced by current settings (`tagsToShow` + `showTagSection_*`), deduped by tag name, and synthetic sections (for example `WINS`) are stripped from pluginData before merge/close to prevent client-only duplicates from persisting.
 - dev: Added calling info to the tagMentionCache log file
