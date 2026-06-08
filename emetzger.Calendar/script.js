@@ -2178,6 +2178,16 @@ function getCalendarHTML() {
     }
 
     function getEventColor(event) {
+      // support for event color coding in Calendars by Readdle and Calendar 366 applications
+      if (event.notes) {
+        const hexMatch = event.notes.match(/@colorHex:(#[0-9A-Fa-f]{6})|\\[!([0-9A-Fa-f]{6})!\\]/);
+        if (hexMatch) {
+          const color = hexMatch[1] || hexMatch[2];
+          const finalColor = color.startsWith('#') ? color : '#' + color;
+          return finalColor;
+        }
+      }
+      // event (calendar) color and fallback color
       return event.color || '#5856D6';
     }
 
