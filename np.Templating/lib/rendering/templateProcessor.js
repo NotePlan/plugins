@@ -35,6 +35,9 @@ import { convertToDoubleDashesIfNecessary } from '../engine/templateRenderer'
 import { log, logError, logDebug, logWarn, clo } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 
+/** Internal: preProcess/include set this on sessionData so the main render returns **null** (user cancelled a prompt). */
+const NP_TEMPLATING_PROMPT_CANCELLED_KEY = '__npTemplatingPromptCancelled'
+
 /**
  * Logs the progress of template rendering at each step.
  * Provides detailed debugging information about template data and session state.
@@ -524,9 +527,19 @@ export async function processIncludeTag(tag: string, context: { templateData: st
   if (hasFrontmatter && !isCalendarNote) {
     // if the included file has frontmatter, we need to renderFrontmatter it because it could be a template
     const { frontmatterAttributes, frontmatterBody } = await processFrontmatterTags(templateContent, context.sessionData)
+    if (frontmatterBody === null) {
+      context.sessionData[NP_TEMPLATING_PROMPT_CANCELLED_KEY] = true
+      context.templateData = context.templateData.replace(tag, '')
+      return
+    }
     context.sessionData = { ...frontmatterAttributes }
     logDebug(pluginJson, `processIncludeTag: ${tag} frontmatterAttributes: ${JSON.stringify(frontmatterAttributes, null, 2)}`)
-    const renderedTemplate = await render(frontmatterBody, context.sessionData)
+    const includedRenderResult = await render(frontmatterBody, context.sessionData)
+    if (includedRenderResult == null) {
+      context.sessionData[NP_TEMPLATING_PROMPT_CANCELLED_KEY] = true
+      context.templateData = context.templateData.replace(tag, '')
+      return
+    }
 
     // Handle variable assignment
     if (tag.includes('const') || tag.includes('let')) {
@@ -537,11 +550,11 @@ export async function processIncludeTag(tag: string, context: { templateData: st
           .replace('<%', '')
           .trim()
         const varParts = temp.split(' ')
-        context.override[varParts[1]] = renderedTemplate
+        context.override[varParts[1]] = includedRenderResult
         context.templateData = context.templateData.replace(tag, '')
       }
     } else {
-      context.templateData = context.templateData.replace(tag, renderedTemplate)
+      context.templateData = context.templateData.replace(tag, includedRenderResult)
     }
   } else {
     // this is a regular, non-frontmatter note (regular note or calendar note)
@@ -937,7 +950,14 @@ export async function processFrontmatterTags(_templateData: string = '', userDat
   // Step 3: Process each frontmatter attribute for template tags
   for (const item of attributeKeys) {
     const value = frontmatterAttributes[item]
-    const attributeValue = typeof value === 'string' && value.includes('<%') ? await render(value, sectionData) : value
+    let attributeValue = value
+    if (typeof value === 'string' && value.includes('<%')) {
+      const renderedAttr = await render(value, sectionData)
+      if (renderedAttr == null) {
+        return { frontmatterBody: null, frontmatterAttributes: { ...userData, ...frontmatterAttributes } }
+      }
+      attributeValue = renderedAttr
+    }
     sectionData[item] = attributeValue
     frontmatterAttributes[item] = attributeValue
   }
@@ -1293,14 +1313,14 @@ function detectFrontmatterErrors(sessionData: any, originalTemplateData: string)
  * @param {Object} sessionData - Current session data
  * @param {Object} userOptions - User options for rendering
  * @param {TemplatingEngine} templatingEngine - The templating engine instance to use
- * @returns {Promise<{templateData: string, sessionData: Object}>} Updated template and session data
+ * @returns {Promise<{templateData: string | null, sessionData: Object}>} Updated template and session; **templateData is null** if the user cancelled a frontmatter prompt
  */
 async function processFrontmatter(
   templateData: string,
   sessionData: Object,
   userOptions: Object,
   templatingEngine: TemplatingEngine,
-): Promise<{ templateData: string, sessionData: Object }> {
+): Promise<{ templateData: string | null, sessionData: Object }> {
   // Ensure templateData is a string
   if (typeof templateData !== 'string') {
     logDebug(pluginJson, `processFrontmatter: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
@@ -1314,6 +1334,9 @@ async function processFrontmatter(
 
   // Pre-render frontmatter attributes
   const { frontmatterAttributes, frontmatterBody } = await processFrontmatterTags(templateData, sessionData)
+  if (frontmatterBody === null) {
+    return { templateData: null, sessionData }
+  }
   const updatedSessionData = {
     ...sessionData,
     data: { ...sessionData.data, ...frontmatterAttributes },
@@ -1330,12 +1353,16 @@ async function processFrontmatter(
     const promptData = await processPrompts(value, updatedSessionData)
 
     if (promptData === false) {
-      return { templateData: '', sessionData: updatedSessionData }
+      return { templateData: null, sessionData: updatedSessionData }
     }
 
     frontMatterValue = promptData.sessionTemplateData
 
     const { newTemplateData, newSettingData } = await preProcessTags(frontMatterValue, updatedSessionData)
+    if (newSettingData[NP_TEMPLATING_PROMPT_CANCELLED_KEY]) {
+      delete newSettingData[NP_TEMPLATING_PROMPT_CANCELLED_KEY]
+      return { templateData: null, sessionData: updatedSessionData }
+    }
 
     const mergedSessionData = { ...updatedSessionData, ...newSettingData }
     const renderedData = await templatingEngine.render(newTemplateData, promptData.sessionData, userOptions)
@@ -1468,9 +1495,9 @@ const isQuickTemplateNote = (userOptions: any): boolean => Boolean(userOptions?.
  * @param {any} [userData={}] - User data to use in template rendering
  * @param {any} [userOptions={}] - Options for template rendering
  * @param {any} [templateConfig={}] - Template configuration including helper modules
- * @returns {Promise<string>} A promise that resolves to the rendered template content
+ * @returns {Promise<string | null>} Rendered template, or **null** if the user cancels a prompt
  */
-async function _renderWithConfig(inputTemplateData: string, userData: any = {}, userOptions: any = {}, templateConfig: any = {}): Promise<string> {
+async function _renderWithConfig(inputTemplateData: string, userData: any = {}, userOptions: any = {}, templateConfig: any = {}): Promise<string | null> {
   try {
     const verbose = Boolean(userData && userData.verboseLog)
     // Log the initial state
@@ -1518,6 +1545,10 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     // (but not if they have already been processed, which they are in all the direct Templating commands)
     if (!userOptions.frontmatterProcessed) {
       const frontmatterResult = await processFrontmatter(templateData, sessionData, userOptions, templatingEngine)
+      if (frontmatterResult.templateData === null) {
+        logProgress('PROMPT CANCELED - USER ABORTED', '', sessionData, userOptions)
+        return null
+      }
       templateData = frontmatterResult.templateData
       sessionData = frontmatterResult.sessionData
       if (verbose) {
@@ -1530,6 +1561,10 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
       if (isFrontmatterTemplate) {
         logDebug(pluginJson, `_renderWithConfig: Extracting frontmatter body from template with ${templateData.length} chars`)
         const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(templateData, sessionData)
+        if (frontmatterBody === null) {
+          logProgress('PROMPT CANCELED - USER ABORTED', '', sessionData, userOptions)
+          return null
+        }
         logDebug(pluginJson, `_renderWithConfig: Extracted frontmatterBody with ${frontmatterBody.length} chars: "${frontmatterBody.substring(0, 100)}..."`)
         logDebug(pluginJson, `_renderWithConfig: Extracted frontmatterAttributes: ${JSON.stringify(frontmatterAttributes)}`)
         templateData = frontmatterBody
@@ -1582,6 +1617,11 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     const { newTemplateData, newSettingData } = await preProcessTags(templateData, sessionData)
     templateData = newTemplateData
     sessionData = { ...newSettingData }
+    if (sessionData[NP_TEMPLATING_PROMPT_CANCELLED_KEY]) {
+      delete sessionData[NP_TEMPLATING_PROMPT_CANCELLED_KEY]
+      logProgress('PROMPT CANCELED - USER ABORTED', '', sessionData, userOptions)
+      return null
+    }
     if (verbose) {
       logProgress('Render Step 7 complete: Template pre-processing', templateData, sessionData, userOptions)
     }
@@ -1590,7 +1630,7 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
     const afterPromptData = await processTemplatePrompts(templateData, sessionData)
     if (afterPromptData === false) {
       logProgress('PROMPT CANCELED - USER ABORTED', '', sessionData, userOptions)
-      return '' // User canceled a prompt, so we should stop processing
+      return null
     }
     templateData = afterPromptData.templateData
     sessionData = {
@@ -1702,12 +1742,13 @@ async function _renderWithConfig(inputTemplateData: string, userData: any = {}, 
  * @param {any} [userData={}] - User data to use in template rendering
  * @param {any} [userOptions={}] - Options for template rendering
  * @param {any} [templateConfig={}] - Template configuration including helper modules (internal use)
- * @returns {Promise<string>} A promise that resolves to the rendered template content
+ * @returns {Promise<string | null>} Rendered content, or **null** if the user cancels a prompt
  */
-export async function render(inputTemplateData: string, userData: any = {}, userOptions: any = {}, templateConfig: any = {}): Promise<string> {
+export async function render(inputTemplateData: string, userData: any = {}, userOptions: any = {}, templateConfig: any = {}): Promise<string | null> {
   logDebug(pluginJson, `templateProcessor.render: Starting with inputTemplateData (${inputTemplateData.length} chars)`)
   const result = await _renderWithConfig(inputTemplateData, userData, userOptions, templateConfig)
-  logDebug(pluginJson, `templateProcessor.render: Returning result (${result.length} chars)`)
+  const lenDesc = result == null ? 'null (prompt cancelled)' : `${result.length} chars`
+  logDebug(pluginJson, `templateProcessor.render: Returning result (${lenDesc})`)
   return result
 }
 
@@ -1717,15 +1758,19 @@ export async function render(inputTemplateData: string, userData: any = {}, user
  * @param {string} [templateName=''] - The name of the template to render
  * @param {any} [userData={}] - User data to use in template rendering
  * @param {any} [userOptions={}] - Options for template rendering
- * @returns {Promise<string>} A promise that resolves to the rendered template content
+ * @returns {Promise<string | null>}
  */
-export async function renderTemplateByName(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+export async function renderTemplateByName(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string | null> {
   try {
     const templateData = await getTemplateContent(templateName)
     const { frontmatterBody, frontmatterAttributes } = await processFrontmatterTags(templateData)
+    if (frontmatterBody === null) {
+      return null
+    }
     const data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes }, ...userData }
     const renderedData = await render(frontmatterBody, data, userOptions)
 
+    if (renderedData == null) return null
     return removeEJSDocumentationNotes(renderedData)
   } catch (error) {
     clo(error, `renderTemplateByName found error`)

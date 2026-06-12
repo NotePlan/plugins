@@ -136,6 +136,10 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
         templateData = getContentWithLinks(templateNote)
       }
       const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
+      if (frontmatterBody == null) {
+        logDebug(pluginJson, `templateInsert: renderFrontmatter returned null (prompt cancelled in frontmatter); aborting`)
+        return
+      }
 
       // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
       logDebug(pluginJson, `templateInsert: about to checkAndProcessFolderAndNewNoteTitle`)
@@ -143,6 +147,10 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
 
       // $FlowIgnore
       const renderedTemplate = await NPTemplating.render(frontmatterBody, frontmatterAttributes, { frontmatterProcessed: true })
+      if (renderedTemplate == null) {
+        logDebug(pluginJson, `templateInsert: render returned null (user likely cancelled a prompt); aborting`)
+        return
+      }
       logDebug(pluginJson, `templateInsert: renderedTemplate.length: ${renderedTemplate.length} about to insert into Editor at cursor`)
       // reload the Editor in case any templating code changed the note
       const oldContent = Editor.content || ''
@@ -195,6 +203,10 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
       }
 
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
+      if (frontmatterBody == null) {
+        logDebug(pluginJson, `templateAppend: renderFrontmatter returned null (prompt cancelled in frontmatter); aborting`)
+        return
+      }
 
       // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
       logDebug(pluginJson, `templateAppend: about to checkAndProcessFolderAndNewNoteTitle`)
@@ -208,6 +220,10 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
       let data = { ...frontmatterAttributes, frontmatter: frontmatterWithMethods }
 
       let renderedTemplate = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
+      if (renderedTemplate == null) {
+        logDebug(pluginJson, `templateAppend: render returned null (user likely cancelled a prompt); aborting`)
+        return
+      }
 
       const location = frontmatterAttributes?.location || 'append'
       logDebug(
@@ -258,6 +274,10 @@ export async function templateInvoke(templateName?: string): Promise<void> {
       const selectedTemplate = selectedTemplateFilename ?? (await NPTemplating.chooseTemplate())
       const templateData = await NPTemplating.getTemplateContent(selectedTemplate)
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
+      if (frontmatterBody == null) {
+        logDebug(pluginJson, `templateInvoke: renderFrontmatter returned null (prompt cancelled in frontmatter); aborting`)
+        return
+      }
 
       // Create frontmatter object that includes BOTH the attributes AND the methods
       // This ensures frontmatter.* methods work in templates
@@ -265,12 +285,14 @@ export async function templateInvoke(templateName?: string): Promise<void> {
       const frontmatterWithMethods = Object.assign(frontmatterModule, frontmatterAttributes)
 
       let data = { ...frontmatterAttributes, frontmatter: frontmatterWithMethods }
-      const templateResult = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
+      // $FlowIgnore
+      let renderedTemplate = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
+      if (renderedTemplate == null) {
+        logDebug(pluginJson, `templateInvoke: render returned null (user likely cancelled a prompt); aborting`)
+        return
+      }
 
       const location = frontmatterAttributes?.location || 'append'
-
-      // $FlowIgnore
-      let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
 
       switch (location) {
         case 'append':
@@ -368,6 +390,11 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     }
     logDebug(pluginJson, `templateNew: after renderFrontmatter:\nfrontMatterBody:"${frontmatterBody}"\nfrontMatterAttributes:${JSON.stringify(frontmatterAttributes, null, 2)}`)
 
+    if (frontmatterBody == null) {
+      logDebug(pluginJson, `templateNew: renderFrontmatter returned null body (prompt cancelled); aborting`)
+      return null
+    }
+
     // select/choose is by default not closed with > because it could contain a folder name to limit the list of folders
     if (/<select|<choose|<current>/i.test(folder) || (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0)) {
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
@@ -400,6 +427,10 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     }
 
     const templateResult = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
+    if (templateResult == null) {
+      logDebug(pluginJson, `templateNew: render returned null (user likely cancelled a prompt); aborting — no new note created`)
+      return null
+    }
 
     // For inline title detection, we need to use the RENDERED template content
     const renderedTemplateNoteTitle = getNoteTitleFromRenderedContent(templateResult)
@@ -520,6 +551,10 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
 
       if (isFrontmatter) {
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
+        if (frontmatterBody == null) {
+          logDebug(pluginJson, `templateQuickNote: renderFrontmatter returned null (prompt cancelled); aborting`)
+          return
+        }
 
         let folder = frontmatterAttributes?.folder?.trim() ?? ''
         if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
@@ -542,6 +577,10 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
 
         // $FlowIgnore
         let finalRenderedData = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
+        if (finalRenderedData == null) {
+          logDebug(pluginJson, `templateQuickNote: render returned null (user likely cancelled a prompt); aborting`)
+          return
+        }
 
         // For inline title detection, we need to use the RENDERED template content
         const renderedTemplateNoteTitle = getNoteTitleFromRenderedContent(finalRenderedData)
@@ -651,6 +690,10 @@ export async function templateMeetingNote(templateName: string = '', templateDat
 
       if (isFrontmatter) {
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
+        if (frontmatterBody == null) {
+          logDebug(pluginJson, `templateMeetingNote: renderFrontmatter returned null (prompt cancelled); aborting`)
+          return
+        }
 
         let folder = frontmatterAttributes?.folder.trim() ?? ''
         if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
@@ -672,6 +715,10 @@ export async function templateMeetingNote(templateName: string = '', templateDat
         }
 
         let finalRenderedData = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
+        if (finalRenderedData == null) {
+          logDebug(pluginJson, `templateMeetingNote: render returned null (user likely cancelled a prompt); aborting`)
+          return
+        }
 
         // For inline title detection, we need to use the RENDERED template content
         const renderedTemplateNoteTitle = getNoteTitleFromRenderedContent(finalRenderedData)
@@ -986,11 +1033,11 @@ export async function renderFrontmatter(templateData: string = '', userData: any
   return { frontmatterBody, frontmatterAttributes }
 }
 
-export async function render(inTemplateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+export async function render(inTemplateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string | null> {
   return await NPTemplating.render(inTemplateData, userData, userOptions)
 }
 
-export async function renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+export async function renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string | null> {
   return await NPTemplating.renderTemplate(templateName, userData, userOptions)
 }
 
