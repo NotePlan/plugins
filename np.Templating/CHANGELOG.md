@@ -6,7 +6,7 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
-## [2.4.5-notreleased] 2026-05-17 @dwertheimer
+## [2.4.5] 2026-05-17 @dwertheimer
 
 ### Fixed
 
@@ -21,7 +21,7 @@ DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODU
 - `np.Templating/lib/rendering/templateProcessor.js`, `np.Templating/lib/NPTemplating.js`, `np.Templating/src/Templating.js`, `np.Templating/src/NPTemplateRunner.js`
 - `helpers/NPEditor.js`, `np.MeetingNotes/src/NPMeetingNotes.js`, `dwertheimer.Forms/src/formSubmission.js`
 - `np.Templating/__tests__/prompt-cancellation.test.js`
-- `np.Templating/CHANGELOG.md`, `np.Templating/plugin.json` — version **2.4.5-notreleased**
+- `np.Templating/CHANGELOG.md`, `np.Templating/plugin.json` — version **2.4.5**
 
 ## [2.4.4] 2026-05-17 @dwertheimer
 
