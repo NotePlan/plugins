@@ -34,7 +34,7 @@ describe('Prompt Cancellation Tests', () => {
       <%- var3 %>
     `
     const result = await NPTemplating.render(template)
-    expect(result).toBe('')
+    expect(result).toBeNull()
   })
 
   test('should stop template rendering when a prompt is cancelled', async () => {
@@ -44,7 +44,7 @@ describe('Prompt Cancellation Tests', () => {
       <%- var3 %>
     `
     const result = await NPTemplating.render(template)
-    expect(result).toBe('')
+    expect(result).toBeNull()
   })
 
   test('should handle frontmatter prompts cancellation', async () => {
@@ -56,7 +56,7 @@ var2: <%- var2 %>
 Content here
     `
     const result = await NPTemplating.render(template)
-    expect(result).toBe('')
+    expect(result).toBeNull()
   })
 
   test('should handle mixed prompt types cancellation', async () => {
@@ -68,6 +68,6 @@ var1: <%- prompt('var1', 'This prompt will be cancelled') %>
 <%- prompt('var3', 'This prompt will be cancelled') %>
     `
     const result = await NPTemplating.render(template)
-    expect(result).toBe('')
+    expect(result).toBeNull()
   })
 })

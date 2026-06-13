@@ -76,11 +76,16 @@ async function renderAndInsertTemplate(
 ): Promise<void> {
   // Render the template, using recommended decoupled method of invoking a different plugin
   const result = await DataStore.invokePluginCommandByName('renderTemplate', 'np.Templating', [templateTitle])
-  // TEST: turning off error message for now, as it fires on Templates that only do background work.
-  // if (result == null || result === '') {
-  //   throw new Error(`No result from running Template '${templateTitle}'. Stopping.`)
-  // }
-  
+  // np.Templating: user may cancel a prompt — then **null** (see 2.4.5+). Do not insert.
+  if (result == null) {
+    logDebug(commandName, `renderTemplate returned null (user likely cancelled); not inserting for "${templateTitle}"`)
+    return
+  }
+  if (typeof result !== 'string') {
+    logDebug(commandName, `renderTemplate returned non-string (${typeof result}); not inserting for "${templateTitle}"`)
+    return
+  }
+
   // Work out where to insert it in the note, by reading the template, and checking
   // the frontmatter attributes for a 'location' field (append/insert/cursor)
   const attrs = getAttributes(templateData, true)
