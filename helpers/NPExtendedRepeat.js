@@ -27,6 +27,10 @@ import {
   RE_DONE_DATE_TIME_CAPTURES,
   RE_DONE_DATE_OPT_TIME,
   RE_ISO_DATE,
+  RE_NP_WEEK_SPEC,
+  RE_NP_MONTH_SPEC,
+  RE_NP_QUARTER_SPEC,
+  RE_NP_YEAR_SPEC,
 } from '@helpers/dateTime'
 import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { calcOffsetDateStr, getFirstDateInPeriod } from '@helpers/NPdateTime'
@@ -41,7 +45,10 @@ const LOG_CONTEXT = 'extendedRepeat'
 //------------------------------------------------------------------
 // Regexes + config type + settings + date math
 
-const EXTENDED_REPEAT_STR: string = `@repeat\\(${RE_DATE_INTERVAL}(?:,\\s*${RE_ISO_DATE})?\\)` // find @repeat()
+// A concrete @repeat(...) base date can be given in any NP calendar-note date-spec: day, week, month, quarter or year
+const RE_CONCRETE_REPEAT_DATE: string = `(?:${RE_ISO_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`
+const RE_CONCRETE_REPEAT_DATE_FULL: RegExp = new RegExp(`^${RE_CONCRETE_REPEAT_DATE}$`) // validate a standalone date-spec string
+const EXTENDED_REPEAT_STR: string = `@repeat\\(${RE_DATE_INTERVAL}(?:,\\s*${RE_CONCRETE_REPEAT_DATE})?\\)` // find @repeat()
 export const RE_EXTENDED_REPEAT: RegExp = new RegExp(EXTENDED_REPEAT_STR) // find @repeat()
 const EXTENDED_REPEAT_CAPTURE_STR: string = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
 export const RE_EXTENDED_REPEAT_CAPTURE: RegExp = new RegExp(EXTENDED_REPEAT_CAPTURE_STR) // find @repeat() and return part inside brackets
@@ -94,7 +101,7 @@ export function generateNewRepeatDate(noteToUse: CoreNoteFields, currentContent:
     // Only accept the split if the interval part is a valid interval (guards against malformed @repeat tags)
     if (new RegExp(`^${RE_DATE_INTERVAL}$`).test(intervalPart)) {
       dateIntervalString = intervalPart
-      if (datePart && new RegExp(RE_ISO_DATE).test(datePart)) {
+      if (datePart && RE_CONCRETE_REPEAT_DATE_FULL.test(datePart)) {
         concreteBaseDate = datePart
       }
     }
@@ -249,9 +256,9 @@ export async function generateRepeatForPara(
     const capturedRepeat = origPara.content.match(RE_EXTENDED_REPEAT_CAPTURE)
     if (capturedRepeat && capturedRepeat[1].includes(',')) {
       const [intervalOnly, oldConcreteDate] = capturedRepeat[1].split(',').map((s) => s.trim())
-      if (oldConcreteDate && new RegExp(RE_ISO_DATE).test(oldConcreteDate) && new RegExp(`^${RE_DATE_INTERVAL}$`).test(intervalOnly.replace(/^\+/, ''))) {
+      if (oldConcreteDate && RE_CONCRETE_REPEAT_DATE_FULL.test(oldConcreteDate) && new RegExp(`^${RE_DATE_INTERVAL}$`).test(intervalOnly.replace(/^\+/, ''))) {
         const intervalForCalc = intervalOnly.startsWith('+') ? intervalOnly.substring(1) : intervalOnly
-        const newConcreteDate = calcOffsetDateStr(oldConcreteDate, intervalForCalc, 'day')
+        const newConcreteDate = calcOffsetDateStr(oldConcreteDate, intervalForCalc, 'base')
         newRepeatContent = newRepeatContent.replace(`@repeat(${capturedRepeat[1]})`, `@repeat(${intervalOnly}, ${newConcreteDate})`)
         logDebug('generateRepeatForPara', `- advanced concrete base date from ${oldConcreteDate} to ${newConcreteDate}`)
       }
@@ -393,9 +400,9 @@ export async function generateRepeatForCancelledPara(
     const capturedRepeat = origPara.content.match(RE_EXTENDED_REPEAT_CAPTURE)
     if (capturedRepeat && capturedRepeat[1].includes(',')) {
       const [intervalOnly, oldConcreteDate] = capturedRepeat[1].split(',').map((s) => s.trim())
-      if (oldConcreteDate && new RegExp(RE_ISO_DATE).test(oldConcreteDate) && new RegExp(`^${RE_DATE_INTERVAL}$`).test(intervalOnly.replace(/^\+/, ''))) {
+      if (oldConcreteDate && RE_CONCRETE_REPEAT_DATE_FULL.test(oldConcreteDate) && new RegExp(`^${RE_DATE_INTERVAL}$`).test(intervalOnly.replace(/^\+/, ''))) {
         const intervalForCalc = intervalOnly.startsWith('+') ? intervalOnly.substring(1) : intervalOnly
-        const newConcreteDate = calcOffsetDateStr(oldConcreteDate, intervalForCalc, 'day')
+        const newConcreteDate = calcOffsetDateStr(oldConcreteDate, intervalForCalc, 'base')
         newRepeatContent = newRepeatContent.replace(`@repeat(${capturedRepeat[1]})`, `@repeat(${intervalOnly}, ${newConcreteDate})`)
         logDebug('generateRepeatForCancelledPara', `- advanced concrete base date from ${oldConcreteDate} to ${newConcreteDate}`)
       }
