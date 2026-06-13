@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-05-25 for v2.4.0.b44, @jgclark + @CursorAI
+// Last updated 2026-06-13 for v2.4.0.b46 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -23,7 +23,7 @@ import {
   makeDashboardParas,
   setPluginData,
 } from './dashboardHelpers'
-import { removeInvalidTagSections } from './dashboardSettingsClean'
+import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
 import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } from './perspectiveSettingsOnDashboardSave'
 import { validateAndFlattenMessageObject } from './shared'
@@ -650,7 +650,6 @@ function planSectionRefreshAfterDashboardSettingsChange(
 /**
  * Save settings from the React bridge into DataStore, update the WebView pluginData, and return post-save actions.
  * For `dashboardSettings` without a full `perspectiveSettings` payload, see `resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload`.
- * TODO: Add more comments inline
  * @param {MessageDataObject} data - MDO with `settings` (and optionally `perspectiveSettings` from the client)
  * @param {string} settingName - DataStore key to update (`dashboardSettings` or `perspectiveSettings`)
  * @returns {TBridgeClickHandlerResult}
@@ -666,7 +665,6 @@ export async function doSaveDashboardSettingsFromBridge(data: MessageDataObject,
       throw new Error(`settingsFromBridge is null or undefined.`)
     }
     const isDashboardSettings = settingName === 'dashboardSettings'
-    // $FlowFixMe[incompatible-call] normaliseDashboardNumberSettings accepts a generic object
     const normalizedDashboardSettings: Partial<TDashboardSettings> = isDashboardSettings
       ? (normaliseDashboardNumberSettings(settingsFromBridge): any)
       : settingsFromBridge
@@ -685,7 +683,7 @@ export async function doSaveDashboardSettingsFromBridge(data: MessageDataObject,
     // Deep snapshot before save: `saveSettings` / shared caches may mutate `pluginSettingsBeforeSave.dashboardSettings` in place, which made `compareObjects(prevMerged, nextMerged)` falsely empty (e.g. `winsPriorityMarker` >> !!!)
     const priorDashboardSettingsSnapshot: { [string]: any } = cloneDashboardSettingsBeforeSave(pluginSettingsBeforeSave?.dashboardSettings)
     const settingsToSave = isDashboardSettings
-      ? removeInvalidTagSections({ ...getDashboardSettingsDefaults(), ...normalizedDashboardSettings })
+      ? prepareDashboardSettingsForSave(priorDashboardSettingsSnapshot, normalizedDashboardSettings, { mergeDefaults: true })
       : settingsFromBridge
     const pluginSettingsToWrite = { ...pluginSettingsBeforeSave, [settingName]: settingsToSave }
 

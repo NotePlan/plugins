@@ -3,14 +3,14 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-05-23 for v2.4.0.b43 by @jgclark + @CursorAI
+// Last updated 2026-06-13 for v2.4.0.b46 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
-import { removeInvalidTagSections } from './dashboardSettingsClean'
+import { prepareDashboardSettingsForSave, preparePerspectiveSettingsForSave } from './dashboardSettingsClean'
 import {
   addNewPerspective,
   cleanDashboardSettingsInAPerspective,
@@ -138,10 +138,7 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
     return handlerResult(false, [], { errorMsg: `Perspective ${activeDef.name} is not modified. Not saving.` })
   }
 
-  const cleanedLiveSettings = removeInvalidTagSections({
-    ...getDashboardSettingsDefaults(),
-    ...dashboardSettings,
-  })
+  const cleanedLiveSettings = prepareDashboardSettingsForSave(activeDef.dashboardSettings ?? {}, dashboardSettings, { mergeDefaults: true })
   const newDef = {
     ...activeDef,
     dashboardSettings: cleanDashboardSettingsInAPerspective(cleanedLiveSettings),
@@ -301,19 +298,26 @@ export async function doSavePerspectiveSettingsFromBridge(data: MessageDataObjec
     return handlerResult(false, [], { errorMsg: `doSavePerspectiveSettingsFromBridge: newSettings is null or undefined.` })
   }
 
+  const pluginSettingsBeforeSave = await loadDashboardPluginSettings()
+  const priorPerspectiveSettings = pluginSettingsBeforeSave?.perspectiveSettings ?? []
+  const syncedSettings = preparePerspectiveSettingsForSave(
+    Array.isArray(priorPerspectiveSettings) ? priorPerspectiveSettings : [],
+    newSettings,
+  )
+
   let dashboardSettings = await getDashboardSettings()
   if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
-  const updatedPluginData = { perspectiveSettings: newSettings, dashboardSettings, pushFromServer: { perspectiveSettings: true, dashboardSettings: true } }
+  const updatedPluginData = { perspectiveSettings: syncedSettings, dashboardSettings, pushFromServer: { perspectiveSettings: true, dashboardSettings: true } }
   if (dashboardSettings.usePerspectives) {
-    const currentPerspDef = getActivePerspectiveDef(newSettings)
+    const currentPerspDef = getActivePerspectiveDef(syncedSettings)
     if (currentPerspDef && currentPerspDef.name !== '-') {
       dashboardSettings = mergeDashboardSettingsForPerspectiveDef(currentPerspDef, dashboardSettings, getDashboardSettingsDefaults())
       updatedPluginData.dashboardSettings = dashboardSettings
     }
   }
   const combinedUpdatedSettings = {
-    ...(await loadDashboardPluginSettings()),
-    perspectiveSettings: newSettings,
+    ...pluginSettingsBeforeSave,
+    perspectiveSettings: syncedSettings,
     dashboardSettings: dashboardSettings,
   }
 

@@ -1,11 +1,11 @@
 // @flow
 //--------------------------------------------------------------------------
 // Manage the Dashboard settings state changes
-// Last updated for v2.0.x
+// Last updated 2026-06-13 for v2.4.0.b46 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
-// Imports
-//--------------------------------------------------------------------------
+
 import type { TDashboardSettings } from '../../../src/types'
+import { applyDerivedDashboardSettings } from '../../../src/dashboardSettings'
 import { DASHBOARD_ACTIONS } from './actionTypes'
 import { compareObjects, getDiff, dtl } from '@helpers/dev'
 import { logDebug, logError } from '@helpers/react/reactDev'
@@ -30,17 +30,19 @@ export function dashboardSettingsReducer(state: TDashboardSettings, action: TDas
   const { type, payload, reason } = action
   switch (type) {
     case DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS: {
-      // TODO: remove these diffs when debugging is complete
-      const changedProps = compareObjects(state, payload)
-      const diff = getDiff(state, payload)
-      changedProps && logDebug('dashboardSettingsReducer BB', `${type} "${reason || ''}" - Changed properties: ${Object.keys(changedProps).join(', ')} keys changed`)
-      console.log(`...dashboardSettingsReducer BC ${type} - diff:`, diff)
-      return {
+      // For debugging:
+      // const changedProps = compareObjects(state, payload)
+      // const diff = getDiff(state, payload)
+      // changedProps && logDebug('dashboardSettingsReducer BB', `${type} "${reason || ''}" - Changed properties: ${Object.keys(changedProps).join(', ')} keys changed`)
+      // console.log(`...dashboardSettingsReducer BC ${type} - diff:`, diff)
+
+      const merged = {
         ...state,
         ...payload,
         lastChange: reason || payload.lastChange || state.lastChange,
         lastModified: dtl(),
       }
+      return (applyDerivedDashboardSettings(state, merged): any)
     }
     default:
       logError('AppContext/dashboardSettingsReducer', `Unhandled action type: ${type}`)

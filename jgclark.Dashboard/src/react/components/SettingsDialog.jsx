@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2025-07-04 for v2.3.0.b4 by @jgclark
+// Last updated 2026-06-13 for v2.4.0.b45 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -93,18 +93,19 @@ const SettingsDialog = ({
   // Handlers
   //----------------------------------------------------------------------
 
-  const handleEscapeKey = (event: KeyboardEvent) => {
-    // logDebug('SettingsDialog', `Event.key: ${event.key}`)
-    if (event.key === 'Escape') {
-      setReactSettings((prev) => ({
-        ...prev,
-        settingsDialog: {
-          ...prev?.settingsDialog,
-          isOpen: false,
-        },
-      }))
-    }
-  }
+  // No longer used
+  // const handleEscapeKey = (event: KeyboardEvent) => {
+  //   // logDebug('SettingsDialog', `Event.key: ${event.key}`)
+  //   if (event.key === 'Escape') {
+  //     setReactSettings((prev) => ({
+  //       ...prev,
+  //       settingsDialog: {
+  //         ...prev?.settingsDialog,
+  //         isOpen: false,
+  //       },
+  //     }))
+  //   }
+  // }
 
   const handleFieldChange = (key: string, value: any) => {
     setChangesMade(true)

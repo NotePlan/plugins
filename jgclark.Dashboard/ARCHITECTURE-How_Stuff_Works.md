@@ -54,16 +54,16 @@ These are available through the following functions:
 
 Settings ultimately live in the plugin's `settings.json` (surfaced via `DataStore.settings` / `getSettings` for `jgclark.Dashboard`).
 - **Schema / UI definitions** for what the Dashboard exposes as settings are still in `src/dashboardSettings.js` (filters, section toggles, etc.).
-- **Server-side load/save** for Dashboard + Perspectives goes through **`src/dashboardPluginSettings.js`** (see below). `getDashboardSettings()` / `saveDashboardSettings()` in `dashboardHelpers.js` read/write the `dashboardSettings` blob **via** `loadDashboardPluginSettings()` → parse/merge defaults → `saveDashboardPluginSettings()`, not by touching the raw plugin object alone.
-- On the React side, `dashboardSettings` state lives in `AppContext` (a `useReducer`). When the user changes a setting (filter switches, Settings dialog, etc.), code calls `dispatchDashboardSettings`. The custom hook `useSyncDashboardSettingsWithPlugin` (in `src/react/customHooks/`) watches that state and sends `dashboardSettingsChanged` to the plugin when appropriate (see **Custom Hooks** below). Plugin-side handling that persists those changes flows through **`doSaveDashboardSettingsFromBridge()`** in `clickHandlers.js`, which merges into the cached plugin-settings object and calls `saveDashboardPluginSettings(...)`.
+- **Server-side load/save** for Dashboard + Perspectives goes through `src/dashboardPluginSettings.js` (see below). `getDashboardSettings()` / `saveDashboardSettings()` in `dashboardHelpers.js` read/write the `dashboardSettings` blob **via** `loadDashboardPluginSettings()` → parse/merge defaults → `saveDashboardPluginSettings()`, not by touching the raw plugin object alone.
+- On the React side, `dashboardSettings` state lives in `AppContext` (a `useReducer`). When the user changes a setting (filter switches, Settings dialog, etc.), code calls `dispatchDashboardSettings`. The reducer applies `applyDerivedDashboardSettings()` (coupled settings such as Wins section visibility). The custom hook `useSyncDashboardSettingsWithPlugin` (in `src/react/customHooks/`) watches that state and sends `dashboardSettingsChanged` to the plugin when appropriate (see **Custom Hooks** below). Plugin-side handling that persists those changes flows through `doSaveDashboardSettingsFromBridge()` in `clickHandlers.js`, which runs `prepareDashboardSettingsForSave()` then `saveDashboardPluginSettings(...)`.
 
 ### Plugin `settings.json` I/O (`dashboardPluginSettings.js`)
 This module is the **single choke point** for reading and writing Dashboard's persisted JSON (dashboard blob, perspective array, logging keys):
 
-- **`loadDashboardPluginSettings(autoRepairOnLoad?)`** — loads via `getSettings`, runs **`sanitizeDashboardPluginSettings`** with **`cleanPerspectiveDefs: false`** (structural fixes only — does **not** rewrite every perspective's `dashboardSettings` on ordinary opens), caches the result in memory, and can **auto-persist** if the file needed structural repair (duplicate root keys from an array-spread mistake, orphaned numeric keys, JSON strings where objects were expected, `perspectiveSettings` stored as an object with numeric indices, etc.).
-- **`saveDashboardPluginSettings(settings, triggerUpdateMechanism?)`** — runs sanitize with **`cleanPerspectiveDefs: true`** so each perspective def's embedded `dashboardSettings` is cleaned consistently on write, then `saveSettings`, then refreshes cache (or **`invalidateDashboardPluginSettingsCache()`** if save fails).
-- **`repairDashboardSettings`** — hidden command that backs up, runs full sanitization, and writes fixes; use when diagnosing corrupt `settings.json`.
-- **`sanitizeDashboardPluginSettings`** only allows an explicit whitelist of **root keys** (`dashboardSettings`, `perspectiveSettings`, plugin id / logging keys) so stray duplicates cannot accumulate at the root.
+- `loadDashboardPluginSettings(autoRepairOnLoad?)` — loads via `getSettings`, runs `sanitizeDashboardPluginSettings` with `cleanPerspectiveDefs: false` (structural fixes only — does **not** rewrite every perspective's `dashboardSettings` on ordinary opens), caches the result in memory, and can **auto-persist** if the file needed structural repair (duplicate root keys from an array-spread mistake, orphaned numeric keys, JSON strings where objects were expected, `perspectiveSettings` stored as an object with numeric indices, etc.).
+- `saveDashboardPluginSettings(settings, triggerUpdateMechanism?)` — runs sanitize with `cleanPerspectiveDefs: true` so each perspective def's embedded `dashboardSettings` is cleaned consistently on write, then `saveSettings`, then refreshes cache (or `invalidateDashboardPluginSettingsCache()` if save fails).
+- `repairDashboardSettings` — hidden command that backs up, runs full sanitization, and writes fixes; use when diagnosing corrupt `settings.json`.
+- `sanitizeDashboardPluginSettings` only allows an explicit whitelist of **root keys** (`dashboardSettings`, `perspectiveSettings`, plugin id / logging keys) so stray duplicates cannot accumulate at the root.
 
 Heavy refresh paths (sections, diagnostics) reuse the cached plugin settings rather than re-reading the file each time.
 
@@ -73,7 +73,7 @@ Heavy refresh paths (sections, diagnostics) reuse the cached plugin settings rat
 ### What a Perspective is
 A **Perspective** is a saved snapshot of dashboard/filter settings, stored as:
 - `name` (string) -- `"-"` is the special default perspective; it cannot be deleted or renamed
-- `dashboardSettings` (object) -- subset of keys that belong in a perspective (see `cleanDashboardSettingsInAPerspective()` in **`dashboardSettingsClean.js`** — also re-exported from `perspectiveHelpers.js` for existing imports)
+- `dashboardSettings` (object) -- subset of keys that belong in a perspective (see `cleanDashboardSettingsInAPerspective()` in `dashboardSettingsClean.js` — also re-exported from `perspectiveHelpers.js` for existing imports)
 - `isActive` (boolean) -- exactly one def in the array should have `isActive: true`
 - `isModified` (boolean) -- `true` when the live `dashboardSettings` in the window have diverged from the saved def for the active named perspective; shown in the UI as `Name*`
 
@@ -86,31 +86,31 @@ A **Perspective** is a saved snapshot of dashboard/filter settings, stored as:
 More design notes live in the comment block at the top of `perspectiveHelpers.js`.
 
 ### Persistence (plugin `settings.json`; same object as NP’s `DataStore.settings` snapshot for `jgclark.Dashboard`)
-- `perspectiveSettings` is stored in plugin settings as an **array** of perspective defs (`Array<TPerspectiveDef>`). Legacy files may have had stringified JSON or a numeric-key object; **`sanitizeDashboardPluginSettings`** in `dashboardPluginSettings.js` normalizes those shapes when loading or saving.
-- **Read on the plugin:** `loadPerspectiveDefsFromPluginSettings()` in `perspectiveHelpers.js` loads the full plugin settings via **`loadDashboardPluginSettings()`**, then reads `perspectiveSettings` (with fallbacks / defaults creation if missing). Used on window open **and** whenever handlers need fresh defs.
-- **Write on the plugin:** **`savePerspectiveSettings(allDefs)`** merges `perspectiveSettings` into the in-memory plugin-settings object from `loadDashboardPluginSettings()` and calls **`saveDashboardPluginSettings`** (same path as Dashboard saves). Perspective-only commands that update **both** top-level dashboard and defs (e.g. switch-after-add) also use **`saveDashboardPluginSettings`** with a merged object so reopening cannot show a stale live `dashboardSettings` while the dropdown shows a different active perspective.
-- **`switchToPerspective()`** persists the revised defs array via **`saveDashboardPluginSettings`** (not a partial write).
+- `perspectiveSettings` is stored in plugin settings as an **array** of perspective defs (`Array<TPerspectiveDef>`). Legacy files may have had stringified JSON or a numeric-key object; `sanitizeDashboardPluginSettings` in `dashboardPluginSettings.js` normalizes those shapes when loading or saving.
+- **Read on the plugin:** `loadPerspectiveDefsFromPluginSettings()` in `perspectiveHelpers.js` loads the full plugin settings via `loadDashboardPluginSettings()`, then reads `perspectiveSettings` (with fallbacks / defaults creation if missing). Used on window open **and** whenever handlers need fresh defs.
+- **Write on the plugin:** `savePerspectiveSettings(allDefs)` merges `perspectiveSettings` into the in-memory plugin-settings object from `loadDashboardPluginSettings()` and calls `saveDashboardPluginSettings` (same path as Dashboard saves). Perspective-only commands that update **both** top-level dashboard and defs (e.g. switch-after-add) also use `saveDashboardPluginSettings` with a merged object so reopening cannot show a stale live `dashboardSettings` while the dropdown shows a different active perspective.
+- `switchToPerspective()` persists the revised defs array via `saveDashboardPluginSettings` (not a partial write).
 - **Startup path:** `getInitialDataForReactWindow()` -> `getPluginData()` loads perspectives via `loadPerspectiveDefsFromPluginSettings()`. If `showDashboardReact()` is called with a perspective name, `switchToPerspective()` may run **before** the window opens so the first `pluginData` already reflects that perspective.
 
 ### Merging live `dashboardSettings` from a def (`mergeDashboardSettingsForPerspectiveDef`)
-When applying a perspective to the **live** top-level Dashboard settings (perspective switch, bulk save from Perspectives UI/JSON editor, adding a new active perspective), the plugin uses **`mergeDashboardSettingsForPerspectiveDef()`** in `perspectiveHelpers.js`:
+When applying a perspective to the **live** top-level Dashboard settings (perspective switch, bulk save from Perspectives UI/JSON editor, adding a new active perspective), the plugin uses `mergeDashboardSettingsForPerspectiveDef()` in `perspectiveHelpers.js`:
 
 - Starts from Dashboard defaults and non–tag-section live keys (`showTagSection_*` and `includedTeamspaces` are taken from the **previous** live settings, matching switch behaviour).
 - Overlays the def's saved `dashboardSettings`.
-- Runs **`removeInvalidTagSections`** and optional `lastChange`.
+- Runs `removeInvalidTagSections` and optional `lastChange`.
 
-This avoids earlier bugs where spreading **`getSettings()`** into live `dashboardSettings` injected **`perspectiveSettings`** and other top-level keys into the dashboard blob.
+This avoids earlier bugs where spreading `getSettings()` into live `dashboardSettings` injected `perspectiveSettings` and other top-level keys into the dashboard blob.
 
 ### Recent perspective hardening (Save+Switch, copy, empty diffs)
-Operational fixes applied around v2.4.0.b35 are summarized in **`PERSPECTIVE_FIXES_PLAN.md`** and **`CHANGELOG.md`**. Highlights relevant to navigation:
-- **Save+Switch** uses a single bridge command **`savePerspectiveAndSwitch`** so save completes before switch (no `savePerspective` + `switchToPerspective` race on the wire).
+Operational fixes applied around v2.4.0.b35 are summarized in `PERSPECTIVE_FIXES_PLAN.md` and `CHANGELOG.md`. Highlights relevant to navigation:
+- **Save+Switch** uses a single bridge command `savePerspectiveAndSwitch` so save completes before switch (no `savePerspective` + `switchToPerspective` race on the wire).
 - **Copy perspective** persists via `savePerspectiveSettings` instead of only `setPluginData`.
-- **`resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload`**: when the computed diff vs the saved named perspective is **empty**, the flow **`continue`**s so **`dashboardSettings` still saves** (e.g. **`usePerspectives`** toggles that are stripped from the comparator do not skip the whole save).
+- `resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload`: when the computed diff vs the saved named perspective is **empty**, the flow `continue`s so `dashboardSettings` still saves (e.g. `usePerspectives` toggles that are stripped from the comparator do not skip the whole save).
 
 ### React state and sync (plugin is source of truth for persistence)
 - `WebView.jsx` reads `data.pluginData.perspectiveSettings` once as `initialPerspectiveSettings` and passes it into `AppProvider`.
-- **`AppContext.jsx`** holds the live array in a `useReducer` (`perspectiveSettings` / `dispatchPerspectiveSettings`). Components use `useAppContext()`.
-- **`useSyncPerspectivesWithPlugin`** mirrors **`pluginData.perspectiveSettings` -> React** when the plugin pushes updates via `setPluginData()`. It does **not** auto-send React changes back to the plugin (that direction is commented out). Comment in the hook: perspectives are saved by the plugin, not by a front-end watcher.
+- `AppContext.jsx` holds the live array in a `useReducer` (`perspectiveSettings` / `dispatchPerspectiveSettings`). Components use `useAppContext()`.
+- `useSyncPerspectivesWithPlugin` mirrors `pluginData.perspectiveSettings` -> React when the plugin pushes updates via `setPluginData()`. It does **not** auto-send React changes back to the plugin (that direction is commented out). Comment in the hook: perspectives are saved by the plugin, not by a front-end watcher.
 
 This is intentionally **asymmetric** vs dashboard settings:
 
@@ -124,14 +124,14 @@ This is intentionally **asymmetric** vs dashboard settings:
 `pushFromServer` on `pluginData` (see `types.js`) prevents dashboard settings echoed from the plugin from being sent straight back to the server. Perspective flows use it on some handlers (e.g. `doSwitchToPerspective`); the perspective sync hook does not check it.
 
 ### When dashboard settings change (filters, Settings dialog, etc.)
-Routine UI edits use **`dispatchDashboardSettings` only** -- not `dispatchPerspectiveSettings`.
+Routine UI edits use `dispatchDashboardSettings` only -- not `dispatchPerspectiveSettings`.
 
 1. React: `useSyncDashboardSettingsWithPlugin` sends `dashboardSettingsChanged` to the plugin.
-2. Plugin: `doSaveDashboardSettingsFromBridge()` in `clickHandlers.js` saves `dashboardSettings` and, if the client did not send a full `perspectiveSettings` array, calls **`resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload()`** in `perspectiveSettingsOnDashboardSave.js`:
-   - **Named active perspective:** compare incoming settings to the saved def; if **no** perspective-relevant diff (after cleaning / tag-section handling), **`continue`** so only top-level **`dashboardSettings`** persist; **`isModified` is not flipped** for noise-only equivalence.
-   - If there **is** a real diff (ignoring comparator omissions such as **`usePerspectives`** where noted in code): set `isModified: true` on that def (do not merge settings into the def until the user saves the perspective).
+2. Plugin: `doSaveDashboardSettingsFromBridge()` in `clickHandlers.js` saves `dashboardSettings` and, if the client did not send a full `perspectiveSettings` array, calls `resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload()` in `perspectiveSettingsOnDashboardSave.js`:
+   - **Named active perspective:** compare incoming settings to the saved def; if **no** perspective-relevant diff (after cleaning / tag-section handling), `continue` so only top-level `dashboardSettings` persist; `isModified` is not flipped for noise-only equivalence.
+   - If there **is** a real diff (ignoring comparator omissions such as `usePerspectives` where noted in code): set `isModified: true` on that def (do not merge settings into the def until the user saves the perspective).
    - **Active perspective is `"-"`**, or perspectives are off: call `setDashPerspectiveSettings()` in `perspectiveClickHandlers.js` to copy current dashboard settings into the `"-"` def.
-3. Plugin persists via **`saveDashboardPluginSettings(...)`** and updates **`pluginData.perspectiveSettings`** (and **`pluginData.dashboardSettings`** when emitted) so `useSyncPerspectivesWithPlugin` / `useSyncDashboardSettingsWithPlugin` refresh React (including the `*` in the selector).
+3. Plugin persists via `saveDashboardPluginSettings(...)` and updates `pluginData.perspectiveSettings` (and `pluginData.dashboardSettings` when emitted) so `useSyncPerspectivesWithPlugin` / `useSyncDashboardSettingsWithPlugin` refresh React (including the `*` in the selector).
 
 Settings dialog **JSON editor** for perspectives is special: `setPerspectivesIfJSONChanged()` in `perspectiveHelpers.js` sends `perspectiveSettingsChanged` directly (bulk replace), then strips `perspectiveSettings` from the dashboard payload.
 
@@ -140,14 +140,14 @@ Routed in `pluginToHTMLBridge.js` -> `perspectiveClickHandlers.js` (and helpers 
 
 | Bridge command | Role |
 |----------------|------|
-| `switchToPerspective` | Set active def, merge live `dashboardSettings` via **`mergeDashboardSettingsForPerspectiveDef`**, save via **`saveDashboardPluginSettings`**, refresh sections (`doSwitchToPerspective`) |
+| `switchToPerspective` | Set active def, merge live `dashboardSettings` via `mergeDashboardSettingsForPerspectiveDef`, save via `saveDashboardPluginSettings`, refresh sections (`doSwitchToPerspective`) |
 | `savePerspective` | Copy live `dashboardSettings` into the active named def (`cleanDashboardSettingsInAPerspective`), clear `isModified` |
-| `savePerspectiveAndSwitch` | **`doSavePerspectiveAndSwitchToPerspective`**: save active named perspective **then** switch — used by **`PerspectiveSelector`** for Save+Switch (single round-trip). |
-| `savePerspectiveAs` / `addNewPerspective` | Add a new named perspective; merges/saves **top-level** **`dashboardSettings`** so reopen matches the new active def |
-| `deletePerspective` | Remove def; may switch to `"-"`; **`setPluginData`** reflects post-switch defs when deleting the active perspective |
+| `savePerspectiveAndSwitch` | `doSavePerspectiveAndSwitchToPerspective`: save active named perspective **then** switch — used by `PerspectiveSelector` for Save+Switch (single round-trip). |
+| `savePerspectiveAs` / `addNewPerspective` | Add a new named perspective; merges/saves **top-level** `dashboardSettings` so reopen matches the new active def |
+| `deletePerspective` | Remove def; may switch to `"-"`; `setPluginData` reflects post-switch defs when deleting the active perspective |
 | `renamePerspective` | Rename def (UI may optimistically `dispatchPerspectiveSettings` before the plugin confirms) |
 | `copyPerspective` | Duplicate active def under a new name (**persists** via `savePerspectiveSettings`, not UI-only state) |
-| `perspectiveSettingsChanged` | Bulk save from **PerspectivesTable** or JSON editor (`doSavePerspectiveSettingsFromBridge`; applies **`mergeDashboardSettingsForPerspectiveDef`** when the active named perspective's live dashboard must track the def) |
+| `perspectiveSettingsChanged` | Bulk save from **PerspectivesTable** or JSON editor (`doSavePerspectiveSettingsFromBridge`; applies `mergeDashboardSettingsForPerspectiveDef` when the active named perspective's live dashboard must track the def) |
 
 `PerspectiveSelector.jsx` implements dropdown actions and save-before-switch dialogs; it sends these commands via `sendActionToPlugin`, not via a Dashboard `useEffect`.
 
@@ -176,9 +176,9 @@ Only tags/mentions on the wanted list (`wantedTagMentionsList.json`) are indexed
 
 - `getListOfWantedTagsAndMentionsFromAllPerspectives()` (in `tagMentionCache.js`) walks every `TPerspectiveDef` and adds each `dashboardSettings.tagsToShow` entry to a `Set`.
 - `updateTagMentionCacheDefinitionsFromAllPerspectives(allDefs)` writes that union to `wantedTagMentionsList.json` via `setTagMentionCacheDefinitions()`.
-- **`saveDashboardPluginSettings()`** calls `updateTagMentionCacheDefinitionsFromAllPerspectives()` whenever `perspectiveSettings` is written — including **Save Perspective** (`doSavePerspective`), perspective switch saves, and JSON bulk edit. This is the main persistence path.
+- `saveDashboardPluginSettings()` calls `updateTagMentionCacheDefinitionsFromAllPerspectives()` whenever `perspectiveSettings` is written — including **Save Perspective** (`doSavePerspective`), perspective switch saves, and JSON bulk edit. This is the main persistence path.
 - `savePerspectiveSettings()` in `perspectiveHelpers.js` also calls the updater before delegating to `saveDashboardPluginSettings()` (copy/rename/add/delete flows).
-- **`onUpdateOrInstall`** and **`repairDashboardSettings`** refresh the wanted list from all saved defs before cache rebuild or when repair is run (covers stale files after upgrade).
+- `onUpdateOrInstall` and `repairDashboardSettings` refresh the wanted list from all saved defs before cache rebuild or when repair is run (covers stale files after upgrade).
 - `generateTagMentionCache()` / `updateTagMentionCache()` read the wanted list with `getTagMentionCacheDefinitions()`; they do not read live `dashboardSettings.tagsToShow` for the active perspective directly.
 
 **Switching perspective** does **not** rebuild the wanted list. Only saving perspective settings (or related save paths above) replaces the union from all defs.
@@ -219,9 +219,9 @@ Additionally, synthetic sections (e.g. `WINS`) are stripped from pluginData in t
 
 There are three related backend functions that re-generate a subset of Sections and push them to the React window. They differ mainly in **how many `setPluginData()` calls (and therefore React redraws)** they trigger:
 
-- **`refreshSomeSections(data, calledByTrigger?)`** — the core worker. Refreshes the `sectionCodes` in `data` and does the merge logic: it generates the wanted sections via `getSomeSectionsData()`, then **merges** them into the existing `pluginData.sections` (stripping synthetic sections, removing referenced sections when `separateSectionForReferencedNotes` is off, and de-duping TAG rows via `syncTagSectionsWithSettings()`). Uses the live in-memory settings (`getDashboardSettingsForOpenWebView()`), not the on-disk settings. One `setPluginData()` per call.
-- **`incrementallyRefreshSomeSections(data, calledByTrigger?, setFullRefreshDate?)`** — loops over `sectionCodes` and calls `refreshSomeSections()` **once per section**, so each section is sent to React as soon as it is generated (**N updates**, sections "pop in" progressively). Used on **first launch** (kicked off from a `useEffect` in `Dashboard.jsx` after Today loads) to improve perceived speed.
-- **`batchRefreshSomeSections(data)`** (formerly `refreshSectionsBatch`) — generates **all** the requested sections in one `getSomeSectionsData(sectionCodes, ...)` call and sends a **single** `setPluginData()` that **replaces** `sections` wholesale (**1 update**, no intermediate flicker). It does **not** run the merge logic, so the caller must pass the complete set of sectionCodes to show. Used for **perspective switching** to avoid N separate redraws.
+- `refreshSomeSections(data, calledByTrigger?)` — the core worker. Refreshes the `sectionCodes` in `data` and does the merge logic: it generates the wanted sections via `getSomeSectionsData()`, then **merges** them into the existing `pluginData.sections` (stripping synthetic sections, removing referenced sections when `separateSectionForReferencedNotes` is off, and de-duping TAG rows via `syncTagSectionsWithSettings()`). Uses the live in-memory settings (`getDashboardSettingsForOpenWebView()`), not the on-disk settings. One `setPluginData()` per call.
+- `incrementallyRefreshSomeSections(data, calledByTrigger?, setFullRefreshDate?)` — loops over `sectionCodes` and calls `refreshSomeSections()` **once per section**, so each section is sent to React as soon as it is generated (**N updates**, sections "pop in" progressively). Used on **first launch** (kicked off from a `useEffect` in `Dashboard.jsx` after Today loads) to improve perceived speed.
+- `batchRefreshSomeSections(data)` (formerly `refreshSectionsBatch`) — generates **all** the requested sections in one `getSomeSectionsData(sectionCodes, ...)` call and sends a **single** `setPluginData()` that **replaces** `sections` wholesale (**1 update**, no intermediate flicker). It does **not** run the merge logic, so the caller must pass the complete set of sectionCodes to show. Used for **perspective switching** to avoid N separate redraws.
 
 All three share the same tail behaviour: recalculate done-task counts (when `doneDatesAvailable`) and kick off a scheduled tag-mention-cache rebuild if one is pending.
 

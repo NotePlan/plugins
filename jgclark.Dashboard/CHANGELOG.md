@@ -9,6 +9,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b46] 2026-06-13
+- Turning "Show chosen 'Wins' priority marker as a separate section?" off or on now also turns the **Wins** section visibility off or on, so the Wins section is removed or generated immediately.
+- dev: **Derived dashboard settings** — coupled settings (e.g. `treatTopPriorityAsWins` → `showWinsSection`) registered once in `DASHBOARD_DERIVED_SETTING_RULES`; applied via `applyDerivedDashboardSettings` (React reducer) and `prepareDashboardSettingsForSave` (plugin persistence).
+- dev: Circular import fix: `getDashboardSettingsDefaults()` moved to new `dashboardSettingsDefaults.js`.
+
 ## [2.4.0.b45] 2026-05-29
 - speed up **tag/mention cache build performance**. dev: new pre-filter notes before full scan; single-pass extraction on open/checklist/scheduled paragraphs; O(1) wanted-item lookup via precomputed Sets. Removed unused `TAG_CACHE_FOR_ALL_TAGS` / blacklist code.
 - dev: **tag/mention cache generation** — run full rebuild on the main thread (not async thread) so external commands complete and `tagMentionCache.json` is saved; fix completion timer rate calculation.

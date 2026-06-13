@@ -3,7 +3,7 @@
 // PerspectivesTable Component
 // Displays a table of settings for multiple perspectives.
 // Users can edit settings for each perspective.
-// Last updated 2025-01-29 for v2.1.7
+// Last updated 2026-06-13 for v2.4.0.b45 by @jgclark + @CursorAI
 //------------------------------------------------------------------------------
 
 // TODO: Something really strange happens if you "Apply" a perspective that has been modified but then click "Cancel".
@@ -30,6 +30,9 @@ type PerspectivesTableProps = {
 }
 
 const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelPosition = 'right' }: PerspectivesTableProps): React$Node => {
+  //----------------------------------------------------------------------
+  // State
+  //----------------------------------------------------------------------
   const { sendActionToPlugin, perspectiveSettings, dashboardSettings } = useAppContext()
 
   // check if there is an active perspective that is modified & list it also as an unsaved perspective
@@ -50,6 +53,10 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
 
   // Filter out some settingDefs that are not relevant to the PerspectivesTable
   const settingDefsForTable = settingDefs.filter((settingDef) => settingDef.key !== 'usePerspectives' && settingDef.label !== 'Perspectives' && settingDef.label !== 'Logging' && settingDef.label !== '' && settingDef.type !== "separator")
+
+  //----------------------------------------------------------------------
+  // Handlers
+  //----------------------------------------------------------------------
 
   // Handler for field changes
   const handleFieldChange = (perspectiveIndex: number, key: string, value: any) => {
@@ -137,6 +144,10 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
     maxWidth: '95%',
     maxHeight: '95%',
   }
+
+//----------------------------------------------------------------------
+// Render
+//----------------------------------------------------------------------
 
   return (
     <DynamicDialog
