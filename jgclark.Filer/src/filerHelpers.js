@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Filer plugin.
 // Jonathan Clark
-// last updated 2026-02-18, for v1.5.2
+// last updated 2026-06-25, for v1.6.1, by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -32,6 +32,7 @@ export type FilerConfig = {
   copyOrMove: string, // 'copy' or 'move'. Note: not set in plugin settings, but in object to send from wrappers to main functions
   recentDays: number,
   _logLevel: string,
+  _logTimer: boolean,
 }
 
 export async function getFilerSettings(): Promise<any> {

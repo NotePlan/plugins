@@ -7,7 +7,7 @@ import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '
 
 /**
  * Check whether a heading paragraph matches the given text at the specified level,
- * allowing an optional trailing ellipsis ("…"), which indicates that a heading has been folded.
+ * allowing an optional trailing ellipsis ("…" or "..."), which simply indicates that a heading has been folded.
  * It tolerates extra whitespace between the base text and the ellipsis.
  * @author Cursor, guided by @jgclark
  * @param {TParagraph} para
@@ -31,11 +31,11 @@ export function isParaAMatchForHeading(para: TParagraph, headingName: string, he
     return true
   }
 
-  // Allow an extra ellipsis at the end of the heading, tolerating extra whitespace
-  // between the base text and the ellipsis.
-  const ellipsisCharMatch = content.match(/^(.*?)(…)$/)
-  if (ellipsisCharMatch) {
-    const beforeEllipsis = ellipsisCharMatch[1].trimEnd()
+  // Allow a folded-heading ellipsis at the end (unicode '…' or ASCII '...'),
+  // tolerating extra whitespace between the base text and the ellipsis.
+  const foldedHeadingMatch = content.match(/^(.*?)(…|\.\.\.)$/)
+  if (foldedHeadingMatch) {
+    const beforeEllipsis = foldedHeadingMatch[1].trimEnd()
     if (beforeEllipsis === base) {
       return true
     }

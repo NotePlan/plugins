@@ -221,8 +221,13 @@ describe('helpers/headings', () => {
       expect(h.isParaAMatchForHeading(para, 'Done', 2)).toBe(false)
     })
 
-    test('should not match heading with trailing three dots (not correct form of folding)', () => {
+    test('matches heading with trailing three dots when section is folded', () => {
       const para = { type: 'title', content: 'Done ...', headingLevel: 2 }
+      expect(h.isParaAMatchForHeading(para, 'Done', 2)).toBe(true)
+    })
+
+    test('does not match different heading text with trailing three dots', () => {
+      const para = { type: 'title', content: 'Done (more)', headingLevel: 2 }
       expect(h.isParaAMatchForHeading(para, 'Done', 2)).toBe(false)
     })
 
