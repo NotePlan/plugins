@@ -66,6 +66,12 @@ describe('sectionHelpers', () => {
       expect(out).toBe(sections)
     })
 
+    test('returns unchanged when treatTopPriorityAsWins is false', () => {
+      const sections = [{ sectionCode: 'DT', sectionItems: [], isReferenced: false, ID: 'DT', name: 'Today', showSettingName: 'showTodaySection', description: '' }]
+      const out = sh.injectSyntheticWinsSection(sections, { ...baseSettings, treatTopPriorityAsWins: false })
+      expect(out).toBe(sections)
+    })
+
     test('appends WINS with priority-4 `>>` items from visible DT/W in order', () => {
       const sections = [
         {

@@ -1033,7 +1033,11 @@ export async function restoreFormFromAutosave(autosaveFilename?: string): Promis
     }
 
     const templateData = templateNote.content || ''
-    const { _, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateData])
+    const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateData])
+    if (frontmatterBody == null) {
+      logDebug(pluginJson, 'restoreFormFromAutosave: renderFrontmatter returned null (user likely cancelled); not opening form')
+      return
+    }
 
     // Add form fields, template info, and default values
     frontmatterAttributes.formFields = formFields

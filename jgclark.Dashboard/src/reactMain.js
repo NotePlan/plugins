@@ -2,15 +2,16 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2026-05-30 for v2.4.0.b45 by @jgclark + @CursorAI
+// Last updated 2026-06-13 for v2.4.0.b46 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import { getDashboardSettings, getDashboardSettingsDefaults, getLogSettings, getNotePlanSettings, getListOfEnabledSections, setPluginData } from './dashboardHelpers'
+import { getDashboardSettings, getDashboardSettingsDefaults, getLogSettings, getNotePlanSettings, getListOfEnabledSections, setPluginData, cloneDashboardSettingsBeforeSave } from './dashboardHelpers'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
-import { dashboardFilterDefs, dashboardSettingDefs, normaliseDashboardNumberSettings } from './dashboardSettings'
+import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
+import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
 import { getAllSectionsData } from './dataGeneration'
 import {
   getActivePerspectiveDef,
@@ -88,7 +89,7 @@ export async function showDemoDashboard(): Promise<void> {
 export async function setSetting(key: string, value: string): Promise<void> {
   try {
     logDebug('setSetting', `Request to set: '${key}' -> '${value}'`)
-    const dashboardSettings = (await getDashboardSettings()) || {}
+    const dashboardSettings = cloneDashboardSettingsBeforeSave(await getDashboardSettings())
     // clo(dashboardSettings, 'dashboardSettings:')
 
     const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter((k) => k.label && k.key)
@@ -105,16 +106,14 @@ export async function setSetting(key: string, value: string): Promise<void> {
       } else {
         setTo = value
       }
-      // $FlowFixMe[prop-missing]
+      const priorDashboardSettings = cloneDashboardSettingsBeforeSave(dashboardSettings)
       dashboardSettings[key] = setTo
-      // logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo} / ${thisSettingType})`)
-      // Ensure numeric settings are stored as numbers, not strings
-      const normalisedDashboardSettings = normaliseDashboardNumberSettings(dashboardSettings)
+      const preparedDashboardSettings = prepareDashboardSettingsForSave(priorDashboardSettings, dashboardSettings, { mergeDefaults: false })
 
       // use specialised helpers to save settings
       const res = await saveDashboardPluginSettings({
         ...(await loadDashboardPluginSettings()),
-        dashboardSettings: normalisedDashboardSettings,
+        dashboardSettings: preparedDashboardSettings,
       })
       if (!res) {
         throw new Error(`saveSettings failed for setting '${key}:${value}'`)
@@ -135,7 +134,8 @@ export async function setSetting(key: string, value: string): Promise<void> {
  */
 export async function setSettings(paramsIn: string): Promise<void> {
   try {
-    const dashboardSettings = (await getDashboardSettings()) || {}
+    const dashboardSettings = cloneDashboardSettingsBeforeSave(await getDashboardSettings())
+    const priorDashboardSettings = cloneDashboardSettingsBeforeSave(dashboardSettings)
     const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter((k) => k.label && k.key)
     const allKeys = allSettings.map((s) => s.key)
     const params = paramsIn.split(';')
@@ -155,7 +155,6 @@ export async function setSettings(paramsIn: string): Promise<void> {
         } else {
           setTo = value
         }
-        // $FlowFixMe[prop-missing]
         dashboardSettings[key] = setTo
         logDebug('setSettings', `  - set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo})`)
       } else {
@@ -163,13 +162,12 @@ export async function setSettings(paramsIn: string): Promise<void> {
       }
     }
     logDebug('setSettings', `Calling DataStore.settings, then showDashboardReact()`)
-    // Ensure numeric settings are stored as numbers, not strings
-    const normalisedDashboardSettings = normaliseDashboardNumberSettings(dashboardSettings)
+    const preparedDashboardSettings = prepareDashboardSettingsForSave(priorDashboardSettings, dashboardSettings, { mergeDefaults: false })
 
     // use specialised helpers to save settings from now on
     const res = await saveDashboardPluginSettings({
       ...(await loadDashboardPluginSettings()),
-      dashboardSettings: normalisedDashboardSettings,
+      dashboardSettings: preparedDashboardSettings,
     })
     if (!res) {
       throw new Error(`saveSettings failed for params: '${paramsIn}'`)

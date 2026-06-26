@@ -3,11 +3,13 @@
 // Clean dashboard settings objects (per-perspective strip list).
 // Extracted from perspectiveHelpers.js to avoid circular imports with
 // dashboardPluginSettings.js / dashboardHelpers.js.
-// Last updated 2026-05-28 for v2.4.0.b45 by @CursorAI
+// Last updated 2026-06-13 for v2.4.0.b46 by @CursorAI
 //-----------------------------------------------------------------------------
 
+import { applyDerivedDashboardSettings, normaliseDashboardNumberSettings } from './dashboardSettings'
+import { getDashboardSettingsDefaults } from './dashboardSettingsDefaults'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
-import type { TDashboardSettings, TSection } from './types'
+import type { TDashboardSettings, TSection, TPerspectiveSettings } from './types'
 import { logDebug, logError } from '@helpers/dev'
 
 /** Tag cache is used unless FFlag_UseTagCache is explicitly false in dashboardSettings. */
@@ -243,4 +245,46 @@ export function syncTagSectionsWithSettings(sections: Array<TSection>, dashboard
     logError('syncTagSectionsWithSettings', `Error: ${error.message}. Returning original sections.`)
     return sections
   }
+}
+
+/**
+ * Normalize and apply derived-setting rules before persisting dashboard settings.
+ * Accepts `TAnyObject` so x-callback and bridge save paths can mutate settings by dynamic key.
+ * @param {TAnyObject} priorSettings - settings before this change
+ * @param {TAnyObject} nextSettings - candidate settings after user edit
+ * @param {{ mergeDefaults?: boolean }} [options]
+ * @returns {TAnyObject}
+ */
+export function prepareDashboardSettingsForSave(
+  priorSettings: TAnyObject,
+  nextSettings: TAnyObject,
+  options?: { mergeDefaults?: boolean },
+): TAnyObject {
+  let prepared: TAnyObject = { ...nextSettings }
+  if (options?.mergeDefaults === true) {
+    prepared = { ...getDashboardSettingsDefaults(), ...prepared }
+  }
+  prepared = normaliseDashboardNumberSettings(prepared)
+  // $FlowIgnore[incompatible-call] runtime settings object may include dynamic keys before tag cleanup
+  prepared = removeInvalidTagSections((prepared: any))
+  prepared = applyDerivedDashboardSettings(priorSettings, prepared)
+  return prepared
+}
+
+/**
+ * Prepare each perspective def's embedded dashboardSettings for bulk save.
+ * @param {TPerspectiveSettings} priorDefs - perspective defs before save
+ * @param {TPerspectiveSettings} nextDefs - perspective defs from the client
+ * @returns {TPerspectiveSettings}
+ */
+export function preparePerspectiveSettingsForSave(priorDefs: TPerspectiveSettings, nextDefs: TPerspectiveSettings): TPerspectiveSettings {
+  return nextDefs.map((persp) => {
+    const priorPersp = priorDefs.find((p) => p.name === persp.name)
+    const priorDashboardSettings = priorPersp?.dashboardSettings ?? {}
+    const nextDashboardSettings = prepareDashboardSettingsForSave(priorDashboardSettings, persp.dashboardSettings ?? {}, { mergeDefaults: false })
+    return {
+      ...persp,
+      dashboardSettings: nextDashboardSettings,
+    }
+  })
 }

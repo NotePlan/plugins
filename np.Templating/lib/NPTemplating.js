@@ -202,9 +202,9 @@ class NPTemplating {
    * @param {string} inputTemplateData - The template content to render
    * @param {any} [userData={}] - User data to use in template rendering
    * @param {any} [userOptions={}] - Options for template rendering
-   * @returns {Promise<string>} A promise that resolves to the rendered template content
+   * @returns {Promise<string | null>} Rendered template, or **null** if the user cancels a prompt
    */
-  static async render(inputTemplateData: string, userData: any = {}, userOptions: any = {}): Promise<string> {
+  static async render(inputTemplateData: string, userData: any = {}, userOptions: any = {}): Promise<string | null> {
     try {
       await this.setup()
       return render(inputTemplateData, userData, userOptions, this.templateConfig)
@@ -221,9 +221,9 @@ class NPTemplating {
    * @param {string} [templateName=''] - The name of the template to render
    * @param {any} [userData={}] - User data to use in template rendering
    * @param {any} [userOptions={}] - Options for template rendering
-   * @returns {Promise<string>} A promise that resolves to the rendered template content
+   * @returns {Promise<string | null>}
    */
-  static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string | null> {
     try {
       await this.setup()
       return renderTemplateByName(templateName, userData, userOptions)

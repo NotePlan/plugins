@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
 
+## [1.11.1] - 2026-05-27 @dwertheimer
+
+- Fix addNote wizard: use `text` parameter for note content (was `noteText`, which NotePlan's `/addNote` x-callback-url does not recognize)
+
 ## [1.11.0] - 2025-01-30 @dwertheimer
 
 - Fix addNote wizard: was returning addText URL; now correctly returns addNote URL

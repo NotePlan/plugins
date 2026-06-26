@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2026-05-12 for v2.4.0.b33, @jgclark + @CursorAI
+// Last updated 2026-06-13 for v2.4.0.b46 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { defaultSectionDisplayOrder } from './constants.js'
@@ -489,6 +489,52 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: 'Please use the NotePlan Settings Pane for the Dashboard Plugin to change logging settings.',
   },
 ]
+
+/** 
+ * Local type definition for a derived dashboard setting rule.
+ */
+type TDerivedDashboardSettingRule = {
+  apply: (priorSettings: { [string]: any }, nextSettings: { [string]: any }) => { [string]: any },
+}
+
+/**
+ * When `treatTopPriorityAsWins` changes, mirror `showWinsSection` so WINS section visibility follows the feature toggle.
+ * @param {{ [string]: any }} priorSettings
+ * @param {{ [string]: any }} nextSettings
+ * @returns {{ [string]: any }}
+ */
+function syncShowWinsSectionWithTreatTopPriorityChange(priorSettings: { [string]: any }, nextSettings: { [string]: any }): { [string]: any } {
+  const priorTreat = priorSettings?.treatTopPriorityAsWins === true
+  const nextTreat = nextSettings?.treatTopPriorityAsWins === true
+  if (priorTreat === nextTreat) {
+    return nextSettings
+  }
+  return { ...nextSettings, showWinsSection: nextTreat }
+}
+
+/**
+ * Change-sensitive coupling rules between dashboard settings.
+ * Add new rules here; they are applied by `applyDerivedDashboardSettings` (React reducer) and
+ * `prepareDashboardSettingsForSave` (plugin persistence).
+ */
+export const DASHBOARD_DERIVED_SETTING_RULES: Array<TDerivedDashboardSettingRule> = [
+  {
+    apply: syncShowWinsSectionWithTreatTopPriorityChange,
+  },
+]
+
+/**
+ * Apply all derived-setting rules after a user edit (requires prior settings for change-sensitive rules).
+ * @param {{ [string]: any }} priorSettings - settings before the change
+ * @param {{ [string]: any }} nextSettings - settings after the change
+ * @returns {{ [string]: any }}
+ */
+export function applyDerivedDashboardSettings(priorSettings: { [string]: any }, nextSettings: { [string]: any }): { [string]: any } {
+  return DASHBOARD_DERIVED_SETTING_RULES.reduce(
+    (settings, rule) => rule.apply(priorSettings, settings),
+    nextSettings,
+  )
+}
 
 /**
  * Normalise all dashboard settings that are defined as type 'number' so they

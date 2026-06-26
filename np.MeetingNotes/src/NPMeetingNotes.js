@@ -48,6 +48,10 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
 
   logDebug(pluginJson, 'calling renderFrontmatter() to pre-render template')
   const { frontmatterBody: templateBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateContent])
+  if (templateBody == null) {
+    logDebug(pluginJson, `insertNoteTemplate: renderFrontmatter returned null (prompt cancelled); aborting`)
+    return
+  }
   if (Editor.type !== 'Calendar') {
     // Check if the template wants the note to be created in a folder (or with a new title) and if so, move the empty note to the trash and create a new note in the folder
     logDebug(pluginJson, `insertNoteTemplate: about to checkAndProcessFolderAndNewNoteTitle`)
@@ -56,6 +60,10 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
   logDebug(pluginJson, `render() template with frontmatterAttributes: [${Object.keys(frontmatterAttributes).join(', ')}]`)
 
   const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [templateBody, frontmatterAttributes])
+  if (result == null) {
+    logDebug(pluginJson, `insertNoteTemplate: render returned null (user likely cancelled a prompt); not modifying editor or calendar note`)
+    return
+  }
 
   if (dailyNoteDate) {
     logDebug(pluginJson, `apply rendered template to daily note with date ${String(dailyNoteDate)}`)
@@ -202,6 +210,11 @@ async function renderTemplateForEvent(selectedEvent, templateFilename): Object {
   )
   const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('renderFrontmatter', 'np.Templating', [templateContent, templateVariables])
 
+  if (frontmatterBody == null) {
+    logDebug(pluginJson, `${timer(scriptLoad)} - renderTemplateForEvent: renderFrontmatter returned null (prompt cancelled)`)
+    return { result: null, attrs: frontmatterAttributes }
+  }
+
   clo(frontmatterBody, 'renderTemplateForEvent frontmatterBody:')
   clo(frontmatterAttributes, 'renderTemplateForEvent frontmatterAttributes:')
 
@@ -345,6 +358,10 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
   const { selectedEvent, templateFilename } = await selectEventAndTemplate(_selectedEvent, _templateFilename)
   logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: got selectedEvent and templateFilename; calling renderTemplateForEvent()`)
   const { result, attrs } = await renderTemplateForEvent(selectedEvent, templateFilename)
+  if (result == null) {
+    logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: render cancelled (null result); not creating note`)
+    return
+  }
   logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: rendered template`)
   clo(result, 'rendered template:')
   await createNoteAndLinkEvent(selectedEvent, result, attrs, forceNewNote)

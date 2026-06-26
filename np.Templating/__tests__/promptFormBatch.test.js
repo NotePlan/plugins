@@ -115,6 +115,106 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     expect(result.sessionData.city).toBe('Chicago')
   })
 
+  test('batched prompt(question, [choices]) uses the question as showForm label (not Answer)', async () => {
+    global.CommandBar.showForm.mockResolvedValue({
+      submitted: true,
+      values: { Abstände_Review: '1w', Priority_prompt: 'A' },
+    })
+
+    const template =
+      "<%- prompt('Abstände Review?',['1w','2w']) %>" + "<%- prompt('Priority prompt?',['A','B']) %>"
+
+    const result = await processPrompts(template, {})
+    expect(result).not.toBe(false)
+    if (result === false) return
+    expect(global.CommandBar.showForm).toHaveBeenCalledTimes(1)
+    const formArg = global.CommandBar.showForm.mock.calls[0][0]
+    expect(formArg.fields[0].title).toBe('Abstände Review?')
+    expect(formArg.fields[0].label).toBe('Abstände Review?')
+    expect(formArg.fields[1].title).toBe('Priority prompt?')
+    expect(formArg.fields[1].label).toBe('Priority prompt?')
+  })
+
+  test('batched prompt(varName, message, [choices]) uses message as showForm label (not varName)', async () => {
+    global.CommandBar.showForm.mockResolvedValue({
+      submitted: true,
+      values: { pick: 'A', Rhythm: '1w' },
+    })
+
+    const template =
+      "<%- prompt('pick', 'Pick one?', ['A','B']) %>" + "<%- prompt('Rhythm?', ['1w','2w']) %>"
+    const result = await processPrompts(template, {})
+    expect(result).not.toBe(false)
+    if (result === false) return
+    const formArg = global.CommandBar.showForm.mock.calls[0][0]
+    expect(formArg.fields[0].title).toBe('Pick one?')
+    expect(formArg.fields[0].label).toBe('Pick one?')
+    expect(formArg.fields[1].title).toBe('Rhythm?')
+  })
+
+  test('batched prompt with double-quoted question uses that string as label', async () => {
+    global.CommandBar.showForm.mockResolvedValue({
+      submitted: true,
+      values: { Double_quoted: 'a', pick: 'B' },
+    })
+
+    const template = '<%- prompt("Double quoted?", ["a","b"]) %>' + "<%- prompt('pick', 'Second?', ['B','C']) %>"
+    const result = await processPrompts(template, {})
+    expect(result).not.toBe(false)
+    if (result === false) return
+    const formArg = global.CommandBar.showForm.mock.calls[0][0]
+    expect(formArg.fields[0].title).toBe('Double quoted?')
+    expect(formArg.fields[1].title).toBe('Second?')
+  })
+
+  test('batched <% execution %> prompt(question, [choices]) labels match <%- output %> form', async () => {
+    global.CommandBar.showForm.mockResolvedValue({
+      submitted: true,
+      values: { Q: 'a', Y: 'c' },
+    })
+
+    const template = "<% prompt('Q?', ['a','b']) %><% prompt('Y?', ['c','d']) %>"
+    const result = await processPrompts(template, {})
+    expect(result).not.toBe(false)
+    if (result === false) return
+    const formArg = global.CommandBar.showForm.mock.calls[0][0]
+    expect(formArg.fields[0].title).toBe('Q?')
+    expect(formArg.fields[1].title).toBe('Y?')
+  })
+
+  test('batched prompt("What\'s the priority?", […]) uses full question as label (apostrophe inside double quotes)', async () => {
+    global.CommandBar.showForm.mockResolvedValue({
+      submitted: true,
+      values: { What_s_the_priority: 'a', Other: 'c' },
+    })
+
+    const template =
+      `<%- prompt("What's the priority?", ['a','b']) %>` + "<%- prompt('Other?', ['c','d']) %>"
+    const result = await processPrompts(template, {})
+    expect(result).not.toBe(false)
+    if (result === false) return
+    const formArg = global.CommandBar.showForm.mock.calls[0][0]
+    expect(formArg.fields[0].title).toBe("What's the priority?")
+    expect(formArg.fields[0].label).toBe("What's the priority?")
+    expect(formArg.fields[1].title).toBe('Other?')
+  })
+
+  test('batched prompt(\'Comma, in, question?\', […]) uses full first argument as label', async () => {
+    global.CommandBar.showForm.mockResolvedValue({
+      submitted: true,
+      values: { One_two_three: 'a', Z: 'x' },
+    })
+
+    const template =
+      "<%- prompt('One, two, three?', ['a','b']) %>" + "<%- prompt('Z?', ['x','y']) %>"
+    const result = await processPrompts(template, {})
+    expect(result).not.toBe(false)
+    if (result === false) return
+    const formArg = global.CommandBar.showForm.mock.calls[0][0]
+    expect(formArg.fields[0].title).toBe('One, two, three?')
+    expect(formArg.fields[1].title).toBe('Z?')
+  })
+
   test('non-prompt tag between prompts breaks contiguity — no showForm', async () => {
     global.CommandBar.showForm.mockResolvedValue({
       submitted: true,

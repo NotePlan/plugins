@@ -204,15 +204,114 @@ function dedupeFormKeys(entries: Array<any>): void {
 }
 
 /**
+ * First quoted string argument inside `prompt(...)` (the raw template tag).
+ * Used when `parseParameters` mis-classifies `prompt('Question?', [choices])` as (varName, promptMessage=array).
+ * Scans like JS string literals: supports apostrophes inside double-quoted text (`"What's up?"`) and
+ * backslash escapes (`\'`, `\"`, `\\`, …). Requires a comma after the closing quote (two-argument+ `prompt`).
+ * @param {string} tag - Full EJS tag
+ * @returns {?string} Decoded string content, or null if not found
+ */
+function extractFirstQuotedPromptArg(tag: string): ?string {
+  const callMatch = tag.match(/\bprompt\s*\(/)
+  if (!callMatch || callMatch.index === undefined) return null
+
+  let i = callMatch.index + callMatch[0].length
+  while (i < tag.length && /\s/.test(tag[i])) i += 1
+  if (i >= tag.length) return null
+
+  const openQuote = tag[i]
+  if (openQuote !== '"' && openQuote !== "'") return null
+  i += 1
+
+  let out = ''
+  while (i < tag.length) {
+    const ch = tag[i]
+    if (ch === '\\' && i + 1 < tag.length) {
+      const next = tag[i + 1]
+      if (next === 'n') {
+        out += '\n'
+      } else if (next === 't') {
+        out += '\t'
+      } else if (next === 'r') {
+        out += '\r'
+      } else {
+        out += next
+      }
+      i += 2
+      continue
+    }
+    if (ch === openQuote) {
+      const rest = tag.slice(i + 1)
+      if (/^\s*,/.test(rest)) {
+        return out
+      }
+      return null
+    }
+    out += ch
+    i += 1
+  }
+  return null
+}
+
+/**
+ * True when `promptMessage` string is really the choice list joined (parser conflated message with options).
+ * @param {string} messageStr
+ * @param {any} opts
+ * @returns {boolean}
+ */
+function optionsJoinMatchesPromptMessageString(messageStr: string, opts: any): boolean {
+  if (!Array.isArray(opts) || opts.length === 0) return false
+  const norm = (s: string) => s.replace(/\s+/g, '')
+  return norm(messageStr) === norm(opts.map((x) => String(x)).join(','))
+}
+
+/**
+ * Human-readable label for a batched standard `prompt` field.
+ * @param {string} tag - Original EJS tag
+ * @param {any} params - Parsed prompt params
+ * @returns {string}
+ */
+function resolveStandardPromptBatchFieldTitle(tag: string, params: any): string {
+  const opts = params.options
+  const pm = params.promptMessage
+
+  if (Array.isArray(pm)) {
+    const fromTag = extractFirstQuotedPromptArg(tag)
+    if (fromTag && fromTag.trim() !== '') return fromTag.trim()
+  }
+
+  if (typeof pm === 'string') {
+    let s = pm.replace(/\\"/g, '"').replace(/\\'/g, "'").trim()
+    if (s !== '' && Array.isArray(opts) && opts.length > 0 && optionsJoinMatchesPromptMessageString(s, opts)) {
+      const fromTag = extractFirstQuotedPromptArg(tag)
+      if (fromTag && fromTag.trim() !== '') return fromTag.trim()
+    }
+    if (s !== '') return s
+  }
+
+  const fromTag = extractFirstQuotedPromptArg(tag)
+  if (fromTag && fromTag.trim() !== '') return fromTag.trim()
+
+  return ''
+}
+
+/**
  * Build one CommandBar.showForm field from a parsed prompt.
  * @param {string} promptName - prompt | promptDate
  * @param {any} params - Handler params
  * @param {string} formKey - Result key
+ * @param {string} tag - Original EJS tag (for choice-only prompts where the question is the first quoted arg)
  * @returns {Object} Field descriptor for NotePlan (`type`, `key`, `title`, …; `choices` for dropdowns)
  */
-function buildFormFieldForBatchEntry(promptName: string, params: any, formKey: string): Object {
-  const messageRaw = typeof params.promptMessage === 'string' ? params.promptMessage : ''
-  const title = messageRaw.length > 0 ? messageRaw : promptName === 'promptDate' ? 'Date' : 'Answer'
+function buildFormFieldForBatchEntry(promptName: string, params: any, formKey: string, tag: string): Object {
+  const titleNonEmpty =
+    promptName === 'promptDate'
+      ? typeof params.promptMessage === 'string' && params.promptMessage.trim() !== ''
+        ? params.promptMessage.replace(/\\"/g, '"').replace(/\\'/g, "'")
+        : 'Date'
+      : resolveStandardPromptBatchFieldTitle(tag, params)
+
+  const title = titleNonEmpty.length > 0 ? titleNonEmpty : promptName === 'promptDate' ? 'Date' : 'Answer'
 
   if (promptName === 'promptDate') {
     let defaultVal = ''
@@ -301,7 +400,7 @@ export function tryCollectFormBatch(
 
     const formKeyBase = inv.assignmentVarName || params.varName || written[0] || `npForm${entries.length}`
     const formKey = cleanVarName(formKeyBase)
-    const field = buildFormFieldForBatchEntry(match.name, params, formKey)
+    const field = buildFormFieldForBatchEntry(match.name, params, formKey, tag)
     tags.push(tag)
     entries.push({ tag, formKey, field })
     j += 1

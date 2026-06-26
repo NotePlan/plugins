@@ -50,6 +50,10 @@ export async function onOpenTheme(note: TNote): Promise<void> {
     logDebug(pluginJson, `onOpen running with incoming:${String(note.filename)}`)
     logDebug(pluginJson, `onOpen: note is a template, not doing anything`)
     const { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(note.content)
+    if (frontmatterBody == null) {
+      logDebug(pluginJson, 'onOpenTheme: renderFrontmatter returned null (user likely cancelled); skipping theme apply')
+      return
+    }
     clo(frontmatterAttributes, `onOpen: frontmatterAttributes`)
     clo(frontmatterBody, `onOpen: frontmatterBody`)
     if (frontmatterAttributes.themeName) {

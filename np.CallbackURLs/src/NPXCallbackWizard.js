@@ -260,8 +260,8 @@ export async function addNote(): Promise<string> {
   vars.noteTitle = await getInput(`What's the title?\n(optional - click OK to leave blank)`, `OK`, `Title of Note`, '')
   if (vars.noteTitle === false) return ''
   vars.folder = await chooseFolder(`What folder?`)
-  vars.noteText = await getInput(`What text for content?\n(optional - click OK to leave blank)`, `OK`, `Note Content`, '')
-  if (vars.noteText === false) return ''
+  vars.text = await getInput(`What text for content?\n(optional - click OK to leave blank)`, `OK`, `Note Content`, '')
+  if (vars.text === false) return ''
   vars.openNote = await showMessageYesNo(`Open note automatically?`, ['yes', 'no'], `Open Note`)
   vars.subWindow = await showMessageYesNo(`Open in Floating Window?`, ['yes', 'no'], `Open in Window`)
   vars.splitView = await showMessageYesNo(`Open in Split View?`, ['yes', 'no'], `Open in Split View`)
@@ -279,7 +279,7 @@ export async function addNote(): Promise<string> {
       delete vars[key]
     }
 
-    if (['noteTitle', 'folder', 'noteText'].indexOf(key) > -1 && vars[key] === '') {
+    if (['noteTitle', 'folder', 'text'].indexOf(key) > -1 && vars[key] === '') {
       delete vars[key]
     }
   }

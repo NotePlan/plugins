@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2026-05-13 for v2.4.0.b33 by @jgclark + @CursorAI
+// Last updated 2026-06-13 for v2.4.0.b45 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
@@ -383,12 +383,12 @@ export function isWinItem(item: TSectionItem, winsPriorityMarker: string): boole
  * @returns {Array<TSection>} sections plus synthetic WINS when `showWinsSection`
  */
 export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardSettings: ?TDashboardSettings): Array<TSection> {
-  if (!dashboardSettings || dashboardSettings.showWinsSection === false) {
+  if (!dashboardSettings || dashboardSettings.showWinsSection === false || dashboardSettings.treatTopPriorityAsWins !== true) {
     return sections
   }
 
   const winItems: Array<TSectionItem> = []
-  const gatherWins = dashboardSettings.treatTopPriorityAsWins === true
+  const gatherWins = true
   const winsPriorityMarker: string = dashboardSettings.winsPriorityMarker || '>>'
   const periodVisible: { [key: string]: boolean } = {
     DT: dashboardSettings.showTodaySection !== false,
