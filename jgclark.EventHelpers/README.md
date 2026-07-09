@@ -74,7 +74,7 @@ The following **Parameters** are available:
 
 | name | type | description | example |
 | --- | --- | --- | --- |
-| `includeHeadings` | boolean | adds heading "Events"| `includeHeadings: false` |
+| `includeHeadings` | boolean | include section/day headings (also controls per-day headings when `daysToCover` > 1)| `includeHeadings: false` |
 | `includeAllDayEvents` | boolean | include/exclude all day events | `includeAllDayEvents: false` |
 | `calendarSet` | string | limit which calendars are included | `calendarSet:"list,of,calendar,names"` |
 | `calendarNameMappings` | string | customize the name of the calendars |`calendarNameMappings:"Jonathan (iCloud);Me, Us (iCloud);Us"` |

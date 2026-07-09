@@ -2,6 +2,9 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.23.5] - 2026-07-09 @jgclark
+- fix to `events()`and `matchingEvents()`" template commands so `includeHeadings: false` now also suppresses the per-day headings that were previously always added when `daysToCover` > 1. (Thanks, @akrabat.)
+
 ## [0.23.4] - 2026-07-09 @jgclark
 - **/process date offsets** command changes: 
   - the 'add computed final date' setting now only appends to section headings (not task lines)

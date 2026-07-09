@@ -186,4 +186,40 @@ describe('eventsToNotes.js tests', () => {
       expect(result).toEqual(baseFromNote)
     })
   })
+
+  describe('generateDayHeading()', () => {
+    let localeSpy
+
+    beforeEach(() => {
+      localeSpy = jest.spyOn(NPdateTime, 'toNPLocaleDateString').mockReturnValue('9 Jul 2026')
+    })
+
+    afterEach(() => {
+      localeSpy.mockRestore()
+    })
+
+    test('returns empty string when includeHeadings is false (single day)', () => {
+      expect(e.generateDayHeading(1, '20260709', '## Events', false)).toEqual('')
+    })
+
+    test('returns empty string when includeHeadings is false (multi-day)', () => {
+      expect(e.generateDayHeading(7, '20260709', '## Events', false)).toEqual('')
+    })
+
+    test('returns configured heading for a single day when includeHeadings is true', () => {
+      expect(e.generateDayHeading(1, '20260709', '## Events', true)).toEqual('## Events')
+    })
+
+    test('returns empty string for a single day when heading config is empty', () => {
+      expect(e.generateDayHeading(1, '20260709', '', true)).toEqual('')
+    })
+
+    test('returns dated heading for multi-day when includeHeadings is true', () => {
+      expect(e.generateDayHeading(3, '20260709', '## Events', true)).toEqual('## Events for 9 Jul 2026')
+    })
+
+    test('returns dated markdown heading when multi-day and heading config is empty', () => {
+      expect(e.generateDayHeading(3, '20260709', '', true)).toEqual('## for 9 Jul 2026')
+    })
+  })
 })

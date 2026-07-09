@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 2026-04-21 for v0.23.3, by @jgclark
+// Last updated 2026-07-09 for v0.23.4, by @CursorAI
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well, @akrabat
 // ----------------------------------------------------------------------------
 
@@ -189,19 +189,24 @@ async function getFormatParam(paramString: string, paramNames: Array<string>, de
 }
 
 /**
- * Generate heading for a day's events
+ * Generate heading for a day's events.
+ * When `includeHeadings` is false, returns '' even if covering multiple days
+ * (previously multi-day lists always forced a per-day heading).
  * @param {number} daysToCover - Total number of days being processed
  * @param {string} dateStr - Date string (YYYYMMDD format)
- * @param {string} headingConfig - Heading configuration from config
- * @param {boolean} includeHeadings - Whether to include headings for single day
- * @returns {string} Generated heading string
+ * @param {string} headingConfig - Heading configuration from config (e.g. '## Events')
+ * @param {boolean} includeHeadings - Whether to include day/section headings
+ * @returns {string} Generated heading string, or '' when headings are disabled
  */
-function generateDayHeading(
+export function generateDayHeading(
   daysToCover: number,
   dateStr: string,
   headingConfig: string,
   includeHeadings: boolean
 ): string {
+  if (!includeHeadings) {
+    return ''
+  }
   if (daysToCover > 1) {
     const npDateStr = getDateFromYYYYMMDDString(dateStr)
     if (!npDateStr) {
@@ -212,7 +217,7 @@ function generateDayHeading(
     return headingConfig !== ''
       ? `${headingConfig} for ${localisedDateStr}`
       : `${'#'.repeat(hLevel)} for ${localisedDateStr}`
-  } else if (headingConfig !== '' && includeHeadings) {
+  } else if (headingConfig !== '') {
     return headingConfig
   }
   return ''
