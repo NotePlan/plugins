@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-05-25 for v2.4.0.b44 by @jgclark
+// Last updated 2026-06-16 for v2.4.0.b46 by @CursorAI
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -186,7 +186,7 @@ export type TSection = {
   actionButtons?: Array<TActionButton>,
   generatedDate?: Date, // note different from lastFullRefresh on whole project
   totalCount?: number, // for when not all possible items are passed in pluginData
-  doneCounts?: TDoneCount, // number of tasks (and potentially checklists) completed in the relevant calendar note
+  doneCounts?: TDoneCount, // number of tasks completed in the relevant calendar note (and potentially at a given priority)
   showColoredBackground?: boolean, // whether to show a colored background for the section
 }
 
@@ -486,8 +486,8 @@ export type TInteractiveProcessing =
 
 export type TDoneCount = {
   completedTasks: number,
-  // completedChecklists: number,
-  lastUpdated: Date,
+  completedTasksAtPriority?: number, // optional, only present if priorityLevel is set
+  lastUpdated: Date, // last updated date for either the total or the priority-specific count
 }
 
 export type TDoneTodayNotes = {

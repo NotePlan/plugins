@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Dashboard plugin functions to count tasks completed today, across all notes,
 // and to count the tasks completed in a particular note.
-// Last updated 2025-11-22 for v2.3.0.b15
+// Last updated 2026-06-16 for v2.4.0.b46
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -11,6 +11,26 @@ import { todaysDateISOString } from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getNotesChangedInInterval, getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { smartPrependPara } from '@helpers/paragraph'
+import { getNumericPriorityFromPara } from '@helpers/sorting'
+
+//--------------------------------------------------------------------------
+
+/**
+ * Design Assumptions on done tasks:
+ * 
+ * Section doneCounts are not scoped to "items that would appear in this section under the current perspective." 
+ * 
+ * The DY, W, M, Q, Y Sections use getNumCompletedTasksFromNote(sectionFilename) — counting all completed tasks in that one calendar note that have @done(today).
+ * 
+ * The DT Section uses broader completion rules, and gets its done counts from getDoneCountsForToday().
+ * This reads todaysChangedNoteList.json and sums completed tasks across every note touched today — not just today’s calendar note, and not filtered by perspective (folders, teamspaces, ignore terms, headings, etc.).
+ * i.e. So Today’s “closed N items” is effectively all tasks completed today (anywhere), as long as NotePlan has @done(today) on them.
+ * 
+ * Calculating WINS section is tricky as it’s a synthetic section built on the React side, when no completed tasks are available.
+ * TODO: Currently think how to do this without needing to change the main dataflow.
+ * 
+ * The header “done today” count (pluginData.totalDoneCount) comes from updateDoneCountsFromChangedNotes() — same global “all notes changed today” logic as Today’s section count, also not perspective-scoped. The README says it includes project notes too.
+ */
 
 //--------------------------------------------------------------------------
 
@@ -52,15 +72,19 @@ const LAST_TIME_THIS_WAS_RUN_PREF = 'jgclark.Dashboard.todayDoneCountsList.lastT
 
 /**
  * Return number of completed tasks in the single given (calendar or regular) note.
+ * 
+ * Note: This does *not* filter out tasks that would not match the current perspectives/settings. And it does not count checklist items.
  * @param {string} filename
  * @param {boolean} useEditorWherePossible? use the open Editor to read from if it happens to be open (default: true)
  * @param {boolean} onlyCountTasksCompletedToday? only count tasks in the note completed today (default: true)
- * @returns {TDoneCount} {completedTasks, lastUpdated}
+ * @param {number} priorityLevel when set, additionally return count of completed items at this NotePlan priority (e.g. 4 for `>>`). Default is 0 (no priority filter).
+ * @returns {TDoneCount} {completedTasks, completedTasksAtPriority, lastUpdated}
  */
 export function getNumCompletedTasksFromNote(
   filename: string,
   useEditorWherePossible: boolean = true,
-  onlyCountTasksCompletedToday: boolean = true
+  onlyCountTasksCompletedToday: boolean = true,
+  priorityLevel: number = 0, // default to 0 (no priority filter)
 ): TDoneCount {
   try {
     // Note: This is a quick operation, so no longer needing to time
@@ -82,7 +106,6 @@ export function getNumCompletedTasksFromNote(
     }
 
     // Calculate the number of closed items
-    // const todaysDateISOString = todaysDateISOString()
     const RE_DONE_TODAY = new RegExp(`@done\\(${todaysDateISOString}.*\\)`)
     // logDebug('getNumCompletedTasksFromNote', `RE_DONE_TODAY: ${RE_DONE_TODAY}`)
     const RE_DONE_ANY_TIME = new RegExp(`@done\\(.*\\)`)
@@ -91,14 +114,19 @@ export function getNumCompletedTasksFromNote(
       : parasToUse.filter((p) => p.type === 'done' && RE_DONE_ANY_TIME.test(p.content))
     // logDebug('getNumCompletedTasksFromNote', `- ${filename}'s completed tasks: ${completedTasks.map((t) => t.content).join('\n')} `)
     const numCompletedTasks = completedTasks.length
+    let numCompletedTasksAtPriority = 0
+    if (priorityLevel > 0) {
+      const completedTasksAtPriority = completedTasks.filter((p) => getNumericPriorityFromPara(p) === priorityLevel)
+      numCompletedTasksAtPriority = completedTasksAtPriority.length
+    }
 
     const outputObject: TDoneCount = {
       completedTasks: numCompletedTasks,
-      // completedChecklists: numCompletedChecklists,
+      completedTasksAtPriority: numCompletedTasksAtPriority ?? undefined,
       lastUpdated: new Date(),
     }
     // logDebug('getNumCompletedTasksFromNote', `- ${filename} -> ${String(numCompletedTasks)} done`)
-    // clo(outputObject, 'getNumCompletedTasksFromNote: outputObject')
+    clo(outputObject, 'getNumCompletedTasksFromNote: outputObject')
     return outputObject
   } catch (error) {
     logError('getNumCompletedTasksFromNote', error.message)

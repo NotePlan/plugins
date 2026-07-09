@@ -1,12 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-05-23 for v2.4.0.b44 by @CursorAI
+// Last updated 2026-06-16 for v2.4.0.b46 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import type { TDashboardSettings, TSection, TSectionItem, TSectionDetails } from './types'
-import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import { createSectionItemObject, isLineDisallowedByIgnoreTerms, isNoteFromAllowedTeamspace, makeDashboardParas } from './dashboardHelpers'
 import { tagParasFromNote } from './demoData'
 import { isTagCacheEnabled } from './dashboardSettingsClean'
