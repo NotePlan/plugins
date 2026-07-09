@@ -2,6 +2,11 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.23.4] - 2026-07-09 @jgclark
+- **/process date offsets** command changes: 
+  - the 'add computed final date' setting now only appends to section headings (not task lines)
+  - now outputs week/month/quarter/year dates when the offset unit is `w`, `m`, `q`, or `y` (e.g. `{2w}` now produces `>2026-W32` instead of a day date).
+
 ## [0.23.3] - 2026-04-21 @jgclark
 - New optional `startDay` parameter that can be used in Event List and Matching Event Lists template and x-callback calls. This takes a date in the format `YYYY-MM-DD` to set the first day of the range; if omitted, behaviour is unchanged, which is to start from the open calendar note’s period.
 

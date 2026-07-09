@@ -115,12 +115,16 @@ Note: if the line contains a blockID (link to another line), this will be remove
 ## /process date offsets
 User George Crump (@george65) has created a [video showing how this command works](https://drive.google.com/file/d/10suCe0x8QPbHw_7h4Ao4zwWf_kApEOKH/view).
 
-The command is best understood with some examples. Here's some Christmas planning:
+Settings:
+- **Add final date to the end of the section?** (`addComputedFinalDate`): when enabled, appends the last computed offset date to the **section heading** that supplied the base date, in the form `to YYYY-MM-DD` (or `to YYYY-Wnn` etc., matching the offset unit of the last calculation). This is added when the section ends (blank line, separator, or next heading). Default: **false**. Task lines that supply a base date do not receive this suffix.
+
+The command is best understood with some examples. Here's some Christmas planning (with **Add final date…** enabled for the heading):
 
 | This ...                                                                                                                                                                        | ... becomes this                                                                                                                                                                                             |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| \#\#\# Christmas Cards 2021-12-25<br />\* Write cards {-20d}<br />\* Post overseas cards {-15d}<br />\* Post cards to this country {-10d}<br />\* Store spare cards for next year {+3d} | \#\#\# Christmas Cards 2021-12-25<br />\* Write cards >2021-12-05<br />\* Post overseas cards >2021-12-10<br />* Post cards to this country >2021-12-15<br />\* Store spare cards for next year >2021-12-28 |
+| \#\#\# Christmas Cards 2021-12-25<br />\* Write cards {-20d}<br />\* Post overseas cards {-15d}<br />\* Post cards to this country {-10d}<br />\* Store spare cards for next year {+3d} | \#\#\# Christmas Cards 2021-12-25 to 2021-12-28<br />\* Write cards >2021-12-05<br />\* Post overseas cards >2021-12-10<br />* Post cards to this country >2021-12-15<br />\* Store spare cards for next year >2021-12-28 |
 | \* Bob's birthday on 2021-09-14<br />&nbsp;&nbsp;\* Find present {-6d}<br />&nbsp;&nbsp;\* Wrap & post present {-3d} <br />&nbsp;&nbsp;\* Call Bob {0d}                                 | \* Bob's birthday on 2021-09-14<br />&nbsp;&nbsp;\* Find present >2021-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2021-09-11<br />&nbsp;&nbsp;\* Call Bob >2021-09-14                                   |
+| \#\#\# Project kickoff 2026-07-20<br />\* Mid-sprint review {2w}                                                                                                                        | \#\#\# Project kickoff 2026-07-20<br />\* Mid-sprint review >2026-W32                                                                                                                                        |
 
 You can use this within a line to have both a **deadline** and a calculated **start date**:
 
@@ -128,19 +132,23 @@ You can use this within a line to have both a **deadline** and a calculated **st
 | ---------------------------------------------------------- | -------------------------------------------------------------------- |
 | * Post cards deadline 2021-12-18 {-10d} | * Post cards deadline 2021-12-18 >2021-12-08 |
 
-The `/process date offsets` command looks for a valid **base date** in the previous heading, previous main task if it has sub-tasks, or in the line itself. If it does, then it changes any **date offset patterns** (such as `{-10d}`, `{+2w}`, `{-3m}`) into **dates** (e.g. `2022-05-02`). This is particularly useful when set up in **templates**, that when applied to a note, sets the due date at the start, and calculates the other dates for you.
+The `/process date offsets` command looks for a valid **base date** in the previous heading, previous main task if it has sub-tasks, or in the line itself. If it does, then it changes any **date offset patterns** (such as `{-10d}`, `{+2w}`, `{-3m}`) into **scheduled dates** in the same calendar period as the offset unit: days → `YYYY-MM-DD`, weeks → `YYYY-Wnn`, months → `YYYY-MM` etc., (e.g. `{+2w}` from `2026-07-20` becomes `>2026-W32`). This is particularly useful when set up in **templates**, that when applied to a note, sets the due date at the start, and calculates the other dates for you.
 
 In more detail:
 - The **base date** is by default of the form `YYYY-MM-DD`, not preceded by characters `0-9(<`, all of which could confuse.
-- Valid **date offsets** are specified as `[^][+/-][0-9][bdwmqyBDWMQY]`. This allows for `b`usiness days,  `d`ays, `w`eeks, `m`onths, `q`uarters or `y`ears. (Business days skip weekends. If the existing date happens to be on a weekend, it's treated as being the next working day. Public holidays aren't accounted for.)  You can use upper- or lower-case letters.- `{+3d}` means three days _after_ the 'base' date
+- Valid **date offsets** are specified as `[^][+/-][0-9][bdwmqyBDWMQY]`. This allows for `b`usiness days, `d`ays, `w`eeks, `m`onths, `q`uarters or `y`ears. (Business days skip weekends. If the existing date happens to be on a weekend, it's treated as being the next working day. Public holidays aren't accounted for.) You can use upper- or lower-case letters.
+- The computed date uses the same calendar period as the offset unit (`d` → day, `w` → week, `m` → month, etc.).
+- `{+3d}` means three days _after_ the 'base' date
 - `{-3d}` means three days _before_ the 'base' date
 - You can use `{0d}` to mean no offset -- i.e. on the day itself.
-- An offset that starts with `{^...}` calculates before or after the _last calculated date_ (not the base date).  An example of this is:
+- A **base date from a heading** applies to all following tasks in that section (until a blank line, separator, or next heading). A **base date from a task line** also carries forward to subsequent tasks until it is replaced or the section ends.
+- If **Add final date to the end of the section?** is enabled, the last computed offset date in the section is appended to the heading that provided the base date (not to task lines).
+- An offset that starts with `{^...}` calculates before or after the _last calculated date_ (not the base date). The example below also assumes **Add final date…** is enabled for the heading:
 
 | For example ...                                                                                                                                                                        | ... becomes                                                                                                                                                                                                 |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| \* Bob's birthday on 2021-09-05<br />&nbsp;&nbsp;\* Find present {^+6d}<br />&nbsp;&nbsp;\* Wrap & post present {^+3d} <br />&nbsp;&nbsp;\* Call Bob {0d}   | \* Bob's birthday on 2021-09-05 to 2021-09-14<br />&nbsp;&nbsp;\* Find present >2021-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2021-09-11<br />&nbsp;&nbsp;\* Call Bob >2021-09-14 |
-| \#\#\# Easter Preparations >2022-03-01<br />\* Use up sweet treats (Shrove Tuesday) {0d}<br />\* Start Lent (Ash Wednesday) {^+1d}<br />\* End of Lent {^+-6w}<br />\* Remember Last Supper {^+1d} <br />\* Good Friday {^+1d} <br />\* Easter Sunday {^+2d} | \#\#\# Easter Preparations >2022-03-01 to >2022-04-17<br />\* Use up sweet treats (Shrove Tuesday) >2022-03-01<br />\* Start Lent (Ash Wednesday) >2022-03-02<br />\* End of Lent >2022-04-13<br />\* Remember Last Supper >2022-04-14<br />\* Good Friday >2022-04-15<br />\* Easter Sunday >2022-04-17 |
+| \* Bob's birthday on 2021-09-14<br />&nbsp;&nbsp;\* Find present {^-6d}<br />&nbsp;&nbsp;\* Wrap & post present {^-3d} <br />&nbsp;&nbsp;\* Call Bob {0d}   | \* Bob's birthday on 2021-09-14<br />&nbsp;&nbsp;\* Find present >2021-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2021-09-11<br />&nbsp;&nbsp;\* Call Bob >2021-09-14 |
+| \#\#\# Easter Preparations >2022-03-01<br />\* Use up sweet treats (Shrove Tuesday) {0d}<br />\* Start Lent (Ash Wednesday) {^+1d}<br />\* End of Lent {^+42d}<br />\* Remember Last Supper {^+1d} <br />\* Good Friday {^+1d} <br />\* Easter Sunday {^+2d} | \#\#\# Easter Preparations >2022-03-01 to 2022-04-17<br />\* Use up sweet treats (Shrove Tuesday) >2022-03-01<br />\* Start Lent (Ash Wednesday) >2022-03-02<br />\* End of Lent >2022-04-13<br />\* Remember Last Supper >2022-04-14<br />\* Good Friday >2022-04-15<br />\* Easter Sunday >2022-04-17 |
 
 If a base date can't be found, the command will ask you to supply a date.
 
