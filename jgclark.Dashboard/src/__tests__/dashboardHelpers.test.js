@@ -10,6 +10,7 @@ import {
   filterParasByIncludedCalendarSections,
   filterParasByExcludedCalendarSections,
   getStartTimeFromPara,
+  isWinItem,
 } from '../dashboardHelpers.js'
 import { DataStore, Editor, CommandBar, NotePlan, Paragraph, Note, simpleFormatter } from '@mocks/index'
 import * as timeblocks from '@helpers/timeblocks'
@@ -1108,4 +1109,43 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
   })
+
+  describe('isWinItem', () => {
+    test("'>>' marker: matches priority 4", () => {
+      const item = { itemType: 'open', para: { priority: 4, content: '>> win this' } }
+      expect(isWinItem(item, '>>')).toBe(true)
+    })
+
+    test("'>>' marker: does NOT match priority 3", () => {
+      const item = { itemType: 'open', para: { priority: 3, content: '!!! not arrow' } }
+      expect(isWinItem(item, '>>')).toBe(false)
+    })
+
+    test("'!!!' marker: matches priority 3", () => {
+      const item = { itemType: 'open', para: { priority: 3, content: '!!! triple win' } }
+      expect(isWinItem(item, '!!!')).toBe(true)
+    })
+
+    test("'!!!' marker: does NOT match priority 4", () => {
+      const item = { itemType: 'open', para: { priority: 4, content: '>> arrow only' } }
+      expect(isWinItem(item, '!!!')).toBe(false)
+    })
+
+    test("'!!' marker: matches priority 2", () => {
+      const item = { itemType: 'open', para: { priority: 2, content: '!! big rock' } }
+      expect(isWinItem(item, '!!')).toBe(true)
+    })
+
+    test("'!!' marker: does NOT match priority 3", () => {
+      const item = { itemType: 'open', para: { priority: 3, content: '!!! triple bang' } }
+      expect(isWinItem(item, '!!')).toBe(false)
+    })
+
+    test('unknown / missing marker falls back to `>>` (priority 4)', () => {
+      const item = { itemType: 'open', para: { priority: 4, content: '>> default' } }
+      expect(isWinItem(item, '')).toBe(true)
+      expect(isWinItem(item, 'bogus')).toBe(true)
+    })
+  })
+
 })

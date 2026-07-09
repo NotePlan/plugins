@@ -1440,3 +1440,28 @@ export function copyUpdatedSectionItemData(
 
   return sections
 }
+
+/**
+ * Test whether a TSectionItem should be treated as a Win based on the configured `winsPriorityMarker`.
+ * The three user-facing markers map 1:1 to NotePlan's `paragraph.priority` values, so the check is
+ * purely numeric:
+ *  - `'>>'`  -> priority === 4
+ *  - `'!!!'` -> priority === 3
+ *  - `'!!'`  -> priority === 2
+ * Falls back to the `>>` rule (priority 4) when the marker is missing or unrecognised.
+ * @param {TSectionItem} item
+ * @param {string} winsPriorityMarker - one of '>>', '!!!', '!!'
+ * @returns {boolean}
+ */
+export function isWinItem(item: TSectionItem, winsPriorityMarker: string): boolean {
+  const priority = item.para?.priority ?? 0
+  switch (winsPriorityMarker) {
+    case '!!!':
+      return priority === 3
+    case '!!':
+      return priority === 2
+    case '>>':
+    default:
+      return priority === 4
+  }
+}

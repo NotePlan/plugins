@@ -13,7 +13,7 @@ import type { TDashboardSettings, TSection, TPerspectiveSettings } from './types
 import { logDebug, logError } from '@helpers/dev'
 
 /** Tag cache is used unless FFlag_UseTagCache is explicitly false in dashboardSettings. */
-export function isTagCacheEnabled(dashboardSettings?: Partial<TDashboardSettings>): boolean {
+export function isTagCacheEnabled(dashboardSettings: TDashboardSettings): boolean {
   return dashboardSettings?.FFlag_UseTagCache !== false
 }
 

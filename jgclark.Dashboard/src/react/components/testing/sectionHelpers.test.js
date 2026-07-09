@@ -3,6 +3,7 @@
 // eslint-disable-next-line flowtype/no-types-missing-file-annotation
 // import type { TSection, TSectionCode } from '../../../types.js'
 import * as sh from '../Section/sectionHelpers.js'
+import { injectSyntheticWinsSection } from '../../../dataGenerationPriority'
 import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 import { clo, logDebug } from '@helpers/dev'
 
@@ -49,6 +50,7 @@ describe('sectionHelpers', () => {
     })
   })
 
+  // Note: used to live in sectionHelpers.js, but now in dataGenerationPriority.js
   describe('injectSyntheticWinsSection', () => {
     const baseSettings = {
       showWinsSection: true,
@@ -62,13 +64,13 @@ describe('sectionHelpers', () => {
 
     test('returns unchanged when showWinsSection is false', () => {
       const sections = [{ sectionCode: 'DT', sectionItems: [], isReferenced: false, ID: 'DT', name: 'Today', showSettingName: 'showTodaySection', description: '' }]
-      const out = sh.injectSyntheticWinsSection(sections, { ...baseSettings, showWinsSection: false })
+      const out = injectSyntheticWinsSection(sections, { ...baseSettings, showWinsSection: false })
       expect(out).toBe(sections)
     })
 
     test('returns unchanged when treatTopPriorityAsWins is false', () => {
       const sections = [{ sectionCode: 'DT', sectionItems: [], isReferenced: false, ID: 'DT', name: 'Today', showSettingName: 'showTodaySection', description: '' }]
-      const out = sh.injectSyntheticWinsSection(sections, { ...baseSettings, treatTopPriorityAsWins: false })
+      const out = injectSyntheticWinsSection(sections, { ...baseSettings, treatTopPriorityAsWins: false })
       expect(out).toBe(sections)
     })
 
@@ -96,7 +98,7 @@ describe('sectionHelpers', () => {
           sectionItems: [{ ID: 'W-0', itemType: 'open', sectionCode: 'W', para: { priority: 4, type: 'open', content: '>> w2', filename: 'y.md' } }],
         },
       ]
-      const out = sh.injectSyntheticWinsSection(sections, baseSettings)
+      const out = injectSyntheticWinsSection(sections, baseSettings)
       expect(out.length).toBe(sections.length + 1)
       const wins = out[out.length - 1]
       expect(wins.sectionCode).toBe('WINS')
@@ -122,7 +124,7 @@ describe('sectionHelpers', () => {
           ],
         },
       ]
-      const out = sh.injectSyntheticWinsSection(sections, { ...baseSettings, winsPriorityMarker: '!!' })
+      const out = injectSyntheticWinsSection(sections, { ...baseSettings, winsPriorityMarker: '!!' })
       const wins = out[out.length - 1]
       expect(wins.sectionCode).toBe('WINS')
       expect(wins.sectionItems.map((i) => i.para.content)).toEqual(['!! double-bang win'])
@@ -144,49 +146,11 @@ describe('sectionHelpers', () => {
           ],
         },
       ]
-      const out = sh.injectSyntheticWinsSection(sections, { ...baseSettings, winsPriorityMarker: '!!!' })
+      const out = injectSyntheticWinsSection(sections, { ...baseSettings, winsPriorityMarker: '!!!' })
       const wins = out[out.length - 1]
       expect(wins.sectionCode).toBe('WINS')
       expect(wins.sectionItems.map((i) => i.para.content)).toEqual(['!!! triple win'])
       expect(wins.totalCount).toBe(1)
-    })
-  })
-
-  describe('isWinItem', () => {
-    test("'>>' marker: matches priority 4", () => {
-      const item = { itemType: 'open', para: { priority: 4, content: '>> win this' } }
-      expect(sh.isWinItem(item, '>>')).toBe(true)
-    })
-
-    test("'>>' marker: does NOT match priority 3", () => {
-      const item = { itemType: 'open', para: { priority: 3, content: '!!! not arrow' } }
-      expect(sh.isWinItem(item, '>>')).toBe(false)
-    })
-
-    test("'!!!' marker: matches priority 3", () => {
-      const item = { itemType: 'open', para: { priority: 3, content: '!!! triple win' } }
-      expect(sh.isWinItem(item, '!!!')).toBe(true)
-    })
-
-    test("'!!!' marker: does NOT match priority 4", () => {
-      const item = { itemType: 'open', para: { priority: 4, content: '>> arrow only' } }
-      expect(sh.isWinItem(item, '!!!')).toBe(false)
-    })
-
-    test("'!!' marker: matches priority 2", () => {
-      const item = { itemType: 'open', para: { priority: 2, content: '!! big rock' } }
-      expect(sh.isWinItem(item, '!!')).toBe(true)
-    })
-
-    test("'!!' marker: does NOT match priority 3", () => {
-      const item = { itemType: 'open', para: { priority: 3, content: '!!! triple bang' } }
-      expect(sh.isWinItem(item, '!!')).toBe(false)
-    })
-
-    test('unknown / missing marker falls back to `>>` (priority 4)', () => {
-      const item = { itemType: 'open', para: { priority: 4, content: '>> default' } }
-      expect(sh.isWinItem(item, '')).toBe(true)
-      expect(sh.isWinItem(item, 'bogus')).toBe(true)
     })
   })
 })

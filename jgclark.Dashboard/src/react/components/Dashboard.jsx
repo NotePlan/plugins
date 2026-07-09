@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for 2026-05-13 for v2.4.0.b33, @jgclark + @CursorAI
+// Last updated for 2026-06-23 for v2.4.0.b46, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -14,12 +14,13 @@ import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useMidnightRollover from '../customHooks/useMidnightRollover.jsx'
 import { dontDedupeSectionCodes, sectionPriority, defaultSectionDisplayOrder } from '../../constants.js'
 import { copyUpdatedSectionItemData } from '../../dataGeneration.js'
+import { injectSyntheticWinsSection } from '../../dataGenerationPriority'
 import { findSectionItems } from '../../dashboardHelpers.js'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
 import type { TActionButton } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
-import { getSectionsWithoutDuplicateLines, injectSyntheticWinsSection, countTotalVisibleSectionItems, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
+import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
 import { calculateMaxPriorityAcrossAllSections } from './Section/useSectionSortAndFilter.jsx'
 import Header from './Header'
 import IdleTimer from './IdleTimer.jsx'
