@@ -198,7 +198,7 @@ export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeCl
 
   if (typeof completedParagraph === 'boolean') {
     logWarn('doCompleteTask', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't complete task. I will refresh this Section; please then try again.`, errorMessageLevel: 'WARN' })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't find task to complete. I will refresh this Section in case it has changed since the last refresh.`, errorMessageLevel: 'INFO' })
   } else {
     // Update the done count for the section
     await updateDoneCountsFromChangedNotes(`In doCompleteTask() for item ${item?.ID || 'unknown'}`)
@@ -219,7 +219,7 @@ export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBrid
   const completedParagraph = await completeItemEarlier(filename, content)
   if (typeof completedParagraph === 'boolean') {
     logWarn('doCompleteTaskThen', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't complete the task. I will refresh this Section; please then try again.`, errorMessageLevel: 'WARN' })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't find task to complete. I will refresh this Section in case it has changed since the last refresh.`, errorMessageLevel: 'INFO' })
   } else {
     logDebug('doCompleteTaskThen', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
     // Send instructions to update the window
