@@ -36,6 +36,8 @@ This is a more powerful version of NotePlan's built-in 'Move Completed to Bottom
 - Only move completed items when whole section is complete? (default: false)
 - Skip done subtasks indented under open tasks?: If set, completed subtasks that are indented under an open parent task will NOT be moved to the Done section until their parent task is also completed. This keeps the visual progress of the parent task together.
 
+When a section heading is recreated or moved into the Done section, it is nested **one level deeper** than the original, so that it sits *inside* the `## Done` section rather than as a sibling of it. For example, an active `## Project Alpha` section becomes a `### Project Alpha` sub-heading under the `## Done` heading. (Items are also merged into a matching existing sub-heading in the Done section when one is already present.)
+
 ## /quick move to <...> note
 These 4 commands each moves lines to the current weekly note, using the same selection strategy as /mp (see above). The move happens in the background, leaving you in the flow in your current note. (Available with weekly notes from NotePlan v3.6.)
 

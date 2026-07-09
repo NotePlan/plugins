@@ -1,6 +1,16 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.6.1] - 2026-06-26
+- fixes and improvements to **/move completed items to done section**:
+  - recreated/moved section headings are now nested one level deeper inside the Done section (e.g. an active `## Section` becomes `### Section` under `## Done`), so they sit inside Done rather than as a sibling of it. This also lets completed items correctly merge into matching existing sub-headings in the Done section.
+  - no longer introduces stray blank lines when merging a completed section into an existing Done sub-section.
+  - in "move when any are complete" mode: when a whole section ends up being moved, its now-empty section heading is removed from the active part, and completed items correctly re-use an existing matching sub-heading in the Done section (previously a new, wrongly-deeper heading could be created).
+  - no longer creates a duplicate `## Done` heading if the existing one was folded.
+  - when a whole section has been completed, remove its heading as well as the tasks lines, from the active section.
+  - if a section has no task/checklist paragraphs at all, then don't move it to the archive.
+  - moved tasks, bullets and quotes no longer get duplicated markers (e.g. `* [x] * [x] `, `- - `, `> > `) when written to the Done/Completed section.
+
 ## [1.6.0] - 2026-05-01
 - new **/unarchive note keeping folder structure** command that reverses **/archive note keeping folder structure** by moving a note from `@Archive` back to its original folder path.
 
