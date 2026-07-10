@@ -126,7 +126,7 @@ export function getNumCompletedTasksFromNote(
       lastUpdated: new Date(),
     }
     // logDebug('getNumCompletedTasksFromNote', `- ${filename} -> ${String(numCompletedTasks)} done`)
-    clo(outputObject, 'getNumCompletedTasksFromNote: outputObject')
+    // clo(outputObject, 'getNumCompletedTasksFromNote: outputObject')
     return outputObject
   } catch (error) {
     logError('getNumCompletedTasksFromNote', error.message)

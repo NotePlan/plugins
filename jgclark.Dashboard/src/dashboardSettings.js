@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2026-06-13 for v2.4.0.b46 by @jgclark + @CursorAI
+// Last updated 2026-07-10 for v2.4.0.b47 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { defaultSectionDisplayOrder } from './constants.js'
@@ -170,70 +170,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'separator',
   },
-  {
-    type: 'heading',
-    label: 'Moving/Scheduling Items',
-  },
-  {
-    key: 'rescheduleNotMove',
-    label: '(Re)schedule items in place, rather than move?',
-    description: 'When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.',
-    type: 'switch',
-    default: false,
-    compactDisplay: true,
-    controlsOtherKeys: ['useLiteScheduleMethod'],
-  },
-  {
-    key: 'useLiteScheduleMethod',
-    label: 'Use simplified (re)scheduling method?',
-    description:
-      "If set then the item simply has its '>date' updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. Note: This is not the normal method NotePlan uses.",
-    type: 'switch',
-    default: false,
-    dependsOnKey: 'rescheduleNotMove',
-  },
-  {
-    key: 'newTaskSectionHeading',
-    label: 'Section heading to add/move new tasks under',
-    description:
-      "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If you leave this field blank, it will prompt you each time which heading to use. If you want new tasks to always appear at the top of the note, use '<<top of note>>'. Likewise for '<<bottom of note>>' if you want them to appear at the bottom. Or if you want the current hierarchy of headings to be maintained in the new note, use '<<carry forward>>'.",
-    type: 'input',
-    default: 'Tasks',
-    compactDisplay: true,
-  },
-  {
-    key: 'newTaskSectionHeadingLevel',
-    label: 'Heading level for new Headings',
-    description:
-      'Heading level (1-5) to use when adding new headings in notes. Note: you can also set this to 0 which means add task under the heading, but only if it already exists.',
-    type: 'number',
-    default: 2,
-    compactDisplay: true,
-  },
-  {
-    key: 'moveSubItems',
-    label: 'Move sub-items with the item?',
-    description: 'If set, then indented sub-items of an item will be moved if the item is moved to a different note.',
-    type: 'switch',
-    default: true,
-  },
-  {
-    key: 'useTodayDate',
-    label: "Use '>today' to schedule tasks for today?",
-    description: "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date (>YYYY-MM-DD).",
-    type: 'switch',
-    default: true,
-  },
-  {
-    key: 'moveOnlyShownItemsWhenFiltered',
-    label: 'Do "Move all items" buttons only move shown items when filtering?',
-    type: 'switch',
-    default: true,
-    description: 'When "Filter out lower-priority items" is enabled, if this is also enabled, the "All → ..." buttons will only move the items currently shown, excluding filtered lower-priority items. If disabled, they will move all items including filtered ones.',
-  },
-  {
-    type: 'separator',
-  },
+
   {
     type: 'heading',
     label: 'Display settings',
@@ -278,6 +215,16 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'number',
     default: 24,
     compactDisplay: true,
+  },
+  // hideEmptySections: after refresh/initial load, hide enabled sections that have no open items.
+  // Completing the last item still shows the usual congrats message until the next refresh (see Section.jsx).
+  {
+    key: 'hideEmptySections',
+    label: 'Hide sections with nothing left to do?',
+    description:
+      'When on, enabled sections with no open items are hidden after a refresh (or on first load). Completing the last item in a section still shows the usual "all done" message until the next refresh.',
+    type: 'switch',
+    default: false,
   },
   {
     key: 'autoUpdateAfterIdleTime', // aka "autoRefresh"
@@ -365,6 +312,69 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'separator',
   },
   {
+    type: 'heading',
+    label: 'Moving/Scheduling Items',
+  },
+  {
+    key: 'rescheduleNotMove',
+    label: '(Re)schedule items in place, rather than move?',
+    description: 'When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.',
+    type: 'switch',
+    default: false,
+    compactDisplay: true,
+    controlsOtherKeys: ['useLiteScheduleMethod'],
+  },
+  {
+    key: 'useLiteScheduleMethod',
+    label: 'Use simplified (re)scheduling method?',
+    description:
+      "If set then the item simply has its '>date' updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. Note: This is not the normal method NotePlan uses.",
+    type: 'switch',
+    default: false,
+    dependsOnKey: 'rescheduleNotMove',
+  },
+  {
+    key: 'newTaskSectionHeading',
+    label: 'Section heading to add/move new tasks under',
+    description:
+      "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If you leave this field blank, it will prompt you each time which heading to use. If you want new tasks to always appear at the top of the note, use '<<top of note>>'. Likewise for '<<bottom of note>>' if you want them to appear at the bottom. Or if you want the current hierarchy of headings to be maintained in the new note, use '<<carry forward>>'.",
+    type: 'input',
+    default: 'Tasks',
+    compactDisplay: true,
+  },
+  {
+    key: 'newTaskSectionHeadingLevel',
+    label: 'Heading level for new Headings',
+    description:
+      'Heading level (1-5) to use when adding new headings in notes. Note: you can also set this to 0 which means add task under the heading, but only if it already exists.',
+    type: 'number',
+    default: 2,
+    compactDisplay: true,
+  },
+  {
+    key: 'moveSubItems',
+    label: 'Move sub-items with the item?',
+    description: 'If set, then indented sub-items of an item will be moved if the item is moved to a different note.',
+    type: 'switch',
+    default: true,
+  },
+  {
+    key: 'useTodayDate',
+    label: "Use '>today' to schedule tasks for today?",
+    description: "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date (>YYYY-MM-DD).",
+    type: 'switch',
+    default: true,
+  },
+  {
+    key: 'moveOnlyShownItemsWhenFiltered',
+    label: 'Do "Move all items" buttons only move shown items when filtering?',
+    type: 'switch',
+    default: true,
+    description: 'When "Filter out lower-priority items" is enabled, if this is also enabled, the "All → ..." buttons will only move the items currently shown, excluding filtered lower-priority items. If disabled, they will move all items including filtered ones.',
+  },
+  {
+    type: 'separator',
+  }, {
     type: 'heading',
     label: 'Tag/Mention settings',
   },

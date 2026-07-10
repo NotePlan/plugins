@@ -1,13 +1,37 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2026-06-23 for v2.4.0.b46 by @jgclark + @CursorAI
+// Last updated 2026-07-10 for v2.4.0.b47 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
-import { allSectionDetails } from '../../../constants'
+import { allSectionDetails, treatSingleItemTypesAsZeroItems } from '../../../constants'
 import { logTimer } from '@helpers/dev.js'
 import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/reactDev'
+
+/**
+ * Count section items that represent real work (not congrats / empty-state placeholders).
+ * Used by hideEmptySections to tell "had open items" from "already showing an empty message".
+ * @param {?Array<TSectionItem>} items
+ * @returns {number}
+ */
+export function countRealSectionItems(items: ?Array<TSectionItem>): number {
+  if (!items || items.length === 0) return 0
+  return items.filter((item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType)).length
+}
+
+/**
+ * Normalize section.generatedDate for equality checks (Date or ISO string after bridge serialization).
+ * @param {Date | string | void | null} generatedDate
+ * @returns {string}
+ */
+export function getGeneratedDateKey(generatedDate: ?(Date | string)): string {
+  if (generatedDate == null) return ''
+  if (typeof generatedDate === 'string') return generatedDate
+  // Avoid method-unbinding: call via Date.prototype rather than extracting toISOString
+  if (generatedDate instanceof Date) return Date.prototype.toISOString.call(generatedDate)
+  return String(generatedDate)
+}
 
 /**
  * Get a list of TSettingItem (key, label, type) objects for the showSettingName settings for all sections except TAG (which requires special handling).

@@ -6,13 +6,13 @@
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2026-05-13 for v2.4.0.b33, @jgclark + @CursorAI
+// Last updated 2026-07-10 for v2.4.0.b47, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
 import type { TSection, TSectionItem } from '../../../types.js'
 import { treatSingleItemTypesAsZeroItems } from '../../../constants.js'
-import { isWinItem } from './sectionHelpers'
+import { isWinItem } from '../../../dashboardHelpers.js'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 
 //----------------------------------------------------------------------
@@ -112,16 +112,23 @@ const useSectionSortAndFilter = (
       }
       setCalculatedMaxPriority(-1)
       if (toShow.length === 0) {
-        const emptyOrCongrats =
-          specialMessageItems.length > 0
-            ? specialMessageItems
-            : [
-              {
-                ID: `${section.ID}-Empty`,
-                sectionCode: 'WINS',
-                itemType: 'winsCongrats',
-              },
-            ]
+        // If Section.jsx already injected winsCongrats (local last-item complete), keep it.
+        // If hideEmptySections is on and there is no placeholder yet, do not invent one here -
+        // that lets empty WINS hide after refresh (Section.jsx owns that policy).
+        let emptyOrCongrats: Array<TSectionItem>
+        if (specialMessageItems.length > 0) {
+          emptyOrCongrats = specialMessageItems
+        } else if (memoizedDashboardSettings?.hideEmptySections === true) {
+          emptyOrCongrats = []
+        } else {
+          emptyOrCongrats = [
+            {
+              ID: `${section.ID}-Empty`,
+              sectionCode: 'WINS',
+              itemType: 'winsCongrats',
+            },
+          ]
+        }
         setFilteredItems([])
         setItemsToShow(emptyOrCongrats)
         setNumFilteredOutThisSection(0)

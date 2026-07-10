@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-06-23 for v2.4.0.b46 by @jgclark + @CursorAI
+// Last updated 2026-07-10 for v2.4.0.b47 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -254,10 +254,17 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
   }
 
   if (gatherWins) {
+    // Track max source generatedDate so hideEmptySections can tell local REMOVE_LINE (source dates unchanged -> WINS date stable -> keep congrats)
+    // from a refresh (source dates updated -> WINS date changes -> hide empty WINS).
+    let maxGeneratedDateMs = 0
     for (const section of sections) {
       const code = section.sectionCode
       if (code !== 'DT' && code !== 'W' && code !== 'M' && code !== 'Q' && code !== 'Y') continue
       if (!periodVisible[code]) continue
+      if (section.generatedDate) {
+        const ms = new Date(section.generatedDate).getTime()
+        if (!Number.isNaN(ms) && ms > maxGeneratedDateMs) maxGeneratedDateMs = ms
+      }
       const items = section.sectionItems ?? []
       for (const item of items) {
         if (treatSingleItemTypesAsZeroItems.includes(item.itemType)) continue
@@ -269,20 +276,24 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
         }
       }
     }
+
+    const winsSection: TSection = {
+      ID: 'WINS',
+      name: 'Wins',
+      showSettingName: 'showWinsSection',
+      sectionCode: 'WINS',
+      isReferenced: false,
+      description: '{countWithLimit} big-win {itemType}',
+      totalCount: winItems.length,
+      sectionItems: winItems,
+      FAIconClass: 'fa-regular fa-fw fa-crosshairs',
+      sectionTitleColorPart: 'sidebarWins',
+      actionButtons: [],
+      // Derived from calendar source sections - see comment on maxGeneratedDateMs above
+      generatedDate: maxGeneratedDateMs > 0 ? new Date(maxGeneratedDateMs) : undefined,
+    }
+    return sections.concat(winsSection)
   }
 
-  const winsSection: TSection = {
-    ID: 'WINS',
-    name: 'Wins',
-    showSettingName: 'showWinsSection',
-    sectionCode: 'WINS',
-    isReferenced: false,
-    description: '{countWithLimit} big-win {itemType}',
-    totalCount: winItems.length,
-    sectionItems: winItems,
-    FAIconClass: 'fa-regular fa-fw fa-crosshairs',
-    sectionTitleColorPart: 'sidebarWins',
-    actionButtons: [],
-  }
-  return sections.concat(winsSection)
+  return sections
 }

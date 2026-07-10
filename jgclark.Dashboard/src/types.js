@@ -80,6 +80,9 @@ export type TDashboardSettings = {
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
   moveOnlyShownItemsWhenFiltered: boolean, // from v2.3.0
   hideDuplicates: boolean,
+  // When true: hide enabled sections that have no open items after refresh/initial load.
+  // Completing the last item still shows the congrats / empty message until the next refresh (see Section.jsx).
+  hideEmptySections: boolean,
   hidePriorityMarkers: boolean,
   ignoreChecklistItems: boolean,
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use

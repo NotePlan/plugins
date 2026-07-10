@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-06-13 for v2.4.0.b46 by @jgclark + @CursorAI
+// Last updated 2026-07-10 for v2.4.0.b47 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -23,17 +23,17 @@ import {
   makeDashboardParas,
   setPluginData,
 } from './dashboardHelpers'
-import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
+import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { normaliseDashboardNumberSettings } from './dashboardSettings'
+import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
 import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } from './perspectiveSettingsOnDashboardSave'
-import { validateAndFlattenMessageObject } from './shared'
 import { dashboardFolderFilterSettingsChanged } from './reviewsListSync'
+import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TSectionCode } from './types'
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
-import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { smartOpenNoteInEditorFromFilename, smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { unscheduleItem } from '@helpers/NPScheduleItems'

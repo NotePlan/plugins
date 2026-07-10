@@ -230,6 +230,7 @@ _The settings in the 'Moving/Scheduling Items' section are covered above_.
 ### Display settings
 - Reorder Sections...: Clicking on the reveal triangle opens up a panel where you can drag'n'drop to change the displayed order of Sections. There's a button to reset to the plugin's default sort order.
 - Max number of items to show in a section?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections. (Default: 30)
+- Hide sections with nothing left to do?: When on, enabled sections with no open items are hidden after a refresh (or on first load). Completing the last item in a section still shows the usual "all done" message until the next refresh. (Default: off)
 - Automatic Update interval: If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.
 - Theme to use for Dashboard: If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.
 - Show referenced items in separate section? Whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes. The same also goes for Weekly/Monthly/Quarterly notes.
@@ -360,6 +361,7 @@ For the `setSetting` callbacks, the names of the possible settings (described ab
 | showProjectActiveSection | true / false |
 | showProjectReviewSection | true / false |
 | maxItemsToShowInSection | number |
+| hideEmptySections | true / false |
 | overdueSortOrder | string |
 | tagsToShow | string |
 | useTodayDate | true / false |
@@ -378,7 +380,7 @@ I'm just a hobby coder, and not part of the NotePlan team, but I have spent at l
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
-Since v2.0, **David Wertheimer** has become co-author, and did much of the complete re-write to use the React framework for Javascript.  George Crump has contributed many suggestions, bug reports, and several great explainer videos.  And of course, thanks to Eduard for continually improving NotePlan itself, and the APIs I've used to build my various Plugins.
+Since v2.0, **David Wertheimer** has become co-author, and did a huge amount of work to build a new framework for plugins to use React.  George Crump has contributed many suggestions, bug reports, and several great explainer videos.  And of course, thanks to Eduard for continually improving NotePlan itself, and the APIs I've used to build my various Plugins.
 
 Thanks, team!
 

@@ -262,6 +262,7 @@ Dashboard has **two** refresh mechanisms with **three** different timers:
 | **IdleTimer** | `dashboardSettings.autoUpdateAfterIdleTime` (minutes; `0` = off) | User-configured idle period (default 15 if unset) | `refreshEnabledSections` |
 | **useRefreshTimer** | Plugin flag or post-command delay | 5s | `refreshEnabledSections` |
 | **useMidnightRollover** | Calendar date change while window open | 15s poll | `refreshEnabledSections` (independent of idle setting) |
+| **TB section timer** | `showTimeBlockSection` enabled; `isViewVisible` | ~54s | `refreshSomeSections(['TB'])` |
 
 ### IdleTimer (`IdleTimer.jsx`)
 Rendered from `Dashboard.jsx` only when **all** of:
@@ -285,7 +286,7 @@ Idle only applies to activity **inside the Dashboard WebView**, not the main Not
 Separate hook in `Dashboard.jsx`, enabled when not in demo mode. Polls every 15s for a **calendar date** change and queues `handleDateRollover` → `refreshEnabledSections` once the view is visible and dialogs are closed. Runs even when `autoUpdateAfterIdleTime` is `0`.
 
 ### View visibility
-When the Dashboard WebView is hidden, `isViewVisible` is false: IdleTimer is not mounted, and `cancelRefreshTimer()` clears any pending 5s refresh.
+When the Dashboard WebView is hidden, `isViewVisible` is false: IdleTimer is not mounted, `cancelRefreshTimer()` clears any pending 5s refresh, and the TB ~54s interval in `Section.jsx` is cleared (it restarts when the view becomes visible again).
 
 ## CSS Notes
 

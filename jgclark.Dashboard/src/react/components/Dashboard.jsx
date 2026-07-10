@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for 2026-06-23 for v2.4.0.b46, @jgclark + @CursorAI
+// Last updated for 2026-07-10 for v2.4.0.b47, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -378,7 +378,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           <Header lastFullRefresh={lastFullRefresh} onDropdownMenuOpenChange={setDropdownMenuOpen} />
         <main>
           {sections.map((section, index) => (
-            <Section key={`${section.sectionCode}-${index}`} section={section} onButtonClick={handleSectionButtonClick} />
+            <Section key={`${section.sectionCode}-${index}`} section={section} onButtonClick={handleSectionButtonClick} isViewVisible={isViewVisible} />
           ))}
         </main>
         <Dialog

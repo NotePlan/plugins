@@ -9,6 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b47] 2026-07-10
+- New Display setting **Hide sections with nothing left to do?**: when on, enabled sections with no open items are hidden after a refresh (or on first load). Completing the last item in a section still shows the usual "all done" message until the next refresh. (Suggested by @Garba.)
+- perf: Current Time Block ~1-minute refresh pauses while the Dashboard window is hidden, and restarts when it becomes visible again.
+
 ## [2.4.0.b46] 2026-06-13
 - Turning "Show chosen 'Wins' priority marker as a separate section?" off or on now also turns the **Wins** section visibility off or on, so the Wins section is removed or generated immediately.
 - dev: **Derived dashboard settings** — coupled settings (e.g. `treatTopPriorityAsWins` → `showWinsSection`) registered once in `DASHBOARD_DERIVED_SETTING_RULES`; applied via `applyDerivedDashboardSettings` (React reducer) and `prepareDashboardSettingsForSave` (plugin persistence).

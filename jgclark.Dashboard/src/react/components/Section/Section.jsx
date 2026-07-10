@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2026-05-04 for v2.4.0.b31 by @CursorAI
+// Last updated 2026-07-10 for v2.4.0.b47 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -17,6 +17,7 @@ import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
 import { useAppContext } from '../AppContext.jsx'
 import CircularProgressBar from '../CircularProgressBar.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
+import { countRealSectionItems, getGeneratedDateKey } from './sectionHelpers.js'
 import { clo, getDiff, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import './Section.css'
@@ -27,12 +28,13 @@ import './Section.css'
 type SectionProps = {
   section: TSection,
   onButtonClick: (button: TActionButton) => void,
+  isViewVisible?: boolean,
 }
 
 //--------------------------------------------------------------------------
 // Section Component Definition
 //--------------------------------------------------------------------------
-const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
+const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
@@ -122,6 +124,11 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // Track the last max priority value we updated to prevent duplicate updates
   const lastMaxPriorityUpdateRef = useRef<number>(-1)
+  // hideEmptySections: distinguish local last-item completion (keep congrats) from refresh/initial empty (hide).
+  // generatedDate is set by dataGeneration* and left unchanged by REMOVE_LINE_FROM_JSON splices.
+  const prevGeneratedDateKeyRef = useRef<?string>(null)
+  const prevRealItemCountRef = useRef<?number>(null)
+  const showCongratsUntilRefreshRef = useRef<boolean>(false)
 
   //----------------------------------------------------------------------
   // Constants
@@ -147,6 +154,11 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // This useEffect is responsible for preparing and updating the items in a section whenever the section or dashboard settings change.
   // It ensures that if a section has no items, an appropriate message (such as a 'congrats' or empty state indicator) is displayed,
   // and skips processing if the section is disabled in user settings.
+  //
+  // hideEmptySections (Display setting "Hide sections with nothing left to do?"):
+  // - After refresh / first load with zero open items -> do not inject congrats (section hides via hideSection).
+  // - After completing the last item locally (REMOVE_LINE_FROM_JSON; same generatedDate, real count >0 -> 0) -> still inject congrats until next refresh.
+  // Search empty messages are always shown (not gated by this setting).
   useEffect(() => {
     if (!section) {
       logError('Section', `- No Section passed in!`)
@@ -160,6 +172,28 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     }
 
     let sectionItems = section.sectionItems
+    const realCount = countRealSectionItems(sectionItems)
+    const generatedDateKey = getGeneratedDateKey(section.generatedDate)
+    const prevGenKey = prevGeneratedDateKeyRef.current
+    const prevRealCount = prevRealItemCountRef.current
+    const hideEmptySections = dashboardSettings?.hideEmptySections === true
+
+    // Update "show congrats until refresh" from how this section became empty.
+    // Only clear the flag when generatedDate changes (a real refresh), not when the setting is toggled -
+    // so turning the setting off and on again still keeps post-completion congrats until refresh.
+    if (prevGenKey != null && generatedDateKey !== prevGenKey) {
+      showCongratsUntilRefreshRef.current = false
+    } else if (hideEmptySections && prevRealCount != null && prevRealCount > 0 && realCount === 0) {
+      // Local REMOVE_LINE emptied this section without regenerating it
+      showCongratsUntilRefreshRef.current = true
+    }
+
+    prevGeneratedDateKeyRef.current = generatedDateKey
+    prevRealItemCountRef.current = realCount
+
+    // When hideEmptySections is off, always allow empty messages (legacy behaviour).
+    // When on, only allow them after a local last-item completion until the next refresh.
+    const allowEmptyCongrats = !hideEmptySections || showCongratsUntilRefreshRef.current
 
     // If the section is present, but has no items, add a suitable message/itemType
     // Note: done here, rather than in the dataGeneration* functions, as items can be removed in the front-end, before the back-end is told to refresh.
@@ -171,7 +205,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         case 'Q':
           if (isReferencedSection) {
             logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, but won't be shown, so no need to display congrats message`)
-          } else {
+          } else if (allowEmptyCongrats) {
             logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display congrats message`)
             sectionItems = [
               {
@@ -180,41 +214,60 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
                 itemType: 'itemCongrats',
               },
             ]
+          } else {
+            logDebug('Section', `- ${section.sectionCode} ${section.name}: hideEmptySections - skipping congrats after refresh/initial empty`)
+            sectionItems = []
           }
           break
         case 'WINS':
-          logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display wins congrats message`)
-          sectionItems = [
-            {
-              ID: `${section.sectionCode}-Empty`,
-              sectionCode: section.sectionCode,
-              itemType: 'winsCongrats',
-            },
-          ]
+          if (allowEmptyCongrats) {
+            logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display wins congrats message`)
+            sectionItems = [
+              {
+                ID: `${section.sectionCode}-Empty`,
+                sectionCode: section.sectionCode,
+                itemType: 'winsCongrats',
+              },
+            ]
+          } else {
+            logDebug('Section', `- ${section.sectionCode} ${section.name}: hideEmptySections - skipping wins congrats after refresh/initial empty`)
+            sectionItems = []
+          }
           break
         case 'TAG':
-          logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display congrats message`)
-          sectionItems = [
-            {
-              ID: `${section.sectionCode}-Empty`,
-              sectionCode: section.sectionCode,
-              itemType: 'itemCongrats',
-            },
-          ]
+          if (allowEmptyCongrats) {
+            logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display congrats message`)
+            sectionItems = [
+              {
+                ID: `${section.sectionCode}-Empty`,
+                sectionCode: section.sectionCode,
+                itemType: 'itemCongrats',
+              },
+            ]
+          } else {
+            logDebug('Section', `- ${section.sectionCode} ${section.name}: hideEmptySections - skipping congrats after refresh/initial empty`)
+            sectionItems = []
+          }
           break
         case 'PROJACT':
         case 'PROJREVIEW':
-          logDebug('Section', `${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
-          sectionItems = [
-            {
-              ID: `${section.sectionCode}-Empty`,
-              sectionCode: section.sectionCode,
-              itemType: 'projectCongrats',
-            },
-          ]
+          if (allowEmptyCongrats) {
+            logDebug('Section', `${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
+            sectionItems = [
+              {
+                ID: `${section.sectionCode}-Empty`,
+                sectionCode: section.sectionCode,
+                itemType: 'projectCongrats',
+              },
+            ]
+          } else {
+            logDebug('Section', `${section.sectionCode}: hideEmptySections - skipping project congrats after refresh/initial empty`)
+            sectionItems = []
+          }
           break
         case 'SEARCH':
         case 'SAVEDSEARCH':
+          // Search empty state is always shown; not controlled by hideEmptySections
           logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
@@ -238,7 +291,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   }, [section.sectionCode, sendActionToPlugin])
 
   /**
-   * Set a timer to refresh the TB section every ~1 minute.
+   * Set a timer to refresh the TB section every ~1 minute while the Dashboard window is visible.
+   * Cleared when the window is hidden (isViewVisible false) or the section unmounts.
    */
   useEffect(() => {
     const refreshInterval = 54000 // A little less than 1 minute -- don't want it to collide with the IdleTimer if possible
@@ -250,7 +304,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       isTBEnabledInSettings = showSettingValue !== false
     }
 
-    if (section.sectionCode === 'TB' && isTBEnabledInSettings) {
+    if (section.sectionCode === 'TB' && isTBEnabledInSettings && isViewVisible) {
       timerId = setInterval(() => {
         refreshTimeBlockSection()
       }, refreshInterval)
@@ -261,7 +315,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         clearInterval(timerId)
       }
     }
-  }, [dashboardSettings, section.sectionCode, section.showSettingName, refreshTimeBlockSection])
+  }, [dashboardSettings, section.sectionCode, section.showSettingName, refreshTimeBlockSection, isViewVisible])
 
   //----------------------------------------------------------------------
   // Hooks
