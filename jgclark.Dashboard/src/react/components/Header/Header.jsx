@@ -135,15 +135,19 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
    */
   const handleChangesInSettings = useCallback(
     (updatedSettings?: Object) => {
+      // Underscore lastChange must be on the settings object itself (not only dispatch reason) so a
+      // plugin setPluginData echo cannot overwrite it and trigger a second sync-hook send.
+      const lastChange = `_Dashboard Settings updated (Header.handleChangesInSettings)`
       const newSettings = {
         ...dashboardSettings,
         ...tempDashboardSettings,
         ...updatedSettings,
+        lastChange,
       }
       dispatchDashboardSettings({
         type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
         payload: newSettings,
-        reason: `Dashboard Settings updated`,
+        reason: lastChange,
       })
       // Update tempDashboardSettings with the new settings
       setTempDashboardSettings(newSettings)

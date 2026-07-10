@@ -59,10 +59,16 @@ export const useSyncDashboardSettingsWithPlugin = (
         logDebug(`useSyncDashboardSettingsWithPlugin plugin sent changes to front-end`, `realDiff=`, realDiff)
         logDebug('Dispatching to front-end to set values')
         lastDashboardSettingsRef.current = pluginDataDSettings
+        // Always use a "changed from plugin" reason so effect2 does not echo this back to the plugin
+        // (raw pluginDataDSettings.lastChange may lack a leading `_` after Header's explicit save).
+        const echoReason =
+          typeof pluginDataDSettings.lastChange === 'string' && pluginDataDSettings.lastChange.endsWith('changed from plugin')
+            ? pluginDataDSettings.lastChange
+            : `${String(pluginDataDSettings.lastChange || 'settings')} changed from plugin`
         dispatch({
           type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
           payload: pluginDataDSettings,
-          reason: pluginDataDSettings.lastChange,
+          reason: echoReason,
         })
       }
     }
