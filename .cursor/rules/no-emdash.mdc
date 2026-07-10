@@ -1,0 +1,22 @@
+---
+description: Prefer single dashes over emdashes in markdown and comments
+alwaysApply: true
+---
+
+# Dash Style (No Emdash)
+
+Do not use the emdash character (`—`) in markdown or code comments.
+
+- Use a single hyphen/dash (`-`) instead of an emdash.
+- Exception: for a mid-sentence subclause, use a pair of dashes with spaces: ` -- like this -- `.
+
+```markdown
+<!-- ❌ BAD -->
+Updated sorting — now respects priority markers.
+
+<!-- ✅ GOOD -->
+Updated sorting - now respects priority markers.
+
+<!-- ✅ GOOD (subclause) -->
+The filter -- when enabled -- hides completed items.
+```
