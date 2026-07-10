@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2025-12-04 for v2.4.0, @jgclark
+// Last updated 2026-07-10 for v2.4.0.b47, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { createSectionItemObject, filterParasByRelevantFolders, filterParasByIgnoreTerms, filterParasByExcludedCalendarSections, filterParasByAllowedTeamspaces, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
+import { createSectionItemObject, filterParasByRelevantFolders, filterParasByIgnoreTerms, filterParasByIncludedCalendarSections, filterParasByExcludedCalendarSections, filterParasByAllowedTeamspaces, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
 import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -220,9 +220,12 @@ export async function getRelevantOverdueTasks(
     // Filter out anything from 'ignoreItemsWithTerms' setting
     filteredOverdueParas = filterParasByIgnoreTerms(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
 
+    // Filter out anything not matching 'includedCalendarSections' setting, if set
+    filteredOverdueParas = filterParasByIncludedCalendarSections(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
+
     // Also if wanted, apply to calendar headings in this note
     filteredOverdueParas = filterParasByExcludedCalendarSections(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
-    logTimer('getRelevantOverdueTasks', thisStartTime, `After filtering, ${overdueParas.length} overdue items`)
+    logTimer('getRelevantOverdueTasks', thisStartTime, `After filtering, ${filteredOverdueParas.length} overdue items`)
 
     // Remove items that appear in this section twice (which can happen if a task is sync'd), based just on their content
     // Note: this is a quick operation

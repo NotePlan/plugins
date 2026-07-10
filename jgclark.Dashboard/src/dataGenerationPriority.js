@@ -12,6 +12,7 @@ import {
   createSectionItemObject,
   filterParasByExcludedCalendarSections,
   filterParasByIgnoreTerms,
+  filterParasByIncludedCalendarSections,
   filterParasByRelevantFolders,
   getNotePlanSettings,
   isWinItem,
@@ -182,6 +183,9 @@ async function getRelevantPriorityTasks(config: TDashboardSettings): Promise<Arr
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
     filteredPriorityParas = filterParasByIgnoreTerms(filteredPriorityParas, config, thisStartTime, 'getRelevantPriorityTasks')
+
+    // Filter out anything not matching 'includedCalendarSections' setting, if set
+    filteredPriorityParas = filterParasByIncludedCalendarSections(filteredPriorityParas, config, thisStartTime, 'getRelevantPriorityTasks')
 
     // Also if wanted, apply to calendar headings in this note
     filteredPriorityParas = filterParasByExcludedCalendarSections(filteredPriorityParas, config, thisStartTime, 'getRelevantPriorityTasks')
