@@ -105,7 +105,7 @@ In sections with more than 1 item, a `>> N` button is available (where `N` is th
 
 Note:
 - you can break out from the sequence at any time by closing the dialog.
-- at the moment this only processes tasks that are currently shown -- so it won't process any ones of lower priority that you have hidden.
+- by default this only processes tasks that are currently shown -- so it won't process any ones of lower priority that you have hidden. If you turn off the setting 'Do "Move all items" buttons only move shown items when filtering?', then `>> N` and Interactive Processing include those hidden lower-priority items as well.
 - there are 3 settings that control aspects of this in the Dashboard Settings dialog.
 
 ### Add Task/Checklist items

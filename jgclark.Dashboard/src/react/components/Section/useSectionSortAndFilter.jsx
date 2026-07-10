@@ -8,7 +8,7 @@
 //   (priority / earliest / due date / most recent) -- do not re-sort by priority here.
 // - Limit = only show the first N of M items
 //
-// Last updated 2026-07-10 for v2.4.0.b47, @jgclark + @CursorAI
+// Last updated 2026-07-10 for v2.4.0.b48, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -24,6 +24,8 @@ import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 type UseSectionSortAndFilter = {
   filteredItems: Array<TSectionItem>,
   itemsToShow: Array<TSectionItem>,
+  /** All type-wanted items after sort/reorder, before priority filter and display limit. Used by Interactive Processing when moveOnlyShownItemsWhenFiltered is false. */
+  allSortedItems: Array<TSectionItem>,
   numFilteredOutThisSection: number,
   limitApplied: boolean,
   maxPrioritySeenInThisSection: number,
@@ -58,6 +60,7 @@ const useSectionSortAndFilter = (
 
   const [filteredItems, setFilteredItems] = useState<Array<TSectionItem>>([])
   const [itemsToShow, setItemsToShow] = useState<Array<TSectionItem>>([])
+  const [allSortedItems, setAllSortedItems] = useState<Array<TSectionItem>>([])
   const [numFilteredOutThisSection, setNumFilteredOutThisSection] = useState < number > (0)
   const [limitApplied, setLimitApplied] = useState<boolean>(false)
 
@@ -85,6 +88,7 @@ const useSectionSortAndFilter = (
     if (memoizedItems.length === 0) {
       setFilteredItems([])
       setItemsToShow([])
+      setAllSortedItems([])
       setNumFilteredOutThisSection(0)
       setLimitApplied(false)
       setCalculatedMaxPriority(-1)
@@ -98,10 +102,12 @@ const useSectionSortAndFilter = (
       // Note: assumes they come in (start) time order.
       // All items passed here should already be valid timeblocks, so we can show them all
       setItemsToShow(memoizedItems)
+      setAllSortedItems(memoizedItems)
     }
     // Handle INFO section differently: no filtering
     else if (section.sectionCode === 'INFO') {
       setItemsToShow(memoizedItems)
+      setAllSortedItems(memoizedItems)
       setLimitApplied(false)
     }
     // If we have a Synthetic Wins section, show >> / priority-4 items only; do not contribute to global filterPriority max
@@ -133,6 +139,7 @@ const useSectionSortAndFilter = (
         }
         setFilteredItems([])
         setItemsToShow(emptyOrCongrats)
+        setAllSortedItems([])
         setNumFilteredOutThisSection(0)
         setLimitApplied(false)
       } else {
@@ -142,6 +149,7 @@ const useSectionSortAndFilter = (
         const limited = needToApplyLimit ? ordered.slice(0, limitToApply) : ordered
         setFilteredItems(limited)
         setItemsToShow(limited)
+        setAllSortedItems(ordered)
         setNumFilteredOutThisSection(0)
         setLimitApplied(needToApplyLimit)
       }
@@ -163,6 +171,7 @@ const useSectionSortAndFilter = (
       setFilteredItems(limitedItemsToShow)
       setNumFilteredOutThisSection(0)
       setItemsToShow(limitedItemsToShow)
+      setAllSortedItems(orderedProjectItems)
       setLimitApplied(needToApplyLimit)
     }
     // Handle all other sections
@@ -237,6 +246,13 @@ const useSectionSortAndFilter = (
       // OVERDUE and TAG are already sorted in data generation by overdueSortOrder.
       // Re-running itemSort (priority-first) would overwrite earliest / due date / most recent.
       const preservePluginSortOrder = section.sectionCode === 'OVERDUE' || section.sectionCode === 'TAG'
+      // Full list for Interactive Processing when moveOnlyShownItemsWhenFiltered is false (before priority filter / limit)
+      const allItemsForSort = typeWantedItems.slice()
+      if (!preservePluginSortOrder) {
+        allItemsForSort.sort(itemSort)
+      }
+      const allSortedBeforeDisplayFilter = reorderChildrenAfterParents(allItemsForSort)
+
       if (!preservePluginSortOrder) {
         filteredItems.sort(itemSort)
       }
@@ -284,6 +300,7 @@ const useSectionSortAndFilter = (
 
       setFilteredItems(filteredItems)
       setItemsToShow(itemsToShow)
+      setAllSortedItems(allSortedBeforeDisplayFilter)
       setNumFilteredOutThisSection(numFilteredOutThisSection)
       const limitAppliedHere = limitToApply > 0 && orderedFilteredItems.length > limitToApply
       setLimitApplied(limitAppliedHere)
@@ -296,7 +313,7 @@ const useSectionSortAndFilter = (
   }
 
   // logDebug('useSectionSortAndFilter', `Section ${section.sectionCode} returning: maxPrioritySeenInThisSection: ${calculatedMaxPriority}; itemsToShow: ${itemsToShow.length}; numFilteredOut: ${String(numFilteredOut)}; limitApplied: ${String(limitApplied)}`)
-  return { filteredItems, itemsToShow, numFilteredOutThisSection, limitApplied, maxPrioritySeenInThisSection: calculatedMaxPriority, toggleShowAllTasks }
+  return { filteredItems, itemsToShow, allSortedItems, numFilteredOutThisSection, limitApplied, maxPrioritySeenInThisSection: calculatedMaxPriority, toggleShowAllTasks }
 }
 
 //----------------------------------------------------------------------

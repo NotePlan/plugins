@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2026-07-10 for v2.4.0.b47 by @jgclark + @CursorAI
+// Last updated 2026-07-10 for v2.4.0.b48 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -325,6 +325,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   const {
     filteredItems: _filteredItems,
     itemsToShow,
+    allSortedItems,
     numFilteredOutThisSection: _numFilteredOutThisSection,
     limitApplied,
     maxPrioritySeenInThisSection,
@@ -364,9 +365,12 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   //----------------------------------------------------------------------
 
   // handle a click to start interactive processing
+  // When moveOnlyShownItemsWhenFiltered is false, include lower-priority (and limit-hidden) items, not just those currently shown.
   const handleInteractiveProcessingClick = useCallback(
     (e: MouseEvent): void => {
-      const processableItems = itemsToShow.filter((row) => row.itemType === 'open' || row.itemType === 'checklist')
+      const moveOnlyShownItemsWhenFiltered = dashboardSettings?.moveOnlyShownItemsWhenFiltered ?? true
+      const sourceItems = moveOnlyShownItemsWhenFiltered ? itemsToShow : allSortedItems
+      const processableItems = sourceItems.filter((row) => row.itemType === 'open' || row.itemType === 'checklist')
       if (processableItems.length === 0) return
 
       const clickPosition = { clientY: e.clientY, clientX: e.clientX + 200 }
@@ -387,7 +391,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
         return newReactSettings
       })
     },
-    [section, itemsToShow, setReactSettings],
+    [section, itemsToShow, allSortedItems, dashboardSettings?.moveOnlyShownItemsWhenFiltered, setReactSettings],
   )
 
   const handleCommandButtonClick = (button: TActionButton): void => {
@@ -566,15 +570,19 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
       </div>
     ) : null
 
-  // Decide whether to show interactiveProcessing button
-  // Note: don't show IP button if there are no items to show, or if the first item is a single item type that we don't want to count (e.g. 'Nothing left on this list')
-  // TODO(later): enable for PROJREVIEW/PROJACT
+  // Decide whether to show interactiveProcessing button:
+  // - don't show IP button if there are no items to show, or if the first item is a single item type that we don't want to count (e.g. 'Nothing left on this list')
+  // - when moveOnlyShownItemsWhenFiltered is false, N and the IP dialog include lower-priority / limit-hidden items as well.
+  // - TODO(later): enable for PROJREVIEW/PROJACT
+  const moveOnlyShownItemsWhenFiltered = dashboardSettings?.moveOnlyShownItemsWhenFiltered ?? true
+  const ipItemCount = moveOnlyShownItemsWhenFiltered
+    ? numItemsToShow
+    : allSortedItems.filter((row) => row.itemType === 'open' || row.itemType === 'checklist').length
   const showIPButton =
     dashboardSettings.enableInteractiveProcessing &&
     interactiveProcessingPossibleSectionTypes.includes(section.sectionCode) &&
-    numItemsToShow > 1 &&
-    // TODO: use this next line instead if we want to pass all items to interactive processing, not just the [possibly filtered] numItemsToShow
-    // (numItemsToShow > 1 || (numItemsToShow === 1 && numFilteredOutThisSection > 0)) &&
+    ipItemCount > 1 &&
+    itemsToShow.length > 0 &&
     !treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)
 
   // TB section can show up blank, without this extra check
@@ -629,15 +637,13 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
           {processActionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="PCButton" />) ?? []}
           {showIPButton && (
             // <>
-            <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} items`}>
+            <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${ipItemCount} ${section.name} items`}>
               {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
               {/* wanted to use 'fa-arrow-progress' here but not in our build */}
               {/* <i className="fa-regular fa-layer-group fa-rotate-90"></i> */}
               <i className="fa-regular fa-angles-right"></i>
               <span className="interactiveProcessingNumber" style={{ fontWeight: 500, paddingLeft: '3px' }}>
-                {numItemsToShow}
-                {/* Note: use this instead of above if we want to pass all items to interactive processing, not just the [possibly filtered] numItemsToShow */}
-                {/* {numItemsToShow + numFilteredOut} */}
+                {ipItemCount}
               </span>
             </button>
             // </>

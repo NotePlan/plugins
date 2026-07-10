@@ -9,6 +9,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
+## [2.4.0.b48] 2026-07-11
+- When setting **Do "Move all items" buttons only move shown items when filtering?** is off, the Interactive Processing (">> N") button count and dialog include lower-priority items that are hidden by filtering (not just the items currently shown).
+
 ## [2.4.0.b47] 2026-07-10
 - New Display setting **Hide sections with nothing left to do?**: when on, enabled sections with no open items are hidden after a refresh (or on first load). Completing the last item in a section still shows the usual "all done" message until the next refresh. (Suggested by @Garba.)
 - When there are no sections to display (after load/refresh, settings change, or completing the last item), show an INFO toast: "Your current settings and filters mean there are no items to show."

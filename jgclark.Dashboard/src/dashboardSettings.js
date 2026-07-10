@@ -370,7 +370,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Do "Move all items" buttons only move shown items when filtering?',
     type: 'switch',
     default: true,
-    description: 'When "Filter out lower-priority items" is enabled, if this is also enabled, the "All → ..." buttons will only move the items currently shown, excluding filtered lower-priority items. If disabled, they will move all items including filtered ones.',
+    description: 'When "Filter out lower-priority items" is enabled, if this is also enabled, the "All → ..." buttons and Interactive Processing (">> N") will only include the items currently shown, excluding filtered lower-priority items. If disabled, they will include all items including filtered ones.',
   },
   {
     type: 'separator',
