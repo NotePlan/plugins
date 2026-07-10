@@ -4,6 +4,8 @@
 // Filters, Limits and Sorts items to be shown in a Section.
 // - Filter = filter out types we don't want to see (e.g. checklists), or lower-priority items
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
+//   Exception: OVERDUE and TAG keep the plugin-side order from overdueSortOrder
+//   (priority / earliest / due date / most recent) -- do not re-sort by priority here.
 // - Limit = only show the first N of M items
 //
 // Last updated 2026-07-10 for v2.4.0.b47, @jgclark + @CursorAI
@@ -232,7 +234,12 @@ const useSectionSortAndFilter = (
         //   )} / this ${String(thisSectionCalculatedMaxPriority)})`,
         // )
       }
-      filteredItems.sort(itemSort)
+      // OVERDUE and TAG are already sorted in data generation by overdueSortOrder.
+      // Re-running itemSort (priority-first) would overwrite earliest / due date / most recent.
+      const preservePluginSortOrder = section.sectionCode === 'OVERDUE' || section.sectionCode === 'TAG'
+      if (!preservePluginSortOrder) {
+        filteredItems.sort(itemSort)
+      }
       // logDebug('useSectionSortAndFilter', `sorted: ${String(filteredItems.map(fi => fi.ID).join(','))}`)
 
       const orderedFilteredItems = reorderChildrenAfterParents(filteredItems)

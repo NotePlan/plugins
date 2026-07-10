@@ -13,6 +13,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - New Display setting **Hide sections with nothing left to do?**: when on, enabled sections with no open items are hidden after a refresh (or on first load). Completing the last item in a section still shows the usual "all done" message until the next refresh. (Suggested by @Garba.)
 - When there are no sections to display (after load/refresh, settings change, or completing the last item), show an INFO toast: "Your current settings and filters mean there are no items to show."
 - fix: Changing Overdue settings now refreshes the Overdue section. dev: Settings save no longer double-fires `dashboardSettingsChanged`; no-op echo skips `setPluginData` so it cannot overwrite an in-flight refresh.
+- fix: Overdue / Tag sort order **earliest**, **due date**, and **most recent** now stick. Dev: useSectionSortAndFilter no longer re-sorts those sections by priority after the plugin has ordered them.
+- fix: The 'Last Week' section wasn't being handled properly when "Hide duplicates" setting was enabled.
 - perf: Current Time Block ~1-minute refresh pauses while the Dashboard window is hidden, and restarts when it becomes visible again.
 
 ## [2.4.0.b46] 2026-06-13

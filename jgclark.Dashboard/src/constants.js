@@ -48,7 +48,7 @@ export const defaultSectionDisplayOrder = ['SEARCH', 'INFO', 'SAVEDSEARCH', 'TB'
 
 // change this order to change which duplicate items get kept - the first on the list. Should not include 'dontDedupeSectionCodes' below.
 // WINS before DT/W/M/Q so hideDuplicates keeps >> items in Wins and strips them from period sections.
-export const sectionPriorityForDeduping = ['TB', 'TAG', 'WINS', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
+export const sectionPriorityForDeduping = ['TB', 'TAG', 'WINS', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
 
 // Those sections we can't or shouldn't attempt to dedupe:
 // - TB as its for info only
