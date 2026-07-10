@@ -12,7 +12,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useMidnightRollover from '../customHooks/useMidnightRollover.jsx'
-import { dontDedupeSectionCodes, sectionPriority, defaultSectionDisplayOrder } from '../../constants.js'
+import { dontDedupeSectionCodes, sectionPriorityForDeduping, defaultSectionDisplayOrder } from '../../constants.js'
 import { copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { injectSyntheticWinsSection } from '../../dataGenerationPriority'
 import { findSectionItems } from '../../dashboardHelpers.js'
@@ -20,7 +20,7 @@ import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettin
 import type { TActionButton } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
-import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
+import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, countSectionsThatWouldDisplay, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
 import { calculateMaxPriorityAcrossAllSections } from './Section/useSectionSortAndFilter.jsx'
 import Header from './Header'
 import IdleTimer from './IdleTimer.jsx'
@@ -68,7 +68,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Define getContext function
   const getContext = () => contextRef.current
 
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, updatePluginData } = context
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, updatePluginData, dispatch } = context
 
   const { sections: origSections, lastFullRefresh } = pluginData
   // When the plugin splices rows in-place (e.g. REMOVE_LINE_FROM_JSON), `pluginData.sections` often keeps the same array reference;
@@ -77,6 +77,9 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // const enabledSectionCodes: Array<TSectionCode> = getListOfEnabledSections(dashboardSettings)
 
   const logSettings = pluginData.logSettings
+
+  const isRefreshing =
+    pluginData.refreshing === true || (Array.isArray(pluginData.refreshing) && pluginData.refreshing.length > 0)
 
   //----------------------------------------------------------------------
   // Hooks
@@ -93,6 +96,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Refs
   //----------------------------------------------------------------------
   const containerRef = useRef<?HTMLDivElement>(null)
+  // Dedupe empty-state toast: only fire when transitioning into "nothing to show", not on every re-render while empty
+  const hadDisplayableSectionsRef = useRef < boolean > (true)
 
   //----------------------------------------------------------------------
   // State
@@ -109,7 +114,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
 
       // Sections other than the standard task-based ones need to be ignored here
-      const dedupedSections = getSectionsWithoutDuplicateLines(workingSections.slice(), ['filename', 'content'], sectionPriority, dontDedupeSectionCodes, dashboardSettings)
+      const dedupedSections = getSectionsWithoutDuplicateLines(workingSections.slice(), ['filename', 'content'], sectionPriorityForDeduping, dontDedupeSectionCodes, dashboardSettings)
       workingSections = dedupedSections
     }
 
@@ -168,6 +173,33 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Effects
   //----------------------------------------------------------------------
+
+  // When no sections would render show an INFO toast to confirm this, avoiding the appearance of a bug.
+  useEffect(() => {
+    if (pluginData.firstRun || isRefreshing || !dashboardSettings) return
+
+    const displayableCount = countSectionsThatWouldDisplay(sections, dashboardSettings)
+    if (displayableCount > 0) {
+      hadDisplayableSectionsRef.current = true
+      return
+    }
+
+    // Already toasted for this empty stretch
+    if (!hadDisplayableSectionsRef.current) return
+    hadDisplayableSectionsRef.current = false
+
+    logInfo('Dashboard', 'No sections to display; showing INFO toast')
+    dispatch(
+      'SHOW_TOAST',
+      {
+        type: 'INFO',
+        msg: 'Your current settings and filters mean there are no items to show.',
+        // timeout 0 / omitted = sticky until the user dismisses (Root only auto-hides when timeout > 0)
+        timeout: 0,
+      },
+      'no sections to display',
+    )
+  }, [sections, dashboardSettings, dispatch, isRefreshing, pluginData.firstRun, pluginSectionsShapeKey])
 
   // Force the window to be focused on load so that we can capture clicks on hover
   useEffect(() => {

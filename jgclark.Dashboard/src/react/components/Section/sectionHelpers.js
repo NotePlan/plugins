@@ -5,7 +5,7 @@
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
-import { allSectionDetails, treatSingleItemTypesAsZeroItems } from '../../../constants'
+import { allSectionDetails, CAN_HAVE_EMPTY_SECTION_MESSAGES, treatSingleItemTypesAsZeroItems } from '../../../constants'
 import { logTimer } from '@helpers/dev.js'
 import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/reactDev'
 
@@ -35,7 +35,7 @@ export function getGeneratedDateKey(generatedDate: ?(Date | string)): string {
 
 /**
  * Get a list of TSettingItem (key, label, type) objects for the showSettingName settings for all sections except TAG (which requires special handling).
- * Also, INFO section is turned off by default. (TODO: this could do with being set in the constants.js file)
+ * Also, INFO section is turned off by default.
  * @returns {Array<TSettingItem>}
  */
 export const showSectionSettingItems: Array<TSettingItem> = allSectionDetails.reduce((acc, s) => {
@@ -85,6 +85,46 @@ const sectionIsVisible = (section: TSection, dashboardSettings: TDashboardSettin
   const showSetting = sectionCode === 'TAG' ? dashboardSettings[settingName] : dashboardSettings[settingName]
   // logDebug('sectionHelpers', `sectionIsVisible ${sectionCode} ${settingName} ${showSetting} returning ${typeof showSetting === 'undefined' || showSetting === true}`)
   return typeof showSetting === 'undefined' || showSetting === true
+}
+
+/**
+ * Whether a section would actually render after Section.jsx empty-state handling (for load/refresh, not local last-item congrats).
+ * Mirrors Section.jsx: enabled sections with real items always show; empty SEARCH always shows;
+ * empty DT/W/M/Q (non-ref), WINS, TAG, PROJ* show congrats unless hideEmptySections is on; other empties hide.
+ * @param {TSection} section
+ * @param {TDashboardSettings} dashboardSettings
+ * @returns {boolean}
+ */
+export function sectionWouldDisplayAfterRefresh(section: TSection, dashboardSettings: TDashboardSettings): boolean {
+  if (!sectionIsVisible(section, dashboardSettings)) return false
+
+  const realCount = countRealSectionItems(section.sectionItems)
+  if (realCount > 0) return true
+
+  const sectionCode = section.sectionCode
+  // Search empty state always shows a "no results" row
+  if (sectionCode === 'SEARCH' || sectionCode === 'SAVEDSEARCH') return true
+
+  // Referenced calendar empties never get congrats
+  if (section.isReferenced) return false
+
+  const hideEmptySections = dashboardSettings.hideEmptySections === true
+  // Sections that inject congrats / empty messages when hideEmptySections is off
+  if (CAN_HAVE_EMPTY_SECTION_MESSAGES.includes(sectionCode)) { return !hideEmptySections }
+
+  // TB, OVERDUE, PRIORITY, Yesterday, etc. hide when empty
+  return false
+}
+
+/**
+ * Count how many sections would render after a load/refresh given current settings (including hideEmptySections).
+ * @param {Array<TSection>} sections
+ * @param {TDashboardSettings} dashboardSettings
+ * @returns {number}
+ */
+export function countSectionsThatWouldDisplay(sections: Array<TSection>, dashboardSettings: TDashboardSettings): number {
+  if (!sections || !dashboardSettings) return 0
+  return sections.reduce((total, section) => (sectionWouldDisplayAfterRefresh(section, dashboardSettings) ? total + 1 : total), 0)
 }
 
 /**

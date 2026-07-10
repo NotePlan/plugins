@@ -48,7 +48,7 @@ export const defaultSectionDisplayOrder = ['SEARCH', 'INFO', 'SAVEDSEARCH', 'TB'
 
 // change this order to change which duplicate items get kept - the first on the list. Should not include 'dontDedupeSectionCodes' below.
 // WINS before DT/W/M/Q so hideDuplicates keeps >> items in Wins and strips them from period sections.
-export const sectionPriority = ['TB', 'TAG', 'WINS', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
+export const sectionPriorityForDeduping = ['TB', 'TAG', 'WINS', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
 
 // Those sections we can't or shouldn't attempt to dedupe:
 // - TB as its for info only
@@ -58,7 +58,8 @@ export const dontDedupeSectionCodes = ['INFO', 'PROJACT', 'PROJREVIEW', 'SEARCH'
 // Enable interactive processing for these itemTypes:
 export const interactiveProcessingPossibleSectionTypes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY']
 
-/** When the user toggles visibility of a calendar period section only, refresh these sections (if enabled) so Wins / Priority / Overdue deduping stays correct. */
+// When the user toggles visibility of a calendar period section only, refresh these sections (if enabled).
+// This ensures Wins / Priority / Overdue deduping stays correct.
 export const SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS: Array<TSectionCode> = ['WINS', 'PRIORITY', 'OVERDUE']
 
 export const SEARCH_RELATED_SECTION_CODES: Array<TSectionCode> = ['SEARCH', 'SAVEDSEARCH']
@@ -77,3 +78,6 @@ export const itemCongratsFAIconClass = 'fa-light fa-champagne-glasses'
  * Dashboard setting keys that can change without re-fetching section item lists (theme uses CHANGE_THEME CSS regen instead).
  */
 export const DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH: Set<string> = new Set(['applyCurrentFilteringToSearch', 'autoUpdateAfterIdleTime', 'dashboardTheme', 'dontSearchFutureItems', 'enableInteractiveProcessing', 'enableInteractiveProcessingTransitions', 'interactiveProcessingHighlightTask', 'lastModified', 'moveSubItems', 'newTaskSectionHeading', 'newTaskSectionHeadingLevel', 'preferredWindowType', 'settingsMigrated', 'useLiteScheduleMethod'])
+
+// Sections that can inject congrats / empty messages (when hideEmptySections is off)
+export const CAN_HAVE_EMPTY_SECTION_MESSAGES = ['DT', 'W', 'M', 'Q', 'WINS', 'TAG', 'PROJACT', 'PROJREVIEW']
