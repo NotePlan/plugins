@@ -72,7 +72,7 @@ function ReminderItem({ item /*, thisSection */ }: Props): Node {
         className="reminderContext pad-left-larger"
         style={{ color: 'var(--tint-color)', borderColor: 'var(--divider-color)' }}
       >
-        <i className="fa-regular fa-location-dot" />
+        <i className="fa-regular fa-location-dot pad-right" />
         {reminder.location}
       </span>,
     )
@@ -80,8 +80,8 @@ function ReminderItem({ item /*, thisSection */ }: Props): Node {
   if (showListnameContext) {
     const listnameColor = listColor || 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))'
     const listnameBackgroundColor = listColor
-      ? colorToModernSpecWithOpacity(listColor, 0.1) || `rgb(from ${listColor} r g b / 0.1)`
-      : 'var(--bg-placeholder-color, rgba(76, 79, 105, 0.1))'
+      ? colorToModernSpecWithOpacity(listColor, 0.1) || `rgb(from ${listColor} r g b / 0.05)`
+      : 'var(--bg-placeholder-color, rgba(76, 79, 105, 0.05))'
     contentParts.push(
       <span
         key="listname"
@@ -96,7 +96,7 @@ function ReminderItem({ item /*, thisSection */ }: Props): Node {
   }
   if (reminder.flagged) {
     contentParts.push(
-      <span key="flagged" className="reminderFlagged pad-left-larger" title="Flagged" style={{ color: 'var(--tint-color, #dc8a78)' }}>
+      <span key="flagged" className="reminderFlagged pad-left-larger" title="Flagged" style={{ color: 'var(--tint-color, #dc8a78)', fontSize: '75%' }}>
         <i className="fa-solid fa-flag" />
       </span>,
     )

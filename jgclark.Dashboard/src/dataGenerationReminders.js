@@ -324,7 +324,7 @@ export async function getRemindersGeneratedData(
       showSettingName: 'showRemindersSection',
       description: sectionDescription,
       FAIconClass: 'fa-regular fa-fw fa-list',
-      sectionTitleColorPart: 'timeBlockColor',
+      sectionTitleColorPart: 'RemindersColor',
       sectionItems: restItems,
       generatedDate: new Date(),
       isReferenced: false,
