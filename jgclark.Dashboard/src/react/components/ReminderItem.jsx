@@ -44,11 +44,12 @@ function ReminderItem({ item /*, thisSection */ }: Props): Node {
   const showListnameContext = Boolean(dashboardSettings?.showTaskContext && reminder.listname)
   const listColor = reminder.color || null
 
-  // Build main content: optional time (timeBlock style), title, details, location
+  // Build main content: optional time (shared .timeBlock lozenge), title, details, location
   const contentParts: Array<Node> = []
   if (reminder.time) {
     contentParts.push(
       <span key="time" className="timeBlock pad-right">
+        <i className="fa-regular fa-clock pad-right" />
         {reminder.time}
       </span>,
     )

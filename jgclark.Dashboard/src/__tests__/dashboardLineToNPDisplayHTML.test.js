@@ -50,6 +50,14 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
       const html = makeStringContentToLookLikeNPDisplayInReact(long, { truncateLength: 80, taskPriority: 0 })
       expect(html.length).toBeLessThan(long.length)
     })
+
+    test('wraps scheduled >dates in scheduledDate lozenge with calendar icon', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('Call bank >2026-08-01', { truncateLength: 0, taskPriority: 0 })
+      expect(html).toContain('class="scheduledDate"')
+      expect(html).toContain('fa-regular fa-calendar')
+      // Date text without the leading '>' marker (calendar icon replaces it)
+      expect(html).toMatch(/scheduledDate"><i class="fa-regular fa-calendar pad-right"><\/i>2026-08-01<\/span>/)
+    })
   })
 
   describe('applyDashboardSettingsToDisplayedItemHtml()', () => {
@@ -62,6 +70,17 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
       })
       expect(out).toContain('important task')
       expect(out).not.toContain('!! ')
+    })
+
+    test('removes scheduledDate lozenges when showScheduledDates is false', () => {
+      const html = 'Call bank <span class="scheduledDate"><i class="fa-regular fa-calendar pad-right"></i>2026-08-01</span>'
+      const out = applyDashboardSettingsToDisplayedItemHtml(html, {
+        ...dashboardDefaults,
+        showScheduledDates: false,
+      })
+      expect(out).not.toContain('scheduledDate')
+      expect(out).not.toContain('2026-08-01')
+      expect(out).toContain('Call bank')
     })
   })
 })

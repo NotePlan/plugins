@@ -48,7 +48,7 @@ export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', '
 export const defaultSectionDisplayOrder = ['SEARCH', 'INFO', 'SAVEDSEARCH', 'WINS', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'REM', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJACT', 'PROJREVIEW']
 
 // change this order to change which duplicate items get kept - the first on the list. Should not include 'dontDedupeSectionCodes' below.
-// TB before REM/DT so timed reminders kept in Current time blocks are stripped from later sections when hideDuplicates is on.
+// TB before REM/DT so timed reminders (due now) kept in Current time blocks are stripped from later sections when hideDuplicates is on.
 // WINS before DT/W/M/Q so hideDuplicates keeps >> items in Wins and strips them from period sections.
 export const sectionPriorityForDeduping = ['TB', 'REM', 'TAG', 'WINS', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
 

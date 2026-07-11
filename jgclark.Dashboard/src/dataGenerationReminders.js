@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for REM (Reminders) Section and day/TB reminder buckets
-// Last updated 2026-07-11 for v2.4.0.b49, @jgclark
+// Last updated 2026-07-11 for v2.4.0.b49, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -188,6 +188,28 @@ function createReminderSectionItem(id: string, reminder: TReminderForDashboard):
  */
 function reminderHasTime(reminder: TReminderForDashboard): boolean {
   return Boolean(reminder.time && reminder.time.trim() !== '')
+}
+
+/**
+ * Whether a timed reminder's due time has been reached (time <= now, same calendar day assumed).
+ * @param {TReminderForDashboard} reminder
+ * @returns {boolean}
+ */
+export function reminderTimeHasBeenReached(reminder: TReminderForDashboard): boolean {
+  if (!reminderHasTime(reminder) || !reminder.time) {
+    return false
+  }
+  const nowTime = moment().format('HH:mm')
+  return reminder.time <= nowTime
+}
+
+/**
+ * Keep only reminder items whose due time has already been reached.
+ * @param {Array<TSectionItem>} reminderItems
+ * @returns {Array<TSectionItem>}
+ */
+export function filterRemindersWhoseTimeHasBeenReached(reminderItems: Array<TSectionItem>): Array<TSectionItem> {
+  return reminderItems.filter((item) => item.reminder != null && reminderTimeHasBeenReached(item.reminder))
 }
 
 /**

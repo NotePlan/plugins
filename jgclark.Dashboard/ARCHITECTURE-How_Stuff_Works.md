@@ -230,7 +230,7 @@ All three share the same tail behaviour: recalculate done-task counts (when `don
 Gated by feature flag **`FFlag_Reminders`**. Backend: `dataGenerationReminders.js` (`getRemindersGeneratedData()`). Frontend: `ReminderItem.jsx` via `ItemRow`.
 
 Live data comes from incomplete Apple Reminders on lists enabled in NotePlan (`Calendar.availableReminderLists({ enabledOnly: true })` then `Calendar.remindersByLists`). Items are split into:
-- timed today → Time Blocks (`TB`)
+- timed today whose due time has been reached → Time Blocks (`TB`); future-timed today reminders stay out of TB until then. When Reminders is enabled, TB is titled **Current time block + tasks**.
 - untimed today / yesterday / tomorrow → day sections (`DT` / `DY` / `DO`) as referenced items
 - undated + before yesterday → the dedicated **Reminders** (`REM`) section
 - dated **after tomorrow** → filtered out (not shown anywhere)

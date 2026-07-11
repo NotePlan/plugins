@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Shared: turn a raw task line string into HTML matching NotePlan-style display
 // (hashtags, mentions, links, etc.) for TaskItem (via ItemContent) and ProjectItem.
-// Last updated 2026-04-13 for v2.4.0.b24 by @jgclark/@Cursor
+// Last updated 2026-07-11 for v2.4.0.b49 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 
 import type { TDashboardSettings, TSectionItem } from '../types.js'
@@ -49,6 +49,8 @@ export type TDashboardLineDisplayOptions = {
 export function applyDashboardSettingsToDisplayedItemHtml(mainContent: string, dashboardSettings: TDashboardSettings): string {
   let out = mainContent
   if (out && !dashboardSettings.showScheduledDates) {
+    // Remove scheduled-date lozenges first, then any remaining raw >dates
+    out = out.replace(/<span class="scheduledDate">[\s\S]*?<\/span>/g, '')
     out = replaceArrowDatesInString(out, '')
   }
   const shouldRemove = dashboardSettings && dashboardSettings.hidePriorityMarkers === true
@@ -126,7 +128,9 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
     let captures = output.match(RE_SCHEDULED_DATES_G)
     if (captures) {
       for (const capture of captures) {
-        output = output.replace(capture, `<span style="color: var(--tint-color);">${capture}</span>`)
+        // Lozenge like .timeBlock: calendar icon + date text (without leading '>')
+        const dateText = capture.startsWith('>') ? capture.slice(1) : capture
+        output = output.replace(capture, `<span class="scheduledDate"><i class="fa-regular fa-calendar pad-right"></i>${dateText}</span>`)
       }
     }
 

@@ -10,6 +10,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 -->
 ## [2.4.0.b49] 2026-07-11
 - New **Reminders** section (Apple Reminders), gated by feature flag **FFlag_Reminders**. Shows open reminders from the Apple Reminders lists that the user has selected in NotePlan's settings. The display is read-only for now.
+- When Reminders section is enabled, the **Current time block** section is titled **Current time block + tasks**, and timed reminders only appear there once their due time has been reached.
+- Time displays on timeblock and reminder items now use a neater lozenge with a clock icon at the start.
+- Scheduled `>date` markers on items are now shown in a neater lozenge with a calendar icon at the start.
 - Removed beta feature flag item "Show Banner Test Buttons".
 
 ## [2.4.0.b48] 2026-07-11

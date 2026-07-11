@@ -361,9 +361,7 @@ button,
 		white-space: nowrap;
 	}
 
-	.scheduledDate {
-		color: var(--tint-color);
-	}
+	/* Note: .scheduledDate lozenge styles come from generateCSSFromTheme (NPThemeToCSS) */
 
 	/* turn off text color and underlining by default on all content items... */
 	.content,

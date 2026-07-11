@@ -17,7 +17,7 @@ import {
   makeDashboardParas,
 } from './dashboardHelpers'
 import { openTodayItems, refTodayItems, openTomorrowParas, refTomorrowParas, openYesterdayParas, refYesterdayParas } from './demoData'
-import { assignReminderItemsToSection } from './dataGenerationReminders'
+import { assignReminderItemsToSection, filterRemindersWhoseTimeHasBeenReached } from './dataGenerationReminders'
 import { getTodaysDateUnhyphenated } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
@@ -282,7 +282,7 @@ export function getTodaySectionData(
 /**
  * Get timeblock section data for today's note.
  * Includes valid timeblocks in paragraphs of type 'title', 'open', 'list', and 'checklist'.
- * Also includes today's timed reminders (from the Reminders timed-today bucket).
+ * Also includes today's timed reminders whose due time has been reached (from the Reminders timed-today bucket).
  * Note: This is completely separate from getTodaySectionData() and fetches its own data.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
@@ -313,6 +313,7 @@ export function getTimeBlockSectionData(
     let timeBlockItems: Array<TSectionItem> = []
     const mustContainString = NPSettings.timeblockMustContainString
     let itemCounter = 0
+    const remindersFeatureEnabled = Boolean(config.FFlag_Reminders && config.showRemindersSection)
 
     // const combinedParas = sortedOrCombinedParas.concat(sortedRefParas)
 
@@ -350,18 +351,30 @@ export function getTimeBlockSectionData(
       itemCounter += timeBlockItems.length
     }
 
-    // Append today's timed reminders
+    // Append today's timed reminders whose due time has been reached
     if (timedTodayReminderItems.length > 0) {
-      const assigned = assignReminderItemsToSection(timedTodayReminderItems, TBsectionCode, TBsectionCode, itemCounter)
-      timeBlockItems = timeBlockItems.concat(assigned)
-      itemCounter += assigned.length
-      logDebug('getTimeBlockSectionData', `- added ${String(assigned.length)} timed reminder(s) into TB`)
+      const dueNowReminders = filterRemindersWhoseTimeHasBeenReached(timedTodayReminderItems)
+      const skippedFutureCount = timedTodayReminderItems.length - dueNowReminders.length
+      if (skippedFutureCount > 0) {
+        logDebug('getTimeBlockSectionData', `- skipped ${String(skippedFutureCount)} timed reminder(s) whose time has not been reached yet`)
+      }
+      if (dueNowReminders.length > 0) {
+        const assigned = assignReminderItemsToSection(dueNowReminders, TBsectionCode, TBsectionCode, itemCounter)
+        timeBlockItems = timeBlockItems.concat(assigned)
+        itemCounter += assigned.length
+        logDebug('getTimeBlockSectionData', `- added ${String(assigned.length)} timed reminder(s) into TB`)
+      }
+    }
+
+    let sectionName = timeBlockItems.length > 1 ? 'Current time blocks' : 'Current time block' // singular if only one item
+    if (remindersFeatureEnabled) {
+      sectionName = `${sectionName} + tasks`
     }
 
     const section: TSection = {
       ID: TBsectionCode,
       sectionCode: 'TB',
-      name: timeBlockItems.length > 1 ? 'Current time blocks' : 'Current time block', // singular if only one item
+      name: sectionName,
       showSettingName: 'showTimeBlockSection',
       description: '',
       FAIconClass: 'fa-regular fa-fw fa-calendar-clock',

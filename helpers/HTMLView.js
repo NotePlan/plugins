@@ -1106,7 +1106,7 @@ export function convertTimeBlockToHTML(input: string, timeblockTextMustContainSt
   if (isTimeBlockLine(input, timeblockTextMustContainString)) {
     const timeBlockPart = getTimeBlockString(input)
     // logDebug('convertTimeBlockToHTML', `found time block '${timeBlockPart}'`)
-    output = output.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
+    output = output.replace(timeBlockPart, `<span class="timeBlock"><i class="fa-regular fa-clock pad-right"></i>${timeBlockPart}</span>`)
   }
   return output
 }
