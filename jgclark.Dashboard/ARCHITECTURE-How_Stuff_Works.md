@@ -225,6 +225,30 @@ There are three related backend functions that re-generate a subset of Sections 
 
 All three share the same tail behaviour: recalculate done-task counts (when `doneDatesAvailable`) and kick off a scheduled tag-mention-cache rebuild if one is pending.
 
+## Reminders section (`REM`, `FFlag_Reminders`)
+
+Gated by feature flag **`FFlag_Reminders`**. Backend: `dataGenerationReminders.js` (`getRemindersGeneratedData()`). Frontend: `ReminderItem.jsx` via `ItemRow`.
+
+Live data comes from incomplete Apple Reminders on lists enabled in NotePlan (`Calendar.availableReminderLists({ enabledOnly: true })` then `Calendar.remindersByLists`). Items are split into:
+- timed today → Time Blocks (`TB`)
+- untimed today / yesterday / tomorrow → day sections (`DT` / `DY` / `DO`) as referenced items
+- undated + before yesterday → the dedicated **Reminders** (`REM`) section
+- dated **after tomorrow** → filtered out (not shown anywhere)
+
+v1 UI is largely **read-only** (status icon toast; no complete/edit dialog yet).
+
+### Why reminder rows cannot open in Apple Reminders
+
+Click-to-open was attempted via the bridge action `openURL` → `NotePlan.openURL(url)`. That API **only allows** `http`, `https`, `mailto`, and `noteplan` schemes. Anything else fails at runtime with: `openURL blocked: only http, https, mailto, and noteplan schemes are allowed`.
+
+Investigated alternatives:
+
+- **https:** There is no documented public URL that opens a specific Apple Reminder or list from an EventKit / Calendar reminder ID. `icloud.com/reminders` has no item-level deep link we can construct.
+- **noteplan://:** Official x-callbacks cover notes, search, filters, plugins, etc. There is **no** action to open or focus an Apple Reminder in NotePlan’s UI. (AppleScript can list/create/complete reminders via NotePlan, but that is not a show/open URL.)
+- **Working outside NotePlan:** Undocumented schemes such as `x-apple-reminderkit://REMCDReminder/{UUID}` can open a reminder in the Reminders app when used from Terminal / OS `open`, but they are **blocked** by `NotePlan.openURL`.
+
+Therefore `ReminderItem` content is intentionally **not** clickable for navigation. Revisit only if NotePlan allows `x-apple-reminderkit` (or adds a show-reminder API).
+
 ## Interactive Processing
 
 - The interactive processing is initiated by clicking the button on the Task dialog.

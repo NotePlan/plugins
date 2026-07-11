@@ -282,6 +282,17 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
         return handlerResult(true)
       }
     }
+    if (
+      sectionCodesToRefresh.includes('REM') &&
+      (pluginData.dashboardSettings?.FFlag_Reminders !== true || pluginData.dashboardSettings?.showRemindersSection === false)
+    ) {
+      sectionCodesToRefresh = sectionCodesToRefresh.filter((sectionCode) => sectionCode !== 'REM')
+      logDebug('refreshSomeSections', `Filtered REM from requested sections as Reminders is disabled -> ${String(sectionCodesToRefresh)}`)
+      if (sectionCodesToRefresh.length === 0) {
+        logDebug('refreshSomeSections', 'No eligible sections remain after filtering; skipping refresh')
+        return handlerResult(true)
+      }
+    }
     // show refreshing message until done
     if (!pluginData.refreshing === true) {
       await setPluginData(

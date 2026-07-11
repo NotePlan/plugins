@@ -206,7 +206,15 @@ export function getSectionsWithoutDuplicateLines(
       // If the item has a synced line, use the blockId for the key, not the constructed key
       // because we want to delete duplicates that are in different sections of synced lines also
       section.sectionItems = section.sectionItems.filter((item) => {
-        const key = item?.para?.content?.match(/\^[a-z0-9]{6}/)?.[0] || paraMatcherFields.map((field) => (item?.para ? item.para[field] : '<no value>')).join('|')
+        let key: string
+        if (item.itemType === 'reminder' && item.reminder) {
+          // Stable key across TB / REM / DT clones of the same Apple Reminder
+          key = item.reminder.id
+            ? `reminder:${item.reminder.id}`
+            : `reminder:${item.reminder.listname}|${item.reminder.title}|${item.reminder.date || ''}|${item.reminder.time || ''}`
+        } else {
+          key = item?.para?.content?.match(/\^[a-z0-9]{6}/)?.[0] || paraMatcherFields.map((field) => (item?.para ? item.para[field] : '<no value>')).join('|')
+        }
 
         if (!itemMap.has(key)) {
           itemMap.set(key, true)

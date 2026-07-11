@@ -104,6 +104,14 @@ const useSectionSortAndFilter = (
       setItemsToShow(memoizedItems)
       setAllSortedItems(memoizedItems)
     }
+    // Handle REM section differently: generator already sorted (flagged / date / time); skip priority filter
+    // TODO(later): periodic auto-refresh while Dashboard is visible
+    else if (section.sectionCode === 'REM') {
+      setItemsToShow(memoizedItems)
+      setAllSortedItems(memoizedItems)
+      setLimitApplied(false)
+      setCalculatedMaxPriority(-1)
+    }
     // Handle INFO section differently: no filtering
     else if (section.sectionCode === 'INFO') {
       setItemsToShow(memoizedItems)

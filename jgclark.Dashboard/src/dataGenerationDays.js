@@ -17,6 +17,7 @@ import {
   makeDashboardParas,
 } from './dashboardHelpers'
 import { openTodayItems, refTodayItems, openTomorrowParas, refTomorrowParas, openYesterdayParas, refYesterdayParas } from './demoData'
+import { assignReminderItemsToSection } from './dataGenerationReminders'
 import { getTodaysDateUnhyphenated } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
@@ -30,12 +31,19 @@ import { isOpen } from '@helpers/utils'
  * Get open items from Today's note, and scheduled to Today from other notes.
  * Includes relevant Teamspace calendar notes.
  * Note: This section only includes open tasks and checklists (not titles or other timeblock-only paragraphs).
+ * Dated reminders from the Reminders buckets are added into the referenced dataset (untimed today only; timed today go to TB).
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
+ * @param {Array<TSectionItem>} referencedReminderItems? - untimed today's reminders (starting point for referenced items)
  * @returns {Array<TSection>} 1 or 2 section(s)
  */
-export function getTodaySectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getTodaySectionData(
+  config: TDashboardSettings,
+  useDemoData: boolean = false,
+  useEditorWherePossible: boolean,
+  referencedReminderItems: Array<TSectionItem> = [],
+): Array<TSection> {
   try {
     const thisSectionCode = 'DT'
     const sections: Array<TSection> = []
@@ -75,6 +83,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           items.push({ ID: thisID, ...item }) // thisID is already present in demo data
         }
       })
+      itemCount = items.length
     } else {
       // Get list of open tasks/checklists from current daily note (if it exists)
       if (currentDailyNote) {
@@ -84,6 +93,14 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       } else {
         logInfo('getTodaySectionData', `No daily note found using filename '${thisFilename}'`)
       }
+    }
+
+    // When referenced notes are combined into the main section, start referenced set with untimed today's reminders
+    if (!config.separateSectionForReferencedNotes && referencedReminderItems.length > 0) {
+      const assigned = assignReminderItemsToSection(referencedReminderItems, thisSectionCode, thisSectionCode, itemCount)
+      items = items.concat(assigned)
+      itemCount += assigned.length
+      logDebug('getTodaySectionData', `- added ${String(assigned.length)} untimed reminder(s) into combined Today section`)
     }
 
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')
@@ -199,8 +216,14 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
+      // Referenced items start with untimed today's reminders, then scheduled note refs
       let items: Array<TSectionItem> = []
       const referencedSectionCode = `${thisSectionCode}_REF`
+      if (referencedReminderItems.length > 0) {
+        items = assignReminderItemsToSection(referencedReminderItems, thisSectionCode, referencedSectionCode, 0)
+        itemCount = items.length
+        logDebug('getTodaySectionData', `- started >Today with ${String(items.length)} untimed reminder(s)`)
+      }
       if (useDemoData) {
         const sortedRefParas = refTodayItems
         // Note: parentID already supplied
@@ -216,9 +239,14 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         })
       } else {
         if (sortedRefParas.length > 0) {
-          // Iterate and write items for first (or combined) section
-          items = createSectionItemsFromParas(sortedRefParas, referencedSectionCode)
-          itemCount += items.length
+          const refFromNotes = createSectionItemsFromParas(sortedRefParas, referencedSectionCode)
+          // Re-ID note refs to continue after reminder starters
+          const rebased = refFromNotes.map((item, i) => ({
+            ...item,
+            ID: `${referencedSectionCode}-${itemCount + i}`,
+          }))
+          items = items.concat(rebased)
+          itemCount += rebased.length
         }
       }
 
@@ -254,16 +282,19 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
 /**
  * Get timeblock section data for today's note.
  * Includes valid timeblocks in paragraphs of type 'title', 'open', 'list', and 'checklist'.
+ * Also includes today's timed reminders (from the Reminders timed-today bucket).
  * Note: This is completely separate from getTodaySectionData() and fetches its own data.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} _useEditorWherePossible? (currently not used)
+ * @param {Array<TSectionItem>} timedTodayReminderItems? - today's reminders that have a time
  * @returns {Array<TSection>} 1 section (TB) or empty array
  */
 export function getTimeBlockSectionData(
   config: TDashboardSettings,
   useDemoData: boolean = false,
   _useEditorWherePossible: boolean,
+  timedTodayReminderItems: Array<TSectionItem> = [],
 ): Array<TSection> {
   try {
     if (!config.showTimeBlockSection) {
@@ -319,6 +350,14 @@ export function getTimeBlockSectionData(
       itemCounter += timeBlockItems.length
     }
 
+    // Append today's timed reminders
+    if (timedTodayReminderItems.length > 0) {
+      const assigned = assignReminderItemsToSection(timedTodayReminderItems, TBsectionCode, TBsectionCode, itemCounter)
+      timeBlockItems = timeBlockItems.concat(assigned)
+      itemCounter += assigned.length
+      logDebug('getTimeBlockSectionData', `- added ${String(assigned.length)} timed reminder(s) into TB`)
+    }
+
     const section: TSection = {
       ID: TBsectionCode,
       sectionCode: 'TB',
@@ -346,12 +385,19 @@ export function getTimeBlockSectionData(
 /**
  * Get open items from Yesterday's note, and scheduled to Yesterday from other notes.
  * Includes relevant Teamspace calendar notes.
+ * Dated reminders from the Reminders yesterday bucket are added into the referenced dataset.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
+ * @param {Array<TSectionItem>} referencedReminderItems? - yesterday's reminders (starting point for referenced items)
  * @returns {Array<TSection>} 1 or 2 section(s)
  */
-export function getYesterdaySectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getYesterdaySectionData(
+  config: TDashboardSettings,
+  useDemoData: boolean = false,
+  useEditorWherePossible: boolean,
+  referencedReminderItems: Array<TSectionItem> = [],
+): Array<TSection> {
   try {
     let itemCount = 0
     const sections: Array<TSection> = []
@@ -383,6 +429,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         items.push({ ID: thisID, ...item })
         // itemCount++
       })
+      itemCount = items.length
     } else {
       // Get list of open tasks/checklists from yesterday's daily note (if it exists)
       if (yesterdaysNote) {
@@ -390,6 +437,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible)
 
         // Iterate and write items for first (or combined) section
+        // Now get reminders as well as tasks/checklists
         items = createSectionItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
 
@@ -397,6 +445,14 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       } else {
         logInfo('getYesterdaySectionData', `No yesterday note found using filename '${thisFilename}'`)
       }
+    }
+
+    // When referenced notes are combined into the main section, start referenced set with yesterday's reminders
+    if (!config.separateSectionForReferencedNotes && referencedReminderItems.length > 0) {
+      const assigned = assignReminderItemsToSection(referencedReminderItems, thisSectionCode, thisSectionCode, itemCount)
+      items = items.concat(assigned)
+      itemCount += assigned.length
+      logDebug('getYesterdaySectionData', `- added ${String(assigned.length)} reminder(s) into combined Yesterday section`)
     }
     // Note: this only counts from yesterday's note
     const doneCountData = getNumCompletedTasksFromNote(thisFilename)
@@ -434,8 +490,14 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
+      // Referenced items start with yesterday's reminders, then scheduled note refs
       let items: Array<TSectionItem> = []
       const referencedSectionCode = `${thisSectionCode}_REF`
+      if (referencedReminderItems.length > 0) {
+        items = assignReminderItemsToSection(referencedReminderItems, thisSectionCode, referencedSectionCode, 0)
+        itemCount = items.length
+        logDebug('getYesterdaySectionData', `- started >Yesterday with ${String(items.length)} reminder(s)`)
+      }
       if (useDemoData) {
         const sortedRefParas = refYesterdayParas
         sortedRefParas.map((item) => {
@@ -451,11 +513,16 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       } else {
         // Get list of open tasks/checklists from current daily note (if it exists)
         if (sortedRefParas.length > 0) {
-          // Iterate and write items for first (or combined) section
-          items = createSectionItemsFromParas(sortedRefParas, referencedSectionCode)
-          itemCount += items.length
+          const refFromNotes = createSectionItemsFromParas(sortedRefParas, referencedSectionCode)
+          const rebased = refFromNotes.map((item, i) => ({
+            ...item,
+            ID: `${referencedSectionCode}-${itemCount + i}`,
+          }))
+          items = items.concat(rebased)
+          itemCount += rebased.length
         }
       }
+
       // Add separate section (if there are any items found)
       const section: TSection = {
         ID: referencedSectionCode,
@@ -485,12 +552,19 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
 
 /**
  * Get open items from Tomorrow's note
+ * Dated reminders from the Reminders tomorrow bucket are added into the referenced dataset.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
+ * @param {Array<TSectionItem>} referencedReminderItems? - tomorrow's reminders (starting point for referenced items)
  * @returns {TSection} data
  */
-export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getTomorrowSectionData(
+  config: TDashboardSettings,
+  useDemoData: boolean = false,
+  useEditorWherePossible: boolean,
+  referencedReminderItems: Array<TSectionItem> = [],
+): Array<TSection> {
   try {
     const thisSectionCode = 'DO'
     const sections: Array<TSection> = []
@@ -540,6 +614,14 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
       } else {
         logDebug('getTomorrowSectionData', `No tomorrow note found for filename '${thisFilename}'`)
       }
+    }
+
+    // When referenced notes are combined into the main section, start referenced set with tomorrow's reminders
+    if (!config.separateSectionForReferencedNotes && referencedReminderItems.length > 0) {
+      const assigned = assignReminderItemsToSection(referencedReminderItems, thisSectionCode, thisSectionCode, itemCount)
+      items = items.concat(assigned)
+      itemCount += assigned.length
+      logDebug('getTomorrowSectionData', `- added ${String(assigned.length)} reminder(s) into combined Tomorrow section`)
     }
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
@@ -599,8 +681,14 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
+      // Referenced items start with tomorrow's reminders, then scheduled note refs
       let items: Array<TSectionItem> = []
       const referencedSectionCode = `${thisSectionCode}_REF`
+      if (referencedReminderItems.length > 0) {
+        items = assignReminderItemsToSection(referencedReminderItems, thisSectionCode, referencedSectionCode, 0)
+        itemCount = items.length
+        logDebug('getTomorrowSectionData', `- started >Tomorrow with ${String(items.length)} reminder(s)`)
+      }
       if (useDemoData) {
         const sortedRefParas = refTomorrowParas
         sortedRefParas.map((item) => {
@@ -616,9 +704,13 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
       } else {
         // Get list of open tasks/checklists from current daily note (if it exists)
         if (sortedRefParas.length > 0) {
-          // Iterate and write items for this section
-          items = createSectionItemsFromParas(sortedRefParas, referencedSectionCode)
-          itemCount += items.length
+          const refFromNotes = createSectionItemsFromParas(sortedRefParas, referencedSectionCode)
+          const rebased = refFromNotes.map((item, i) => ({
+            ...item,
+            ID: `${referencedSectionCode}-${itemCount + i}`,
+          }))
+          items = items.concat(rebased)
+          itemCount += rebased.length
         }
       }
       // Add separate section (if there are any items found)

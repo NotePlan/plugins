@@ -5,7 +5,6 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { handleBannerTestClick } from './bannerClickHandlers'
 import {
   doAddItem,
   // doAddItemToFuture, // see below
@@ -340,6 +339,17 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doShowLineInEditorFromFilename(data)
         break
       }
+      case 'openURL': {
+        const urlToOpen = data.url || ''
+        if (urlToOpen) {
+          logDebug('bridgeClickDashboardItem', `openURL: ${urlToOpen}`)
+          NotePlan.openURL(urlToOpen)
+          result = { success: true, actionsOnSuccess: [], errorMsg: '' }
+        } else {
+          result = { success: false, errorMsg: 'openURL: missing url' }
+        }
+        break
+      }
       case 'moveToNote': {
         result = await doMoveToNote(data)
         break
@@ -472,24 +482,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           actionsOnSuccess: ['CLOSE_SEARCH_SECTION'],
           errorMsg: '',
         }
-        break
-      }
-
-      // TODO(later): remove these once we have a proper banner system
-      case 'testBannerInfo': {
-        result = await handleBannerTestClick({ actionType: 'testBannerInfo', sectionCodes: data.sectionCodes })
-        break
-      }
-      case 'testBannerError': {
-        result = await handleBannerTestClick({ actionType: 'testBannerError' })
-        break
-      }
-      case 'testBannerWarning': {
-        result = await handleBannerTestClick({ actionType: 'testBannerWarning' })
-        break
-      }
-      case 'testRemoveBanner': {
-        result = await handleBannerTestClick({ actionType: 'testRemoveBanner' })
         break
       }
 

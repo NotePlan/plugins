@@ -10,6 +10,7 @@ import React, { type Node } from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 import { itemCongratsFAIconClass, winsSectionHeaderFAIconClass } from '../../constants.js'
 import ProjectItem from './ProjectItem.jsx'
+import ReminderItem from './ReminderItem.jsx'
 import TaskItem from './TaskItem.jsx'
 import TasksFiltered from './TasksFiltered.jsx'
 import MessageOnlyItem from './MessageOnlyItem.jsx'
@@ -51,6 +52,8 @@ function ItemRow({ item, thisSection, onToggleShowAll }: Props): Node {
     <>
       {itemType === 'project' ? (
         <ProjectItem item={item} thisSection={thisSection} />
+      ) : itemType === 'reminder' ? (
+        <ReminderItem item={item} thisSection={thisSection} />
       ) : itemType === 'projectCongrats' ? (
         <MessageOnlyItem message={'No Projects need reviewing: take a break'} contentClassName="projectCongrats" closingFAIconClassName="fa-solid fa-mug" />
       ) : itemType === 'noSearchResults' ? (

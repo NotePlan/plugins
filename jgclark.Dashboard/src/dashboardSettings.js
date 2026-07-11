@@ -13,7 +13,7 @@ import { clo, clof, logDebug } from '@helpers/react/reactDev'
 // The filters below are non-section switches that display in the filters menu.
 export const dashboardFilterDefs: Array<TSettingItem> = [
   {
-    label: 'Filter out lower-priority items?',
+    label: 'Hide lower-priority items?',
     key: 'filterPriorityItems',
     type: 'switch',
     default: false,
@@ -370,7 +370,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Do "Move all items" buttons only move shown items when filtering?',
     type: 'switch',
     default: true,
-    description: 'When "Filter out lower-priority items" is enabled, if this is also enabled, the "All → ..." buttons and Interactive Processing (">> N") will only include the items currently shown, excluding filtered lower-priority items. If disabled, they will include all items including filtered ones.',
+    description: 'When "Hide lower-priority items" is enabled, if this is also enabled, the "All → ..." buttons and Interactive Processing (">> N") will only include the items currently shown, excluding filtered lower-priority items. If disabled, they will include all items including filtered ones.',
   },
   {
     type: 'separator',

@@ -14,6 +14,7 @@ html {
 	--fg-sidebarHashtag: var(--hashtag-color);
 	--fg-sidebarMention: var(--attag-color);
 	--fg-sidebarWins: var(--fg-ok-color);
+	--fg-sidebarReminders: #8d9598;
 }
 /* But still need these as named styles */
 .sidebarDaily {color: var(--fg-sidebarDaily);}
@@ -25,6 +26,7 @@ html {
 .sidebarHashtag {color: var(--hashtag-color);}
 .sidebarMention {color: var(--attag-color);}
 .sidebarWins {color: var(--fg-sidebarWins);}
+.sidebarReminders {color: var(--fg-sidebarReminders);}
 
 /* ------------------------------------------------------------------ */
 
@@ -332,6 +334,22 @@ button,
 		/* color: var(--tint-color); */
 		color: var(--fg-placeholder-color);
 		white-space: nowrap;
+	}
+
+	/* Reminder list name badge (non-clickable context) */
+	.reminderContext {
+		font-size: 80%;
+		border: 1px solid var(--divider-color, #CDCFD0);
+		border-radius: 4px;
+		padding: 0px 3px;
+		white-space: nowrap;
+		line-height: 1.4;
+	}
+
+	/* Horizontal gap before listname: padding would fill with background, so use margin instead */
+	.reminderContext.pad-left-larger {
+		padding-left: 3px !important;
+		margin-left: 0.5rem;
 	}
 
 	/* Teamspace note link - default layer */

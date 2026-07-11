@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin
-// Last updated 2026-04-13 for v2.4.0.b23 by @jgclark
+// Last updated 2026-07-11 for v2.4.0.b49 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -10,6 +10,7 @@ import type { TSectionItem } from './types'
 import {
   getNPMonthStr,
   getNPWeekStr,
+  getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
   // toLocaleDateString,
 } from '@helpers/dateTime'
@@ -185,6 +186,86 @@ export const refTodayItems: Array<TSectionItem> = [
       blockId: '^wazhht',
       hasChild: true,
       indents: 0,
+    },
+  },
+]
+
+//-----------------------------------------------------------
+// Demo data for Reminders (undated)
+
+export const reminderItems: Array<TSectionItem> = [
+  {
+    ID: 'REM-0',
+    sectionCode: 'REM',
+    itemType: 'reminder',
+    reminder: {
+      title: 'Milk',
+      listname: 'Grocery',
+      notes: '4 litres semi-skimmed',
+      flagged: true,
+      date: getTodaysDateHyphenated(),
+    },
+  },
+  {
+    ID: 'REM-1',
+    sectionCode: 'REM',
+    itemType: 'reminder',
+    reminder: {
+      title: 'Eggs',
+      listname: 'Grocery',
+      color: '#34C759',
+      notes: '12 large',
+      flagged: false,
+    },
+  },
+  {
+    ID: 'REM-2',
+    sectionCode: 'REM',
+    itemType: 'reminder',
+    reminder: {
+      title: 'Pick up meds for Millie',
+      listname: 'Errands',
+      notes: 'for liver',
+      flagged: true,
+      location: 'Vets',
+      date: new moment().subtract(1, 'days').format('YYYY-MM-DD')
+    },
+  },
+  {
+    ID: 'REM-3',
+    sectionCode: 'REM',
+    itemType: 'reminder',
+    reminder: {
+      title: 'Pick up study books',
+      listname: 'Home Group',
+      color: '#AF52DE',
+      location: 'Church',
+      flagged: false,
+    },
+  },
+  {
+    ID: 'REM-4',
+    sectionCode: 'REM',
+    itemType: 'reminder',
+    reminder: {
+      title: 'Put out recycling',
+      listname: 'Home',
+      flagged: true,
+      date: getTodaysDateHyphenated(),
+      time: '18:00',
+    },
+  },
+  {
+    ID: 'REM-5',
+    sectionCode: 'REM',
+    itemType: 'reminder',
+    reminder: {
+      title: 'Post parcel',
+      notes: 'to Mary',
+      listname: 'Family and Friends',
+      color: '#FF9500',
+      location: 'Post Office',
+      flagged: false,
     },
   },
 ]
@@ -732,6 +813,7 @@ export const savedSearch1 = {
     },
   ]
 }
+
 //-----------------------------------------------------------
 // Project Notes to review
 // Note: uses newer Project-based objects now, not the earlier TNote-based demo data

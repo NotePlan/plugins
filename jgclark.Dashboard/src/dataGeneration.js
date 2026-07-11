@@ -21,6 +21,7 @@ import { getTodaySectionData, getTimeBlockSectionData, getYesterdaySectionData, 
 import { getOverdueSectionData } from './dataGenerationOverdue'
 import { getPrioritySectionData } from './dataGenerationPriority'
 import { getProjectReviewSectionData, getProjectActiveSectionData } from './dataGenerationProjects'
+import { getRemindersGeneratedData, type TRemindersGeneratedData } from './dataGenerationReminders'
 import { getSavedSearchResults } from './dataGenerationSearch'
 import { getTaggedSectionData } from './dataGenerationTags'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
@@ -91,15 +92,44 @@ export async function getSomeSectionsData(
 
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('INFO')) sections.push(...(await getInfoSectionData(config, useDemoData)))
+
+    // Generate Reminders first when needed for day/TB injection and/or the REM section itself
+    const wantRemSection = sectionCodesToGet.includes('REM') && config.FFlag_Reminders && config.showRemindersSection
+    const wantRemForDaySections =
+      config.FFlag_Reminders === true &&
+      (sectionCodesToGet.includes('DT') ||
+        sectionCodesToGet.includes('DY') ||
+        sectionCodesToGet.includes('DO') ||
+        sectionCodesToGet.includes('TB'))
+    let remindersData: TRemindersGeneratedData = {
+      timedTodayItems: [],
+      untimedTodayItems: [],
+      yesterdayItems: [],
+      tomorrowItems: [],
+      remindersSection: null,
+    }
+    if (wantRemSection || wantRemForDaySections) {
+      remindersData = await getRemindersGeneratedData(config, useDemoData)
+    }
+
     // DT and TB sections are now generated separately but share paragraph data fetching
     if (sectionCodesToGet.includes('DT')) {
-      const todaySections = getTodaySectionData(config, useDemoData, useEditorWherePossible)
+      const todaySections = getTodaySectionData(config, useDemoData, useEditorWherePossible, remindersData.untimedTodayItems)
       sections.push(...todaySections)
     }
-    if (sectionCodesToGet.includes('TB') && config.showTimeBlockSection) sections.push(...getTimeBlockSectionData(config, useDemoData, useEditorWherePossible))
+    if (sectionCodesToGet.includes('TB') && config.showTimeBlockSection) {
+      sections.push(...getTimeBlockSectionData(config, useDemoData, useEditorWherePossible, remindersData.timedTodayItems))
+    }
     // Note: the WINS section is generated separately in the front end after the other sections are generated.
-    if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
-    if (sectionCodesToGet.includes('DO') && config.showTomorrowSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
+    if (wantRemSection && remindersData.remindersSection) {
+      sections.push(remindersData.remindersSection)
+    }
+    if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) {
+      sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible, remindersData.yesterdayItems))
+    }
+    if (sectionCodesToGet.includes('DO') && config.showTomorrowSection) {
+      sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible, remindersData.tomorrowItems))
+    }
     if (sectionCodesToGet.includes('LW') && config.showLastWeekSection) sections.push(...getLastWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
@@ -182,37 +212,6 @@ export async function getInfoSectionData(_config: TDashboardSettings, _useDemoDa
       message: line.trim(),
     })),
     isReferenced: false,
-    // TODO(later): remove after v2.4.0 is released
-    actionButtons: (_config.FFlag_ShowBannerTestButtons ? [
-      {
-        actionName: 'testBannerInfo',
-        actionParam: 'jgclark.Dashboard.main',
-        actionPluginID: `${pluginJson['plugin.id']}`,
-        display: '<i class= "fa-regular fa-info-circle sidebarInfo" ></i> ',
-        tooltip: 'Show an info banner',
-      },
-      {
-        actionName: 'testBannerWarning',
-        actionParam: 'jgclark.Dashboard.main',
-        actionPluginID: `${pluginJson['plugin.id']}`,
-        display: '<i class= "fa-regular fa-triangle-exclamation sidebarInfo" ></i> ',
-        tooltip: 'Show a warning banner',
-      },
-      {
-        actionName: 'testBannerError',
-        actionParam: 'jgclark.Dashboard.main',
-        actionPluginID: `${pluginJson['plugin.id']}`,
-        display: '<i class= "fa-regular fa-circle-exclamation sidebarInfo" ></i> ',
-        tooltip: 'Show an error banner',
-      },
-      {
-        actionName: 'testRemoveBanner',
-        actionParam: 'jgclark.Dashboard.main',
-        actionPluginID: `${pluginJson['plugin.id']}`,
-        display: '<i class= "fa-regular fa-xmark sidebarInfo" ></i> ',
-        tooltip: 'Remove the banner',
-      },
-    ] : []),
   })
   return sections
 }

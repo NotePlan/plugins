@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Icon before an item
 // Called by TaskItem component.
-// Last updated 2026-04-15 for v2.4.0.b25, @jgclark
+// Last updated 2026-07-11 for v2.4.0.b49, @jgclark
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
@@ -17,10 +17,11 @@ type Props = {
   respondToClicks: boolean,
   onIconClick?: (item: TSectionItem, actionType: string) => void,
   location?: string, /* where being called from so we can make decisions (currently only #"dialog" to show/not show things) */
+  iconColor?: string, /* optional CSS color override for the icon (e.g. reminder list color) */
 }
 
-const StatusIcon = ({ item, respondToClicks, onIconClick, location }: Props): Node => {
-  const { sendActionToPlugin, reactSettings } = useAppContext()
+const StatusIcon = ({ item, respondToClicks, onIconClick, location, iconColor }: Props): Node => {
+  const { sendActionToPlugin, reactSettings, dispatch } = useAppContext()
 
   const dialogIsOpen = reactSettings?.dialogData?.isOpen
   const shouldShowTooltips = !dialogIsOpen || location === 'dialog'
@@ -37,6 +38,7 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location }: Props): No
     switch (itemType) {
       case 'open':
       case 'scheduled':
+      case 'reminder': // same circle as tasks; click shows read-only toast for now
         return 'todo clickTarget fa-regular fa-fw fa-circle'
       case 'cancelled':
         return 'cancelled fa-regular fa-fw fa-circle-xmark'
@@ -67,6 +69,22 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location }: Props): No
    */
   function handleIconClick(event: MouseEvent) {
     if (!respondToClicks) return
+
+    // Reminders: same click / ⌘-click affordance as tasks, but read-only for now
+    // TODO(later): complete / uncomplete reminder from status icon (Calendar update APIs)
+    if (item.itemType === 'reminder') {
+      logInfo(`StatusIcon`, `Clicked on reminder (meta=${String(event.metaKey)}) -> read-only toast`)
+      dispatch(
+        'SHOW_TOAST',
+        {
+          type: 'INFO',
+          msg: 'Sorry; Reminders are currently read-only.',
+          timeout: 4000,
+        },
+        'reminder read-only',
+      )
+      return
+    }
 
     const { metaKey, ctrlKey } = extractModifierKeys(event)
     const actionType: ?TActionType = determineActionType(metaKey, ctrlKey)
@@ -118,7 +136,7 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location }: Props): No
 
   const renderedIcon = (
       <div className="sectionItemTodo itemIcon">
-      <i className={iconClassName} onClick={handleIconClick}></i>
+      <i className={iconClassName} onClick={handleIconClick} style={iconColor ? { color: iconColor } : undefined}></i>
     </div>
   )
 

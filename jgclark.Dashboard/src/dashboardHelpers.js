@@ -756,6 +756,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   // TODO(@dwertheimer): somehow make this automatically work for all new sections added in the future
   const sectionsToShow: Array<TSectionCode> = []
   if (config.showTimeBlockSection) sectionsToShow.push('TB')
+  if (config.FFlag_Reminders && config.showRemindersSection) sectionsToShow.push('REM')
   if (config.showTodaySection || config.showTodaySection === undefined) sectionsToShow.push('DT')
   if (config.showYesterdaySection) sectionsToShow.push('DY')
   if (config.showTomorrowSection) sectionsToShow.push('DO')

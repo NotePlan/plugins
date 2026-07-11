@@ -8,6 +8,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+## [2.4.0.b49] 2026-07-11
+- New **Reminders** section (Apple Reminders), gated by feature flag **FFlag_Reminders**. Shows open reminders from the Apple Reminders lists that the user has selected in NotePlan's settings. The display is read-only for now.
+- Removed beta feature flag item "Show Banner Test Buttons".
 
 ## [2.4.0.b48] 2026-07-11
 - When setting **Do "Move all items" buttons only move shown items when filtering?** is off, the Interactive Processing (">> N") button count and dialog include lower-priority items that are hidden by filtering (not just the items currently shown).

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-06-16 for v2.4.0.b46 by @CursorAI
+// Last updated 2026-07-11 for v2.4.0.b49 by @jgclark
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -35,7 +35,6 @@ export type TDashboardSettings = {
 
   /* FEATURE FLAGS ------------------------------------------------------ */
   FFlag_ShowSearchPanel?: boolean,
-  // searchSettings?: TSearchOptions, // an object holding a number of settings TODO: add from 2.4.0?
   // DBW: TODO: Being more specific about "global" settings: save the searchSettings object to dashboardSettings
   FFlag_DebugPanel?: boolean, // to show debug pane
   FFlag_ShowTestingPanel?: boolean,
@@ -44,8 +43,9 @@ export type TDashboardSettings = {
   FFlag_ShowSectionTimings?: boolean,
   FFlag_UseTagCache?: boolean, // TODO: remove this in v2.5.0?
   FFlag_UseTagCacheAPIComparison?: boolean, // TODO: remove this in v2.5.0?
-  FFlag_ShowBannerTestButtons?: boolean, // for v2.4.0 beta testing; TODO: remove this before v2.4.0 release
-  FFlag_DynamicAddToAnywhere?: boolean, // Use new DynamicDialog-based add task dialog instead of QuickCapture plugin
+  FFlag_DynamicAddToAnywhere?: boolean, // Use new DynamicDialog-based add task dialog instead of QuickCapture plugin,
+  FFlag_Reminders?: boolean, // for v2.5.0 beta testing; TODO: remove this before v2.5.0 release
+
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN ------------- */
   defaultFileExtension?: string,
@@ -127,6 +127,7 @@ export type TDashboardSettings = {
   showYesterdaySection: boolean,
   showInfoSection: boolean,
   showWinsSection: boolean,
+  showRemindersSection: boolean,
   treatTopPriorityAsWins: boolean,
   winsPriorityMarker: string, // '>>', '!!!' or '!!' -- which priority marker to treat as a 'Win'/'big rock' when treatTopPriorityAsWins is true
   customSectionDisplayOrder: ?Array<TSectionCode>
@@ -167,9 +168,10 @@ export type TDashboardPluginSettings = {
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'Y' | 'WINS' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJACT' | 'PROJREVIEW' | 'TB' | 'SEARCH' | 'SAVEDSEARCH' | 'INFO' // where DT = today, DY = yesterday, WINS = client-only rollup for >> / priority-4, TAG = Tag, PROJACT = Active Projects section, PROJREVIEW = Projects to Review section, TB = Top Bar / TimeBlock
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'Y' | 'WINS' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJACT' | 'PROJREVIEW' | 'TB' | 'SEARCH' | 'SAVEDSEARCH' | 'INFO' | 'REM'
 // Note: INFO is a new section code for v2.3.0 for testing.
 // Note: WINS added v2.4.0 (TEST:) as a synthetic section built from priority-4 items in current calendar sections.
+// Note: REM added v2.5.0 from Apple Reminders
 // Note: When adding a new section code, make sure to update the constants in constants.js and dashboardSettings.js files, and getSomeSectionsData in dataGeneration.js
 
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
@@ -193,7 +195,7 @@ export type TSection = {
   showColoredBackground?: boolean, // whether to show a colored background for the section
 }
 
-export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'winsCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'offerToFilter' | 'timeblock' | 'noSearchResults' | 'info' | 'preLimitOverdues' | 'error'
+export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'winsCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'offerToFilter' | 'timeblock' | 'noSearchResults' | 'info' | 'preLimitOverdues' | 'error' | 'reminder'
 // Note: If you add a new item type, make sure to update the ItemRow.jsx and StatusIcon.jsx components to display it properly
 
 // an item within a section, with optional TParagraphForDashboard
@@ -203,7 +205,8 @@ export type TSectionItem = {
   itemType: TItemType,
   para?: TParagraphForDashboard, // where it is a paragraph-type item (not 'project')
   project?: TProjectForDashboard,
-  message?: string, // for items that don't have a para or project
+  reminder?: TReminderForDashboard,
+  message?: string, // for items that don't have a para or project or reminder
   updated?: boolean, // used to keep deletes from confusing the dialog which is waiting for updates to the same line
   // updated will be set by the copyUpdatedSectionItemData function when content is modified
   parentID?: string, // if this is a sub-task, this holds the ID of the parent task if that is also an open item (required for displaying children properly with their parents in useSelectionSortAndFilter)
@@ -239,6 +242,21 @@ export type TParagraphForDashboard = {
   changedDate?: Date, // required for sorting items in display
   dueDate?: string, // ISO string of due date, or 'none', required for sorting items in display
 }
+
+// a reminder item within a section, from v2.5.0
+export type TReminderForDashboard = {
+  id?: string, // CalendarItem id for future complete/update actions
+  title: string, // the title of the reminder
+  notes?: string, // optional notes on the reminder
+  listname: string, // the list the reminder is in
+  color?: string, // optional list color as hex (from Calendar.availableReminderLists)
+  flagged: boolean, // whether the reminder is flagged
+  date?: string, // optional ISO string (YYYY-MM-DD)
+  time?: string, // optional HH:MM in 24-hour format
+  location?: string, // optional location
+}
+
+//-----------------------------------------------------------
 
 // a project item within a section
 export type TProjectForDashboard = {
@@ -306,6 +324,7 @@ export type TActionType =
   | 'showNoteInEditorFromTitle'
   | 'showLineInEditorFromFilename'
   | 'showLineInEditorFromTitle'
+  | 'openURL'
   | 'startReview' // from v2.4.0.b20, for projects
   | 'startReviews' // for projects
   | 'startSearch'
@@ -328,11 +347,6 @@ export type TActionType =
   | 'windowReload' // Used by 'Hard Refresh' button for devs
   | 'windowResized'
   | '(not yet set)'
-  // TODO(later): remove these in v2.5 once new banner system has settled
-  | 'testBannerInfo'
-  | 'testBannerError'
-  | 'testBannerWarning'
-  | 'testRemoveBanner'
 
 export type TControlString =
   | 't'
@@ -372,6 +386,7 @@ export type MessageDataObject = {
   settings?: TDashboardSettings | TPerspectiveSettings,
   perspectiveSettings?: TPerspectiveSettings,
   filename?: string /* only used when actionType = 'showNoteInEditorFromFilename', otherwise filename comes from the item */,
+  url?: string /* for openURL - http/https/mailto/noteplan only (other schemes are blocked) */,
   logMessage?: string,
   userInputObj?: TAnyObject,
   perspectiveName?: string,

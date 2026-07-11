@@ -15,7 +15,10 @@ import { clo } from '@helpers/react/reactDev.js'
  * @returns {[Array<TSettingItem>, Array<TSettingItem>]}
  */
 export const createFilterDropdownItems = (dashboardSettings: TDashboardSettings): [Array<TSettingItem>, Array<TSettingItem>] => {
-  const sectionsWithoutTags = allSectionDetails.filter((s) => s.sectionCode !== 'TAG')
+  // REM only appears in Filters when FFlag_Reminders is on (avoids a dead toggle for non-devs)
+  const sectionsWithoutTags = allSectionDetails.filter(
+    (s) => s.sectionCode !== 'TAG' && (s.sectionCode !== 'REM' || dashboardSettings.FFlag_Reminders === true),
+  )
   const tagSections = getTagSectionDetails(dashboardSettings)
   const allSections = [...sectionsWithoutTags, ...tagSections]
   const sectionDropbownItems: Array<TSettingItem> = allSections
