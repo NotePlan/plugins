@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-07-10 for v2.4.0.b47 by @jgclark + @CursorAI
+// Last updated 2026-07-12 for v2.4.0.b49 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -279,6 +279,81 @@ function removeLineSuccessActionsForSection(sectionCode: TSectionCode, ...extras
   }
   actions.push(...extras)
   return actions
+}
+
+/**
+ * Complete an Apple Reminder via Calendar.update (isCompleted = true), then refresh its section.
+ * @param {MessageDataObject} data - must include item.reminder.id and item.sectionCode
+ * @returns {Promise<TBridgeClickHandlerResult>}
+ */
+export async function doCompleteReminder(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  try {
+    const reminderId = data.item?.reminder?.id
+    const sectionCode = data.item?.sectionCode
+    if (!reminderId) {
+      throw new Error('doCompleteReminder: No reminder id on item')
+    }
+    if (!sectionCode) {
+      throw new Error('doCompleteReminder: No sectionCode on item')
+    }
+    const calendarItem = await Calendar.reminderByID(reminderId)
+    if (!calendarItem || !calendarItem.id) {
+      logWarn('doCompleteReminder', `-> reminderByID returned nothing for id=${reminderId}`)
+      return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], {
+        sectionCodes: [sectionCode],
+        errorMsg: `Couldn't find reminder to complete. I will refresh this Section in case it has changed since the last refresh.`,
+        errorMessageLevel: 'INFO',
+      })
+    }
+    calendarItem.isCompleted = true
+    await Calendar.update(calendarItem)
+    logDebug('doCompleteReminder', `done for id=${reminderId} ("${calendarItem.title || ''}") in section ${sectionCode}`)
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode] })
+  } catch (err) {
+    logError('doCompleteReminder', err.message)
+    const sectionCode = data.item?.sectionCode
+    if (sectionCode) {
+      return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: err.message, errorMessageLevel: 'ERROR' })
+    }
+    return handlerResult(false, [], { errorMsg: err.message })
+  }
+}
+
+/**
+ * Delete an Apple Reminder via Calendar.remove, then refresh its section.
+ * @param {MessageDataObject} data - must include item.reminder.id and item.sectionCode
+ * @returns {Promise<TBridgeClickHandlerResult>}
+ */
+export async function doDeleteReminder(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  try {
+    const reminderId = data.item?.reminder?.id
+    const sectionCode = data.item?.sectionCode
+    if (!reminderId) {
+      throw new Error('doDeleteReminder: No reminder id on item')
+    }
+    if (!sectionCode) {
+      throw new Error('doDeleteReminder: No sectionCode on item')
+    }
+    const calendarItem = await Calendar.reminderByID(reminderId)
+    if (!calendarItem || !calendarItem.id) {
+      logWarn('doDeleteReminder', `-> reminderByID returned nothing for id=${reminderId}`)
+      return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], {
+        sectionCodes: [sectionCode],
+        errorMsg: `Couldn't find reminder to delete. I will refresh this section, then please try again.`,
+        errorMessageLevel: 'WARN',
+      })
+    }
+    await Calendar.remove(calendarItem)
+    logDebug('doDeleteReminder', `done for id=${reminderId} ("${calendarItem.title || ''}") in section ${sectionCode}`)
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode] })
+  } catch (err) {
+    logError('doDeleteReminder', err.message)
+    const sectionCode = data.item?.sectionCode
+    if (sectionCode) {
+      return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: err.message, errorMessageLevel: 'ERROR' })
+    }
+    return handlerResult(false, [], { errorMsg: err.message })
+  }
 }
 
 /**

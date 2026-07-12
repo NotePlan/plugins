@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Icon before an item
 // Called by TaskItem component.
-// Last updated 2026-07-11 for v2.4.0.b49, @jgclark
+// Last updated 2026-07-12 for v2.4.0.b49, @jgclark
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
@@ -21,10 +21,11 @@ type Props = {
 }
 
 const StatusIcon = ({ item, respondToClicks, onIconClick, location, iconColor }: Props): Node => {
-  const { sendActionToPlugin, reactSettings, dispatch } = useAppContext()
+  const { sendActionToPlugin, reactSettings } = useAppContext()
 
   const dialogIsOpen = reactSettings?.dialogData?.isOpen
   const shouldShowTooltips = !dialogIsOpen || location === 'dialog'
+  const isReminder = item.itemType === 'reminder'
 
   useEffect(() => {
     // This effect runs when `item.itemType` changes
@@ -38,7 +39,7 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, iconColor }:
     switch (itemType) {
       case 'open':
       case 'scheduled':
-      case 'reminder': // same circle as tasks; click shows read-only toast for now
+      case 'reminder': // same circle as tasks; click completes, ctrl deletes
         return 'todo clickTarget fa-regular fa-fw fa-circle'
       case 'cancelled':
         return 'cancelled fa-regular fa-fw fa-circle-xmark'
@@ -70,26 +71,11 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, iconColor }:
   function handleIconClick(event: MouseEvent) {
     if (!respondToClicks) return
 
-    // Reminders: same click / ⌘-click affordance as tasks, but read-only for now
-    // TODO(later): complete / uncomplete reminder from status icon (Calendar update APIs)
-    if (item.itemType === 'reminder') {
-      logInfo(`StatusIcon`, `Clicked on reminder (meta=${String(event.metaKey)}) -> read-only toast`)
-      dispatch(
-        'SHOW_TOAST',
-        {
-          type: 'INFO',
-          msg: 'Sorry; Reminders are currently read-only.',
-          timeout: 4000,
-        },
-        'reminder read-only',
-      )
-      return
-    }
-
     const { metaKey, ctrlKey } = extractModifierKeys(event)
     const actionType: ?TActionType = determineActionType(metaKey, ctrlKey)
     if (actionType) {
-      logDebug('StatusIcon/handleIconClick', `-> actionType:${actionType} for i.p.content = ${item.para?.content ?? '-'}`)
+      const contentLabel = item.para?.content ?? item.reminder?.title ?? '-'
+      logDebug('StatusIcon/handleIconClick', `-> actionType:${actionType} for content = ${contentLabel}`)
       const messageObject: MessageDataObject = {
         actionType,
         item,
@@ -121,6 +107,15 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, iconColor }:
         setIconClassName(getClassNameFromType(metaKey ? 'checklistCancelled' : ctrlKey ? 'deleted' : 'checklistDone'))
         return metaKey ? 'cancelChecklist' : ctrlKey ? 'deleteItem' : 'completeChecklist'
       }
+      case 'reminder': {
+        // Apple Reminders have no cancel state; click completes, ctrl deletes. Meta is ignored.
+        if (metaKey && !ctrlKey) {
+          logInfo(`StatusIcon`, `Clicked on reminder with metaKey -> no cancel action for reminders`)
+          return
+        }
+        setIconClassName(getClassNameFromType(ctrlKey ? 'deleted' : 'done'))
+        return ctrlKey ? 'deleteReminder' : 'completeReminder'
+      }
       case 'project': {
         return 'showNoteInEditorFromFilename'
       }
@@ -141,8 +136,13 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, iconColor }:
   )
 
   // Note: trying TooltipOnKeyPress as a span item, and an equivalent empty one if there's no tooltip
+  // Reminders: no Cancel (meta); only Delete (ctrl)
   return shouldShowTooltips ? (
-    <TooltipOnKeyPress ctrlKey={{ text: 'Delete Item' }} metaKey={{ text: 'Cancel Item' }} label={`${item.itemType}_${item.ID}_Icon`}>
+    <TooltipOnKeyPress
+      ctrlKey={{ text: isReminder ? 'Delete Reminder' : 'Delete Item' }}
+      metaKey={isReminder ? undefined : { text: 'Cancel Item' }}
+      label={`${item.itemType}_${item.ID}_Icon`}
+    >
       {renderedIcon}
     </TooltipOnKeyPress>
   ) : (

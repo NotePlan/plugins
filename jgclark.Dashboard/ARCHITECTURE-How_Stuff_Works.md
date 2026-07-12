@@ -235,7 +235,7 @@ Live data comes from incomplete Apple Reminders on lists enabled in NotePlan (`C
 - undated + before yesterday → the dedicated **Reminders** (`REM`) section
 - dated **after tomorrow** → filtered out (not shown anywhere)
 
-v1 UI is largely **read-only** (status icon toast; no complete/edit dialog yet).
+v1 UI: status icon click completes the reminder (`completeReminder` → `Calendar.update` with `isCompleted = true`); ctrl-click deletes it (`deleteReminder` → `Calendar.remove`). Both refresh the section the row was shown in. Content is still not clickable for navigation (see below). Edit dialog / open-in-Reminders still TODO.
 
 ### Why reminder rows cannot open in Apple Reminders
 

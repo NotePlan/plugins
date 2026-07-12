@@ -13,12 +13,14 @@ import {
   doCancelChecklist,
   doCancelTask,
   doContentUpdate,
+  doCompleteReminder,
   doCompleteTask,
   doCompleteTaskThen,
   doCompleteChecklist,
   doCyclePriorityStateDown,
   doCyclePriorityStateUp,
   doDeleteItem,
+  doDeleteReminder,
   doEvaluateString,
   applyDashboardThemeToWebView,
   doSaveDashboardSettingsFromBridge,
@@ -248,6 +250,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doCompleteTaskThen(data)
         break
       }
+      case 'completeReminder': {
+        result = await doCompleteReminder(data)
+        break
+      }
       case 'cancelTask': {
         result = doCancelTask(data)
         break
@@ -262,6 +268,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'deleteItem': {
         result = await doDeleteItem(data)
+        break
+      }
+      case 'deleteReminder': {
+        result = await doDeleteReminder(data)
         break
       }
       case 'unscheduleItem': {

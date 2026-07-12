@@ -11,7 +11,7 @@
 // - x-apple-reminderkit://REMCDReminder/{UUID} works outside NotePlan but is blocked by openURL.
 // See also ARCHITECTURE-How_Stuff_Works.md → "Reminders section".
 //
-// Last updated 2026-07-11 for v2.4.0.b49
+// Last updated 2026-07-12 for v2.4.0.b49
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node } from 'react'
@@ -28,8 +28,7 @@ type Props = {
 
 /**
  * Reminder row. Content is intentionally not clickable (cannot deep-link to Reminders via NotePlan.openURL;
- * see file header and ARCHITECTURE-How_Stuff_Works.md). Status icon is read-only (INFO toast).
- * TODO(later): complete / uncomplete via status icon (Calendar update APIs)
+ * see file header and ARCHITECTURE-How_Stuff_Works.md). Status icon: click completes, ctrl deletes (Calendar API).
  * TODO(later): task-like dialog (edit title/details, reschedule, change list)
  * TODO(later): open in Reminders if NotePlan allows a non-blocked path (or a show-reminder API)
  */
