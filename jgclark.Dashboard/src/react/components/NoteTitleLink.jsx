@@ -3,7 +3,7 @@
 // Shared component for rendering a clickable note title link with icon.
 // Note: it does not handle Teamspace indicators or folder names.
 // Used by both ItemNoteLink and ProjectItem components.
-// Last updated 2026-04-13 for v2.4.0.b23 by @jgclark
+// Last updated 2026-07-12 for v2.4.0.b49 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useCallback } from 'react'

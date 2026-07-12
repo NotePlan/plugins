@@ -325,7 +325,18 @@ button,
 		width: fit-content;
 	}
 
-	/* Colour the note titles */
+	/* ItemNoteLink lozenge: wraps teamspace + folder + note title; same tint fill/border as .scheduledDate */
+	.itemNoteLink {
+		font-size: 84%;
+		background-color: rgb(from var(--tint-color) r g b / 0.1);
+		border: 1px solid rgb(from var(--tint-color) r g b / 0.4);
+		border-radius: 5px;
+		padding-inline: 3px;
+		margin-left: 0.3rem;
+		white-space: nowrap;
+	}
+
+	/* Colour the note titles (inside .itemNoteLink or wiki links in content) */
 	.noteTitle {
 		color: var(--tint-color);
 		white-space: nowrap;

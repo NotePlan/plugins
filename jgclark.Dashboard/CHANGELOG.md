@@ -13,6 +13,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - When Reminders section is enabled, the **Current time block** section is titled **Current time block + tasks**, and timed reminders only appear there once their due time has been reached.
 - Time displays on timeblock and reminder items now use a neater lozenge with a clock icon at the start.
 - Scheduled `>date` markers on items are now shown in a neater lozenge with a calendar icon at the start.
+- Note context links (`ItemNoteLink`) now use a tint-colored lozenge with border and smaller text, wrapping teamspace, folder, and note title while keeping their existing icons and colors.
 - Removed beta feature flag item "Show Banner Test Buttons".
 
 ## [2.4.0.b48] 2026-07-11

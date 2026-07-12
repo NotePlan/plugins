@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show Note Titles as clickable links. Handles Teamspace indicators and folder names.
 // Used by ItemContent and DialogFor*Items components.
-// Last updated 2026-02-05 for v2.4.0.b20 by @jgclark
+// Last updated 2026-07-12 for v2.4.0.b49 by @jgclark
 //--------------------------------------------------------------------------
 
 import React from 'react'
@@ -79,16 +79,18 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppress
       label={`${item.itemType}_${item.ID}_Open Note Link`}
       enabled={!reactSettings?.dialogData?.isOpen}
     >
-      {/* If it's a teamspace note prepend that icon + title */}
-      {isFromTeamspace && teamspaceName}
-      {folderNamePart && <span className="folderName">{folderNamePart}</span>}
-      <NoteTitleLink
-        item={item}
-        noteData={noteData}
-        actionType="showNoteInEditorFromFilename"
-        iconClassName="pad-left pad-right"
-        showTitle={showNoteTitle}
-      />
+      {/* Single lozenge wrapping teamspace + folder + note title (icons/colors kept on children) */}
+      <span className="itemNoteLink">
+        {isFromTeamspace && teamspaceName}
+        {folderNamePart && <span className="folderName">{folderNamePart}</span>}
+        <NoteTitleLink
+          item={item}
+          noteData={noteData}
+          actionType="showNoteInEditorFromFilename"
+          iconClassName="pad-right"
+          showTitle={showNoteTitle}
+        />
+      </span>
     </TooltipOnKeyPress>
   )
 }
