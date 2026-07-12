@@ -18,18 +18,19 @@ html {
 	--fg-WinsColor: var(--fg-ok-color);
 }
 
-/* Also need these as named styles */
-.DailySectionColor {color: var(--fg-sidebarDaily);}
-.WeeklySectionColor {color: var(--fg-sidebarWeekly);}
-.MonthlySectionColor {color: var(--fg-sidebarMonthly);}
-.QuarterlySectionColor {color: var(--fg-sidebarQuarterly);}
-.YearlySectionColor {color: var(--fg-sidebarYearly);}
-.SearchSectionColor {color: var(--fg-sidebarSearch);}
-.HashtagSectionColor {color: var(--hashtag-color);}
-.MentionSectionColor {color: var(--attag-color);}
-.WinsSectionColor {color: var(--fg-WinsColor);}
-.TimeBlockSectionColor {color: var(--fg-TimeBlockColor);}
-.RemindersSectionColor {color: var(--fg-RemindersColor);}
+/* Also need these as named styles. Each targets all child elements too. */
+.DailySectionColor * {color: var(--fg-sidebarDaily);}
+.WeeklySectionColor * {color: var(--fg-sidebarWeekly);}
+.MonthlySectionColor * {color: var(--fg-sidebarMonthly);}
+.QuarterlySectionColor * {color: var(--fg-sidebarQuarterly);}
+.YearlySectionColor * {color: var(--fg-sidebarYearly);}
+.SearchSectionColor * {color: var(--fg-sidebarSearch);}
+.HashtagSectionColor * {color: var(--hashtag-color);}
+.MentionSectionColor * {color: var(--attag-color);}
+.WinsSectionColor * {color: var(--fg-WinsColor);}
+.TimeBlockSectionColor * {color: var(--fg-TimeBlockColor);}
+.RemindersSectionColor * {color: var(--fg-RemindersColor);}
+.InfoSectionColor * {color: var(--fg-RemindersColor);}
 
 /* ------------------------------------------------------------------ */
 
@@ -125,34 +126,35 @@ dialog::backdrop {
 		border: 1px solid rgb(from var(--fg-main-color) r g b/0.3);
 		box-shadow: 1px 1px 0px 0px rgb(from var(--fg-main-color) r g b / 0.2);
 	}
-}
 
-/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
-.buttonsWithoutBordersOrBackground,
-.buttonsWithoutBordersOrBackground * {
-	display: inline-flex;
-	gap: 0.4rem;
-	justify-self: end;
-	/* align-self: flex-start; /* Doesn't seem to be needed */
-	border: 0px none;
-	box-shadow: none;
-	/* padding-top: 1px; */
-	padding-left: unset;
-	padding-right: unset;
-	background-color: unset;
-	color: var(--tint-color);
-	cursor: pointer;
 
-	/* &:focus {
-		outline: none;
-	} */
-	/* Add a more specific 'underline' to indicate focus for these buttons to aid keyboard navigation */
-	&:focus-visible {
-		filter: brightness(112%);
-		/* Remove the default focus ring */
-		outline: none;
-		border-radius: 0px;
-		border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.5);
+	/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
+	.buttonsWithoutBordersOrBackground,
+	.buttonsWithoutBordersOrBackground * {
+		display: inline-flex;
+		gap: 0.4rem;
+		justify-self: end;
+		/* align-self: flex-start; /* Doesn't seem to be needed */
+		border: 0px none;
+		box-shadow: none;
+		/* padding-top: 1px; */
+		padding-left: unset;
+		padding-right: unset;
+		background-color: unset;
+		color: var(--tint-color);
+		cursor: pointer;
+
+		/* &:focus {
+			outline: none;
+		} */
+		/* Add a more specific 'underline' to indicate focus for these buttons to aid keyboard navigation */
+		&:focus-visible {
+			filter: brightness(112%);
+			/* Remove the default focus ring */
+			outline: none;
+			border-radius: 0px;
+			border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.5);
+		}
 	}
 }
 
@@ -301,6 +303,11 @@ button,
 .pad-left-larger {
 	/* add space before something */
 	padding-left: 0.5rem !important;
+}
+
+.margin-right-larger {
+	/* add more space after something */
+	margin-right: 0.5em !important;
 }
 
 .pad-right {

@@ -421,7 +421,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
 
   // Figure out colours for section title
   const titleStyle: Object = sectionFilename ? { cursor: 'pointer' } : {}
-  titleStyle.color = section.sectionTitleColorPart ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})` : 'var(--item-icon-color)'
+  titleStyle.color = section.sectionTitleColorPart ? section.sectionTitleColorPart : 'var(--fg-main-color)'
 
   const buttonsWithoutBordersOrBackground = section.actionButtons?.filter((b) => b.actionName.startsWith('add') || b.actionName.startsWith('close'))
   let processActionButtons = section.actionButtons?.filter((b) => !b.actionName.startsWith('add') && !b.actionName.startsWith('close'))

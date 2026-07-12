@@ -30,7 +30,7 @@ import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } fro
 import { dashboardFolderFilterSettingsChanged } from './reviewsListSync'
 import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TSectionCode } from './types'
-import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
+import { getDateObjFromDateString, getDateObjFromDateTimeString, getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
@@ -129,6 +129,102 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: sectionCodes })
   } catch (err) {
     logError('doAddItem', err.message)
+    return handlerResult(false, [], { errorMsg: err.message })
+  }
+}
+
+/**
+ * Add a new Apple Reminder from the Reminders section heading button.
+ * Dialog supplies text, list, and optional date/time.
+ * Dated today → DT/TB; tomorrow → DO; undated → REM (caller refreshes those sections).
+ *
+ * NotePlan API notes:
+ * - Calendar.add requires a real CalendarItem from CalendarItem.create (plain dicts without date are rejected).
+ * - CalendarItem.create always requires a Date; setting `.date = null` is coerced to Unix epoch (1970-01-01) by the JS bridge -- do not do that.
+ * - Undated Apple Reminders still expose a `.date` when read; Dashboard treats a reminder as dated only when `.occurences` is non-empty (see mapCalendarItemToReminderForDashboard).
+ *
+ * @param {MessageDataObject} data - actionType addReminder, userInputObj { text, list, date?, time? }, sectionCodes
+ * @returns {Promise<TBridgeClickHandlerResult>}
+ */
+export async function doAddReminder(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  try {
+    const { userInputObj, sectionCodes } = data
+    const text: string = (userInputObj && userInputObj.text) || ''
+    const listName: string = (userInputObj && userInputObj.list) || ''
+    const rawDate = userInputObj ? userInputObj.date : null
+    const timeStr: string = (userInputObj && userInputObj.time) || ''
+
+    const content = text.trim() !== '' ? text.trim() : await CommandBar.showInput('Type the Reminder text to add', "Add Reminder '%@'")
+    if (!content || content.trim() === '') {
+      throw new Error('doAddReminder: No reminder text provided')
+    }
+    if (!listName || listName.trim() === '') {
+      throw new Error('doAddReminder: No Reminder List provided')
+    }
+
+    // Normalise optional date from calendarpicker (YYYY-MM-DD string, Date, or empty/null)
+    let trimmedDate = ''
+    if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
+      trimmedDate = `${rawDate.getFullYear()}-${String(rawDate.getMonth() + 1).padStart(2, '0')}-${String(rawDate.getDate()).padStart(2, '0')}`
+    } else if (typeof rawDate === 'string' && rawDate.trim() !== '') {
+      trimmedDate = rawDate.trim()
+    }
+    const trimmedTime = typeof timeStr === 'string' ? timeStr.trim() : ''
+
+    // CalendarItem.create requires a date. For undated we still pass a placeholder Date (isAllDay);
+    // do NOT set date=null afterwards -- the bridge turns that into 1970-01-01T00:00:00.000Z.
+    // Pass null (not undefined) for endDate so the native bridge does not shift later args (incl. isAllDay).
+    let dueDate: Date
+    let isAllDay = true
+    const wantUndated = trimmedDate === ''
+
+    if (!wantUndated) {
+      if (trimmedTime !== '') {
+        dueDate = getDateObjFromDateTimeString(`${trimmedDate} ${trimmedTime}`)
+        isAllDay = false
+      } else {
+        const dateOnly = getDateObjFromDateString(trimmedDate)
+        if (!dateOnly) {
+          throw new Error(`doAddReminder: Could not parse date "${trimmedDate}"`)
+        }
+        dueDate = dateOnly
+        isAllDay = true
+      }
+    } else {
+      dueDate = new Date()
+      isAllDay = true
+    }
+
+    const reminderItem: TCalendarItem = CalendarItem.create(
+      content.trim(),
+      dueDate,
+      null, // endDate unused for reminders; use null not undefined (avoids bridge arg shift)
+      'reminder',
+      isAllDay,
+      listName.trim(),
+      false, // isCompleted
+      '', // notes
+      '', // url
+    )
+    // Re-assert after create: some NotePlan builds do not keep isAllDay from create() for reminders
+    reminderItem.isAllDay = isAllDay
+
+    logDebug(
+      'doAddReminder',
+      `- adding reminder "${content.trim()}" to list "${listName.trim()}" date=${trimmedDate || '(undated placeholder)'} time=${trimmedTime || '(none)'} isAllDay=${String(isAllDay)} wantUndated=${String(wantUndated)}`,
+    )
+    const created = Calendar.add(reminderItem)
+    if (!created) {
+      throw new Error('doAddReminder: Calendar.add failed (returned undefined)')
+    }
+    logDebug(
+      'doAddReminder',
+      `- created reminder id=${String(created.id || '')} date=${String(created.date || '')} isAllDay=${String(created.isAllDay)} occurences=${String((created.occurences && created.occurences.length) || 0)}`,
+    )
+    const codesToRefresh = sectionCodes && sectionCodes.length > 0 ? sectionCodes : ['REM', 'DT', 'TB', 'DO']
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: codesToRefresh })
+  } catch (err) {
+    logError('doAddReminder', err.message)
     return handlerResult(false, [], { errorMsg: err.message })
   }
 }

@@ -291,7 +291,7 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
       totalCount: winItems.length,
       sectionItems: winItems,
       FAIconClass: 'fa-regular fa-fw fa-crosshairs',
-      sectionTitleColorPart: 'WinsColor',
+      sectionTitleColorPart: 'WinsSectionColor',
       actionButtons: [],
       // Derived from calendar source sections - see comment on maxGeneratedDateMs above
       generatedDate: maxGeneratedDateMs > 0 ? new Date(maxGeneratedDateMs) : undefined,

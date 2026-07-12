@@ -1815,6 +1815,7 @@ declare interface TCalendarItem {
   title: string;
   /**
    * The date (with time) of the event or reminder.
+   * Note: For reminders, NotePlan/EventKit stores this in Zulu (UTC). Convert to local timezone before display or date bucketing.
    */
   date: Date;
   /**
@@ -1838,9 +1839,11 @@ declare interface TCalendarItem {
   isCompleted: boolean;
   /**
    * All the dates the event or reminder occurs (if it's a multi-day event for example)
+   * Note: 'occurences' is a typo in either the API or the code; it should be 'occurrences'.
+   * TODO(EduardMe): check where the typo is, and fix it.
    * Note: Available from v3.0.15
    */
-  +occurrences: $ReadOnlyArray<Date>;
++occurences: $ReadOnlyArray < Date >;
   /**
    * The calendar or reminders list where this event or reminder is (or should be) saved. If you set nothing, the event or reminder will be added to the default and this field will be set after adding.
    * Note: Available from v3.0.15.

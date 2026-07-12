@@ -147,7 +147,7 @@ export function getTodaySectionData(
       sectionCode: thisSectionCode,
       description: sectionDescription,
       FAIconClass: 'fa-regular fa-fw fa-calendar-star',
-      sectionTitleColorPart: 'sidebarDaily',
+      sectionTitleColorPart: 'DailySectionColor',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
@@ -258,7 +258,7 @@ export function getTodaySectionData(
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${todayDateLocale}`,
         FAIconClass: 'fa-regular fa-fw fa-calendar-star',
-        sectionTitleColorPart: 'sidebarDaily',
+        sectionTitleColorPart: 'DailySectionColor',
         sectionFilename: thisFilename,
         sectionItems: items,
         totalCount: items.length,
@@ -366,10 +366,7 @@ export function getTimeBlockSectionData(
       }
     }
 
-    let sectionName = timeBlockItems.length > 1 ? 'Current time blocks' : 'Current time block' // singular if only one item
-    if (remindersFeatureEnabled) {
-      sectionName = `${sectionName} + tasks`
-    }
+    const sectionName = (remindersFeatureEnabled) ? 'Timed Items' : 'Time Blocks'
 
     const section: TSection = {
       ID: TBsectionCode,
@@ -377,8 +374,8 @@ export function getTimeBlockSectionData(
       name: sectionName,
       showSettingName: 'showTimeBlockSection',
       description: '',
-      FAIconClass: 'fa-regular fa-fw fa-calendar-clock',
-      sectionTitleColorPart: 'TimeBlockColor',
+      FAIconClass: 'fa-regular fa-fw fa-clock',
+      sectionTitleColorPart: 'TimeBlockSectionColor',
       sectionFilename: thisFilename,
       sectionItems: timeBlockItems,
       generatedDate: new Date(),
@@ -479,7 +476,7 @@ export function getYesterdaySectionData(
       sectionCode: thisSectionCode,
       description: sectionDescription,
       FAIconClass: 'fa-regular fa-fw fa-calendar-arrow-up',
-      sectionTitleColorPart: 'sidebarDaily',
+      sectionTitleColorPart: 'DailySectionColor',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -544,7 +541,7 @@ export function getYesterdaySectionData(
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${yesterdayDateLocale}`,
         FAIconClass: 'fa-regular fa-fw fa-calendar-star',
-        sectionTitleColorPart: 'sidebarDaily',
+        sectionTitleColorPart: 'DailySectionColor',
         sectionFilename: thisFilename,
         sectionItems: items,
         totalCount: items.length,
@@ -659,7 +656,7 @@ export function getTomorrowSectionData(
       sectionCode: thisSectionCode,
       description: sectionDescription,
       FAIconClass: 'fa-regular fa-fw fa-calendar-arrow-down',
-      sectionTitleColorPart: 'sidebarDaily',
+      sectionTitleColorPart: 'DailySectionColor',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -734,7 +731,7 @@ export function getTomorrowSectionData(
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${tomorrowDateLocale}`,
         FAIconClass: 'fa-regular fa-fw fa-calendar-arrow-down',
-        sectionTitleColorPart: 'sidebarDaily',
+        sectionTitleColorPart: 'DailySectionColor',
         sectionFilename: thisFilename,
         sectionItems: items,
         totalCount: items.length,

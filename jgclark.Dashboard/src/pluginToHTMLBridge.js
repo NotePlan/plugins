@@ -8,6 +8,7 @@ import pluginJson from '../plugin.json'
 import {
   doAddItem,
   // doAddItemToFuture, // see below
+  doAddReminder,
   doAddTaskAnywhere,
   doCancelChecklist,
   doCancelTask,
@@ -408,6 +409,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       // }
       case 'addChecklist': {
         result = await doAddItem(data)
+        break
+      }
+      case 'addReminder': {
+        result = await doAddReminder(data)
         break
       }
       case 'addTask': {

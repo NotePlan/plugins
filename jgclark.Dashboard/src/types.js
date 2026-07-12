@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-07-11 for v2.4.0.b49 by @jgclark
+// Last updated 2026-07-12 for v2.4.0.b49 by @jgclark
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -251,8 +251,8 @@ export type TReminderForDashboard = {
   listname: string, // the list the reminder is in
   color?: string, // optional list color as hex (from Calendar.availableReminderLists)
   flagged: boolean, // whether the reminder is flagged
-  date?: string, // optional ISO string (YYYY-MM-DD)
-  time?: string, // optional HH:MM in 24-hour format
+  date?: string, // optional local calendar date YYYY-MM-DD (converted from API Zulu/UTC)
+  time?: string, // optional local HH:MM in 24-hour format (converted from API Zulu/UTC)
   location?: string, // optional location
 }
 
@@ -285,6 +285,7 @@ export type TActionButton = {
 export type TActionType =
   | 'addChecklist'
   | 'addProgress'
+  | 'addReminder'
   | 'addTask'
   | 'addTaskAnywhere'
   // | 'addTaskToFuture' // TEST: removed this in v2.4.0.b8as it was not hooked up to any UI element

@@ -1,14 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for REM (Reminders) Section and day/TB reminder buckets
-// Last updated 2026-07-11 for v2.4.0.b49, @jgclark + @CursorAI
+// Last updated 2026-07-12 for v2.4.0.b49, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
+import pluginJson from '../plugin.json'
 import { reminderItems } from './demoData'
-import type { TDashboardSettings, TReminderForDashboard, TSection, TSectionItem } from './types'
-import { getTodaysDateHyphenated, getTimeStringFromDate } from '@helpers/dateTime'
-import { logDebug, logError, logTimer, logWarn, timer } from '@helpers/dev'
+import type { TActionButton, TDashboardSettings, TReminderForDashboard, TSection, TSectionCode, TSectionItem, TSettingItem } from './types'
+import { getTodaysDateHyphenated } from '@helpers/dateTime'
+import { clo, clof, logDebug, logError, logTimer, logWarn, timer } from '@helpers/dev'
 import { usersVersionHas } from '@helpers/NPVersions'
 
 // TODO(later): periodic auto-refresh while Dashboard is visible (TB-style timer)
@@ -103,10 +104,28 @@ export function mapCalendarItemToReminderForDashboard(
     reminder.location = calendarItem.location
   }
   if (calendarItem.date) {
-    reminder.date = moment(calendarItem.date).format('YYYY-MM-DD')
-    if (!calendarItem.isAllDay) {
-      reminder.time = getTimeStringFromDate(calendarItem.date)
+    // Note: API bug: all reminders report a date: depending how they're created they can be current datetime, or epoch start (1970-01-01T00:00:00.000Z)
+    // This test to see if there are 'occurences' (i.e. dated) works around this.
+    // Note: 'occurences' is a typo in the API, it should be 'occurrences'.
+    // TODO(later): remove workarounds when bugs are fixed.
+    // Also: writing date=null via the plugin bridge becomes 1970-01-01T00:00:00.000Z -- treat epoch as undated.
+    // Reminder due dates from NotePlan/EventKit are stored in Zulu (UTC). Coerce bridge Date-or-ISO-string, then
+    // convert to local timezone for Dashboard date bucketing (YYYY-MM-DD) and timed display (HH:mm).
+    const rawDate: Date | string = calendarItem.date
+    const dateObj: Date = rawDate instanceof Date ? rawDate : new Date(rawDate)
+    const dateMs = dateObj.getTime()
+    const isEpochDate = !isNaN(dateMs) && dateMs < 86400000 // to allow for different timezones, not just midnight GMT
+    if (!isEpochDate && calendarItem.occurences && calendarItem.occurences.length > 0) {
+      const localMom = moment(dateObj) // formats in local TZ
+      reminder.date = localMom.format('YYYY-MM-DD')
+      if (!calendarItem.isAllDay) {
+        reminder.time = localMom.format('HH:mm')
+      }
     }
+  }
+  if (calendarItem.title.match(/test/i) || calendarItem.title.match(/new/i)) {
+    clof(calendarItem, "CalendarItem (for Reminder): ", ['title', 'date', 'occurences', 'isAllDay', 'isCompleted'])
+    clo(reminder, "  => Reminder: ")
   }
   return reminder
 }
@@ -147,14 +166,14 @@ export function sortReminderSectionItems(items: Array<TSectionItem>): Array<TSec
  * Prepare reminder items for another section: assign destination sectionCode and unique IDs.
  * Returns new item objects (does not mutate the input array or its items).
  * @param {Array<TSectionItem>} reminderItems
- * @param {string} sectionCode - e.g. 'DT' or 'DY'
+ * @param {TSectionCode} sectionCode - e.g. 'DT' or 'DY'
  * @param {string} idPrefix - e.g. 'DT' or 'DT_REF'
  * @param {number} startIndex - starting index for ID suffix
  * @returns {Array<TSectionItem>}
  */
 export function assignReminderItemsToSection(
   reminderItems: Array<TSectionItem>,
-  sectionCode: string,
+  sectionCode: TSectionCode,
   idPrefix: string,
   startIndex: number = 0,
 ): Array<TSectionItem> {
@@ -301,11 +320,13 @@ export async function getRemindersGeneratedData(
     logDebug('getRemindersGeneratedData', `--------- Gathering Reminders ${useDemoData ? 'DEMO ' : ''}items --------`)
 
     let allItems: Array<TSectionItem> = []
+    let listTitlesForAdd: Array<string> = []
 
     if (useDemoData) {
       allItems = reminderItems.slice()
     } else {
       const { titles: enabledListTitles, colorByTitle } = getEnabledReminderLists()
+      listTitlesForAdd = enabledListTitles
       let calendarItems: Array<TCalendarItem> = []
       if (enabledListTitles.length === 0) {
         logDebug('getRemindersGeneratedData', `- no enabled reminder lists; buckets will be empty`)
@@ -339,6 +360,38 @@ export async function getRemindersGeneratedData(
       sectionDescription += ` [${timer(startTime)}]`
     }
 
+    // Form fields for the heading add-Reminder button (CommandButton → showDialog)
+    const reminderFormFields: Array<TSettingItem> = [
+      { type: 'input', label: 'Reminder:', key: 'text', focus: true },
+      // $FlowIgnore[incompatible-type]
+      {
+        type: 'dropdown-select',
+        label: 'Reminder List:',
+        key: 'list',
+        options: listTitlesForAdd,
+        noWrapOptions: true,
+        value: listTitlesForAdd[0] || '',
+      },
+      { type: 'calendarpicker', label: 'Date (optional):', key: 'date', dateFormat: 'YYYY-MM-DD' },
+      { type: 'input', label: 'Time (optional, HH:MM):', key: 'time' },
+    ]
+    const actionButtons: Array<TActionButton> =
+      listTitlesForAdd.length > 0
+        ? [
+          {
+            actionName: 'addReminder',
+            actionPluginID: `${pluginJson['plugin.id']}`,
+            display: '<i class= "fa-regular fa-fw fa-circle-plus RemindersColor" ></i> ',
+            tooltip: 'Add a new Reminder',
+            postActionRefresh: ['REM', 'DT', 'TB', 'DO'],
+            formFields: reminderFormFields,
+            submitOnEnter: true,
+            submitButtonText: 'Add & Close',
+            actionParam: '',
+          },
+        ]
+        : []
+
     const remindersSection: TSection = {
       ID: thisSectionCode,
       sectionCode: thisSectionCode,
@@ -346,11 +399,11 @@ export async function getRemindersGeneratedData(
       showSettingName: 'showRemindersSection',
       description: sectionDescription,
       FAIconClass: 'fa-regular fa-fw fa-list',
-      sectionTitleColorPart: 'RemindersColor',
+      sectionTitleColorPart: 'RemindersSectionColor',
       sectionItems: restItems,
       generatedDate: new Date(),
       isReferenced: false,
-      actionButtons: [],
+      actionButtons: actionButtons,
       totalCount: totalRestCount > maxInSection ? totalRestCount : undefined,
     }
 

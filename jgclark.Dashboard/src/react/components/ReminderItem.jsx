@@ -48,7 +48,7 @@ function ReminderItem({ item /*, thisSection */ }: Props): Node {
   const contentParts: Array<Node> = []
   if (reminder.time) {
     contentParts.push(
-      <span key="time" className="timeBlock pad-right">
+      <span key="time" className="timeBlock margin-right-larger">
         <i className="fa-regular fa-clock pad-right" />
         {reminder.time}
       </span>,

@@ -272,7 +272,7 @@ export async function getTaggedSectionData(
       sectionCode: thisSectionCode,
       description: sectionDescription,
       FAIconClass: isHashtag ? 'fa-regular fa-hashtag' : 'fa-regular fa-at',
-      sectionTitleColorPart: isHashtag ? 'HashtagColor' : 'MentionColor',
+      sectionTitleColorPart: isHashtag ? 'HashtagSectionColor' : 'MentionSectionColor',
       sectionFilename: '',
       sectionItems: items,
       totalCount: totalCount,

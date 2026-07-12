@@ -9,7 +9,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 ## [2.4.0.b49] 2026-07-11
-- New **Reminders** section (Apple Reminders), gated by feature flag **FFlag_Reminders**. Shows open reminders from the Apple Reminders lists that the user has selected in NotePlan's settings. The display is read-only for now.
+- New **Reminders** section (Apple Reminders), gated by feature flag **FFlag_Reminders**. Shows open reminders from the Apple Reminders lists that the user has selected in NotePlan's settings. Completing/editing reminders is still read-only for now.
+- Add button on the Reminders section heading that opens a dialog prompting for Reminder text, Reminder List, and optional date/time.
+- Added workarounds for newly-discovered NP API bugs/quirks for reading/writing Reminders.
+- Reminder due dates from the API are Zulu (UTC); Dashboard now converts them to the local timezone for date bucketing and time display.
 - When Reminders section is enabled, the **Current time block** section is titled **Current time block + tasks**, and timed reminders only appear there once their due time has been reached.
 - Time displays on timeblock and reminder items now use a neater lozenge with a clock icon at the start.
 - Scheduled `>date` markers on items are now shown in a neater lozenge with a calendar icon at the start.
