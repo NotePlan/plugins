@@ -419,9 +419,12 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
   let numItemsToShow = itemsToShow.length
 
-  // Figure out colours for section title
+  // Figure out a style for the section title
   const titleStyle: Object = sectionFilename ? { cursor: 'pointer' } : {}
-  titleStyle.color = section.sectionTitleColorPart ? section.sectionTitleColorPart : 'var(--fg-main-color)'
+  // If the section title color part is not set, use the main color, otherwise the later code adds the relevant color class name to the div
+  // if (!section.sectionTitleColorPart || section.sectionTitleColorPart === 'DailySectionColor') {
+  //   titleStyle.color = 'var(--fg-main-color)'
+  // }
 
   const buttonsWithoutBordersOrBackground = section.actionButtons?.filter((b) => b.actionName.startsWith('add') || b.actionName.startsWith('close'))
   let processActionButtons = section.actionButtons?.filter((b) => !b.actionName.startsWith('add') && !b.actionName.startsWith('close'))
@@ -612,7 +615,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
     // TODO: get this working. See post in KP Discord about it on 26.5.2025
     <section className={`section ${isReferencedSection ? 'referencedSectionInfo' : 'nonReferencedSectionInfo'}`}>
       <div className="sectionInfo">
-        <div className="sectionInfoFirstLine">
+        <div className={`sectionInfoFirstLine ${section.sectionTitleColorPart ? section.sectionTitleColorPart : 'DefaultSectionColor'}`}>
           <TooltipOnKeyPress
             altKey={{ text: 'Open in Split View' }}
             metaKey={{ text: 'Open in Floating Window' }}

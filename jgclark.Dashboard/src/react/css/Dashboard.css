@@ -30,7 +30,7 @@ html {
 .WinsSectionColor * {color: var(--fg-WinsColor);}
 .TimeBlockSectionColor * {color: var(--fg-TimeBlockColor);}
 .RemindersSectionColor * {color: var(--fg-RemindersColor);}
-.InfoSectionColor * {color: var(--fg-RemindersColor);}
+.DefaultSectionColor * {color: var(--fg-RemindersColor);}
 
 /* ------------------------------------------------------------------ */
 

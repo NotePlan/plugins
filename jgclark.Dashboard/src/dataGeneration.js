@@ -204,7 +204,7 @@ export async function getInfoSectionData(_config: TDashboardSettings, _useDemoDa
     sectionCode: thisSectionCode,
     description: 'Window Details',
     FAIconClass: 'fa-light fa-info-circle',
-    sectionTitleColorPart: 'InfoSectionColor',
+    sectionTitleColorPart: 'DefaultSectionColor',
     sectionItems: outputLines.map((line) => ({
       ID: `${thisSectionCode}-${line}`,
       sectionCode: thisSectionCode,

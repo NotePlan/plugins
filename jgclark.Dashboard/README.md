@@ -9,7 +9,8 @@ This plugin provides a **dashboard window** for your NotePlan data that in one p
 - all overdue tasks
 - all open items with an added priority
 - the next Project notes ready to review (if you have the "Projects and Reviews" plugin installed)
-- it shows any currently-active time block you've set
+- it shows any currently-active Time Block you've set
+- and any items from Apple Reminders
 - plus a 'Search' field to show all open items that match a search.
 
 This avoids you having to keep _copying_ tasks into your Today note to see them, but instead you can _see_ them all in one place in the Dashboard window.  From there you can quickly edit, complete, cancel or move any of these items to be due on different days/week/months, with the pop-up Edit Dialog.
@@ -22,8 +23,7 @@ Here's a [great video from user George Crump](https://youtu.be/_lj8osSOvQc) that
 [<img width="500px" alt="thumbnail" src="./dashboard-v2-GC-video-title.jpeg">](https://youtu.be/_lj8osSOvQc)
 
 My suggestion is to think ahead. You may want to see overdue from yesterday now, but as your use grows you probably want to see more things from more places. E.g. I have a tag of things that I need to discuss with my Administrator, but these are spread across 30 different projects/areas. So I have a Section to show me them from whichever note they live in.
-That’s why Dashboard is as it is: don’t keep *copying* things into Today, but *see* them all in one place in the Dashboard window.  Yes, it means keeping it open most of the time, but that’s much easier than continually navigating around different notes.
-
+That's why Dashboard is as it is: don't keep *copying* things into Today, but *see* them all in one place in the Dashboard window.  Yes, it means keeping it open most of the time, but that's much easier than continually navigating around different notes.
 
 [<img width="150px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
@@ -59,7 +59,7 @@ All tasks and checklists shown in the Dashboard view can be marked as **complete
 
 <img  src="complete+cancel-2.1.0.gif" width="440px" border="1pt solid" margin="8px" alt="example of completing or cancelling a task"/>
 
-You can make many more changes by clicking on the **pencil** icon after each task. An 'edit' dialog box pops up with many **action buttons**:
+You can make many more changes by clicking on the **pencil** icon after each task. An **edit dialog** box pops up with many possible actions:
 
 <img src="task-dialog-2.1.8.png" width="600px" margin="8px" alt="dialog showing task + checklist action buttons" />
 
@@ -74,7 +74,7 @@ You can make many more changes by clicking on the **pencil** icon after each tas
 - `↑ Priority` increases the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
 - `↓ Priority` decreases the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
 - `Change to ◯/◻︎` toggles an item between being a task and a checklist
-- `← Complete` completes an overdue task, but marks it `@done(...)` on the _original_ (earlier) due date, not today.
+- `<- Complete` completes an overdue task, but marks it `@done(...)` on the _original_ (earlier) due date, not today.
 - `Unsched` unschedules a task (i.e. removes any `>date`).
 - `+New Task` lets you add a completely new task in any note under any heading without having to leave the Dashboard, or even the Interactive Processing flow. (This is the same as running the '/quick add task under heading' command from the Quick Capture plugin.)
 
@@ -98,10 +98,10 @@ There are several detailed options:
 - Move sub-items with the item? If set, then indented sub-items of an item will be moved if the item is moved to a different note.
 - Use '>today' to schedule tasks for today?: You can have tasks scheduled for today to use `>today` or the current date. If you use `>today`, the task will automatically move to tomorrow if not completed. If you use the current date, the task will not automatically move and will show as an overdue task. 
 
-### Interactive Processing
+### Interactive Processing Dialog
 <img src="task-dialog-IP-mode-2.1.8.png" margin="8px" width="600px" alt="interactive processing mode" />
 
-In sections with more than 1 item, a `>> N` button is available (where `N` is the number of items). This brings up the above dialog, but in 'interactive processing' mode, with extra buttons in the header to move forward (or backward) between the items. This allows you to more quickly go through a set of items, and take different actions for each one.
+In sections with more than 1 item, a `>> N` button is available (where `N` is the number of items). This brings up the **edit dialog**, but in 'interactive processing' mode, with extra buttons in the header to move forward (or backward) between the items. This allows you to more quickly go through a set of items, and take different actions for each one.
 
 Note:
 - you can break out from the sequence at any time by closing the dialog.
@@ -112,8 +112,8 @@ Note:
 <img src="add-buttons-2.2.0.png" border="1px" margin="8px" width="200px" alt="add buttons" align="left"/>
 On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note. A second pair adds tasks and checklists but to the *next* day/week/month. In the 'Today' section only is an extra button to allow you to add a task directly to any existing note.
 
-### Move 'All → ...' buttons
-Some sections have "All →  ..." buttons. They move or schedule all the items in that section to the destination e.g. from Today to Tomorrow's daily note. This includes any hidden as lower-priority items, unless you have the 'Do "Move all items" buttons only move shown items when filtering?' setting turned on.
+### Move 'All -> ...' buttons
+Some sections have "All ->  ..." buttons. They move or schedule all the items in that section to the destination e.g. from Today to Tomorrow's daily note. This includes any hidden as lower-priority items, unless you have the 'Do "Move all items" buttons only move shown items when filtering?' setting turned on.
 
 The 'Move not (re)schedule?' setting controls whether it will move or (re)schedule the items. However if you want to use the other action on a particular set of items, you can ⌘-click the button, and it will for this time only use the other action.
 
@@ -130,7 +130,7 @@ The items are shown **sorted** first by increasing time (where there is a time b
 
 There's a UI toggle "**Hide lower-priority items?**". If this is on, then it works out the highest priority shown tasks from all sections, and then hides all the other items at lower priorities in all shown sections. (You mark priority on items in the usual way for NotePlan, by adding a `>>`, `!!!`, `!!` or `!` at the beginning of the item.)
 
-The top bar has a **count of tasks done today** (when there is enough space). This includes all those completed in project notes, not just from the calendar sections shown — and it is **not** filtered by the current Perspective (folders to include/exclude, Spaces, ignore terms, etc.). Note: this requires having the NotePlan setting 'Todo > Append Completion Date' setting turned on, as otherwise we can't tell when a task is finished. (As @done(...) dates don't get appended to completed checklists, it's not possible to count completed checklists.) When you complete a task in a project note, it will be included the next time the Dashboard is refreshed, automatically on manually.
+The top bar has a **count of tasks done today** (when there is enough space). This includes all those completed in project notes, not just from the calendar sections shown -- and it is **not** filtered by the current Perspective (folders to include/exclude, Spaces, ignore terms, etc.). Note: this requires having the NotePlan setting 'Todo > Append Completion Date' setting turned on, as otherwise we can't tell when a task is finished. (As @done(...) dates don't get appended to completed checklists, it's not possible to count completed checklists.) When you complete a task in a project note, it will be included the next time the Dashboard is refreshed, automatically on manually.
 
 Calendar sections (Today, Yesterday, Week, Month, etc.) can optionally show a **progress count** and circle under the section title (setting: "How to show progress in Calendar sections?"). Those counts use the same completion logic and are also **not** filtered by the current Perspective. In particular, **Today** counts all tasks completed today across any note you have edited today, not just tasks that appear in the Today section; other calendar sections count all tasks completed today in that section's calendar note, regardless of whether they would be listed as open items under your Perspective settings.
 
@@ -149,7 +149,11 @@ The display will **automatically refresh** in the background if you set the "Aut
 
 It always shows the time range first, minus any 'Text must contain' string that you have set in NP's 'Todo' settings pane. Where a time block is defined on a heading or list item, then the calendar+clock icon is shown in place of the task/checklist icon.
 
-## Search section
+<!-- ### Reminders section
+??? 
+-->
+
+### Search section
 <img src="search-bar-2.2.0.gif" margin="8px" border="1px solid grey" alt="using Dashboard search" />
 
 Click on the search icon and a small search bar opens up in the Header, where you can type a term to search for open tasks and checklists in regular or calendar notes. This uses the extended syntax from my separate [Search Extensions plugin](https://noteplan.co/plugins/jgclark.SearchExtensions/) to allow more complex searches than NotePlan natively allows.
@@ -181,11 +185,11 @@ all three tasks will be included in a `#ProjectSPECTRE` Section.
 You can use the '#Tags' section to create a "deferred date" function. To do this tag something as (for example) `#next` and then schedule it with a day in the future.On that future date, it will show up in this `#next` section. (Thanks to @george65 for spotting this use case.)
 
 ### Project section
-If you use the [Projects & Reviews Plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), the Dashboard will show up the projects ready for review. It reads this from the hidden list that's updated every time its **/project lists** command is run, or you **/finish project review** on a project note.  
+If you use the **[Projects & Reviews Plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews)**, the Dashboard will show up the projects ready for review. It reads this from a hidden list that's updated every time its **/project lists** command is run, or you **/finish project review** on a project note.  **Note**: It uses that Plugin's definition of which folders to look in for Project notes, rather than the Perspective's definition, so that the display in both plugins stay aligned.
 
 <img src="project-dialog-2.0.0.png" width="600px" margin="8px" alt="project action buttons" />
 
-The 'action buttons' available in this section are:
+The actions available in the Edit dialog for this section are:
 - `Finish Review` does the equivalent of the "/finish review" command, marking that project as @reviewed today.
 - the various `Skip ...` buttons do the equivalent of the "/skip project review" command, that override (or skips) the normal review interval by the duration given. This adds a `@nextReview(...)` to the note's metadata. See [Project + Reviews documentation](../jgclark.Reviews/README.md) for more details.
 - `🗓️` skips  to any date you choose, via a date picker
@@ -235,7 +239,7 @@ _The settings in the 'Moving/Scheduling Items' section are covered above_.
 - Theme to use for Dashboard: If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.
 - Show referenced items in separate section? Whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes. The same also goes for Weekly/Monthly/Quarterly notes.
 - Show completed task count?: Show the number of tasks completed today at the top of the Dashboard. This total is not filtered by the current Perspective (see [Other notes about the Dashboard display](#other-notes-about-the-dashboard-display)). Note: For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.
-- How to show progress in Calendar sections?: If set to 'number closed', shows how many tasks were completed today in the section heading (with a progress circle). If set to 'number open', shows how many tasks are still open instead. These counts are not filtered by the current Perspective — e.g. Today's count includes all tasks completed today in any note, not only items listed in that section. Set to 'none' to hide.
+- How to show progress in Calendar sections?: If set to 'number closed', shows how many tasks were completed today in the section heading (with a progress circle). If set to 'number open', shows how many tasks are still open instead. These counts are not filtered by the current Perspective -- e.g. Today's count includes all tasks completed today in any note, not only items listed in that section. Set to 'none' to hide.
 - Hide priority markers? Hide the `>>`, `!!`, `!`, and `!!` priority markers (if your theme uses priorities markers).
 - Show note link for tasks? Whether to show the note link for an open task or checklist.
 - Show folder name in note link? Whether to include the folder name when showing a note link
@@ -380,7 +384,7 @@ I'm just a hobby coder, and not part of the NotePlan team, but I have spent at l
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
-Since v2.0, **David Wertheimer** has become co-author, and did a huge amount of work to build a new framework for plugins to use React.  George Crump has contributed many suggestions, bug reports, and several great explainer videos.  And of course, thanks to Eduard for continually improving NotePlan itself, and the APIs I've used to build my various Plugins.
+Since v2.0, **David Wertheimer** has become co-author, and did a huge amount of work to build a new framework for plugins to use React.  And of course, thanks to Eduard for continually improving NotePlan itself, and the APIs I've used to build my various Plugins.
 
 Thanks, team!
 
@@ -395,3 +399,4 @@ iOS/iPadOS users: if you need support, and we ask for more logs, you can change 
 
 ## History
 Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md).
+
