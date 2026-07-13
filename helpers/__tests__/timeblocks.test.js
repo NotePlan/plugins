@@ -506,4 +506,156 @@ describe(`${HELPER_NAME}`, () => {
       jest.useRealTimers() // Restore the real timers after each test
     })
   })
+
+  describe(section`stripTimeBlockAndMustContainFromContent()`, () => {
+    test('strips a start-end timeblock from mid-content without must-contain string', () => {
+      expect(tb.stripTimeBlockAndMustContainFromContent('Longer timeblocked task at 10:00-16:30')).toEqual('Longer timeblocked task at')
+    })
+
+    test('strips a start-end timeblock from mid-content with must-contain string', () => {
+      expect(tb.stripTimeBlockAndMustContainFromContent('Longer timeblocked task at 10:00-16:30', 'at')).toEqual('Longer timeblocked task')
+    })
+
+    test('strips a start-only timeblock', () => {
+      expect(tb.stripTimeBlockAndMustContainFromContent('Morning checklist 7:30AM')).toEqual('Morning checklist')
+    })
+
+    test('strips timeblock when it is at the start of the line', () => {
+      expect(tb.stripTimeBlockAndMustContainFromContent('10:00-11:00 Focus time')).toEqual('Focus time')
+    })
+
+    test('strips NotePlan must-contain string when set', () => {
+      expect(tb.stripTimeBlockAndMustContainFromContent('Meeting >anytime at 14:00-15:00', '>anytime at')).toEqual('Meeting')
+    })
+
+    test('strips must-contain hashtag and timeblock', () => {
+      expect(tb.stripTimeBlockAndMustContainFromContent('Deep work #tb 09:00-12:00', '#tb')).toEqual('Deep work')
+    })
+
+    test('strips must-contain hashtag separate from the timeblock', () => {
+      expect(tb.stripTimeBlockAndMustContainFromContent('#tb Deep work 09:00-12:00', '#tb')).toEqual('Deep work')
+    })
+
+    test('returns trimmed content unchanged when no timeblock present', () => {
+      expect(tb.stripTimeBlockAndMustContainFromContent('  no times here  ')).toEqual('no times here')
+    })
+
+    test('returns empty string for empty content', () => {
+      expect(tb.stripTimeBlockAndMustContainFromContent('')).toEqual('')
+    })
+
+    test('collapses leftover double spaces after strip', () => {
+      expect(tb.stripTimeBlockAndMustContainFromContent('Task  10:00-11:00  remaining')).toEqual('Task remaining')
+    })
+  })
+
+  describe(section`formatTimeBlockLabelFromStartAndEnd()`, () => {
+    test('formats start and end', () => {
+      expect(tb.formatTimeBlockLabelFromStartAndEnd('10:00', '16:30')).toEqual('10:00-16:30')
+    })
+
+    test('formats start only when end missing', () => {
+      expect(tb.formatTimeBlockLabelFromStartAndEnd('07:30')).toEqual('07:30')
+    })
+
+    test('returns empty when start is none or missing', () => {
+      expect(tb.formatTimeBlockLabelFromStartAndEnd('none', '16:30')).toEqual('')
+      expect(tb.formatTimeBlockLabelFromStartAndEnd(null)).toEqual('')
+      expect(tb.formatTimeBlockLabelFromStartAndEnd(undefined)).toEqual('')
+    })
+  })
+
+  describe(section`getEndTimeObjFromParaContent()`, () => {
+    test('parses 24h start-end without AM/PM', () => {
+      expect(tb.getEndTimeObjFromParaContent('TEST at 22:30-23:45')).toEqual({ hours: 23, mins: 45 })
+    })
+
+    test('returns NaN hours when there is no end time', () => {
+      const result = tb.getEndTimeObjFromParaContent('Something at 22:30')
+      expect(Number.isNaN(result.hours)).toBe(true)
+    })
+
+    test('parses en-dash separator', () => {
+      expect(tb.getEndTimeObjFromParaContent('Block 10:00–11:30')).toEqual({ hours: 11, mins: 30 })
+    })
+  })
+
+  describe(section`normalizeTimeBlockStartToHHMM()`, () => {
+    test('pads single-digit hour', () => {
+      expect(tb.normalizeTimeBlockStartToHHMM('9:00')).toEqual('09:00')
+    })
+
+    test('strips AM suffix', () => {
+      expect(tb.normalizeTimeBlockStartToHHMM('10:00AM')).toEqual('10:00')
+    })
+
+    test('converts PM to 24h', () => {
+      expect(tb.normalizeTimeBlockStartToHHMM('11:00 PM')).toEqual('23:00')
+    })
+
+    test('keeps noon as 12:00', () => {
+      expect(tb.normalizeTimeBlockStartToHHMM('12:00 PM')).toEqual('12:00')
+    })
+  })
+
+  describe(section`getStartTimeFromPara()`, () => {
+    test('should return 10:00 from 10:00-11:00', () => {
+      expect(tb.getStartTimeFromPara({ content: 'just a time range 10:00-11:00' })).toBe('10:00')
+    })
+    test('should return 10:00 from 10:00', () => {
+      expect(tb.getStartTimeFromPara({ content: 'just a time 10:00' })).toBe('10:00')
+    })
+    test('should return 10:00 from 10:00AM-11:00PM', () => {
+      expect(tb.getStartTimeFromPara({ content: '2025-05-09 10:00AM-11:00PM' })).toBe('10:00')
+    })
+    test('should return 10:00 from 10:00AM', () => {
+      expect(tb.getStartTimeFromPara({ content: '2025-05-09 10:00AM' })).toBe('10:00')
+    })
+    test('should return 10:00 from spaced AM', () => {
+      expect(tb.getStartTimeFromPara({ content: 'other text 10:00 AM' })).toBe('10:00')
+    })
+    test('should return 23:00 from 11:00 PM', () => {
+      expect(tb.getStartTimeFromPara({ content: 'other text 11:00 PM' })).toBe('23:00')
+    })
+    test('should return 12:00 from 12:00 PM (noon)', () => {
+      expect(tb.getStartTimeFromPara({ content: 'Lunch 12:00 PM' })).toBe('12:00')
+    })
+    test('should return 12:30 from 12:30 PM', () => {
+      expect(tb.getStartTimeFromPara({ content: 'Lunch 12:30 PM' })).toBe('12:30')
+    })
+    test('should return 09:00 from single-digit hour 9:00 AM', () => {
+      expect(tb.getStartTimeFromPara({ content: 'Standup 9:00 AM' })).toBe('09:00')
+    })
+    test('should return "none" if the para does not have a valid time', () => {
+      expect(tb.getStartTimeFromPara({ content: '2025-05-09 10-11' })).toBe('none')
+    })
+  })
+
+  describe(section`getEndTimeFromPara()`, () => {
+    test('returns normalised end from 24h range', () => {
+      expect(tb.getEndTimeFromPara({ content: 'TEST at 22:30-23:45' })).toBe('23:45')
+    })
+
+    test('returns undefined when there is no end', () => {
+      expect(tb.getEndTimeFromPara({ content: 'Something at 22:30' })).toBeUndefined()
+    })
+
+    test('normalises PM end time', () => {
+      expect(tb.getEndTimeFromPara({ content: 'Meeting 10:00AM-11:00PM' })).toBe('23:00')
+    })
+  })
+
+  describe(section`prepareTimeBlockContentForDisplay()`, () => {
+    test('puts normalised time at start conceptually (label + cleaned rest)', () => {
+      const result = tb.prepareTimeBlockContentForDisplay('Longer timeblocked task at 10:00-16:30', '10:00', '16:30', 'at')
+      expect(result.timeLabel).toEqual('10:00-16:30')
+      expect(result.restContent).toEqual('Longer timeblocked task')
+    })
+
+    test('handles must-contain string and start-only time', () => {
+      const result = tb.prepareTimeBlockContentForDisplay('Standup >anytime 09:00', '09:00', undefined, '>anytime')
+      expect(result.timeLabel).toEqual('09:00')
+      expect(result.restContent).toEqual('Standup')
+    })
+  })
 })

@@ -58,6 +58,43 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
       // Date text without the leading '>' marker (calendar icon replaces it)
       expect(html).toMatch(/scheduledDate"><i class="fa-regular fa-calendar pad-right"><\/i>2026-08-01<\/span>/)
     })
+
+    test('places timeblock label at the start using startTime/endTime, stripping original TB from content', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('Longer timeblocked task at 10:00-16:30', {
+        truncateLength: 0,
+        taskPriority: 0,
+        startTime: '10:00',
+        endTime: '16:30',
+      })
+      expect(html).toMatch(/^<span class="timeBlock margin-right-larger">/)
+      expect(html).toContain('10:00-16:30')
+      expect(html).toContain('Longer timeblocked task')
+      // Original mid-line time should not remain in the rest of the text after the lozenge
+      expect(html.replace(/<span class="timeBlock[\s\S]*?<\/span>/, '')).not.toContain('10:00')
+    })
+
+    test('strips NotePlan must-contain string from displayed timeblock content', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('Focus session >anytime at 14:00-15:30', {
+        truncateLength: 0,
+        taskPriority: 0,
+        startTime: '14:00',
+        endTime: '15:30',
+        timeblockTextMustContainString: '>anytime',
+      })
+      expect(html).toContain('14:00-15:30')
+      expect(html).toContain('Focus session')
+      expect(html).not.toContain('>anytime')
+    })
+
+    test('does not prepend timeblock when startTime is none', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('Ordinary task with 10:00 in text', {
+        truncateLength: 0,
+        taskPriority: 0,
+        startTime: 'none',
+      })
+      expect(html).not.toContain('class="timeBlock')
+      expect(html).toContain('Ordinary task with 10:00 in text')
+    })
   })
 
   describe('applyDashboardSettingsToDisplayedItemHtml()', () => {

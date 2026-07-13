@@ -7,6 +7,7 @@ import moment from 'moment/min/moment-with-locales'
 import { clo, JSP, logDebug, logInfo, logError } from './dev'
 import { displayTitle } from './general'
 import { isTermInURL, stripAllURIsAndNoteLinks, stripDoneDateTimeMentions } from './paragraph'
+import { escapeRegExp } from './regexEscape'
 import { findLongestStringInArray } from './utils'
 
 // import { getTime } from "date-fns";
@@ -355,6 +356,69 @@ export function getEndTimeStrFromParaContent(content: string): string {
 }
 
 /**
+ * Normalize a time-block segment to 24h HH:mm (e.g. "12:00PM" -> "12:00", "9:00 AM" -> "09:00").
+ * Works for either the start or end segment of a timeblock.
+ * @param {string} startTimeStrIn - text before or after '-' in a time block
+ * @returns {string}
+ */
+export function normalizeTimeBlockStartToHHMM(startTimeStrIn: string): string {
+  let startTimeStr = startTimeStrIn
+  if (startTimeStr.length > 0 && startTimeStr.length < 2) {
+    startTimeStr = `0${startTimeStr}`
+  } else if (startTimeStr.length > 1 && startTimeStr[1] === ':') {
+    startTimeStr = `0${startTimeStr}`
+  }
+  if (startTimeStr.endsWith('AM')) {
+    startTimeStr = startTimeStr.slice(0, 5)
+  }
+  if (startTimeStr.endsWith('PM')) {
+    const hour = Number(startTimeStr.slice(0, 2))
+    const adjustedHour = hour === 12 ? 12 : hour + 12
+    startTimeStr = String(adjustedHour).padStart(2, '0') + startTimeStr.slice(2, 5)
+  }
+  return startTimeStr
+}
+
+/**
+ * Return the normalised start time (HH:mm) from a paragraph's content timeblock, or 'none'.
+ * Copes with 'AM' and 'PM' suffixes. Not fully internationalised.
+ * @param {{ content: string }} para - anything with a .content string (TParagraph, dashboard para, etc.)
+ * @returns {string} e.g. '10:00', or 'none' / '(error)'
+ */
+export function getStartTimeFromPara(para: { content: string }): string {
+  try {
+    let startTimeStr = 'none'
+    const thisTimeStr = getTimeBlockString(para.content)
+    if (thisTimeStr !== '') {
+      startTimeStr = normalizeTimeBlockStartToHHMM(thisTimeStr.split(/[-–~]/)[0])
+    }
+    return startTimeStr
+  } catch (error) {
+    logError('getStartTimeFromPara', `${error.message}`)
+    return '(error)'
+  }
+}
+
+/**
+ * Return the normalised end time (HH:mm) from a paragraph's content timeblock, if present.
+ * Copes with 'AM' and 'PM' suffixes (same normalisation as getStartTimeFromPara).
+ * @param {{ content: string }} para - anything with a .content string (TParagraph, dashboard para, etc.)
+ * @returns {string | void} HH:mm end time, or undefined if none / error
+ */
+export function getEndTimeFromPara(para: { content: string }): string | void {
+  try {
+    const thisTimeStr = getTimeBlockString(para.content)
+    if (thisTimeStr === '') return
+    const endPart = thisTimeStr.split(/[-–~]/)[1]
+    if (!endPart) return
+    return normalizeTimeBlockStartToHHMM(endPart)
+  } catch (error) {
+    logError('getEndTimeFromPara', `${error.message}`)
+    return
+  }
+}
+
+/**
  * Return the start time of a time block in a given paragraph, or else 'none' (which will then sort after times)
  * Copes with 'AM' and 'PM' suffixes. Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @param {string} content to process
@@ -394,36 +458,41 @@ export function getStartTimeObjFromParaContent(content: string): ?{ hours: numbe
 }
 
 /**
- * Return the end time of time block in a given paragraph, or else 'none' (which will then sort after times)
+ * Return the end time of time block in a given paragraph, or else empty NaN hours/mins when absent.
  * Copes with 'AM' and 'PM' suffixes. Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @param {string} content to process
- * @returns {{number, number}} {hours, minutes} in 24 hour clock
+ * @returns {{ hours: number, mins: number }} {hours, minutes} in 24 hour clock (NaN if no end time)
  */
 export function getEndTimeObjFromParaContent(content: string): { hours: number, mins: number } {
   try {
-    let endTimeStr = 'none'
     let hours = NaN
     let mins = NaN
     if (content !== '') {
       const thisTimeStr = getTimeBlockString(content)
       if (thisTimeStr !== '') {
-        endTimeStr = thisTimeStr.split('-')[1]
+        // Prefer ASCII hyphen; also accept en-dash / tilde separators used in some timeblocks
+        const endTimeStr = thisTimeStr.split(/[-–~]/)[1]
+        if (!endTimeStr) {
+          return { hours: NaN, mins: NaN }
+        }
+        // Note: split with RE_AMPM_OPT as a string (same as getStartTimeObjFromParaContent) - not as RegExp,
+        // because the optional group would match empty strings and shred the time.
         const [timeStr, ampm] = endTimeStr.split(RE_AMPM_OPT)
         if (timeStr.includes(':')) {
           ;[hours, mins] = timeStr.split(':').map(Number)
         } else {
           hours = Number(timeStr)
+          mins = 0
         }
-        if (ampm.toLowerCase() === 'pm' && hours !== 12) {
+        if (ampm && ampm.toLowerCase() === 'pm' && hours !== 12) {
           hours += 12
-        } else if (ampm.toLowerCase() === 'am' && hours === 12) {
+        } else if (ampm && ampm.toLowerCase() === 'am' && hours === 12) {
           hours = 0
         }
         logDebug('getEndTimeObjFromParaContent', `timeStr = ${endTimeStr} from timeblock ${thisTimeStr}`)
       }
     }
-    const startTime = { hours: hours, mins: mins }
-    return startTime
+    return { hours: hours, mins: mins }
   } catch (error) {
     logError('getEndTimeObjFromParaContent', `${JSP(error)}`)
     return { hours: NaN, mins: NaN }
@@ -524,4 +593,66 @@ export function getTimeBlockDetails(content: string, timeblockTextMustContainStr
     logError('getTimeBlockDetails', err.message)
     return ['', ''] // Return an empty tuple as a fallback
   }
+}
+
+/**
+ * Strip the timeblock string and optional NotePlan "Text must contain" marker from paragraph content.
+ * Also collapses leftover whitespace.
+ * @param {string} content - paragraph content that may include a timeblock
+ * @param {string} timeblockMustContainString - NotePlan preference string that may be empty
+ * @returns {string} content with timeblock (and must-contain marker) removed
+ */
+export function stripTimeBlockAndMustContainFromContent(content: string, timeblockMustContainString: string = ''): string {
+  try {
+    if (!content) return ''
+    const timeBlockString = getTimeBlockString(content)
+    let cleaned = content
+    if (timeBlockString !== '') {
+      // Remove the timeblock itself
+      cleaned = cleaned.replace(timeBlockString, '')
+    }
+    // then the must-contain string
+    if (timeblockMustContainString !== '') {
+      cleaned = cleaned.replace(timeblockMustContainString, '')
+    }
+    return cleaned.replace(/\s{2,}/g, ' ').trim()
+  } catch (err) {
+    logError('stripTimeBlockAndMustContainFromContent', err.message)
+    return content ?? ''
+  }
+}
+
+/**
+ * Build a display time label from dashboard para startTime/endTime (already normalised HH:mm).
+ * @param {?string} startTime - e.g. '10:00', or 'none'/empty if absent
+ * @param {?string} endTime - e.g. '16:30', or absent when there is no end
+ * @returns {string} e.g. '10:00-16:30', '10:00', or ''
+ */
+export function formatTimeBlockLabelFromStartAndEnd(startTime: ?string, endTime: ?string): string {
+  if (!startTime || startTime === 'none') return ''
+  if (endTime && endTime !== 'none') {
+    return `${startTime}-${endTime}`
+  }
+  return startTime
+}
+
+/**
+ * Prepare timeblock content for display with the time always at the start.
+ * Strips the original timeblock and "Text must contain" marker from content, and builds a leading
+ * time label from the para's startTime/endTime fields.
+ * @param {string} content - original paragraph content
+ * @param {?string} startTime - normalised start from TParagraphForDashboard
+ * @param {?string} endTime - normalised end from TParagraphForDashboard (optional)
+ * @param {string} timeblockMustContainString - NotePlan preference string that may be empty
+ * @returns {{ timeLabel: string, restContent: string }}
+ */
+export function prepareTimeBlockContentForDisplay(
+  content: string,
+  startTime: ?string,
+  endTime: ?string,
+  timeblockMustContainString: string = '',
+): { timeLabel: string, restContent: string } {
+  const timeLabel = formatTimeBlockLabelFromStartAndEnd(startTime, endTime)
+  const restContent = stripTimeBlockAndMustContainFromContent(content, timeblockMustContainString)
+  return { timeLabel, restContent }
 }

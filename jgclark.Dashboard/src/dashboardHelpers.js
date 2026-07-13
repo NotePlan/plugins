@@ -1,15 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-05-26 for v2.4.0.b44, @CursorAI
+// Last updated 2026-07-13 for v2.4.0.b49, @CursorAI
 //-----------------------------------------------------------------------------
 
-import pluginJson from '../plugin.json'
+// import pluginJson from '../plugin.json'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { getDashboardSettingsDefaults } from './dashboardSettingsDefaults'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
-import { removeInvalidTagSections, removeStaleTagSections } from './dashboardSettingsClean'
+import { removeInvalidTagSections } from './dashboardSettingsClean'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import type {
@@ -49,7 +49,15 @@ import { caseInsensitiveStartsWith, caseInsensitiveSubstringArrayIncludes } from
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
-import { getStartTimeObjFromParaContent, getTimeBlockString, isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
+import {
+  getEndTimeFromPara,
+  getEndTimeObjFromParaContent,
+  getStartTimeFromPara,
+  getStartTimeObjFromParaContent,
+  getTimeBlockString,
+  isActiveOrFutureTimeBlockPara,
+  normalizeTimeBlockStartToHHMM,
+} from '@helpers/timeblocks'
 import { isOpen, isOpenNotScheduled } from '@helpers/utils'
 
 //-----------------------------------------------------------------
@@ -304,29 +312,6 @@ export function cloneDashboardSettingsBeforeSave(raw: mixed): { [string]: any } 
  */
 function getNoteFromPara(para: TParagraph): TNote | null {
   return para.note ?? getNoteFromFilename(para.filename ?? '') ?? null
-}
-
-/**
- * Normalize the start segment of a time-block string to 24h HH:mm (e.g. "12:00PM" -> "12:00").
- * @param {string} startTimeStr - text before '-' in a time block
- * @returns {string}
- */
-function normalizeTimeBlockStartToHHMM(startTimeStrIn: string): string {
-  let startTimeStr = startTimeStrIn
-  if (startTimeStr.length > 0 && startTimeStr.length < 2) {
-    startTimeStr = `0${startTimeStr}`
-  } else if (startTimeStr.length > 1 && startTimeStr[1] === ':') {
-    startTimeStr = `0${startTimeStr}`
-  }
-  if (startTimeStr.endsWith('AM')) {
-    startTimeStr = startTimeStr.slice(0, 5)
-  }
-  if (startTimeStr.endsWith('PM')) {
-    const hour = Number(startTimeStr.slice(0, 2))
-    const adjustedHour = hour === 12 ? 12 : hour + 12
-    startTimeStr = String(adjustedHour).padStart(2, '0') + startTimeStr.slice(2, 5)
-  }
-  return startTimeStr
 }
 
 /**
@@ -855,6 +840,9 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
         const dueDateStr = getDueDateOrStartOfCalendarDate(p)
         const startTime = getStartTimeObjFromParaContent(p.content)
         const startTimeStr = startTime ? getTimeStringFromHM(startTime.hours, startTime.mins) : 'none'
+        const endTime = getEndTimeObjFromParaContent(p.content)
+        const endTimeStr =
+          endTime && Number.isFinite(endTime.hours) && Number.isFinite(endTime.mins) ? getTimeStringFromHM(endTime.hours, endTime.mins) : undefined
         // Get title, but don't add the 👥 icon and teamspace name for Teamspace notes. Fallback is to use the note.title, which will be ISO-8601 date for Calendar notes.
         const noteTitle = note.type === 'Notes' ? displayTitle(note, false) : note.title
         const outputPara: TParagraphForDashboard = {
@@ -869,6 +857,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
           lineIndex: p.lineIndex,
           priority: getNumericPriorityFromPara(p) + priorityDelta,
           startTime: startTimeStr,
+          endTime: endTimeStr,
           changedDate: note?.changedDate,
           hasChild: hasChild,
           isAChild: isAChild,
@@ -1116,7 +1105,7 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
       const thisTimeStr = getTimeBlockString(p.content)
       const extendedPara = p
       if (thisTimeStr !== '') {
-        const startTimeStr = normalizeTimeBlockStartToHHMM(thisTimeStr.split('-')[0])
+        const startTimeStr = normalizeTimeBlockStartToHHMM(thisTimeStr.split(/[-–~]/)[0])
         // logDebug('extendParaToAddStartTime', `found timeStr: ${thisTimeStr} from timeblock ${thisTimeStr}`)
         // $FlowIgnore(prop-missing)
         extendedPara.startTime = startTimeStr
@@ -1135,28 +1124,16 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
 }
 
 /**
- * Return the start time in a given paragraph.
- * This is from the start time of a time block, or else 'none' (which will then sort after times)
- * Copes with 'AM' and 'PM' suffixes.
- * Note: A version of this now lives in helpers/timeblocks.js
- * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
- * @tests in dashboardHelpers.test.js
- * @param {TParagraph| TParagraphForDashboard} para to process
- * @returns {string} time string found
+ * Set startTime and optional endTime on a dashboard para from its content timeblock.
+ * Used by demo-data paths that do not go through makeDashboardParas.
+ * @param {TParagraphForDashboard} para
+ * @returns {void}
  */
-export function getStartTimeFromPara(para: TParagraph | TParagraphForDashboard): string {
-  try {
-    // logDebug('getStartTimeFromPara', `starting with ${String(paras.length)} paras`)
-    let startTimeStr = 'none'
-    const thisTimeStr = getTimeBlockString(para.content)
-    if (thisTimeStr !== '') {
-      startTimeStr = normalizeTimeBlockStartToHHMM(thisTimeStr.split('-')[0])
-      // logDebug('getStartTimeFromPara', `timeStr = ${startTimeStr} from timeblock ${thisTimeStr}`)
-    }
-    return startTimeStr
-  } catch (error) {
-    logError('getStartTimeFromPara', `${error.message}`)
-    return '(error)'
+export function setTimeFieldsOnDashboardPara(para: TParagraphForDashboard): void {
+  para.startTime = getStartTimeFromPara(para)
+  const endTime = getEndTimeFromPara(para)
+  if (endTime) {
+    para.endTime = endTime
   }
 }
 

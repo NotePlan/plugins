@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2026-04-15 for v2.4.0.b25, @jgclark
+// Last updated 2026-07-13 for v2.4.0.b49, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -13,7 +13,7 @@ import {
   createSectionItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
-  getStartTimeFromPara,
+  setTimeFieldsOnDashboardPara,
   makeDashboardParas,
 } from './dashboardHelpers'
 import { openTodayItems, refTodayItems, openTomorrowParas, refTomorrowParas, openYesterdayParas, refYesterdayParas } from './demoData'
@@ -75,9 +75,7 @@ export function getTodaySectionData(
         // $FlowFixMe[incompatible-call]
         if (isOpen(item.para)) {
           if (item.para) {
-            const timeStr = getStartTimeFromPara(item.para)
-            // $FlowIgnore[incompatible-use] already checked item.para exists
-            item.para.startTime = timeStr
+            setTimeFieldsOnDashboardPara(item.para)
           }
           const thisID = `${thisSectionCode}-${itemCount}`
           items.push({ ID: thisID, ...item }) // thisID is already present in demo data
@@ -229,9 +227,7 @@ export function getTodaySectionData(
         // Note: parentID already supplied
         sortedRefParas.map((item) => {
           if (item.para) {
-            const timeStr = getStartTimeFromPara(item.para)
-            // $FlowIgnore[incompatible-use] already checked item.para exists
-            item.para.startTime = timeStr
+            setTimeFieldsOnDashboardPara(item.para)
           }
           const thisID = `${referencedSectionCode}-${itemCount}`
           items.push({ ID: thisID, ...item })
@@ -431,9 +427,7 @@ export function getYesterdaySectionData(
       const sortedItems = config.separateSectionForReferencedNotes ? openYesterdayParas : openYesterdayParas.concat(refYesterdayParas)
       sortedItems.map((item) => {
         if (item.para) {
-          const timeStr = getStartTimeFromPara(item.para)
-          // $FlowIgnore[incompatible-use] already checked item.para exists
-          item.para.startTime = timeStr
+          setTimeFieldsOnDashboardPara(item.para)
         }
         const thisID = `${thisSectionCode}-${itemCount}`
         items.push({ ID: thisID, ...item })
@@ -512,9 +506,7 @@ export function getYesterdaySectionData(
         const sortedRefParas = refYesterdayParas
         sortedRefParas.map((item) => {
           if (item.para) {
-            const timeStr = getStartTimeFromPara(item.para)
-            // $FlowIgnore[incompatible-use] already checked item.para exists
-            item.para.startTime = timeStr
+            setTimeFieldsOnDashboardPara(item.para)
           }
           const thisID = `${referencedSectionCode}-${itemCount}`
           items.push({ ID: thisID, ...item })
@@ -597,9 +589,7 @@ export function getTomorrowSectionData(
       const sortedParas = config.separateSectionForReferencedNotes ? openTomorrowParas : openTomorrowParas.concat(refTomorrowParas)
       sortedParas.map((item) => {
         if (item.para) {
-          const timeStr = getStartTimeFromPara(item.para)
-          // $FlowFixMe[incompatible-use] already checked item.para exists
-          item.para.startTime = timeStr
+          setTimeFieldsOnDashboardPara(item.para)
         }
         const thisID = `${thisSectionCode}-${itemCount}`
         items.push({ ID: thisID, ...item })
@@ -703,9 +693,7 @@ export function getTomorrowSectionData(
         const sortedRefParas = refTomorrowParas
         sortedRefParas.map((item) => {
           if (item.para) {
-            const timeStr = getStartTimeFromPara(item.para)
-            // $FlowFixMe[incompatible-use] already checked item.para exists
-            item.para.startTime = timeStr
+            setTimeFieldsOnDashboardPara(item.para)
           }
           const thisID = `${referencedSectionCode}-${itemCount}`
           items.push({ ID: thisID, ...item })

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Shared: turn a raw task line string into HTML matching NotePlan-style display
 // (hashtags, mentions, links, etc.) for TaskItem (via ItemContent) and ProjectItem.
-// Last updated 2026-07-11 for v2.4.0.b49 by @jgclark/@Cursor
+// Last updated 2026-07-13 for v2.4.0.b49 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 
 import type { TDashboardSettings, TSectionItem } from '../types.js'
@@ -24,17 +24,18 @@ import {
   convertNPBlockIDToHTML,
   convertPreformattedToHTML,
   convertStrikethroughToHTML,
-  convertTimeBlockToHTML,
   convertUnderlinedToHTML,
   simplifyInlineImagesForHTML,
   simplifyNPEventLinksForHTML,
 } from '@helpers/HTMLView'
 import { RE_SCHEDULED_DATES_G } from '@helpers/regex'
+import { prepareTimeBlockContentForDisplay } from '@helpers/timeblocks'
 
 export type TDashboardLineDisplayOptions = {
   truncateLength?: number,
   taskPriority?: number,
   startTime?: string,
+  endTime?: string,
   timeblockTextMustContainString?: string,
   noteTitle?: string,
 }
@@ -90,6 +91,7 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
   const truncateLength = options?.truncateLength ?? 0
   const taskPriority = options?.taskPriority ?? 0
   const startTime = options?.startTime
+  const endTime = options?.endTime
   const timeblockTextMustContainString = options?.timeblockTextMustContainString ?? ''
   const noteTitle = options?.noteTitle ?? ''
 
@@ -103,6 +105,14 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
     }
 
     let output = origContent
+    let timeBlockLabel = ''
+
+    // For timeblocks: strip TB + must-contain from content, and keep a leading label from startTime/endTime
+    if (startTime && startTime !== 'none') {
+      const prepared = prepareTimeBlockContentForDisplay(output, startTime, endTime, timeblockTextMustContainString)
+      timeBlockLabel = prepared.timeLabel
+      output = prepared.restContent
+    }
 
     output = simplifyNPEventLinksForHTML(output)
     output = simplifyInlineImagesForHTML(output)
@@ -112,8 +122,9 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
     output = convertMentionsToHTML(output)
     output = convertPreformattedToHTML(output)
 
-    if (startTime && startTime !== 'none') {
-      output = convertTimeBlockToHTML(output, timeblockTextMustContainString)
+    // Place the timeblock lozenge at the start of the displayed text
+    if (timeBlockLabel) {
+      output = `<span class="timeBlock margin-right-larger"><i class="fa-regular fa-clock pad-right"></i>${timeBlockLabel}</span>${output}`
     }
 
     output = convertStrikethroughToHTML(output)
@@ -178,6 +189,7 @@ export function makeParaContentToLookLikeNPDisplayInReact(
       truncateLength,
       taskPriority: para.priority ?? 0,
       startTime: para.startTime,
+      endTime: para.endTime,
       timeblockTextMustContainString,
       noteTitle: para.title ?? '',
     })

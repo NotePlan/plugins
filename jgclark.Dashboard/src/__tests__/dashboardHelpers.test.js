@@ -9,7 +9,6 @@ import {
   filterParasByIgnoreTerms,
   filterParasByIncludedCalendarSections,
   filterParasByExcludedCalendarSections,
-  getStartTimeFromPara,
   isWinItem,
 } from '../dashboardHelpers.js'
 import { DataStore, Editor, CommandBar, NotePlan, Paragraph, Note, simpleFormatter } from '@mocks/index'
@@ -1004,79 +1003,6 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toHaveLength(2)
         expect(result[0]).toBe(para1)
         expect(result[1]).toBe(para3)
-      })
-    })
-
-    describe('getStartTimeFromPara() tests', () => {
-      test('should return 10:00 from 10:00-11:00', () => {
-        const para = {
-          content: 'just a time range 10:00-11:00',
-        }
-        const startTime = getStartTimeFromPara(para)
-        expect(startTime).toBe('10:00')
-      })
-      test('should return 10:00 from 10:00', () => {
-        const para = {
-          content: 'just a time 10:00',
-        }
-        const startTime = getStartTimeFromPara(para)
-        expect(startTime).toBe('10:00')
-      })
-      test('should return 10:00 from 10:00AM-11:00PM', () => {
-        const para = {
-          content: '2025-05-09 10:00AM-11:00PM',
-        }
-        const startTime = getStartTimeFromPara(para)
-        expect(startTime).toBe('10:00')
-      })
-      test('should return 10:00 from 10:00AM', () => {
-        const para = {
-          content: '2025-05-09 10:00AM',
-        }
-        const startTime = getStartTimeFromPara(para)
-        expect(startTime).toBe('10:00')
-      })
-      test('should return 10:00', () => {
-        const para = {
-          content: 'other text 10:00 AM',
-        }
-        const startTime = getStartTimeFromPara(para)
-        expect(startTime).toBe('10:00')
-      })
-      test('should return 23:00', () => {
-        const para = {
-          content: 'other text 11:00 PM',
-        }
-        const startTime = getStartTimeFromPara(para)
-        expect(startTime).toBe('23:00')
-      })
-      test('should return 12:00 from 12:00 PM (noon)', () => {
-        const para = {
-          content: 'Lunch 12:00 PM',
-        }
-        const startTime = getStartTimeFromPara(para)
-        expect(startTime).toBe('12:00')
-      })
-      test('should return 12:30 from 12:30 PM', () => {
-        const para = {
-          content: 'Lunch 12:30 PM',
-        }
-        const startTime = getStartTimeFromPara(para)
-        expect(startTime).toBe('12:30')
-      })
-      test('should return 09:00 from single-digit hour 9:00 AM', () => {
-        const para = {
-          content: 'Standup 9:00 AM',
-        }
-        const startTime = getStartTimeFromPara(para)
-        expect(startTime).toBe('09:00')
-      })
-      test('should return "none" if the para does not have a valid time', () => {
-        const para = {
-          content: '2025-05-09 10-11',
-        }
-        const startTime = getStartTimeFromPara(para)
-        expect(startTime).toBe('none')
       })
     })
 
