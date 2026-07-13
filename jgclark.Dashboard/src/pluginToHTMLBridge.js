@@ -75,6 +75,7 @@ import { clo, clof, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '
 import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
 import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { getNoteByFilename } from '@helpers/note'
+import { usersVersionHas } from '@helpers/NPVersions'
 import { formatReactError } from '@helpers/react/reactDev'
 
 //-----------------------------------------------------------------
@@ -352,13 +353,19 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'openURL': {
         const urlToOpen = data.url || ''
-        if (urlToOpen) {
-          logDebug('bridgeClickDashboardItem', `openURL: ${urlToOpen}`)
-          NotePlan.openURL(urlToOpen)
-          result = { success: true, actionsOnSuccess: [], errorMsg: '' }
-        } else {
+        if (!urlToOpen) {
           result = { success: false, errorMsg: 'openURL: missing url' }
+          break
         }
+        // x-apple-reminderkit requires NotePlan >= 3.21.2 (build 1524); older builds block the scheme
+        if (urlToOpen.startsWith('x-apple-reminderkit:') && !usersVersionHas('appleRemindersCallbackAvailable')) {
+          logWarn('bridgeClickDashboardItem', `openURL blocked: x-apple-reminderkit needs NotePlan >= 3.21.2 (got ${NotePlan.environment.version})`)
+          result = { success: false, errorMsg: 'Opening Apple Reminders requires NotePlan 3.21.2 or later.' }
+          break
+        }
+        logDebug('bridgeClickDashboardItem', `openURL: ${urlToOpen}`)
+        NotePlan.openURL(urlToOpen)
+        result = { success: true, actionsOnSuccess: [], errorMsg: '' }
         break
       }
       case 'moveToNote': {

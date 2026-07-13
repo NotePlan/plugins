@@ -3,23 +3,21 @@
 // Dashboard React component for an Apple Reminder row:
 // icon, title/notes/time/location, listname context.
 //
-// Open-in-Reminders is NOT supported from Dashboard:
-// - NotePlan.openURL only allows http, https, mailto, and noteplan schemes
-//   (other schemes fail with "openURL blocked: only http, https, mailto, and noteplan schemes are allowed").
-// - https: no documented public URL opens a specific Apple Reminder / list from an EventKit ID.
-// - noteplan://: no x-callback action opens or focuses a reminder in NotePlan's UI.
-// - x-apple-reminderkit://REMCDReminder/{UUID} works outside NotePlan but is blocked by openURL.
-// See also ARCHITECTURE-How_Stuff_Works.md → "Reminders section".
+// Open-in-Reminders: when NotePlan >= 3.21.2 (appleRemindersCallbackAvailable),
+// content click opens via openURL -> x-apple-reminderkit://REMCDReminder/{id}.
+// On older builds that scheme is blocked by NotePlan.openURL.
+// See also ARCHITECTURE-How_Stuff_Works.md -> "Reminders section".
 //
-// Last updated 2026-07-12 for v2.4.0.b49
+// Last updated 2026-07-13 for v2.4.0.b50
 //--------------------------------------------------------------------------
 // @flow
-import React, { type Node } from 'react'
-import type { TSection, TSectionItem } from '../../types'
+import React, { type Node, useCallback } from 'react'
+import type { MessageDataObject, TSection, TSectionItem } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import StatusIcon from './StatusIcon.jsx'
 import './TaskItem.css'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
+import { logDebug, logWarn } from '@helpers/dev'
 
 type Props = {
   item: TSectionItem,
@@ -27,14 +25,29 @@ type Props = {
 }
 
 /**
- * Reminder row. Content is intentionally not clickable (cannot deep-link to Reminders via NotePlan.openURL;
- * see file header and ARCHITECTURE-How_Stuff_Works.md). Status icon: click completes, ctrl deletes (Calendar API).
+ * Reminder row. Content click opens in Apple Reminders when NP supports x-apple-reminderkit via openURL.
+ * Status icon: click completes, ctrl deletes (Calendar API).
  * TODO(later): task-like dialog (edit title/details, reschedule, change list)
- * TODO(later): open in Reminders if NotePlan allows a non-blocked path (or a show-reminder API)
  */
 function ReminderItem({ item /*, thisSection */ }: Props): Node {
-  const { dashboardSettings } = useAppContext()
+  const { dashboardSettings, pluginData, sendActionToPlugin } = useAppContext()
   const reminder = item.reminder
+  const canOpenInReminders = Boolean(pluginData?.appleRemindersCallbackAvailable && reminder?.id)
+
+  const handleContentClick = useCallback(() => {
+    if (!reminder?.id || !pluginData?.appleRemindersCallbackAvailable) {
+      logWarn('ReminderItem', `Content clicked but cannot open reminder (available=${String(pluginData?.appleRemindersCallbackAvailable)} id=${String(reminder?.id || '')})`)
+      return
+    }
+    const url = `x-apple-reminderkit://REMCDReminder/${reminder.id}`
+    logDebug('ReminderItem', `Opening reminder in Reminders app: ${url}`)
+    const messageObject: MessageDataObject = {
+      actionType: 'openURL',
+      url,
+      item,
+    }
+    sendActionToPlugin('openURL', messageObject, 'Reminder content clicked', true)
+  }, [item, pluginData?.appleRemindersCallbackAvailable, reminder, sendActionToPlugin])
 
   if (!reminder) {
     return null
@@ -102,12 +115,19 @@ function ReminderItem({ item /*, thisSection */ }: Props): Node {
     )
   }
 
+  const contentClassName = canOpenInReminders ? 'content clickTarget reminderContent' : 'content reminderContent'
+  const contentEl = canOpenInReminders ? (
+    <a className={contentClassName} onClick={handleContentClick} title="Open in Reminders">
+      {contentParts}
+    </a>
+  ) : (
+    <span className={contentClassName}>{contentParts}</span>
+  )
+
   return (
     <div className="sectionItemRow reminderItemRow" id={item.ID}>
       <StatusIcon item={item} respondToClicks={true} iconColor={listColor || undefined} />
-      <div className="sectionItemContent reminderItemContent">
-        <span className="content reminderContent">{contentParts}</span>
-      </div>
+      <div className="sectionItemContent reminderItemContent">{contentEl}</div>
     </div>
   )
 }

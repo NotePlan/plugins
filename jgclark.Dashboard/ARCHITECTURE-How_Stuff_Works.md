@@ -235,19 +235,13 @@ Live data comes from incomplete Apple Reminders on lists enabled in NotePlan (`C
 - undated + before yesterday → the dedicated **Reminders** (`REM`) section
 - dated **after tomorrow** → filtered out (not shown anywhere)
 
-v1 UI: status icon click completes the reminder (`completeReminder` → `Calendar.update` with `isCompleted = true`); ctrl-click deletes it (`deleteReminder` → `Calendar.remove`). Both refresh the section the row was shown in. Content is still not clickable for navigation (see below). Edit dialog / open-in-Reminders still TODO.
+v1 UI: status icon click completes the reminder (`completeReminder` → `Calendar.update` with `isCompleted = true`); ctrl-click deletes it (`deleteReminder` → `Calendar.remove`). Both refresh the section the row was shown in. Edit dialog still TODO.
 
-### Why reminder rows cannot open in Apple Reminders
+### Opening a reminder in Apple Reminders
 
-Click-to-open was attempted via the bridge action `openURL` → `NotePlan.openURL(url)`. That API **only allows** `http`, `https`, `mailto`, and `noteplan` schemes. Anything else fails at runtime with: `openURL blocked: only http, https, mailto, and noteplan schemes are allowed`.
+From **NotePlan 3.21.2** (macOS build 1524; feature `appleRemindersCallbackAvailable`), content click is wired: bridge `openURL` → `NotePlan.openURL(\`x-apple-reminderkit://REMCDReminder/{id}\`)`. The flag is set once in `getPluginData()` and read in `ReminderItem`.
 
-Investigated alternatives:
-
-- **https:** There is no documented public URL that opens a specific Apple Reminder or list from an EventKit / Calendar reminder ID. `icloud.com/reminders` has no item-level deep link we can construct.
-- **noteplan://:** Official x-callbacks cover notes, search, filters, plugins, etc. There is **no** action to open or focus an Apple Reminder in NotePlan’s UI. (AppleScript can list/create/complete reminders via NotePlan, but that is not a show/open URL.)
-- **Working outside NotePlan:** Undocumented schemes such as `x-apple-reminderkit://REMCDReminder/{UUID}` can open a reminder in the Reminders app when used from Terminal / OS `open`, but they are **blocked** by `NotePlan.openURL`.
-
-Therefore `ReminderItem` content is intentionally **not** clickable for navigation. Revisit only if NotePlan allows `x-apple-reminderkit` (or adds a show-reminder API).
+On older NotePlan builds, `NotePlan.openURL` only allows `http` / `https` / `mailto` / `noteplan`, so reminder content stays non-clickable (and the bridge rejects `x-apple-reminderkit` urls).
 
 ## Interactive Processing
 

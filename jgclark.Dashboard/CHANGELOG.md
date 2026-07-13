@@ -8,7 +8,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
-## [2.4.0.b49] 2026-07-12
+## [2.4.0.b50] 2026-07-14
+- Can now click reminder item to open it in the Apple Reminders app (requires NP 3.21.2+ / build 1524).
+
+## [2.4.0.b49] 2026-07-13
 - New **Reminders** section (Apple Reminders), gated by feature flag **FFlag_Reminders**. Shows open reminders from the Apple Reminders lists that the user has selected in NotePlan's settings.
   - Click the circle icon on a reminder row to complete it; ctrl-click to delete it; the section that showed the reminder is then refreshed.
   - Add button on the Reminders section heading that opens a dialog prompting for Reminder text, Reminder List, and optional date/time.

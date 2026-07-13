@@ -575,6 +575,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
     firstRun: true,
     currentMaxPriorityFromAllVisibleSections: 0,
     mainWindowModeSupported: NotePlan.environment.platform === 'macOS' ? usersVersionHas('showInMainWindow') : usersVersionHas('showInMainWindowOniOS'),
+    appleRemindersCallbackAvailable: usersVersionHas('appleRemindersCallbackAvailable'),
   }
   logDebug('getPluginData', `After forming initial pluginData, firstRun = false`)
 

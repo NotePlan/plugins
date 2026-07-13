@@ -40,6 +40,7 @@ export function usersVersionHas(feature: string): boolean {
     windowIsVisible: '3.20.2', // Mar 2026, macOS build 1494
     commandBarForms: '3.21.0', // Apr 2026, macOS build 1502
     APIsAvailableInWebViews: '3.21.0', // ~ Apr 2026
+    appleRemindersCallbackAvailable: '3.21.2', // Jul 2026, macOS build 1524 (NotePlan.openURL allows x-apple-reminderkit)
   }
 
   // Check if the user's version meets the requirement for the requested feature
