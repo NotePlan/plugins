@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Icon before an item
 // Called by TaskItem component.
-// Last updated 2026-07-13 for v2.4.0.b49, @jgclark
+// Last updated 2026-07-14 for v2.4.0.b50, @jgclark
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
@@ -108,13 +108,9 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, iconColor }:
         return metaKey ? 'cancelChecklist' : ctrlKey ? 'deleteItem' : 'completeChecklist'
       }
       case 'reminder': {
-        // Apple Reminders have no cancel state; click completes, ctrl deletes. Meta is ignored.
-        if (metaKey && !ctrlKey) {
-          logInfo(`StatusIcon`, `Clicked on reminder with metaKey -> no cancel action for reminders`)
-          return
-        }
-        setIconClassName(getClassNameFromType(ctrlKey ? 'deleted' : 'done'))
-        return ctrlKey ? 'deleteReminder' : 'completeReminder'
+        // ⌘ or ctrl deletes; plain click completes (no cancel for reminders)
+        setIconClassName(getClassNameFromType(metaKey || ctrlKey ? 'deleted' : 'done'))
+        return metaKey || ctrlKey ? 'deleteReminder' : 'completeReminder'
       }
       case 'project': {
         return 'showNoteInEditorFromFilename'
@@ -135,12 +131,11 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, iconColor }:
     </div>
   )
 
-  // Note: trying TooltipOnKeyPress as a span item, and an equivalent empty one if there's no tooltip
-  // Reminders: no Cancel (meta); only Delete (ctrl)
+  // TEST: trying TooltipOnKeyPress as a span item, and an equivalent empty one if there's no tooltip
   return shouldShowTooltips ? (
     <TooltipOnKeyPress
-      ctrlKey={{ text: isReminder ? 'Delete Reminder' : 'Delete Item' }}
-      metaKey={isReminder ? undefined : { text: 'Cancel Item' }}
+      ctrlKey={{ text: isReminder ? 'Delete reminder' : 'Delete Item' }}
+      metaKey={{ text: isReminder ? 'Delete reminder' : 'Cancel Item' }}
       label={`${item.itemType}_${item.ID}_Icon`}
     >
       {renderedIcon}

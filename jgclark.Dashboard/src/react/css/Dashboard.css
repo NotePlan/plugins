@@ -13,7 +13,7 @@ html {
 	/* Others that I have added */
 	--fg-HashtagColor: var(--hashtag-color);
 	--fg-MentionColor: var(--attag-color);
-	--fg-TimeBlockColor: #efba13;
+	--fg-TimeBlockColor: #DDA731;
 	--fg-RemindersColor: #8d9598;
 	--fg-WinsColor: var(--fg-ok-color);
 }

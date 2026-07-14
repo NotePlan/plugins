@@ -12,6 +12,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Can now click reminder item to open it in the Apple Reminders app (requires NP 3.21.2+ / build 1524).
 - fix: Adding a Reminder with blank date/time fields uses Unix epoch as the API stand-in for "no date" (matched by the Reminders mapper), instead of assigning today/now.
 - fix: Show the add-Reminder heading button in demo mode (was missing because demo data had no list options for the dialog).
+- fix: ⌘-hover on a reminder status icon now shows "Delete reminder" (and ⌘-click deletes), matching ctrl.
 
 ## [2.4.0.b49] 2026-07-13
 - New **Reminders** section (Apple Reminders), gated by feature flag **FFlag_Reminders**. Shows open reminders from the Apple Reminders lists that the user has selected in NotePlan's settings.

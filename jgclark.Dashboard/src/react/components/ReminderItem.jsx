@@ -26,7 +26,7 @@ type Props = {
 
 /**
  * Reminder row. Content click opens in Apple Reminders when NP supports x-apple-reminderkit via openURL.
- * Status icon: click completes, ctrl deletes (Calendar API).
+ * Status icon: click completes; ⌘-click or ctrl-click deletes (Calendar API).
  * TODO(later): task-like dialog (edit title/details, reschedule, change list)
  */
 function ReminderItem({ item /*, thisSection */ }: Props): Node {
