@@ -311,7 +311,7 @@ export async function getRemindersGeneratedData(
   useDemoData: boolean = false,
 ): Promise<TRemindersGeneratedData> {
   try {
-    if (!config.FFlag_Reminders) {
+    if (!config.showRemindersSection) {
       return emptyRemindersGeneratedData()
     }
 

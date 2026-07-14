@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-05-28 for v2.4.0.b45 by @CursorAI
+// Last updated 2026-07-14 for v2.4.0.b50 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
@@ -282,10 +282,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
         return handlerResult(true)
       }
     }
-    if (
-      sectionCodesToRefresh.includes('REM') &&
-      (pluginData.dashboardSettings?.FFlag_Reminders !== true || pluginData.dashboardSettings?.showRemindersSection === false)
-    ) {
+    if (sectionCodesToRefresh.includes('REM') && pluginData.dashboardSettings?.showRemindersSection === false) {
       sectionCodesToRefresh = sectionCodesToRefresh.filter((sectionCode) => sectionCode !== 'REM')
       logDebug('refreshSomeSections', `Filtered REM from requested sections as Reminders is disabled -> ${String(sectionCodesToRefresh)}`)
       if (sectionCodesToRefresh.length === 0) {

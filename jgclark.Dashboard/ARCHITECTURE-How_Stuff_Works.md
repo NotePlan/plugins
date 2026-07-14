@@ -225,12 +225,12 @@ There are three related backend functions that re-generate a subset of Sections 
 
 All three share the same tail behaviour: recalculate done-task counts (when `doneDatesAvailable`) and kick off a scheduled tag-mention-cache rebuild if one is pending.
 
-## Reminders section (`REM`, `FFlag_Reminders`)
+## Reminders section (`REM`)
 
-Gated by feature flag **`FFlag_Reminders`**. Backend: `dataGenerationReminders.js` (`getRemindersGeneratedData()`). Frontend: `ReminderItem.jsx` via `ItemRow`.
+Controlled by **`showRemindersSection`**. Backend: `dataGenerationReminders.js` (`getRemindersGeneratedData()`). Frontend: `ReminderItem.jsx` via `ItemRow`.
 
 Live data comes from incomplete Apple Reminders on lists enabled in NotePlan (`Calendar.availableReminderLists({ enabledOnly: true })` then `Calendar.remindersByLists`). Items are split into:
-- timed today whose due time has been reached → Time Blocks (`TB`); future-timed today reminders stay out of TB until then. When Reminders is enabled, TB is titled **Current time block + tasks**.
+- timed today whose due time has been reached → Time Blocks (`TB`); future-timed today reminders stay out of TB until then. When Reminders is enabled, TB is titled **Timed Reminders** if only reminders are present, or **Timed Items** if NotePlan timeblocks are also present (or only timeblocks).
 - untimed today / yesterday / tomorrow → day sections (`DT` / `DY` / `DO`) as referenced items
 - undated + before yesterday → the dedicated **Reminders** (`REM`) section
 - dated **after tomorrow** → filtered out (not shown anywhere)

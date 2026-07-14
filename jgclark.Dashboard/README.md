@@ -9,7 +9,7 @@ This plugin provides a **dashboard window** for your NotePlan data that in one p
 - all overdue tasks
 - all open items with an added priority
 - the next Project notes ready to review (if you have the "Projects and Reviews" plugin installed)
-- it shows today's Time Blocks you've set (retitled **Timed Items** when Reminders are on)
+- it shows today's Time Blocks you've set
 - and any items from Apple Reminders (when that section is enabled)
 - plus a 'Search' field to show all open items that match a search.
 
@@ -142,26 +142,25 @@ The display will **automatically refresh** in the background if you set the "Aut
 
 (From v2.4) The settings screen allow you to specify which (Team)Spaces and/or the Private notes you wish to include in the current Perspective.
 
-### Time Block / Timed Items section
+### Time Block / Timed Items / Timed Reminders section
 [Time blocks in NotePlan](https://help.noteplan.co/article/121-time-blocking) are a helpful way to help you plan your days. NP shows them in its calendar sidebar. When the **Time Block** section is enabled, the Dashboard shows today's time blocks from your daily note at the top of the window. For example:
 
 <img src="timeblock-section-2.1.0.png" width="740px" margin="8px" border="1px solid grey" alt="current timeblock section" /><!-- TODO: -->
 
 It shows the time first, minus any 'Text must contain' string that you have set in NP's 'Todo' settings pane. Where a time block is defined on a heading or list item, then the calendar+clock icon is shown in place of the task/checklist icon.
 
-When the [Reminders section](#reminders-section) is also enabled, this section is retitled **Timed Items**, and it additionally shows today's Apple Reminders that have a due time -- but only once that due time has been reached. Timed reminders for later today stay hidden until then (the Time Block section refreshes about once a minute while the Dashboard window is visible).
+When the [Reminders section](#reminders-section) is also enabled, this section additionally shows today's Apple Reminders that have a due time -- but only once that due time has been reached. Timed reminders for later today stay hidden until then (the Time Block section refreshes about once a minute while the Dashboard window is visible). The section title becomes **Timed Reminders** when it only has those reminders (no NotePlan timeblocks), or **Timed Items** when timeblocks are present as well (or only timeblocks while Reminders is on).
 
 ### Reminders section
 <img src="reminders-section-2.4.0.png" width="740px" margin="8px" border="1px solid grey" alt="reminders section" />
 
-
 (From v2.4b50) The **Reminders** section shows incomplete items from your **Apple Reminders** lists. It draws from the same reminder lists you have enabled in NotePlan's own settings (Preferences → Calendars → Reminders), and shows the list name, location, notes and if its flagged. It uses as an accent color, the color of the list set in Apple Reminders.
 
-Open reminders are then split across the Dashboard rather than dumped into a single list:
+Open reminders are split across the Dashboard rather than shown in a single list:
 
 | Reminder | Where it appears |
 | -------- | ---------------- |
-| Due today **with a time**, and that time has been reached | **Timed Items** (with any active time blocks) |
+| Due today **with a time**, and that time has been reached | **Timed Reminders** / **Timed Items** (with any active time blocks) |
 | Due today **with a time**, but still in the future | hidden until that time |
 | Due today **without** a time | **Today** |
 | Due yesterday | **Yesterday** |

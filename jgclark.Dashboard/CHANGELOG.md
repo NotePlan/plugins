@@ -9,6 +9,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 ## [2.4.0.b50] 2026-07-14
+- TB section title is **Timed Reminders** when Reminders are on and the section has timed reminders but no NotePlan timeblocks; still **Timed Items** when both are present, and **Time Blocks** when Reminders are off.
+- Reminders section is no longer behind feature flag **FFlag_Reminders**; turn it on from the Filter menu / Settings like any other section.
 - Can now click reminder item to open it in the Apple Reminders app (requires NP 3.21.2+ / build 1524).
 - fix: Adding a Reminder with blank date/time fields uses Unix epoch as the API stand-in for "no date" (matched by the Reminders mapper), instead of assigning today/now.
 - fix: Show the add-Reminder heading button in demo mode (was missing because demo data had no list options for the dialog).

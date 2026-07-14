@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2026-07-13 for v2.4.0.b49, @jgclark
+// Last updated 2026-07-14 for v2.4.0.b50 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -309,7 +309,7 @@ export function getTimeBlockSectionData(
     let timeBlockItems: Array<TSectionItem> = []
     const mustContainString = NPSettings.timeblockMustContainString
     let itemCounter = 0
-    const remindersFeatureEnabled = Boolean(config.FFlag_Reminders && config.showRemindersSection)
+    const remindersSectionEnabled = Boolean(config.showRemindersSection)
 
     // const combinedParas = sortedOrCombinedParas.concat(sortedRefParas)
 
@@ -347,6 +347,10 @@ export function getTimeBlockSectionData(
       itemCounter += timeBlockItems.length
     }
 
+    // NotePlan timeblocks collected above; remember count before appending reminders
+    const noteTimeBlockCount = timeBlockItems.length
+    let dueNowReminderCount = 0
+
     // Append today's timed reminders whose due time has been reached
     if (timedTodayReminderItems.length > 0) {
       const dueNowReminders = filterRemindersWhoseTimeHasBeenReached(timedTodayReminderItems)
@@ -355,6 +359,7 @@ export function getTimeBlockSectionData(
         logDebug('getTimeBlockSectionData', `- skipped ${String(skippedFutureCount)} timed reminder(s) whose time has not been reached yet`)
       }
       if (dueNowReminders.length > 0) {
+        dueNowReminderCount = dueNowReminders.length
         const assigned = assignReminderItemsToSection(dueNowReminders, TBsectionCode, TBsectionCode, itemCounter)
         timeBlockItems = timeBlockItems.concat(assigned)
         itemCounter += assigned.length
@@ -362,7 +367,11 @@ export function getTimeBlockSectionData(
       }
     }
 
-    const sectionName = (remindersFeatureEnabled) ? 'Timed Items' : 'Time Blocks'
+    // Title: Time Blocks (reminders off); Timed Reminders (reminders only); Timed Items (mixed or timeblocks-with-reminders-on)
+    let sectionName = 'Time Blocks'
+    if (remindersSectionEnabled) {
+      sectionName = noteTimeBlockCount === 0 && dueNowReminderCount > 0 ? 'Timed Reminders' : 'Timed Items'
+    }
 
     const section: TSection = {
       ID: TBsectionCode,

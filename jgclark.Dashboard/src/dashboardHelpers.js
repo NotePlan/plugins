@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-07-13 for v2.4.0.b49, @CursorAI
+// Last updated 2026-07-14 for v2.4.0.b50 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -741,7 +741,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   // TODO(@dwertheimer): somehow make this automatically work for all new sections added in the future
   const sectionsToShow: Array<TSectionCode> = []
   if (config.showTimeBlockSection) sectionsToShow.push('TB')
-  if (config.FFlag_Reminders && config.showRemindersSection) sectionsToShow.push('REM')
+  if (config.showRemindersSection) sectionsToShow.push('REM')
   if (config.showTodaySection || config.showTodaySection === undefined) sectionsToShow.push('DT')
   if (config.showYesterdaySection) sectionsToShow.push('DY')
   if (config.showTomorrowSection) sectionsToShow.push('DO')

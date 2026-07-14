@@ -1,5 +1,5 @@
 // @flow
-// Last updated 2026-05-23 for v2.4.0.b44 by @CursorAI
+// Last updated 2026-07-14 for v2.4.0.b50 by @jgclark
 
 import type { TSettingItem, TDashboardSettings } from '../../../types.js'
 
@@ -18,7 +18,6 @@ const featureFlagSettingDefs = [
   { key: 'FFlag_UseTagCacheAPIComparison', label: 'Use Tag Cache API Comparison', description: 'When using Tag Cache, compare the results with the API. (Slows it down.)' },
   { key: 'FFlag_ShowSectionTimings', label: 'Show Section Timings', description: 'Show timings for how long it took to generate sections' },
   { key: 'FFlag_DynamicAddToAnywhere', label: 'Dynamic Add To Anywhere', description: 'Use new DynamicDialog-based add task dialog instead of QuickCapture plugin' },
-  { key: 'FFlag_Reminders', label: 'Show Reminders Section', description: 'Enable Apple Reminders section (v2.5.0 beta)' },
 ]
 
 export const createFeatureFlagItems = (dashboardSettings: TDashboardSettings): Array<TSettingItem> => {

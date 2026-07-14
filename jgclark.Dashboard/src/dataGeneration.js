@@ -94,9 +94,9 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('INFO')) sections.push(...(await getInfoSectionData(config, useDemoData)))
 
     // Generate Reminders first when needed for day/TB injection and/or the REM section itself
-    const wantRemSection = sectionCodesToGet.includes('REM') && config.FFlag_Reminders && config.showRemindersSection
+    const wantRemSection = sectionCodesToGet.includes('REM') && config.showRemindersSection
     const wantRemForDaySections =
-      config.FFlag_Reminders === true &&
+      config.showRemindersSection === true &&
       (sectionCodesToGet.includes('DT') ||
         sectionCodesToGet.includes('DY') ||
         sectionCodesToGet.includes('DO') ||

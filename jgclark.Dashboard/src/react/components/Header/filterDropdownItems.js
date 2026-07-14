@@ -1,12 +1,12 @@
 // @flow
-// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
+// Last updated 2026-07-14 for v2.4.0.b50 by @jgclark
 
 import { allSectionDetails } from '../../../constants.js'
 import type { TDashboardSettings } from '../../../types.js'
-import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { dashboardFilterDefs } from '../../../dashboardSettings.js'
 import { getTagSectionDetails } from '../Section/sectionHelpers.js'
 import { clo } from '@helpers/react/reactDev.js'
+import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 
 /**
  * Create two arrays of TSettingItems to use in Dropdown menu, using details in constants allSectionDetails, dashboardFilters.
@@ -15,10 +15,7 @@ import { clo } from '@helpers/react/reactDev.js'
  * @returns {[Array<TSettingItem>, Array<TSettingItem>]}
  */
 export const createFilterDropdownItems = (dashboardSettings: TDashboardSettings): [Array<TSettingItem>, Array<TSettingItem>] => {
-  // REM only appears in Filters when FFlag_Reminders is on (avoids a dead toggle for non-devs)
-  const sectionsWithoutTags = allSectionDetails.filter(
-    (s) => s.sectionCode !== 'TAG' && (s.sectionCode !== 'REM' || dashboardSettings.FFlag_Reminders === true),
-  )
+  const sectionsWithoutTags = allSectionDetails.filter((s) => s.sectionCode !== 'TAG')
   const tagSections = getTagSectionDetails(dashboardSettings)
   const allSections = [...sectionsWithoutTags, ...tagSections]
   const sectionDropbownItems: Array<TSettingItem> = allSections
