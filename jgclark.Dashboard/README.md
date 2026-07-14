@@ -9,8 +9,8 @@ This plugin provides a **dashboard window** for your NotePlan data that in one p
 - all overdue tasks
 - all open items with an added priority
 - the next Project notes ready to review (if you have the "Projects and Reviews" plugin installed)
-- it shows any currently-active Time Block you've set
-- and any items from Apple Reminders
+- it shows today's Time Blocks you've set (retitled **Timed Items** when Reminders are on)
+- and any items from Apple Reminders (when that section is enabled)
 - plus a 'Search' field to show all open items that match a search.
 
 This avoids you having to keep _copying_ tasks into your Today note to see them, but instead you can _see_ them all in one place in the Dashboard window.  From there you can quickly edit, complete, cancel or move any of these items to be due on different days/week/months, with the pop-up Edit Dialog.
@@ -142,16 +142,38 @@ The display will **automatically refresh** in the background if you set the "Aut
 
 (From v2.4) The settings screen allow you to specify which (Team)Spaces and/or the Private notes you wish to include in the current Perspective.
 
-### Current Time Block section
-[Time blocks in NotePlan](https://help.noteplan.co/article/121-time-blocking) are a helpful way to help you plan your days. If you define some, they appear in the calendar sidebar.  If the current time is within a time block, then this section appears at the top of the Dashboard. For example:
+### Time Block / Timed Items section
+[Time blocks in NotePlan](https://help.noteplan.co/article/121-time-blocking) are a helpful way to help you plan your days. NP shows them in its calendar sidebar. When the **Time Block** section is enabled, the Dashboard shows today's time blocks from your daily note at the top of the window. For example:
 
-<img src="timeblock-section-2.1.0.png" width="740px" margin="8px" border="1px solid grey" alt="current timeblock display" />
+<img src="timeblock-section-2.1.0.png" width="740px" margin="8px" border="1px solid grey" alt="current timeblock section" /><!-- TODO: -->
 
-It always shows the time range first, minus any 'Text must contain' string that you have set in NP's 'Todo' settings pane. Where a time block is defined on a heading or list item, then the calendar+clock icon is shown in place of the task/checklist icon.
+It shows the time first, minus any 'Text must contain' string that you have set in NP's 'Todo' settings pane. Where a time block is defined on a heading or list item, then the calendar+clock icon is shown in place of the task/checklist icon.
 
-<!-- ### Reminders section
-??? 
--->
+When the [Reminders section](#reminders-section) is also enabled, this section is retitled **Timed Items**, and it additionally shows today's Apple Reminders that have a due time -- but only once that due time has been reached. Timed reminders for later today stay hidden until then (the Time Block section refreshes about once a minute while the Dashboard window is visible).
+
+### Reminders section
+<img src="reminders-section-2.4.0.png" width="740px" margin="8px" border="1px solid grey" alt="reminders section" />
+
+
+(From v2.4b50) The **Reminders** section shows incomplete items from your **Apple Reminders** lists. It draws from the same reminder lists you have enabled in NotePlan's own settings (Preferences → Calendars → Reminders), and shows the list name, location, notes and if its flagged. It uses as an accent color, the color of the list set in Apple Reminders.
+
+Open reminders are then split across the Dashboard rather than dumped into a single list:
+
+| Reminder | Where it appears |
+| -------- | ---------------- |
+| Due today **with a time**, and that time has been reached | **Timed Items** (with any active time blocks) |
+| Due today **with a time**, but still in the future | hidden until that time |
+| Due today **without** a time | **Today** |
+| Due yesterday | **Yesterday** |
+| Due tomorrow | **Tomorrow** |
+| Undated, or older than yesterday | **Reminders** section |
+| Dated after tomorrow | not shown |
+
+The following Actions are possible, all of which are reflected in Apple Reminders too:
+- Click the **circle** icon to complete the reminder;
+- **Ctrl-click** the circle to delete the reminder;
+- Click the reminder **/content** to open it in the Apple Reminders app (requires NotePlan **3.21.2** / build 1524 or later).
+- Use the **+** button on the Reminders section heading to add a new reminder: enter the text, choose the list, and optionally a date and time (`HH:MM`).
 
 ### Search section
 <img src="search-bar-2.2.0.gif" margin="8px" border="1px solid grey" alt="using Dashboard search" />
@@ -266,8 +288,8 @@ _The settings in the 'Moving/Scheduling Items' section are covered above_.
 ### Filter Menu
 The Filter menu includes the following toggles:
 - Include context for tasks? Whether to show the note link for an open task or checklist
-- Exclude tasks that include time blocks?: Whether to stop display of open tasks that contain a time block. (This setting does _not_ apply to the 'Current time block' section.)
-- Exclude checklists that include time blocks?: Whether to stop display of open checklists that contain a time block. (This setting does _not_ apply to the 'Current time block' section.)
+- Exclude tasks that include time blocks?: Whether to stop display of open tasks that contain a time block. (This setting does _not_ apply to the Time Block / Timed Items section.)
+- Exclude checklists that include time blocks?: Whether to stop display of open checklists that contain a time block. (This setting does _not_ apply to the Time Block / Timed Items section.)
 
 Note: if you have more than 1 device running NotePlan, then all the settings are shared across your devices.
 
@@ -318,12 +340,13 @@ Use `arg0=` followed by a comma-separated list of one or more of the following s
 
 | Section | Code | Section | Code |
 | -------- | -------- | -------- | -------- |
-| Current Time Block | `TB` | Today | `DT` |
+| Time Block / Timed Items | `TB` | Today | `DT` |
 | Yesterday | `DY` | Tomorrow | `DO` |
 | This Week | `W` | Last Week | `LW` |
 | Month | `M` | Quarter | `Q` |
 | Projects | `PROJ` | Overdue | `OVERDUE` |
-| Items with Priority | `PRIORITY` | tags / mentions from your settings | `#tag` / `@mention` |
+| Items with Priority | `PRIORITY` | Reminders | `REM` |
+| tags / mentions from your settings | `#tag` / `@mention` | | |
 
 You can also **set a particular setting** using `setSetting` command:
 ```

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for REM (Reminders) Section and day/TB reminder buckets
-// Last updated 2026-07-12 for v2.4.0.b49, @jgclark + @CursorAI
+// Last updated 2026-07-14 for v2.4.0.b50, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -324,6 +324,15 @@ export async function getRemindersGeneratedData(
 
     if (useDemoData) {
       allItems = reminderItems.slice()
+      // Create a unique list of list names from demo items so the add-Reminder heading button is shown in demo mode
+      const seenListTitles: { [string]: boolean } = {}
+      for (const item of allItems) {
+        const listTitle = item.reminder?.listname
+        if (listTitle && !seenListTitles[listTitle]) {
+          seenListTitles[listTitle] = true
+          listTitlesForAdd.push(listTitle)
+        }
+      }
     } else {
       const { titles: enabledListTitles, colorByTitle } = getEnabledReminderLists()
       listTitlesForAdd = enabledListTitles

@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-07-12 for v2.4.0.b49 by @jgclark + @CursorAI
+// Last updated 2026-07-14 for v2.4.0.b50 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -140,8 +140,9 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
  *
  * NotePlan API notes:
  * - Calendar.add requires a real CalendarItem from CalendarItem.create (plain dicts without date are rejected).
- * - CalendarItem.create always requires a Date; setting `.date = null` is coerced to Unix epoch (1970-01-01) by the JS bridge -- do not do that.
- * - Undated Apple Reminders still expose a `.date` when read; Dashboard treats a reminder as dated only when `.occurences` is non-empty (see mapCalendarItemToReminderForDashboard).
+ * - CalendarItem.create always requires a Date; the API has no true "null due date".
+ * - For undated reminders we pass Unix epoch (1970-01-01T00:00:00.000Z). mapCalendarItemToReminderForDashboard
+ *   treats epoch as undated (same edge case as writing date=null via the bridge).
  *
  * @param {MessageDataObject} data - actionType addReminder, userInputObj { text, list, date?, time? }, sectionCodes
  * @returns {Promise<TBridgeClickHandlerResult>}
@@ -171,9 +172,8 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
     }
     const trimmedTime = typeof timeStr === 'string' ? timeStr.trim() : ''
 
-    // CalendarItem.create requires a date. For undated we still pass a placeholder Date (isAllDay);
-    // do NOT set date=null afterwards -- the bridge turns that into 1970-01-01T00:00:00.000Z.
     // Pass null (not undefined) for endDate so the native bridge does not shift later args (incl. isAllDay).
+    // TODO(future): remove this workaround once the API is fixed to support null date.
     let dueDate: Date
     let isAllDay = true
     const wantUndated = trimmedDate === ''
@@ -191,8 +191,13 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
         isAllDay = true
       }
     } else {
-      dueDate = new Date()
+      // Epoch = "no date" for Dashboard (see mapCalendarItemToReminderForDashboard isEpochDate)
+      dueDate = new Date(0)
+      logInfo('doAddReminder', `- creating undated reminder, but because of API limitation, setting it to epoch (1970-01-01) date, which later be filtered out.`)
       isAllDay = true
+      if (trimmedTime !== '') {
+        logWarn('doAddReminder', `Time "${trimmedTime}" ignored because date field was blank (creating undated reminder)`)
+      }
     }
 
     const reminderItem: TCalendarItem = CalendarItem.create(
@@ -211,7 +216,7 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
 
     logDebug(
       'doAddReminder',
-      `- adding reminder "${content.trim()}" to list "${listName.trim()}" date=${trimmedDate || '(undated placeholder)'} time=${trimmedTime || '(none)'} isAllDay=${String(isAllDay)} wantUndated=${String(wantUndated)}`,
+      `- adding reminder "${content.trim()}" to list "${listName.trim()}" date=${trimmedDate || '(undated = epoch)'} time=${trimmedTime || '(none)'} isAllDay=${String(isAllDay)} wantUndated=${String(wantUndated)}`,
     )
     const created = Calendar.add(reminderItem)
     if (!created) {
