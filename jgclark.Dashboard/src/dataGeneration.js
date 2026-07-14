@@ -93,10 +93,12 @@ export async function getSomeSectionsData(
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('INFO')) sections.push(...(await getInfoSectionData(config, useDemoData)))
 
-    // Generate Reminders first when needed for day/TB injection and/or the REM section itself
-    const wantRemSection = sectionCodesToGet.includes('REM') && config.showRemindersSection
+    // Generate Reminders first when needed for day/TB injection and/or the REM section itself.
+    // Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
+    const remindersSectionEnabled = config.showRemindersSection !== false
+    const wantRemSection = sectionCodesToGet.includes('REM') && remindersSectionEnabled
     const wantRemForDaySections =
-      config.showRemindersSection === true &&
+      remindersSectionEnabled &&
       (sectionCodesToGet.includes('DT') ||
         sectionCodesToGet.includes('DY') ||
         sectionCodesToGet.includes('DO') ||

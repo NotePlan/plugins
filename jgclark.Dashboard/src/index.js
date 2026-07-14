@@ -9,7 +9,7 @@
  * Imports
  */
 import pluginJson from '../plugin.json'
-import { loadDashboardPluginSettings } from './dashboardPluginSettings'
+import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { parseSettings } from './shared'
 import { generateTagMentionCache, updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentionCache'
 import {
@@ -107,11 +107,13 @@ export async function onUpdateOrInstall(): Promise<void> {
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
     // logDebug(pluginJson, `onUpdateOrInstall: installOrUpdatePluginsByID ['np.Shared'] completed`)
 
-    const initialDashboardSettings = parseSettings(initialSettings.dashboardSettings)
+    const initialDashboardSettings = parseSettings(initialSettings.dashboardSettings) || {}
     // const defaults = getDashboardSettingsDefaultsWithSectionsSetToFalse()
     // const migratedDashboardSettings = { ...defaults, ...renameKeys(initialDashboardSettings, keysToChange) }
 
-    // Note: don't need to add *new* settings here, because if they are in the defaults of dashboardSettings, they will be added to the perspectives.
+    // Note: most *new* settings are merged from defaults at runtime. For showRemindersSection we also
+    // backfill into stored settings so upgrades (and empty fresh installs) persist the new default of ON.
+    // Respect an explicit false if the user already turned Reminders off.
 
     // Note: Workaround for number types getting changed to strings at some point in our Settings system.  FIXME: but lower priority for now.
     initialDashboardSettings.newTaskSectionHeadingLevel = parseInt(initialDashboardSettings.newTaskSectionHeadingLevel || 2)
@@ -121,27 +123,44 @@ export async function onUpdateOrInstall(): Promise<void> {
 
     clo(initialDashboardSettings, `onUpdateOrInstall - initialDashboardSettings:`)
 
-    // const perspectiveSettings = parseSettings(initialSettings.perspectiveSettings) ?? []
-    // const newPerspectives = perspectiveSettings.map((p) => ({ ...p, dashboardSettings: { ...defaults, ...p.dashboardSettings } }))
-    // const migratedSettings = { ...initialSettings, dashboardSettings: migratedDashboardSettings, perspectiveSettings: newPerspectives }
+    let settingsNeedSave = false
+    if (initialDashboardSettings.showRemindersSection === undefined) {
+      initialDashboardSettings.showRemindersSection = true
+      settingsNeedSave = true
+      logInfo(`onUpdateOrInstall`, `- set showRemindersSection=true (default on for upgrades / fresh installs)`)
+    }
 
-    // const diff = compareObjects(initialDashboardSettings, initialDashboardSettings, [], true)
-    // if (diff != null) {
-    //   // Save the settings back to the DataStore
-    //   clo(diff, `Dashboard: onUpdateOrInstall - changes to settings detected. Diff:`)
-    //   await npc.saveSettings(pluginID, migratedSettings)
-    // } else {
-    //   logInfo(`onUpdateOrInstall`, `- no changes detected to settings.`)
-    // }
-    // // force a refresh of the dashboard with the new settings.
-    // npc.pluginUpdated(pluginJson, { code: 1, message: `Plugin Installed or Updated.` })
-    // await showDashboardReact()
-    // logInfo(`onUpdateOrInstall`, `- finished.`)
+    const perspectiveDefsRaw = initialSettings?.perspectiveSettings
+    const perspectiveDefs = Array.isArray(perspectiveDefsRaw)
+      ? perspectiveDefsRaw
+      : (parseSettings(perspectiveDefsRaw) ?? [])
+    const newPerspectiveDefs = perspectiveDefs.map((p) => {
+      if (!p || typeof p !== 'object') return p
+      const perspectiveDashboardSettings =
+        (typeof p.dashboardSettings === 'string' ? parseSettings(p.dashboardSettings) : p.dashboardSettings) || {}
+      if (perspectiveDashboardSettings.showRemindersSection !== undefined) {
+        return p
+      }
+      settingsNeedSave = true
+      logInfo(`onUpdateOrInstall`, `- set showRemindersSection=true on perspective '${String(p.name)}'`)
+      return {
+        ...p,
+        dashboardSettings: { ...perspectiveDashboardSettings, showRemindersSection: true },
+      }
+    })
+
+    if (settingsNeedSave) {
+      await saveDashboardPluginSettings({
+        ...initialSettings,
+        dashboardSettings: initialDashboardSettings,
+        perspectiveSettings: newPerspectiveDefs,
+      })
+      logInfo(`onUpdateOrInstall`, `- saved settings after showRemindersSection default backfill`)
+    }
 
     // Rebuild wantedTagMentionsList.json from every saved perspective (fixes stale file after upgrade).
-    const perspectiveDefs = initialSettings?.perspectiveSettings
-    if (Array.isArray(perspectiveDefs) && perspectiveDefs.length > 0) {
-      updateTagMentionCacheDefinitionsFromAllPerspectives(perspectiveDefs)
+    if (Array.isArray(newPerspectiveDefs) && newPerspectiveDefs.length > 0) {
+      updateTagMentionCacheDefinitionsFromAllPerspectives(newPerspectiveDefs)
     }
 
     // Now get the tagMentionCache up to date, by forcing a rebuild.

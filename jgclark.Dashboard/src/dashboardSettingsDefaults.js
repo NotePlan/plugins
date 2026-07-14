@@ -28,7 +28,7 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
   }, {})
 
   // Add section show settings from allSectionDetails
-  // Most sections default to true, except INFO which defaults to false,
+  // Most sections default to true (including Reminders / showRemindersSection), except INFO which defaults to false,
   // and TAG sections are handled specially (one for each tag a user wants to see).
   const sectionDefaults = allSectionDetails.reduce((acc, section) => {
     if (section.showSettingName && section.showSettingName !== '') {

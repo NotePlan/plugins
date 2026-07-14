@@ -309,7 +309,8 @@ export function getTimeBlockSectionData(
     let timeBlockItems: Array<TSectionItem> = []
     const mustContainString = NPSettings.timeblockMustContainString
     let itemCounter = 0
-    const remindersSectionEnabled = Boolean(config.showRemindersSection)
+    // Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
+    const remindersSectionEnabled = config.showRemindersSection !== false
 
     // const combinedParas = sortedOrCombinedParas.concat(sortedRefParas)
 

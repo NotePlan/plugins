@@ -311,7 +311,8 @@ export async function getRemindersGeneratedData(
   useDemoData: boolean = false,
 ): Promise<TRemindersGeneratedData> {
   try {
-    if (!config.showRemindersSection) {
+    // Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
+    if (config.showRemindersSection === false) {
       return emptyRemindersGeneratedData()
     }
 
