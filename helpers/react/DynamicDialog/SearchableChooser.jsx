@@ -158,8 +158,22 @@ export function SearchableChooser({
   // When we programmatically refocus the input (e.g. after clicking an option),
   // we sometimes *don't* want focus to immediately reopen the dropdown.
   const suppressOpenOnFocusRef = useRef<boolean>(false)
+  // Pending setTimeout from "focus input when dropdown opens" - must be cleared on Tab/close
+  // so a stale focus() cannot steal focus back after the user has tabbed away.
+  const openFocusTimeoutRef = useRef<?TimeoutID>(null)
   const [closeDropdownTriggered, setCloseDropdownTriggered] = useState<boolean>(false)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number, left: number, width: number, openAbove: boolean } | null>(null)
+
+  /**
+   * Clear any pending open-focus timeout so it cannot steal focus after Tab/close.
+   * @returns {void}
+   */
+  const clearOpenFocusTimeout = (): void => {
+    if (openFocusTimeoutRef.current != null) {
+      clearTimeout(openFocusTimeoutRef.current)
+      openFocusTimeoutRef.current = null
+    }
+  }
 
   // Handle closeDropdown prop - close dropdown when it becomes true
   useEffect(() => {
@@ -371,9 +385,22 @@ export function SearchableChooser({
       if (typeof window !== 'undefined') {
         window.addEventListener('searchableChooserFocus', handleOtherFocus)
       }
-      // Focus input when dropdown opens
+      // Focus input when dropdown opens (e.g. after clicking the arrow). Clear any prior timeout,
+      // and skip focus if the user has already tabbed away so a stale timeout cannot steal focus back.
+      clearOpenFocusTimeout()
       if (inputRef.current) {
-        setTimeout(() => inputRef.current?.focus(), 0)
+        openFocusTimeoutRef.current = setTimeout(() => {
+          openFocusTimeoutRef.current = null
+          const active = document.activeElement
+          const leftChooser =
+            active instanceof HTMLElement &&
+            containerRef.current instanceof HTMLElement &&
+            !containerRef.current.contains(active) &&
+            !(dropdownRef.current instanceof HTMLElement && dropdownRef.current.contains(active))
+          if (!leftChooser && inputRef.current) {
+            inputRef.current.focus()
+          }
+        }, 0)
       }
     }
 
@@ -382,6 +409,7 @@ export function SearchableChooser({
       if (typeof window !== 'undefined') {
         window.removeEventListener('searchableChooserFocus', handleOtherFocus)
       }
+      clearOpenFocusTimeout()
     }
   }, [isOpen, classNamePrefix])
 
@@ -503,11 +531,13 @@ export function SearchableChooser({
     // Also handle manual entry selection if enabled (similar to Enter key)
     if (e.key === 'Tab') {
       if (isOpen) {
+        // Cancel any pending open-focus timeout so it cannot steal focus after Tab moves away
+        clearOpenFocusTimeout()
+        // Suppress reopen if focus briefly returns (same as Enter/select) - always, not only for manual entry
+        suppressOpenOnFocusRef.current = true
         // Check if we should create a manual entry (same logic as Enter key)
         // Only create manual entry if there are no filtered items to select
         if (allowManualEntry && searchTerm.trim() && filteredItems.length === 0) {
-          // Create manual entry item (same as Enter key behavior)
-          suppressOpenOnFocusRef.current = true
           const manualEntryItem = { __manualEntry__: true, value: searchTerm.trim(), display: searchTerm.trim() }
           onSelect(manualEntryItem)
         }
@@ -516,6 +546,10 @@ export function SearchableChooser({
         setIsOpen(false)
         setSearchTerm('')
         setHoveredIndex(null)
+        // Clear suppress after a short delay so the next intentional focus can open again
+        setTimeout(() => {
+          suppressOpenOnFocusRef.current = false
+        }, 300)
       }
       // Don't prevent default - allow Tab to move to next field
       return
@@ -572,6 +606,7 @@ export function SearchableChooser({
       if (isOpen) {
         e.preventDefault() // Prevent default behavior
         e.stopPropagation() // Stop event from bubbling to DynamicDialog (preventing window close)
+        clearOpenFocusTimeout()
         setIsOpen(false)
         setSearchTerm('')
         setHoveredIndex(null)
@@ -594,6 +629,7 @@ export function SearchableChooser({
     }
     // Set suppress flag BEFORE closing dropdown to prevent auto-reopen
     // This flag will prevent both the focus handler and the auto-open useEffect from reopening
+    clearOpenFocusTimeout()
     suppressOpenOnFocusRef.current = true
     logDebug('SearchableChooser', `[${classNamePrefix}] Setting suppressOpenOnFocusRef=true, calling onSelect, closing dropdown`)
     onSelect(item)
