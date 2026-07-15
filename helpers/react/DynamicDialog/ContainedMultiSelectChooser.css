@@ -323,7 +323,8 @@
   gap: 0.5rem;
 }
 
-.contained-multi-select-item:hover {
+.contained-multi-select-item:hover,
+.contained-multi-select-item.item-highlighted {
   background-color: var(--bg-alt-color, #e6e9ef);
 }
 

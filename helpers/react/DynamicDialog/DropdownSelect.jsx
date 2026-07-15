@@ -5,7 +5,8 @@
 //
 // Includes logic to either disable focus when isEditable=false,
 // and logic to only scroll if needed, plus an optional prop to disable scrolling altogether.
-// Last updated 2025-04-05 by @jgclark
+// Keyboard: ArrowUp/Down highlight, Enter open/select, Escape/Tab close (SearchableChooser pattern).
+// Last updated 2026-07-15 by @jgclark
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, useMemo, type ElementRef, useLayoutEffect } from 'react'
 import './DropdownSelect.css'
@@ -162,8 +163,21 @@ const DropdownSelect = ({
   )
   const [inputValue, setInputValue] = useState(selectedValue.label || placeholder || '')
   const [calculatedWidth, setCalculatedWidth] = useState(fixedWidth || 200) // Initial width
+  const [hoveredIndex, setHoveredIndex] = useState<?number>(null)
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
   const optionsRef = useRef<?ElementRef<'div'>>(null)
+  const localInputRef = useRef<?HTMLInputElement>(null)
+
+  /**
+   * Assigns the input element to both the local ref and an optional parent inputRef.
+   * @param {?HTMLInputElement} el - The input DOM node
+   */
+  const setInputRefs = (el: ?HTMLInputElement) => {
+    localInputRef.current = el
+    if (inputRef) {
+      inputRef.current = el
+    }
+  }
 
   // Calculate the width based on the longest option if fixedWidth is not provided
   // v2 calculates in `ch` units; v1 did it in `px` units.
@@ -196,11 +210,25 @@ const DropdownSelect = ({
     return optionsToShow
   }, [inputValue, normalizedOptions, isEditable, placeholder, selectedValue])
 
+  // Options that can be highlighted / selected (exclude separators)
+  const navigableOptions = useMemo(() => {
+    return filteredOptions.filter((option) => option.type !== 'separator')
+  }, [filteredOptions])
+
+  /**
+   * Closes the dropdown and clears keyboard highlight.
+   */
+  const closeDropdown = () => {
+    setIsOpen(false)
+    setHoveredIndex(null)
+  }
+
   // Handle input change
   const handleInputChange = (event: SyntheticInputEvent<HTMLInputElement>) => {
     if (isEditable) {
       setInputValue(event.target.value)
       setIsOpen(true) // Open dropdown when typing
+      setHoveredIndex(null)
     }
   }
 
@@ -217,14 +245,82 @@ const DropdownSelect = ({
     // Don't submit placeholder option (empty value)
     if (option.value === '' && placeholder) {
       logDebug(`DropdownSelect`, `placeholder clicked, ignoring`)
-      setIsOpen(false)
+      closeDropdown()
       return
     }
     logDebug(`DropdownSelect`, `option click: ${option.label}`)
     setSelectedValue(option)
     setInputValue(option.label) // Update inputValue with the selected option's label
     onChange({ label: option.label, value: option.value }) // Ensure onChange is called with a valid object
-    setIsOpen(false)
+    closeDropdown()
+  }
+
+  /**
+   * Keyboard navigation for the dropdown input (SearchableChooser pattern).
+   * Focus stays on the input; arrows move highlight; Enter opens/selects; Escape/Tab close.
+   * @param {SyntheticKeyboardEvent<HTMLInputElement>} e - Keyboard event
+   */
+  const handleInputKeyDown = (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
+    if (disabled) return
+
+    if (isOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault()
+      e.stopPropagation()
+      if (navigableOptions.length === 0) return
+      const currentIndex = hoveredIndex != null ? hoveredIndex : -1
+      let newIndex: number
+      if (e.key === 'ArrowDown') {
+        newIndex = currentIndex < navigableOptions.length - 1 ? currentIndex + 1 : 0
+      } else {
+        newIndex = currentIndex > 0 ? currentIndex - 1 : navigableOptions.length - 1
+      }
+      setHoveredIndex(newIndex)
+      if (optionsRef.current) {
+        const optionElements = optionsRef.current.querySelectorAll('.dropdown-select-option')
+        if (optionElements[newIndex]) {
+          optionElements[newIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+      }
+      return
+    }
+
+    // Tab: close dropdown and allow normal tab navigation
+    if (e.key === 'Tab') {
+      if (isOpen) {
+        closeDropdown()
+      }
+      return
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      e.stopPropagation()
+      if (!isOpen) {
+        logDebug('DropdownSelect', 'Opening dropdown on Enter')
+        setIsOpen(true)
+        setHoveredIndex(null)
+        return
+      }
+      const optionToSelect =
+        hoveredIndex != null && hoveredIndex >= 0 && hoveredIndex < navigableOptions.length
+          ? navigableOptions[hoveredIndex]
+          : navigableOptions.length > 0
+            ? navigableOptions[0]
+            : null
+      if (optionToSelect) {
+        handleOptionClick(optionToSelect)
+      }
+      return
+    }
+
+    if ((e.key === 'Escape' || e.key === 'Esc') && isOpen) {
+      e.preventDefault()
+      e.stopPropagation()
+      closeDropdown()
+      if (localInputRef.current) {
+        localInputRef.current.blur()
+      }
+    }
   }
 
   //----------------------------------------------------------------------
@@ -232,14 +328,23 @@ const DropdownSelect = ({
   //----------------------------------------------------------------------
 
   const toggleDropdown = () => {
-    setIsOpen(!isOpen)
+    if (isOpen) {
+      closeDropdown()
+    } else {
+      setIsOpen(true)
+      setHoveredIndex(null)
+      // Focus input so keyboard navigation works after a mouse-open
+      if (localInputRef.current) {
+        localInputRef.current.focus()
+      }
+    }
   }
 
   const handleClickOutside = (event: MouseEvent) => {
     const target = event.target
     if (dropdownRef.current && target instanceof Node && !dropdownRef.current.contains(target)) {
       logDebug(`handleClickOutside, am outside, making false`)
-      setIsOpen(false)
+      closeDropdown()
     }
   }
 
@@ -276,6 +381,31 @@ const DropdownSelect = ({
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [isOpen])
+
+  // Clamp / clear keyboard highlight when the navigable list changes
+  useEffect(() => {
+    if (hoveredIndex == null) return
+    if (navigableOptions.length === 0) {
+      setHoveredIndex(null)
+      return
+    }
+    if (hoveredIndex >= navigableOptions.length) {
+      setHoveredIndex(navigableOptions.length - 1)
+    }
+  }, [navigableOptions.length, hoveredIndex])
+
+  // Scroll highlighted option into view when hoveredIndex changes
+  useEffect(() => {
+    if (isOpen && hoveredIndex != null && hoveredIndex >= 0 && optionsRef.current) {
+      setTimeout(() => {
+        if (!optionsRef.current) return
+        const optionElements = optionsRef.current.querySelectorAll('.dropdown-select-option')
+        if (optionElements[hoveredIndex]) {
+          optionElements[hoveredIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+      }, 0)
+    }
+  }, [hoveredIndex, isOpen, navigableOptions.length])
 
   // Update selectedValue when value prop changes - find matching option by value
   useEffect(() => {
@@ -430,7 +560,8 @@ const DropdownSelect = ({
             value={inputValue}
             onChange={handleInputChange} // Handle input change
             onFocus={handleInputFocus} // Handle input focus
-            ref={inputRef}
+            onKeyDown={handleInputKeyDown}
+            ref={setInputRefs}
             disabled={disabled}
             readOnly={!isEditable} // Set readOnly based on isEditable prop
             style={mergeStyles({ paddingLeft: showIndicatorOptionProp ? '24px' : '8px' }, styles.input)} // TODO: Ideally find a way to do this in CSS, rather than here. Also do we use Indicator?
@@ -452,33 +583,41 @@ const DropdownSelect = ({
               styles.dropdown,
             )}
           >
-            {filteredOptions.map((option: Option, i) => {
-              if (option.type === 'separator') {
-                return <div key={option.value} style={styles.separator}></div>
-              }
-              const isPlaceholder = (option: any).isPlaceholder || false
-              const showIndicator = showIndicatorOptionProp && option.hasOwnProperty(showIndicatorOptionProp)
-              return (
-                <div
-                  key={`${option.value || 'placeholder'}-${i}`}
-                  className={`dropdown-select-option ${isPlaceholder ? 'placeholder-option' : ''}`}
-                  onClick={() => handleOptionClick(option)}
-                  style={mergeStyles(
-                    {
-                      display: 'flex',
-                      alignItems: 'center',
-                      width: '100%',
-                    },
-                    styles.option,
-                  )}
-                >
-                  {showIndicator && <span style={dot(option[showIndicatorOptionProp] === true, styles.indicator || {})} />}
-                  <span className="option-label" style={noWrapOptions ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
-                    {option.label}
-                  </span>
-                </div>
-              )
-            })}
+            {(() => {
+              let navigableRenderIndex = -1
+              return filteredOptions.map((option: Option, i) => {
+                if (option.type === 'separator') {
+                  return <div key={option.value} style={styles.separator}></div>
+                }
+                navigableRenderIndex += 1
+                const thisNavigableIndex = navigableRenderIndex
+                const isPlaceholder = (option: any).isPlaceholder || false
+                const showIndicator = showIndicatorOptionProp && option.hasOwnProperty(showIndicatorOptionProp)
+                const isHighlighted = hoveredIndex != null && thisNavigableIndex === hoveredIndex
+                return (
+                  <div
+                    key={`${option.value || 'placeholder'}-${i}`}
+                    className={`dropdown-select-option ${isPlaceholder ? 'placeholder-option' : ''} ${isHighlighted ? 'option-selected' : ''}`}
+                    onClick={() => handleOptionClick(option)}
+                    onMouseEnter={() => setHoveredIndex(thisNavigableIndex)}
+                    onMouseLeave={() => setHoveredIndex(null)}
+                    style={mergeStyles(
+                      {
+                        display: 'flex',
+                        alignItems: 'center',
+                        width: '100%',
+                      },
+                      styles.option,
+                    )}
+                  >
+                    {showIndicator && <span style={dot(option[showIndicatorOptionProp] === true, styles.indicator || {})} />}
+                    <span className="option-label" style={noWrapOptions ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
+                      {option.label}
+                    </span>
+                  </div>
+                )
+              })
+            })()}
           </div>
         )}
       </div>

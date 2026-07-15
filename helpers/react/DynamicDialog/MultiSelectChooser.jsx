@@ -3,6 +3,7 @@
 // MultiSelectChooser Component
 // A scrollable list with checkboxes for multi-selection
 // Similar to SearchableChooser but for multiple selections
+// Keyboard: ArrowUp/Down highlight, Enter toggle, Escape clears highlight
 //--------------------------------------------------------------------------
 
 import React, { useState, useRef, useEffect } from 'react'
@@ -67,8 +68,10 @@ export function MultiSelectChooser({
 
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [selectedValues, setSelectedValues] = useState<Array<string>>(value || [])
+  const [hoveredIndex, setHoveredIndex] = useState<?number>(null)
   const containerRef = useRef<?HTMLDivElement>(null)
   const searchInputRef = useRef<?HTMLInputElement>(null)
+  const listContainerRef = useRef<?HTMLDivElement>(null)
 
   // Sync with external value prop
   useEffect(() => {
@@ -92,6 +95,31 @@ export function MultiSelectChooser({
       return label.includes(term)
     })
   }, [items, searchTerm, filterFn, getItemLabel])
+
+  // Clamp / clear keyboard highlight when the filtered list changes
+  useEffect(() => {
+    if (hoveredIndex == null) return
+    if (filteredItems.length === 0) {
+      setHoveredIndex(null)
+      return
+    }
+    if (hoveredIndex >= filteredItems.length) {
+      setHoveredIndex(filteredItems.length - 1)
+    }
+  }, [filteredItems.length, hoveredIndex])
+
+  // Scroll highlighted item into view when hoveredIndex changes
+  useEffect(() => {
+    if (hoveredIndex != null && hoveredIndex >= 0 && listContainerRef.current) {
+      setTimeout(() => {
+        if (!listContainerRef.current) return
+        const optionElements = listContainerRef.current.querySelectorAll(`.${classNamePrefix}-item`)
+        if (optionElements[hoveredIndex]) {
+          optionElements[hoveredIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+      }, 0)
+    }
+  }, [hoveredIndex, filteredItems.length, classNamePrefix])
 
   // Handle checkbox toggle
   const handleToggle = (itemValue: string) => {
@@ -123,8 +151,64 @@ export function MultiSelectChooser({
   // Clear search
   const handleClearSearch = () => {
     setSearchTerm('')
+    setHoveredIndex(null)
     if (searchInputRef.current) {
       searchInputRef.current.focus()
+    }
+  }
+
+  /**
+   * Scroll the highlighted list item into view.
+   * @param {number} index - Index into filteredItems
+   */
+  const scrollHighlightedItemIntoView = (index: number) => {
+    if (!listContainerRef.current) return
+    const optionElements = listContainerRef.current.querySelectorAll(`.${classNamePrefix}-item`)
+    if (optionElements[index]) {
+      optionElements[index].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }
+
+  /**
+   * Keyboard navigation on the search input (SearchableChooser pattern for always-visible lists).
+   * @param {SyntheticKeyboardEvent<HTMLInputElement>} e - Keyboard event
+   */
+  const handleSearchKeyDown = (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
+    if (disabled) return
+
+    if (filteredItems.length > 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault()
+      e.stopPropagation()
+      const currentIndex = hoveredIndex != null ? hoveredIndex : -1
+      let newIndex: number
+      if (e.key === 'ArrowDown') {
+        newIndex = currentIndex < filteredItems.length - 1 ? currentIndex + 1 : 0
+      } else {
+        newIndex = currentIndex > 0 ? currentIndex - 1 : filteredItems.length - 1
+      }
+      setHoveredIndex(newIndex)
+      scrollHighlightedItemIntoView(newIndex)
+      return
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      e.stopPropagation()
+      if (filteredItems.length === 0) return
+      const itemToToggle =
+        hoveredIndex != null && hoveredIndex >= 0 && hoveredIndex < filteredItems.length
+          ? filteredItems[hoveredIndex]
+          : filteredItems[0]
+      if (itemToToggle) {
+        handleToggle(getItemValue(itemToToggle))
+      }
+      return
+    }
+
+    if ((e.key === 'Escape' || e.key === 'Esc') && hoveredIndex != null) {
+      e.preventDefault()
+      e.stopPropagation()
+      setHoveredIndex(null)
     }
   }
 
@@ -148,7 +232,11 @@ export function MultiSelectChooser({
             type="text"
             className={`${classNamePrefix}-search-input`}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value)
+              setHoveredIndex(null)
+            }}
+            onKeyDown={handleSearchKeyDown}
             placeholder={placeholder}
             disabled={disabled}
           />
@@ -181,7 +269,7 @@ export function MultiSelectChooser({
         )}
 
         {/* Scrollable list */}
-        <div className={`${classNamePrefix}-list-container`} style={{ maxHeight }}>
+        <div className={`${classNamePrefix}-list-container`} ref={listContainerRef} style={{ maxHeight }}>
           {filteredItems.length === 0 ? (
             <div className={`${classNamePrefix}-empty`}>
               {items.length === 0 ? emptyMessageNoItems : `${emptyMessageNoMatch} "${searchTerm}"`}
@@ -211,12 +299,15 @@ export function MultiSelectChooser({
                   const itemIcon = getItemIcon ? getItemIcon(item) : null
                   const itemColor = getItemColor ? getItemColor(item) : null
                   const isChecked = selectedValues.includes(itemValue)
+                  const isHighlighted = hoveredIndex === index
 
                   return (
                     <div
                       key={`${fieldType}-${index}-${itemValue}`}
-                      className={`${classNamePrefix}-item ${isChecked ? 'checked' : ''}`}
+                      className={`${classNamePrefix}-item ${isChecked ? 'checked' : ''} ${isHighlighted ? 'item-highlighted' : ''}`}
                       onClick={() => handleToggle(itemValue)}
+                      onMouseEnter={() => setHoveredIndex(index)}
+                      onMouseLeave={() => setHoveredIndex(null)}
                       title={itemTitle}
                     >
                       <input
@@ -250,6 +341,3 @@ export function MultiSelectChooser({
 }
 
 export default MultiSelectChooser
-
-
-

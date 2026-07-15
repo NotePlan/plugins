@@ -8,6 +8,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import './ContainedMultiSelectChooser.css'
 
+// Keyboard: ArrowUp/Down highlight, Enter toggle/select (or confirm create), Escape clears highlight / cancels create
+
 export type ContainedMultiSelectChooserProps = {
   label?: string,
   value?: string | Array<string>, // Can be string "item1,item2" or array ["item1", "item2"]
@@ -72,12 +74,14 @@ export function ContainedMultiSelectChooser({
   isLoading = false,
 }: ContainedMultiSelectChooserProps): React$Node {
   const searchInputRef = useRef<?HTMLInputElement>(null)
+  const listContainerRef = useRef<?HTMLDivElement>(null)
   const [showCreateMode, setShowCreateMode] = useState<boolean>(false)
   const [createValue, setCreateValue] = useState<string>('')
   const [isCreating, setIsCreating] = useState<boolean>(false)
   const [showList, setShowList] = useState<boolean>(true) // For single-value mode: show list or show selected value
   const [showCheckedOnly, setShowCheckedOnly] = useState<boolean>(false) // Toggle to show only checked items
-  
+  const [hoveredIndex, setHoveredIndex] = useState<?number>(null)
+
   // Generate unique input id - use fieldKey if provided, otherwise fallback to fieldType with random suffix
   const inputId = fieldKey ? `${fieldType}-${fieldKey}-search` : `${fieldType}-search-${Math.random().toString(36).substr(2, 9)}`
 
@@ -302,6 +306,31 @@ export function ContainedMultiSelectChooser({
     }
   }, [displayItems.length, searchTerm, filteredItems.length, items.length, allowCreate, showCreateMode, showCheckedOnly])
 
+  // Clamp / clear keyboard highlight when the visible list changes
+  useEffect(() => {
+    if (hoveredIndex == null) return
+    if (displayItems.length === 0) {
+      setHoveredIndex(null)
+      return
+    }
+    if (hoveredIndex >= displayItems.length) {
+      setHoveredIndex(displayItems.length - 1)
+    }
+  }, [displayItems.length, hoveredIndex])
+
+  // Scroll highlighted item into view when hoveredIndex changes from keyboard/mouse
+  useEffect(() => {
+    if (hoveredIndex != null && hoveredIndex >= 0 && listContainerRef.current) {
+      setTimeout(() => {
+        if (!listContainerRef.current) return
+        const optionElements = listContainerRef.current.querySelectorAll('.contained-multi-select-item')
+        if (optionElements[hoveredIndex]) {
+          optionElements[hoveredIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+      }, 0)
+    }
+  }, [hoveredIndex, displayItems.length])
+
   // Handle checkbox toggle (multi-select) or item selection (single-value)
   const handleToggle = (itemName: string) => {
     if (disabled) return
@@ -321,6 +350,7 @@ export function ContainedMultiSelectChooser({
       // Hide the list after selection
       setShowList(false)
       setSearchTerm('')
+      setHoveredIndex(null)
     } else {
       // Multi-select mode: toggle the item
       const currentSelected = Array.from(new Set(selectedValues))
@@ -362,11 +392,97 @@ export function ContainedMultiSelectChooser({
     }
   }
 
-  // Handle keyboard navigation for single-value mode
-  const handleKeyDown = (e: { key: string, preventDefault: () => void }, itemName: string) => {
+  // Handle keyboard activation when an item itself is focused (single-value tabIndex)
+  const handleItemKeyDown = (e: { key: string, preventDefault: () => void }, itemName: string) => {
     if (singleValue && e.key === 'Enter') {
       e.preventDefault()
       handleToggle(itemName)
+    }
+  }
+
+  // Whether the scrollable item list is currently visible
+  const listIsVisible = !(singleValue && hasSelectedValue && !showList)
+
+  /**
+   * Scroll the highlighted list item into view.
+   * @param {number} index - Index into displayItems
+   */
+  const scrollHighlightedItemIntoView = (index: number) => {
+    if (!listContainerRef.current) return
+    const optionElements = listContainerRef.current.querySelectorAll('.contained-multi-select-item')
+    if (optionElements[index]) {
+      optionElements[index].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }
+
+  /**
+   * Keyboard navigation on the search input (SearchableChooser pattern adapted for always-visible lists).
+   * @param {SyntheticKeyboardEvent<HTMLInputElement>} e - Keyboard event
+   */
+  const handleSearchKeyDown = (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
+    if (disabled || isCreating) return
+
+    const canNavigateList = listIsVisible && !showCreateMode && displayItems.length > 0
+
+    if (canNavigateList && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault()
+      e.stopPropagation()
+      const currentIndex = hoveredIndex != null ? hoveredIndex : -1
+      let newIndex: number
+      if (e.key === 'ArrowDown') {
+        newIndex = currentIndex < displayItems.length - 1 ? currentIndex + 1 : 0
+      } else {
+        newIndex = currentIndex > 0 ? currentIndex - 1 : displayItems.length - 1
+      }
+      setHoveredIndex(newIndex)
+      scrollHighlightedItemIntoView(newIndex)
+      return
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      e.stopPropagation()
+      if (showCreateMode && createValue.trim()) {
+        handleCreateConfirm()
+        return
+      }
+      if (canNavigateList) {
+        const itemToToggle =
+          hoveredIndex != null && hoveredIndex >= 0 && hoveredIndex < displayItems.length
+            ? displayItems[hoveredIndex]
+            : displayItems[0]
+        if (itemToToggle) {
+          handleToggle(itemToToggle)
+        }
+      }
+      return
+    }
+
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      if (showCreateMode) {
+        e.preventDefault()
+        e.stopPropagation()
+        handleCreateCancel()
+        setHoveredIndex(null)
+        return
+      }
+      if (hoveredIndex != null) {
+        e.preventDefault()
+        e.stopPropagation()
+        setHoveredIndex(null)
+      }
+      // Do not clear selection; do not close a parent dialog unless we consumed Escape above
+      return
+    }
+
+    // Prevent space key for tag-chooser and mention-chooser when in create mode
+    if (showCreateMode && (fieldType === 'tag-chooser' || fieldType === 'mention-chooser') && e.key === ' ') {
+      e.preventDefault()
+    }
+    // In single-value mode with selected value, pressing any key should clear and start searching
+    if (singleValue && hasSelectedValue && !showList && e.key !== 'Enter' && e.key !== 'Escape') {
+      handleClearSelection()
+      setHoveredIndex(null)
     }
   }
 
@@ -573,6 +689,7 @@ export function ContainedMultiSelectChooser({
                   setCreateValue(inputValue)
                 } else {
                   setSearchTerm(inputValue)
+                  setHoveredIndex(null)
                   // Auto-toggle checked filter when user types "is:checked"
                   if (inputValue.toLowerCase() === 'is:checked') {
                     setShowCheckedOnly(true)
@@ -583,28 +700,7 @@ export function ContainedMultiSelectChooser({
                 }
               }}
               onClick={handleInputClick}
-              onKeyDown={(e) => {
-                // Handle Enter key
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  // If in create mode, confirm creation
-                  if (showCreateMode && createValue.trim() && !disabled && !isCreating) {
-                    handleCreateConfirm()
-                    return
-                  }
-                  // Otherwise, just prevent form submission
-                  return
-                }
-                // Prevent space key for tag-chooser and mention-chooser when in create mode
-                if (showCreateMode && (fieldType === 'tag-chooser' || fieldType === 'mention-chooser') && e.key === ' ') {
-                  e.preventDefault()
-                }
-                // In single-value mode with selected value, pressing any key should clear and start searching
-                if (singleValue && hasSelectedValue && !showList && e.key !== 'Enter' && e.key !== 'Escape') {
-                  handleClearSelection()
-                }
-              }}
+              onKeyDown={handleSearchKeyDown}
               placeholder={showCreateMode ? (fieldType === 'tag-chooser' ? 'Enter new hashtag...' : fieldType === 'mention-chooser' ? 'Enter new mention...' : 'Enter new item...') : placeholder}
               disabled={disabled || isCreating}
               readOnly={singleValue && hasSelectedValue && !showList}
@@ -727,7 +823,7 @@ export function ContainedMultiSelectChooser({
 
         {/* Scrollable list with checkboxes - hide in single-value mode when value is selected */}
         {!(singleValue && hasSelectedValue && !showList) && (
-          <div className="contained-multi-select-list-container" style={{ maxHeight: effectiveMaxHeight }}>
+          <div className="contained-multi-select-list-container" ref={listContainerRef} style={{ maxHeight: effectiveMaxHeight }}>
             {displayItems.length === 0 ? (
               <div className="contained-multi-select-empty">
                 {filteredItems.length === 0 ? emptyMessageNoItems : `${emptyMessageNoMatch} "${searchTerm}"`}
@@ -737,12 +833,15 @@ export function ContainedMultiSelectChooser({
                 {displayItems.map((item: string, index: number) => {
                   const isChecked = selectedValues.includes(item)
                   const displayLabel = getItemDisplayLabel(item)
+                  const isHighlighted = hoveredIndex === index
                   return (
                     <div
                       key={`${fieldType}-${index}-${item}`}
-                      className={`contained-multi-select-item ${isChecked ? 'checked' : ''} ${singleValue ? 'single-value' : ''}`}
+                      className={`contained-multi-select-item ${isChecked ? 'checked' : ''} ${singleValue ? 'single-value' : ''} ${isHighlighted ? 'item-highlighted' : ''}`}
                       onClick={() => handleToggle(item)}
-                      onKeyDown={(e) => handleKeyDown(e, item)}
+                      onKeyDown={(e) => handleItemKeyDown(e, item)}
+                      onMouseEnter={() => setHoveredIndex(index)}
+                      onMouseLeave={() => setHoveredIndex(null)}
                       tabIndex={singleValue ? 0 : -1}
                       role={singleValue ? 'option' : undefined}
                       aria-selected={singleValue ? isChecked : undefined}

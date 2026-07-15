@@ -82,8 +82,9 @@
 	width: 100%;
 }
 
-/* The currently hovered-over option. */
-.dropdown-select-option:hover {
+/* The currently hovered-over or keyboard-highlighted option. */
+.dropdown-select-option:hover,
+.dropdown-select-option.option-selected {
 	background-color: var(--tint-color);
 	color: var(--bg-alt-color);
 	filter: brightness(95%);

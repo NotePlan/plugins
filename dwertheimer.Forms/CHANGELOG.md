@@ -4,6 +4,15 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Forms/README.md) for details on available commands and use case.
 
+
+<!--
+## since the last release
+### Changed
+- **Chooser keyboard navigation**: `ContainedMultiSelectChooser` and `MultiSelectChooser` support Arrow Up/Down highlight, Enter to toggle/select (or confirm create), and Escape to clear highlight / cancel create - matching SearchableChooser / DropdownSelect. Rebuild Form React bundles after pulling helpers.
+
+### Edited in this release
+- `helpers/react/DynamicDialog/ContainedMultiSelectChooser.jsx`, `ContainedMultiSelectChooser.css`, `MultiSelectChooser.jsx`, `MultiSelectChooser.css`.
+-->
 ## [1.1.9] 2026-04-17
 
 ### Fixed

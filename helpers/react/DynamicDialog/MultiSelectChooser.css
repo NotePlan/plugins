@@ -185,7 +185,8 @@
   gap: 0.5rem;
 }
 
-.multi-select-chooser-base [class*="-item"]:hover {
+.multi-select-chooser-base [class*="-item"]:hover,
+.multi-select-chooser-base [class*="-item"].item-highlighted {
   background-color: var(--bg-alt-color, #e6e9ef);
 }
 
