@@ -732,6 +732,19 @@ export function getOpenItemParasForTimePeriod(
 }
 
 /**
+ * TB (Time Blocks / Timed Items / Timed Reminders) is wanted when either Time Block or Reminders is enabled.
+ * NotePlan timeblocks only appear when showTimeBlockSection is on; timed reminders appear when Reminders is on.
+ * Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
+ * @param {TDashboardSettings} config
+ * @returns {boolean}
+ */
+export function isTBSectionEnabled(config: TDashboardSettings): boolean {
+  const timeBlockOn = Boolean(config.showTimeBlockSection)
+  const remindersOn = config.showRemindersSection !== false
+  return timeBlockOn || remindersOn
+}
+
+/**
  * Get list of section codes, that are enabled in the display settings.
  * @param {TDashboardSettings} config
  * @returns {Array<TSectionCode>}
@@ -740,7 +753,8 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   // Work out which sections to show
   // TODO(@dwertheimer): somehow make this automatically work for all new sections added in the future
   const sectionsToShow: Array<TSectionCode> = []
-  if (config.showTimeBlockSection) sectionsToShow.push('TB')
+  // TB when Time Block and/or Reminders enabled (timed reminders live in TB)
+  if (isTBSectionEnabled(config)) sectionsToShow.push('TB')
   // Default ON when missing (same pattern as Today) so upgrades without the key still show Reminders
   if (config.showRemindersSection || config.showRemindersSection === undefined) sectionsToShow.push('REM')
   if (config.showTodaySection || config.showTodaySection === undefined) sectionsToShow.push('DT')

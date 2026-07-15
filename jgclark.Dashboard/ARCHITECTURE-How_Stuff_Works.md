@@ -230,7 +230,7 @@ All three share the same tail behaviour: recalculate done-task counts (when `don
 Controlled by **`showRemindersSection`**. Backend: `dataGenerationReminders.js` (`getRemindersGeneratedData()`). Frontend: `ReminderItem.jsx` via `ItemRow`.
 
 Live data comes from incomplete Apple Reminders on lists enabled in NotePlan (`Calendar.availableReminderLists({ enabledOnly: true })` then `Calendar.remindersByLists`). Items are split into:
-- timed today whose due time has been reached → Time Blocks (`TB`); future-timed today reminders stay out of TB until then. When Reminders is enabled, TB is titled **Timed Reminders** if only reminders are present, or **Timed Items** if NotePlan timeblocks are also present (or only timeblocks).
+- timed today whose due time has been reached → Time Blocks (`TB`); future-timed today reminders stay out of TB until then. When Reminders is enabled, TB is titled **Timed Reminders** if only reminders are present, or **Timed Items** if NotePlan timeblocks are also present (or only timeblocks). TB is generated when **either** Time Block or Reminders is enabled (NotePlan timeblocks only when Time Block is on).
 - untimed today / yesterday / tomorrow → day sections (`DT` / `DY` / `DO`) as referenced items
 - undated + before yesterday → the dedicated **Reminders** (`REM`) section
 - dated **after tomorrow** → filtered out (not shown anywhere)
@@ -280,7 +280,7 @@ Dashboard has **two** refresh mechanisms with **three** different timers:
 | **IdleTimer** | `dashboardSettings.autoUpdateAfterIdleTime` (minutes; `0` = off) | User-configured idle period (default 15 if unset) | `refreshEnabledSections` |
 | **useRefreshTimer** | Plugin flag or post-command delay | 5s | `refreshEnabledSections` |
 | **useMidnightRollover** | Calendar date change while window open | 15s poll | `refreshEnabledSections` (independent of idle setting) |
-| **TB section timer** | `showTimeBlockSection` enabled; `isViewVisible` | ~54s | `refreshSomeSections(['TB'])` |
+| **TB section timer** | Time Block and/or Reminders enabled; `isViewVisible` | ~54s | `refreshSomeSections(['TB'])` |
 
 ### IdleTimer (`IdleTimer.jsx`)
 Rendered from `Dashboard.jsx` only when **all** of:

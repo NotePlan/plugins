@@ -13,6 +13,7 @@ import {
   createSectionItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
+  isTBSectionEnabled,
   setTimeFieldsOnDashboardPara,
   makeDashboardParas,
 } from './dashboardHelpers'
@@ -277,8 +278,9 @@ export function getTodaySectionData(
 
 /**
  * Get timeblock section data for today's note.
- * Includes valid timeblocks in paragraphs of type 'title', 'open', 'list', and 'checklist'.
- * Also includes today's timed reminders whose due time has been reached (from the Reminders timed-today bucket).
+ * Includes valid timeblocks in paragraphs of type 'title', 'open', 'list', and 'checklist' when Time Block is enabled.
+ * Also includes today's timed reminders whose due time has been reached (when Reminders is enabled).
+ * Section is generated when either Time Block or Reminders is enabled (or both).
  * Note: This is completely separate from getTodaySectionData() and fetches its own data.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
@@ -293,7 +295,8 @@ export function getTimeBlockSectionData(
   timedTodayReminderItems: Array<TSectionItem> = [],
 ): Array<TSection> {
   try {
-    if (!config.showTimeBlockSection) {
+    // Show TB when Time Block and/or Reminders is enabled (timed reminders live here)
+    if (!isTBSectionEnabled(config)) {
       return []
     }
 
@@ -311,49 +314,53 @@ export function getTimeBlockSectionData(
     let itemCounter = 0
     // Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
     const remindersSectionEnabled = config.showRemindersSection !== false
+    const timeBlockSectionEnabled = Boolean(config.showTimeBlockSection)
 
     // const combinedParas = sortedOrCombinedParas.concat(sortedRefParas)
 
-    if (useDemoData) {
-      // For demo data, filter demo items that have timeblocks
-      // Includes valid timeblocks in paragraphs of type 'title', 'open', 'list', and 'checklist'
-      const allDemoItems = openTodayItems.concat(refTodayItems)
-      for (const item of allDemoItems) {
-        // $FlowIgnore[prop-missing]
-        // $FlowIgnore[incompatible-call]
-        if (item.para && isActiveOrFutureTimeBlockPara(item.para, mustContainString)) {
-          const thisID = `${TBsectionCode}-${itemCounter}`
-          const para = item.para
-          // $FlowIgnore[incompatible-use] - item.para is checked above and guaranteed to exist
-          const paraType = para.type
-          logDebug('getTimeBlockSectionData', `+ TB ${thisID}: {${para?.content ?? '(error)'} (type: ${paraType}) from ${para?.filename ?? '(error)'}`)
-          // For title paragraphs with timeblocks, set itemType to 'timeblock' for consistent display
-          const itemType = paraType === 'title' ? 'timeblock' : undefined
+    // NotePlan timeblocks only when the Time Block setting is on
+    if (timeBlockSectionEnabled) {
+      if (useDemoData) {
+        // For demo data, filter demo items that have timeblocks
+        // Includes valid timeblocks in paragraphs of type 'title', 'open', 'list', and 'checklist'
+        const allDemoItems = openTodayItems.concat(refTodayItems)
+        for (const item of allDemoItems) {
           // $FlowIgnore[prop-missing]
           // $FlowIgnore[incompatible-call]
-          const thisSectionItemObject = createSectionItemObject(thisID, 'TB', item.para, itemType)
-          timeBlockItems.push(thisSectionItemObject)
-          itemCounter++
+          if (item.para && isActiveOrFutureTimeBlockPara(item.para, mustContainString)) {
+            const thisID = `${TBsectionCode}-${itemCounter}`
+            const para = item.para
+            // $FlowIgnore[incompatible-use] - item.para is checked above and guaranteed to exist
+            const paraType = para.type
+            logDebug('getTimeBlockSectionData', `+ TB ${thisID}: {${para?.content ?? '(error)'} (type: ${paraType}) from ${para?.filename ?? '(error)'}`)
+            // For title paragraphs with timeblocks, set itemType to 'timeblock' for consistent display
+            const itemType = paraType === 'title' ? 'timeblock' : undefined
+            // $FlowIgnore[prop-missing]
+            // $FlowIgnore[incompatible-call]
+            const thisSectionItemObject = createSectionItemObject(thisID, 'TB', item.para, itemType)
+            timeBlockItems.push(thisSectionItemObject)
+            itemCounter++
+          }
         }
+      } else if (currentDailyNote) {
+        // Now iterate through the combined paras, and make a sectionItem for each that includes a time block
+        // Includes valid timeblocks in paragraphs of type 'title', 'open', 'list', and 'checklist'
+        // (isActiveOrFutureTimeBlockPara checks TIMEBLOCK_ACTIVE_PARA_TYPES which includes these type )
+        const startOfActive = findStartOfActivePartOfNote(currentDailyNote)
+        const endOfActive = findEndOfActivePartOfNote(currentDailyNote)
+        const allParasInActivePartOfTodaysNote = currentDailyNote.paragraphs.slice(startOfActive, endOfActive)
+        const currentTimeblockParas = allParasInActivePartOfTodaysNote.filter((p) => isActiveOrFutureTimeBlockPara(p, mustContainString))
+        timeBlockItems = createSectionItemsFromParas(makeDashboardParas(currentTimeblockParas), TBsectionCode)
+        itemCounter += timeBlockItems.length
       }
-    } else if (currentDailyNote) {
-      // Now iterate through the combined paras, and make a sectionItem for each that includes a time block
-      // Includes valid timeblocks in paragraphs of type 'title', 'open', 'list', and 'checklist'
-      // (isActiveOrFutureTimeBlockPara checks TIMEBLOCK_ACTIVE_PARA_TYPES which includes these type )
-      const startOfActive = findStartOfActivePartOfNote(currentDailyNote)
-      const endOfActive = findEndOfActivePartOfNote(currentDailyNote)
-      const allParasInActivePartOfTodaysNote = currentDailyNote.paragraphs.slice(startOfActive, endOfActive)
-      const currentTimeblockParas = allParasInActivePartOfTodaysNote.filter((p) => isActiveOrFutureTimeBlockPara(p, mustContainString))
-      timeBlockItems = createSectionItemsFromParas(makeDashboardParas(currentTimeblockParas), TBsectionCode)
-      itemCounter += timeBlockItems.length
     }
 
     // NotePlan timeblocks collected above; remember count before appending reminders
     const noteTimeBlockCount = timeBlockItems.length
     let dueNowReminderCount = 0
 
-    // Append today's timed reminders whose due time has been reached
-    if (timedTodayReminderItems.length > 0) {
+    // Append today's timed reminders whose due time has been reached (when Reminders section is enabled)
+    if (remindersSectionEnabled && timedTodayReminderItems.length > 0) {
       const dueNowReminders = filterRemindersWhoseTimeHasBeenReached(timedTodayReminderItems)
       const skippedFutureCount = timedTodayReminderItems.length - dueNowReminders.length
       if (skippedFutureCount > 0) {
@@ -368,9 +375,11 @@ export function getTimeBlockSectionData(
       }
     }
 
-    // Title: Time Blocks (reminders off); Timed Reminders (reminders only); Timed Items (mixed or timeblocks-with-reminders-on)
+    // Title: Time Blocks (reminders off); Timed Reminders (reminders only / no timeblocks); Timed Items (mixed or timeblocks-with-reminders-on)
     let sectionName = 'Time Blocks'
-    if (remindersSectionEnabled) {
+    if (!timeBlockSectionEnabled && remindersSectionEnabled) {
+      sectionName = 'Timed Reminders'
+    } else if (remindersSectionEnabled) {
       sectionName = noteTimeBlockCount === 0 && dueNowReminderCount > 0 ? 'Timed Reminders' : 'Timed Items'
     }
 

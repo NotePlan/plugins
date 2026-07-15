@@ -17,7 +17,7 @@ import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
 import { useAppContext } from '../AppContext.jsx'
 import CircularProgressBar from '../CircularProgressBar.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
-import { countRealSectionItems, getGeneratedDateKey } from './sectionHelpers.js'
+import { countRealSectionItems, getGeneratedDateKey, isTBSectionVisibleInSettings } from './sectionHelpers.js'
 import { clo, getDiff, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import './Section.css'
@@ -167,9 +167,14 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
     }
 
     // Stop here if this section is not currently wanted by user.
-    // $FlowIgnore[invalid-computed-prop]
-    if (dashboardSettings && section.showSettingName && dashboardSettings[section.showSettingName] === false) {
-      return
+    // TB can show when Time Block and/or Reminders is enabled.
+    if (dashboardSettings && section.showSettingName) {
+      if (section.sectionCode === 'TB') {
+        if (!isTBSectionVisibleInSettings(dashboardSettings)) return
+      } else {
+        // $FlowIgnore[invalid-computed-prop]
+        if (dashboardSettings[section.showSettingName] === false) return
+      }
     }
 
     let sectionItems = section.sectionItems
@@ -301,12 +306,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   useEffect(() => {
     const refreshInterval = 54000 // A little less than 1 minute -- don't want it to collide with the IdleTimer if possible
     let timerId
-    let isTBEnabledInSettings = dashboardSettings?.showTimeBlockSection !== false
-    if (section.showSettingName && dashboardSettings) {
-      // $FlowIgnore[invalid-computed-prop]
-      const showSettingValue = dashboardSettings[section.showSettingName]
-      isTBEnabledInSettings = showSettingValue !== false
-    }
+    const isTBEnabledInSettings = isTBSectionVisibleInSettings(dashboardSettings)
 
     if (section.sectionCode === 'TB' && isTBEnabledInSettings && isViewVisible) {
       timerId = setInterval(() => {
@@ -319,7 +319,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
         clearInterval(timerId)
       }
     }
-  }, [dashboardSettings, section.sectionCode, section.showSettingName, refreshTimeBlockSection, isViewVisible])
+  }, [dashboardSettings, section.sectionCode, refreshTimeBlockSection, isViewVisible])
 
   //----------------------------------------------------------------------
   // Hooks
@@ -419,7 +419,11 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   // FIXME: this is also getting called another set of times after lastUpdated: "UPDATE_DATA Setting firstRun to false after force initial load"
 
   // $FlowIgnore[invalid-computed-prop]
-  let hideSection = !items.length || (dashboardSettings && dashboardSettings[section.showSettingName] === false) // note this can be updated later
+  let hideSection =
+    !items.length ||
+    (section.sectionCode === 'TB'
+      ? !isTBSectionVisibleInSettings(dashboardSettings)
+      : Boolean(dashboardSettings && dashboardSettings[section.showSettingName] === false)) // note this can be updated later
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
   let numItemsToShow = itemsToShow.length
 

@@ -16,6 +16,7 @@ import {
   handlerResult,
   mergeSections,
   setPluginData,
+  isTBSectionEnabled,
 } from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
@@ -274,9 +275,9 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
       })
     }
     const pluginData: TPluginData = reactWindowData.pluginData
-    if (pluginData.dashboardSettings?.showTimeBlockSection === false && sectionCodesToRefresh.includes('TB')) {
+    if (pluginData.dashboardSettings && !isTBSectionEnabled(pluginData.dashboardSettings) && sectionCodesToRefresh.includes('TB')) {
       sectionCodesToRefresh = sectionCodesToRefresh.filter((sectionCode) => sectionCode !== 'TB')
-      logDebug('refreshSomeSections', `Filtered TB from requested sections as Time Block is disabled -> ${String(sectionCodesToRefresh)}`)
+      logDebug('refreshSomeSections', `Filtered TB from requested sections as Time Block and Reminders are both disabled -> ${String(sectionCodesToRefresh)}`)
       if (sectionCodesToRefresh.length === 0) {
         logDebug('refreshSomeSections', 'No eligible sections remain after filtering; skipping refresh')
         return handlerResult(true)

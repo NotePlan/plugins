@@ -149,7 +149,7 @@ The display will **automatically refresh** in the background if you set the "Aut
 
 It shows the time first, minus any 'Text must contain' string that you have set in NP's 'Todo' settings pane. Where a time block is defined on a heading or list item, then the calendar+clock icon is shown in place of the task/checklist icon.
 
-When the [Reminders section](#reminders-section) is also enabled, this section additionally shows today's Apple Reminders that have a due time -- but only once that due time has been reached. Timed reminders for later today stay hidden until then (the Time Block section refreshes about once a minute while the Dashboard window is visible). The section title becomes **Timed Reminders** when it only has those reminders (no NotePlan timeblocks), or **Timed Items** when timeblocks are present as well (or only timeblocks while Reminders is on).
+When the [Reminders section](#reminders-section) is enabled, this section additionally shows today's Apple Reminders that have a due time -- but only once that due time has been reached. Timed reminders for later today stay hidden until then (the section refreshes about once a minute while the Dashboard window is visible). The section appears if **either** Time Block or Reminders is enabled (or both). With Reminders on and Time Block off, only those timed reminders appear (title **Timed Reminders**). With both sources present the title is **Timed Items**; with Reminders off it stays **Time Blocks**.
 
 ### Reminders section
 <img src="reminders-section-2.4.0.png" width="740px" margin="8px" border="1px solid grey" alt="reminders section" />

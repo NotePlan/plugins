@@ -9,6 +9,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 ## [2.4.0.b51] 2026-07-15
+- Fix: **Timed Items / Timed Reminders** section now shows when either Time Block or Reminders is enabled (or both); previously it required Time Block to be on.
 - Fix: **Wins** section no longer shows "No defined wins..." when none were defined; the "all wins complete" message only appears after open win tasks existed and were all completed (until the next refresh).
 - `showRemindersSection` defaults to **on** for fresh installs and upgrades (backfilled when the setting is missing; an explicit off is left alone).
 - Reminder rows in the **Reminders** section now show their due date (calendar lozenge) when it is not today; omitted in calendar / timeblock sections where the day is already clear.

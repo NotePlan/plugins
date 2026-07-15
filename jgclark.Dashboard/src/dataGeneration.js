@@ -15,6 +15,7 @@ import {
   getListOfEnabledSections,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
+  isTBSectionEnabled,
 } from './dashboardHelpers'
 import { loadDashboardPluginSettings } from './dashboardPluginSettings'
 import { getTodaySectionData, getTimeBlockSectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
@@ -119,7 +120,7 @@ export async function getSomeSectionsData(
       const todaySections = getTodaySectionData(config, useDemoData, useEditorWherePossible, remindersData.untimedTodayItems)
       sections.push(...todaySections)
     }
-    if (sectionCodesToGet.includes('TB') && config.showTimeBlockSection) {
+    if (sectionCodesToGet.includes('TB') && isTBSectionEnabled(config)) {
       sections.push(...getTimeBlockSectionData(config, useDemoData, useEditorWherePossible, remindersData.timedTodayItems))
     }
     // Note: the WINS section is generated separately in the front end after the other sections are generated.

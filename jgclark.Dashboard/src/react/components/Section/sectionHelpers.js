@@ -67,6 +67,20 @@ export function getVisibleSectionCodes(dashboardSettings: TDashboardSettings, se
 }
 
 /**
+ * TB section is visible when Time Block and/or Reminders section setting is on.
+ * Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
+ * @param {?TDashboardSettings} dashboardSettings
+ * @returns {boolean}
+ */
+export function isTBSectionVisibleInSettings(dashboardSettings: ?TDashboardSettings): boolean {
+  if (!dashboardSettings) return false
+  // Same rule as isTBSectionEnabled() in dashboardHelpers (kept local to avoid React/plugin circular imports)
+  const timeBlockOn = Boolean(dashboardSettings.showTimeBlockSection)
+  const remindersOn = dashboardSettings.showRemindersSection !== false
+  return timeBlockOn || remindersOn
+}
+
+/**
  * Gets the visibility setting for a given section code.
  *
  * @param {TSectionCode} sectionCode - The section code.
@@ -77,6 +91,8 @@ const sectionIsVisible = (section: TSection, dashboardSettings: TDashboardSettin
   const sectionCode: TSectionCode = section.sectionCode
   if (!sectionCode) logDebug(`sectionHelpers`, `section has no sectionCode`, section)
   if (!dashboardSettings) return false
+  // TB can show when Time Block and/or Reminders is enabled (timed reminders live in TB)
+  if (sectionCode === 'TB') return isTBSectionVisibleInSettings(dashboardSettings)
   // const thisSection = getSectionDetailsFromSectionCode(sectionCode) // get sectionCode, sectionName, showSettingName
   const settingName = section.showSettingName
   if (!settingName) logDebug(`sectionHelpers`, `sectionCode ${sectionCode} has no showSettingName`, section)

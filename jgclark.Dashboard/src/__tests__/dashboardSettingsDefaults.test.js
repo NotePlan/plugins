@@ -1,8 +1,8 @@
 /* globals describe, expect, test */
-// Last updated 2026-07-14 for v2.4.0.b50 by @CursorAI
+// Last updated 2026-07-15 for v2.4.0.b51 by @CursorAI
 
 import { getDashboardSettingsDefaults } from '../dashboardSettingsDefaults'
-import { getListOfEnabledSections } from '../dashboardHelpers'
+import { getListOfEnabledSections, isTBSectionEnabled } from '../dashboardHelpers'
 
 const PLUGIN_NAME = 'jgclark.Dashboard'
 const FILENAME = 'dashboardSettingsDefaults'
@@ -28,6 +28,32 @@ describe(`${PLUGIN_NAME}`, () => {
       const defaults = getDashboardSettingsDefaults()
       const enabled = getListOfEnabledSections({ ...defaults, showRemindersSection: false })
       expect(enabled).not.toContain('REM')
+    })
+
+    test('getListOfEnabledSections() includes TB when Time Block is off but Reminders is on', () => {
+      const defaults = getDashboardSettingsDefaults()
+      const enabled = getListOfEnabledSections({ ...defaults, showTimeBlockSection: false, showRemindersSection: true })
+      expect(enabled).toContain('TB')
+    })
+
+    test('getListOfEnabledSections() includes TB when Time Block is on but Reminders is off', () => {
+      const defaults = getDashboardSettingsDefaults()
+      const enabled = getListOfEnabledSections({ ...defaults, showTimeBlockSection: true, showRemindersSection: false })
+      expect(enabled).toContain('TB')
+    })
+
+    test('getListOfEnabledSections() omits TB when Time Block and Reminders are both off', () => {
+      const defaults = getDashboardSettingsDefaults()
+      const enabled = getListOfEnabledSections({ ...defaults, showTimeBlockSection: false, showRemindersSection: false })
+      expect(enabled).not.toContain('TB')
+    })
+
+    test('isTBSectionEnabled() is true for Time Block only, Reminders only, or both', () => {
+      const defaults = getDashboardSettingsDefaults()
+      expect(isTBSectionEnabled({ ...defaults, showTimeBlockSection: true, showRemindersSection: false })).toBe(true)
+      expect(isTBSectionEnabled({ ...defaults, showTimeBlockSection: false, showRemindersSection: true })).toBe(true)
+      expect(isTBSectionEnabled({ ...defaults, showTimeBlockSection: true, showRemindersSection: true })).toBe(true)
+      expect(isTBSectionEnabled({ ...defaults, showTimeBlockSection: false, showRemindersSection: false })).toBe(false)
     })
   })
 })
