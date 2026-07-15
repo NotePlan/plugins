@@ -8,7 +8,7 @@
 //   (priority / earliest / due date / most recent) -- do not re-sort by priority here.
 // - Limit = only show the first N of M items
 //
-// Last updated 2026-07-10 for v2.4.0.b48, @jgclark + @CursorAI
+// Last updated 2026-07-15 for v2.4.0.b51, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -105,12 +105,14 @@ const useSectionSortAndFilter = (
       setAllSortedItems(memoizedItems)
     }
     // Handle REM section differently: generator already sorted (date / time); skip priority filter
+    // Backend may slice to maxItemsToShowInSection and set totalCount; surface that via limitApplied for {countWithLimit}
     // TODO(future): Enable flagged-first sort mention if the API is extended to cover flagged status
     // TODO(later): periodic auto-refresh while Dashboard is visible
     else if (section.sectionCode === 'REM') {
       setItemsToShow(memoizedItems)
       setAllSortedItems(memoizedItems)
-      setLimitApplied(false)
+      const remTotal = section.totalCount ?? memoizedItems.length
+      setLimitApplied(remTotal > memoizedItems.length)
       setCalculatedMaxPriority(-1)
     }
     // Handle INFO section differently: no filtering

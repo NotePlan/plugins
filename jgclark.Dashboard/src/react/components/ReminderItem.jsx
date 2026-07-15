@@ -8,7 +8,7 @@
 // On older builds that scheme is blocked by NotePlan.openURL.
 // See also ARCHITECTURE-How_Stuff_Works.md -> "Reminders section".
 //
-// Last updated 2026-07-13 for v2.4.0.b50
+// Last updated 2026-07-15 for v2.4.0.b51
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useCallback } from 'react'
@@ -17,6 +17,7 @@ import { useAppContext } from './AppContext.jsx'
 import StatusIcon from './StatusIcon.jsx'
 import './TaskItem.css'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
+import { getTodaysDateHyphenated } from '@helpers/dateTime'
 import { logDebug, logWarn } from '@helpers/dev'
 
 type Props = {
@@ -56,8 +57,17 @@ function ReminderItem({ item /*, thisSection */ }: Props): Node {
   const showListnameContext = Boolean(dashboardSettings?.showTaskContext && reminder.listname)
   const listColor = reminder.color || null
 
-  // Build main content: optional time (shared .timeBlock lozenge), title, details, location
+  // Build main content: optional date (scheduledDate lozenge, omit today like tasks), optional time, title, details, location
   const contentParts: Array<Node> = []
+  const todayHyphenated = getTodaysDateHyphenated()
+  if (reminder.date && reminder.date !== todayHyphenated) {
+    contentParts.push(
+      <span key="date" className="scheduledDate margin-right-larger">
+        <i className="fa-regular fa-calendar pad-right" />
+        {reminder.date}
+      </span>,
+    )
+  }
   if (reminder.time) {
     contentParts.push(
       <span key="time" className="timeBlock margin-right-larger">

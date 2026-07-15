@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for REM (Reminders) Section and day/TB reminder buckets
-// Last updated 2026-07-14 for v2.4.0.b50, @jgclark + @CursorAI
+// Last updated 2026-07-15 for v2.4.0.b51, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -369,7 +369,7 @@ export async function getRemindersGeneratedData(
       restItems = restItems.slice(0, maxInSection)
     }
 
-    let sectionDescription = ''
+    let sectionDescription = '{countWithLimit} reminders'
     if (config?.FFlag_ShowSectionTimings) {
       sectionDescription += ` [${timer(startTime)}]`
     }
@@ -420,7 +420,7 @@ export async function getRemindersGeneratedData(
       generatedDate: new Date(),
       isReferenced: false,
       actionButtons: actionButtons,
-      totalCount: totalRestCount > maxInSection ? totalRestCount : undefined,
+      totalCount: totalRestCount,
     }
 
     logTimer('getRemindersGeneratedData', startTime, `- REM rest section has ${String(restItems.length)} of ${String(totalRestCount)} items, 100`)

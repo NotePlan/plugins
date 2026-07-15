@@ -11,6 +11,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.4.0.b51] 2026-07-15
 - Fix: **Wins** section no longer shows "No defined wins..." when none were defined; the "all wins complete" message only appears after open win tasks existed and were all completed (until the next refresh).
 - `showRemindersSection` defaults to **on** for fresh installs and upgrades (backfilled when the setting is missing; an explicit off is left alone).
+- Reminder rows now show their due date (calendar lozenge) when it is not today.
+- Reminders section description now shows count / "first N of M" when truncated by max items per section.
 - fix: Tab can leave the Reminder List (and other SearchableChooser dropdowns) without focus being stolen back / the menu reopening.
 - dev: Reminder flagged status commented out for now as confirmed that `CalendarItem.flagged` is not in the plugin API. Asked for it to be extended to cover this.
 
