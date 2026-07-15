@@ -1,12 +1,13 @@
 /* CSS specific to TasksFiltered component.
-/* Last updated 2026-01-16 for v2.4.0.b16, @jgclark */
+/* Last updated 2026-07-14 for v2.4.0.b51, @jgclark */
 
+/* Note: should be the same as in TaskItem.css */
 .sectionItemRow {
 	/* The important trick to avoiding bad wrapping at end of columns */
 	break-inside: avoid;
 	display: flex;
-	/* trying margin not padding now */
-	margin: 0px 4px 3px 0px; 	
+	/* for the 'leading' between item rows */
+	margin: 0px 4px 1px 0px;
 	border: 0px none;
 	column-gap: 3px;
 	/* vertical for all items this contains */

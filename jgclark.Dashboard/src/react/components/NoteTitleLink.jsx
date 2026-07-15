@@ -49,17 +49,17 @@ function NoteTitleLink({
   const noteTitle = noteData.title ?? ''
 
   // Compute icon: use frontmatter icon if present, otherwise use default logic
-  const noteIconToUse = noteData.icon
-    ? `fa-light fa-${noteData.icon}`
+  const noteIconToUse = `fa-light fa-fw ` + noteData.icon
+    ? `fa-${noteData.icon}`
     : defaultIcon ?? (isDailyDateStr(filename)
-      ? 'fa-light fa-calendar-star'
+      ? 'fa-calendar-star'
     : isWeeklyDateStr(filename)
-        ? 'fa-light fa-calendar-week'
+        ? 'fa-calendar-week'
     : isMonthlyDateStr(filename)
-          ? 'fa-light fa-calendar-days'
+          ? 'fa-calendar-days'
     : isQuarterlyDateStr(filename)
-            ? 'fa-light fa-calendar-range'
-    : 'fa-light fa-file-lines')
+            ? 'fa-calendar-range'
+            : 'fa-file-lines')
 
   // Get icon-color from frontmatter if present
   const possIconTailwindColor = noteData.iconColor

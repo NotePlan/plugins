@@ -46,7 +46,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppress
     // logDebug('ItemNoteLink', `- teamspaceTitle=${teamspaceTitle}`)
     teamspaceName = (
       <span className="teamspaceName pad-right">
-        <i className={`${TEAMSPACE_FA_ICON} pad-right`}></i>
+        <i className={`fa-fw ${TEAMSPACE_FA_ICON} pad-right`}></i>
         {teamspaceTitle}
       </span>
     )
