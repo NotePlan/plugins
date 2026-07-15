@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for 2026-07-10 for v2.4.0.b47, @jgclark + @CursorAI
+// Last updated for 2026-07-15 for v2.4.0.b51, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -96,7 +96,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Refs
   //----------------------------------------------------------------------
   const containerRef = useRef<?HTMLDivElement>(null)
-  // Dedupe empty-state toast: only fire when transitioning into "nothing to show", not on every re-render while empty
+  // Dedupe empty-state banner: only fire when transitioning into "nothing to show", not on every re-render while empty
   const hadDisplayableSectionsRef = useRef < boolean > (true)
 
   //----------------------------------------------------------------------
@@ -174,9 +174,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Effects
   //----------------------------------------------------------------------
 
-  // When no sections would render show an INFO toast to confirm this, avoiding the appearance of a bug.
+  // When no sections would render show an INFO banner to confirm this, avoiding the appearance of a bug.
+  // Skip while refreshing or mid perspective-switch (switch clears sections to [] before the batch refresh sets refreshing).
   useEffect(() => {
-    if (pluginData.firstRun || isRefreshing || !dashboardSettings) return
+    if (pluginData.firstRun || isRefreshing || pluginData.perspectiveChanging || !dashboardSettings) return
 
     const displayableCount = countSectionsThatWouldDisplay(sections, dashboardSettings)
     if (displayableCount > 0) {
@@ -184,22 +185,21 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       return
     }
 
-    // Already toasted for this empty stretch
+    // Already shown a banner for this empty stretch
     if (!hadDisplayableSectionsRef.current) return
     hadDisplayableSectionsRef.current = false
 
-    logInfo('Dashboard', 'No sections to display; showing INFO toast')
+    logInfo('Dashboard', 'No sections to display; showing INFO banner')
     dispatch(
-      'SHOW_TOAST',
+      'SHOW_BANNER',
       {
         type: 'INFO',
         msg: 'Your current settings and filters mean there are no items to show.',
-        // timeout 0 / omitted = sticky until the user dismisses (Root only auto-hides when timeout > 0)
-        timeout: 0,
+        timeout: 7500,
       },
       'no sections to display',
     )
-  }, [sections, dashboardSettings, dispatch, isRefreshing, pluginData.firstRun, pluginSectionsShapeKey])
+  }, [sections, dashboardSettings, dispatch, isRefreshing, pluginData.firstRun, pluginData.perspectiveChanging, pluginSectionsShapeKey])
 
   // Force the window to be focused on load so that we can capture clicks on hover
   useEffect(() => {
