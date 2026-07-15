@@ -90,7 +90,7 @@ const sectionIsVisible = (section: TSection, dashboardSettings: TDashboardSettin
 /**
  * Whether a section would actually render after Section.jsx empty-state handling (for load/refresh, not local last-item congrats).
  * Mirrors Section.jsx: enabled sections with real items always show; empty SEARCH always shows;
- * empty DT/W/M/Q (non-ref), WINS, TAG, PROJ* show congrats unless hideEmptySections is on; other empties hide.
+ * empty DT/W/M/Q (non-ref), TAG, PROJ* show congrats unless hideEmptySections is on; empty WINS and other empties hide.
  * @param {TSection} section
  * @param {TDashboardSettings} dashboardSettings
  * @returns {boolean}

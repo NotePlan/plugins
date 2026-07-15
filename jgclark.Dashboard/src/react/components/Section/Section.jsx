@@ -159,6 +159,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   // - After refresh / first load with zero open items -> do not inject congrats (section hides via hideSection).
   // - After completing the last item locally (REMOVE_LINE_FROM_JSON; same generatedDate, real count >0 -> 0) -> still inject congrats until next refresh.
   // Search empty messages are always shown (not gated by this setting).
+  // WINS: only injects winsCongrats after local completion of defined wins - never an empty-state when none were defined.
   useEffect(() => {
     if (!section) {
       logError('Section', `- No Section passed in!`)
@@ -183,8 +184,9 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
     // so turning the setting off and on again still keeps post-completion congrats until refresh.
     if (prevGenKey != null && generatedDateKey !== prevGenKey) {
       showCongratsUntilRefreshRef.current = false
-    } else if (hideEmptySections && prevRealCount != null && prevRealCount > 0 && realCount === 0) {
+    } else if (prevRealCount != null && prevRealCount > 0 && realCount === 0) {
       // Local REMOVE_LINE emptied this section without regenerating it
+      // (set regardless of hideEmptySections so WINS can use this flag alone)
       showCongratsUntilRefreshRef.current = true
     }
 
@@ -220,8 +222,10 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
           }
           break
         case 'WINS':
-          if (allowEmptyCongrats) {
-            logDebug('Section', `- ${section.sectionCode} ${section.name} doesn't have any sectionItems, so display wins congrats message`)
+          // Only show congrats when open wins existed and were all completed locally (until next refresh).
+          // Never show an empty-state when no wins were defined for the current calendar sections.
+          if (showCongratsUntilRefreshRef.current) {
+            logDebug('Section', `- ${section.sectionCode} ${section.name} last win completed locally, so display wins congrats message`)
             sectionItems = [
               {
                 ID: `${section.sectionCode}-Empty`,
@@ -230,7 +234,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
               },
             ]
           } else {
-            logDebug('Section', `- ${section.sectionCode} ${section.name}: hideEmptySections - skipping wins congrats after refresh/initial empty`)
+            logDebug('Section', `- ${section.sectionCode} ${section.name}: no open wins defined - skipping wins congrats`)
             sectionItems = []
           }
           break

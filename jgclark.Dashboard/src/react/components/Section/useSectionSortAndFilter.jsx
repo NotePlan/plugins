@@ -104,7 +104,8 @@ const useSectionSortAndFilter = (
       setItemsToShow(memoizedItems)
       setAllSortedItems(memoizedItems)
     }
-    // Handle REM section differently: generator already sorted (flagged / date / time); skip priority filter
+    // Handle REM section differently: generator already sorted (date / time); skip priority filter
+    // TODO(future): Enable flagged-first sort mention if the API is extended to cover flagged status
     // TODO(later): periodic auto-refresh while Dashboard is visible
     else if (section.sectionCode === 'REM') {
       setItemsToShow(memoizedItems)
@@ -128,23 +129,9 @@ const useSectionSortAndFilter = (
       }
       setCalculatedMaxPriority(-1)
       if (toShow.length === 0) {
-        // If Section.jsx already injected winsCongrats (local last-item complete), keep it.
-        // If hideEmptySections is on and there is no placeholder yet, do not invent one here -
-        // that lets empty WINS hide after refresh (Section.jsx owns that policy).
-        let emptyOrCongrats: Array<TSectionItem>
-        if (specialMessageItems.length > 0) {
-          emptyOrCongrats = specialMessageItems
-        } else if (memoizedDashboardSettings?.hideEmptySections === true) {
-          emptyOrCongrats = []
-        } else {
-          emptyOrCongrats = [
-            {
-              ID: `${section.ID}-Empty`,
-              sectionCode: 'WINS',
-              itemType: 'winsCongrats',
-            },
-          ]
-        }
+        // Only keep winsCongrats if Section.jsx already injected it (local last-item complete).
+        // Never invent an empty-state here when no wins were defined - hide the section instead.
+        const emptyOrCongrats: Array<TSectionItem> = specialMessageItems.length > 0 ? specialMessageItems : []
         setFilteredItems([])
         setItemsToShow(emptyOrCongrats)
         setAllSortedItems([])
