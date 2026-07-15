@@ -8,7 +8,7 @@
 // On older builds that scheme is blocked by NotePlan.openURL.
 // See also ARCHITECTURE-How_Stuff_Works.md -> "Reminders section".
 //
-// Last updated 2026-07-15 for v2.4.0.b51
+// Last updated 2026-07-15 for v2.4.0.b51 by @CursorAI
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useCallback } from 'react'
@@ -30,7 +30,7 @@ type Props = {
  * Status icon: click completes; ⌘-click or ctrl-click deletes (Calendar API).
  * TODO(later): task-like dialog (edit title/details, reschedule, change list)
  */
-function ReminderItem({ item /*, thisSection */ }: Props): Node {
+function ReminderItem({ item, thisSection }: Props): Node {
   const { dashboardSettings, pluginData, sendActionToPlugin } = useAppContext()
   const reminder = item.reminder
   const canOpenInReminders = Boolean(pluginData?.appleRemindersCallbackAvailable && reminder?.id)
@@ -56,11 +56,13 @@ function ReminderItem({ item /*, thisSection */ }: Props): Node {
 
   const showListnameContext = Boolean(dashboardSettings?.showTaskContext && reminder.listname)
   const listColor = reminder.color || null
+  // Date lozenge only in REM (calendar/TB sections already convey the day)
+  const showDateLozenge = thisSection.sectionCode === 'REM'
 
-  // Build main content: optional date (scheduledDate lozenge, omit today like tasks), optional time, title, details, location
+  // Build main content: optional date (REM only; omit today like tasks), optional time, title, details, location
   const contentParts: Array<Node> = []
   const todayHyphenated = getTodaysDateHyphenated()
-  if (reminder.date && reminder.date !== todayHyphenated) {
+  if (showDateLozenge && reminder.date && reminder.date !== todayHyphenated) {
     contentParts.push(
       <span key="date" className="scheduledDate margin-right-larger">
         <i className="fa-regular fa-calendar pad-right" />
