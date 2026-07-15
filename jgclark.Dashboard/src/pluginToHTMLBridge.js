@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-05-28 for v2.4.0.b45 by @CursorAI & @jgclark
+// Last updated 2026-07-15 for v2.4.0.b51 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -70,7 +70,14 @@ import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
 import { loadDashboardPluginSettings } from './dashboardPluginSettings'
 import { copyUpdatedSectionItemData } from './dataGeneration'
 import { externallyStartSearch } from './dataGenerationSearch'
-import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TSectionCode } from './types'
+import type {
+  MessageDataObject,
+  REFRESH_ACTIONS_ALLOWED_ON_HANDLER_FAILURE,
+  TActionType,
+  TBridgeClickHandlerResult,
+  TParagraphForDashboard,
+  TSectionCode,
+} from './types'
 import { clo, clof, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '@helpers/dev'
 import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
 import { pluginIsInstalled } from '@helpers/NPConfiguration'
@@ -529,6 +536,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
 /**
  * One function to handle all actions on return from the various handlers.
+ * On success: run all requested `actionsOnSuccess` (line updates, closes, refreshes, etc.).
+ * On failure: show a banner, then still run any refresh-only actions (handlers often promise "I will refresh"). But line mutations, done-count, theme, and perspective actions are skipped.
  * For `REMOVE_LINE_FROM_JSON` after PROJ* list sync: do not send `UPDATE_DATA` using the `reactWindowData` captured at the start of that block;
  * always re-fetch via `getGlobalSharedData` after `updateProjectsListIfProjectSection` so the payload includes in-process `refreshSectionsByCode` merges (see `projectsListSync.js` / `writeAllProjectsList` skip flag).
  * @param {TBridgeClickHandlerResult} handlerResult
@@ -553,10 +562,16 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       logDebug('processActionOnReturn', `-> failed (success false) ${errorMsg || ''}`)
       const errorLevel = errorMessageLevel || 'WARN'
       await sendBannerMessage(WEBVIEW_WINDOW_ID, errorMsg || `Sorry; something's gone wrong for "${data.actionType}"`, errorLevel)
-      return
+      // Handlers often return REFRESH_* with "I will refresh..." -- honour those only; skip line/mutation actions
+      const wanted = (handlerResult.actionsOnSuccess ?? []).filter((a) => REFRESH_ACTIONS_ALLOWED_ON_HANDLER_FAILURE.includes(a))
+      if (wanted.length === 0) {
+        return
+      }
+      logDebug('processActionOnReturn', `-> still running refresh action(s) after failure: [${String(wanted)}]`)
+      handlerResult.actionsOnSuccess = wanted
     }
 
-    // Handle the different success cases
+    // Handle the different success cases (and failure-path refresh-only actions above)
     const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
     /** Used in TB follow-up: `sectionCodes` on the result often means metadata (e.g. PROJACT for list sync), not "refresh these sections again". */
     const hadExplicitRefreshSectionRequestAtStart = actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')

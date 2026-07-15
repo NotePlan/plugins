@@ -13,6 +13,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - `showRemindersSection` defaults to **on** for fresh installs and upgrades (backfilled when the setting is missing; an explicit off is left alone).
 - Reminder rows now show their due date (calendar lozenge) when it is not today.
 - Reminders section description now shows count / "first N of M" when truncated by max items per section.
+- fix: When an item action fails but asks to refresh (e.g. "Couldn't find task... I will refresh"), the section refresh now actually runs after the banner message is shown.
 - fix: Tab can leave the Reminder List (and other SearchableChooser dropdowns) without focus being stolen back / the menu reopening.
 - dev: Reminder flagged status commented out for now as confirmed that `CalendarItem.flagged` is not in the plugin API. Asked for it to be extended to cover this.
 

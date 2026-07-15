@@ -416,6 +416,18 @@ export type TActionOnReturn =
   | 'START_DELAYED_REFRESH_TIMER'
   | 'UPDATE_LINE_IN_JSON'
 
+/**
+ * Actions allowed after a handler reports success=false (show banner, then still refresh as promised).
+ * Line mutations / theme / perspective actions must not run on the failure path.
+ */
+export const REFRESH_ACTIONS_ALLOWED_ON_HANDLER_FAILURE: Array<TActionOnReturn> = [
+  'REFRESH_SECTION_IN_JSON',
+  'REFRESH_ALL_SECTIONS',
+  'REFRESH_ALL_ENABLED_SECTIONS',
+  'REFRESH_ALL_CALENDAR_SECTIONS',
+  'START_DELAYED_REFRESH_TIMER',
+]
+
 export type TBridgeClickHandlerResult = {
   success: boolean,
   updatedParagraph?: TParagraphForDashboard, // TODO: TEST: this becoming TParagraphForDashboard not TParagraph
