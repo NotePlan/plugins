@@ -249,7 +249,8 @@ export type TReminderForDashboard = {
   notes?: string, // optional notes on the reminder
   listname: string, // the list the reminder is in
   color?: string, // optional list color as hex (from Calendar.availableReminderLists)
-  flagged: boolean, // whether the reminder is flagged
+  // TODO(future): Enable this if the API is extended to cover flagged status
+  flagged: boolean, // whether the reminder is flagged (always false until API supports it)
   date?: string, // optional local calendar date YYYY-MM-DD (converted from API Zulu/UTC)
   time?: string, // optional local HH:MM in 24-hour format (converted from API Zulu/UTC)
   location?: string, // optional location

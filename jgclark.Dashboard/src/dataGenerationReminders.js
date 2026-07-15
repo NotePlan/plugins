@@ -88,7 +88,8 @@ export function mapCalendarItemToReminderForDashboard(
   const reminder: TReminderForDashboard = {
     title: calendarItem.title || '(untitled reminder)',
     listname,
-    // TODO(later): map real flagged when NotePlan exposes it on CalendarItem
+    // TODO(future): Enable this if the API is extended to cover flagged status
+    // flagged: Boolean(calendarItem.flagged),
     flagged: false,
   }
   if (calendarItem.id) {
@@ -124,14 +125,16 @@ export function mapCalendarItemToReminderForDashboard(
     }
   }
   if (calendarItem.title.match(/test/i) || calendarItem.title.match(/new/i)) {
-    clof(calendarItem, "CalendarItem (for Reminder): ", ['title', 'date', 'occurences', 'isAllDay', 'isCompleted'])
+    // TODO(future): Enable flagged in this clof list if the API is extended to cover flagged status
+    clof(calendarItem, "CalendarItem (for Reminder): ", ['title', 'date', 'occurences', 'isAllDay', 'isCompleted' /*, 'flagged' */])
     clo(reminder, "  => Reminder: ")
   }
   return reminder
 }
 
 /**
- * Sort reminders: flagged first, then by date then time (timed before undated), then title.
+ * Sort reminders: by date then time (timed before undated), then title.
+ * TODO(future): Enable flagged-first sorting if the API is extended to cover flagged status
  * @param {Array<TSectionItem>} items
  * @returns {Array<TSectionItem>}
  */
@@ -141,9 +144,10 @@ export function sortReminderSectionItems(items: Array<TSectionItem>): Array<TSec
     const rb = b.reminder
     if (!ra || !rb) return 0
 
-    if (ra.flagged !== rb.flagged) {
-      return ra.flagged ? -1 : 1
-    }
+    // TODO(future): Enable this if the API is extended to cover flagged status
+    // if (ra.flagged !== rb.flagged) {
+    //   return ra.flagged ? -1 : 1
+    // }
 
     const dateA = ra.date || '9999-99-99'
     const dateB = rb.date || '9999-99-99'
@@ -384,6 +388,8 @@ export async function getRemindersGeneratedData(
       },
       { type: 'calendarpicker', label: 'Date (optional):', key: 'date', dateFormat: 'YYYY-MM-DD' },
       { type: 'input', label: 'Time (optional, HH:MM):', key: 'time' },
+      // TODO(future): Enable this if the API is extended to cover flagged status
+      // { type: 'switch', label: 'Flagged?', key: 'flagged', default: false },
     ]
     const actionButtons: Array<TActionButton> =
       listTitlesForAdd.length > 0

@@ -154,7 +154,7 @@ When the [Reminders section](#reminders-section) is also enabled, this section a
 ### Reminders section
 <img src="reminders-section-2.4.0.png" width="740px" margin="8px" border="1px solid grey" alt="reminders section" />
 
-(From v2.4b50) The **Reminders** section shows incomplete items from your **Apple Reminders** lists. It draws from the same reminder lists you have enabled in NotePlan's own settings (Preferences → Calendars → Reminders), and shows the list name, location, notes and if its flagged. It uses as an accent color, the color of the list set in Apple Reminders.
+(From v2.4b50) The **Reminders** section shows incomplete items from your **Apple Reminders** lists. It draws from the same reminder lists you have enabled in NotePlan's own settings (Preferences → Calendars → Reminders), and shows the list name, location and notes. It uses as an accent color, the color of the list set in Apple Reminders.
 
 Open reminders are split across the Dashboard rather than shown in a single list:
 

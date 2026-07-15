@@ -80,5 +80,6 @@ export const itemCongratsFAIconClass = 'fa-light fa-champagne-glasses'
  */
 export const DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH: Set<string> = new Set(['applyCurrentFilteringToSearch', 'autoUpdateAfterIdleTime', 'dashboardTheme', 'dontSearchFutureItems', 'enableInteractiveProcessing', 'enableInteractiveProcessingTransitions', 'interactiveProcessingHighlightTask', 'lastModified', 'moveSubItems', 'newTaskSectionHeading', 'newTaskSectionHeadingLevel', 'preferredWindowType', 'settingsMigrated', 'useLiteScheduleMethod'])
 
-// Sections that can inject congrats / empty messages (when hideEmptySections is off)
-export const CAN_HAVE_EMPTY_SECTION_MESSAGES = ['DT', 'W', 'M', 'Q', 'WINS', 'TAG', 'PROJACT', 'PROJREVIEW']
+// Sections that can inject congrats / empty messages after refresh when hideEmptySections is off.
+// WINS is omitted: empty Wins only shows congrats after local completion of defined wins (Section.jsx).
+export const CAN_HAVE_EMPTY_SECTION_MESSAGES = ['DT', 'W', 'M', 'Q', 'TAG', 'PROJACT', 'PROJREVIEW']

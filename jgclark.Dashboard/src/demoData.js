@@ -193,6 +193,7 @@ export const refTodayItems: Array<TSectionItem> = [
 //-----------------------------------------------------------
 // Demo data for Reminders (undated)
 
+// Demo reminders. TODO(future): flagged values are unused in UI until the API covers flagged status.
 export const reminderItems: Array<TSectionItem> = [
   {
     ID: 'REM-0',

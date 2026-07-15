@@ -107,13 +107,14 @@ function ReminderItem({ item /*, thisSection */ }: Props): Node {
       </span>,
     )
   }
-  if (reminder.flagged) {
-    contentParts.push(
-      <span key="flagged" className="reminderFlagged pad-left-larger" title="Flagged" style={{ color: 'var(--tint-color, #dc8a78)', fontSize: '75%' }}>
-        <i className="fa-solid fa-flag" />
-      </span>,
-    )
-  }
+  // TODO(future): Enable this if the API is extended to cover flagged status
+  // if (reminder.flagged) {
+  //   contentParts.push(
+  //     <span key="flagged" className="reminderFlagged pad-left-larger" title="Flagged" style={{ color: 'var(--tint-color, #dc8a78)', fontSize: '75%' }}>
+  //       <i className="fa-solid fa-flag" />
+  //     </span>,
+  //   )
+  // }
 
   const contentClassName = canOpenInReminders ? 'content clickTarget reminderContent' : 'content reminderContent'
   const contentEl = canOpenInReminders ? (

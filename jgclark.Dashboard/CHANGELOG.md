@@ -8,9 +8,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
-## [2.4.0.b51] 2026-07-15???
+## [2.4.0.b51] 2026-07-15
+- Fix: **Wins** section no longer shows "No defined wins..." when none were defined; the "all wins complete" message only appears after open win tasks existed and were all completed (until the next refresh).
 - `showRemindersSection` defaults to **on** for fresh installs and upgrades (backfilled when the setting is missing; an explicit off is left alone).
 - fix: Tab can leave the Reminder List (and other SearchableChooser dropdowns) without focus being stolen back / the menu reopening.
+- dev: Reminder flagged status commented out for now as confirmed that `CalendarItem.flagged` is not in the plugin API. Asked for it to be extended to cover this.
+
 ## [2.4.0.b50] 2026-07-14
 - TB section title is **Timed Reminders** when Reminders are on and the section has timed reminders but no NotePlan timeblocks; still **Timed Items** when both are present, and **Time Blocks** when Reminders are off.
 - Reminders section is no longer behind feature flag **FFlag_Reminders**; turn it on from the Filter menu / Settings like any other section.

@@ -142,7 +142,8 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
  * - Calendar.add requires a real CalendarItem from CalendarItem.create (plain dicts without date are rejected).
  * - CalendarItem.create always requires a Date; the API has no true "null due date".
  * - For undated reminders we pass Unix epoch (1970-01-01T00:00:00.000Z). mapCalendarItemToReminderForDashboard
- *   treats epoch as undated (same edge case as writing date=null via the bridge).
+ *   treats epoch as undated. Apple Reminders may still show that as 1/1/1970 until null date is supported.
+ * - TODO(future): Enable flagged create/update if the API is extended to cover flagged status.
  *
  * @param {MessageDataObject} data - actionType addReminder, userInputObj { text, list, date?, time? }, sectionCodes
  * @returns {Promise<TBridgeClickHandlerResult>}
@@ -226,6 +227,7 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
       'doAddReminder',
       `- created reminder id=${String(created.id || '')} date=${String(created.date || '')} isAllDay=${String(created.isAllDay)} occurences=${String((created.occurences && created.occurences.length) || 0)}`,
     )
+
     const codesToRefresh = sectionCodes && sectionCodes.length > 0 ? sectionCodes : ['REM', 'DT', 'TB', 'DO']
     return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: codesToRefresh })
   } catch (err) {
