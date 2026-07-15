@@ -77,25 +77,19 @@ export const handleSwitchChange = (
 
         if (isChecked && isSection && key.startsWith('show')) {
           // this is a section show/hide setting
-          // call for new data for a section just turned on
+          // Refresh is done by doSaveDashboardSettingsFromBridge after settings sync (planSectionRefreshAfterDashboardSettingsChange).
+          // Do not also call refreshSomeSections here -- that would double-refresh when the settings save completes.
           const sectionCode = allSectionDetails.find((s) => s.showSettingName === key)?.sectionCode ?? null
-          logDebug('handleSwitchChange', `${key} turned on, so refreshing section: ${sectionCode || '<not set>'}`)
-          if (sectionCode) {
-            logDebug('handleSwitchChange', `FIXME: HAVE TURNED OFF: Would be Refreshing section: ${sectionCode}`)
-            // const payload = { actionType: 'refreshSomeSections', sectionCodes: [sectionCode] }
-            // sendActionToPlugin('refreshSomeSections', payload, `Refreshing some sections`, true)
-          } else {
-            logDebug('handleSwitchChange', `No sectionCode found for ${key} so not refreshing any sections`)
-          }
+          logDebug('handleSwitchChange', `${key} turned on (section ${sectionCode || '<not set>'}); section refresh deferred to settings-save bridge path`)
         }
         if (!isSection || isTagSection) {
           const refreshAllOnChange = dashboardFilterDefs.find((s) => s.key === key)?.refreshAllOnChange
           if (isTagSection || refreshAllOnChange) {
+            // Same as above: plugin settings-save path owns refresh (REFRESH_ALL_ENABLED_SECTIONS when content-affecting).
             const logMessage = isTagSection
-              ? `Tag section ${key} turned on, so refreshing all enabled sections`
-              : `Refresh all enabled sections because of setting ${key} refreshAllOnChange set to true`
-            logDebug('handleSwitchChange', `FIXME: HAVE TURNED OFF: Would be Refreshing all enabled sections`)
-            // sendActionToPlugin('refreshEnabledSections', { actionType: 'refreshEnabledSections', logMessage }, `Refreshing all sections`, true)
+              ? `Tag section ${key} turned on; refresh deferred to settings-save bridge path`
+              : `Setting ${key} refreshAllOnChange; refresh deferred to settings-save bridge path`
+            logDebug('handleSwitchChange', logMessage)
           }
         }
       } else {

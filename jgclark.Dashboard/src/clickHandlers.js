@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-07-14 for v2.4.0.b50 by @jgclark + @CursorAI
+// Last updated 2026-07-15 for v2.4.0.b51 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -730,6 +730,44 @@ function getEnabledSectionCodesAmongCalendarVisibilityRefreshList(mergedSettings
 }
 
 /**
+ * Calendar section codes whose show-setting was turned on in this settings diff.
+ * (Turning off is handled by CLOSE_UNNEEDED_SECTIONS; we only need to generate newly enabled ones.)
+ * @author @Cursor
+ * @param {Array<string>} diffKeys
+ * @param {{ [key: string]: any }} nextMerged
+ * @returns {Array<TSectionCode>}
+ */
+function getNewlyEnabledCalendarSectionCodes(diffKeys: Array<string>, nextMerged: { [key: string]: any }): Array<TSectionCode> {
+  const codes: Array<TSectionCode> = []
+  for (const key of diffKeys) {
+    const detail = allSectionDetails.find((d) => d.showSettingName === key)
+    if (!detail || !allCalendarSectionCodes.includes(detail.sectionCode)) continue
+    // $FlowIgnore[invalid-computed-prop]
+    if (nextMerged[key]) {
+      codes.push(detail.sectionCode)
+    }
+  }
+  return codes
+}
+
+/**
+ * Deduplicate section codes while preserving order.
+ * @author @Cursor
+ * @param {Array<TSectionCode>} codes
+ * @returns {Array<TSectionCode>}
+ */
+function uniqueSectionCodes(codes: Array<TSectionCode>): Array<TSectionCode> {
+  const seen: { [string]: boolean } = {}
+  const out: Array<TSectionCode> = []
+  for (const code of codes) {
+    if (seen[code]) continue
+    seen[code] = true
+    out.push(code)
+  }
+  return out
+}
+
+/**
  * Top-level keys from a `compareObjects` diff (object form only).
  * @author @Cursor
  * @param {any} diff
@@ -801,15 +839,22 @@ function planSectionRefreshAfterDashboardSettingsChange(
     const onlyCalendarVisibility = diffKeys.every((k) => calendarVisibilityKeys.has(k))
 
     if (onlyCalendarVisibility) {
-      const eligible = getEnabledSectionCodesAmongCalendarVisibilityRefreshList(nextMerged)
-      if (eligible.length > 0) {
+      // Newly enabled calendar sections must be generated; WINS/PRIORITY/OVERDUE refresh for dedupe correctness.
+      // Turning a calendar section off is handled by CLOSE_UNNEEDED_SECTIONS (no need to regenerate it).
+      const newlyEnabledCalendar = getNewlyEnabledCalendarSectionCodes(diffKeys, nextMerged)
+      const eligibleDedupe = getEnabledSectionCodesAmongCalendarVisibilityRefreshList(nextMerged)
+      const sectionCodes = uniqueSectionCodes([...newlyEnabledCalendar, ...eligibleDedupe])
+      if (sectionCodes.length > 0) {
         resultsToHandle.push('REFRESH_SECTION_IN_JSON')
-        resultExtra = { sectionCodes: eligible }
-        logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: only calendar section visibility changed (keys: ${diffKeys.join(', ')}); incremental refresh: [${eligible.join(', ',
-          )}] (enabled among ${SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS.join(', ')}); TB appended when enabled in processActionOnReturn`,
+        resultExtra = { sectionCodes }
+        logInfo(
+          'doSaveDashboardSettingsFromBridge',
+          `Section refresh plan: only calendar section visibility changed (keys: ${diffKeys.join(', ')}); incremental refresh: [${sectionCodes.join(', ')}] (newly enabled: [${newlyEnabledCalendar.join(', ')}]; dedupe list: [${eligibleDedupe.join(', ')}]); TB appended when enabled in processActionOnReturn`,
         )
       } else {
-        logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: only calendar section visibility changed (keys: ${diffKeys.join(', ')}); incremental refresh from Wins/Priority/Overdue list: none (all off)`,
+        logInfo(
+          'doSaveDashboardSettingsFromBridge',
+          `Section refresh plan: only calendar section visibility changed (keys: ${diffKeys.join(', ')}); incremental refresh: none (no newly enabled calendar sections; Wins/Priority/Overdue all off)`,
         )
       }
     } else {
