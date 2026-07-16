@@ -43,9 +43,19 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   const dialogRef: React$RefObject<?HTMLDialogElement> = useRef <? HTMLDialogElement > (null)
 
   logInfo('DialogForProjectItems', `Starting, with detailsMessageObject= ${JSP(detailsMessageObject, 2)}`)
-  const { ID, itemType, filename, title, modifierKey, sectionCode } = validateAndFlattenMessageObject(detailsMessageObject)
+  let validated
+  try {
+    validated = validateAndFlattenMessageObject(detailsMessageObject)
+  } catch (error) {
+    logWarn('DialogForProjectItems', `No valid details to render (${error.message}); bailing.`)
+    return null
+  }
+  const { ID, itemType, filename, title, modifierKey, sectionCode } = validated
   const thisItem = detailsMessageObject?.item
-  if (!thisItem) { throw `Cannot find item` }
+  if (!thisItem) {
+    logWarn('DialogForProjectItems', 'Cannot find item; bailing.')
+    return null
+  }
   logInfo('DialogForProjectItems', `item=${JSP(thisItem, 2)}`)
   const lastProgressText = thisItem.project?.lastProgressComment ?? ''
 

@@ -21,6 +21,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - fix: Tab can leave the Reminder List (and other SearchableChooser dropdowns) without focus being stolen back / the menu reopening.
 - DropdownSelect (e.g. Perspective selector): Arrow Up/Down highlight options, Enter opens/selects, Escape/Tab close the list.
 - dev: Reminder flagged status commented out for now as confirmed that `CalendarItem.flagged` is not in the plugin API. Asked for it to be extended to cover this.
+- dev: Invalid item payloads no longer become fake `'(error)'` filenames; validation failures abort cleanly with an error banner (and section refresh when possible).
 
 ## [2.4.0.b50] 2026-07-14
 - TB section title is **Timed Reminders** when Reminders are on and the section has timed reminders but no NotePlan timeblocks; still **Timed Items** when both are present, and **Time Blocks** when Reminders are off.

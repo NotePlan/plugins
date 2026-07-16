@@ -8,8 +8,8 @@ import {
   getDashboardSettings,
   handlerResult,
   makeDashboardParas,
+  validateMessageDataForHandler,
 } from './dashboardHelpers'
-import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, logTimer, timer, } from '@helpers/dev'
 import {
@@ -89,7 +89,9 @@ function calculateNewDateStr(
  */
 export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-    const { filename, rawContent, controlStr, thisSectionCode, sectionCodes } = validateAndFlattenMessageObject(data)
+    const validated = validateMessageDataForHandler(data, 'doMoveFromCalToCal')
+    if (!validated.ok) return validated.result
+    const { filename, rawContent, controlStr, thisSectionCode, sectionCodes } = validated.data
     const config = await getDashboardSettings()
     const dateOrInterval = String(controlStr)
     logDebug('doMoveFromCalToCal', `Starting with controlStr ${controlStr} and rawContent {${rawContent}}`)
@@ -137,7 +139,9 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
 export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     const config = await getDashboardSettings()
-    const { filename, rawContent, itemType, item } = validateAndFlattenMessageObject(data)
+    const validated = validateMessageDataForHandler(data, 'doMoveToNote')
+    if (!validated.ok) return validated.result
+    const { filename, rawContent, itemType, item } = validated.data
     if (!(item?.ID)) {
       throw new Error(`Can't find ID for item)}`)
     }
@@ -171,7 +175,9 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
 export async function doRescheduleItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, controlStr, sectionCodes } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doRescheduleItem')
+  if (!validated.ok) return validated.result
+  const { filename, content, controlStr, sectionCodes } = validated.data
   const config: TDashboardSettings = await getDashboardSettings()
   // Following logging to get to the bottom of the issue with non-numeric settings
   logDebug('doRescheduleItem', `Starting with filename: ${filename}, content: "${content}", controlStr: ${controlStr}, sectionCodes: ${sectionCodes}`)

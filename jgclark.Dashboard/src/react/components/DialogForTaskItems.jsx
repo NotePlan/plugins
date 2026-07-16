@@ -93,9 +93,15 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   //----------------------------------------------------------------------
 
   // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
-  const { ID, item, itemType, para, filename, title, content, noteType, sectionCodes, modifierKey } = validateAndFlattenMessageObject(detailsMessageObject)
-  // TEST: this hardening
-  if (filename === '(error)' || !detailsMessageObject?.item || !item) {
+  let validated
+  try {
+    validated = validateAndFlattenMessageObject(detailsMessageObject)
+  } catch (error) {
+    logWarn('DialogForTaskItems', `No valid details to render (${error.message}); bailing.`)
+    return null
+  }
+  const { ID, item, itemType, para, filename, title, content, noteType, sectionCodes, modifierKey } = validated
+  if (!detailsMessageObject?.item || !item) {
     logWarn('DialogForTaskItems', 'No valid details to render; bailing.')
     return null
   }

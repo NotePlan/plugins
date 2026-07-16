@@ -22,12 +22,12 @@ import {
 } from '../../jgclark.Reviews/src/reviews'
 import {
   handlerResult,
+  validateMessageDataForHandler,
 } from './dashboardHelpers'
 import {
   type MessageDataObject,
   type TBridgeClickHandlerResult,
 } from './types'
-import { validateAndFlattenMessageObject } from './shared'
 import { RE_DATE, RE_DATE_INTERVAL } from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { logWindowsList } from '@helpers/NPWindows'
@@ -54,7 +54,9 @@ import { logWindowsList } from '@helpers/NPWindows'
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doCompleteProject(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doCompleteProject', ['PROJACT', 'PROJREVIEW'])
+  if (!validated.ok) return validated.result
+  const { filename } = validated.data
   // await completeProjectByFilename(filename)
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
@@ -73,7 +75,9 @@ export async function doCompleteProject(data: MessageDataObject): Promise<TBridg
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doCancelProject(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doCancelProject', ['PROJACT', 'PROJREVIEW'])
+  if (!validated.ok) return validated.result
+  const { filename } = validated.data
   // await cancelProjectByFilename(filename)
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
@@ -92,7 +96,9 @@ export async function doCancelProject(data: MessageDataObject): Promise<TBridgeC
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doTogglePauseProject(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doTogglePauseProject', ['PROJACT', 'PROJREVIEW'])
+  if (!validated.ok) return validated.result
+  const { filename } = validated.data
   // await togglePauseProjectByFilename(filename)
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
@@ -107,7 +113,9 @@ export async function doTogglePauseProject(data: MessageDataObject): Promise<TBr
 
 // Mimic the /skip review command
 export async function doSetNextReviewDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doSetNextReviewDate', ['PROJREVIEW'])
+  if (!validated.ok) return validated.result
+  const { filename } = validated.data
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
     if (!data.controlStr) throw 'doSetNextReviewDate: No controlStr: stopping'
@@ -136,7 +144,9 @@ export async function doSetNextReviewDate(data: MessageDataObject): Promise<TBri
 
 // Call Reviews plugin function to set new review interval
 export async function doSetNewReviewInterval(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doSetNewReviewInterval', ['PROJREVIEW'])
+  if (!validated.ok) return validated.result
+  const { filename } = validated.data
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
     await setNewReviewInterval(note)
@@ -151,7 +161,9 @@ export async function doSetNewReviewInterval(data: MessageDataObject): Promise<T
 
 // Mimic the /finish review command
 export async function doReviewFinished(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doReviewFinished', ['PROJACT', 'PROJREVIEW'])
+  if (!validated.ok) return validated.result
+  const { filename } = validated.data
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
     logDebug('doReviewFinished', `-> starting on item ID ${data.item?.ID ?? '<no ID found>'} in filename ${filename}`)
@@ -170,7 +182,9 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
 
 // Start review for a particular project
 export async function doStartReview(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doStartReview', ['PROJACT', 'PROJREVIEW'])
+  if (!validated.ok) return validated.result
+  const { filename } = validated.data
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
     logDebug('doStartReview', `-> starting on item ID ${data.item?.ID ?? '<no ID found>'} in filename ${filename}`)
@@ -196,7 +210,9 @@ export async function doStartReviews(): Promise<TBridgeClickHandlerResult> {
 
 // Mimic the /add progress update command.
 export async function doAddProgressUpdate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doAddProgressUpdate', ['PROJACT', 'PROJREVIEW'])
+  if (!validated.ok) return validated.result
+  const { filename } = validated.data
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
     logDebug('doAddProgressUpdate', `-> doAddProgressUpdate on item ID ${data.item?.ID ?? '<no ID found>'} in filename ${filename}`)

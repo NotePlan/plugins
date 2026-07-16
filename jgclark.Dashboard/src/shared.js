@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // shared.js
 // shared functions between plugin and React
-// Last updated 2026-01-04 for v2.4.0.b8+ by @jgclark
+// Last updated 2026-07-16 for v2.4.0.b51 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import type { MessageDataObject, TSectionItem } from './types'
@@ -117,7 +117,8 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
 		return result
 	} catch (error) {
 		logError(`shared / validateAndFlattenMessageObject()`, `Error validating data: ${error.message} Data: ${JSP(data, 2)}`)
-		return { filename: '(error)', content: '(error)' }
+		// Re-throw so callers abort cleanly instead of operating on sentinel '(error)' filenames
+		throw error
 	}
 }
 

@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-07-15 for v2.4.0.b51 by @jgclark + @CursorAI
+// Last updated 2026-07-16 for v2.4.0.b51 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -22,13 +22,13 @@ import {
   handlerResult,
   makeDashboardParas,
   setPluginData,
+  validateMessageDataForHandler,
 } from './dashboardHelpers'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
 import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } from './perspectiveSettingsOnDashboardSave'
 import { dashboardFolderFilterSettingsChanged } from './reviewsListSync'
-import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TSectionCode } from './types'
 import { getDateObjFromDateString, getDateObjFromDateTimeString, getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
@@ -369,7 +369,9 @@ export async function doDeleteReminder(data: MessageDataObject): Promise<TBridge
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, item, sectionCode } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doCompleteTask')
+  if (!validated.ok) return validated.result
+  const { filename, content, item, sectionCode } = validated.data
   // clo(item, `doCompleteTask -> item`)
   const completedParagraph = await completeItem(filename, content)
   // clo(completedParagraph, `doCompleteTask -> completedParagraph`)
@@ -393,7 +395,9 @@ export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeCl
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, item, sectionCode } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doCompleteTaskThen')
+  if (!validated.ok) return validated.result
+  const { filename, content, item, sectionCode } = validated.data
   const completedParagraph = await completeItemEarlier(filename, content)
   if (typeof completedParagraph === 'boolean') {
     logWarn('doCompleteTaskThen', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
@@ -411,7 +415,9 @@ export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBrid
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content, item, sectionCode } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doCancelTask')
+  if (!validated.ok) return validated.result
+  const { filename, content, item, sectionCode } = validated.data
   let res = cancelItem(filename, content)
   let updatedParagraph = null
   const possiblePara = findParaFromStringAndFilename(filename, content)
@@ -433,7 +439,9 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doCompleteChecklist(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, item, sectionCode } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doCompleteChecklist')
+  if (!validated.ok) return validated.result
+  const { filename, content, item, sectionCode } = validated.data
   const updatedParagraph = await completeItem(filename, content)
   if (typeof updatedParagraph === 'boolean') {
     logWarn('doCompleteChecklist', `-> failed. Perhaps the checklist was modified in NotePlan since the last time the Dashboard was refreshed?`)
@@ -452,7 +460,9 @@ export async function doCompleteChecklist(data: MessageDataObject): Promise<TBri
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doDeleteItem')
+  if (!validated.ok) return validated.result
+  const { filename, content, sectionCode } = validated.data
   // logDebug('doDeleteItem', `Starting with "${String(content)}" and will ideally update section ${String(sectionCode)}`)
   // Grab a copy of the paragraph before deleting it, so React can remove the right line. (It's not aware the paragraph has disappeared on the back end.)
   const updatedParagraph = findParaFromStringAndFilename(filename, content)
@@ -472,7 +482,9 @@ export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClic
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doCancelChecklist')
+  if (!validated.ok) return validated.result
+  const { filename, content, sectionCode } = validated.data
   let res = cancelItem(filename, content)
   let updatedParagraph = null
   const possiblePara = findParaFromStringAndFilename(filename, content)
@@ -493,30 +505,32 @@ export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerR
  * @returns {TBridgeClickHandlerResult} The result
  */
 export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerResult {
+  const validated = validateMessageDataForHandler(data, 'doContentUpdate')
+  if (!validated.ok) return validated.result
+  const { filename, content, sectionCode } = validated.data
   try {
-  const { filename, content } = validateAndFlattenMessageObject(data)
-  const { updatedContent } = data
+    const { updatedContent } = data
     logDebug('doContentUpdate', `updatedContent: {${updatedContent || ''}}`)
-  if (!updatedContent) {
-    throw new Error(`Trying to updateItemContent but no updatedContent was passed`)
-  }
+    if (!updatedContent) {
+      throw new Error(`Trying to updateItemContent but no updatedContent was passed`)
+    }
 
     const para = findParaFromStringAndFilename(filename, content)
-  if (!para) {
-    throw new Error(`No para found for filename '${filename}' and content {${content}}`)
-  }
+    if (!para) {
+      throw new Error(`No para found for filename '${filename}' and content {${content}}`)
+    }
 
-  para.content = updatedContent
-  if (para.note) {
-    para.note.updateParagraph(para)
-  } else {
-    throw new Error(`No para.note found for filename '${filename}' and content {${content}}`)
-  }
+    para.content = updatedContent
+    if (para.note) {
+      para.note.updateParagraph(para)
+    } else {
+      throw new Error(`No para.note found for filename '${filename}' and content {${content}}`)
+    }
 
     return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: makeDashboardParas([para])[0] })
   } catch (error) {
     logError('doContentUpdate', error.message)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [error.cause.sectionCode], errorMsg: `${error.message}. I will refresh this Section; please then try again.`, errorMessageLevel: 'ERROR' })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `${error.message}. I will refresh this Section; please then try again.`, errorMessageLevel: 'ERROR' })
   }
 }
 
@@ -527,7 +541,9 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
  */
 export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult {
   try {
-    const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
+    const validated = validateMessageDataForHandler(data, 'doToggleType')
+    if (!validated.ok) return validated.result
+    const { filename, content, sectionCode } = validated.data
     logDebug('doToggleType', `starting for "${content}" in filename: ${filename} for section ${sectionCode}`)
 
     // V1: original from v0.x
@@ -556,7 +572,8 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { updatedParagraph: updatedParagraph, sectionCodes: [sectionCode] })
   } catch (error) {
     logError('doToggleType', error.message)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [error.cause.sectionCode], errorMsg: error.message, errorMessageLevel: 'ERROR' })
+    const sectionCode = data.item?.sectionCode || error.cause?.sectionCode
+    return handlerResult(false, sectionCode ? ['REFRESH_SECTION_IN_JSON'] : [], { sectionCodes: sectionCode ? [sectionCode] : undefined, errorMsg: error.message, errorMessageLevel: 'ERROR' })
   }
 }
 
@@ -566,7 +583,9 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
  * @returns {TBridgeClickHandlerResult} The result
  */
 export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doUnscheduleItem')
+  if (!validated.ok) return validated.result
+  const { filename, content, sectionCode } = validated.data
   const updatedContent = unscheduleItem(filename, content)
   logDebug('doUnscheduleItem', `-> ${String(updatedContent)}`)
 
@@ -585,7 +604,9 @@ export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerRe
 
 // Send a request to cyclePriorityStateUp to plugin
 export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doCyclePriorityStateUp')
+  if (!validated.ok) return validated.result
+  const { filename, content, sectionCode } = validated.data
 
   // Get full TParagraph to work on
   const para = findParaFromStringAndFilename(filename, content)
@@ -606,7 +627,9 @@ export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHan
 
 // Send a request to cyclePriorityStateDown to plugin
 export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content, sectionCode } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doCyclePriorityStateDown')
+  if (!validated.ok) return validated.result
+  const { filename, content, sectionCode } = validated.data
   // Get para
   const para = findParaFromStringAndFilename(filename, content)
   if (para && typeof para !== 'boolean') {
@@ -647,7 +670,9 @@ export function doWindowResized(): TBridgeClickHandlerResult {
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
 */
 export async function doShowNoteInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, modifierKey } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doShowNoteInEditorFromFilename')
+  if (!validated.ok) return validated.result
+  const { filename, modifierKey } = validated.data
   const result = await smartOpenNoteInEditorFromFilename(filename, modifierKey === 'alt' ? 'split' : 'window')
   return handlerResult(result)
 }
@@ -659,7 +684,9 @@ export async function doShowNoteInEditorFromFilename(data: MessageDataObject): P
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
 */
 export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doShowNoteInEditorFromTitle')
+  if (!validated.ok) return validated.result
+  const { filename } = validated.data
   const result = await smartOpenNoteInEditorFromFilename(filename, 'window')
   return handlerResult(result)
 }
@@ -688,7 +715,9 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
   // }
 
   // V2
-  const { filename, content, sectionCode, modifierKey } = validateAndFlattenMessageObject(data)
+  const validated = validateMessageDataForHandler(data, 'doShowLineInEditorFromFilename')
+  if (!validated.ok) return validated.result
+  const { filename, content, sectionCode, modifierKey } = validated.data
   logDebug('doShowLineInEditorFromFilename', `starting for filename ${filename} with content {${content}} and modifierKey ${modifierKey}`)
   const result = await smartShowLineInEditorFromFilename(filename, content, modifierKey === 'alt' ? 'split' : 'window')
   if (result) {

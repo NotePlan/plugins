@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-07-14 for v2.4.0.b50 by @jgclark
+// Last updated 2026-07-16 for v2.4.0.b51 by @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -11,8 +11,10 @@ import { getDashboardSettingsDefaults } from './dashboardSettingsDefaults'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { removeInvalidTagSections } from './dashboardSettingsClean'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
-import { parseSettings } from './shared'
+import { parseSettings, validateAndFlattenMessageObject } from './shared'
+import type { ValidatedData } from './shared'
 import type {
+  MessageDataObject,
   TActionOnReturn,
   TBridgeClickHandlerResult,
   TDashboardSettings,
@@ -1187,6 +1189,41 @@ export function handlerResult(success: boolean, actionsOnSuccess?: Array<TAction
     ...otherSettings,
     success,
     actionsOnSuccess,
+  }
+}
+
+/**
+ * Validate/flatten MessageDataObject for a bridge click handler.
+ * On failure returns a failure result the caller should return immediately
+ * (avoids operating on sentinel filenames after validation errors).
+ * @param {MessageDataObject} data
+ * @param {string} logPrefix - function name for logging
+ * @param {Array<TSectionCode>=} fallbackSectionCodes - section codes to refresh when item.sectionCode is missing (e.g. project handlers)
+ * @returns {{ ok: true, data: ValidatedData } | { ok: false, result: TBridgeClickHandlerResult }}
+ */
+export function validateMessageDataForHandler(
+  data: MessageDataObject,
+  logPrefix: string,
+  fallbackSectionCodes?: Array<TSectionCode>,
+): { ok: true, data: ValidatedData } | { ok: false, result: TBridgeClickHandlerResult } {
+  try {
+    return { ok: true, data: validateAndFlattenMessageObject(data) }
+  } catch (error) {
+    logError(logPrefix, `Validation failed: ${error.message}`)
+    const sectionCode = data?.item?.sectionCode
+    const sectionCodes: Array<TSectionCode> | void = sectionCode
+      ? [sectionCode]
+      : fallbackSectionCodes && fallbackSectionCodes.length > 0
+        ? fallbackSectionCodes
+        : undefined
+    return {
+      ok: false,
+      result: handlerResult(false, sectionCodes ? ['REFRESH_SECTION_IN_JSON'] : [], {
+        sectionCodes,
+        errorMsg: `Couldn't process this item (${error.message}).`,
+        errorMessageLevel: 'ERROR',
+      }),
+    }
   }
 }
 
