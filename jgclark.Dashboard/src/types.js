@@ -389,7 +389,7 @@ export type MessageDataObject = {
   settings?: TDashboardSettings | TPerspectiveSettings,
   perspectiveSettings?: TPerspectiveSettings,
   filename?: string /* only used when actionType = 'showNoteInEditorFromFilename', otherwise filename comes from the item */,
-  url?: string /* for openURL - http/https/mailto/noteplan; also x-apple-reminderkit when appleRemindersCallbackAvailable */,
+  url?: string /* for openURL - http/https/mailto/noteplan; also x-apple-reminderkit when appleAppCallbacksAvailable */,
   logMessage?: string,
   userInputObj?: TAnyObject,
   perspectiveName?: string,
@@ -487,7 +487,7 @@ export type TPluginData = {
   startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands */,
   currentMaxPriorityFromAllVisibleSections: number, /* the highest priority seen in the current section (to help display filtering) */
   mainWindowModeSupported: boolean /* true if the current platform and version of NotePlan supports main window mode -- TODO(later): remove this when NP > 3.23 or so. */,
-  appleRemindersCallbackAvailable?: boolean /* true if NotePlan.openURL allows x-apple-reminderkit (NP >= 3.21.2 build 1524) */,
+  appleAppCallbacksAvailable?: boolean /* true if NotePlan.openURL allows x-apple-reminderkit (NP >= 3.21.2 build 1524) */,
 }
 
 /**

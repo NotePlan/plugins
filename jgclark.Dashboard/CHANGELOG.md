@@ -17,6 +17,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Reminders section description now shows count / "first N of M" when truncated by max items per section.
 - fix: When an item action fails but asks to refresh (e.g. "Couldn't find task... I will refresh"), the section refresh now actually runs after the banner message is shown.
 - fix: Turning on a calendar period section in Filters (e.g. Tomorrow) now loads that section; previously only Wins/Priority/Overdue were refreshed for dedupe.
+- 'Add Reminder' button now gated on NP v3.21.2, which adds support for no-dates.
 - fix: Tab can leave the Reminder List (and other SearchableChooser dropdowns) without focus being stolen back / the menu reopening.
 - DropdownSelect (e.g. Perspective selector): Arrow Up/Down highlight options, Enter opens/selects, Escape/Tab close the list.
 - dev: Reminder flagged status commented out for now as confirmed that `CalendarItem.flagged` is not in the plugin API. Asked for it to be extended to cover this.

@@ -3,7 +3,7 @@
 // Dashboard React component for an Apple Reminder row:
 // icon, title/notes/time/location, listname context.
 //
-// Open-in-Reminders: when NotePlan >= 3.21.2 (appleRemindersCallbackAvailable),
+// Open-in-Reminders: when NotePlan >= 3.21.2 (appleAppCallbacksAvailable),
 // content click opens via openURL -> x-apple-reminderkit://REMCDReminder/{id}.
 // On older builds that scheme is blocked by NotePlan.openURL.
 // See also ARCHITECTURE-How_Stuff_Works.md -> "Reminders section".
@@ -33,11 +33,11 @@ type Props = {
 function ReminderItem({ item, thisSection }: Props): Node {
   const { dashboardSettings, pluginData, sendActionToPlugin } = useAppContext()
   const reminder = item.reminder
-  const canOpenInReminders = Boolean(pluginData?.appleRemindersCallbackAvailable && reminder?.id)
+  const canOpenInReminders = Boolean(pluginData?.appleAppCallbacksAvailable && reminder?.id)
 
   const handleContentClick = useCallback(() => {
-    if (!reminder?.id || !pluginData?.appleRemindersCallbackAvailable) {
-      logWarn('ReminderItem', `Content clicked but cannot open reminder (available=${String(pluginData?.appleRemindersCallbackAvailable)} id=${String(reminder?.id || '')})`)
+    if (!reminder?.id || !pluginData?.appleAppCallbacksAvailable) {
+      logWarn('ReminderItem', `Content clicked but cannot open reminder (available=${String(pluginData?.appleAppCallbacksAvailable)} id=${String(reminder?.id || '')})`)
       return
     }
     const url = `x-apple-reminderkit://REMCDReminder/${reminder.id}`
@@ -48,7 +48,7 @@ function ReminderItem({ item, thisSection }: Props): Node {
       item,
     }
     sendActionToPlugin('openURL', messageObject, 'Reminder content clicked', true)
-  }, [item, pluginData?.appleRemindersCallbackAvailable, reminder, sendActionToPlugin])
+  }, [item, pluginData?.appleAppCallbacksAvailable, reminder, sendActionToPlugin])
 
   if (!reminder) {
     return null

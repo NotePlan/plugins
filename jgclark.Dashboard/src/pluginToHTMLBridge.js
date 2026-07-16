@@ -365,7 +365,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           break
         }
         // x-apple-reminderkit requires NotePlan >= 3.21.2 (build 1524); older builds block the scheme
-        if (urlToOpen.startsWith('x-apple-reminderkit:') && !usersVersionHas('appleRemindersCallbackAvailable')) {
+        if (urlToOpen.startsWith('x-apple-reminderkit:') && !usersVersionHas('appleAppCallbacksAvailable')) {
           logWarn('bridgeClickDashboardItem', `openURL blocked: x-apple-reminderkit needs NotePlan >= 3.21.2 (got ${NotePlan.environment.version})`)
           result = { success: false, errorMsg: 'Opening Apple Reminders requires NotePlan 3.21.2 or later.' }
           break

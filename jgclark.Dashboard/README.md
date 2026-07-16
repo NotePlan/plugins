@@ -172,7 +172,7 @@ The following Actions are possible, all of which are reflected in Apple Reminder
 - Click the **circle** icon to complete the reminder;
 - **Ctrl-click** the circle to delete the reminder;
 - Click the reminder **/content** to open it in the Apple Reminders app (requires NotePlan **3.21.2** / build 1524 or later).
-- Use the **+** button on the Reminders section heading to add a new reminder: enter the text, choose the list, and optionally a date and time (`HH:MM`).
+- Use the **+** button on the Reminders section heading to add a new reminder: enter the text, choose the list, and optionally a date and time. (Note: requires NP 3.21.2.)
 
 ### Search section
 <img src="search-bar-2.2.0.gif" margin="8px" border="1px solid grey" alt="using Dashboard search" />

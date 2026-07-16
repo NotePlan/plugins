@@ -374,7 +374,8 @@ export async function getRemindersGeneratedData(
       sectionDescription += ` [${timer(startTime)}]`
     }
 
-    // Form fields for the heading add-Reminder button (CommandButton → showDialog)
+    // Adding Reminders only supported on NotePlan >= 3.21.2 (macOS build 1525)
+    // Form fields for the heading add-Reminder button (CommandButton -> showDialog)
     const reminderFormFields: Array<TSettingItem> = [
       { type: 'input', label: 'Reminder:', key: 'text', focus: true },
       // $FlowIgnore[incompatible-type]
@@ -392,7 +393,7 @@ export async function getRemindersGeneratedData(
       // { type: 'switch', label: 'Flagged?', key: 'flagged', default: false },
     ]
     const actionButtons: Array<TActionButton> =
-      listTitlesForAdd.length > 0
+      usersVersionHas('addRemindersSupport') && listTitlesForAdd.length > 0
         ? [
           {
             actionName: 'addReminder',
