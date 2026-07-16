@@ -6,7 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TDashboardSettings, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSettingItem } from './types'
+import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSettingItem } from './types'
 import { allSectionCodes } from './constants.js'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
@@ -265,7 +265,8 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
       }
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'month').toDate(), 'month')
-    const nextPeriodFilename = nextPeriodNote?.filename ?? '(error)'
+    // Omit "add to next month" buttons when NotePlan has no next-month note filename (do not ship a sentinel like '(error)')
+    const nextPeriodFilename = nextPeriodNote?.filename || ''
     const doneCountData = getNumCompletedTasksFromNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
@@ -310,42 +311,32 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     let sectionDescription = `{closedOrOpenTaskCount} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
-    const section: TSection = {
-      ID: thisSectionCode,
-      name: 'This Month',
-      showSettingName: 'showMonthSection',
-      sectionCode: thisSectionCode,
-      description: sectionDescription,
-      FAIconClass: 'fa-regular fa-fw fa-calendar-range',
-      sectionTitleColorPart: 'sidebarMonthly',
-      sectionFilename: thisFilename,
-      sectionItems: items,
-      generatedDate: new Date(),
-      doneCounts: doneCountData,
-      totalCount: items.length,
-      actionButtons: [
-        {
-          actionName: 'addTask',
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: "Add a new task to this month's note",
-          display: '<i class= "fa-regular fa-fw  fa-circle-plus MonthlyColor" ></i> ',
-          actionParam: thisFilename,
-          postActionRefresh: ['M'],
-          formFields: thisMonthFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
-        {
-          actionName: 'addChecklist',
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: "Add a checklist item to this month's note",
-          display: '<i class= "fa-regular fa-fw  fa-square-plus MonthlyColor" ></i> ',
-          actionParam: thisFilename,
-          postActionRefresh: ['M'],
-          formFields: thisMonthFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
+    const actionButtons: Array<TActionButton> = [
+      {
+        actionName: 'addTask',
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        tooltip: "Add a new task to this month's note",
+        display: '<i class= "fa-regular fa-fw  fa-circle-plus MonthlyColor" ></i> ',
+        actionParam: thisFilename,
+        postActionRefresh: ['M'],
+        formFields: thisMonthFormFields,
+        submitOnEnter: true,
+        submitButtonText: 'Add & Close',
+      },
+      {
+        actionName: 'addChecklist',
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        tooltip: "Add a checklist item to this month's note",
+        display: '<i class= "fa-regular fa-fw  fa-square-plus MonthlyColor" ></i> ',
+        actionParam: thisFilename,
+        postActionRefresh: ['M'],
+        formFields: thisMonthFormFields,
+        submitOnEnter: true,
+        submitButtonText: 'Add & Close',
+      },
+    ]
+    if (nextPeriodFilename) {
+      actionButtons.push(
         {
           actionName: 'addTask',
           actionPluginID: `${pluginJson['plugin.id']}`,
@@ -366,7 +357,23 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
           submitOnEnter: true,
           submitButtonText: 'Add & Close',
         },
-      ],
+      )
+    }
+
+    const section: TSection = {
+      ID: thisSectionCode,
+      name: 'This Month',
+      showSettingName: 'showMonthSection',
+      sectionCode: thisSectionCode,
+      description: sectionDescription,
+      FAIconClass: 'fa-regular fa-fw fa-calendar-range',
+      sectionTitleColorPart: 'sidebarMonthly',
+      sectionFilename: thisFilename,
+      sectionItems: items,
+      generatedDate: new Date(),
+      doneCounts: doneCountData,
+      totalCount: items.length,
+      actionButtons: actionButtons,
       isReferenced: false,
     }
     sections.push(section)
@@ -459,7 +466,8 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
       }
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'quarter').toDate(), 'quarter')
-    const nextPeriodFilename = nextPeriodNote?.filename ?? ''
+    // Omit "add to next quarter" buttons when NotePlan has no next-quarter note filename
+    const nextPeriodFilename = nextPeriodNote?.filename || ''
     const doneCountData = getNumCompletedTasksFromNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
@@ -504,42 +512,32 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     let sectionDescription = `{countWithLimit} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
-    const section: TSection = {
-      ID: thisSectionCode,
-      name: 'This Quarter',
-      showSettingName: 'showQuarterSection',
-      sectionCode: thisSectionCode,
-      description: sectionDescription,
-      FAIconClass: 'fa-regular fa-fw fa-calendar-days',
-      sectionTitleColorPart: 'sidebarQuarterly',
-      sectionFilename: thisFilename,
-      sectionItems: items,
-      generatedDate: new Date(),
-      doneCounts: doneCountData,
-      totalCount: items.length,
-      actionButtons: [
-        {
-          actionName: 'addTask',
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: "Add a new task to this quarter's note",
-          display: '<i class= "fa-regular fa-fw  fa-circle-plus QuarterlyColor" ></i> ',
-          actionParam: thisFilename,
-          postActionRefresh: ['Q'],
-          formFields: thisQuarterFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
-        {
-          actionName: 'addChecklist',
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: "Add a checklist item to this quarter's note",
-          display: '<i class= "fa-regular fa-fw  fa-square-plus QuarterlyColor" ></i> ',
-          actionParam: thisFilename,
-          postActionRefresh: ['Q'],
-          formFields: thisQuarterFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
+    const actionButtons: Array<TActionButton> = [
+      {
+        actionName: 'addTask',
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        tooltip: "Add a new task to this quarter's note",
+        display: '<i class= "fa-regular fa-fw  fa-circle-plus QuarterlyColor" ></i> ',
+        actionParam: thisFilename,
+        postActionRefresh: ['Q'],
+        formFields: thisQuarterFormFields,
+        submitOnEnter: true,
+        submitButtonText: 'Add & Close',
+      },
+      {
+        actionName: 'addChecklist',
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        tooltip: "Add a checklist item to this quarter's note",
+        display: '<i class= "fa-regular fa-fw  fa-square-plus QuarterlyColor" ></i> ',
+        actionParam: thisFilename,
+        postActionRefresh: ['Q'],
+        formFields: thisQuarterFormFields,
+        submitOnEnter: true,
+        submitButtonText: 'Add & Close',
+      },
+    ]
+    if (nextPeriodFilename) {
+      actionButtons.push(
         {
           actionName: 'addTask',
           actionPluginID: `${pluginJson['plugin.id']}`,
@@ -560,7 +558,23 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
           submitOnEnter: true,
           submitButtonText: 'Add & Close',
         },
-      ],
+      )
+    }
+
+    const section: TSection = {
+      ID: thisSectionCode,
+      name: 'This Quarter',
+      showSettingName: 'showQuarterSection',
+      sectionCode: thisSectionCode,
+      description: sectionDescription,
+      FAIconClass: 'fa-regular fa-fw fa-calendar-days',
+      sectionTitleColorPart: 'sidebarQuarterly',
+      sectionFilename: thisFilename,
+      sectionItems: items,
+      generatedDate: new Date(),
+      doneCounts: doneCountData,
+      totalCount: items.length,
+      actionButtons: actionButtons,
       isReferenced: false,
     }
     sections.push(section)
@@ -647,7 +661,8 @@ export function getThisYearSectionData(config: TDashboardSettings, useDemoData: 
       }
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'year').toDate(), 'year')
-    const nextPeriodFilename = nextPeriodNote?.filename ?? ''
+    // Omit "add to next year" buttons when NotePlan has no next-year note filename
+    const nextPeriodFilename = nextPeriodNote?.filename || ''
     const doneCountData = getNumCompletedTasksFromNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
@@ -692,42 +707,32 @@ export function getThisYearSectionData(config: TDashboardSettings, useDemoData: 
     let sectionDescription = `{countWithLimit} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
-    const section: TSection = {
-      ID: thisSectionCode,
-      name: 'This Year',
-      showSettingName: 'showYearSection',
-      sectionCode: thisSectionCode,
-      description: sectionDescription,
-      FAIconClass: 'fa-regular fa-fw fa-calendar-days',
-      sectionTitleColorPart: 'sidebarYearly',
-      sectionFilename: thisFilename,
-      sectionItems: items,
-      generatedDate: new Date(),
-      doneCounts: doneCountData,
-      totalCount: items.length,
-      actionButtons: [
-        {
-          actionName: 'addTask',
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: "Add a new task to this year's note",
-          display: '<i class= "fa-regular fa-fw  fa-circle-plus YearlyColor" ></i> ',
-          actionParam: thisFilename,
-          postActionRefresh: ['Y'],
-          formFields: thisYearFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
-        {
-          actionName: 'addChecklist',
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: "Add a checklist item to this year's note",
-          display: '<i class= "fa-regular fa-fw  fa-square-plus YearlyColor" ></i> ',
-          actionParam: thisFilename,
-          postActionRefresh: ['Y'],
-          formFields: thisYearFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
+    const actionButtons: Array<TActionButton> = [
+      {
+        actionName: 'addTask',
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        tooltip: "Add a new task to this year's note",
+        display: '<i class= "fa-regular fa-fw  fa-circle-plus YearlyColor" ></i> ',
+        actionParam: thisFilename,
+        postActionRefresh: ['Y'],
+        formFields: thisYearFormFields,
+        submitOnEnter: true,
+        submitButtonText: 'Add & Close',
+      },
+      {
+        actionName: 'addChecklist',
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        tooltip: "Add a checklist item to this year's note",
+        display: '<i class= "fa-regular fa-fw  fa-square-plus YearlyColor" ></i> ',
+        actionParam: thisFilename,
+        postActionRefresh: ['Y'],
+        formFields: thisYearFormFields,
+        submitOnEnter: true,
+        submitButtonText: 'Add & Close',
+      },
+    ]
+    if (nextPeriodFilename) {
+      actionButtons.push(
         {
           actionName: 'addTask',
           actionPluginID: `${pluginJson['plugin.id']}`,
@@ -748,7 +753,23 @@ export function getThisYearSectionData(config: TDashboardSettings, useDemoData: 
           submitOnEnter: true,
           submitButtonText: 'Add & Close',
         },
-      ],
+      )
+    }
+
+    const section: TSection = {
+      ID: thisSectionCode,
+      name: 'This Year',
+      showSettingName: 'showYearSection',
+      sectionCode: thisSectionCode,
+      description: sectionDescription,
+      FAIconClass: 'fa-regular fa-fw fa-calendar-days',
+      sectionTitleColorPart: 'sidebarYearly',
+      sectionFilename: thisFilename,
+      sectionItems: items,
+      generatedDate: new Date(),
+      doneCounts: doneCountData,
+      totalCount: items.length,
+      actionButtons: actionButtons,
       isReferenced: false,
     }
     sections.push(section)

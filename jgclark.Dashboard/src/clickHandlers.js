@@ -429,7 +429,7 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
     updatedParagraph = possiblePara || {}
     logDebug('doCancelTask', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
     // Send instructions to update the window
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph, sectionCodes: [sectionCode] })
+    return handlerResult(true, removeLineSuccessActionsForSection(sectionCode), { updatedParagraph, sectionCodes: [sectionCode] })
   }
 }
 
@@ -469,7 +469,7 @@ export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClic
   const res = await deleteItem(filename, content)
   if (res) {
     logDebug('doDeleteItem', `-> success`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph: updatedParagraph || {}, sectionCodes: [sectionCode] })
+    return handlerResult(true, removeLineSuccessActionsForSection(sectionCode), { updatedParagraph: updatedParagraph || {}, sectionCodes: [sectionCode] })
   } else {
     logWarn('doDeleteItem', `-> failed. Perhaps the item was modified in NotePlan since the last time the Dashboard was refreshed?`)
     return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't delete item. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
@@ -495,7 +495,7 @@ export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerR
   } else {
     updatedParagraph = possiblePara || {}
     logDebug('doCancelChecklist', `-> success`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph, sectionCodes: [sectionCode] })
+    return handlerResult(true, removeLineSuccessActionsForSection(sectionCode), { updatedParagraph, sectionCodes: [sectionCode] })
   }
 }
 

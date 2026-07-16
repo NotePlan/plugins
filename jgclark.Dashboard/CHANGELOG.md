@@ -17,11 +17,15 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Reminders section description now shows count / "first N of M" when truncated by max items per section.
 - fix: When an item action fails but asks to refresh (e.g. "Couldn't find task... I will refresh"), the section refresh now actually runs after the banner message is shown.
 - fix: Turning on a calendar period section in Filters (e.g. Tomorrow) now loads that section; previously only Wins/Priority/Overdue were refreshed for dedupe.
+- fix: Cancel / delete last item in Search section now removes the empty section (same as complete).
 - 'Add Reminder' button now gated on NP v3.21.2, which adds support for no-dates.
 - fix: Tab can leave the Reminder List (and other SearchableChooser dropdowns) without focus being stolen back / the menu reopening.
 - DropdownSelect (e.g. Perspective selector): Arrow Up/Down highlight options, Enter opens/selects, Escape/Tab close the list.
+- fix: "Add to next period" section buttons are omitted when NotePlan has no next-period Calendar note
 - dev: Reminder flagged status commented out for now as confirmed that `CalendarItem.flagged` is not in the plugin API. Asked for it to be extended to cover this.
 - dev: Invalid item payloads no longer become fake `'(error)'` filenames; validation failures abort cleanly with an error banner (and section refresh when possible).
+- dev: fix: x-callback `setSetting` / `setSettings` can now change `show*Section` keys (and `showTagSection_*`), not only filter/settings-dialog keys.
+- dev: fix: `onUpdateOrInstall` no longer crashes if stored `dashboardSettings` JSON is missing or invalid (`parseSettings` → `{}`).
 
 ## [2.4.0.b50] 2026-07-14
 - TB section title is **Timed Reminders** when Reminders are on and the section has timed reminders but no NotePlan timeblocks; still **Timed Items** when both are present, and **Time Blocks** when Reminders are off.

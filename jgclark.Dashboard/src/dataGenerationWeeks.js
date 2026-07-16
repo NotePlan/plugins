@@ -6,7 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
+import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionItemsFromParas,
@@ -72,7 +72,8 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
       }
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'week').toDate(), 'week')
-    const nextPeriodFilename = nextPeriodNote?.filename ?? '(error)'
+    // Omit "add to next week" buttons when NotePlan has no next-week note filename (do not ship a sentinel like '(error)')
+    const nextPeriodFilename = nextPeriodNote?.filename || ''
     const doneCountData = getNumCompletedTasksFromNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
@@ -117,42 +118,32 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     let sectionDescription = `{countWithLimit} {itemType} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
-    const section: TSection = {
-      ID: thisSectionCode,
-      name: 'This Week',
-      showSettingName: 'showWeekSection',
-      sectionCode: thisSectionCode,
-      description: sectionDescription,
-      FAIconClass: 'fa-regular fa-fw fa-calendar-week',
-      sectionTitleColorPart: 'WeeklySectionColor',
-      sectionFilename: thisFilename,
-      sectionItems: items,
-      generatedDate: new Date(),
-      totalCount: items.length,
-      doneCounts: doneCountData,
-      actionButtons: [
-        {
-          actionName: 'addTask',
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: "Add a new task to this week's note",
-          display: '<i class= "fa-regular fa-fw fa-circle-plus WeeklyColor" ></i> ',
-          actionParam: thisFilename,
-          postActionRefresh: ['W'],
-          formFields: thisWeekFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
-        {
-          actionName: 'addChecklist',
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: "Add a checklist item to this week's note",
-          display: '<i class= "fa-regular fa-fw fa-square-plus WeeklyColor" ></i> ',
-          actionParam: thisFilename,
-          postActionRefresh: ['W'],
-          formFields: thisWeekFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
+    const actionButtons: Array<TActionButton> = [
+      {
+        actionName: 'addTask',
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        tooltip: "Add a new task to this week's note",
+        display: '<i class= "fa-regular fa-fw fa-circle-plus WeeklyColor" ></i> ',
+        actionParam: thisFilename,
+        postActionRefresh: ['W'],
+        formFields: thisWeekFormFields,
+        submitOnEnter: true,
+        submitButtonText: 'Add & Close',
+      },
+      {
+        actionName: 'addChecklist',
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        tooltip: "Add a checklist item to this week's note",
+        display: '<i class= "fa-regular fa-fw fa-square-plus WeeklyColor" ></i> ',
+        actionParam: thisFilename,
+        postActionRefresh: ['W'],
+        formFields: thisWeekFormFields,
+        submitOnEnter: true,
+        submitButtonText: 'Add & Close',
+      },
+    ]
+    if (nextPeriodFilename) {
+      actionButtons.push(
         {
           actionName: 'addTask',
           actionPluginID: `${pluginJson['plugin.id']}`,
@@ -173,17 +164,33 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           submitOnEnter: true,
           submitButtonText: 'Add & Close',
         },
-        {
-          actionName: 'moveAllThisWeekNextWeek',
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: config.rescheduleNotMove
-            ? '(Re)Schedule all open items from this week to next week. (Press ⌘-click to move instead.)'
-            : 'Move all open items from this week to next week. (Press ⌘-click to (re)schedule instead.)',
-          display: 'All <i class="fa-solid fa-right-long"></i> Next Week',
-          actionParam: 'true' /* refresh afterwards */,
-          postActionRefresh: ['W'], // refresh the week section afterwards
-        },
-      ],
+      )
+    }
+    actionButtons.push({
+      actionName: 'moveAllThisWeekNextWeek',
+      actionPluginID: `${pluginJson['plugin.id']}`,
+      tooltip: config.rescheduleNotMove
+        ? '(Re)Schedule all open items from this week to next week. (Press ⌘-click to move instead.)'
+        : 'Move all open items from this week to next week. (Press ⌘-click to (re)schedule instead.)',
+      display: 'All <i class="fa-solid fa-right-long"></i> Next Week',
+      actionParam: 'true' /* refresh afterwards */,
+      postActionRefresh: ['W'], // refresh the week section afterwards
+    })
+
+    const section: TSection = {
+      ID: thisSectionCode,
+      name: 'This Week',
+      showSettingName: 'showWeekSection',
+      sectionCode: thisSectionCode,
+      description: sectionDescription,
+      FAIconClass: 'fa-regular fa-fw fa-calendar-week',
+      sectionTitleColorPart: 'WeeklySectionColor',
+      sectionFilename: thisFilename,
+      sectionItems: items,
+      generatedDate: new Date(),
+      totalCount: items.length,
+      doneCounts: doneCountData,
+      actionButtons: actionButtons,
       isReferenced: false,
     }
     sections.push(section)

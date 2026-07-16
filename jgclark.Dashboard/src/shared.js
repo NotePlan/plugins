@@ -32,6 +32,7 @@ export function parseSettings(settingsStr: string): any {
 		return JSON.parse(settingsStr)
 	} catch (error) {
 		logError(`shared / parseSettings()`, `Error parsing settingsStr: ${error.message}: Settings string: ${(JSP(settingsStr))}`)
+		return undefined
 	}
 }
 

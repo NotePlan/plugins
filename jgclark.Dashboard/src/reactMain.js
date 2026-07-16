@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2026-06-13 for v2.4.0.b46 by @jgclark + @CursorAI
+// Last updated 2026-07-16 for v2.4.0.b51 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -22,7 +22,7 @@ import {
 import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
 import { onMessageFromHTMLView } from './routeRequestsFromReact'
 import { generateTagMentionCache, isTagMentionCacheGenerationScheduled } from './tagMentionCache'
-import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
+import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings, TSettingItem } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import { getGlobalSharedData, type HtmlWindowOptions } from '@helpers/HTMLView'
@@ -78,13 +78,64 @@ export async function showDemoDashboard(): Promise<void> {
 }
 
 /**
+ * Setting defs allowed by setSetting / setSettings x-callbacks.
+ * Includes filter defs, setting defs, and section show toggles (show*Section).
+ * Dynamic showTagSection_* keys are allowed separately via isSettableDashboardSettingKey().
+ * @returns {Array<TSettingItem>}
+ */
+function getSettableDashboardSettingDefs(): Array<TSettingItem> {
+  const showSectionDefs: Array<TSettingItem> = allSectionDetails
+    .filter((s) => s.showSettingName && s.sectionCode !== 'TAG')
+    .map((s) => ({
+      label: `Show ${s.sectionName}`,
+      key: s.showSettingName,
+      type: 'switch',
+      default: s.sectionCode !== 'INFO',
+    }))
+  // SEARCH has no showSettingName in allSectionDetails but uses this key
+  showSectionDefs.push({ label: 'Show Search', key: 'showSearchSection', type: 'switch', default: true })
+  return [...dashboardFilterDefs, ...dashboardSettingDefs, ...showSectionDefs].filter((k) => k.label && k.key)
+}
+
+/**
+ * Whether a key can be set via setSetting(s), including dynamic showTagSection_* keys.
+ * @param {string} key
+ * @param {Array<string>} allKeys
+ * @returns {boolean}
+ */
+function isSettableDashboardSettingKey(key: string, allKeys: Array<string>): boolean {
+  return allKeys.includes(key) || Boolean(key && key.startsWith('showTagSection_'))
+}
+
+/**
+ * Coerce an x-callback string value to the typed setting value.
+ * showTagSection_* keys (and other show*Section switches without a def lookup) are treated as switches.
+ * @param {string} key
+ * @param {string} value
+ * @param {?TSettingItem} thisSettingDetail
+ * @returns {any}
+ */
+function coerceSettableDashboardSettingValue(key: string, value: string, thisSettingDetail: ?TSettingItem): any {
+  const isShowSectionSwitch = Boolean(key && (key.startsWith('showTagSection_') || (key.startsWith('show') && key.endsWith('Section'))))
+  const type = thisSettingDetail?.type || (isShowSectionSwitch ? 'switch' : undefined)
+  if (type === 'switch') {
+    return value === 'true'
+  }
+  if (type === 'number') {
+    const coerced = Number(value)
+    return Number.isNaN(coerced) ? thisSettingDetail?.default : coerced
+  }
+  return value
+}
+
+/**
  * x-callback entry point to change a single setting.
  * (Note: see also setSettings which does many at the same time.)
- * FIXME: doesn't work for show*Sections?
  * @param {string} key
  * @param {string} value
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove&arg1=true
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=ignoreItemsWithTerms&arg1=#waiting
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=showTomorrowSection&arg1=true
  */
 export async function setSetting(key: string, value: string): Promise<void> {
   try {
@@ -92,20 +143,12 @@ export async function setSetting(key: string, value: string): Promise<void> {
     const dashboardSettings = cloneDashboardSettingsBeforeSave(await getDashboardSettings())
     // clo(dashboardSettings, 'dashboardSettings:')
 
-    const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter((k) => k.label && k.key)
+    const allSettings = getSettableDashboardSettingDefs()
     const allKeys = allSettings.map((s) => s.key)
     logDebug('setSetting', `Existing setting keys: ${String(allKeys)}`)
-    if (allKeys.includes(key)) {
-      const thisSettingDetail = allSettings.find((s) => s.key === key) || {}
-      let setTo: any
-      if (thisSettingDetail.type === 'switch') {
-        setTo = value === 'true'
-      } else if (thisSettingDetail.type === 'number') {
-        const coerced = Number(value)
-        setTo = Number.isNaN(coerced) ? thisSettingDetail.default : coerced
-      } else {
-        setTo = value
-      }
+    if (isSettableDashboardSettingKey(key, allKeys)) {
+      const thisSettingDetail = allSettings.find((s) => s.key === key)
+      const setTo = coerceSettableDashboardSettingValue(key, value, thisSettingDetail)
       const priorDashboardSettings = cloneDashboardSettingsBeforeSave(dashboardSettings)
       dashboardSettings[key] = setTo
       const preparedDashboardSettings = prepareDashboardSettingsForSave(priorDashboardSettings, dashboardSettings, { mergeDefaults: false })
@@ -120,7 +163,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
       }
       await showDashboardReact('full', '', false)
     } else {
-      throw new Error(`Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}]`)
+      throw new Error(`Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}] (plus showTagSection_*)`)
     }
   } catch (error) {
     logError('setSetting', error.message)
@@ -131,12 +174,13 @@ export async function setSetting(key: string, value: string): Promise<void> {
  * x-callback entry point to change multiple settings in one go.
  * @param {string} `key=value` pairs separated by ;
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove=true;ignoreItemsWithTerms=#waiting
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSettings&arg0=showTomorrowSection=true;showOverdueSection=false
  */
 export async function setSettings(paramsIn: string): Promise<void> {
   try {
     const dashboardSettings = cloneDashboardSettingsBeforeSave(await getDashboardSettings())
     const priorDashboardSettings = cloneDashboardSettingsBeforeSave(dashboardSettings)
-    const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter((k) => k.label && k.key)
+    const allSettings = getSettableDashboardSettingDefs()
     const allKeys = allSettings.map((s) => s.key)
     const params = paramsIn.split(';')
     logDebug('setSettings', `Given ${params.length} key=value pairs to set:`)
@@ -144,21 +188,13 @@ export async function setSettings(paramsIn: string): Promise<void> {
     for (const param of params) {
       const [key, value] = param.split('=')
       logDebug('setSettings', `- ${String(i)}: setting '${key}' -> '${value}'`)
-      if (allKeys.includes(key)) {
-        const thisSettingDetail = allSettings.find((s) => s.key === key) || {}
-        let setTo: any
-        if (thisSettingDetail.type === 'switch') {
-          setTo = value === 'true'
-        } else if (thisSettingDetail.type === 'number') {
-          const coerced = Number(value)
-          setTo = Number.isNaN(coerced) ? thisSettingDetail.default : coerced
-        } else {
-          setTo = value
-        }
+      if (isSettableDashboardSettingKey(key, allKeys)) {
+        const thisSettingDetail = allSettings.find((s) => s.key === key)
+        const setTo = coerceSettableDashboardSettingValue(key, value, thisSettingDetail)
         dashboardSettings[key] = setTo
         logDebug('setSettings', `  - set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo})`)
       } else {
-        throw new Error(`Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}]`)
+        throw new Error(`Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}] (plus showTagSection_*)`)
       }
     }
     logDebug('setSettings', `Calling DataStore.settings, then showDashboardReact()`)

@@ -6,7 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
+import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
 import { getDoneCountsForToday, getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
   createSectionItemObject,
@@ -103,7 +103,8 @@ export function getTodaySectionData(
     }
 
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')
-    const nextPeriodFilename = nextPeriodNote?.filename ?? '(errorthisFilename'
+    // Omit "add to tomorrow" buttons when NotePlan has no tomorrow note filename (do not ship a sentinel like '(error)')
+    const nextPeriodFilename = nextPeriodNote?.filename || ''
     const doneCountData = getDoneCountsForToday()
     // clo(doneCountData, 'dataGenerationDays: doneCountData') // x zero here
 
@@ -139,43 +140,32 @@ export function getTodaySectionData(
     let sectionDescription = `{closedOrOpenTaskCount} from ${todayDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
-    const section: TSection = {
-      ID: thisSectionCode,
-      name: 'Today',
-      showSettingName: 'showTodaySection',
-      sectionCode: thisSectionCode,
-      description: sectionDescription,
-      FAIconClass: 'fa-regular fa-fw fa-calendar-star',
-      sectionTitleColorPart: 'DailySectionColor',
-      sectionFilename: thisFilename,
-      sectionItems: items,
-      generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
-      doneCounts: doneCountData,
-      totalCount: items.length,
-      isReferenced: false,
-      actionButtons: [
-        {
-          actionName: 'addTask',
-          actionParam: thisFilename,
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-fw  fa-circle-plus DailyColor" ></i> ',
-          tooltip: "Add a new task to today's note",
-          postActionRefresh: ['DT'], // Note: TB no longer needs to be specified here, as it will be refreshed along with DT (if enabled)
-          formFields: todayFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
-        {
-          actionName: 'addChecklist',
-          actionParam: thisFilename,
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-fw  fa-square-plus DailyColor" ></i> ',
-          tooltip: "Add a checklist item to today's note",
-          postActionRefresh: ['DT'], // Note: TB no longer needs to be specified here, as it will be refreshed along with DT (if enabled)
-          formFields: todayFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
+    const actionButtons: Array<TActionButton> = [
+      {
+        actionName: 'addTask',
+        actionParam: thisFilename,
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        display: '<i class= "fa-regular fa-fw  fa-circle-plus DailyColor" ></i> ',
+        tooltip: "Add a new task to today's note",
+        postActionRefresh: ['DT'], // Note: TB no longer needs to be specified here, as it will be refreshed along with DT (if enabled)
+        formFields: todayFormFields,
+        submitOnEnter: true,
+        submitButtonText: 'Add & Close',
+      },
+      {
+        actionName: 'addChecklist',
+        actionParam: thisFilename,
+        actionPluginID: `${pluginJson['plugin.id']}`,
+        display: '<i class= "fa-regular fa-fw  fa-square-plus DailyColor" ></i> ',
+        tooltip: "Add a checklist item to today's note",
+        postActionRefresh: ['DT'], // Note: TB no longer needs to be specified here, as it will be refreshed along with DT (if enabled)
+        formFields: todayFormFields,
+        submitOnEnter: true,
+        submitButtonText: 'Add & Close',
+      },
+    ]
+    if (nextPeriodFilename) {
+      actionButtons.push(
         {
           actionName: 'addTask',
           actionParam: nextPeriodFilename,
@@ -198,17 +188,34 @@ export function getTodaySectionData(
           submitOnEnter: true,
           submitButtonText: 'Add & Close',
         },
-        {
-          actionName: 'moveAllTodayToTomorrow',
-          actionParam: 'true' /* refresh afterwards */,
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          display: 'All <i class="fa-solid fa-right-long"></i> Tomorrow',
-          tooltip: config.rescheduleNotMove
-            ? '(Re)Schedule all open items from today to tomorrow. (Press ⌘-click to move instead.)'
-            : 'Move all open items from today to tomorrow. (Press ⌘-click to (re)schedule instead.)',
-          postActionRefresh: ['DT', 'DO'], // Note: TB no longer needs to be specified here, as it will be refreshed along with DT (if enabled)
-        },
-      ],
+      )
+    }
+    actionButtons.push({
+      actionName: 'moveAllTodayToTomorrow',
+      actionParam: 'true' /* refresh afterwards */,
+      actionPluginID: `${pluginJson['plugin.id']}`,
+      display: 'All <i class="fa-solid fa-right-long"></i> Tomorrow',
+      tooltip: config.rescheduleNotMove
+        ? '(Re)Schedule all open items from today to tomorrow. (Press ⌘-click to move instead.)'
+        : 'Move all open items from today to tomorrow. (Press ⌘-click to (re)schedule instead.)',
+      postActionRefresh: ['DT', 'DO'], // Note: TB no longer needs to be specified here, as it will be refreshed along with DT (if enabled)
+    })
+
+    const section: TSection = {
+      ID: thisSectionCode,
+      name: 'Today',
+      showSettingName: 'showTodaySection',
+      sectionCode: thisSectionCode,
+      description: sectionDescription,
+      FAIconClass: 'fa-regular fa-fw fa-calendar-star',
+      sectionTitleColorPart: 'DailySectionColor',
+      sectionFilename: thisFilename,
+      sectionItems: items,
+      generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
+      doneCounts: doneCountData,
+      totalCount: items.length,
+      isReferenced: false,
+      actionButtons: actionButtons,
     }
     // clo(section, 'dataGenerationDays: content')
     sections.push(section)

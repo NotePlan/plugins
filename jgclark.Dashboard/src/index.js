@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2026-05-27 for v2.4.0.b45 by @CursorAI
+// last updated 2026-07-16 for v2.4.0.b51 by @CursorAI
 // ----------------------------------------------------------------------------
 
 /**
@@ -107,7 +107,8 @@ export async function onUpdateOrInstall(): Promise<void> {
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
     // logDebug(pluginJson, `onUpdateOrInstall: installOrUpdatePluginsByID ['np.Shared'] completed`)
 
-    const initialDashboardSettings = parseSettings(initialSettings.dashboardSettings) || {}
+    // parseSettings returns undefined on bad/missing JSON - never assign into undefined
+    const initialDashboardSettings = parseSettings(initialSettings.dashboardSettings) ?? {}
     // const defaults = getDashboardSettingsDefaultsWithSectionsSetToFalse()
     // const migratedDashboardSettings = { ...defaults, ...renameKeys(initialDashboardSettings, keysToChange) }
 
@@ -137,7 +138,7 @@ export async function onUpdateOrInstall(): Promise<void> {
     const newPerspectiveDefs = perspectiveDefs.map((p) => {
       if (!p || typeof p !== 'object') return p
       const perspectiveDashboardSettings =
-        (typeof p.dashboardSettings === 'string' ? parseSettings(p.dashboardSettings) : p.dashboardSettings) || {}
+        (typeof p.dashboardSettings === 'string' ? parseSettings(p.dashboardSettings) : p.dashboardSettings) ?? {}
       if (perspectiveDashboardSettings.showRemindersSection !== undefined) {
         return p
       }
