@@ -11,6 +11,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.4.0.b52] 2026-07-???
 - Change: update set of available icons. dev: Use FA 7.0.1 instead of FA 6.0.0.b3.
 - Fix to colors of some section headings.
+- Fix: noteLink lozenge icons were missing (operator-precedence bug when adding `fa-fw`).
 
 ## [2.4.0.b51] 2026-07-15
 - Fix: Switching Perspectives no longer briefly shows the "no items to show" banner while sections are being reloaded.
