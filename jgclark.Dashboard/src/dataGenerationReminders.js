@@ -6,6 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
+import { isRemindersSectionEnabled } from './dashboardHelpers'
 import { reminderItems } from './demoData'
 import type { TActionButton, TDashboardSettings, TReminderForDashboard, TSection, TSectionCode, TSectionItem, TSettingItem } from './types'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
@@ -316,7 +317,7 @@ export async function getRemindersGeneratedData(
 ): Promise<TRemindersGeneratedData> {
   try {
     // Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
-    if (config.showRemindersSection === false) {
+    if (!isRemindersSectionEnabled(config)) {
       return emptyRemindersGeneratedData()
     }
 

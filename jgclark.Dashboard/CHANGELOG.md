@@ -26,6 +26,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dev: Invalid item payloads no longer become fake `'(error)'` filenames; validation failures abort cleanly with an error banner (and section refresh when possible).
 - dev: fix: x-callback `setSetting` / `setSettings` can now change `show*Section` keys (and `showTagSection_*`), not only filter/settings-dialog keys.
 - dev: fix: `onUpdateOrInstall` no longer crashes if stored `dashboardSettings` JSON is missing or invalid (`parseSettings` → `{}`).
+- dev: Quick-win refactor of data generation: shared `isRemindersSectionEnabled` + add-task form/button helpers; Month/Quarter/Year moved to `dataGenerationPeriods.js`; fixed inconsistent log function names.
 
 ## [2.4.0.b50] 2026-07-14
 - TB section title is **Timed Reminders** when Reminders are on and the section has timed reminders but no NotePlan timeblocks; still **Timed Items** when both are present, and **Time Blocks** when Reminders are off.

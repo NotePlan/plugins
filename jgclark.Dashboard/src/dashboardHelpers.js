@@ -15,6 +15,7 @@ import { parseSettings, validateAndFlattenMessageObject } from './shared'
 import type { ValidatedData } from './shared'
 import type {
   MessageDataObject,
+  TActionButton,
   TActionOnReturn,
   TBridgeClickHandlerResult,
   TDashboardSettings,
@@ -25,6 +26,7 @@ import type {
   TSection,
   TSectionCode,
   TSectionItem,
+  TSettingItem,
 } from './types'
 import { getNestedValue, setNestedValue, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
@@ -734,6 +736,16 @@ export function getOpenItemParasForTimePeriod(
 }
 
 /**
+ * Whether the Reminders section (and reminder injection into day/TB sections) is enabled.
+ * Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
+ * @param {TDashboardSettings} config
+ * @returns {boolean}
+ */
+export function isRemindersSectionEnabled(config: TDashboardSettings): boolean {
+  return config.showRemindersSection !== false
+}
+
+/**
  * TB (Time Blocks / Timed Items / Timed Reminders) is wanted when either Time Block or Reminders is enabled.
  * NotePlan timeblocks only appear when showTimeBlockSection is on; timed reminders appear when Reminders is on.
  * Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
@@ -742,8 +754,92 @@ export function getOpenItemParasForTimePeriod(
  */
 export function isTBSectionEnabled(config: TDashboardSettings): boolean {
   const timeBlockOn = Boolean(config.showTimeBlockSection)
-  const remindersOn = config.showRemindersSection !== false
-  return timeBlockOn || remindersOn
+  return timeBlockOn || isRemindersSectionEnabled(config)
+}
+
+/**
+ * Default heading for new-task form fields; empty string when setting is <<carry forward>>.
+ * @param {TDashboardSettings} config
+ * @returns {string}
+ */
+export function getDefaultHeadingForNewTask(config: TDashboardSettings): string {
+  return config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
+}
+
+/**
+ * Build form fields for add-task / add-checklist dialogs (task input + optional heading dropdown).
+ * @param {Array<string>} headings
+ * @param {TDashboardSettings} config
+ * @returns {Array<TSettingItem>}
+ */
+export function buildAddTaskFormFields(headings: Array<string>, config: TDashboardSettings): Array<TSettingItem> {
+  const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
+  if (!headings.length) return formFieldsBase
+  const defaultHeadingToAddTo = getDefaultHeadingForNewTask(config)
+  // $FlowIgnore[incompatible-type]
+  return formFieldsBase.concat([
+    {
+      type: 'dropdown-select',
+      label: 'Under Heading:',
+      key: 'heading',
+      // $FlowFixMe[incompatible-type]
+      options: headings,
+      noWrapOptions: true,
+      value: defaultHeadingToAddTo,
+    },
+  ])
+}
+
+/**
+ * Build addTask + addChecklist action buttons for a calendar note.
+ * @param {{
+ *   filename: string,
+ *   formFields: Array<TSettingItem>,
+ *   colorClass: string,
+ *   taskTooltip: string,
+ *   checklistTooltip: string,
+ *   postActionRefresh?: Array<TSectionCode>,
+ *   iconVariant?: 'plus' | 'arrow-right',
+ * }} opts
+ * @returns {Array<TActionButton>}
+ */
+export function buildAddTaskChecklistButtons(opts: {
+  filename: string,
+  formFields: Array<TSettingItem>,
+  colorClass: string,
+  taskTooltip: string,
+  checklistTooltip: string,
+  postActionRefresh?: Array<TSectionCode>,
+  iconVariant?: 'plus' | 'arrow-right',
+}): Array<TActionButton> {
+  const iconVariant = opts.iconVariant || 'plus'
+  const taskIcon = iconVariant === 'arrow-right' ? 'fa-circle-arrow-right' : 'fa-circle-plus'
+  const checklistIcon = iconVariant === 'arrow-right' ? 'fa-square-arrow-right' : 'fa-square-plus'
+  const taskButton: TActionButton = {
+    actionName: 'addTask',
+    actionPluginID: pluginID,
+    tooltip: opts.taskTooltip,
+    display: `<i class= "fa-regular fa-fw  ${taskIcon} ${opts.colorClass}" ></i> `,
+    actionParam: opts.filename,
+    formFields: opts.formFields,
+    submitOnEnter: true,
+    submitButtonText: 'Add & Close',
+  }
+  const checklistButton: TActionButton = {
+    actionName: 'addChecklist',
+    actionPluginID: pluginID,
+    tooltip: opts.checklistTooltip,
+    display: `<i class= "fa-regular fa-fw  ${checklistIcon} ${opts.colorClass}" ></i> `,
+    actionParam: opts.filename,
+    formFields: opts.formFields,
+    submitOnEnter: true,
+    submitButtonText: 'Add & Close',
+  }
+  if (opts.postActionRefresh) {
+    taskButton.postActionRefresh = opts.postActionRefresh
+    checklistButton.postActionRefresh = opts.postActionRefresh
+  }
+  return [taskButton, checklistButton]
 }
 
 /**
@@ -758,7 +854,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   // TB when Time Block and/or Reminders enabled (timed reminders live in TB)
   if (isTBSectionEnabled(config)) sectionsToShow.push('TB')
   // Default ON when missing (same pattern as Today) so upgrades without the key still show Reminders
-  if (config.showRemindersSection || config.showRemindersSection === undefined) sectionsToShow.push('REM')
+  if (isRemindersSectionEnabled(config)) sectionsToShow.push('REM')
   if (config.showTodaySection || config.showTodaySection === undefined) sectionsToShow.push('DT')
   if (config.showYesterdaySection) sectionsToShow.push('DY')
   if (config.showTomorrowSection) sectionsToShow.push('DO')

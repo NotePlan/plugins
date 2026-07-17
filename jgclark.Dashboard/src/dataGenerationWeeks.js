@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2025-11-28 for v2.3.0.b16, @jgclark
+// Last updated 2026-07-16 for v2.4.0.b51 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -9,6 +9,8 @@ import pluginJson from '../plugin.json'
 import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
 import { getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
+  buildAddTaskChecklistButtons,
+  buildAddTaskFormFields,
   createSectionItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
@@ -66,9 +68,9 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         // Iterate and write items for first (or combined) section
         items = createSectionItemsFromParas(sortedOrCombinedParas, thisSectionCode)
         itemCount += items.length
-        // logDebug('getDataForDashboard', `- finished finding weekly items from ${dateStr} after ${timer(startTime)}`)
+        // logDebug('getThisWeekSectionData', `- finished finding weekly items from ${dateStr} after ${timer(startTime)}`)
       } else {
-        logDebug('getDataForDashboard', `No weekly note found for filename '${thisFilename}'`)
+        logDebug('getThisWeekSectionData', `No weekly note found for filename '${thisFilename}'`)
       }
     }
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'week').toDate(), 'week')
@@ -77,93 +79,33 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const doneCountData = getNumCompletedTasksFromNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
-    const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const thisWeekHeadings: Array<string> = currentWeeklyNote ? getHeadingsFromNote(currentWeeklyNote, false, true, true, true) : []
     const nextWeekHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
-    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
-    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
-    const thisWeekFormFields: Array<TSettingItem> = formFieldsBase.concat(
-      thisWeekHeadings.length
-
-        ? // $FlowIgnore[incompatible-type]
-          [
-            {
-              type: 'dropdown-select',
-              label: 'Under Heading:',
-              key: 'heading',
-              // $FlowFixMe[incompatible-type]
-              options: thisWeekHeadings,
-              noWrapOptions: true,
-              value: defaultHeadingToAddTo,
-            },
-          ]
-        : [],
-    )
-    const nextWeekFormFields: Array<TSettingItem> = formFieldsBase.concat(
-      nextWeekHeadings.length
-        ? // $FlowIgnore[incompatible-type]
-          [
-            {
-              type: 'dropdown-select',
-              label: 'Under Heading:',
-              key: 'heading',
-              // $FlowFixMe[incompatible-type]
-              options: nextWeekHeadings,
-              noWrapOptions: true,
-              value: defaultHeadingToAddTo,
-            },
-          ]
-        : [],
-    )
+    const thisWeekFormFields: Array<TSettingItem> = buildAddTaskFormFields(thisWeekHeadings, config)
+    const nextWeekFormFields: Array<TSettingItem> = buildAddTaskFormFields(nextWeekHeadings, config)
     let sectionDescription = `{countWithLimit} {itemType} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const actionButtons: Array<TActionButton> = [
-      {
-        actionName: 'addTask',
-        actionPluginID: `${pluginJson['plugin.id']}`,
-        tooltip: "Add a new task to this week's note",
-        display: '<i class= "fa-regular fa-fw fa-circle-plus WeeklyColor" ></i> ',
-        actionParam: thisFilename,
-        postActionRefresh: ['W'],
+      ...buildAddTaskChecklistButtons({
+        filename: thisFilename,
         formFields: thisWeekFormFields,
-        submitOnEnter: true,
-        submitButtonText: 'Add & Close',
-      },
-      {
-        actionName: 'addChecklist',
-        actionPluginID: `${pluginJson['plugin.id']}`,
-        tooltip: "Add a checklist item to this week's note",
-        display: '<i class= "fa-regular fa-fw fa-square-plus WeeklyColor" ></i> ',
-        actionParam: thisFilename,
+        colorClass: 'WeeklyColor',
+        taskTooltip: "Add a new task to this week's note",
+        checklistTooltip: "Add a checklist item to this week's note",
         postActionRefresh: ['W'],
-        formFields: thisWeekFormFields,
-        submitOnEnter: true,
-        submitButtonText: 'Add & Close',
-      },
+      }),
     ]
     if (nextPeriodFilename) {
       actionButtons.push(
-        {
-          actionName: 'addTask',
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: "Add a new task to next week's note",
-          display: '<i class= "fa-regular fa-fw fa-circle-arrow-right WeeklyColor" ></i> ',
-          actionParam: nextPeriodFilename,
+        ...buildAddTaskChecklistButtons({
+          filename: nextPeriodFilename,
           formFields: nextWeekFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
-        {
-          actionName: 'addChecklist',
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          tooltip: "Add a checklist item to next week's note",
-          display: '<i class= "fa-regular fa-fw fa-square-arrow-right WeeklyColor" ></i> ',
-          actionParam: nextPeriodFilename,
-          formFields: nextWeekFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
+          colorClass: 'WeeklyColor',
+          taskTooltip: "Add a new task to next week's note",
+          checklistTooltip: "Add a checklist item to next week's note",
+          iconVariant: 'arrow-right',
+        }),
       )
     }
     actionButtons.push({
@@ -232,10 +174,10 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
       sections.push(section)
     }
 
-    logDebug('getDataForDashboard', `- found ${itemCount} weekly items from ${dateStr} in ${timer(startTime)}`)
+    logDebug('getThisWeekSectionData', `- found ${itemCount} weekly items from ${dateStr} in ${timer(startTime)}`)
     return sections
   } catch (error) {
-    logError('xxx', `ERROR: ${error.message}`)
+    logError('getThisWeekSectionData', `ERROR: ${error.message}`)
     return []
   }
 }

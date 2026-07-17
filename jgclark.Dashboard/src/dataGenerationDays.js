@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2026-07-14 for v2.4.0.b50 by @jgclark
+// Last updated 2026-07-16 for v2.4.0.b51 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -9,10 +9,13 @@ import pluginJson from '../plugin.json'
 import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
 import { getDoneCountsForToday, getNumCompletedTasksFromNote } from './countDoneTasks'
 import {
+  buildAddTaskChecklistButtons,
+  buildAddTaskFormFields,
   createSectionItemObject,
   createSectionItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
+  isRemindersSectionEnabled,
   isTBSectionEnabled,
   setTimeFieldsOnDashboardPara,
   makeDashboardParas,
@@ -109,85 +112,36 @@ export function getTodaySectionData(
     // clo(doneCountData, 'dataGenerationDays: doneCountData') // x zero here
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
-    const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const todayHeadings: Array<string> = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, false) : []
     const tomorrowHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, false) : []
-    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
-    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
-    const todayFormFields: Array<TSettingItem> = formFieldsBase.concat(
-      todayHeadings.length
-        ? // $FlowIgnore[incompatible-type]
-        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', options: todayHeadings, noWrapOptions: true, value: defaultHeadingToAddTo }]
-        : [],
-    )
-    const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
-      tomorrowHeadings.length
-        ? // $FlowIgnore[incompatible-type]
-          [
-            {
-              type: 'dropdown-select',
-              label: 'Under Heading:',
-              key: 'heading',
-              // $FlowIgnore[incompatible-type]
-              options: tomorrowHeadings,
-              noWrapOptions: true,
-              value: defaultHeadingToAddTo,
-            },
-          ]
-        : [],
-    )
+    const todayFormFields: Array<TSettingItem> = buildAddTaskFormFields(todayHeadings, config)
+    const tomorrowFormFields: Array<TSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
 
     let sectionDescription = `{closedOrOpenTaskCount} from ${todayDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
+    // Note: TB no longer needs to be in postActionRefresh for DT buttons; it refreshes along with DT when enabled
     const actionButtons: Array<TActionButton> = [
-      {
-        actionName: 'addTask',
-        actionParam: thisFilename,
-        actionPluginID: `${pluginJson['plugin.id']}`,
-        display: '<i class= "fa-regular fa-fw  fa-circle-plus DailyColor" ></i> ',
-        tooltip: "Add a new task to today's note",
-        postActionRefresh: ['DT'], // Note: TB no longer needs to be specified here, as it will be refreshed along with DT (if enabled)
+      ...buildAddTaskChecklistButtons({
+        filename: thisFilename,
         formFields: todayFormFields,
-        submitOnEnter: true,
-        submitButtonText: 'Add & Close',
-      },
-      {
-        actionName: 'addChecklist',
-        actionParam: thisFilename,
-        actionPluginID: `${pluginJson['plugin.id']}`,
-        display: '<i class= "fa-regular fa-fw  fa-square-plus DailyColor" ></i> ',
-        tooltip: "Add a checklist item to today's note",
-        postActionRefresh: ['DT'], // Note: TB no longer needs to be specified here, as it will be refreshed along with DT (if enabled)
-        formFields: todayFormFields,
-        submitOnEnter: true,
-        submitButtonText: 'Add & Close',
-      },
+        colorClass: 'DailyColor',
+        taskTooltip: "Add a new task to today's note",
+        checklistTooltip: "Add a checklist item to today's note",
+        postActionRefresh: ['DT'],
+      }),
     ]
     if (nextPeriodFilename) {
       actionButtons.push(
-        {
-          actionName: 'addTask',
-          actionParam: nextPeriodFilename,
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-fw  fa-circle-arrow-right DailyColor" ></i> ',
-          tooltip: "Add a new task to tomorrow's note",
-          postActionRefresh: ['DO'],
+        ...buildAddTaskChecklistButtons({
+          filename: nextPeriodFilename,
           formFields: tomorrowFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
-        {
-          actionName: 'addChecklist',
-          actionParam: nextPeriodFilename,
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-fw  fa-square-arrow-right DailyColor" ></i> ',
-          tooltip: "Add a checklist item to tomorrow's note",
+          colorClass: 'DailyColor',
+          taskTooltip: "Add a new task to tomorrow's note",
+          checklistTooltip: "Add a checklist item to tomorrow's note",
           postActionRefresh: ['DO'],
-          formFields: tomorrowFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
+          iconVariant: 'arrow-right',
+        }),
       )
     }
     actionButtons.push({
@@ -320,7 +274,7 @@ export function getTimeBlockSectionData(
     const mustContainString = NPSettings.timeblockMustContainString
     let itemCounter = 0
     // Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
-    const remindersSectionEnabled = config.showRemindersSection !== false
+    const remindersSectionEnabled = isRemindersSectionEnabled(config)
     const timeBlockSectionEnabled = Boolean(config.showTimeBlockSection)
 
     // const combinedParas = sortedOrCombinedParas.concat(sortedRefParas)
@@ -651,16 +605,8 @@ export function getTomorrowSectionData(
     }
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
-    const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
     const tomorrowHeadings: Array<string> = tomorrowsNote ? getHeadingsFromNote(tomorrowsNote, false, true, true, false) : []
-    // Set the default heading to add to, unless it's '<<carry forward>>', in which case we'll use an empty string
-    const defaultHeadingToAddTo: string = config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
-    const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
-      tomorrowHeadings.length
-        ? // $FlowIgnore[incompatible-type]
-        [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', options: tomorrowHeadings, noWrapOptions: true, value: defaultHeadingToAddTo }]
-        : [],
-    )
+    const tomorrowFormFields: Array<TSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
 
     let sectionDescription = `{count} from ${tomorrowDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
@@ -678,30 +624,15 @@ export function getTomorrowSectionData(
       generatedDate: new Date(),
       totalCount: items.length,
       isReferenced: false,
-      actionButtons: [
-        {
-          actionName: 'addTask',
-          actionParam: thisFilename,
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-fw  fa-circle-arrow-right DailyColor" ></i> ',
-          tooltip: "Add a new task to tomorrow's note",
-          postActionRefresh: ['DO'],
-          formFields: tomorrowFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
-        {
-          actionName: 'addChecklist',
-          actionParam: thisFilename,
-          actionPluginID: `${pluginJson['plugin.id']}`,
-          display: '<i class= "fa-regular fa-fw  fa-square-arrow-right DailyColor" ></i> ',
-          tooltip: "Add a checklist item to tomorrow's note",
-          postActionRefresh: ['DO'],
-          formFields: tomorrowFormFields,
-          submitOnEnter: true,
-          submitButtonText: 'Add & Close',
-        },
-      ],
+      actionButtons: buildAddTaskChecklistButtons({
+        filename: thisFilename,
+        formFields: tomorrowFormFields,
+        colorClass: 'DailyColor',
+        taskTooltip: "Add a new task to tomorrow's note",
+        checklistTooltip: "Add a checklist item to tomorrow's note",
+        postActionRefresh: ['DO'],
+        iconVariant: 'arrow-right',
+      }),
     }
     sections.push(section)
 
