@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-05-10 for v2.0.0.b31 by @jgclark + @CursorAI
+// Last updated 2026-07-17 for v2.0.2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -63,6 +63,20 @@ export {
 export { onMessageFromHTMLView } from './pluginToHTMLBridge' 
 
 const pluginID = 'jgclark.Reviews'
+
+/**
+ * Open this plugin's settings pane in NotePlan Preferences.
+ * Used by the Rich list empty-state gear control, and the "/Projects: open plugin settings" command.
+ * @returns {Promise<void>}
+ */
+export async function openSettings(): Promise<void> {
+  try {
+    logDebug(pluginJson, `openSettings: opening plugin configuration view`)
+    await NotePlan.showConfigurationView()
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
 
 export function init(): void {
   try {

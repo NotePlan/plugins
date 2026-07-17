@@ -578,18 +578,21 @@ export function buildProjectListTopBarHtml(config: any): string {
   parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false" title="Open dropdown to change Filtering and Ordering of the list"><i class="fa-solid fa-filter pad-right"></i><span class="hideable-label">Filter +</span><i class="fa-regular fa-arrow-down-short-wide pad-left"></i><span class="hideable-label">Order…</span></button>`)
   parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Filter and order">`)
   parts.push(`    <div class="display-filters-dropdown-content">`)
-  // Tag toggles: one per wanted tag; when off, hide projects that only have that tag (client-side). (n) = rows currently listed with that tag (matches main list).
+  // Tag toggles: one per wanted tag; show a project iff it has ≥1 currently-ON tag (client-side). (n) = rows in this list with that tag.
+  // Checked state is restored from config.hiddenProjectTypeTags (persisted with other Filter + Order settings).
   const projectTypeTags = config.projectTypeTags != null && typeof config.projectTypeTags === 'string' ? [config.projectTypeTags] : (config.projectTypeTags ?? [])
   const tagActiveCounts = config.tagActiveCounts ?? []
+  const hiddenProjectTypeTags: Array<string> = Array.isArray(config.hiddenProjectTypeTags) ? config.hiddenProjectTypeTags : []
   if (projectTypeTags.length > 0) {
     parts.push(`      <div id="tagToggles" class="display-filters-tag-toggles">`)
     for (let i = 0; i < projectTypeTags.length; i++) {
       const tag = projectTypeTags[i]
       const count = tagActiveCounts[i] != null ? tagActiveCounts[i] : 0
       const safeId = `tagToggle-${tag.replace(/[^a-zA-Z0-9-_]/g, '_')}`
+      const isChecked = !hiddenProjectTypeTags.includes(tag)
       parts.push(`        <label class="display-filters-option display-filters-option--tag-row">`)
       parts.push(`          <span class="display-filters-option-text">${tag}</span> <span class="display-filters-option-count">(${count})</span>`)
-      parts.push(`          <input type="checkbox" class="apple-switch" data-tag-toggle="${tag.replace(/"/g, '&quot;')}" id="${safeId}" checked>`)
+      parts.push(`          <input type="checkbox" class="apple-switch" data-tag-toggle="${tag.replace(/"/g, '&quot;')}" id="${safeId}"${isChecked ? ' checked' : ''}>`)
       parts.push(`        </label>`)
     }
     parts.push(`      </div>`)
@@ -642,6 +645,99 @@ export function buildFolderGroupHeaderHtml(folderPart: string): string {
   parts.push(`  <div class="project-grid-cell project-grid-cell--span-2 folder-header h3">${folderPart}</div>`)
   parts.push(` </div>`)
   return parts.join('')
+}
+
+/**
+ * Escape text for safe inclusion in HTML body content.
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeHtmlText(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&dquot;')
+}
+
+/**
+ * Display escaped setting name or value as <code>...</code>
+ * @param {string} text
+ * @returns {string}
+ */
+function displayEscapedSettingNameOrValue(text: string): string {
+  return `<code>${escapeHtmlText(text)}</code>`
+}
+
+/**
+ * Format projectTypeTags (Hashtags to Review) for display in help text.
+ * @param {ReviewConfig} config
+ * @returns {string} e.g. "#project, #area" or "(none set)"
+ */
+function formatProjectTypeTagsForHelp(config: ReviewConfig): string {
+  const tags = config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
+    ? [config.projectTypeTags]
+    : (config.projectTypeTags ?? [])
+  if (tags.length === 0) return '(none set)'
+  return tags.map((t) => escapeHtmlText(String(t))).join(', ')
+}
+
+/**
+ * Folder-scope sentence for the empty-list help panel.
+ * @param {ReviewConfig} config
+ * @returns {string} HTML fragment (already escaped where needed)
+ */
+function buildFolderScopeHelpSentence(config: ReviewConfig): string {
+  if (config.usePerspectives) {
+    const perspName = config.perspectiveName ? escapeHtmlText(String(config.perspectiveName)) : '(unknown)'
+    return `This list is taken from your active Dashboard Perspective (currently <b>${perspName}</b>).`
+  }
+  const includes = Array.isArray(config.foldersToInclude) ? config.foldersToInclude.filter(Boolean) : []
+  const ignores = Array.isArray(config.foldersToIgnore) ? config.foldersToIgnore.filter(Boolean) : []
+  if (includes.length > 0) {
+    return `This list is set by your <b>Folders to Include</b> setting (currently ${displayEscapedSettingNameOrValue(includes.join(', '))}).`
+  }
+  if (ignores.length > 0) {
+    return `All folders are included except those matching <b>Folders to Exclude</b> setting (${displayEscapedSettingNameOrValue(ignores.join(', '))}).`
+  }
+  return `Notes from all folders are included (apart from Templates, Archive and Trash).`
+}
+
+/**
+ * Help panel shown in the Rich project list when there are no rows to display.
+ * Explains how notes are included and which hashtags the plugin is looking for.
+ * @param {ReviewConfig} config
+ * @param {number} [projectsBeforeDisplayFilters=0] - count of projects in the cached list before finished/paused/due filters
+ * @returns {string} HTML
+ */
+export function buildEmptyProjectListHelpHtml(config: ReviewConfig, projectsBeforeDisplayFilters: number = 0): string {
+  const tagsList = formatProjectTypeTagsForHelp(config)
+  const filterHint = projectsBeforeDisplayFilters > 0
+    ? `<p class="empty-help-filters">There ${projectsBeforeDisplayFilters === 1 ? 'is' : 'are'} <b>${String(projectsBeforeDisplayFilters)}</b> matching project${projectsBeforeDisplayFilters === 1 ? '' : 's'} in your list, but current <b>Filter + Order…</b> settings are hiding ${projectsBeforeDisplayFilters === 1 ? 'it' : 'them'}. Try turning on finished/paused projects, or turning off "ready for review only".</p>`
+    : ''
+  const frontmatterKey = displayEscapedSettingNameOrValue(config.frontmatterKey ?? 'project:')
+  const folderSentence = buildFolderScopeHelpSentence(config)
+  const settingsGearButton = makePluginCommandButton(
+    `<i class="fa-solid fa-gear"></i>`,
+    'jgclark.Reviews',
+    'Projects: open plugin settings',
+    '',
+    'Open Projects + Reviews plugin settings',
+    true
+  )
+
+  return `
+<div class="empty-help-container">
+  <p class="empty-help-title">No projects to show</p>
+  ${filterHint}
+  <p class="empty-help-text">To get project notes shown here:</p>
+  <ol class="empty-help-steps">
+    <li>The <b>note tags</b> I'm looking for are the 'Hashtags to Review' setting (currently ${displayEscapedSettingNameOrValue(tagsList)}). Add one of those tags in the note's <b>frontmatter</b> (under the ${frontmatterKey} key), or run the <b>convert to project</b> command on the note.</li>
+    <li>Set a review interval in frontmatter, e.g. <code>review: 2w</code> (for 2 weeks; also supports d/m/q/y).</li>
+    <li>Check I'm looking in the right folders. ${folderSentence}</li>
+  </ol>
+  <p class="empty-help-text">Change the settings under plugin settings ${settingsGearButton}, and then save, which will refresh this window.</p>
+</div>`
 }
 
 /**

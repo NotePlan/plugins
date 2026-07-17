@@ -224,6 +224,26 @@ export const displayFiltersDropdownScript: string = `
 
     var savedState = null;
 
+    function getHiddenProjectTypeTagsFromDom() {
+      var toggles = dropdown.querySelectorAll('input[data-tag-toggle]');
+      var hidden = [];
+      for (var i = 0; i < toggles.length; i++) {
+        if (!toggles[i].checked) {
+          var tag = toggles[i].getAttribute('data-tag-toggle');
+          if (tag) hidden.push(tag);
+        }
+      }
+      return hidden;
+    }
+
+    function hiddenTagsEqual(a, b) {
+      if (!a || !b || a.length !== b.length) return false;
+      for (var i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
+    }
+
     function getCheckboxState() {
       var onlyDue = dropdown.querySelector('input[name="displayOnlyDue"]');
       var finished = dropdown.querySelector('input[name="displayFinished"]');
@@ -237,8 +257,18 @@ export const displayFiltersDropdownScript: string = `
             displayPaused: paused.checked,
             displayNextActions: nextActions.checked,
             displayOrder: displayOrder ? displayOrder.value : 'review',
+            hiddenProjectTypeTags: getHiddenProjectTypeTagsFromDom(),
           }
         : null;
+    }
+
+    function applyHiddenTagsToCheckboxes(hiddenTags) {
+      var toggles = dropdown.querySelectorAll('input[data-tag-toggle]');
+      var hidden = hiddenTags || [];
+      for (var i = 0; i < toggles.length; i++) {
+        var tag = toggles[i].getAttribute('data-tag-toggle');
+        toggles[i].checked = hidden.indexOf(tag) === -1;
+      }
     }
 
     function closeDropdown(apply) {
@@ -254,7 +284,8 @@ export const displayFiltersDropdownScript: string = `
             state.displayFinished !== savedState.displayFinished ||
             state.displayPaused !== savedState.displayPaused ||
             state.displayNextActions !== savedState.displayNextActions ||
-            state.displayOrder !== savedState.displayOrder;
+            state.displayOrder !== savedState.displayOrder ||
+            !hiddenTagsEqual(state.hiddenProjectTypeTags, savedState.hiddenProjectTypeTags);
           if (hasChanges) {
             var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0
             // console.log("Sending to backend: saveDisplayFilters scrollPos=" + String(scrollPos))
@@ -265,6 +296,7 @@ export const displayFiltersDropdownScript: string = `
               displayPaused: state.displayPaused,
               displayNextActions: state.displayNextActions,
               displayOrder: state.displayOrder,
+              hiddenProjectTypeTags: state.hiddenProjectTypeTags,
               scrollPos: scrollPos
             });
           }
@@ -284,6 +316,14 @@ export const displayFiltersDropdownScript: string = `
         if (orderSel && savedState.displayOrder != null) {
           orderSel.value = savedState.displayOrder;
         }
+        applyHiddenTagsToCheckboxes(savedState.hiddenProjectTypeTags);
+        if (typeof window.__reviewsApplyTagToggleVisibility === 'function') {
+          window.__reviewsApplyTagToggleVisibility();
+        }
+        // Tag toggles save immediately on change; Escape must write the restored set back
+        sendMessageToPlugin('saveHiddenProjectTypeTags', {
+          hiddenProjectTypeTags: savedState.hiddenProjectTypeTags || []
+        });
       }
     }
 
@@ -324,6 +364,7 @@ export const displayFiltersDropdownScript: string = `
             displayPaused: state.displayPaused,
             displayNextActions: state.displayNextActions,
             displayOrder: state.displayOrder,
+            hiddenProjectTypeTags: state.hiddenProjectTypeTags,
             scrollPos: scrollPos
           });
           savedState = state;
@@ -348,33 +389,58 @@ export const tagTogglesVisibilityScript: string = `
         label.textContent = visible + ' ' + (visible === 1 ? 'project' : 'projects');
       }
     }
-    function applyTagToggleVisibility() {
+    function getHiddenProjectTypeTagsFromDom() {
       var toggles = document.querySelectorAll('input[data-tag-toggle]');
-      var offTags = [];
+      var hidden = [];
       for (var i = 0; i < toggles.length; i++) {
-        if (!toggles[i].checked) offTags.push(toggles[i].getAttribute('data-tag-toggle'));
+        if (!toggles[i].checked) {
+          var tag = toggles[i].getAttribute('data-tag-toggle');
+          if (tag) hidden.push(tag);
+        }
+      }
+      return hidden;
+    }
+    function applyTagToggleVisibility() {
+      // Show a row iff it has at least one currently-ON project-type tag.
+      // (Previously only hid single-tag rows matching an OFF tag, so multi-tag
+      // notes like "#project #area" stayed visible when both toggles were off.)
+      var toggles = document.querySelectorAll('input[data-tag-toggle]');
+      var onTags = [];
+      for (var i = 0; i < toggles.length; i++) {
+        if (toggles[i].checked) {
+          var onTag = toggles[i].getAttribute('data-tag-toggle');
+          if (onTag) onTags.push(onTag);
+        }
       }
       var rows = document.querySelectorAll('.projectRow[data-wanted-tags]');
       for (var r = 0; r < rows.length; r++) {
         var row = rows[r];
         var raw = row.getAttribute('data-wanted-tags') || '';
         var rowTags = raw ? raw.trim().split(/\\s+/) : [];
-        var hide = false;
-        for (var t = 0; t < offTags.length; t++) {
-          if (rowTags.length === 1 && rowTags[0] === offTags[t]) {
-            hide = true;
+        var show = false;
+        for (var t = 0; t < rowTags.length; t++) {
+          if (onTags.indexOf(rowTags[t]) !== -1) {
+            show = true;
             break;
           }
         }
-        row.style.display = hide ? 'none' : '';
+        row.style.display = show ? '' : 'none';
       }
       updateRichListVisibleProjectCount();
     }
+    // Expose so Filter + Order Escape-cancel can re-apply after restoring checkbox state
+    window.__reviewsApplyTagToggleVisibility = applyTagToggleVisibility;
     document.addEventListener('DOMContentLoaded', function() {
       applyTagToggleVisibility();
       var container = document.getElementById('tagToggles');
       if (container) {
-        container.addEventListener('change', applyTagToggleVisibility);
+        container.addEventListener('change', function() {
+          applyTagToggleVisibility();
+          // Persist immediately (no re-render) so Refresh keeps the same hashtag filters
+          sendMessageToPlugin('saveHiddenProjectTypeTags', {
+            hiddenProjectTypeTags: getHiddenProjectTypeTagsFromDom()
+          });
+        });
       }
     });
     if (document.readyState !== 'loading') applyTagToggleVisibility();

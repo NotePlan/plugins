@@ -1,7 +1,12 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
-## [2.0.1] - 2026-05-23 (unreleased)
+## [2.0.2] - 2026-07-17
+- When the Rich project list has no items, show help text explaining how to include notes, including significant settings, and a gear control that opens the plugin's settings pane. (Thanks for suggestion, @markw555).
+- Fix: Filter + Order hashtag toggles now hide projects unless they have at least one currently-ON tag (previously multi-tag notes e.g. `#project #area` stayed visible when those tags were both off).
+- Fix: Filter + Order hashtag toggles are now saved and restored after Refresh.
+
+## [2.0.1] - 2026-05-23
 - New setting: 'Project progress string' that allows user to override the 'progress' string in project note body and frontmatter key
 - Change: **convert to project** command now also asks user for optional starting comment and %, and will update the **project list** view to include it (if it's in scope).
 - dev: Fix: project list now reads progress from the configured frontmatter key as well as from body progress lines.

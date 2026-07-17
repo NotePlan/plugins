@@ -43,6 +43,7 @@ import {
 import { Project } from './projectClass'
 import { calcReviewFieldsForProject } from './projectClassCalculations.js'
 import {
+  buildEmptyProjectListHelpHtml,
   buildProjectLineForStyle,
   buildProjectListTopBarHtml,
   buildProjectControlDialogHtml,
@@ -420,7 +421,7 @@ export async function renderProjectListsHTML(
     if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
 
     // Fetch project list first so we can compute per-tag active counts for the Filters dropdown
-    const [projectsToReview, _countAfterTagFilterOnly] = await filterAndSortProjectsList(config, '', [], true)
+    const [projectsToReview, countAfterTagFilterOnly] = await filterAndSortProjectsList(config, '', [], true)
 
     // Omit stale JSON entries whose note no longer exists so the top-bar count matches rendered rows
     const projectsForDisplay: Array<Project> = projectsToReview.filter((p) => {
@@ -464,6 +465,10 @@ export async function renderProjectListsHTML(
         lastFolder = thisProject.folder
       }
       outputArray.push('  </div>')
+    } else {
+      // Help text when the list is empty (setup guidance, or filters hiding all rows)
+      const projectsHiddenByDisplayFilters = projectsToReview.length === 0 ? countAfterTagFilterOnly : 0
+      outputArray.push(buildEmptyProjectListHelpHtml(config, projectsHiddenByDisplayFilters))
     }
     logTimer('renderProjectListsHTML', funcTimer, `end single section (${noteCount} projects)`)
 
@@ -1355,7 +1360,7 @@ export async function toggleDisplayNextActions(scrollPos: number = 0): Promise<v
 
 /**
  * Save all display filter settings at once (used by Display filters dropdown).
- * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean, displayOrder?: string }} data
+ * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean, displayOrder?: string, hiddenProjectTypeTags?: Array<string> }} data
  */
 export async function saveDisplayFilters(data: {
   displayOnlyDue: boolean,
@@ -1363,6 +1368,7 @@ export async function saveDisplayFilters(data: {
   displayPaused: boolean,
   displayNextActions: boolean,
   displayOrder?: string,
+  hiddenProjectTypeTags?: Array<string>,
 }, scrollPos: number = 0): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
@@ -1375,9 +1381,30 @@ export async function saveDisplayFilters(data: {
     if (typeof data.displayOrder === 'string' && data.displayOrder !== '') {
       config.displayOrder = data.displayOrder
     }
+    if (Array.isArray(data.hiddenProjectTypeTags)) {
+      config.hiddenProjectTypeTags = data.hiddenProjectTypeTags
+    }
     await DataStore.saveJSON(config, '../jgclark.Reviews/settings.json', true)
     await renderProjectListsIfOpen(config, scrollPos)
   } catch (error) {
     logError('saveDisplayFilters', error.message)
+  }
+}
+
+/**
+ * Persist which project-type hashtags are toggled off in Filter + Order, without re-rendering.
+ * Used when the user toggles a tag while the dropdown is open (visibility is already applied client-side).
+ * @param {Array<string>} hiddenProjectTypeTags
+ * @returns {Promise<void>}
+ */
+export async function saveHiddenProjectTypeTags(hiddenProjectTypeTags: Array<string>): Promise<void> {
+  try {
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+    config.hiddenProjectTypeTags = Array.isArray(hiddenProjectTypeTags) ? hiddenProjectTypeTags : []
+    logDebug('saveHiddenProjectTypeTags', `saving hiddenProjectTypeTags=[${String(config.hiddenProjectTypeTags)}]`)
+    await DataStore.saveJSON(config, '../jgclark.Reviews/settings.json', true)
+  } catch (error) {
+    logError('saveHiddenProjectTypeTags', error.message)
   }
 }

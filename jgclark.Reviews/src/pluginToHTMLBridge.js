@@ -15,6 +15,7 @@ import {
   toggleDisplayFinished,
   toggleDisplayNextActions,
   saveDisplayFilters,
+  saveHiddenProjectTypeTags,
 } from './reviews'
 import {
   addProgressUpdate,
@@ -114,6 +115,9 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
       case 'saveDisplayFilters':
         await bridgeSaveDisplayFilters(data)
         break
+      case 'saveHiddenProjectTypeTags':
+        await bridgeSaveHiddenProjectTypeTags(data)
+        break
       default:
         logError(pluginJson, `onMessageFromHTMLView(): unknown actionType '${actionType}' cannot be dispatched`)
         break
@@ -199,8 +203,8 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
 }
 
 /**
- * Save display filters from the Display filters dropdown (all three at once).
- * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean, displayOrder?: string }} data
+ * Save display filters from the Display filters dropdown (all at once).
+ * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean, displayOrder?: string, hiddenProjectTypeTags?: Array<string> }} data
  */
 export async function bridgeSaveDisplayFilters(data: {
   displayOnlyDue: boolean,
@@ -208,6 +212,7 @@ export async function bridgeSaveDisplayFilters(data: {
   displayPaused: boolean,
   displayNextActions: boolean,
   displayOrder?: string,
+  hiddenProjectTypeTags?: Array<string>,
   scrollPos?: number,
 }): Promise<void> {
   try {
@@ -219,10 +224,26 @@ export async function bridgeSaveDisplayFilters(data: {
       displayPaused: data.displayPaused,
       displayNextActions: data.displayNextActions,
       displayOrder: data.displayOrder,
+      hiddenProjectTypeTags: Array.isArray(data.hiddenProjectTypeTags) ? data.hiddenProjectTypeTags : [],
     }
     await saveDisplayFilters(filterData, scrollPos)
   } catch (error) {
     logError('bridgeSaveDisplayFilters', error.message)
+  }
+}
+
+/**
+ * Save only the hashtag toggle (hidden tags) state without re-rendering the list.
+ * @param {{ hiddenProjectTypeTags?: Array<string> }} data
+ */
+export async function bridgeSaveHiddenProjectTypeTags(data: {
+  hiddenProjectTypeTags?: Array<string>,
+}): Promise<void> {
+  try {
+    const hidden = Array.isArray(data?.hiddenProjectTypeTags) ? data.hiddenProjectTypeTags : []
+    await saveHiddenProjectTypeTags(hidden)
+  } catch (error) {
+    logError('bridgeSaveHiddenProjectTypeTags', error.message)
   }
 }
 

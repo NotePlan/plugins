@@ -67,6 +67,8 @@ export type ReviewConfig = {
   displayOrder: string,
   displayOnlyDue: boolean,
   displayProgress: boolean,
+  /** Project-type hashtags currently toggled off in Filter + Order (Rich list only). */
+  hiddenProjectTypeTags?: Array<string>,
   dueMentionStr: string,
   finishedListHeading: string,
   hideTopLevelFolder: boolean,
@@ -310,6 +312,9 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     // Ensure following have sensible defaults if missing from settings
     if (config.displayPaused == null) {
       config.displayPaused = true
+    }
+    if (config.hiddenProjectTypeTags == null || !Array.isArray(config.hiddenProjectTypeTags)) {
+      config.hiddenProjectTypeTags = []
     }
     if (config.autoUpdateAfterIdleTime == null) {
       config.autoUpdateAfterIdleTime = 0
