@@ -1,6 +1,6 @@
 // @flow
 /* globals describe, expect, test */
-import { filterProjectNotesByFolders } from '../allProjectsListHelpers'
+import { filterProjectNotesByFolders, getEffectiveFoldersToIgnore } from '../allProjectsListHelpers'
 
   // Mock TNote type - simplified for testing
   // $FlowFixMe[prop-missing] - MockNote only needs filename property for testing
@@ -37,6 +37,10 @@ describe('filterProjectNotesByFolders', () => {
     createMockNote('Archive/old1.md', 'Old 1'),
     createMockNote('Archive/old2.md', 'Old 2'),
     createMockNote('Projects/Archive/archived-project.md', 'Archived Project'),
+
+    // NotePlan special Archive folder
+    createMockNote('@Archive/old-project.md', 'Old Project'),
+    createMockNote('@Archive/2024/completed.md', 'Completed'),
     
     // Special cases
     createMockNote('Projects/Testing/test.md', 'Test'),
@@ -235,6 +239,18 @@ describe('filterProjectNotesByFolders', () => {
       const result = filterProjectNotesByFolders(mockProjectNotes, filteredFolders, foldersToIgnore)
       
       expect(result.some(n => n.filename === 'Projects/Archive/archived-project.md')).toBe(false)
+    })
+  })
+
+  describe('always-excluded @Archive folder', () => {
+    test('should exclude @Archive notes when effective ignore list is used', () => {
+      const filteredFolders = ['/', '@Archive', 'Projects']
+      const foldersToIgnore = getEffectiveFoldersToIgnore([])
+      const result = filterProjectNotesByFolders(mockProjectNotes, filteredFolders, foldersToIgnore)
+
+      expect(result.some(n => n.filename.startsWith('@Archive/'))).toBe(false)
+      expect(result.some(n => n.filename === 'Projects/project1.md')).toBe(true)
+      expect(result.some(n => n.filename === 'root-note.md')).toBe(true)
     })
   })
 })

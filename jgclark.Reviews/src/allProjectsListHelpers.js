@@ -36,6 +36,28 @@ const ERROR_READING_PLACEHOLDER = '<error reading'
 const SEQUENTIAL_TAG_DEFAULT = '#sequential'
 
 /**
+ * Special folders always excluded from project lists (matches foldersToIgnore setting description).
+ * Other @folders (e.g. @Demo) may still be included when excludeSpecialFolders is false.
+ */
+export const ALWAYS_EXCLUDED_PROJECT_FOLDERS: Array<string> = ['@Archive', '@Templates', '@Trash']
+
+/**
+ * Merge user foldersToIgnore with always-excluded special folders (@Archive, @Templates, @Trash).
+ * @param {Array<string>} foldersToIgnore - User-configured folders to ignore
+ * @returns {Array<string>} Combined ignore list with always-excluded folders first
+ */
+export function getEffectiveFoldersToIgnore(foldersToIgnore: Array<string> = []): Array<string> {
+  const userIgnores = Array.isArray(foldersToIgnore) ? foldersToIgnore.filter(Boolean) : []
+  const merged: Array<string> = [...ALWAYS_EXCLUDED_PROJECT_FOLDERS]
+  for (const folder of userIgnores) {
+    if (!merged.some((f) => f.toLowerCase() === folder.toLowerCase())) {
+      merged.push(folder)
+    }
+  }
+  return merged
+}
+
+/**
  * Stable key for matching a cached allProjectsList row to `new Project(note, tag, ...)`.
  * @param {string} filename
  * @param {string} tag - Same tag as passed to Project constructor (project type tag)
@@ -327,6 +349,7 @@ function shouldRegenerateAllProjectsList(config: ReviewConfig): boolean {
  * Note: filteredFolderListWithoutSubdirs and foldersToIgnore expect the paths to be without a leading or trailing slash (apart from root folder '/').
  * And it excludes notes whose filenames include any of the paths specified in the foldersToIgnore array.
  * (Note ignored folders can be inside an included folder.)
+ * Callers should pass getEffectiveFoldersToIgnore(...) so @Archive, @Templates and @Trash are always excluded.
  * @author @jgclark, aided by oCurr
  * @tests available in jest file
  * @param {$ReadOnlyArray<TNote>} notesArray - Array of regular notes to filter
@@ -393,15 +416,26 @@ export type ProjectNoteTagPair = {|
 |}
 
 /**
+ * Build full folder include list using foldersToInclude / foldersToIgnore, always excluding
+ * @Archive, @Templates and @Trash (other @folders may still be included).
+ * @param {ReviewConfig} config
+ * @returns {Array<string>}
+ */
+function getFilteredFolderList(config: ReviewConfig): Array<string> {
+  const effectiveIgnores = getEffectiveFoldersToIgnore(config.foldersToIgnore ?? [])
+  const useIncludeBranch = (config.foldersToInclude?.length ?? 0) > 0
+  return useIncludeBranch
+    ? getFoldersMatching(config.foldersToInclude, false, ALWAYS_EXCLUDED_PROJECT_FOLDERS).sort()
+    : getFolderListMinusExclusions(effectiveIgnores, false, false).sort()
+}
+
+/**
  * Build folder include list with subdirectories collapsed (same rules as list generation).
  * @param {ReviewConfig} config
  * @returns {Array<string>}
  */
 function getFilteredFolderListWithoutSubdirs(config: ReviewConfig): Array<string> {
-  const useIncludeBranch = (config.foldersToInclude?.length ?? 0) > 0
-  const filteredFolderList = useIncludeBranch
-    ? getFoldersMatching(config.foldersToInclude, false).sort()
-    : getFolderListMinusExclusions(config.foldersToIgnore, false, false).sort()
+  const filteredFolderList = getFilteredFolderList(config)
   return filteredFolderList.reduce((acc: Array<string>, f: string) => {
     const exists = acc.some((s) => f.startsWith(s))
     if (!exists) acc.push(f)
@@ -429,7 +463,7 @@ export function isNoteInCurrentProjectSelection(note: TNote, config: ReviewConfi
   }
 
   const filteredFolderListWithoutSubdirs = getFilteredFolderListWithoutSubdirs(config)
-  const folderFiltered = filterProjectNotesByFolders([note], filteredFolderListWithoutSubdirs, config.foldersToIgnore ?? [])
+  const folderFiltered = filterProjectNotesByFolders([note], filteredFolderListWithoutSubdirs, getEffectiveFoldersToIgnore(config.foldersToIgnore ?? []))
   if (folderFiltered.length === 0) {
     return false
   }
@@ -507,12 +541,10 @@ export async function enumerateMatchingProjectNoteTagPairs(
 
   const startTime = moment().toDate() // use moment to ensure we get a date in the local timezone
 
-  const useIncludeBranch = (config.foldersToInclude?.length ?? 0) > 0
-  const filteredFolderList = useIncludeBranch
-    ? getFoldersMatching(config.foldersToInclude, false).sort()
-    : getFolderListMinusExclusions(config.foldersToIgnore, false, false).sort()
+  const effectiveIgnores = getEffectiveFoldersToIgnore(config.foldersToIgnore ?? [])
+  const filteredFolderList = getFilteredFolderList(config)
 
-  logDebug('enumerateMatchingProjectNoteTagPairs', `${config.usePerspectives ? `using Perspective '${config.perspectiveName ?? '?'}': ` : ''}foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(config.foldersToIgnore)}]`)
+  logDebug('enumerateMatchingProjectNoteTagPairs', `${config.usePerspectives ? `using Perspective '${config.perspectiveName ?? '?'}': ` : ''}foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(effectiveIgnores)}]`)
   const filteredFolderListWithoutSubdirs = getFilteredFolderListWithoutSubdirs(config)
   logDebug('enumerateMatchingProjectNoteTagPairs', `-> ${String(filteredFolderListWithoutSubdirs.length)} filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
 
@@ -520,7 +552,7 @@ export async function enumerateMatchingProjectNoteTagPairs(
   let filteredProjectNotes = filterProjectNotesByFolders(
     DataStore.projectNotes,
     filteredFolderListWithoutSubdirs,
-    config.foldersToIgnore,
+    effectiveIgnores,
   )
 
   // If using Perspectives, also filter by teamspaces

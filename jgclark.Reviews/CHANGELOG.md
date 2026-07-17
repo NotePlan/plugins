@@ -1,9 +1,11 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
-## [2.0.3] - 2026-07-18???
+## [2.0.3] - 2026-07-17
+- Fix: Project lists no longer include notes from `@Archive` (also always excludes `@Templates` and `@Trash`, as documented for Folders to Exclude).
 - Fix: Pausing/resuming a project when its note is not open in an Editor no longer fails to write frontmatter.
 - Fix: Progress comment form (used when pausing/resuming, and for Add Progress) now allows submitting with no comment.
+- Change: update set of available icons. dev: Use FA 7.0.1 instead of FA 6.0.0.b3.
 
 ## [2.0.2] - 2026-07-17
 - When the Rich project list has no items, show help text explaining how to include notes, including significant settings, and a gear control that opens the plugin's settings pane. (Thanks for suggestion, @markw555).

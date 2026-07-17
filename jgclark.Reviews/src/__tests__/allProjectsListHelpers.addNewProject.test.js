@@ -115,6 +115,20 @@ describe('isNoteInCurrentProjectSelection', () => {
     expect(isNoteInCurrentProjectSelection((note: any), config, '#project')).toBe(false)
   })
 
+  test('returns false for note in @Archive even when foldersToIgnore is empty', () => {
+    const config = makeConfig({ foldersToInclude: [], foldersToIgnore: [] })
+    reviewSettingsHolder.config = config
+    global.DataStore.folders = ['/', 'Projects', '@Archive', '@Archive/Old']
+    global.DataStore.preference = (key: string): any => {
+      if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsPerspective') return ''
+      if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(config)
+      return preferenceValues[key] ?? ''
+    }
+    const note = makeProjectNote('@Archive/Old/done.md')
+    expect(isNoteInCurrentProjectSelection((note: any), config, '#project')).toBe(false)
+  })
+
   test('returns false when tag is not in projectTypeTags', () => {
     const note = makeProjectNote('Projects/test.md', '#area')
     expect(isNoteInCurrentProjectSelection((note: any), makeConfig(), '#area')).toBe(false)
