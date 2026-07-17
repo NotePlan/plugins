@@ -2,6 +2,12 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [1.0.11] 2026-07-17
+
+### Changed
+
+- Upgraded Font Awesome Pro assets from **6.0.0-alpha3** to **7.0.1**: `fontawesome.css`, `*.min.flat4NP.css` style loaders, and `fa-*.woff2` webfonts (Regular, Solid, Light, Duotone).
+
 ## [1.0.10] 2026-05-11
 
 ### Removed

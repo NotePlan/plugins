@@ -1,9 +1,6 @@
 /*!
- * Font Awesome Pro 6.0.0-alpha3 by @fontawesome - https://fontawesome.com
+ * Font Awesome Pro 7.0.1 by @fontawesome - https://fontawesome.com
  * License - https://fontawesome.com/license (Commercial License)
+ * Copyright 2025 Fonticons, Inc.
  */
-@font-face{font-family:"Font Awesome 6 Pro";font-style:normal;font-weight:400;font-display:block;
-src:url(fa-regular-400.woff2) format("woff2")
-  /* ,url(fa-regular-400.woff) format("woff")
-  ,url(fa-regular-400.ttf) format("truetype") */
-}.fa-regular,.far{font-family:"Font Awesome 6 Pro";font-weight:400}
+:host,:root{--fa-family-classic:"Font Awesome 7 Pro";--fa-font-regular:normal 400 1em/1 var(--fa-family-classic);--fa-style-family-classic:var(--fa-family-classic)}@font-face{font-family:"Font Awesome 7 Pro";font-style:normal;font-weight:400;font-display:block;src:url(fa-regular-400.woff2) format("woff2")}.far{--fa-style:400}.fa-classic,.far{--fa-family:var(--fa-family-classic)}.fa-regular{--fa-style:400}

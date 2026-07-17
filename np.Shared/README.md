@@ -38,31 +38,31 @@ Note: You must set `const pluginID = '<your plugin ID>'` in the file(s) where yo
 If your plugin's `_logLevel` is set to "DEBUG" then useful details are logged.
 
 ## Available Resources
-### Fontawesome Fonts
+### Font Awesome Fonts
 
-NotePlan's licensed 'Regular', 'Solid', 'Duotone' and 'Light' styles of Fontawesome OTF fonts are made available to your plugin through this 'Shared Resource' plugin, along with their necessary CSS files. To use them your HTML will need to include the relevant items from the following in the `<head>` section:
+NotePlan's licensed **Font Awesome Pro 7** 'Regular', 'Solid', 'Duotone' and 'Light' webfonts (`*.woff2`) are made available through this Shared Resource plugin, along with their CSS. To use them your HTML will need to include the relevant items from the following in the `<head>` section:
 
 ```html
 <head>
     ...
     <link href="../np.Shared/fontawesome.css" rel="stylesheet">
-    <link href="../np.Shared/light.min.css" rel="stylesheet">
-    <link href="../np.Shared/regular.min.css" rel="stylesheet">
-    <link href="../np.Shared/solid.min.css" rel="stylesheet">
-    <link href="../np.Shared/duotone.css" rel="stylesheet">
+    <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
+    <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
+    <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
+    <link href="../np.Shared/duotone.min.flat4NP.css" rel="stylesheet">
     ...
-  <style>
 </head>
 ```
-(Note: I have had to tweak the stylesheets to make the font files to be available in the constrained NotePlan environment.)
 
-And then to use the icons use the non-obvious italic syntax like:
+(Note: the `*.flat4NP.css` stylesheets are FA style sheets tweaked so font `url(...)` paths are flat filenames, which NotePlan's shared-file layout requires.)
+
+And then to use the icons use the italic-element syntax like:
 
 ```html
-<p><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh<p>
+<p><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</p>
 ```
 
-Please use the [fontawesome website](https://fontawesome.com/search) to view/search for icons of interest from amongst their 22,000+ choices.
+Please use the [Font Awesome website](https://fontawesome.com/search) to view/search for icons.
 
 ### Bridging between Plugins and HTML Windows
 There is also a `pluginToHTMLCommsBridge` file that can be used to enable bi-directional communications between the plugin and the HTML window. To use this file, import it like so, making sure to set the variable `receivingPluginID` to your plugin where you want to receive the messages:
