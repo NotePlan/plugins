@@ -8,6 +8,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+## [2.4.0.b52] 2026-07-???
+- Change: update set of available icons. dev: Use FA 7.0.1 instead of FA 6.0.0.b3.
+- Fix to colors of some section headings.
+
 ## [2.4.0.b51] 2026-07-15
 - Fix: Switching Perspectives no longer briefly shows the "no items to show" banner while sections are being reloaded.
 - Fix: **Timed Items / Timed Reminders** section now shows when either Time Block or Reminders is enabled (or both); previously it required Time Block to be on.

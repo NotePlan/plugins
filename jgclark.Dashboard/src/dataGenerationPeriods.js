@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin: generate data for month / quarter / year calendar sections
-// Last updated 2026-07-16 for v2.4.0.b51 by @CursorAI
+// Last updated 2026-07-18 for v2.4.0.b52 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -110,7 +110,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
       sectionCode: thisSectionCode,
       description: sectionDescription,
       FAIconClass: 'fa-regular fa-fw fa-calendar-range',
-      sectionTitleColorPart: 'sidebarMonthly',
+      sectionTitleColorPart: 'MonthlySectionColor',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -252,7 +252,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
       sectionCode: thisSectionCode,
       description: sectionDescription,
       FAIconClass: 'fa-regular fa-fw fa-calendar-days',
-      sectionTitleColorPart: 'sidebarQuarterly',
+      sectionTitleColorPart: 'QuarterlySectionColor',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -388,7 +388,7 @@ export function getThisYearSectionData(config: TDashboardSettings, useDemoData: 
       sectionCode: thisSectionCode,
       description: sectionDescription,
       FAIconClass: 'fa-regular fa-fw fa-calendar-days',
-      sectionTitleColorPart: 'sidebarYearly',
+      sectionTitleColorPart: 'YearlySectionColor',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),

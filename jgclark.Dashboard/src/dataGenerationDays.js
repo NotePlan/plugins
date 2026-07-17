@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2026-07-16 for v2.4.0.b51 by @jgclark + @CursorAI
+// Last updated 2026-07-18 for v2.4.0.b52 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -117,7 +117,7 @@ export function getTodaySectionData(
     const todayFormFields: Array<TSettingItem> = buildAddTaskFormFields(todayHeadings, config)
     const tomorrowFormFields: Array<TSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
 
-    let sectionDescription = `{closedOrOpenTaskCount} from ${todayDateLocale}`
+    let sectionDescription = `{closedOrOpenTaskCount}` // ` ` from ${todayDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     // Note: TB no longer needs to be in postActionRefresh for DT buttons; it refreshes along with DT when enabled
@@ -440,7 +440,7 @@ export function getYesterdaySectionData(
     }
     // Note: this only counts from yesterday's note
     const doneCountData = getNumCompletedTasksFromNote(thisFilename)
-    let sectionDescription = `{closedOrOpenTaskCount} from ${yesterdayDateLocale}`
+    let sectionDescription = `{closedOrOpenTaskCount}` // ` ` from ${yesterdayDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
@@ -608,7 +608,7 @@ export function getTomorrowSectionData(
     const tomorrowHeadings: Array<string> = tomorrowsNote ? getHeadingsFromNote(tomorrowsNote, false, true, true, false) : []
     const tomorrowFormFields: Array<TSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
 
-    let sectionDescription = `{count} from ${tomorrowDateLocale}`
+    let sectionDescription = `{count}` // ` ` from ${tomorrowDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {
