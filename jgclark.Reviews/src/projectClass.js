@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2026-05-23 for v2.0.1 by @CursorAI & @jgclark
+// Last updated 2026-07-17 for v2.0.3 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -836,8 +836,9 @@ if (preserveEmpty) {
 // Invariant: combined frontmatter key value contains ONLY hashtags.
 attrs[singleKeyName] = this.getProjectTagsFrontmatterValue(singleKeyName)
 
+// Prefer open Editor when present; getOpenEditorFromFilename returns false (not null), so use || not ??
 // $FlowFixMe[incompatible-call]
-const success = updateFrontMatterVars(possibleThisEditor ?? noteForWrites, attrs)
+const success = updateFrontMatterVars(possibleThisEditor || noteForWrites, attrs)
 if (!success) {
   logError('updateProjectMetadata', `Failed to update frontmatter metadata for '${this.title}'`)
 }

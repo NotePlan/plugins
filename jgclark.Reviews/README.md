@@ -209,6 +209,8 @@ The settings relating to Progress calculations and comments are:
 - Progress Heading level: heading level (1–5) used when the Progress heading is created (default `2`).
 - Also write most recent Progress line to frontmatter?: (from v1.3) When on, the current progress line is also written to frontmatter so it can be used in Folder Views (default: off).
 
+Note: from v2, progress comments use the more compact `@YYYYMMDD` style of date, but it still reads older style `@YYYY-MM-DD`.
+
 ## Other Plugin settings
 - Open 'Rich' Project List in what sort of window?: Choose how the Rich project list opens on NotePlan v3.20+. The options are `New Window` (default — separate window), `Main Window` (take over the main window), or `Split View` (a split view in the main window).
 - Automatic Update interval: If set to any number > 0, the Rich Project Lists window will automatically refresh after that many minutes. The current scroll position is preserved as closely as possible. Set to 0 to disable.
@@ -414,3 +416,6 @@ Thanks!
 
 ## Changes
 Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md).
+
+## Related Plugins
+You might also be interested in [asktru's Roadmap plugin](https://github.com/asktru/noteplan-roadmap), which adds support for Gantt charts in NotePlan, driven by other data added to your notes' frontmatter. It supports dependencies, deadlines, deferred starts, and live progress derived from your tasks.

@@ -188,7 +188,8 @@ export function normalizeProgressDateFromForm(value: mixed): string {
 }
 
 /**
- * Interpret CommandBar.showForm() result for add-progress: comment (required), progress date, optional integer %.
+ * Interpret CommandBar.showForm() result for add-progress: optional comment, progress date, optional integer %.
+ * Empty comment is valid (caller may skip writing a progress line).
  * @param {CommandBarFormResult} formResult
  * @returns {?{ comment: string, progressDateStr: string, percentStr: string }}
  */
@@ -204,10 +205,6 @@ export function parseRawProgressFormValues(formResult: CommandBarFormResult): ?{
     const fieldMap: { [string]: mixed } = formResult.values ?? {}
     const commentRaw = fieldMap.comment
     const comment = typeof commentRaw === 'string' ? commentRaw.trim() : String(commentRaw ?? '').trim()
-    if (comment === '') {
-      logDebug('parseRawProgressFormValues', `Empty comment; treating as invalid`)
-      return null
-    }
     const dateRaw = fieldMap.progressDate ?? fieldMap.date
     const progressDateStr = normalizeProgressDateFromForm(dateRaw)
     let percentStr = ''
@@ -231,6 +228,7 @@ export function parseRawProgressFormValues(formResult: CommandBarFormResult): ?{
 /**
  * Ask for progress comment, optional % complete, and progress date.
  * Uses CommandBar.showForm when NotePlan supports commandBarForms (v3.21+); otherwise two separate prompts (date = today).
+ * Comment is optional: submit with an empty comment to skip adding a progress line (e.g. when pausing).
  * @param {string} projectTitle
  * @param {string} prompt - leading phrase before quoted title
  * @param {number} lastPercentComplete - for hint text (may be NaN)
@@ -249,10 +247,10 @@ export async function promptAddProgressLineInputs(
   if (usersVersionHas('commandBarForms')) {
     try {
       const raw = await CommandBar.showForm({
-        title: `Add Progress for '${projectTitle}'`,
-        submitText: 'Add',
+        title: message1,
+        submitText: 'OK',
         fields: [
-          { type: 'string', key: 'comment', title: 'Comment', required: true },
+          { type: 'string', key: 'comment', title: 'Comment (optional)', description: 'Leave blank if no progress comment is needed', placeholder: 'Optional comment', required: false },
           { type: 'date', key: 'progressDate', title: 'Date', description: 'Date of comment', default: todaysDateISOString, required: false },
           { type: 'number', key: 'percentComplete', title: `Percent Complete (optional %${lastPercentMessage})`, description: `Enter your estimate of project completion (as %${lastPercentMessage}) if wanted`, placeholder: '%', min: 0, max: 100, optional: true, required: false },
         ],
@@ -272,13 +270,18 @@ export async function promptAddProgressLineInputs(
     }
   }
 
-  const resText = await getInputTrimmed(message1, 'OK', `Add Progress comment`)
-  if (!resText) {
-    logDebug('promptAddProgressLineInputs', `No valid progress comment`)
+  // Fallback: blank / cancel skips adding a progress line (same as optional form comment)
+  const resText = await getInputTrimmed(`${message1} (optional; leave blank for none)`, 'OK', `Add Progress comment`)
+  if (resText === false || resText == null) {
+    logDebug('promptAddProgressLineInputs', `User cancelled progress comment prompt`)
     return null
   }
-  const comment = String(resText)
-  const resNum = await inputIntegerBounded('Add Progress % completion', 'Percent Complete (optional %${lastPercentMessage})', 100, 0)
+  const comment = String(resText).trim()
+  if (comment === '') {
+    logDebug('promptAddProgressLineInputs', `Empty progress comment; skipping progress line`)
+    return { comment: '', progressDateStr: todaysDateISOString, percentStr: '' }
+  }
+  const resNum = await inputIntegerBounded('Add Progress % completion', `Percent Complete (optional %${lastPercentMessage})`, 100, 0)
   let percentStr = ''
   if (!isNaN(resNum)) {
     percentStr = String(resNum)

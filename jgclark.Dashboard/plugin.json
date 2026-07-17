@@ -21,9 +21,11 @@
     "light.min.flat4NP.css",
     "regular.min.flat4NP.css",
     "solid.min.flat4NP.css",
+    "duotone.min.flat4NP.css",
     "fa-light-300.woff2",
     "fa-regular-400.woff2",
-    "fa-solid-900.woff2"
+    "fa-solid-900.woff2",
+    "fa-duotone-900.woff2"
   ],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/plugins/jgclark.Dashboard",
