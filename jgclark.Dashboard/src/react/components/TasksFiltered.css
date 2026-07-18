@@ -18,6 +18,9 @@
 
 /* The actual item's details (was col4) */
 .sectionItemContent {
+	/* Fill remaining width after status/project icon so right-aligned children work */
+	flex: 1;
+	min-width: 0;
 	/* reduce vertical spacing and line below */
 	font-size: 1.0rem;
 	font-weight: 400;

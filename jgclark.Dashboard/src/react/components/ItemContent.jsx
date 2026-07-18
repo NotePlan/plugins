@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated 2026-05-04 for v2.4.0.b31 by @jgclark/@Cursor
+// Last updated 2026-07-18 for v2.4.0.b52 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
@@ -9,6 +9,7 @@ import { applyDashboardSettingsToDisplayedItemHtml, makeParaContentToLookLikeNPD
 import { useAppContext } from './AppContext.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
+import './ItemContent.css'
 
 //--------------------------------------------------------------------------
 
@@ -89,20 +90,26 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   //----- RENDER ------------------------------------------
 
   return (
-    <div className="sectionItemContent">
-      {possChildMarker}
-      <a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>
-      {possParentIcon}
-      {/* <span className="pad-left">[ID:{item.ID}]</span> */}
-      <a className="dialogTriggerIcon">
-        <i className="fa-light fa-edit pad-right" onClick={handleClickToOpenEditDialog}></i>
-      </a>
-      {showItemNoteLink && <ItemNoteLink
-        item={item}
-        thisSection={thisSection}
-        alwaysShowNoteTitle={false}
-        suppressTeamspaceName={suppressTeamspaceName}
-      />}
+    <div className="sectionItemContent taskItemContent">
+      <div className="taskItemMain">
+        {possChildMarker}
+        <a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>
+        {possParentIcon}
+        {/* <span className="pad-left">[ID:{item.ID}]</span> */}
+        <a className="dialogTriggerIcon">
+          <i className="fa-light fa-edit pad-right" onClick={handleClickToOpenEditDialog}></i>
+        </a>
+      </div>
+      {showItemNoteLink && (
+        <span className="itemNoteLinkEnd">
+          <ItemNoteLink
+            item={item}
+            thisSection={thisSection}
+            alwaysShowNoteTitle={false}
+            suppressTeamspaceName={suppressTeamspaceName}
+          />
+        </span>
+      )}
     </div>
   )
 }
