@@ -19,7 +19,20 @@ export const Calendar = {
       return ['cal1', 'cal2']
     }
   },
-  // async availableReminderListTitles() { return null },
+  availableReminderListTitles() {
+    return ['Reminders', 'Work', 'Home']
+  },
+  availableReminderLists(options) {
+    const all = [
+      { title: 'Reminders', color: '#FF3B30', isEnabled: true },
+      { title: 'Work', color: '#007AFF', isEnabled: true },
+      { title: 'Home', color: '#34C759', isEnabled: false },
+    ]
+    if (options && options.enabledOnly) {
+      return all.filter((l) => l.isEnabled)
+    }
+    return all
+  },
   // async dateFrom() { return null },
   /* dateUnits: [{ return second }], */
   // async eventByID() { return null },
@@ -43,7 +56,9 @@ export const Calendar = {
   },
   // async reminderByID() { return null },
   // async remindersBetween() { return null },
-  // async remindersByLists() { return null },
+  async remindersByLists(_lists) {
+    return []
+  },
   // async remindersToday() { return null },
   // async remove() { return null },
   // async timeAgoSinceNow() { return null },

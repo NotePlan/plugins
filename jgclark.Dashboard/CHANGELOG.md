@@ -9,6 +9,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 ## [2.4.0.b52] 2026-07-???
+- New: each Perspective can override which Apple Reminders lists to look in via **Reminder Lists to Include** (comma-separated). Blank keeps using NotePlan-enabled lists; named lists can include ones disabled in NotePlan.
+- Experimental Change: noteLink lozenges are right-aligned in task item rows (PROJ* sections unchanged).
 - Change: update set of available icons. dev: Use FA 7.0.1 instead of FA 6.0.0.b3.
 - Fix to colors of some section headings.
 - Fix: noteLink lozenge icons were missing (operator-precedence bug when adding `fa-fw`).

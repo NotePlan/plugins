@@ -162,6 +162,7 @@ export function logPerspectives(perspectivesArray: Array<TPerspectiveDef>, logAl
       clof(thisP.dashboardSettings, `${name}'s main dashboardSettings:`, [
         'includedFolders',
         'excludedFolders',
+        'includedReminderLists',
         'ignoreItemsWithTerms',
         'maxItemsToShowInSection',
         'newTaskSectionHeadingLevel',
@@ -579,7 +580,7 @@ export async function logPerspectiveFiltering(filenameArg?: string): Promise<voi
 
 /**
  * Merge previous/live dashboard settings with a perspective def's saved settings.
- * Same rules as `doSwitchToPerspective` (strip tag sections / includedTeamspaces from previous, apply defaults, validate tags).
+ * Same rules as `doSwitchToPerspective` (strip tag sections / includedTeamspaces / includedReminderLists from previous, apply defaults, validate tags).
  * @param {TPerspectiveDef} perspectiveDef - perspective whose `dashboardSettings` are applied
  * @param {TDashboardSettings} prevDashboardSettings - current top-level dashboard settings before merge
  * @param {TDashboardSettings} dashboardSettingsDefaults - defaults for any keys missing from the def
@@ -592,8 +593,12 @@ export function mergeDashboardSettingsForPerspectiveDef(
   dashboardSettingsDefaults: TDashboardSettings,
   lastChange?: string,
 ): TDashboardSettings {
+  // Do not carry includedTeamspaces / includedReminderLists from the previous Perspective when the
+  // destination Perspective omits the key -- fall back to defaults (blank reminder lists = NotePlan-enabled).
   const prevWithoutTagSections: Partial<TDashboardSettings> = (Object.fromEntries(
-    Object.entries(prevDashboardSettings).filter(([k]) => !k.startsWith('showTagSection_') && k !== 'includedTeamspaces'),
+    Object.entries(prevDashboardSettings).filter(
+      ([k]) => !k.startsWith('showTagSection_') && k !== 'includedTeamspaces' && k !== 'includedReminderLists',
+    ),
   ): any)
   const perspectiveOnly = cleanDashboardSettingsInAPerspective(perspectiveDef.dashboardSettings || {})
   let newDashboardSettings: TDashboardSettings = {

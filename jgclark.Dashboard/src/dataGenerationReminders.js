@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for REM (Reminders) Section and day/TB reminder buckets
-// Last updated 2026-07-15 for v2.4.0.b51, @jgclark + @CursorAI
+// Last updated 2026-07-18 for v2.4.0.b52, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -9,6 +9,7 @@ import pluginJson from '../plugin.json'
 import { isRemindersSectionEnabled } from './dashboardHelpers'
 import { reminderItems } from './demoData'
 import type { TActionButton, TDashboardSettings, TReminderForDashboard, TSection, TSectionCode, TSectionItem, TSettingItem } from './types'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
 import { clo, clof, logDebug, logError, logTimer, logWarn, timer } from '@helpers/dev'
 import { usersVersionHas } from '@helpers/NPVersions'
@@ -29,6 +30,14 @@ export type TRemindersGeneratedData = {
 }
 
 /**
+ * Reminder list titles plus optional color-by-title map used for fetch and display.
+ */
+export type TReminderListsResult = {
+  titles: Array<string>,
+  colorByTitle: { [string]: string },
+}
+
+/**
  * @returns {TRemindersGeneratedData}
  */
 function emptyRemindersGeneratedData(): TRemindersGeneratedData {
@@ -42,36 +51,132 @@ function emptyRemindersGeneratedData(): TRemindersGeneratedData {
 }
 
 /**
+ * Deduplicate titles while preserving first-seen order; skip blank strings.
+ * @param {Array<string>} titles
+ * @returns {Array<string>}
+ */
+export function dedupeReminderListTitles(titles: Array<string>): Array<string> {
+  const seen: { [string]: boolean } = {}
+  const result: Array<string> = []
+  for (const title of titles) {
+    const trimmed = title ? title.trim() : ''
+    if (!trimmed || seen[trimmed]) continue
+    seen[trimmed] = true
+    result.push(trimmed)
+  }
+  return result
+}
+
+/**
+ * Build titles + color map from Calendar.availableReminderLists() results.
+ * @param {Array<any>} lists - reminder list objects from the NotePlan API
+ * @returns {TReminderListsResult}
+ */
+function titlesAndColorsFromReminderListObjects(lists: Array<any>): TReminderListsResult {
+  const colorByTitle: { [string]: string } = {}
+  const titles: Array<string> = []
+  for (const list of lists) {
+    // availableReminderLists returns list objects with title + color (typed loosely as TCalendarItem)
+    // $FlowFixMe[prop-missing]
+    const title: string = list.title || ''
+    if (!title || title.trim() === '') continue
+    titles.push(title)
+    // $FlowFixMe[prop-missing]
+    const listColor: ?string = list.color
+    if (listColor && typeof listColor === 'string' && listColor.trim() !== '') {
+      colorByTitle[title] = listColor
+    }
+  }
+  return { titles, colorByTitle }
+}
+
+/**
+ * All accessible reminder lists (including NotePlan-disabled): titles plus optional color-by-title map.
+ * Uses Calendar.availableReminderLists() when available (NP >= 3.20.0);
+ * otherwise falls back to all list titles (no colors on older NP).
+ * @returns {TReminderListsResult}
+ */
+export function getAllAccessibleReminderLists(): TReminderListsResult {
+  if (usersVersionHas('availableReminderLists')) {
+    const allLists = Calendar.availableReminderLists()
+    const result = titlesAndColorsFromReminderListObjects(allLists)
+    logDebug('getAllAccessibleReminderLists', `- ${String(result.titles.length)} accessible reminder list(s): ${result.titles.join(', ') || '(none)'}`)
+    return result
+  }
+  logWarn('getAllAccessibleReminderLists', `availableReminderLists not supported on this NotePlan version; using all reminder list titles`)
+  const allTitles = Calendar.availableReminderListTitles()
+  const titles = dedupeReminderListTitles(allTitles.slice())
+  return { titles, colorByTitle: {} }
+}
+
+/**
  * Enabled reminder lists from NotePlan settings: titles plus optional color-by-title map.
  * Uses Calendar.availableReminderLists({ enabledOnly: true }) when available (NP >= 3.20.0);
  * otherwise falls back to all list titles (no colors / enable filter on older NP).
- * @returns {{ titles: Array<string>, colorByTitle: { [string]: string } }}
+ * @returns {TReminderListsResult}
  */
-export function getEnabledReminderLists(): { titles: Array<string>, colorByTitle: { [string]: string } } {
-  const colorByTitle: { [string]: string } = {}
+export function getEnabledReminderLists(): TReminderListsResult {
   if (usersVersionHas('availableReminderLists')) {
     const enabledLists = Calendar.availableReminderLists({ enabledOnly: true })
-    const titles: Array<string> = []
-    for (const list of enabledLists) {
-      // availableReminderLists returns list objects with title + color (typed loosely as TCalendarItem)
-      // $FlowFixMe[prop-missing]
-      const title: string = list.title || ''
-      if (!title || title.trim() === '') continue
-      titles.push(title)
-      // $FlowFixMe[prop-missing]
-      const listColor: ?string = list.color
-      if (listColor && typeof listColor === 'string' && listColor.trim() !== '') {
-        colorByTitle[title] = listColor
-      }
-    }
-    logDebug('getEnabledReminderLists', `- ${String(titles.length)} enabled reminder list(s): ${titles.join(', ') || '(none)'}`)
-    return { titles, colorByTitle }
+    const result = titlesAndColorsFromReminderListObjects(enabledLists)
+    logDebug('getEnabledReminderLists', `- ${String(result.titles.length)} enabled reminder list(s): ${result.titles.join(', ') || '(none)'}`)
+    return result
   }
   // Older NotePlan: cannot read enabled/disabled or colors; use all accessible list titles
   logWarn('getEnabledReminderLists', `availableReminderLists not supported on this NotePlan version; using all reminder list titles`)
   const allTitles = Calendar.availableReminderListTitles()
-  const titles = allTitles.slice().filter((t) => Boolean(t) && t.trim() !== '')
-  return { titles, colorByTitle }
+  const titles = dedupeReminderListTitles(allTitles.slice())
+  return { titles, colorByTitle: {} }
+}
+
+/**
+ * Resolve which reminder lists to use for this Dashboard config / Perspective.
+ * Blank `includedReminderLists` inherits NotePlan-enabled lists; a non-empty CSV selects
+ * those accessible list names (including lists disabled in NotePlan) by exact title match.
+ * @param {TDashboardSettings} config
+ * @returns {TReminderListsResult}
+ */
+export function getReminderListsForConfig(config: TDashboardSettings): TReminderListsResult {
+  const configuredNames = dedupeReminderListTitles(stringListOrArrayToArray(config.includedReminderLists ?? '', ','))
+  if (configuredNames.length === 0) {
+    return getEnabledReminderLists()
+  }
+
+  const { titles: accessibleTitles, colorByTitle: accessibleColors } = getAllAccessibleReminderLists()
+  const accessibleSet: { [string]: boolean } = {}
+  for (const title of accessibleTitles) {
+    accessibleSet[title] = true
+  }
+
+  const matchedTitles: Array<string> = []
+  const missingTitles: Array<string> = []
+  for (const name of configuredNames) {
+    if (accessibleSet[name]) {
+      matchedTitles.push(name)
+    } else {
+      missingTitles.push(name)
+    }
+  }
+
+  if (missingTitles.length > 0) {
+    logWarn(
+      'getReminderListsForConfig',
+      `includedReminderLists names not found among accessible lists: ${missingTitles.join(', ')}`,
+    )
+  }
+
+  const colorByTitle: { [string]: string } = {}
+  for (const title of matchedTitles) {
+    if (accessibleColors[title]) {
+      colorByTitle[title] = accessibleColors[title]
+    }
+  }
+
+  logDebug(
+    'getReminderListsForConfig',
+    `- Perspective override: ${String(matchedTitles.length)} of ${String(configuredNames.length)} configured list(s): ${matchedTitles.join(', ') || '(none)'}`,
+  )
+  return { titles: matchedTitles, colorByTitle }
 }
 
 /**
@@ -340,16 +445,18 @@ export async function getRemindersGeneratedData(
         }
       }
     } else {
-      const { titles: enabledListTitles, colorByTitle } = getEnabledReminderLists()
-      listTitlesForAdd = enabledListTitles
+      // Resolve list titles for this Perspective (override or NotePlan-enabled), then fetch via remindersByLists
+      const { titles: listTitles, colorByTitle } = getReminderListsForConfig(config)
+      listTitlesForAdd = listTitles
       let calendarItems: Array<TCalendarItem> = []
-      if (enabledListTitles.length === 0) {
-        logDebug('getRemindersGeneratedData', `- no enabled reminder lists; buckets will be empty`)
+      if (listTitles.length === 0) {
+        logDebug('getRemindersGeneratedData', `- no reminder lists to query; buckets will be empty`)
       } else {
-        calendarItems = await Calendar.remindersByLists(enabledListTitles)
+        // Always pass explicit list titles to remindersByLists (empty array would return ALL lists)
+        calendarItems = await Calendar.remindersByLists(listTitles)
       }
       const incomplete = calendarItems.filter((ci) => !ci.isCompleted)
-      logDebug('getRemindersGeneratedData', `- fetched ${String(calendarItems.length)} reminders from ${String(enabledListTitles.length)} list(s), ${String(incomplete.length)} incomplete`)
+      logDebug('getRemindersGeneratedData', `- fetched ${String(calendarItems.length)} reminders from ${String(listTitles.length)} list(s) via remindersByLists, ${String(incomplete.length)} incomplete`)
 
       allItems = incomplete.map((ci, index) => {
         const reminder = mapCalendarItemToReminderForDashboard(ci, colorByTitle)

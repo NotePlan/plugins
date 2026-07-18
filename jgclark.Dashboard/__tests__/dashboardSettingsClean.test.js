@@ -130,6 +130,33 @@ describe('mergeDashboardSettingsForPerspectiveDef', () => {
     expect(merged.FFlag_UseTagCache).toBe(true)
     expect(merged.showTodaySection).toBe(false)
   })
+
+  it('does not carry includedReminderLists from previous Perspective when destination omits the key', () => {
+    const defaults = getDashboardSettingsDefaults()
+    const prev = { ...defaults, includedReminderLists: 'Work, Home' }
+    const perspectiveDef = {
+      name: 'Older',
+      isModified: false,
+      isActive: true,
+      dashboardSettings: { includedFolders: 'Archive' },
+    }
+    const merged = mergeDashboardSettingsForPerspectiveDef(perspectiveDef, prev, defaults)
+    expect(merged.includedReminderLists).toBe('')
+    expect(merged.includedFolders).toBe('Archive')
+  })
+
+  it('applies includedReminderLists from destination Perspective when set', () => {
+    const defaults = getDashboardSettingsDefaults()
+    const prev = { ...defaults, includedReminderLists: 'Work' }
+    const perspectiveDef = {
+      name: 'Home',
+      isModified: false,
+      isActive: true,
+      dashboardSettings: { includedReminderLists: 'Home, Shopping' },
+    }
+    const merged = mergeDashboardSettingsForPerspectiveDef(perspectiveDef, prev, defaults)
+    expect(merged.includedReminderLists).toBe('Home, Shopping')
+  })
 })
 
 describe('getPerspectiveLiveVsSavedDiff', () => {

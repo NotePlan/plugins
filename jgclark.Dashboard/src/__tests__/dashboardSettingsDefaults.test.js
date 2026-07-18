@@ -14,6 +14,11 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(defaults.showRemindersSection).toBe(true)
     })
 
+    test('getDashboardSettingsDefaults() defaults includedReminderLists to blank', () => {
+      const defaults = getDashboardSettingsDefaults()
+      expect(defaults.includedReminderLists).toBe('')
+    })
+
     test('getListOfEnabledSections() includes REM when showRemindersSection is missing', () => {
       const defaults = getDashboardSettingsDefaults()
       // Simulate upgrade settings that never stored the key

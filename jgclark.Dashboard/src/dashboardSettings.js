@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2026-07-10 for v2.4.0.b47 by @jgclark + @CursorAI
+// Last updated 2026-07-18 for v2.4.0.b52 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { defaultSectionDisplayOrder } from './constants.js'
@@ -97,7 +97,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'heading',
     label: 'What to Include and Exclude',
     description:
-      "These settings control what Spaces, folders and items are included and excluded in Dashboard's many sections. It will first use only the included Spaces. Then, it includes the folders from the next setting, and removes any specified from the following setting. Then certain Sections within Calendar notes can be included. Finally, individual lines in notes can be ignored by adding terms to the last setting.",
+      "These settings control what Spaces, folders, Reminder lists and items are included and excluded in Dashboard's many sections. It will first use only the included Spaces. Then, it includes the folders from the next setting, and removes any specified from the following setting. Then certain Sections within Calendar notes can be included. Reminder Lists to Include can override which Apple Reminders lists this Perspective looks in. Finally, individual lines in notes can be ignored by adding terms to the last setting.",
   },
   {
     key: 'includedTeamspaces',
@@ -166,6 +166,15 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     default: false,
     compactDisplay: true,
     dependsOnKey: 'ignoreItemsWithTerms',
+  },
+  {
+    key: 'includedReminderLists',
+    label: 'Reminder Lists to Include',
+    description:
+      "Comma-separated list of Apple Reminders list names to look in for this Perspective. Names must match exactly (after trimming). If left blank, Dashboard uses the reminder lists enabled in NotePlan's Preferences > Calendars > Reminders. You can name lists that are disabled in NotePlan if you want this Perspective to include them.",
+    type: 'input',
+    default: '',
+    compactDisplay: true,
   },
   {
     type: 'separator',

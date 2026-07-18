@@ -154,7 +154,7 @@ When the [Reminders section](#reminders-section) is enabled, this section additi
 ### Reminders section
 <img src="reminders-section-2.4.0.png" width="740px" margin="8px" border="1px solid grey" alt="reminders section" />
 
-(From v2.4b50) The **Reminders** section shows incomplete items from your **Apple Reminders** lists. It draws from the same reminder lists you have enabled in NotePlan's own settings (Preferences → Calendars → Reminders), and shows the list name, location and notes. It uses as an accent color, the color of the list set in Apple Reminders.
+(From v2.4b50) The **Reminders** section shows incomplete items from your **Apple Reminders** lists. By default it draws from the same reminder lists you have enabled in NotePlan's own settings (Preferences → Calendars → Reminders). However, each Perspective can override that set with **Reminder Lists to Include** (a comma-separated list of exact list names). Leave it blank to keep NotePlan's enabled lists; you can also name lists that are disabled in NotePlan if this Perspective should include them. Reminder rows show the list name, location and notes, and use the list's Apple Reminders color as an accent. (The 'flagged' status is not available outside Apple Reminders.)
 
 Open reminders are split across the Dashboard rather than shown in a single list:
 
@@ -235,10 +235,11 @@ Dashboard provides a quick access Settings window, accessed from the cog wheel a
 <img width="550px" src="settings-dialog-2.1.0.png" alt="Settings dialog"/>
 
 ### What to Include and Exclude
-The 3 key settings in "What to Include and Exclude" section control what folders and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Finally, individual lines in notes can be ignored by adding terms to the third setting:
+The settings in "What to Include and Exclude" control what Spaces, folders, Reminder lists and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Reminder list selection is separate (see below). Finally, individual lines in notes can be ignored by adding terms:
 
 - **Folders to Include**: Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. The matches ared partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included. Note: Calendar notes are always included, where relevant.
 - **Folders to Exclude**: Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. The matches are partial, so 'Work' will exclude 'Work' and 'Work/CompanyA' etc.  Where there is a conflict, exclusions will take precedence over inclusions.  To ignore notes at the top-level (not in a folder), include '/' in the list. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)
+- **Reminder Lists to Include**: Comma-separated list of Apple Reminders list names for this Perspective. Names must match exactly (after trimming). If left blank, Dashboard uses the lists enabled in NotePlan's Preferences → Calendars → Reminders. You can name lists that are disabled in NotePlan if this Perspective should include them.
 - **Ignore items in notes with these term(s)**: If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. (This check is not case sensitive.) This is useful for situations where completing the item is outside your control.
   - Apply to sections under headings in Calendar notes? If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored. This applies to the preceding headings all the way up the H5->H1 hierarchy of section headings for that line. For example in the following note:
   ```markdown
@@ -369,6 +370,7 @@ For the `setSetting` callbacks, the names of the possible settings (described ab
 | ignoreChecklistItems | true / false |
 | includedFolders | comma-separated values |
 | excludedFolders | comma-separated values |
+| includedReminderLists | comma-separated values |
 | showFolderName | true / false |
 | includeTaskContext | true / false |
 | rescheduleNotMove | true / false |

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-07-14 for v2.4.0.b50 by @jgclark
+// Last updated 2026-07-18 for v2.4.0.b52 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -87,6 +87,7 @@ export type TDashboardSettings = {
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use
   includedCalendarSections: string, // Note: Run through stringListOrArrayToArray() before use
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
+  includedReminderLists: string, // Note: Run through stringListOrArrayToArray() before use. Blank = NotePlan-enabled lists
   includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
   showFolderName: boolean,
   showScheduledDates: boolean,
