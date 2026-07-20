@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.19.4] - 2026-07-20 @jgclark
+- fix **/Move top-level tasks in Editor to heading** when called from the CommandBar when the heading argument was empty (incorrectly treated as a template invocation). Now uses the settings heading, or prompts with chooseHeading if that is also blank. (Closes #747; thanks to Ian Soper.)
+
 ## [1.19.3] - 2026-04-28 @jgclark
 - fix to '/Generate @repeats in recent notes' command, which could cause crashes (Editor and onAsyncThread incompatibility)
 

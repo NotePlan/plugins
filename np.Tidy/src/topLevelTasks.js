@@ -1,9 +1,9 @@
 // @flow
-// Last updated 2024-01-xx by @dwertheimer
+// Last updated 2027-07-20 by @CursorAI
 
 import pluginJson from '../plugin.json'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { showMessage } from '@helpers/userInput'
+import { chooseHeading, showMessage } from '@helpers/userInput'
 import { TASK_TYPES } from '@helpers/sorting'
 import { removeRepeats } from '@helpers/dateTime'
 // import { getParagraphParentsOnly, removeParentsWhoAreChildren, type ParentParagraphs } from '@helpers/parentsAndChildren'
@@ -11,10 +11,6 @@ import { removeRepeats } from '@helpers/dateTime'
 /**
  * Move top-level tasks to heading
  * Plugin entrypoint for command: "/Move top-level tasks to heading"
- * Arguments:
- *      "Heading name to place the tasks under (will be created if doesn't exist)", 
-        "Run silently (e.g. in a template). Default is false."
-        "Return the content of the note as text, rather than inserting under a heading (e.g. for template use)"
  * @author @dwertheimer
  * @param {string} headingName - Name of heading to place the tasks under (will be created if doesn't exist)
  * @param {boolean} runSilently - Run silently (e.g. in a template). Default is false.
@@ -24,23 +20,24 @@ import { removeRepeats } from '@helpers/dateTime'
  */
 export async function moveTopLevelTasksInEditor(
   headingName: string | null = null,
-  _runSilently: boolean = false,
-  _returnContentAsText: boolean = false,
-  _isTemplate: boolean | string = false,
+  runSilentlyArg: boolean = false,
+  returnContentAsTextArg: boolean = false,
+  isTemplateArg: boolean | string = false,
 ): Promise<string> {
-  const runSilently = typeof _runSilently === 'boolean' ? _runSilently : /true/i.test(_runSilently) || false
-  const returnContentAsText = typeof _returnContentAsText === 'boolean' ? _returnContentAsText : /true/i.test(_returnContentAsText) || false
-  const headingNameIsEmpty = !headingName || headingName.trim() === ''
+  const runSilently = typeof runSilentlyArg === 'boolean' ? runSilentlyArg : /true/i.test(runSilentlyArg) || false
+  const returnContentAsText = typeof returnContentAsTextArg === 'boolean' ? returnContentAsTextArg : /true/i.test(returnContentAsTextArg) || false
+  const isTemplate = typeof isTemplateArg === 'boolean' ? isTemplateArg : /true/i.test(String(isTemplateArg)) || false
 
   try {
     logDebug(
       pluginJson,
       `moveTopLevelTasksInEditor running with headingName: ${String(headingName)}, runSilently: ${String(runSilently)} returnContentAsText: ${String(
         returnContentAsText,
-      )} (typeof returnContentAsText: ${typeof returnContentAsText})`,
+      )} isTemplate: ${String(isTemplate)} (typeof returnContentAsText: ${typeof returnContentAsText})`,
     )
-    if (headingNameIsEmpty && !returnContentAsText) {
-      const msg = `It appears you are running the moveTopLevelTasksInEditor from a template tag. When invoked this way, you must set the final argument (returnContentAsText) to true to return the content to be moved as text to output the results. Otherwise, concurrent edits by the templating engine could cause unexpected results. See the README for more information. Skipping this function.`
+    // Template runs must return content as text to avoid concurrent edits with the templating engine
+    if (isTemplate && !returnContentAsText) {
+      const msg = `It appears you are running the moveTopLevelTasksInEditor from a template tag. When invoked this way, you must set the returnContentAsText argument to true to return the content to be moved as text to output the results. Otherwise, concurrent edits by the templating engine could cause unexpected results. See the README for more information. Skipping this function.`
       logError(pluginJson, msg)
       return ''
     }
@@ -65,16 +62,25 @@ export async function moveTopLevelTasksInEditor(
 export async function moveTopLevelTasksInNote(
   note: CoreNoteFields,
   headingName: string | null = null,
-  _runSilently: boolean = false,
-  _returnContentAsText?: boolean = false,
+  runSilentlyArg: boolean = false,
+  returnContentAsTextArg?: boolean = false,
 ): Promise<string> {
-  const runSilently = typeof _runSilently === 'boolean' ? _runSilently : /true/i.test(_runSilently) || false
-  const returnContentAsText = typeof _returnContentAsText === 'boolean' ? _returnContentAsText : /true/i.test(_returnContentAsText) || false
+  const runSilently = typeof runSilentlyArg === 'boolean' ? runSilentlyArg : /true/i.test(runSilentlyArg) || false
+  const returnContentAsText = typeof returnContentAsTextArg === 'boolean' ? returnContentAsTextArg : /true/i.test(returnContentAsTextArg) || false
   try {
-    const heading = getHeadingName(headingName) // get heading from arguments or default
+    let heading = getHeadingName(headingName) // get heading from arguments or settings
     const topLevelTasks = getTopLevelTasks(note) // get top-level paras that are tasks
     logDebug(pluginJson, `moveTopLevelTasks: Found ${topLevelTasks.length} tasks without heading`)
     if (topLevelTasks.length) {
+      // When not returning as text and no heading from arg/settings, prompt the user
+      if (!returnContentAsText && !heading) {
+        heading = await chooseHeading(note, true, true, true)
+        if (!heading) {
+          logError(pluginJson, 'moveTopLevelTasks: No heading chosen. Exiting.')
+          runSilently ? null : await showMessage('No heading chosen. Exiting.')
+          return ''
+        }
+      }
       const result = processTopLevelTasks(note, topLevelTasks, heading, returnContentAsText)
       logDebug(pluginJson, `moveTopLevelTasks: Finished processing. result=[${result.toString()}]`)
       return returnContentAsText ? result.join('\n') : ''

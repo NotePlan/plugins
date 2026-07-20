@@ -7,6 +7,7 @@ import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note b
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, Note, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 import * as NPParagraph from '@helpers/NPParagraph'
 import * as ParentsAndChildren from '@helpers/ParentsAndChildren'
+import * as userInput from '@helpers/userInput'
 
 const PLUGIN_NAME = `np.Tidy`
 const FILENAME = `topLevelTasks.js`
@@ -317,16 +318,54 @@ describe(`${PLUGIN_NAME}`, () => {
      * moveTopLevelTasksInEditor()
      */
     describe('moveTopLevelTasksInEditor()' /* function */, () => {
-      test('should not do anything if heading name is empty and returnContentAsText is not true', async () => {
-        // use globalNote defined in beforeAll
+      afterEach(() => {
+        jest.restoreAllMocks()
+        delete DataStore.settings.moveTopLevelTasksHeading
+      })
+
+      test('should skip when isTemplate is true and returnContentAsText is false', async () => {
         Editor.paragraphs = globalNote.paragraphs
         Editor.note = globalNote
-        // test the return-as-string version
-        const result = await f.moveTopLevelTasksInEditor('', true, false)
-        // expect result to be a string
-        expect(result).toEqual(expect.any(String))
+        const paraCountBefore = Editor.paragraphs.length
+        const result = await f.moveTopLevelTasksInEditor('', true, false, true)
+        expect(result).toEqual('')
+        // Early exit before any moves - paragraph count unchanged
+        expect(Editor.paragraphs.length).toEqual(paraCountBefore)
+      })
+
+      test('should proceed with settings heading when CommandBar heading arg is empty (not a template)', async () => {
+        Editor.paragraphs = [...globalNote.paragraphs]
+        Editor.note = globalNote
+        DataStore.settings.moveTopLevelTasksHeading = 'Tasks'
+        const chooseHeadingSpy = jest.spyOn(userInput, 'chooseHeading')
+        const addSpy = jest.spyOn(Editor, 'addParagraphBelowHeadingTitle').mockImplementation(() => {})
+        const result = await f.moveTopLevelTasksInEditor(null, true, false, false)
+        // Moving in-place returns empty string; important is that we did not early-exit as template
+        expect(result).toEqual('')
+        expect(chooseHeadingSpy).not.toHaveBeenCalled()
+        expect(addSpy).toHaveBeenCalled()
+      })
+
+      test('should prompt with chooseHeading when arg and settings heading are both empty', async () => {
+        Editor.paragraphs = globalNote.paragraphs
+        Editor.note = globalNote
+        DataStore.settings.moveTopLevelTasksHeading = ''
+        const chooseHeadingSpy = jest.spyOn(userInput, 'chooseHeading').mockResolvedValue('Chosen Heading')
+        const result = await f.moveTopLevelTasksInNote(Editor, '', true, false)
+        expect(chooseHeadingSpy).toHaveBeenCalled()
         expect(result).toEqual('')
       })
+
+      test('should exit cleanly when chooseHeading is cancelled', async () => {
+        Editor.paragraphs = globalNote.paragraphs
+        Editor.note = globalNote
+        DataStore.settings.moveTopLevelTasksHeading = ''
+        jest.spyOn(userInput, 'chooseHeading').mockResolvedValue('')
+        jest.spyOn(userInput, 'showMessage').mockResolvedValue()
+        const result = await f.moveTopLevelTasksInNote(Editor, null, false, false)
+        expect(result).toEqual('')
+      })
+
       test('should return tasks as string (entrypoint integration test)', async () => {
         // use globalNote defined in beforeAll
         Editor.paragraphs = globalNote.paragraphs
