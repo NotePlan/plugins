@@ -106,7 +106,6 @@ export type TSettingItem = {
   description?: string,
   handleDescriptionItself?: boolean, // if true, then the description is handled by the item itself (e.g. for teamspace-multiselect)
   default?: any,
-  refreshAllOnChange?: boolean,
   compactDisplay?: boolean,
   dependsOnKey?: string, // DEPRECATED: use requiresKey instead. Only show/allow this field if the field named in requiresKey is true (prerequisite for visibility/editability)
   requiresKey?: string, // Prerequisite: only show/allow this field if the field named in requiresKey is true/has a value (for visibility/editability)

@@ -9,7 +9,6 @@ import {
 } from '../../reducers/actionTypes'
 import { allSectionDetails } from '../../../constants.js'
 import type { TDashboardSettings, TSectionCode, TPerspectiveSettings } from '../../../types.js'
-import { dashboardFilterDefs } from '../../../dashboardSettings'
 // import { getActivePerspectiveName } from '../../../perspectiveHelpers.js'
 import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
 /**
@@ -57,7 +56,6 @@ export const handleSwitchChange = (
       }
 
       const isSection = key.startsWith('show') && key.endsWith('Section')
-      const isTagSection = key.startsWith('showTagSection_')
       const isChecked = e?.target?.checked || false
 
       logDebug('handleSwitchChange', `isSection: ${String(isSection)}, isChecked: ${isChecked}`)
@@ -81,16 +79,6 @@ export const handleSwitchChange = (
           // Do not also call refreshSomeSections here -- that would double-refresh when the settings save completes.
           const sectionCode = allSectionDetails.find((s) => s.showSettingName === key)?.sectionCode ?? null
           logDebug('handleSwitchChange', `${key} turned on (section ${sectionCode || '<not set>'}); section refresh deferred to settings-save bridge path`)
-        }
-        if (!isSection || isTagSection) {
-          const refreshAllOnChange = dashboardFilterDefs.find((s) => s.key === key)?.refreshAllOnChange
-          if (isTagSection || refreshAllOnChange) {
-            // Same as above: plugin settings-save path owns refresh (REFRESH_ALL_ENABLED_SECTIONS when content-affecting).
-            const logMessage = isTagSection
-              ? `Tag section ${key} turned on; refresh deferred to settings-save bridge path`
-              : `Setting ${key} refreshAllOnChange; refresh deferred to settings-save bridge path`
-            logDebug('handleSwitchChange', logMessage)
-          }
         }
       } else {
         logDebug('handleSwitchChange', `No changes detected for key: ${key}. Current value: ${dashboardSettings[key]}, new value: ${isChecked}`)
