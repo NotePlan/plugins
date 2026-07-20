@@ -78,7 +78,8 @@ function simulateProcessDateOffsets(
       if (dateOffsetString !== '' && currentTargetDate !== '') {
         const calcDate = calcDateForOffset(dateOffsetString, currentTargetDate, lastCalcDate)
         lastCalcDate = calcDate
-        outputLines[n] = content.replace(`{${dateOffsetString}}`, ` >${calcDate} `).trimEnd()
+        // Replace offset, collapse leftover double spaces (from " {offset}" -> " >date "), then trim trailing whitespace
+        outputLines[n] = content.replace(`{${dateOffsetString}}`, ` >${calcDate} `).replace(/(\S) {2,}/g, '$1 ').trimEnd()
       }
     }
   }
