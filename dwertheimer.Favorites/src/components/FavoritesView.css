@@ -90,6 +90,41 @@
   font-weight: 600;
 }
 
+.favorites-group-toggle-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--divider-color);
+  background: var(--bg-main-color);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--fg-placeholder-color);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.favorites-group-toggle-button:hover {
+  background: var(--bg-mid-color);
+  color: var(--fg-main-color);
+}
+
+.favorites-group-toggle-button-active {
+  background: var(--tint-color);
+  border-color: var(--tint-color);
+  color: var(--fg-main-color);
+}
+
+.favorites-group-toggle-button-active:hover {
+  background: var(--tint-color);
+}
+
+.favorites-group-toggle-icon {
+  font-size: 0.875rem;
+  width: 14px;
+  text-align: center;
+}
+
 .favorites-new-button {
   display: flex;
   align-items: center;
@@ -179,11 +214,54 @@
   white-space: nowrap;
 }
 
+/* Folder group header row */
+.favorites-item-folder-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--fg-placeholder-color);
+}
+
+.favorites-folder-header-icon {
+  flex-shrink: 0;
+  width: 12px;
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.favorites-folder-header-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Folder headers are informational only - not selectable/clickable rows */
+.list-item:has(.favorites-item-folder-header) {
+  cursor: default;
+  background: transparent !important;
+  border-color: transparent !important;
+  pointer-events: none;
+  margin-top: 0.5rem;
+}
+
+.list-item:has(.favorites-item-folder-header):first-child {
+  margin-top: 0.125rem;
+}
+
 /* Unfavorite icon styling */
 .favorites-item-note .favorites-unfavorite-icon {
   margin-left: auto;
   margin-right: 0.25rem;
   flex-shrink: 0;
+  /* Override InfoIcon's default `top: -0.5em` offset, which clips the icon against
+     the overflow:hidden list-item-content wrapper in this tightly-padded list row */
+  top: 0;
 }
 
 /* Styles for Add Favorite Note Dialog with Markdown Preview */
