@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-07-20 for v2.4.0.b52 by @CursorAI
+// Last updated 2026-07-21 for v2.4.0.b53 by @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -21,6 +21,7 @@ import type {
   TDashboardSettings,
   TDashboardLoggingConfig,
   TItemType,
+  TLinkedNoteIconInfo,
   TNotePlanSettings,
   TParagraphForDashboard,
   TSection,
@@ -34,9 +35,14 @@ import {
   getTimeStringFromHM,
   getTodaysDateHyphenated,
   includesScheduledFutureDate,
+  isDailyDateStr,
+  isMonthlyDateStr,
+  isQuarterlyDateStr,
+  isWeeklyDateStr,
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
 } from '@helpers/dateTime'
+import { findNoteLinksForDisplay } from '@helpers/HTMLView'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
@@ -887,6 +893,85 @@ function getChildrenFromPara(para: TParagraph): Array<TParagraph> {
 }
 
 /**
+ * Read frontmatter icon / icon-color from a note (same fields as source-note icons on dashboard paras).
+ * @param {TNote} note
+ * @returns {TLinkedNoteIconInfo}
+ */
+function getLinkedNoteIconInfoFromNote(note: TNote): TLinkedNoteIconInfo {
+  const info: TLinkedNoteIconInfo = { filename: note.filename }
+  try {
+    const FMAttributes: { [key: string]: string } = getFrontmatterAttributes(note)
+    const iconValue = FMAttributes['icon']
+    if (iconValue) {
+      info.icon = String(iconValue)
+    }
+    const iconColorValue = FMAttributes['icon-color']
+    if (iconColorValue) {
+      info.iconColor = String(iconColorValue)
+    }
+  } catch (error) {
+    // If frontmatter parsing fails, keep filename only
+  }
+  return info
+}
+
+/**
+ * Resolve a wiki-link title (without #heading) to a note, if it exists.
+ * @param {string} title
+ * @returns {?TNote}
+ */
+function resolveNoteByNoteLinkTitle(title: string): ?TNote {
+  if (
+    isDailyDateStr(title) ||
+    isWeeklyDateStr(title) ||
+    isMonthlyDateStr(title) ||
+    isQuarterlyDateStr(title)
+  ) {
+    return DataStore.calendarNoteByDateString(title) ?? null
+  }
+  const notes = DataStore.projectNoteByTitle(title, true, false)
+  return notes && notes.length > 0 ? notes[0] : null
+}
+
+/**
+ * Build a title → icon map for [[wiki links]] in content. Uses refresh-scoped cache to avoid repeat DataStore hits.
+ * @param {string} content
+ * @param {Map<string, TLinkedNoteIconInfo>} cache
+ * @returns {{ [string]: TLinkedNoteIconInfo } | void}
+ */
+function buildLinkedNoteIconsForContent(
+  content: string,
+  cache: Map<string, TLinkedNoteIconInfo>,
+): { [string]: TLinkedNoteIconInfo } | void {
+  if (!content.includes('[[')) {
+    return undefined
+  }
+  const noteLinks = findNoteLinksForDisplay(content)
+  if (noteLinks.length === 0) {
+    return undefined
+  }
+  const linkedNoteIcons: { [string]: TLinkedNoteIconInfo } = {}
+  for (const noteLink of noteLinks) {
+    const titleKey = noteLink.noteTitleInner.split('#')[0]
+    if (!titleKey || linkedNoteIcons[titleKey]) {
+      continue
+    }
+    const cached = cache.get(titleKey)
+    if (cached) {
+      linkedNoteIcons[titleKey] = cached
+      continue
+    }
+    const linkedNote = resolveNoteByNoteLinkTitle(titleKey)
+    const info: TLinkedNoteIconInfo = linkedNote
+      ? getLinkedNoteIconInfoFromNote(linkedNote)
+      : {}
+    cache.set(titleKey, info)
+    linkedNoteIcons[titleKey] = info
+  }
+  return Object.keys(linkedNoteIcons).length > 0 ? linkedNoteIcons : undefined
+}
+
+/**
  * Return an optimised set of fields based on each paragraph (plus filename + computed priority + title - many).
  * Note: can range from 7-70ms/para in JGC tests.
  *
@@ -896,6 +981,8 @@ function getChildrenFromPara(para: TParagraph): Array<TParagraph> {
 export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorityDelta: boolean = true): Array<TParagraphForDashboard> {
   try {
     const timer = new Date()
+    // Refresh-scoped cache so duplicate wiki-link titles across paras only hit DataStore once
+    const linkedNoteIconCache: Map<string, TLinkedNoteIconInfo> = new Map()
 
     const dashboardParas: Array<TParagraphForDashboard> = origParas.reduce((acc: Array<TParagraphForDashboard>, p: TParagraph) => {
       if (!p) {
@@ -958,6 +1045,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
           endTime && Number.isFinite(endTime.hours) && Number.isFinite(endTime.mins) ? getTimeStringFromHM(endTime.hours, endTime.mins) : undefined
         // Get title, but don't add the 👥 icon and teamspace name for Teamspace notes. Fallback is to use the note.title, which will be ISO-8601 date for Calendar notes.
         const noteTitle = note.type === 'Notes' ? displayTitle(note, false) : note.title
+        const linkedNoteIcons = buildLinkedNoteIconsForContent(p.content, linkedNoteIconCache)
         const outputPara: TParagraphForDashboard = {
           filename: p?.filename ?? '',
           noteType: p?.noteType ?? note?.type ?? 'Notes',
@@ -978,6 +1066,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
           isTeamspace: note.isTeamspaceNote,
           icon: noteIcon,
           iconColor: noteIconColor,
+          ...(linkedNoteIcons ? { linkedNoteIcons } : {}),
         }
         if (p.content.includes('TEST')) {
           logInfo('makeDashboardParas', `👉👉👉 ${JSP(outputPara)}`)

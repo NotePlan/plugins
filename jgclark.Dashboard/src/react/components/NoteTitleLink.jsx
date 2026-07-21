@@ -8,9 +8,8 @@
 
 import React, { useCallback } from 'react'
 import type { TSectionItem, TParagraphForDashboard, TProjectForDashboard } from '../../types.js'
+import { getNoteIconDisplayProps } from '../../noteIconDisplay.js'
 import { useAppContext } from './AppContext.jsx'
-import { tailwindToHsl } from '@helpers/colors'
-import { isDailyDateStr, isWeeklyDateStr, isMonthlyDateStr, isQuarterlyDateStr } from '@helpers/dateTime'
 import { logDebug, logInfo } from '@helpers/dev'
 import { getNoteLinkDisplayText } from '@helpers/HTMLView'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
@@ -50,24 +49,14 @@ function NoteTitleLink({
   const noteTitle = noteData.title ?? ''
   const noteTitleForDisplay = getNoteLinkDisplayText(noteTitle)
 
-  // Compute icon: use frontmatter icon if present, otherwise use default logic
-  const noteIconToUse = noteData.icon
-    ? `fa-light fa-fw fa-${noteData.icon}`
-    : defaultIcon ?? (isDailyDateStr(filename)
-      ? 'fa-light fa-fw fa-calendar-star'
-    : isWeeklyDateStr(filename)
-        ? 'fa-light fa-fw fa-calendar-week'
-    : isMonthlyDateStr(filename)
-          ? 'fa-light fa-fw fa-calendar-days'
-    : isQuarterlyDateStr(filename)
-            ? 'fa-light fa-fw fa-calendar-range'
-            : 'fa-light fa-fw fa-file-lines')
+  const { iconClassName: noteIconToUse, iconStyle } = getNoteIconDisplayProps({
+    icon: noteData.icon,
+    iconColor: noteData.iconColor,
+    filenameOrTitle: filename,
+    defaultIcon,
+  })
 
-  // Get icon-color from frontmatter if present
-  const possIconTailwindColor = noteData.iconColor
-  const possNoteIconColor = possIconTailwindColor != null && possIconTailwindColor !== '' ? tailwindToHsl(possIconTailwindColor) : ''
-
-  // logInfo('NoteTitleLink', `filename=${filename} noteTitle=${noteTitle} noteIconToUse=${noteIconToUse} possNoteIconColor=${possNoteIconColor} actionType=${actionType} filename=${filename} noteTitle=${noteTitle} `)
+  // logInfo('NoteTitleLink', `filename=${filename} noteTitle=${noteTitle} noteIconToUse=${noteIconToUse} actionType=${actionType}`)
 
   // ------ HANDLERS ----------------------------------------
 
@@ -102,7 +91,7 @@ function NoteTitleLink({
 
   return (
     <a className="noteTitle" onClick={handleLinkClick}>
-      <i className={`${iconClassName} ${noteIconToUse}`} style={{ color: possNoteIconColor ?? '' }}></i>
+      <i className={`${iconClassName} ${noteIconToUse}`} style={iconStyle}></i>
       {noteTitleForDisplay}
     </a>
   )

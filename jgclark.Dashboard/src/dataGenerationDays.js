@@ -148,7 +148,7 @@ export function getTodaySectionData(
       actionName: 'moveAllTodayToTomorrow',
       actionParam: 'true' /* refresh afterwards */,
       actionPluginID: `${pluginJson['plugin.id']}`,
-      display: 'All <i class="fa-solid fa-right-long"></i> Tomorrow',
+      display: 'All <i class="fa-regular fa-right-long"></i> Tomorrow',
       tooltip: config.rescheduleNotMove
         ? '(Re)Schedule all open items from today to tomorrow. (Press ⌘-click to move instead.)'
         : 'Move all open items from today to tomorrow. (Press ⌘-click to (re)schedule instead.)',
@@ -464,7 +464,7 @@ export function getYesterdaySectionData(
           tooltip: config.rescheduleNotMove
             ? '(Re)Schedule all open items from yesterday to today. (Press ⌘-click to move instead.)'
             : 'Move all open items from yesterday to today. (Press ⌘-click to (re)schedule instead.)',
-          display: 'All <i class="fa-solid fa-right-long"></i> Today',
+          display: 'All <i class="fa-regular fa-right-long"></i> Today',
           actionParam: 'true' /* refresh afterwards */,
           postActionRefresh: ['DT', 'DY'], // refresh 2 sections afterwards
         },

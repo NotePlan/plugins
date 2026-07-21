@@ -5,7 +5,8 @@
 // Last updated 2026-07-21 for v2.4.0.b53 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 
-import type { TDashboardSettings, TSectionItem } from '../types.js'
+import type { TDashboardSettings, TLinkedNoteIconInfo, TSectionItem } from '../types.js'
+import { getNoteIconDisplayProps } from '../noteIconDisplay.js'
 import { replaceArrowDatesInString } from '@helpers/dateTime'
 import { logError } from '@helpers/react/reactDev.js'
 import {
@@ -39,6 +40,7 @@ export type TDashboardLineDisplayOptions = {
   endTime?: string,
   timeblockTextMustContainString?: string,
   noteTitle?: string,
+  linkedNoteIcons?: { [string]: TLinkedNoteIconInfo },
 }
 
 /**
@@ -70,13 +72,26 @@ export function applyDashboardSettingsToDisplayedItemHtml(mainContent: string, d
  * @param {string} noteTitle - full wiki inner title used for open (may include #heading)
  * @param {string} folderNamePart
  * @param {string} displayText - visible label (may be aliased / truncated)
+ * @param {?TLinkedNoteIconInfo} linkedIconInfo - optional FM icon for the linked note
  * @returns {string}
  */
-function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNamePart: string, displayText: string = noteTitle): string {
+function makeNoteTitleWithOpenActionFromTitle(
+  noteTitle: string,
+  folderNamePart: string,
+  displayText: string = noteTitle,
+  linkedIconInfo: ?TLinkedNoteIconInfo = null,
+): string {
   try {
+    const titleKey = noteTitle.split('#')[0]
+    const { iconClassName, iconStyleAttr } = getNoteIconDisplayProps({
+      icon: linkedIconInfo?.icon,
+      iconColor: linkedIconInfo?.iconColor,
+      filenameOrTitle: linkedIconInfo?.filename ?? titleKey,
+    })
+    const styleAttr = iconStyleAttr ? ` style="${iconStyleAttr}"` : ''
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', actionType:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(
       noteTitle,
-    )}'})"><i class="fa-regular fa-file-lines"></i> ${folderNamePart}${displayText}</a>`
+    )}'})"><i class="${iconClassName}"${styleAttr}></i> ${folderNamePart}${displayText}</a>`
   } catch (error) {
     logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)
     return '(makeNoteTitle... error)'
@@ -96,6 +111,7 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
   const endTime = options?.endTime
   const timeblockTextMustContainString = options?.timeblockTextMustContainString ?? ''
   const noteTitle = options?.noteTitle ?? ''
+  const linkedNoteIcons = options?.linkedNoteIcons
 
   try {
     if (content == null || content === '') {
@@ -122,7 +138,14 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
     // Note links (including [alias]([[title]])) before markdown-link conversion so aliases are not treated as external URLs
     const noteLinks = findNoteLinksForDisplay(output)
     for (const noteLink of noteLinks) {
-      const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromTitle(noteLink.noteTitleInner, '', noteLink.displayText)
+      const titleKey = noteLink.noteTitleInner.split('#')[0]
+      const linkedIconInfo = linkedNoteIcons ? linkedNoteIcons[titleKey] : null
+      const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromTitle(
+        noteLink.noteTitleInner,
+        '',
+        noteLink.displayText,
+        linkedIconInfo,
+      )
       output = `${output.slice(0, noteLink.startIndex)}</a>${noteTitleWithOpenAction}<a>${output.slice(noteLink.startIndex + noteLink.fullMatch.length)}`
     }
 
@@ -194,6 +217,7 @@ export function makeParaContentToLookLikeNPDisplayInReact(
       endTime: para.endTime,
       timeblockTextMustContainString,
       noteTitle: para.title ?? '',
+      linkedNoteIcons: para.linkedNoteIcons,
     })
   } catch (error) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, error.message)

@@ -111,6 +111,29 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
       expect(html).toContain(`encodedFilename:'${encodeURIComponent('Very Long Note Title#Section')}'`)
       expect(html).not.toContain('class="externalLink"')
     })
+
+    test('mid-task note link uses linkedNoteIcons frontmatter icon and color', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('See [[Acme Project]] today', {
+        truncateLength: 0,
+        taskPriority: 0,
+        linkedNoteIcons: {
+          'Acme Project': { icon: 'paintbrush', iconColor: 'yellow-600', filename: 'Projects/Acme.md' },
+        },
+      })
+      expect(html).toContain('fa-paintbrush')
+      expect(html).toMatch(/style="color: /)
+      expect(html).not.toContain('fa-file-lines')
+    })
+
+    test('mid-task note link defaults to file-lines when linkedNoteIcons missing', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('See [[Unknown Note]] today', { truncateLength: 0, taskPriority: 0 })
+      expect(html).toContain('fa-file-lines')
+    })
+
+    test('mid-task calendar note link uses calendar icon heuristic without linkedNoteIcons', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('See [[2026-07-21]] today', { truncateLength: 0, taskPriority: 0 })
+      expect(html).toContain('fa-calendar-star')
+    })
   })
 
   describe('applyDashboardSettingsToDisplayedItemHtml()', () => {

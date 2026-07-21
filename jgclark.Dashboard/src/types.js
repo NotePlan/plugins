@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-07-18 for v2.4.0.b52 by @jgclark + @CursorAI
+// Last updated 2026-07-21 for v2.4.0.b53 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -223,6 +223,13 @@ export type TNoteForDashboard = {
   iconColor?: string, // icon color from note's frontmatter 'icon-color' attribute, if present. Note: this is a tailwind color name, e.g. 'blue-500', not a CSS color name like 'blue' or '#0000FF'
 }
 
+// Frontmatter icon info for a note linked from mid-task [[wiki links]]
+export type TLinkedNoteIconInfo = {
+  icon?: string,
+  iconColor?: string,
+  filename?: string,
+}
+
 // reduced paragraph definition
 export type TParagraphForDashboard = {
   ...TNoteForDashboard,
@@ -241,6 +248,8 @@ export type TParagraphForDashboard = {
   isAChild?: boolean, // whether it is a child item
   changedDate?: Date, // required for sorting items in display
   dueDate?: string, // ISO string of due date, or 'none', required for sorting items in display
+  /** Icons for notes linked mid-content via [[title]] / [alias]([[title]]); keyed by title without #heading. */
+  linkedNoteIcons?: { [string]: TLinkedNoteIconInfo },
 }
 
 // a reminder item within a section, from v2.5.0

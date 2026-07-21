@@ -114,7 +114,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
       tooltip: config.rescheduleNotMove
         ? '(Re)Schedule all open items from this week to next week. (Press ⌘-click to move instead.)'
         : 'Move all open items from this week to next week. (Press ⌘-click to (re)schedule instead.)',
-      display: 'All <i class="fa-solid fa-right-long"></i> Next Week',
+      display: 'All <i class="fa-regular fa-right-long"></i> Next Week',
       actionParam: 'true' /* refresh afterwards */,
       postActionRefresh: ['W'], // refresh the week section afterwards
     })
@@ -247,7 +247,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
           tooltip: config.rescheduleNotMove
             ? '(Re)Schedule all open items from last week to this week. (Press ⌘-click to move instead.)'
             : 'Move all open items from last week to this week. (Press ⌘-click to (re)schedule instead.)',
-          display: 'All <i class="fa-solid fa-right-long"></i> This Week',
+          display: 'All <i class="fa-regular fa-right-long"></i> This Week',
           actionParam: 'true', // refresh afterwards
           postActionRefresh: ['LW', 'W'], // refresh the week section afterwards
         },

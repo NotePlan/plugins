@@ -168,7 +168,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
           actionName: 'scheduleAllOverdueToday',
           actionPluginID: `${pluginJson['plugin.id']}`,
           tooltip: 'Schedule all Overdue tasks to Today',
-          display: 'All Overdue <i class="fa-solid fa-right-long"></i> Today',
+          display: 'All Overdue <i class="fa-regular fa-right-long"></i> Today',
           actionParam: '',
           postActionRefresh: ['OVERDUE'],
         },
