@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2026-05-06 for v2.4.0.b32 by @jgclark */
+/* Last updated 2026-07-21 for v2.4.0.b53 by @jgclark */
 
 /* ------------------------------------------------------------------ */
 html {
@@ -401,6 +401,9 @@ button,
 		cursor: pointer;
 		color: var(--tint-color);
 	}
+	.externalLinkIcon {
+		color: var(--fg-placeholder-color);
+	}
 
 	.event-link {
 		font-weight: 500;
@@ -447,7 +450,8 @@ button,
 		border-radius: 30%;
 		padding: 0px 4px;
 		vertical-align: middle;
-		transform: scale(1.25,0.9);
+		/* TEST: to improve the look of this icon. Not sure why it now loooks strange without it */
+		/* transform: scale(1.25,0.9); */
 	}
 
 	/* Progress row: button then latest summary to the right */

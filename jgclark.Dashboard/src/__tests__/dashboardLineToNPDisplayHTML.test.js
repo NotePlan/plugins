@@ -95,6 +95,22 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
       expect(html).not.toContain('class="timeBlock')
       expect(html).toContain('Ordinary task with 10:00 in text')
     })
+
+    test('inline note link drops #heading and truncates long titles in display text', () => {
+      const longTitle = 'A'.repeat(60)
+      const html = makeStringContentToLookLikeNPDisplayInReact(`See [[${longTitle}#Heading]] today`, { truncateLength: 0, taskPriority: 0 })
+      expect(html).toContain(`${'A'.repeat(50)}…`)
+      expect(html).not.toContain('#Heading')
+      expect(html).toContain(`encodedFilename:'${encodeURIComponent(`${longTitle}#Heading`)}'`)
+    })
+
+    test('aliased note link uses alias as display text and keeps full title for open', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('See [short]([[Very Long Note Title#Section]]) today', { truncateLength: 0, taskPriority: 0 })
+      expect(html).toContain('short</a>')
+      expect(html).not.toContain('Very Long Note Title#Section</a>')
+      expect(html).toContain(`encodedFilename:'${encodeURIComponent('Very Long Note Title#Section')}'`)
+      expect(html).not.toContain('class="externalLink"')
+    })
   })
 
   describe('applyDashboardSettingsToDisplayedItemHtml()', () => {

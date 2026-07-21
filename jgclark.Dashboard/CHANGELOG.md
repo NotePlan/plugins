@@ -10,6 +10,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 -->
 ## [2.4.0.b53] 2026-07-21
 - Fix to layout that was pushing the notelinks down to a third line in some cases
+- Change: mid-task and source note links now show a shorter label -- use NotePlan `[alias]([[title]])` when present, drop `#heading`, and truncate titles over 50 characters with `…`
 
 ## [2.4.0.b52] 2026-07-20
 - Change: **Calendar note terms to include** (was "Calendar note Sections to Include") now also matches task content, not only heading prefixes. Set a Perspective to `acme` or `#acme` to focus calendar and Overdue on that context without a new setting. When this is set and Hide Duplicates is on, matching items stay in calendar / Overdue sections rather than only in a TAG section. (Addresses #727 for @dwertheimer)

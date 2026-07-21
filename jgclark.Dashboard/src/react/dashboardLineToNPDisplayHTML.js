@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Shared: turn a raw task line string into HTML matching NotePlan-style display
 // (hashtags, mentions, links, etc.) for TaskItem (via ItemContent) and ProjectItem.
-// Last updated 2026-07-13 for v2.4.0.b49 by @jgclark/@Cursor
+// Last updated 2026-07-21 for v2.4.0.b53 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 
 import type { TDashboardSettings, TSectionItem } from '../types.js'
@@ -25,6 +25,7 @@ import {
   convertPreformattedToHTML,
   convertStrikethroughToHTML,
   convertUnderlinedToHTML,
+  findNoteLinksForDisplay,
   simplifyInlineImagesForHTML,
   simplifyNPEventLinksForHTML,
 } from '@helpers/HTMLView'
@@ -66,15 +67,16 @@ export function applyDashboardSettingsToDisplayedItemHtml(mainContent: string, d
 
 /**
  * Wrap string with onClick to show note in editor, using noteTitle param.
- * @param {string} noteTitle
+ * @param {string} noteTitle - full wiki inner title used for open (may include #heading)
  * @param {string} folderNamePart
+ * @param {string} displayText - visible label (may be aliased / truncated)
  * @returns {string}
  */
-function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNamePart: string): string {
+function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNamePart: string, displayText: string = noteTitle): string {
   try {
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', actionType:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(
       noteTitle,
-    )}'})"><i class="fa-regular fa-file-lines pad-right"></i> ${folderNamePart}${noteTitle}</a>`
+    )}'})"><i class="fa-regular fa-file-lines"></i> ${folderNamePart}${displayText}</a>`
   } catch (error) {
     logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)
     return '(makeNoteTitle... error)'
@@ -116,6 +118,14 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
 
     output = simplifyNPEventLinksForHTML(output)
     output = simplifyInlineImagesForHTML(output)
+
+    // Note links (including [alias]([[title]])) before markdown-link conversion so aliases are not treated as external URLs
+    const noteLinks = findNoteLinksForDisplay(output)
+    for (const noteLink of noteLinks) {
+      const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromTitle(noteLink.noteTitleInner, '', noteLink.displayText)
+      output = `${output.slice(0, noteLink.startIndex)}</a>${noteTitleWithOpenAction}<a>${output.slice(noteLink.startIndex + noteLink.fullMatch.length)}`
+    }
+
     output = changeMarkdownLinksToHTMLLink(output)
     output = changeBareLinksToHTMLLink(output, true, truncateLength)
     output = convertHashtagsToHTML(output)
@@ -136,7 +146,7 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
     output = convertBoldAndItalicToHTML(output)
     output = convertUnderlinedToHTML(output)
 
-    let captures = output.match(RE_SCHEDULED_DATES_G)
+    const captures = output.match(RE_SCHEDULED_DATES_G)
     if (captures) {
       for (const capture of captures) {
         // Lozenge like .timeBlock: calendar icon + date text (without leading '>')
@@ -147,14 +157,6 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
 
     if (truncateLength > 0 && origContent.length > truncateLength) {
       output = truncateHTML(output, truncateLength, true)
-    }
-
-    captures = output.match(/\[\[(.*?)\]\]/)
-    if (captures) {
-      for (const capturedTitle of captures) {
-        const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromTitle(capturedTitle, '')
-        output = output.replace(`[[${capturedTitle}]]`, `</a>${noteTitleWithOpenAction}<a>`)
-      }
     }
 
     if (taskPriority > 0) {

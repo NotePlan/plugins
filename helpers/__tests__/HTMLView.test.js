@@ -297,7 +297,7 @@ describe('convertBoldAndItalicToHTML()' /* function */, () => {
       expect(result).toEqual(orig)
     })
     test('with long zoe link', () => {
-      const orig = 'Listen to <a class="externalLink" href="https:\/\/clicks\.zoe\.com\/f\/a\/ZUR-0srQ-voOYivE4-3Cbg~~\/AAAHahA~\/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~"><i class="fa-regular fa-globe pad-right"><\/i>Protein on a plant-based diet | Prof. Tim Spector and Dr. Rupy Aujla ~ ZOE</a>$'
+      const orig = 'Listen to <a class="externalLink" href="https:\/\/clicks\.zoe\.com\/f\/a\/ZUR-0srQ-voOYivE4-3Cbg~~\/AAAHahA~\/fH9o0ZGdoctxiA8NAti-k_kpEV5DfcBrJIeeam2Wljd6UlF32coJF72IbaXEqXuz2Rc3802HgSB89r9AF3WTETv_oTnTmiMO1PJUB6L0lyl4zgV0wIeqN-cN7UCKE-w9ae9gwDezk5Le3Ki1PnFnKakfEhdrxfgAgdX28SS8PyM~"><i class="fa-regular fa-globe externalLinkIcon"><\/i>Protein on a plant-based diet | Prof. Tim Spector and Dr. Rupy Aujla ~ ZOE</a>$'
       const result = h.convertUnderlinedToHTML(orig)
       expect(result).toEqual(orig)
     })
@@ -405,6 +405,68 @@ describe('convertMentionsToHTML()' /* function */, () => {
     const expected = 'foo <span class="attag">@bar</span> <span class="attag">@baz</span> and <span class="attag">@nothing</span> else'
     const result = h.convertMentionsToHTML(orig)
     expect(result).toEqual(expected)
+  })
+})
+
+describe('getNoteLinkDisplayText()', () => {
+  test('returns plain title unchanged when short', () => {
+    expect(h.getNoteLinkDisplayText('Foo')).toEqual('Foo')
+  })
+  test('uses alias instead of title', () => {
+    expect(h.getNoteLinkDisplayText('Very Long Note Title#Heading', 'short')).toEqual('short')
+  })
+  test('drops #heading when no alias', () => {
+    expect(h.getNoteLinkDisplayText('Acme Project#Timeline')).toEqual('Acme Project')
+  })
+  test('truncates titles longer than 50 with …', () => {
+    const long = 'A'.repeat(60)
+    expect(h.getNoteLinkDisplayText(long)).toEqual(`${'A'.repeat(50)}…`)
+  })
+  test('truncates alias longer than 50 with …', () => {
+    const longAlias = 'B'.repeat(55)
+    expect(h.getNoteLinkDisplayText('Title#H', longAlias)).toEqual(`${'B'.repeat(50)}…`)
+  })
+  test('drops heading then truncates', () => {
+    const long = `${'C'.repeat(60)}#Heading`
+    expect(h.getNoteLinkDisplayText(long)).toEqual(`${'C'.repeat(50)}…`)
+  })
+})
+
+describe('findNoteLinksForDisplay()', () => {
+  test('returns empty array when no note links', () => {
+    expect(h.findNoteLinksForDisplay('no links here')).toEqual([])
+  })
+  test('finds plain note link and strips heading in displayText', () => {
+    const results = h.findNoteLinksForDisplay('See [[Acme Project#Timeline]] today')
+    expect(results).toHaveLength(1)
+    expect(results[0].noteTitleInner).toEqual('Acme Project#Timeline')
+    expect(results[0].displayText).toEqual('Acme Project')
+    expect(results[0].alias).toEqual('')
+  })
+  test('finds aliased note link and prefers alias for displayText', () => {
+    const results = h.findNoteLinksForDisplay('See [short]([[Very Long Title#Section]]) today')
+    expect(results).toHaveLength(1)
+    expect(results[0].fullMatch).toEqual('[short]([[Very Long Title#Section]])')
+    expect(results[0].noteTitleInner).toEqual('Very Long Title#Section')
+    expect(results[0].alias).toEqual('short')
+    expect(results[0].displayText).toEqual('short')
+  })
+  test('does not also return the inner [[...]] of an aliased link', () => {
+    const results = h.findNoteLinksForDisplay('[a]([[Title]]) and [[Other]]')
+    expect(results).toHaveLength(2)
+    const displayTexts = results.map((r) => r.displayText).sort()
+    expect(displayTexts).toEqual(['Other', 'a'])
+  })
+  test('truncates long plain titles', () => {
+    const long = 'X'.repeat(60)
+    const results = h.findNoteLinksForDisplay(`[[${long}]]`)
+    expect(results[0].displayText).toEqual(`${'X'.repeat(50)}…`)
+  })
+  test('returns matches sorted by startIndex descending', () => {
+    const results = h.findNoteLinksForDisplay('[[First]] then [[Second]]')
+    expect(results[0].noteTitleInner).toEqual('Second')
+    expect(results[1].noteTitleInner).toEqual('First')
+    expect(results[0].startIndex).toBeGreaterThan(results[1].startIndex)
   })
 })
 

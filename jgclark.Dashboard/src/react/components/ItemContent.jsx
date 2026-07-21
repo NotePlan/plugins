@@ -96,7 +96,8 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
       {possParentIcon}
       {/* <span className="pad-left">[ID:{item.ID}]</span> */}
       <a className="dialogTriggerIcon">
-        <i className="fa-light fa-edit pad-right" onClick={handleClickToOpenEditDialog}></i>
+        {/* TEST: removed pad-right to improve right-aligned ItemNoteLinks */}
+        <i className="fa-light fa-edit" onClick={handleClickToOpenEditDialog}></i>
       </a>
       {showItemNoteLink && (
         <span className="itemNoteLinkEnd">

@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2026-01-09 by @jgclark
+// Last updated 2026-07-21 by @jgclark
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
 import { hasFrontMatter } from '@helpers/NPFrontMatter'
@@ -21,6 +21,17 @@ import { usersVersionHas } from '@helpers/NPVersions'
 const pluginJson = 'helpers/HTMLView'
 
 const defaultBorderWidth = 8 // in pixels
+
+/** Default max length for truncated note-link display text (before appending …). */
+export const NOTE_LINK_DISPLAY_MAX_LENGTH = 50
+
+export type TNoteLinkForDisplay = {
+  fullMatch: string,
+  noteTitleInner: string,
+  alias: string,
+  displayText: string,
+  startIndex: number,
+}
 
 // If reuseUsersWindowRect is true, then the window will be resized to the user's saved window rect. If this is not available, then use x/y/width/height if available, or failing that use paddingWidth/paddingHeight to fill the screen other than this padding.
 // (This is useful when we don't know user's screen dimensions.)
@@ -220,13 +231,10 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       // Display highlights with .highlight style
       line = convertHighlightsToHTML(line)
 
-      // Replace [[notelinks]] with just underlined notelink
-      const captures = line.match(/\[\[(.*?)\]\]/)
-      if (captures) {
-        // clo(captures, 'results from [[notelinks]] match:')
-        for (const capturedTitle of captures) {
-          line = line.replace(`[[${capturedTitle}]]`, `~${capturedTitle}~`)
-        }
+      // Replace [[notelinks]] (and [alias]([[title]]) forms) with underlined truncated display text
+      const noteLinks = findNoteLinksForDisplay(line)
+      for (const noteLink of noteLinks) {
+        line = `${line.slice(0, noteLink.startIndex)}~${noteLink.displayText}~${line.slice(noteLink.startIndex + noteLink.fullMatch.length)}`
       }
       // Display underlining with .underlined style
       line = convertUnderlinedToHTML(line)
@@ -934,6 +942,78 @@ export function convertBoldAndItalicToHTML(input: string): string {
   }
   // logDebug('convertBoldAndItalicToHTML', `-> ${output}`)
   return output
+}
+
+/**
+ * Compute display text for a NotePlan note link.
+ * Order: use alias if present; else drop `#heading` from title; then truncate over maxLength with ….
+ * NotePlan alias syntax is `[alias]([[wiki-link]])` (see help.noteplan.co/article/179-link-alias).
+ * @param {string} noteTitleInner - content inside [[...]], e.g. "Title#Heading"
+ * @param {string} alias - optional display alias from [alias]([[...]])
+ * @param {number} maxLength - max chars before appending … (default 50)
+ * @returns {string}
+ */
+export function getNoteLinkDisplayText(noteTitleInner: string, alias: string = '', maxLength: number = NOTE_LINK_DISPLAY_MAX_LENGTH): string {
+  const aliasTrimmed = alias.trim()
+  let text = aliasTrimmed !== '' ? aliasTrimmed : noteTitleInner.split('#')[0]
+  if (text.length > maxLength) {
+    text = `${text.slice(0, maxLength)}…`
+  }
+  return text
+}
+
+/**
+ * Find NotePlan note links in a string, including aliased form [alias]([[title]]).
+ * Plain [[...]] matches that sit inside an aliased match are skipped.
+ * Results are sorted by startIndex descending so callers can replace from the end safely.
+ * @param {string} input
+ * @param {number} maxLength - passed through to getNoteLinkDisplayText
+ * @returns {Array<TNoteLinkForDisplay>}
+ */
+export function findNoteLinksForDisplay(input: string, maxLength: number = NOTE_LINK_DISPLAY_MAX_LENGTH): Array<TNoteLinkForDisplay> {
+  const results: Array<TNoteLinkForDisplay> = []
+  const coveredRanges: Array<{ start: number, end: number }> = []
+
+  const aliasedRE = /\[([^\]]+)\]\(\[\[([^\]]+)\]\]\)/g
+  let match = aliasedRE.exec(input)
+  while (match) {
+    const fullMatch = match[0]
+    const alias = match[1] ?? ''
+    const noteTitleInner = match[2] ?? ''
+    const startIndex = match.index
+    const end = startIndex + fullMatch.length
+    coveredRanges.push({ start: startIndex, end })
+    results.push({
+      fullMatch,
+      noteTitleInner,
+      alias,
+      displayText: getNoteLinkDisplayText(noteTitleInner, alias, maxLength),
+      startIndex,
+    })
+    match = aliasedRE.exec(input)
+  }
+
+  const plainRE = /\[\[([^\]]+)\]\]/g
+  match = plainRE.exec(input)
+  while (match) {
+    const fullMatch = match[0]
+    const noteTitleInner = match[1] ?? ''
+    const startIndex = match.index
+    const end = startIndex + fullMatch.length
+    const alreadyCovered = coveredRanges.some((range) => startIndex >= range.start && end <= range.end)
+    if (!alreadyCovered) {
+      results.push({
+        fullMatch,
+        noteTitleInner,
+        alias: '',
+        displayText: getNoteLinkDisplayText(noteTitleInner, '', maxLength),
+        startIndex,
+      })
+    }
+    match = plainRE.exec(input)
+  }
+
+  return results.sort((a, b) => b.startIndex - a.startIndex)
 }
 
 // Simplify NP event links

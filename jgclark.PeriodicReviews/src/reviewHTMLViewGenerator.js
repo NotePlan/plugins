@@ -28,6 +28,7 @@ import {
   convertPreformattedToHTML,
   convertStrikethroughToHTML,
   convertUnderlinedToHTML,
+  findNoteLinksForDisplay,
   makePluginCommandButton,
   replaceMarkdownLinkWithHTMLLink,
   simplifyInlineImagesForHTML,
@@ -119,7 +120,10 @@ function formatTaskAsHTML(taskContent: string): string {
   line = stripBackwardsDateRefsFromString(line)
   line = convertBoldAndItalicToHTML(line)
   line = convertUnderlinedToHTML(line)
-  line = line.replace(/\[\[([^\]]+)\]\]/g, (_match, title) => `~${String(title)}~`)
+  const noteLinks = findNoteLinksForDisplay(line)
+  for (const noteLink of noteLinks) {
+    line = `${line.slice(0, noteLink.startIndex)}~${noteLink.displayText}~${line.slice(noteLink.startIndex + noteLink.fullMatch.length)}`
+  }
   line = line.trimRight()
   line = truncateHTML(line, 120)
 

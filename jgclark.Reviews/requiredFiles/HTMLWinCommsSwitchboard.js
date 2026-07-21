@@ -332,7 +332,7 @@ function updateItemFilename(data) {
   console.log(`- currentInnerHTML: ${currentInnerHTML}`)
 
   // TODO: Change the content to reflect the new filename :
-  const newInnerHTML = `${currentInnerHTML} <a class="noteTitle sectionItem"><i class="fa-regular fa-file-lines pad-right"></i> ${newFilename}`
+  const newInnerHTML = `${currentInnerHTML} <a class="noteTitle sectionItem"><i class="fa-regular fa-file-lines"></i> ${newFilename}`
   console.log(`- newInnerHTML: ${newInnerHTML}`)
   replaceHTMLinElement(thisContentElement, newInnerHTML, null)
 }

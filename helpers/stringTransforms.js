@@ -121,7 +121,7 @@ export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean 
       const URLForDisplay = getLinkDisplayTextFromBareURL(linkURL)
       if (addWebIcon) {
         // not displaying icon
-        output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe pad-right"></i>${URLForDisplay}</a>`)
+        output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe externalLinkIcon"></i>${URLForDisplay}</a>`)
       } else {
         output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}">${URLForDisplay}</a>`)
       }
@@ -180,7 +180,7 @@ export function changeMarkdownLinksToHTMLLink(original: string, addWebIcon: bool
       const linkURL = capture[2]
       if (addWebIcon) {
         // not displaying icon
-        output = output.replace(`[${linkTitle}](${linkURL})`, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe pad-right"></i>${linkTitle}</a>`)
+        output = output.replace(`[${linkTitle}](${linkURL})`, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe externalLinkIcon"></i>${linkTitle}</a>`)
       } else {
         output = output.replace(`[${linkTitle}](${linkURL})`, `<a class="externalLink" href="${linkURL}">${linkTitle}</a>`)
       }
