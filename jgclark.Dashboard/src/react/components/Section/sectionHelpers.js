@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2026-07-10 for v2.4.0.b47 by @jgclark + @CursorAI
+// Last updated 2026-07-20 for v2.4.0.b52 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
@@ -173,6 +173,44 @@ function getUseFirstButVisible(useFirst: Array<TSectionCode>, dashboardSettings:
 }
 
 /**
+ * When includedCalendarSections is set, prefer calendar period and Overdue sections over TAG
+ * for Hide Duplicates, so focused tagged items stay in Today/Overdue rather than only in TAG.
+ * Leaves the default order alone when the setting is blank.
+ * @param {Array<TSectionCode>} useFirst - base dedupe priority order
+ * @param {TDashboardSettings} dashboardSettings
+ * @returns {Array<TSectionCode>} possibly reordered priority list
+ */
+export function adjustDedupPriorityForCalendarFocus(
+  useFirst: Array<TSectionCode>,
+  dashboardSettings: TDashboardSettings,
+): Array<TSectionCode> {
+  if (!dashboardSettings?.includedCalendarSections) {
+    return useFirst
+  }
+  const terms = String(dashboardSettings.includedCalendarSections)
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
+  if (terms.length === 0) {
+    return useFirst
+  }
+
+  const preferBeforeTag: Array<TSectionCode> = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'OVERDUE']
+  const tagIndex = useFirst.indexOf('TAG')
+  if (tagIndex < 0) {
+    return useFirst
+  }
+
+  const beforeTag = useFirst.slice(0, tagIndex)
+  const afterTag = useFirst.slice(tagIndex + 1)
+  const preferredInOrder = useFirst.filter((code) => preferBeforeTag.includes(code))
+  const restBefore = beforeTag.filter((code) => !preferBeforeTag.includes(code))
+  const restAfter = afterTag.filter((code) => !preferBeforeTag.includes(code))
+
+  return [...restBefore, ...preferredInOrder, 'TAG', ...restAfter]
+}
+
+/**
  * Removes duplicate items from sections based on specified fields and prioritizes sections based on a given order.
  * Note: This will be called multiple times for each section being displayed -- for all the other sections, it seems.
  * @param {Array<TSection>} _sections - The sections to filter.
@@ -196,8 +234,11 @@ export function getSectionsWithoutDuplicateLines(
     // Deep copy the sections to avoid mutating the original data
     const sections = JSON.parse(JSON.stringify(_sections))
 
+    // When calendar focus terms are set, prefer calendar / Overdue over TAG for duplicates
+    const adjustedUseFirst = adjustDedupPriorityForCalendarFocus(useFirst, dashboardSettings)
+
     // Get ordered list of sectionCodes based on visibility and priority
-    const useFirstVisibleOnly: Array<TSectionCode> = getUseFirstButVisible(useFirst, dashboardSettings, sections)
+    const useFirstVisibleOnly: Array<TSectionCode> = getUseFirstButVisible(adjustedUseFirst, dashboardSettings, sections)
 
     // Create an array of ordered sections based on the `useFirstVisibleOnly` priority list.
     // For each section code (`st`) in `useFirstVisibleOnly`, use `flatMap` to:
@@ -210,7 +251,7 @@ export function getSectionsWithoutDuplicateLines(
     // logDebug('getSectionsWithoutDuplicateLines', `Starting with useFirstVisibleOnly: ${useFirstVisibleOnly.join('-')}  with ${totalItemsBeforeDedupe} items`)
 
     // Include sections not listed in useFirst at the end of the array
-    orderedSections.push(...sections.filter((section) => !useFirst.includes(section.sectionCode)))
+    orderedSections.push(...sections.filter((section) => !adjustedUseFirst.includes(section.sectionCode)))
     // Map to track unique items
     const itemMap: any = new Map()
 

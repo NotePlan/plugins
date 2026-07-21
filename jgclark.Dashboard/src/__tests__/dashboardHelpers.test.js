@@ -791,6 +791,75 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result[0]).toBe(para1)
         expect(result[1]).toBe(para3)
       })
+
+      test('should keep calendar paragraphs when content contains the term even if heading does not match', () => {
+        const calendarNote = new Note({ filename: '2025-01-25.md', type: 'Calendar' })
+        const para1 = new Paragraph({ type: 'open', content: 'Call client #acme', note: calendarNote })
+        const para2 = new Paragraph({ type: 'open', content: 'Personal errand', note: calendarNote })
+        const paras = [para1, para2]
+        const dashboardSettings = { includedCalendarSections: 'acme' }
+        const startTime = new Date()
+        const functionName = 'testFunction'
+
+        jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockReturnValue(['Inbox'])
+
+        const result = filterParasByIncludedCalendarSections(paras, dashboardSettings, startTime, functionName)
+        expect(result).toHaveLength(1)
+        expect(result).toContain(para1)
+        expect(result).not.toContain(para2)
+      })
+
+      test('should match content terms case-insensitively including #tag form', () => {
+        const calendarNote = new Note({ filename: '2025-01-25.md', type: 'Calendar' })
+        const para1 = new Paragraph({ type: 'open', content: 'Ship #ACME release', note: calendarNote })
+        const paras = [para1]
+        const dashboardSettings = { includedCalendarSections: '#acme' }
+        const startTime = new Date()
+        const functionName = 'testFunction'
+
+        jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockReturnValue(['Other'])
+
+        const result = filterParasByIncludedCalendarSections(paras, dashboardSettings, startTime, functionName)
+        expect(result).toHaveLength(1)
+        expect(result).toContain(para1)
+      })
+
+      test('should keep paragraph when heading matches even if content does not contain the term', () => {
+        const calendarNote = new Note({ filename: '2025-01-25.md', type: 'Calendar' })
+        const para1 = new Paragraph({ type: 'open', content: 'Untagged task under Acme heading', note: calendarNote })
+        const paras = [para1]
+        const dashboardSettings = { includedCalendarSections: 'Acme' }
+        const startTime = new Date()
+        const functionName = 'testFunction'
+
+        jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockReturnValue(['Acme Tasks'])
+
+        const result = filterParasByIncludedCalendarSections(paras, dashboardSettings, startTime, functionName)
+        expect(result).toHaveLength(1)
+        expect(result).toContain(para1)
+      })
+
+      test('should keep paragraph when either heading or content matches (OR)', () => {
+        const calendarNote = new Note({ filename: '2025-01-25.md', type: 'Calendar' })
+        const paraHeading = new Paragraph({ type: 'open', content: 'No tag here', note: calendarNote })
+        const paraContent = new Paragraph({ type: 'open', content: 'Tagged #acme elsewhere', note: calendarNote })
+        const paraNeither = new Paragraph({ type: 'open', content: 'Home chore', note: calendarNote })
+        const paras = [paraHeading, paraContent, paraNeither]
+        const dashboardSettings = { includedCalendarSections: 'acme' }
+        const startTime = new Date()
+        const functionName = 'testFunction'
+
+        jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockImplementation((p) => {
+          if (p === paraHeading) return ['acme']
+          return ['Inbox']
+        })
+
+        const result = filterParasByIncludedCalendarSections(paras, dashboardSettings, startTime, functionName)
+        expect(result).toHaveLength(2)
+        expect(result).toContain(paraHeading)
+        expect(result).toContain(paraContent)
+        expect(result).not.toContain(paraNeither)
+      })
     })
 
     describe('filterParasByExcludedCalendarSections()', () => {

@@ -9,6 +9,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 ## [2.4.0.b52] 2026-07-???
+- Change: **Calendar note terms to include** (was "Calendar note Sections to Include") now also matches task content, not only heading prefixes. Set a Perspective to `acme` or `#acme` to focus calendar and Overdue on that context without a new setting. When this is set and Hide Duplicates is on, matching items stay in calendar / Overdue sections rather than only in a TAG section. (Addresses #727 for @dwertheimer)
 - New: each Perspective can override which Apple Reminders lists to look in via **Reminder Lists to Include** (comma-separated). Blank keeps using NotePlan-enabled lists; named lists can include ones disabled in NotePlan.
 - Experimental Change: noteLink lozenges are right-aligned in task item rows (PROJ* sections unchanged).
 - Change: update set of available icons. dev: Use FA 7.0.1 instead of FA 6.0.0.b3.

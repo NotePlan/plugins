@@ -50,6 +50,74 @@ describe('sectionHelpers', () => {
     })
   })
 
+  describe('adjustDedupPriorityForCalendarFocus', () => {
+    const baseOrder = ['TB', 'REM', 'TAG', 'WINS', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
+
+    test('returns unchanged order when includedCalendarSections is unset', () => {
+      expect(sh.adjustDedupPriorityForCalendarFocus(baseOrder, {})).toEqual(baseOrder)
+    })
+
+    test('returns unchanged order when includedCalendarSections is blank', () => {
+      expect(sh.adjustDedupPriorityForCalendarFocus(baseOrder, { includedCalendarSections: '' })).toEqual(baseOrder)
+      expect(sh.adjustDedupPriorityForCalendarFocus(baseOrder, { includedCalendarSections: '  ,  ' })).toEqual(baseOrder)
+    })
+
+    test('moves calendar period and OVERDUE before TAG when filter is set', () => {
+      const result = sh.adjustDedupPriorityForCalendarFocus(baseOrder, { includedCalendarSections: 'acme' })
+      const tagIndex = result.indexOf('TAG')
+      expect(tagIndex).toBeGreaterThan(-1)
+      ;['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'OVERDUE'].forEach((code) => {
+        expect(result.indexOf(code)).toBeLessThan(tagIndex)
+      })
+      // TB / REM stay before TAG; WINS and PRIORITY were after TAG in the base order and stay after
+      expect(result.indexOf('TB')).toBeLessThan(tagIndex)
+      expect(result.indexOf('REM')).toBeLessThan(tagIndex)
+      expect(result.indexOf('WINS')).toBeGreaterThan(tagIndex)
+      expect(result.indexOf('PRIORITY')).toBeGreaterThan(tagIndex)
+    })
+
+    test('with Hide Duplicates, keeps duplicate in DT not TAG when calendar focus is set', () => {
+      const sharedPara = { filename: '2025-01-25.md', content: 'Call #acme' }
+      const sections = [
+        {
+          sectionCode: 'TAG',
+          name: '#acme',
+          showSettingName: 'showTagSection_#acme',
+          sectionItems: [{ ID: 'TAG-0', itemType: 'open', para: sharedPara }],
+        },
+        {
+          sectionCode: 'DT',
+          name: 'Today',
+          showSettingName: 'showTodaySection',
+          sectionItems: [{ ID: 'DT-0', itemType: 'open', para: sharedPara }],
+        },
+      ]
+      const withoutFocus = sh.getSectionsWithoutDuplicateLines(
+        sections,
+        ['filename', 'content'],
+        baseOrder,
+        [],
+        { showTodaySection: true, showTagSection_acme: true },
+      )
+      const tagWithout = withoutFocus.find((s) => s.sectionCode === 'TAG')
+      const dtWithout = withoutFocus.find((s) => s.sectionCode === 'DT')
+      expect(tagWithout.sectionItems).toHaveLength(1)
+      expect(dtWithout.sectionItems).toHaveLength(0)
+
+      const withFocus = sh.getSectionsWithoutDuplicateLines(
+        sections,
+        ['filename', 'content'],
+        baseOrder,
+        [],
+        { includedCalendarSections: 'acme', showTodaySection: true, showTagSection_acme: true },
+      )
+      const tagWith = withFocus.find((s) => s.sectionCode === 'TAG')
+      const dtWith = withFocus.find((s) => s.sectionCode === 'DT')
+      expect(dtWith.sectionItems).toHaveLength(1)
+      expect(tagWith.sectionItems).toHaveLength(0)
+    })
+  })
+
   // Note: used to live in sectionHelpers.js, but now in dataGenerationPriority.js
   describe('injectSyntheticWinsSection', () => {
     const baseSettings = {

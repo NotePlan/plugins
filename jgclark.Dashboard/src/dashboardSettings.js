@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2026-07-18 for v2.4.0.b52 by @jgclark + @CursorAI
+// Last updated 2026-07-20 for v2.4.0.b52 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { defaultSectionDisplayOrder } from './constants.js'
@@ -96,7 +96,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'heading',
     label: 'What to Include and Exclude',
     description:
-      "These settings control what Spaces, folders, Reminder lists and items are included and excluded in Dashboard's many sections. It will first use only the included Spaces. Then, it includes the folders from the next setting, and removes any specified from the following setting. Then certain Sections within Calendar notes can be included. Reminder Lists to Include can override which Apple Reminders lists this Perspective looks in. Finally, individual lines in notes can be ignored by adding terms to the last setting.",
+      "These settings control what Spaces, folders, Reminder lists and items are included and excluded in Dashboard's many sections. It will first use only the included Spaces. Then, it includes the folders from the next setting, and removes any specified from the following setting. Then calendar note terms (heading prefixes or task text) can focus which calendar items appear. Reminder Lists to Include can override which Apple Reminders lists this Perspective looks in. Finally, individual lines in notes can be ignored by adding terms to the last setting.",
   },
   {
     key: 'includedTeamspaces',
@@ -129,23 +129,13 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     key: 'includedCalendarSections',
-    label: 'Calendar note Sections to Include',
+    label: 'Calendar note terms to include',
     description:
-      "Comma-separated list of calendar note section heading prefixes (case-insensitive). A task is included if any heading above it starts with one of these values (after trimming). For example, 'Wins' matches 'Wins' and 'Wins for 2026 Q2'. If left blank, all sections are included. Very short names can match more than one section if one heading is a prefix of another.",
+      "Comma-separated list of terms for calendar notes only. A task is included if (1) any heading above it starts with one of these values (case-insensitive prefix; e.g. 'Wins' matches 'Wins for 2026 Q2'), or (2) the task text itself contains the term (e.g. #acme, @acme, or acme). If left blank, all calendar items are included. Short terms can over-match. When this is set and Hide Duplicates is on, matching items stay in calendar / Overdue sections rather than only in a TAG section.",
     type: 'input',
     default: '',
     compactDisplay: true,
   },
-  // {
-  //   key: 'TODO: req',
-  //   label: 'In Calendar notes, task contains term(s) or is in named Section',
-  //   description:
-  //     '...',
-  //   type: 'input',
-  //   default: '',
-  //   compactDisplay: false,
-  //   dependsOnKey: '',
-  // },
   {
     key: 'ignoreItemsWithTerms',
     label: 'Exclude items containing term(s)',

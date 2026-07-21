@@ -85,7 +85,7 @@ export type TDashboardSettings = {
   hidePriorityMarkers: boolean,
   ignoreChecklistItems: boolean,
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use
-  includedCalendarSections: string, // Note: Run through stringListOrArrayToArray() before use
+  includedCalendarSections: string, // Calendar note terms: heading prefixes and/or content substrings. Note: Run through stringListOrArrayToArray() before use
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
   includedReminderLists: string, // Note: Run through stringListOrArrayToArray() before use. Blank = NotePlan-enabled lists
   includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)

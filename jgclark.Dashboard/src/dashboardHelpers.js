@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-07-16 for v2.4.0.b51 by @CursorAI
+// Last updated 2026-07-20 for v2.4.0.b52 by @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -1126,11 +1126,15 @@ export function filterParasByIgnoreTerms(
 }
 
 /**
- * Filter paragraphs to only include those from included calendar sections. 
- * Heading matching is case-insensitive prefix: each configured section name must match the start of a heading in the paragraph's hierarchy (see caseInsensitiveStartsWith with strictSubset false).
+ * Filter paragraphs to only include those matching included calendar note terms.
+ * Applies only to calendar notes (project notes always pass through).
+ * A calendar task is kept if either:
+ * - any heading in its hierarchy matches a term as a case-insensitive prefix, or
+ * - its content contains a term as a case-insensitive substring (so `#acme`, `@acme`, or `acme` all work).
+ * Blank / unset setting keeps all paragraphs.
  * @tests in jest file
  * @param {Array<TParagraph>} paras - paragraphs to filter
- * @param {TDashboardSettings} dashboardSettings - dashboard settings containing included calendar sections
+ * @param {TDashboardSettings} dashboardSettings - dashboard settings containing included calendar sections/terms
  * @param {Date} startTime - timer start time for logging
  * @param {string} functionName - name of calling function for logging
  * @returns {Array<TParagraph>} filtered paragraphs
@@ -1147,18 +1151,28 @@ export function filterParasByIncludedCalendarSections(
   const includedCalendarSections = stringListOrArrayToArray(dashboardSettings.includedCalendarSections, ',')
     .map((s) => s.trim())
     .filter((s) => s !== '')
+  if (includedCalendarSections.length === 0) {
+    return paras
+  }
 
   // TEST: this is where TB defeat happens for headings
   const filteredParas = paras.filter((p) => {
     // only apply to calendar notes
     if (p.note?.type !== 'Calendar') return true
-    // Apply to all H4/H3/H2 headings in the hierarchy for this para
+
+    // Keep if task content contains any of the filter terms (e.g. #acme, @acme, or acme)
+    const contentLower = (p.content || '').toLowerCase()
+    if (includedCalendarSections.some((inc) => contentLower.includes(inc.toLowerCase()))) {
+      return true
+    }
+
+    // Or if any heading in the hierarchy matches as a case-insensitive prefix
     const theseHeadings = getHeadingHierarchyForThisPara(p)
     return theseHeadings.some((h) =>
       includedCalendarSections.some((inc) => caseInsensitiveStartsWith(inc, h.trim(), false))
     )
   })
-  logTimer(functionName, startTime, `- ${filteredParas.length} paras after filtering out calendar headings`)
+  logTimer(functionName, startTime, `- ${filteredParas.length} paras after includedCalendarSections filter`)
   return filteredParas
 }
 
