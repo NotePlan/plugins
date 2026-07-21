@@ -1,25 +1,17 @@
 /* CSS specific to ItemContent (task rows).
-/* Last updated 2026-07-18 for v2.4.0.b52, @jgclark */
+/* Last updated 2026-07-21 for v2.4.0.b52, @jgclark */
 
-/* Fill remaining width in the sectionItemRow so note links can sit on the right */
+/* Fill remaining width in the sectionItemRow. flow-root contains the floated note link. */
 .taskItemContent {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
+	display: flow-root;
 	flex: 1;
 	min-width: 0;
-	column-gap: 0.35rem;
-	row-gap: 0.1rem;
 }
 
-/* Task text + edit control stay on the left and can shrink/wrap */
-.taskItemMain {
-	flex: 1 1 auto;
-	min-width: 0;
-}
-
-/* Note-link lozenge: right-aligned within the item row (not used by ProjectItem) */
+/* Note-link lozenge: right-aligned on the same line as the edit icon when it fits
+   (not used by ProjectItem). float keeps it with the trailing content instead of
+   dropping onto its own flex line after a full-width main block. */
 .itemNoteLinkEnd {
-	flex: 0 0 auto;
-	margin-left: auto;
+	float: right;
+	margin-left: 0.35rem;
 }

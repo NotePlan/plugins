@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated 2026-07-18 for v2.4.0.b52 by @jgclark/@Cursor
+// Last updated 2026-07-21 for v2.4.0.b52 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
@@ -91,15 +91,13 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
 
   return (
     <div className="sectionItemContent taskItemContent">
-      <div className="taskItemMain">
-        {possChildMarker}
-        <a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>
-        {possParentIcon}
-        {/* <span className="pad-left">[ID:{item.ID}]</span> */}
-        <a className="dialogTriggerIcon">
-          <i className="fa-light fa-edit pad-right" onClick={handleClickToOpenEditDialog}></i>
-        </a>
-      </div>
+      {possChildMarker}
+      <a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>
+      {possParentIcon}
+      {/* <span className="pad-left">[ID:{item.ID}]</span> */}
+      <a className="dialogTriggerIcon">
+        <i className="fa-light fa-edit pad-right" onClick={handleClickToOpenEditDialog}></i>
+      </a>
       {showItemNoteLink && (
         <span className="itemNoteLinkEnd">
           <ItemNoteLink
