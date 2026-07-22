@@ -1,6 +1,10 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.20.0] - 2026-07-21 @jgclark
+### New
+- new **/Cancel incomplete tasks in a folder** command: for a chosen folder and its subfolders, counts incomplete tasks and checklists in regular notes, shows a strong warning, and then (if confirmed) bulk-cancels them. Optional `folderToStart` parameter for template/callback. Teamspace notes are skipped. Useful after importing notes. (Addresses core ask in #746 for @darrengillman.)
+
 ## [1.19.4] - 2026-07-20 @jgclark
 - fix **/Move top-level tasks in Editor to heading** when called from the CommandBar when the heading argument was empty (incorrectly treated as a template invocation). Now uses the settings heading, or prompts with chooseHeading if that is also blank. (Closes #747; thanks to Ian Soper.)
 

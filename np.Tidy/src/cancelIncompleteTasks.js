@@ -1,18 +1,20 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Cancel incomplete tasks and checklists in calendar notes for a given past year
+// Cancel incomplete tasks and checklists in calendar notes for a given past year,
+// or in a chosen folder of regular notes (import cleanup).
 // Jonathan Clark
-// Last updated 2026-03-27 for v1.19.0+, @jgclark
+// Last updated 2026-07-21 for v1.20.0, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { JSP, clo, logDebug, logError, logInfo } from '@helpers/dev'
-import { displayTitle } from '@helpers/general'
 import { getCalendarNoteTimeframe, getDateStringFromCalendarFilename } from '@helpers/dateTime'
+import { JSP, clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { getRegularNotesInFolder } from '@helpers/folders'
+import { displayTitle, getTagParamsFromString } from '@helpers/general'
 import { pastCalendarNotes } from '@helpers/note'
 import { getTeamspaceTitleFromID } from '@helpers/NPTeamspace'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
-import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { chooseFolder, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 type IncompleteCounts = {
   tasks: number,
@@ -123,6 +125,47 @@ export function cancelIncompleteTasksAndChecklistsInNote(note: TNote): number {
 }
 
 /**
+ * Filter notes suitable for folder-scoped cancel: regular notes only, no Teamspace.
+ * @author @jgclark
+ * @param {Array<TNote> | $ReadOnlyArray<TNote>} notes
+ * @returns {Array<TNote>}
+ */
+export function filterNotesForFolderCancel(notes: Array<TNote> | $ReadOnlyArray<TNote>): Array<TNote> {
+  return notes.filter((n) => {
+    if (!n) return false
+    if (n.type === 'Calendar') return false
+    const { isTeamspace } = parseTeamspaceFilename(n.filename)
+    return !isTeamspace
+  })
+}
+
+/**
+ * Aggregate incomplete task/checklist counts across notes; also returns notes that have any incomplete items.
+ * @author @jgclark
+ * @param {Array<TNote>} notes
+ * @returns {{ notesWithItems: Array<TNote>, totalTasks: number, totalChecklists: number }}
+ */
+export function aggregateIncompleteCountsForNotes(notes: Array<TNote>): {
+  notesWithItems: Array<TNote>,
+  totalTasks: number,
+  totalChecklists: number,
+} {
+  const notesWithItems: Array<TNote> = []
+  let totalTasks = 0
+  let totalChecklists = 0
+  for (const note of notes) {
+    const counts = countIncompleteTasksAndChecklistsInNote(note)
+    if (counts.tasks === 0 && counts.checklists === 0) {
+      continue
+    }
+    notesWithItems.push(note)
+    totalTasks += counts.tasks
+    totalChecklists += counts.checklists
+  }
+  return { notesWithItems, totalTasks, totalChecklists }
+}
+
+/**
  * Get or create TeamspaceStats entry for a given teamspace key.
  * @param {TeamspaceStatsMap} statsMap
  * @param {string} teamspaceKey
@@ -159,7 +202,7 @@ function getOrCreateTeamspaceStats(statsMap: TeamspaceStatsMap, teamspaceKey: st
 export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Promise<void> {
   try {
     // If yearIn is provided (as string or number), use it, otherwise ask user for year
-    let yearStr = yearIn
+    let yearStr: string | boolean = yearIn
     if (typeof yearIn === 'string') {
       yearStr = yearIn
     } else if (typeof yearIn === 'number') {
@@ -174,11 +217,11 @@ export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Prom
     }
     const year = Number(yearStr)
     if (Number.isNaN(year) || year < 1000 || year > 9999) {
-      await showMessage(`Sorry: '${yearStr}' is not a valid 4-digit year.`, 'OK', 'Cancel incomplete tasks in a past year')
+      await showMessage(`Sorry: '${String(yearStr)}' is not a valid 4-digit year.`, 'OK', 'Cancel incomplete tasks in a past year')
       return
     }
 
-    logInfo(pluginJson, `cancelIncompleteTasksInPastYear: starting for year ${yearStr}`)
+    logInfo(pluginJson, `cancelIncompleteTasksInPastYear: starting for year ${String(yearStr)}`)
 
     // Find past calendar notes
     const allPastCalendarNotes = pastCalendarNotes()
@@ -189,7 +232,11 @@ export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Prom
 
     // Filter notes by year from filename
     const notesToProcess: Array<TNote> = []
-    const targetYearStr = yearStr
+    const targetYearStr: string = String(yearStr)
+    if (!targetYearStr) {
+      logError('cancelIncompleteTasksInPastYear', 'targetYearStr is empty')
+      return
+    }
 
     CommandBar.showLoading(true, `Scanning calendar notes for year ${targetYearStr} ...`, 0)
     await CommandBar.onAsyncThread()
@@ -352,6 +399,110 @@ export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Prom
   } catch (error) {
     logError('cancelIncompleteTasksInPastYear', JSP(error))
     await showMessage('There was an error while cancelling incomplete tasks. See the Plugin Console for details.', 'OK', 'Cancel incomplete tasks in a past year')
+  }
+}
+
+/**
+ * Main command: Cancel incomplete tasks and checklists in regular notes in a chosen folder and its subfolders.
+ * Optional folderToStart from params (e.g. template/callback); if missing, prompts user to choose folder.
+ * Skips Calendar and Teamspace notes. Shows counts and a strong warning before applying.
+ * @author @jgclark
+ * @param {string} params - Optional JSON string with folderToStart
+ */
+export async function cancelIncompleteTasksInFolder(params: string = ''): Promise<void> {
+  try {
+    let folderToStart = await getTagParamsFromString(params ?? '', 'folderToStart', '')
+    if (folderToStart && typeof folderToStart === 'string') {
+      folderToStart = decodeURIComponent(folderToStart)
+    }
+    if (!folderToStart || folderToStart === '') {
+      logDebug(pluginJson, 'cancelIncompleteTasksInFolder(): No folder param, asking user')
+      folderToStart = await chooseFolder('Choose folder to cancel incomplete tasks in (includes subfolders)', false, false, '', true, true)
+    }
+    if (!folderToStart || folderToStart === '') {
+      logWarn(pluginJson, 'cancelIncompleteTasksInFolder(): No folder chosen. Stopping.')
+      return
+    }
+
+    logInfo(pluginJson, `cancelIncompleteTasksInFolder: starting for folder '${folderToStart}'`)
+
+    const notesInFolder = getRegularNotesInFolder(folderToStart, true, [])
+    const notesToScan = filterNotesForFolderCancel(notesInFolder)
+
+    if (notesToScan.length === 0) {
+      await showMessage(`No regular notes were found in folder '${folderToStart}' (and subfolders).`, 'OK', 'Cancel incomplete tasks in a folder')
+      return
+    }
+
+    CommandBar.showLoading(true, `Counting incomplete items in '${folderToStart}' ...`, 0)
+    await CommandBar.onAsyncThread()
+
+    const { notesWithItems, totalTasks, totalChecklists } = aggregateIncompleteCountsForNotes(notesToScan)
+
+    // Log matching paragraphs for traceability
+    for (const note of notesWithItems) {
+      for (const p of note.paragraphs ?? []) {
+        if (!p) continue
+        if (p.type === 'open' || p.type === 'scheduled' || p.type === 'checklist' || p.type === 'checklistScheduled') {
+          console.log(`- ${note.filename} line ${String(p.lineIndex)} [${p.type}] {${p.content}}`)
+        }
+      }
+    }
+
+    await CommandBar.onMainThread()
+    CommandBar.showLoading(false)
+
+    if (totalTasks === 0 && totalChecklists === 0) {
+      logInfo('cancelIncompleteTasksInFolder', `No incomplete tasks or checklists were found in folder '${folderToStart}'.`)
+      await showMessage(`No incomplete tasks or checklists were found in folder '${folderToStart}' (and subfolders).`, 'OK', 'Cancel incomplete tasks in a folder')
+      return
+    }
+
+    const lines = []
+    lines.push(`In folder '${folderToStart}' (and subfolders), I found:`)
+    lines.push('')
+    lines.push(`${notesWithItems.length.toLocaleString()} notes with incomplete items:`)
+    lines.push(`- ${totalTasks.toLocaleString()} incomplete tasks`)
+    lines.push(`- ${totalChecklists.toLocaleString()} incomplete checklists`)
+    lines.push('')
+    lines.push(
+      'If you proceed, ALL open or scheduled tasks will be set to cancelled, and ALL open or scheduled checklists will be set to cancelled checklists.',
+    )
+    lines.push('This is a bulk change and is very difficult to undo quickly. You may wish to make a backup first.')
+    logInfo('cancelIncompleteTasksInFolder', lines.join('\n'))
+
+    const res = await showMessageYesNo(
+      `${lines.join('\n')}\n\nDo you want to proceed and cancel these incomplete items?`,
+      ['Yes, cancel them', 'No'],
+      `Cancel incomplete tasks in folder`,
+    )
+    if (res !== 'Yes, cancel them') {
+      logInfo('cancelIncompleteTasksInFolder', 'User cancelled after seeing counts')
+      return
+    }
+
+    CommandBar.showLoading(true, `Cancelling incomplete items in '${folderToStart}' ...`, 0)
+    await CommandBar.onAsyncThread()
+
+    let changedTotal = 0
+    const numNotes = notesWithItems.length
+    for (let i = 0; i < numNotes; i += 1) {
+      const note = notesWithItems[i]
+      changedTotal += cancelIncompleteTasksAndChecklistsInNote(note)
+      if (i % 50 === 0) {
+        CommandBar.showLoading(true, `Cancelling incomplete items in '${folderToStart}' ...`, i / numNotes)
+      }
+    }
+
+    await CommandBar.onMainThread()
+    CommandBar.showLoading(false)
+
+    const completedMsg = `Cancelled ${changedTotal.toLocaleString()} incomplete tasks/checklists in ${notesWithItems.length.toLocaleString()} notes in folder '${folderToStart}'.`
+    await showMessage(completedMsg, 'OK', 'Cancel incomplete tasks in a folder')
+    logInfo('cancelIncompleteTasksInFolder', completedMsg)
+  } catch (error) {
+    logError('cancelIncompleteTasksInFolder', JSP(error))
+    await showMessage('There was an error while cancelling incomplete tasks. See the Plugin Console for details.', 'OK', 'Cancel incomplete tasks in a folder')
   }
 }
 
