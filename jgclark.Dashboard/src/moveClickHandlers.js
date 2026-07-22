@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2026-01-04 for v2.4.0.b by @jgclark
+// Last updated 2026-07-23 for v2.4.0.b54 by @jgclark
 //-----------------------------------------------------------------------------
 
 import {
@@ -25,7 +25,7 @@ import {
   moveItemBetweenCalendarNotes,
   moveItemToRegularNote,
 } from '@helpers/NPMoveItems'
-import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
+import { findParaFromRawContentAndFilename, findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { scheduleItem, scheduleItemLiteMethod } from '@helpers/NPScheduleItems'
 
 //-----------------------------------------------------------------
@@ -177,10 +177,10 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
 export async function doRescheduleItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const validated = validateMessageDataForHandler(data, 'doRescheduleItem')
   if (!validated.ok) return validated.result
-  const { filename, content, controlStr, sectionCodes } = validated.data
+  const { filename, content, rawContent, controlStr, sectionCodes } = validated.data
   const config: TDashboardSettings = await getDashboardSettings()
   // Following logging to get to the bottom of the issue with non-numeric settings
-  logDebug('doRescheduleItem', `Starting with filename: ${filename}, content: "${content}", controlStr: ${controlStr}, sectionCodes: ${sectionCodes}`)
+  logDebug('doRescheduleItem', `Starting with filename: ${filename}, content: "${content}", rawContent: {${rawContent}}, controlStr: ${controlStr}, sectionCodes: ${sectionCodes}`)
   logDebug('doRescheduleItem', `- config.rescheduleNotMove = ${String(config.rescheduleNotMove)}`)
   logDebug('doRescheduleItem', `- config.useLiteScheduleMethod = ${String(config.useLiteScheduleMethod)}`)
   logDebug('doRescheduleItem', `- config.newTaskSectionHeading = ${String(config.newTaskSectionHeading)}`)
@@ -190,9 +190,17 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
   let startDateStr = ''
   let newDateStr = ''
 
-  const thePara = findParaFromStringAndFilename(filename, content)
+  // Prefer rawContent matching (handles indented items; falls back to content inside the helper).
+  // Content-only matching can fail when Dashboard's rawContent came from backlinks with indent stripped.
+  let thePara: TParagraph | false = false
+  if (rawContent) {
+    thePara = findParaFromRawContentAndFilename(filename, rawContent)
+  }
   if (typeof thePara === 'boolean') {
-    logWarn('doRescheduleItem', `- note ${filename} doesn't seem to contain {${content}}`)
+    thePara = findParaFromStringAndFilename(filename, content)
+  }
+  if (typeof thePara === 'boolean') {
+    logWarn('doRescheduleItem', `- note ${filename} doesn't seem to contain rawContent {${rawContent}} or content {${content}}`)
     clo(data, `doRescheduleItem -> data`)
     return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: sectionCodes, errorMsg: `Note ${filename} doesn't seem to contain {${content}}. I will refresh this Section; please then try again.`, errorMessageLevel: 'WARN' })
   }

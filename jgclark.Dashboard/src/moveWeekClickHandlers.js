@@ -103,8 +103,8 @@ export async function scheduleAllThisWeekNextWeek(data: MessageDataObject, moveO
         false,
       )
       if (res !== 'Yes') {
-        logDebug('scheduleAllThisWeekNextWeek', 'User cancelled operation.')
-        return { success: false }
+        logInfo('scheduleAllThisWeekNextWeek', `User cancelled moving ${totalToMove} items to next week.`)
+        return { success: true, actionsOnSuccess: [] }
       }
     }
 
@@ -274,8 +274,8 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject, moveO
         false,
       )
       if (res !== 'Yes') {
-        logDebug('scheduleAllLastWeekThisWeek', 'User cancelled operation.')
-        return { success: false }
+        logInfo('scheduleAllLastWeekThisWeek', `User cancelled moving ${totalToMove} items to this week.`)
+        return { success: true, actionsOnSuccess: [] }
       }
     }
 
@@ -337,7 +337,7 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject, moveO
           logWarn('scheduleAllLastWeekThisWeek', `Oddly I can't find the note for "${dashboardPara.content}", so can't process this item`)
         } else {
           // Convert each reduced para back to the full one to update.
-          // FIXME(Eduard): fails because indented para's .rawContent and .indents don't work when found from backlinks. Reported at https://discord.com/channels/763107030223290449/1469004969075015723
+          // Note: indented paras from backlinks have indent stripped from .rawContent; matching updated to allow for that.
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p && p.note) {
             p.content = replaceArrowDatesInString(p.content, `>${thisWeekDateStr}`)

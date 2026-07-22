@@ -96,7 +96,7 @@ async function confirmLargeBatch(
       : `Are you sure you want to ${action} ${totalToMove} items to ${destination}?`
     const res = await showMessageYesNo(message, ['Yes', 'No'], title, false)
     if (res !== 'Yes') {
-      logDebug(functionName, 'User cancelled operation.')
+      logInfo(functionName, `User cancelled ${action} of ${totalToMove} items to ${destination}.`)
       return false
     }
   }
@@ -171,7 +171,7 @@ export async function scheduleYesterdayOpenToToday(
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS, so don't try.
     const confirmed = await confirmLargeBatch(totalToMove, rescheduleNotMove, 'today', 'Move Yesterday to Today', 'scheduleYesterdayOpenToToday')
     if (!confirmed) {
-      return { success: false }
+      return { success: true, actionsOnSuccess: [] }
     }
 
     // First process the items in the calendar note(s)
@@ -351,7 +351,7 @@ export async function scheduleTodayToTomorrow(
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
     const confirmed = await confirmLargeBatch(totalToMove, rescheduleNotMove, 'tomorrow', 'Move Today to Tomorrow', 'scheduleTodayToTomorrow')
     if (!confirmed) {
-      return { success: false }
+      return { success: true, actionsOnSuccess: [] }
     }
 
     // First process the items in the calendar note(s)
@@ -527,7 +527,7 @@ export async function scheduleAllOverdueOpenToToday(
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
     const confirmed = await confirmLargeBatch(totalToMove, config.rescheduleNotMove, 'today', 'Move Overdue to Today', 'scheduleAllOverdueOpenToToday')
     if (!confirmed) {
-      return { success: false }
+      return { success: true, actionsOnSuccess: [] }
     }
 
     let c = 0

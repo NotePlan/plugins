@@ -1002,6 +1002,27 @@ describe('NPParagraphs()', () => {
       expect(p.paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
     })
 
+    test('should return true when rawContent differs only by leading indent (as backlinks strip indent)', () => {
+      const paragraph = { rawContent: '\t* Watch something', filename: 'test.md' }
+      const fieldsObject = { rawContent: '* Watch something', filename: 'test.md' }
+      const fields = ['rawContent', 'filename']
+      expect(p.paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
+    })
+
+    test('should return true when search rawContent has indent and note does not', () => {
+      const paragraph = { rawContent: '* Watch something', filename: 'test.md' }
+      const fieldsObject = { rawContent: '\t* Watch something', filename: 'test.md' }
+      const fields = ['rawContent', 'filename']
+      expect(p.paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
+    })
+
+    test('should return false when rawContent differs beyond leading indent', () => {
+      const paragraph = { rawContent: '\t* Watch something', filename: 'test.md' }
+      const fieldsObject = { rawContent: '* Different task', filename: 'test.md' }
+      const fields = ['rawContent', 'filename']
+      expect(p.paragraphMatches(paragraph, fieldsObject, fields)).toBe(false)
+    })
+
     test('should throw an error if a field in fields is not present in paragraph', () => {
       const paragraph = { rawContent: 'Test content', filename: 'test.md' }
       const fieldsObject = { rawContent: 'Test content', filename: 'test.md' }
@@ -1027,6 +1048,24 @@ describe('NPParagraphs()', () => {
       const fieldsObject = { content: 'This is a long content...', filename: 'test.md' }
       const fields = ['content', 'filename']
       expect(p.paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
+    })
+  })
+
+  describe('rawContentMatchesIgnoringLeadingIndent()', () => {
+    test('should match identical strings', () => {
+      expect(p.rawContentMatchesIgnoringLeadingIndent('* Task', '* Task')).toBe(true)
+    })
+
+    test('should match when one side has leading tab', () => {
+      expect(p.rawContentMatchesIgnoringLeadingIndent('\t* Watch something', '* Watch something')).toBe(true)
+    })
+
+    test('should match when one side has leading spaces', () => {
+      expect(p.rawContentMatchesIgnoringLeadingIndent('  * Watch something', '* Watch something')).toBe(true)
+    })
+
+    test('should not match different content', () => {
+      expect(p.rawContentMatchesIgnoringLeadingIndent('\t* Watch something', '* Other')).toBe(false)
     })
   })
 })

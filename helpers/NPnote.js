@@ -751,6 +751,42 @@ export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
 }
 
 /**
+ * Resolve a backlink paragraph to the real paragraph in its source note.
+ * NotePlan's backlinks API deliberately, but unhelpfully, returns indented paras with indent stripped from .rawContent / .indents always 0.
+ * Looking up by lineIndex (preferring content match) or by content alone restores correct rawContent/indents.
+ * @author @jgclark + @Cursor
+ * @param {TParagraph} backlinkPara
+ * @returns {TParagraph} real note paragraph when found, otherwise the original backlink para
+ */
+export function resolveBacklinkParaToRealPara(backlinkPara: TParagraph): TParagraph {
+  try {
+    if (!backlinkPara) return backlinkPara
+    const note: ?TNote = backlinkPara.note
+      || (backlinkPara.filename
+        ? DataStore.noteByFilename(backlinkPara.filename, backlinkPara.noteType || 'Notes')
+        || DataStore.noteByFilename(backlinkPara.filename, 'Calendar')
+        : null)
+    if (!note || !note.paragraphs?.length) return backlinkPara
+
+    // Prefer lineIndex when content still matches (line may have moved)
+    if (typeof backlinkPara.lineIndex === 'number' && note.paragraphs[backlinkPara.lineIndex]) {
+      const candidate = note.paragraphs[backlinkPara.lineIndex]
+      if (candidate.content === backlinkPara.content) {
+        return candidate
+      }
+    }
+    // Fall back to exact content match
+    const byContent = note.paragraphs.find((p) => p.content === backlinkPara.content)
+    if (byContent) return byContent
+
+    return backlinkPara
+  } catch (err) {
+    logWarn('resolveBacklinkParaToRealPara', `falling back to backlink para: ${err.message}`)
+    return backlinkPara
+  }
+}
+
+/**
  * Get the paragraphs in 'note' which are scheduled for date of the *private* calendar note 'calNote'
  * TEST: Is this working in or from Teamspace notes? Initial testing on 20.8.25 by @jgclark implies not.
  * @author @dwertheimer extended by @jgclark
@@ -765,7 +801,7 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
 
     // Use .backlinks, which is described as "Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The headings of the linked paragraphs are also listed here, although they don't have to contain a link."
     // Note: @jgclark reckons that the subItem.headingLevel data returned by this might be wrong.
-    // Note: @EM confirms that this returns backlinks only with indent 0, by design. @jgclark has added a helper to help with this issue.
+    // Note: @EM confirms that this returns backlinks only with indent 0, by design. resolveBacklinkParaToRealPara() restores correct rawContent/indents.
     const backlinkParas: Array<TParagraph> = getFlatListOfBacklinks(calNote) // an array of notes which link to this note
     logDebug(`getReferencedParagraphs`, `found ${String(backlinkParas.length)} backlinked paras for ${displayTitle(calNote)}:`)
 
@@ -776,21 +812,24 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
           'getReferencedParagraphs',
           `  - referenced para is null. Found in one of ${backlinkParas.length} backlink paras for note '${displayTitle(calNote)}' at ${calNote.filename}.`,
         )
+        return
       }
       if (includeHeadings) {
         // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
+        wantedParas.push(resolveBacklinkParaToRealPara(para))
       } else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
-        logDebug(`getReferencedParagraphs`, `- adding #${para.lineIndex}: '${para.content}' as it includes >${thisDateStr} or >today from ${para.note?.filename ?? '<no note>'}`)
-        if (!para.note) {
+        const resolved = resolveBacklinkParaToRealPara(para)
+        logDebug(`getReferencedParagraphs`, `- adding #${resolved.lineIndex}: '${resolved.content}' as it includes >${thisDateStr} or >today from ${resolved.note?.filename ?? '<no note>'}`)
+        if (!resolved.note) {
           logWarn(`getReferencedParagraphs`, `  - this backlink para.note is null. Para:\n${JSON.stringify(para, null, 2)}`)
         }
 
         // Log if content contains TEST. TODO(later): remove after testing backlinks workaround
-        if (para.content.includes('TEST')) {
-          logInfo(`getReferencedParagraphs`, `FYI 👉 found TEST in #${para.lineIndex}: '${calNote.filename}' [${para.type}] {${para.rawContent}}`)
+        if (resolved.content.includes('TEST')) {
+          logInfo(`getReferencedParagraphs`, `FYI 👉 found TEST in #${resolved.lineIndex}: '${calNote.filename}' [${resolved.type}] {${resolved.rawContent}}`)
         }
 
-        wantedParas.push(para)
+        wantedParas.push(resolved)
       } else {
         // logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
       }

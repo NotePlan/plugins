@@ -14,7 +14,7 @@ import { displayTitle, rangeToString } from '@helpers/general'
 import { getNoteType } from '@helpers/note'
 import { getFirstDateInPeriod, getNPWeekData, getMonthData, getQuarterData, getYearData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
 import { endOfFrontmatterLineIndex, noteHasFrontMatter } from '@helpers/NPFrontMatter'
-import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
+import { convertRawContentToContent, findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { caseInsensitiveMatch, caseInsensitiveSubstringMatch, caseInsensitiveStartsWith, getLineMainContentPos } from '@helpers/search'
 import { stripTodaysDateRefsFromString } from '@helpers/stringTransforms'
@@ -1197,9 +1197,24 @@ export function createStaticParagraphsArray(arrayOfObjects: Array<any>, fields: 
 }
 
 /**
+ * Compare two rawContent strings, allowing for leading-indent differences.
+ * Needed because NotePlan backlinks return indented paras with indent stripped from .rawContent (indent always 0).
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+export function rawContentMatchesIgnoringLeadingIndent(a: string, b: string): boolean {
+  if (a === b) return true
+  // trimStart is ES2019; use replace for broader compatibility in NP's JSContext
+  const stripLeading = (s: string): string => s.replace(/^\s+/, '')
+  return stripLeading(a) === stripLeading(b)
+}
+
+/**
  * Check a paragraph object against a plain object of fields to see if they match.
  * Does an explicit match for specified fields but if the content is truncated with "..." it will match if the truncated version is the same
  * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph content at 300 chars)
+ * For rawContent, also allows leading-indent differences (as backlinks API unhelpfully returns indent-stripped rawContent).
  * @param {TParagraph} paragraph object to check
  * @param {any} fieldsObject object with some fields
  * @param {Array<string>} fields list of field names to check in fieldsObject
@@ -1216,12 +1231,26 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
 
   fields.forEach((field) => {
     if (field === 'rawContent' && rawWasEdited) {
-      if (paragraph[field] !== fieldsObject['originalRawContent']) {
+      if (!rawContentMatchesIgnoringLeadingIndent(paragraph[field], fieldsObject['originalRawContent'])) {
         match = false
       }
     } else if (field === 'rawContent' && isTruncated) {
-      // Use startsWith for truncated rawContent
-      if (!paragraph[field].startsWith(truncatedContent)) {
+      // Use startsWith for truncated rawContent (also try after stripping leading indent on the note para)
+      const paraRaw = paragraph[field]
+      const paraRawStripped = paraRaw.replace(/^\s+/, '')
+      if (!paraRaw.startsWith(truncatedContent) && !paraRawStripped.startsWith(truncatedContent.replace(/^\s+/, ''))) {
+        match = false
+      }
+    } else if (field === 'rawContent') {
+      // $FlowIgnore[prop-missing]
+      if (typeof paragraph[field] === 'undefined') {
+        throw `paragraphMatches: paragraph.${field} is undefined. You must pass in the correct fields to match. 'fields' is set to ${JSP(fields)}, but paragraph=${JSP(
+          paragraph,
+        )}, which does not have all the fields`
+      }
+      // Exact match, or match ignoring leading indent (backlinks strip indent from rawContent)
+      // $FlowIgnore[prop-missing]
+      if (!rawContentMatchesIgnoringLeadingIndent(paragraph[field], fieldsObject[field])) {
         match = false
       }
     } else {
@@ -1303,13 +1332,12 @@ export function findParagraph(
 
 /**
  * Take a static object with a subset of Paragraph fields from HTML or wherever and return the actual paragraph in the note
+ * Note: rawContent matching allows leading-indent differences (as backlinks API unhelpfully returns indent-stripped rawContent for indented paras).
  * @param {any} staticObject - the static object from the HTML must have fields:
  *    filename, lineIndex, noteType
  * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex) -- these two fields are required. default is ['filename', 'rawContent']
  * @returns {TParagraph|null} - the paragraph or null if not found
  * @author @dwertheimer
- * TODO(@dwertheimer): is the fieldsToMatch default and passing down to findParagraph correct?
- * FIXME: fails because indents is 0 not 1
  */
 export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: Array<string> = ['filename', 'rawContent']): TParagraph | null {
   const { filename } = staticObject
@@ -1385,6 +1413,7 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
  * Return a TParagraph object by an exact match to 'rawContent' in file 'filenameIn'. If it fails to find a match, it returns false.
  * If the rawContent is truncated with "..." it will match if the truncated version is the same as the start of the rawContent in a line in the note
  * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph rawContent at 300 chars).
+ * Also falls back to matching ignoring leading indent (as backlinks API unhelpfully strips indent from .rawContent), then to .content match.
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Works on both Regular ('Project') and Calendar notes.
  * Note: updated in Nov 2025 to work for Teamspace notes as well.
@@ -1410,16 +1439,40 @@ export function findParaFromRawContentAndFilename(filenameIn: string, rawContent
       if (thisNote.paragraphs.length > 0) {
         const isTruncated = rawContentIn.endsWith('...')
         const truncatedContent = isTruncated ? rawContentIn.slice(0, -3) : rawContentIn // only slice if truncated
+        const searchRawStripped = rawContentIn.replace(/^\s+/, '')
+        const contentFallback = convertRawContentToContent(rawContentIn)
 
-        // let c = 0
+        // Pass 1: exact (or truncated prefix) match
         for (const para of thisNote.paragraphs) {
           if (isTruncated ? para.rawContent.startsWith(truncatedContent) : para.rawContent === rawContentIn) {
-            // logDebug('NPP/findParaFromRawContentAndFilename', `found matching para #${c} of type ${para.type}: {${rawContentIn}}`)
             return para
           }
-          // c++
         }
-        logWarn('NPP/findParaFromRawContentAndFilename', `Couldn't find paragraph {${rawContentIn}} in note '${filename}'`)
+        // Pass 2: match ignoring leading indent (backlinks API strips indent from .rawContent)
+        for (const para of thisNote.paragraphs) {
+          if (rawContentMatchesIgnoringLeadingIndent(para.rawContent, rawContentIn)) {
+            logDebug('NPP/findParaFromRawContentAndFilename', `matched via leading-indent-insensitive rawContent for {${rawContentIn}}`)
+            return para
+          }
+          if (isTruncated) {
+            const paraStripped = para.rawContent.replace(/^\s+/, '')
+            const truncatedStripped = truncatedContent.replace(/^\s+/, '')
+            if (paraStripped.startsWith(truncatedStripped) || para.rawContent.startsWith(truncatedStripped)) {
+              logDebug('NPP/findParaFromRawContentAndFilename', `matched truncated rawContent ignoring leading indent for {${rawContentIn}}`)
+              return para
+            }
+          }
+        }
+        // Pass 3: fall back to .content match (derived from rawContent)
+        if (contentFallback && contentFallback !== '<error>') {
+          for (const para of thisNote.paragraphs) {
+            if (para.content === contentFallback) {
+              logDebug('NPP/findParaFromRawContentAndFilename', `matched via content fallback {${contentFallback}} for rawContent {${rawContentIn}}`)
+              return para
+            }
+          }
+        }
+        logWarn('NPP/findParaFromRawContentAndFilename', `Couldn't find paragraph {${rawContentIn}} (stripped:{${searchRawStripped}}) in note '${filename}'`)
         return false
       } else {
         logInfo('NPP/findParaFromRawContentAndFilename', `Note '${filename}' appears to be empty?`)
@@ -1830,13 +1883,6 @@ export function getSelectedParagraphsWithCorrectLineIndex(): Array<TParagraph> {
     // Note: note.paragraphs[p.lineIndex] is the correct paragraph, but p.lineIndex is the line index in the note, but not the line index in the Editor if there is frontmatter.
     const selectedParagraphs = Editor.selectedParagraphs.map((p: TParagraph) => note.paragraphs[p.lineIndex + numberOfFrontmatterLines]) ?? []
     logDebug('getSelectedParagraphsWithCorrectLineIndex', `Editor.selectedParagraphs:\n${String(Editor.selectedParagraphs.map((p) => `- #${p.lineIndex}: ${p.content}`).join('\n'))}`)
-
-    // TEST: removing this, as the necessary change has been made above
-    // const correctedSelectedParagraphs: Array<TParagraph> = selectedParagraphs.slice()
-    // correctedSelectedParagraphs.forEach((p: TParagraph) => {
-    //   p.lineIndex += numberOfFrontmatterLines
-    // })
-    // logDebug('getSelectedParagraphsWithCorrectLineIndex', `${correctedSelectedParagraphs.length} Corrected selected paragraph(s) with lineIndex taking into account frontmatter lines:\n${String(correctedSelectedParagraphs.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n'))}`)
 
     return selectedParagraphs
   } catch (error) {
