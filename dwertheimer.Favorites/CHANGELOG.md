@@ -1,5 +1,14 @@
 # Favorites Plugin Changelog
 
+## [1.4.1] - 2026-07-21 @dwertheimer
+
+- **Fixed**: The unfavorite star icon on each note row was getting clipped at the top of the row.
+- **Feature**: Added a "Group favorites by folder" plugin setting (bool). This controls the initial state of the Notes list's "group by folder" toggle when the Favorites browser window opens; users can still switch modes from the toggle itself within the session.
+
+## [1.4.0] - 2026-07-21 @dwertheimer
+
+- **Feature**: Added a "Group by folder" toggle to the Favorites browser Notes view (next to the Notes/Commands segmented control). When enabled, favorite notes are grouped under folder headers instead of a flat list, making it easier to scan favorites when you have many of them across different folders.
+
 ## [1.3.6] - 2026-04-13 @dwertheimer
 
 - **PluginRequestEnvelope**: Favorites browser `requestFromPlugin` resolves with `@helpers/react/pluginRequestEnvelope` (`unwrapPluginRequestData` / explicit `success` + `data` + `message`). **Release together with np.Shared 1.0.7+** (or matching Root bundle).

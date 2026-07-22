@@ -32,6 +32,12 @@ type FavoriteNote = {
   folder?: string,
 }
 
+// Pseudo-item inserted into the list to render a folder group header when grouping is enabled
+type FolderHeaderItem = {
+  __isFolderHeader: true,
+  folder: string,
+}
+
 type FavoriteCommand = {
   name: string,
   description?: string,
@@ -79,6 +85,9 @@ function FavoritesViewComponent({
   const [filterText, setFilterText] = useState<string>('')
   const [selectedIndex, setSelectedIndex] = useState<?number>(null)
   const [showNotes, setShowNotes] = useState<boolean>(reactSettings?.showNotes !== false) // Default to notes
+  // Default comes from the plugin's "Group favorites by folder by default" setting (pluginData.groupByFolder),
+  // but an in-session toggle (reactSettings.groupByFolder) takes precedence once the user has changed it.
+  const [groupByFolder, setGroupByFolder] = useState<boolean>(reactSettings?.groupByFolder !== undefined ? reactSettings.groupByFolder === true : pluginData?.groupByFolder === true)
   const [projectNotes, setProjectNotes] = useState<Array<NoteOption>>([])
   const [presetCommands, setPresetCommands] = useState<Array<{ label: string, value: string }>>([])
   const [showAddNoteDialog, setShowAddNoteDialog] = useState<boolean>(false)
@@ -175,27 +184,6 @@ function FavoritesViewComponent({
       setLoading(false)
     }
   }, [requestFromPlugin])
-
-  // Effect to scroll to and highlight newly added item
-  useEffect(() => {
-    if (newlyAddedFilename && favoriteNotes.length > 0 && listRef.current) {
-      // Find the index of the newly added item
-      const newIndex = favoriteNotes.findIndex((note) => note.filename === newlyAddedFilename)
-      if (newIndex >= 0) {
-        // Wait a bit for DOM to update, then scroll to the item
-        setTimeout(() => {
-          const item = listRef.current?.querySelector(`[data-index="${newIndex}"]`)
-          if (item instanceof HTMLElement) {
-            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-            // Remove highlight after animation completes (2 seconds)
-            setTimeout(() => {
-              setNewlyAddedFilename(null)
-            }, 2000)
-          }
-        }, 100)
-      }
-    }
-  }, [newlyAddedFilename, favoriteNotes])
 
   // Load favorite commands
   const loadFavoriteCommands = useCallback(async () => {
@@ -391,7 +379,9 @@ function FavoritesViewComponent({
   // Handle item click
   // Note: __windowId is automatically injected by Root.jsx sendToPlugin, so we don't need to add it here
   const handleItemClick = useCallback(
-    (item: FavoriteNote | FavoriteCommand, event: MouseEvent) => {
+    (item: FavoriteNote | FavoriteCommand | FolderHeaderItem, event: MouseEvent) => {
+      // $FlowFixMe[prop-missing] - header pseudo-items are not clickable
+      if (item && item.__isFolderHeader) return
       const isOptionClick = event.altKey || (event.metaKey === false && event.ctrlKey) // Alt key (option on Mac)
       const isCmdClick = event.metaKey || event.ctrlKey // Cmd key (meta on Mac, ctrl on Windows)
 
@@ -431,10 +421,67 @@ function FavoritesViewComponent({
     [showNotes, dispatch],
   )
 
-  // Get current items based on view type
+  // Get current items based on view type. When grouping is enabled for notes, pre-filter by filterText
+  // (same predicate as filterNote) and insert folder header pseudo-items between groups.
   const currentItems = useMemo(() => {
-    return showNotes ? favoriteNotes : favoriteCommands
-  }, [showNotes, favoriteNotes, favoriteCommands])
+    if (!showNotes) return favoriteCommands
+    if (!groupByFolder) return favoriteNotes
+
+    const searchText = filterText.trim().toLowerCase()
+    const filtered = searchText
+      ? favoriteNotes.filter((note) => (note.title || '').toLowerCase().includes(searchText) || (note.folder || '').toLowerCase().includes(searchText))
+      : favoriteNotes
+
+    const folderKey = (note: FavoriteNote): string => (note.folder && note.folder !== '/' ? note.folder : '')
+    const sorted = [...filtered].sort((a, b) => folderKey(a).localeCompare(folderKey(b), undefined, { sensitivity: 'base' }))
+
+    const grouped: Array<FavoriteNote | FolderHeaderItem> = []
+    let lastFolder = null
+    sorted.forEach((note) => {
+      const folder = folderKey(note)
+      if (lastFolder === null || folder !== lastFolder) {
+        grouped.push({ __isFolderHeader: true, folder })
+        lastFolder = folder
+      }
+      grouped.push(note)
+    })
+    return grouped
+  }, [showNotes, favoriteNotes, favoriteCommands, groupByFolder, filterText])
+
+  // Effect to scroll to and highlight newly added item
+  useEffect(() => {
+    if (newlyAddedFilename && currentItems.length > 0 && listRef.current) {
+      // Find the index of the newly added item in the currently displayed (possibly grouped) list
+      const newIndex = currentItems.findIndex((item) => item && item.filename === newlyAddedFilename)
+      if (newIndex >= 0) {
+        // Wait a bit for DOM to update, then scroll to the item
+        setTimeout(() => {
+          const item = listRef.current?.querySelector(`[data-index="${newIndex}"]`)
+          if (item instanceof HTMLElement) {
+            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+            // Remove highlight after animation completes (2 seconds)
+            setTimeout(() => {
+              setNewlyAddedFilename(null)
+            }, 2000)
+          }
+        }, 100)
+      }
+    }
+  }, [newlyAddedFilename, currentItems])
+
+  // Find the next/previous selectable (non-header) index, used to skip folder header rows during keyboard navigation
+  const findSelectableIndex = useCallback(
+    (startIndex: number, direction: 1 | -1): number | null => {
+      let idx = startIndex
+      while (idx >= 0 && idx < currentItems.length) {
+        const item = currentItems[idx]
+        if (!item || !item.__isFolderHeader) return idx
+        idx += direction
+      }
+      return null
+    },
+    [currentItems],
+  )
 
   // Handle removing favorite note
   const handleRemoveFavorite = useCallback(
@@ -524,6 +571,16 @@ function FavoritesViewComponent({
   // Render note item
   const renderNoteItem = useCallback(
     (item: any, index: number): Node => {
+      // Folder group header row (only present when groupByFolder is on)
+      if (item && item.__isFolderHeader) {
+        return (
+          <div className="favorites-item-folder-header">
+            <i className="fa fa-folder favorites-folder-header-icon" />
+            <span className="favorites-folder-header-label">{item.folder || 'No Folder'}</span>
+          </div>
+        )
+      }
+
       // $FlowFixMe[incompatible-cast] - item is FavoriteNote when showNotes is true
       const note: FavoriteNote = item
       const folder = note.folder || ''
@@ -540,7 +597,7 @@ function FavoritesViewComponent({
           <i className={`fa ${icon} favorites-item-icon`} style={{ color: color }} />
           <div className="favorites-item-content">
             <div className="favorites-item-title">{displayTitle}</div>
-            {folder && folder !== '/' && <div className="favorites-item-folder">{folderDisplay}</div>}
+            {!groupByFolder && folder && folder !== '/' && <div className="favorites-item-folder">{folderDisplay}</div>}
           </div>
           <InfoIcon
             text="Remove from favorites"
@@ -560,7 +617,7 @@ function FavoritesViewComponent({
         </div>
       )
     },
-    [newlyAddedFilename, handleRemoveFavorite],
+    [newlyAddedFilename, handleRemoveFavorite, groupByFolder],
   )
 
   // Render command item
@@ -588,6 +645,10 @@ function FavoritesViewComponent({
     const folder = (note.folder || '').toLowerCase()
     return title.includes(searchText) || folder.includes(searchText)
   }, [])
+
+  // No-op filter: used when grouping by folder, since currentItems is already pre-filtered by filterText
+  // (and folder header pseudo-items need to always pass through)
+  const alwaysPassFilter = useCallback((): boolean => true, [])
 
   // Filter function for commands
   const filterCommand = useCallback((item: any, text: string): boolean => {
@@ -627,6 +688,16 @@ function FavoritesViewComponent({
     [setReactSettings],
   )
 
+  // Handle "group by folder" toggle
+  const handleGroupByFolderToggle = useCallback(() => {
+    setGroupByFolder((prev) => {
+      const next = !prev
+      setReactSettings((prevSettings: any) => ({ ...prevSettings, groupByFolder: next }))
+      return next
+    })
+    setSelectedIndex(null) // Reset selection since item positions change
+  }, [setReactSettings])
+
   // Handle keyboard navigation
   // Arrow keys only navigate (change selectedIndex) - they do NOT trigger actions
   // Click and Enter trigger actions (run command or open note)
@@ -634,9 +705,10 @@ function FavoritesViewComponent({
     (event: KeyboardEvent) => {
       if (event.key === 'ArrowDown') {
         event.preventDefault()
-        // Arrow navigation only - no action triggered
-        const newIndex = selectedIndex === null || selectedIndex === undefined ? 0 : selectedIndex + 1
-        if (newIndex < currentItems.length) {
+        // Arrow navigation only - no action triggered. Skip over folder header rows.
+        const startIndex = selectedIndex === null || selectedIndex === undefined ? 0 : selectedIndex + 1
+        const newIndex = findSelectableIndex(startIndex, 1)
+        if (newIndex !== null) {
           setSelectedIndex(newIndex)
           // Scroll into view
           setTimeout(() => {
@@ -651,20 +723,22 @@ function FavoritesViewComponent({
         }
       } else if (event.key === 'ArrowUp') {
         event.preventDefault()
-        // Arrow navigation only - no action triggered
+        // Arrow navigation only - no action triggered. Skip over folder header rows.
         if (selectedIndex !== null && selectedIndex !== undefined && selectedIndex > 0) {
-          const newIndex = selectedIndex - 1
-          setSelectedIndex(newIndex)
-          // Scroll into view
-          setTimeout(() => {
-            if (listRef.current) {
-              const item = listRef.current.querySelector(`[data-index="${newIndex}"]`)
-              if (item instanceof HTMLElement) {
-                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-                item.focus()
+          const newIndex = findSelectableIndex(selectedIndex - 1, -1)
+          if (newIndex !== null) {
+            setSelectedIndex(newIndex)
+            // Scroll into view
+            setTimeout(() => {
+              if (listRef.current) {
+                const item = listRef.current.querySelector(`[data-index="${newIndex}"]`)
+                if (item instanceof HTMLElement) {
+                  item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+                  item.focus()
+                }
               }
-            }
-          }, 0)
+            }, 0)
+          }
         }
       } else if (event.key === 'Enter' && selectedIndex !== null && selectedIndex !== undefined && selectedIndex >= 0 && selectedIndex < currentItems.length) {
         event.preventDefault()
@@ -675,7 +749,7 @@ function FavoritesViewComponent({
         }
       }
     },
-    [currentItems, selectedIndex, handleItemClick],
+    [currentItems, selectedIndex, handleItemClick, findSelectableIndex],
   )
 
   // Handle filter input keydown
@@ -684,33 +758,39 @@ function FavoritesViewComponent({
       // SyntheticKeyboardEvent<HTMLInputElement>
       if (e.key === 'ArrowDown' && currentItems.length > 0) {
         e.preventDefault()
-        setSelectedIndex(0)
-        // Focus the list with setTimeout to ensure DOM is updated
-        setTimeout(() => {
-          if (listRef.current) {
-            const firstItem = listRef.current.querySelector('[data-index="0"]')
-            if (firstItem instanceof HTMLElement) {
-              firstItem.focus()
+        const firstIndex = findSelectableIndex(0, 1)
+        if (firstIndex !== null) {
+          setSelectedIndex(firstIndex)
+          // Focus the list with setTimeout to ensure DOM is updated
+          setTimeout(() => {
+            if (listRef.current) {
+              const firstItem = listRef.current.querySelector(`[data-index="${firstIndex}"]`)
+              if (firstItem instanceof HTMLElement) {
+                firstItem.focus()
+              }
             }
-          }
-        }, 0)
+          }, 0)
+        }
       } else if (e.key === 'Tab' && !e.shiftKey && currentItems.length > 0) {
-        e.preventDefault()
-        setSelectedIndex(0)
-        setTimeout(() => {
-          if (listRef.current) {
-            const firstItem = listRef.current.querySelector('[data-index="0"]')
-            if (firstItem instanceof HTMLElement) {
-              firstItem.focus()
+        const firstIndex = findSelectableIndex(0, 1)
+        if (firstIndex !== null) {
+          e.preventDefault()
+          setSelectedIndex(firstIndex)
+          setTimeout(() => {
+            if (listRef.current) {
+              const firstItem = listRef.current.querySelector(`[data-index="${firstIndex}"]`)
+              if (firstItem instanceof HTMLElement) {
+                firstItem.focus()
+              }
             }
-          }
-        }, 0)
+          }, 0)
+        }
       } else {
         // Pass other keys to handleKeyDown
         handleKeyDown(e.nativeEvent)
       }
     },
-    [currentItems.length, handleKeyDown],
+    [currentItems.length, handleKeyDown, findSelectableIndex],
   )
 
   return (
@@ -743,6 +823,17 @@ function FavoritesViewComponent({
               <span>Commands</span>
             </button>
           </div>
+          {showNotes && (
+            <button
+              type="button"
+              className={`favorites-group-toggle-button ${groupByFolder ? 'favorites-group-toggle-button-active' : ''}`}
+              onClick={handleGroupByFolderToggle}
+              aria-pressed={groupByFolder}
+              title={groupByFolder ? 'Ungroup notes' : 'Group notes by folder'}
+            >
+              <i className="fa fa-folder favorites-group-toggle-icon" />
+            </button>
+          )}
           <button
             type="button"
             className="favorites-new-button"
@@ -772,7 +863,7 @@ function FavoritesViewComponent({
         filterText={filterText}
         onFilterChange={setFilterText}
         filterPlaceholder={showNotes ? 'Filter notes...' : 'Filter commands...'}
-        filterFunction={showNotes ? filterNote : filterCommand}
+        filterFunction={showNotes ? (groupByFolder ? alwaysPassFilter : filterNote) : filterCommand}
         getItemLabel={getItemLabel}
         onKeyDown={handleKeyDown}
         onFilterKeyDown={handleFilterKeyDown}

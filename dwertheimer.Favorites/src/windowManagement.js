@@ -63,6 +63,7 @@ export function getPluginData(showFloating: boolean, windowId: string): { [strin
     platform: NotePlan.environment.platform,
     windowId: windowId,
     showFloating: showFloating,
+    groupByFolder: DataStore.settings.groupFavoritesByFolder === true, // user's default for the Notes list "group by folder" toggle
   }
 
   return pluginData
