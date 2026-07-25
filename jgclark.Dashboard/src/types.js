@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-07-21 for v2.4.0.b53 by @jgclark + @CursorAI
+// Last updated 2026-07-23 for v2.4.0.b54 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -528,13 +528,34 @@ export type TInteractiveProcessing =
     }
   | false
 
+/**
+ * Done-count summary for a note or rolled-up total.
+ * `completedTasks` is the primary display count (context-dependent: header = all completed today;
+ * DT section progress = forToday affinity; DY/W/M/Q/Y = completions in that period's calendar note).
+ * Optional breakdown fields are filled when scanning today's completions across changed notes.
+ */
 export type TDoneCount = {
   completedTasks: number,
-  completedTasksAtPriority?: number, // optional, only present if priorityLevel is set
-  lastUpdated: Date, // last updated date for either the total or the priority-specific count
+  lastUpdated: Date, // last updated date for the count
+  // Optional affinity breakdown for tasks completed today (from todaysChangedNoteList.json):
+  forToday?: number, // periodAffinity today + @done(today)
+  forOtherPeriod?: number, // affinity yesterday/week/month/quarter/year + @done(today)
+  completedWins?: number, // completed at winsPriorityMarker priority + matching @done filter
 }
 
+/**
+ * One note's entry in todaysChangedNoteList.json (plus optional affinity buckets).
+ */
 export type TDoneTodayNotes = {
   filename: string,
   counts: TDoneCount,
 }
+
+/**
+ * Filter for which @done(...) dates to count in a note.
+ * - true: only @done(today) (default, backwards compatible)
+ * - false: any @done(...) date
+ * - string: ISO YYYY-MM-DD to match
+ * - { start, end }: inclusive ISO date range
+ */
+export type TDoneDateFilter = boolean | string | { start: string, end: string }

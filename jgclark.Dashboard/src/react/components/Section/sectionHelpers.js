@@ -1,11 +1,11 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2026-07-20 for v2.4.0.b52 by @jgclark + @CursorAI
+// Last updated 2026-07-24 for v2.4.0.b54 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
-import { allSectionDetails, CAN_HAVE_EMPTY_SECTION_MESSAGES, treatSingleItemTypesAsZeroItems } from '../../../constants'
+import { allSectionDetails, CAN_HAVE_EMPTY_SECTION_MESSAGES, sectionsPriorityBeforeTagWhenCalendarFocus, treatSingleItemTypesAsZeroItems } from '../../../constants'
 import { logTimer } from '@helpers/dev.js'
 import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/reactDev'
 
@@ -28,8 +28,7 @@ export function countRealSectionItems(items: ?Array<TSectionItem>): number {
 export function getGeneratedDateKey(generatedDate: ?(Date | string)): string {
   if (generatedDate == null) return ''
   if (typeof generatedDate === 'string') return generatedDate
-  // Avoid method-unbinding: call via Date.prototype rather than extracting toISOString
-  if (generatedDate instanceof Date) return Date.prototype.toISOString.call(generatedDate)
+  if (generatedDate instanceof Date) return generatedDate.toISOString()
   return String(generatedDate)
 }
 
@@ -173,8 +172,9 @@ function getUseFirstButVisible(useFirst: Array<TSectionCode>, dashboardSettings:
 }
 
 /**
- * When includedCalendarSections is set, prefer calendar period and Overdue sections over TAG
- * for Hide Duplicates, so focused tagged items stay in Today/Overdue rather than only in TAG.
+ * When includedCalendarSections is set, prefer Wins / calendar period / Overdue sections over TAG for Hide Duplicates,
+ * so focused tagged items stay in Today/Overdue rather than only in TAG.
+ * WINS must stay before DT/W/M/Q (same as sectionPriorityForDeduping) so >> items remain in Wins.
  * Leaves the default order alone when the setting is blank.
  * @param {Array<TSectionCode>} useFirst - base dedupe priority order
  * @param {TDashboardSettings} dashboardSettings
@@ -195,12 +195,12 @@ export function adjustDedupPriorityForCalendarFocus(
     return useFirst
   }
 
-  const preferBeforeTag: Array<TSectionCode> = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'OVERDUE']
   const tagIndex = useFirst.indexOf('TAG')
   if (tagIndex < 0) {
     return useFirst
   }
 
+  const preferBeforeTag = sectionsPriorityBeforeTagWhenCalendarFocus
   const beforeTag = useFirst.slice(0, tagIndex)
   const afterTag = useFirst.slice(tagIndex + 1)
   const preferredInOrder = useFirst.filter((code) => preferBeforeTag.includes(code))

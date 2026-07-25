@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin: generate data for month / quarter / year calendar sections
-// Last updated 2026-07-18 for v2.4.0.b52 by @CursorAI
+// Last updated 2026-07-23 for v2.4.0.b54 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
-import { getNumCompletedTasksFromNote } from './countDoneTasks'
+import { getNumCompletedTasksFromCalendarNote } from './countDoneTasks'
 import {
   buildAddTaskChecklistButtons,
   buildAddTaskFormFields,
@@ -69,7 +69,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'month').toDate(), 'month')
     // Omit "add to next month" buttons when NotePlan has no next-month note filename (do not ship a sentinel like '(error)')
     const nextPeriodFilename = nextPeriodNote?.filename || ''
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    const doneCountData = getNumCompletedTasksFromCalendarNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const thisMonthHeadings: Array<string> = currentMonthlyNote ? getHeadingsFromNote(currentMonthlyNote, false, true, true, true) : []
@@ -211,7 +211,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'quarter').toDate(), 'quarter')
     // Omit "add to next quarter" buttons when NotePlan has no next-quarter note filename
     const nextPeriodFilename = nextPeriodNote?.filename || ''
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    const doneCountData = getNumCompletedTasksFromCalendarNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const thisQuarterHeadings: Array<string> = currentQuarterlyNote ? getHeadingsFromNote(currentQuarterlyNote, false, true, true, true) : []
@@ -347,7 +347,7 @@ export function getThisYearSectionData(config: TDashboardSettings, useDemoData: 
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'year').toDate(), 'year')
     // Omit "add to next year" buttons when NotePlan has no next-year note filename
     const nextPeriodFilename = nextPeriodNote?.filename || ''
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    const doneCountData = getNumCompletedTasksFromCalendarNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const thisYearHeadings: Array<string> = currentYearlyNote ? getHeadingsFromNote(currentYearlyNote, false, true, true, true) : []

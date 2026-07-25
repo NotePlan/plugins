@@ -8,7 +8,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
-## [2.4.0.b54] 2026-07-22
+## [2.4.0.b54] 2026-07-23
+- Fix: **Wins** section was emptied when **Calendar note terms to include** was set (e.g. Home perspective) and Hide Duplicates was on - the calendar-focus dedupe reorder put Wins after Today, so `>>` items were kept in Today and stripped from Wins.
+- Change: **Wins** section description now matches Today - progress circle + "closed N items" (using completed-wins from today's doneCounts), respecting "How to show progress in Calendar sections?".
+- Docs: README now explains Hide Duplicates priority order and how Wins / Calendar note terms change it.
+- Change: the count of completed items is now more consistent. (Calendar section "closed" progress now follows period identity - **Today** counts tasks for today completed today; **Yesterday** / Week / Month / Quarter / Year count `@done` dates inside that period in the calendar note. Header "done today" total remains all completions anywhere today. Also tracks completed wins (`>>` / configured marker) for Wins congrats.)
+- dev: New test command: **log Done Counts** (alias `ldc`) dumps the today's done-count map to the Plugin Console.
 - Fix: moving / rescheduling **indented** tasks and checklists no longer fails to find the paragraph. Matching now allows leading-indent differences (NotePlan backlinks return indent-stripped rawContent), and referenced paras are resolved back to the real note paragraph so "Move All → ..." and dialog actions keep correct indent.
 - Fix: saying **No** to the bulk-move confirmation (e.g. Move All This Week → Next Week) no longer shows a "something's gone wrong" banner; it only logs that the user cancelled.
 

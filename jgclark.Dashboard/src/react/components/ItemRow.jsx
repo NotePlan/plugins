@@ -3,7 +3,7 @@
 // Represents a row item within a section.
 // Could be: Task, Project (Review) Item, Filtered Indicator, No Tasks left, No Projects, No Search Results.
 // Called by ItemGrid component.
-// Last updated 2026-07-14 for v2.4.0.b51 by @jgclark
+// Last updated 2026-07-23 for v2.4.0.b54 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
@@ -42,10 +42,11 @@ function ItemRow({ item, thisSection, onToggleShowAll }: Props): Node {
   let winsCongratsMessage = ''
   if (itemType === 'winsCongrats') {
     // Only shown after open wins existed and were all completed (Section.jsx / useSectionSortAndFilter).
+    const winsClosedToday = thisSection.doneCounts?.completedWins ?? 0
     winsCongratsMessage =
-      thisSection.doneCounts?.completedTasks && thisSection.doneCounts.completedTasks > 0
-        ? `Great work! All ${thisSection.doneCounts.completedTasks} wins are complete!`
-        : `Great work! All wins are complete!`
+      winsClosedToday > 0
+        ? `Great work! You've completed all ${winsClosedToday} wins.`
+        : `Great work! You've completed all wins.`
   }
 
   // Deal with the different item types, defaulting to a task/checklist at the end

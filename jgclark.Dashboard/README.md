@@ -132,7 +132,7 @@ There's a UI toggle "**Hide lower-priority items?**". If this is on, then it wor
 
 The top bar has a **count of tasks done today** (when there is enough space). This includes all those completed in project notes, not just from the calendar sections shown -- and it is **not** filtered by the current Perspective (folders to include/exclude, Spaces, ignore terms, etc.). Note: this requires having the NotePlan setting 'Todo > Append Completion Date' setting turned on, as otherwise we can't tell when a task is finished. (As @done(...) dates don't get appended to completed checklists, it's not possible to count completed checklists.) When you complete a task in a project note, it will be included the next time the Dashboard is refreshed, automatically on manually.
 
-Calendar sections (Today, Yesterday, Week, Month, etc.) can optionally show a **progress count** and circle under the section title (setting: "How to show progress in Calendar sections?"). Those counts use the same completion logic and are also **not** filtered by the current Perspective. In particular, **Today** counts all tasks completed today across any note you have edited today, not just tasks that appear in the Today section; other calendar sections count all tasks completed today in that section's calendar note, regardless of whether they would be listed as open items under your Perspective settings.
+Calendar sections (Today, Yesterday, Week, Month, etc.) can optionally show a **progress count** and circle under the section title (setting: "How to show progress in Calendar sections?"). Those counts are **not** filtered by the current Perspective. **Today** section progress counts tasks completed today that belong to today (scheduled for today, or sitting in today's daily note). The header "done today" total still counts **all** tasks completed today in any note you have edited today (including project notes). Other calendar sections count completions in that section's calendar note whose `@done` date falls inside that period (e.g. Yesterday uses `@done(yesterday)`; This Week uses `@done` dates within the current week).
 
 The display will **automatically refresh** in the background if you set the "Automatic Update interval" to any number > 0. This number is the number of minutes after the window is idle when it will refresh the sections you want to display. You can also press the 'Refresh' button at any point, and/or you can set a trigger (see below).
 
@@ -229,6 +229,19 @@ This finds all open items with a priority set (with `>>`, `!!!`, `!!` and `!` ma
 
 David's advice is: "Priority tasks float to the tops of their individual sections already. And I go through all overdue tasks and handle them so that section stays small after you bite the bullet and do it once."
 
+### Hide Duplicates
+When **Hide duplicates?** is on (Filter menu), the same open item is shown in only one section. Matching is by note filename + task content (or sync block ID / reminder id when present). Which section keeps the item is controlled by a fixed priority order (not necessarily the on-screen section order):
+
+1. **Wins**
+2. **Time Block / Timed Items** and **Reminders** (timed copies win over later sections)
+3. **Tag/Mention** sections
+4. Calendar periods (**Today**, Yesterday, Tomorrow, Last Week, This Week, Month, Quarter, Year)
+5. **Priority**, then **Overdue**
+
+So by default a task that appears in both Today and a TAG section is kept in TAG and stripped from Today. Project and Search sections are never part of this dedupe.
+
+But note that when 'Calendar note terms to include' is set (e.g. a Perspective focused on `Home` or `#acme`), Hide Duplicates temporarily prefers calendar periods, and Overdue over Tags, so matching items stay in Today/Overdue (and Wins) rather than only in the TAG section.
+
 ## Configuration Settings
 Dashboard provides a quick access Settings window, accessed from the cog wheel at the top right of the dashboard window -- or you can use shortcut ^⌥-comma. (This replaces the normal method of going to the NotePlan Preference Pane, and finding the right Plugin.)
 
@@ -262,7 +275,7 @@ _The settings in the 'Moving/Scheduling Items' section are covered above_.
 - Theme to use for Dashboard: If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.
 - Show referenced items in separate section? Whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes. The same also goes for Weekly/Monthly/Quarterly notes.
 - Show completed task count?: Show the number of tasks completed today at the top of the Dashboard. This total is not filtered by the current Perspective (see [Other notes about the Dashboard display](#other-notes-about-the-dashboard-display)). Note: For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.
-- How to show progress in Calendar sections?: If set to 'number closed', shows how many tasks were completed today in the section heading (with a progress circle). If set to 'number open', shows how many tasks are still open instead. These counts are not filtered by the current Perspective -- e.g. Today's count includes all tasks completed today in any note, not only items listed in that section. Set to 'none' to hide.
+- How to show progress in Calendar sections?: If set to 'number closed', shows how many tasks were completed in the section heading (with a progress circle). If set to 'number open', shows how many tasks are still open instead. These counts are not filtered by the current Perspective. Today’s progress is tasks for today completed today; other calendar periods use `@done` dates inside that period in that calendar note. The header total remains all tasks completed today anywhere. Set to 'none' to hide.
 - Hide priority markers? Hide the `>>`, `!!`, `!`, and `!!` priority markers (if your theme uses priorities markers).
 - Show note link for tasks? Whether to show the note link for an open task or checklist.
 - Show folder name in note link? Whether to include the folder name when showing a note link

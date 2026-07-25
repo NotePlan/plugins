@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-07-10 for v2.4.0.b47 by @jgclark + @CursorAI
+// Last updated 2026-07-24 for v2.4.0.b54 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -281,18 +281,31 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
       }
     }
 
+    // Attach completed-win count from DT's today breakdown (for congrats messaging); WINS stays open-items only
+    const dtSection = sections.find((s) => s.sectionCode === 'DT' && !s.isReferenced)
+    const completedWins = dtSection?.doneCounts?.completedWins ?? 0
+    const winsDoneCounts =
+      dtSection?.doneCounts != null
+        ? {
+          completedTasks: completedWins,
+          completedWins,
+          lastUpdated: dtSection.doneCounts.lastUpdated || new Date(),
+        }
+        : undefined
+
     const winsSection: TSection = {
       ID: 'WINS',
       name: 'Wins',
       showSettingName: 'showWinsSection',
       sectionCode: 'WINS',
       isReferenced: false,
-      description: '{countWithLimit} big-win {itemType}',
+      description: '{closedOrOpenTaskCount}',
       totalCount: winItems.length,
       sectionItems: winItems,
       FAIconClass: 'fa-regular fa-fw fa-crosshairs',
       sectionTitleColorPart: 'WinsSectionColor',
       actionButtons: [],
+      doneCounts: winsDoneCounts,
       // Derived from calendar source sections - see comment on maxGeneratedDateMs above
       generatedDate: maxGeneratedDateMs > 0 ? new Date(maxGeneratedDateMs) : undefined,
     }

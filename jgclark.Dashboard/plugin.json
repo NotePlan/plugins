@@ -226,6 +226,16 @@
       ]
     },
     {
+      "comment": "test/diagnostic: dump todaysChangedNoteList.json done-count map. TODO: remove me in time",
+      "hidden": false,
+      "name": "log Done Counts",
+      "description": "Show today's done-count map (todaysChangedNoteList.json) as an INFO banner and in the Plugin Console",
+      "jsFunction": "logDoneCounts",
+      "alias": [
+        "ldc"
+      ]
+    },
+    {
       "comment": "TODO: remove me in time",
       "hidden": false,
       "name": "updateTagMentionCache",

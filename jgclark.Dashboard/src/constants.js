@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code.
 // Check each of them when adding a new Section.
-// Last updated 2026-07-11 for v2.4.0.b49, @jgclark + @CursorAI
+// Last updated 2026-07-24 for v2.4.0.b54, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -49,8 +49,14 @@ export const defaultSectionDisplayOrder = ['SEARCH', 'SAVEDSEARCH', 'WINS', 'TB'
 
 // change this order to change which duplicate items get kept - the first on the list. Should not include 'dontDedupeSectionCodes' below.
 // TB before REM/DT so timed reminders (due now) kept in Current time blocks are stripped from later sections when hideDuplicates is on.
-// WINS before DT/W/M/Q so hideDuplicates keeps >> items in Wins and strips them from period sections.
+// WINS before DT/W/M/Q so hideDuplicates keeps high priority Wins and strips them from period sections.
+// TAG before DT/W/M/Q so hideDuplicates keeps TAG items and strips them from period sections.
 export const sectionPriorityForDeduping = ['TB', 'REM', 'TAG', 'WINS', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
+
+// When 'Calendar note terms to include' is set, Hide Duplicates reorders so these sections beat TAG.
+// Membership only - final order still comes from sectionPriorityForDeduping (WINS before calendar periods).
+// See adjustDedupPriorityForCalendarFocus in sectionHelpers.js
+export const sectionsPriorityBeforeTagWhenCalendarFocus: Array<TSectionCode> = ['WINS', ...allCalendarSectionCodes, 'OVERDUE']
 
 // Those sections we can't or shouldn't attempt to dedupe:
 // - PROJREVIEW and PROJACT as they aren't about paragraphs, but notes

@@ -617,7 +617,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
 
   // Calculate all done task counts (if the appropriate setting is on)
   if (NPSettings.doneDatesAvailable) {
-    const totalDoneCount = await updateDoneCountsFromChangedNotes('end of getPluginData', dashboardSettings.FFlag_ShowSectionTimings === true)
+    const totalDoneCount = await updateDoneCountsFromChangedNotes('end of getPluginData')
     pluginData.totalDoneCount = totalDoneCount
   }
 

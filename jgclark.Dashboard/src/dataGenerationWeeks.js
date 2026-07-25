@@ -1,13 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-07-16 for v2.4.0.b51 by @jgclark + @CursorAI
+// Last updated 2026-07-23 for v2.4.0.b54 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
-import { getNumCompletedTasksFromNote } from './countDoneTasks'
+import { getNumCompletedTasksFromCalendarNote } from './countDoneTasks'
 import {
   buildAddTaskChecklistButtons,
   buildAddTaskFormFields,
@@ -76,7 +76,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'week').toDate(), 'week')
     // Omit "add to next week" buttons when NotePlan has no next-week note filename (do not ship a sentinel like '(error)')
     const nextPeriodFilename = nextPeriodNote?.filename || ''
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    const doneCountData = getNumCompletedTasksFromCalendarNote(thisFilename)
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const thisWeekHeadings: Array<string> = currentWeeklyNote ? getHeadingsFromNote(currentWeeklyNote, false, true, true, true) : []
@@ -223,7 +223,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
       }
     }
 
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    const doneCountData = getNumCompletedTasksFromCalendarNote(thisFilename)
     let sectionDescription = `{countWithLimit} {itemType} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 

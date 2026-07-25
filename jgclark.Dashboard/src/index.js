@@ -72,7 +72,7 @@ export {
 
 export { generateTagMentionCache, updateTagMentionCache } from './tagMentionCache'
 
-export { updateDoneCountsFromChangedNotes } from './countDoneTasks'
+export { updateDoneCountsFromChangedNotes, logDoneCounts } from './countDoneTasks'
 
 export { externallyStartSearch } from './dataGenerationSearch.js'
 

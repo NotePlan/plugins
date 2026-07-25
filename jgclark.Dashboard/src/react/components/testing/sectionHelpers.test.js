@@ -16,6 +16,22 @@ global.NotePlan = NotePlan
 // tests start here
 
 describe('sectionHelpers', () => {
+  describe('getGeneratedDateKey', () => {
+    test('returns empty string for null/undefined', () => {
+      expect(sh.getGeneratedDateKey(null)).toBe('')
+      expect(sh.getGeneratedDateKey(undefined)).toBe('')
+    })
+
+    test('returns string dates unchanged', () => {
+      expect(sh.getGeneratedDateKey('2026-07-24T12:00:00.000Z')).toBe('2026-07-24T12:00:00.000Z')
+    })
+
+    test('converts Date via toISOString', () => {
+      const d = new Date('2026-07-24T12:00:00.000Z')
+      expect(sh.getGeneratedDateKey(d)).toBe('2026-07-24T12:00:00.000Z')
+    })
+  })
+
   /**
    * Tests for sortSections
    */
@@ -62,18 +78,18 @@ describe('sectionHelpers', () => {
       expect(sh.adjustDedupPriorityForCalendarFocus(baseOrder, { includedCalendarSections: '  ,  ' })).toEqual(baseOrder)
     })
 
-    test('moves calendar period and OVERDUE before TAG when filter is set', () => {
+    test('moves WINS, calendar period and OVERDUE before TAG when filter is set', () => {
       const result = sh.adjustDedupPriorityForCalendarFocus(baseOrder, { includedCalendarSections: 'acme' })
       const tagIndex = result.indexOf('TAG')
       expect(tagIndex).toBeGreaterThan(-1)
-      ;['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'OVERDUE'].forEach((code) => {
+      ;['WINS', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'OVERDUE'].forEach((code) => {
         expect(result.indexOf(code)).toBeLessThan(tagIndex)
       })
-      // TB / REM stay before TAG; WINS and PRIORITY were after TAG in the base order and stay after
+      // TB / REM stay before TAG; PRIORITY stays after TAG; WINS stays before DT
       expect(result.indexOf('TB')).toBeLessThan(tagIndex)
       expect(result.indexOf('REM')).toBeLessThan(tagIndex)
-      expect(result.indexOf('WINS')).toBeGreaterThan(tagIndex)
       expect(result.indexOf('PRIORITY')).toBeGreaterThan(tagIndex)
+      expect(result.indexOf('WINS')).toBeLessThan(result.indexOf('DT'))
     })
 
     test('with Hide Duplicates, keeps duplicate in DT not TAG when calendar focus is set', () => {
@@ -115,6 +131,39 @@ describe('sectionHelpers', () => {
       const dtWith = withFocus.find((s) => s.sectionCode === 'DT')
       expect(dtWith.sectionItems).toHaveLength(1)
       expect(tagWith.sectionItems).toHaveLength(0)
+    })
+
+    test('with Hide Duplicates + calendar focus, keeps >> win in WINS not DT', () => {
+      const winPara = { filename: '20260724.md', content: '>> Pick up PEB again', priority: 4, type: 'open' }
+      const sections = [
+        {
+          sectionCode: 'WINS',
+          name: 'Wins',
+          showSettingName: 'showWinsSection',
+          sectionItems: [{ ID: 'WINS-DT-0', itemType: 'open', sectionCode: 'DT', para: winPara }],
+        },
+        {
+          sectionCode: 'DT',
+          name: 'Today',
+          showSettingName: 'showTodaySection',
+          sectionItems: [{ ID: 'DT-0', itemType: 'open', sectionCode: 'DT', para: winPara }],
+        },
+      ]
+      const withFocus = sh.getSectionsWithoutDuplicateLines(
+        sections,
+        ['filename', 'content'],
+        baseOrder,
+        [],
+        {
+          includedCalendarSections: 'Home',
+          showTodaySection: true,
+          showWinsSection: true,
+        },
+      )
+      const wins = withFocus.find((s) => s.sectionCode === 'WINS')
+      const dt = withFocus.find((s) => s.sectionCode === 'DT')
+      expect(wins.sectionItems).toHaveLength(1)
+      expect(dt.sectionItems).toHaveLength(0)
     })
   })
 

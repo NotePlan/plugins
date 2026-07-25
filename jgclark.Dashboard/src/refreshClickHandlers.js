@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-07-14 for v2.4.0.b50 by @jgclark
+// Last updated 2026-07-23 for v2.4.0.b54 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
@@ -88,8 +88,7 @@ export async function refreshDashboard(): Promise<void> {
     // re-calculate all done task counts (if the appropriate setting is on)
     const NPSettings = await getNotePlanSettings()
     if (NPSettings.doneDatesAvailable) {
-      const config: any = await getDashboardSettings()
-      const totalDoneCount = await updateDoneCountsFromChangedNotes(`end of refreshDashboard()`, config.FFlag_ShowSectionTimings === true)
+      const totalDoneCount = await updateDoneCountsFromChangedNotes(`end of refreshDashboard()`)
       const changedData = {
         totalDoneCount: totalDoneCount,
         firstRun: false, // Ensure firstRun remains false after refresh completes
@@ -156,8 +155,7 @@ export async function incrementallyRefreshSomeSections(
     const NPSettings = await getNotePlanSettings()
     if (NPSettings.doneDatesAvailable) {
       const startTime = new Date()
-      const config: any = await getDashboardSettings()
-      const totalDoneCount = await updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSomeSections (for [${sectionCodes.join(',')}])`, config.FFlag_ShowSectionTimings === true)
+      const totalDoneCount = await updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSomeSections (for [${sectionCodes.join(',')}])`)
       const changedData = {
         totalDoneCount: totalDoneCount,
         firstRun: false, // Ensure firstRun remains false after generation completes
@@ -221,10 +219,7 @@ export async function batchRefreshSomeSections(data: MessageDataObject): Promise
     if (NPSettings.doneDatesAvailable) {
       const startTime = new Date()
       const config: any = await getDashboardSettings()
-      const totalDoneCount = await updateDoneCountsFromChangedNotes(
-        `update done counts at end of batchRefreshSomeSections (for [${sectionCodes.join(',')}])`,
-        config.FFlag_ShowSectionTimings === true,
-      )
+      const totalDoneCount = await updateDoneCountsFromChangedNotes(`update done counts at end of batchRefreshSomeSections (for [${sectionCodes.join(',')}])`)
       await setPluginData({ totalDoneCount, firstRun: false }, 'Updating doneCounts at end of batchRefreshSomeSections')
       logTimer('batchRefreshSomeSections', startTime, `- done counts`, 200)
     }

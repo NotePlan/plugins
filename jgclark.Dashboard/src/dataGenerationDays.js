@@ -1,13 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2026-07-18 for v2.4.0.b52 by @jgclark + @CursorAI
+// Last updated 2026-07-23 for v2.4.0.b54 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
-import { getDoneCountsForToday, getNumCompletedTasksFromNote } from './countDoneTasks'
+import { getDoneCountsForToday, getNumCompletedTasksFromCalendarNote } from './countDoneTasks'
 import {
   buildAddTaskChecklistButtons,
   buildAddTaskFormFields,
@@ -438,8 +438,8 @@ export function getYesterdaySectionData(
       itemCount += assigned.length
       logDebug('getYesterdaySectionData', `- added ${String(assigned.length)} reminder(s) into combined Yesterday section`)
     }
-    // Note: this only counts from yesterday's note
-    const doneCountData = getNumCompletedTasksFromNote(thisFilename)
+    // Completions in yesterday's note with @done(yesterday) (period range for that daily note)
+    const doneCountData = getNumCompletedTasksFromCalendarNote(thisFilename)
     let sectionDescription = `{closedOrOpenTaskCount}` // ` ` from ${yesterdayDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 

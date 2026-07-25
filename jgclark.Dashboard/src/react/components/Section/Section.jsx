@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2026-07-10 for v2.4.0.b48 by @jgclark + @CursorAI
+// Last updated 2026-07-24 for v2.4.0.b54 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -487,9 +487,10 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   let descriptionToUse = section.description
   /**
    * Requirements for the task completion part of descriptions:
-   * - DT etc.: none: {T} from date
-   *            open: {circle} {C} of {T} open from date
-   *            done: {circle} {D} of {T} done from date
+   * - DT / WINS etc.: none: {T}
+   *            open: {circle} {C} open items
+   *            closed: {circle} closed {D} items
+   *   (WINS doneCounts.completedTasks is completedWins from today's breakdown)
    * - DT(Ref) etc: ANY: {T} scheduled to date
    *           (otherwise too hard to separate direct from referenced)
    * - OVERDUE: no limit: {T} open from last ...
@@ -541,9 +542,17 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
 
   // logInfo('Section', `- ${section.sectionCode}: limitApplied? ${String(limitApplied)} / numItemsToShow: ${String(numItemsToShow)} / numItems: ${String(items.length)} / numFilteredOutThisSection: ${String(numFilteredOutThisSection)}. ${section.description} -> ${descriptionToUse}`)
 
-  // Prep a task-completion circle to the description for calendar non-referenced sections (where showProgressInSections !== 'none')
+  // Prep a task-completion circle for calendar non-referenced sections and Wins (where showProgressInSections !== 'none')
   let completionCircle = null
-  if (numItemsToShow > 0 && section.doneCounts && dashboardSettings.showProgressInSections !== 'none' && allCalendarSectionCodes.includes(section.sectionCode) && section.isReferenced === false) {
+  const sectionUsesProgressCircle =
+    allCalendarSectionCodes.includes(section.sectionCode) || section.sectionCode === 'WINS'
+  if (
+    numItemsToShow > 0 &&
+    section.doneCounts &&
+    dashboardSettings.showProgressInSections !== 'none' &&
+    sectionUsesProgressCircle &&
+    section.isReferenced === false
+  ) {
     const percentComplete = (doneCount / (doneCount + items.length)) * 100.0
     completionCircle = (
       <span
@@ -552,15 +561,15 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
         style={{ justifySelf: 'end' }}
       >
         <CircularProgressBar
-          // $FlowFixMe[incompatible-type]
+          // $FlowIgnore[incompatible-type]
           size="0.9rem" // Note: this only works as "Nrem" despite number being expected
           progress={percentComplete}
           backgroundColor="var(--bg-sidebar-color)"
           trackWidth={8} // outer border width
-          trackColor="rgb(from var(--fg-main-color) r g b/0.6)" // "var(--fg-done-color)" // {titleStyle.color}
+          trackColor="rgb(from var(--fg-main-color) r g b/0.5)"
           indicatorRadius={25} // (% of container) of middle of indicator
           indicatorWidth={50} // (% of container)
-          indicatorColor="rgb(from var(--fg-main-color) r g b/0.6)" // "var(--fg-done-color)" // {titleStyle.color}
+          indicatorColor="rgb(from var(--fg-main-color) r g b/0.5)"
           indicatorCap="butt"
           label=""
           spinnerMode={false}
@@ -631,7 +640,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
             enabled={!reactSettings?.dialogData?.isOpen && Boolean(sectionFilename)}
           >
             <div className={`sectionName`} onClick={handleSectionClick} style={titleStyle}>
-              <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
+              <i className={`sectionIcon fa-fw ${section.FAIconClass || ''}`}></i>
               {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
               {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin pad-left"></i> : null}
             </div>
