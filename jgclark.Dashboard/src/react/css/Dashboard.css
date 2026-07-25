@@ -210,7 +210,7 @@ dialog::backdrop {
 	&:hover {
 		/* TODO(later): revert to this when it is supported */
 		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); */
-		filter: brightness(103%);
+		filter: brightness(110%);
 	}
 }
 

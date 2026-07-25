@@ -456,7 +456,7 @@ input, label {
   color: rgb(from var(--fg-main-color) r g b / 0.5);
   font-size: 0.85rem;
   line-height: 1.1;
-  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.2);
+  border: 1px solid rgba(from var(--fg-main-color) r g b / 0.2);
   padding: 0.15rem 0.4rem;
   border-radius: 6px;
   margin-right: 0.1rem;

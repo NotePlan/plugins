@@ -12,7 +12,7 @@
   grid-template-areas: "justTheOne";
   color: var(--fg-main-color);
   background-color: var(--bg-main-color); /* was var(--bg-alt-color) but that doesn't work so well with apple's own switch colouring */
-  box-shadow: 0px 1px 1px 1px rgba(from var(--fg-main-color) r g b / 0.5);
+  box-shadow: 1px 1px 0px 0px rgba(from var(--fg-main-color) r g b / 0.2);
   overflow: hidden;
   max-height: 0;
   opacity: 0;

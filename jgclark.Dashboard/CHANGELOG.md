@@ -8,6 +8,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+## [2.4.0.b55] 2026-07-???
+- dev: Trying to bring more consistency to box-shadow on controls (WIP)
+
 ## [2.4.0.b54] 2026-07-23
 - Fix: **Wins** section was emptied when **Calendar note terms to include** was set (e.g. Home perspective) and Hide Duplicates was on - the calendar-focus dedupe reorder put Wins after Today, so `>>` items were kept in Today and stripped from Wins.
 - Change: **Wins** section description now matches Today - progress circle + "closed N items" (using completed-wins from today's doneCounts), respecting "How to show progress in Calendar sections?".

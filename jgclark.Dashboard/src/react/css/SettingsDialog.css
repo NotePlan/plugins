@@ -172,7 +172,7 @@
 
     .input-box-input {
         padding: 3px 6px 2px;
-        border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
+        border: 1px solid rgba(from var(--fg-main-color) r g b / 0.2);
         background-color: var(--bg-main-color);
         border-radius: 4px;
         font-family: system-ui;
@@ -271,7 +271,7 @@
         flex: 1;
         padding: 3px 6px 2px;
         background-color: var(--bg-main-color);
-        border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
+        border: 1px solid rgba(from var(--fg-main-color) r g b / 0.2);
         border-radius: 4px;
         font-family: system-ui;
         font-size: 0.9rem;

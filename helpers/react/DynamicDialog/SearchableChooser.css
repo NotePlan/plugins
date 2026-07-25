@@ -93,7 +93,7 @@
   width: 100%;
   max-width: 100%; /* Respect parent wrapper width - use full width of wrapper */
   padding: 4px 1.75rem 4px 0; /* Match other input fields: 4px vertical padding, right padding for arrow icon (inside border) */
-  border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3); /* Match input-box-input border style */
+  border: 1px solid rgba(from var(--fg-main-color) r g b / 0.2); /* Match input-box-input border style */
   border-radius: 4px;
   font-size: 0.85rem; /* Match input-box-input font size */
   font-family: system-ui; /* Match input-box-input font family */

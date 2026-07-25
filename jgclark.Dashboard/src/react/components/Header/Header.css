@@ -50,6 +50,12 @@
 	min-width: auto;
 }
 
+/* Match perspective dropdown shadow to HAButton / Refresh etc. (Dashboard.css @layer A button shadow) */
+/* TODO: this isn't yet working as expected */
+.perspective-selector .dropdown-select-input {
+	box-shadow: 1px 1px 0px 0px rgba(from var(--fg-main-color) r g b / 0.2);
+}
+
 /* Refresh button(s) area */
 .refreshButtons {
 	/* allow for 2 buttons at times */
