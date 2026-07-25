@@ -7,7 +7,7 @@
  *
  * Note: definitions of tags, habits, etc. are now taken from the settings for Progress Updates command.
  *
- * Last updated: 2026-03-07 for v1.1.0.b9 by @jgclark
+ * Last updated: 2026-07-25 for v1.1.0.b12 by @jgclark
  */
 
 // =====================================================================
@@ -41,8 +41,10 @@ import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { validateDateRangeAndConvertToISODateStrings } from '@helpers/dateTime'
-import { getLocale } from '@helpers/NPConfiguration'
+import { getLocale, saveSettings } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getPeriodStartEndDates } from '@helpers/NPdateTime'
+
+const pluginID = 'jgclark.Summaries'
 
 // =====================================================================
 // TYPES and CONSTANTS
@@ -164,6 +166,8 @@ export async function chartSummaryStats(periodOrDays?: any): Promise<void> {
         toDateStr = range.toDateStr
         periodString = range.periodString
         selectedPeriod = range.selectedPeriod
+        // Persist so Reload / next open use the period the user just chose in the dropdown
+        await persistProgressPeriodIfChanged(config, selectedPeriod)
       }
     } else if (periodOrDays == null || periodOrDays === '') {
       // Default behaviour: use the same setting as "/progress update"
@@ -314,6 +318,29 @@ function generateDateRange(daysBack: number): Array<string> {
     dates.push(dateStr)
   }
   return dates.sort()
+}
+
+/**
+ * Persist the chart/progress period setting when the user picks a named period in the dropdown.
+ * Skips customRange (not a valid progressPeriod choice) and no-ops when unchanged.
+ * @param {SummariesConfig} config - Current plugin config
+ * @param {string} selectedPeriod - Period code to save (e.g. 'wtd', 'last7d')
+ * @returns {Promise<void>}
+ */
+async function persistProgressPeriodIfChanged(config: SummariesConfig, selectedPeriod: string): Promise<void> {
+  if (!selectedPeriod || selectedPeriod === 'customRange') return
+  if (config.progressPeriod === selectedPeriod) return
+  try {
+    const updatedSettings = { ...DataStore.settings, progressPeriod: selectedPeriod }
+    const saved = await saveSettings(pluginID, updatedSettings, false)
+    if (saved) {
+      logDebug('chartSummaryStats', `Saved progressPeriod setting as '${selectedPeriod}'`)
+    } else {
+      logWarn('chartSummaryStats', `Failed to save progressPeriod setting as '${selectedPeriod}'`)
+    }
+  } catch (error) {
+    logError('chartSummaryStats', `persistProgressPeriodIfChanged: ${JSP(error)}`)
+  }
 }
 
 /**
