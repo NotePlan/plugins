@@ -3,11 +3,12 @@
 // Clean dashboard settings objects (per-perspective strip list).
 // Extracted from perspectiveHelpers.js to avoid circular imports with
 // dashboardPluginSettings.js / dashboardHelpers.js.
-// Last updated 2026-06-13 for v2.4.0.b46 by @CursorAI
+// Last updated 2026-07-27 for v2.4.0.b55 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { applyDerivedDashboardSettings, normaliseDashboardNumberSettings } from './dashboardSettings'
 import { getDashboardSettingsDefaults } from './dashboardSettingsDefaults'
+import { normalizePreferredWindowType } from './preferredWindowType'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import type { TDashboardSettings, TSection, TPerspectiveSettings } from './types'
 import { logDebug, logError } from '@helpers/dev'
@@ -265,6 +266,7 @@ export function prepareDashboardSettingsForSave(
     prepared = { ...getDashboardSettingsDefaults(), ...prepared }
   }
   prepared = normaliseDashboardNumberSettings(prepared)
+  prepared.preferredWindowType = normalizePreferredWindowType(prepared.preferredWindowType)
   // $FlowIgnore[incompatible-call] runtime settings object may include dynamic keys before tag cleanup
   prepared = removeInvalidTagSections((prepared: any))
   prepared = applyDerivedDashboardSettings(priorSettings, prepared)

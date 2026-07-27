@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-07-21 for v2.4.0.b53 by @CursorAI
+// Last updated 2026-07-27 for v2.4.0.b55 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -11,6 +11,7 @@ import { getDashboardSettingsDefaults } from './dashboardSettingsDefaults'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { removeInvalidTagSections } from './dashboardSettingsClean'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
+import { normalizePreferredWindowType } from './preferredWindowType'
 import { parseSettings, validateAndFlattenMessageObject } from './shared'
 import type { ValidatedData } from './shared'
 import type {
@@ -161,6 +162,9 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     // Ensure that all numeric settings are actually numbers, not strings.
     // This is defensive in case earlier versions or x-callbacks stored them as strings.
     parsedDashboardSettings = normaliseDashboardNumberSettings(parsedDashboardSettings)
+
+    // Normalize short legacy Window/Main/Split labels to long NP UI labels
+    parsedDashboardSettings.preferredWindowType = normalizePreferredWindowType(parsedDashboardSettings.preferredWindowType)
 
     // Note: I can't find the underlying issue, but we need to ensure number setting types are numbers, and not strings
     // const numberSettingTypes = dashboardSettingDefs.filter((ds) => ds.type === 'number')

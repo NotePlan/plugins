@@ -9,7 +9,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 ## [2.4.0.b55] 2026-07-27
+- Fix: **Default Dashboard Window Type** is honored again when opening Dashboard - read from `dashboardSettings` (not a stray plugin-root key), UI options aligned to NotePlan labels (`New Window` / `Main Window` / `Split View`), with short legacy aliases normalized on load/save
 - Fix: settings sanitiser now strips any root key not on the allow-list (e.g. a stray `preferredWindowType`), not only numeric or perspective-shaped keys (thanks, @dwertheimer)
+- Fix: quiet WebView WARN spam when `Calendar.startOfWeek` / `endOfWeek` return Promises -- sync `getNPWeekData` falls back to moment without logging on every relative-date init
 - dev: Trying to bring more consistency to box-shadow on controls (WIP)
 
 ## [2.4.0.b54] 2026-07-23

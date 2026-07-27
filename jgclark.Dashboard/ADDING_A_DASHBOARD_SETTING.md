@@ -4,9 +4,9 @@ When you add a new setting that lives in `dashboardSettings` (or might be confus
 
 ## Plugin-global vs Dashboard-global vs per-perspective
 
-**Plugin-global** settings live in the **plugin’s settings object** (NotePlan Settings: NotePlan > Settings > AI & Plugins > Dashboard > ⚙️). They are **reserved for values that NotePlan or plugin commands need** when running outside the Dashboard UI (e.g. how to open the window). Declare them in `plugin.json` under `plugin.settings` (e.g. `preferredWindowType`). They are **not** part of the `dashboardSettings` object and are **not** in `cleanDashboardSettingsInAPerspective()`.
+**Plugin-global** settings live in the **plugin’s settings object** (NotePlan Settings: NotePlan > Settings > AI & Plugins > Dashboard > ⚙️). They are **reserved for values that NotePlan or plugin commands need** when running outside the Dashboard UI (e.g. logging level). Declare them in `plugin.json` under `plugin.settings`. They are **not** part of the `dashboardSettings` object and are **not** in `cleanDashboardSettingsInAPerspective()`.
 
-**Dashboard-global** settings apply to the Dashboard as a whole and are the same for all perspectives, but **do not need to be read by NotePlan or commands**—only by Dashboard code. They live **inside** the `dashboardSettings` object and must be stripped from each perspective’s copy (see (a) below).
+**Dashboard-global** settings apply to the Dashboard as a whole and are the same for all perspectives (e.g. `preferredWindowType`, "Enable Perspectives", feature flags). They live **inside** the `dashboardSettings` object and must be stripped from each perspective’s copy (see (a) below). Commands that open the Dashboard (e.g. `/Show Dashboard`) still read them via `getDashboardSettings()`.
 
 **Per-perspective** settings can differ per Perspective and are stored in each perspective’s `dashboardSettings`.
 
@@ -17,12 +17,13 @@ When you add a new setting that lives in `dashboardSettings` (or might be confus
 **Dashboard-global:** The setting is the same for all perspectives and is only used by the Dashboard (e.g. "Enable Perspectives", feature flags like `FFlag_*`). It is not stored inside any perspective’s `dashboardSettings` copy.
 
 - **If Dashboard-global:**  
-  - Add the key to the **remove list** in `cleanDashboardSettingsInAPerspective()` in `src/perspectiveHelpers.js` (in `patternsToRemove`), so it is never saved into any perspective’s `dashboardSettings`.  
+  - Add the key to the **remove list** in `cleanDashboardSettingsInAPerspective()` (in `patternsToRemove` via `dashboardSettingsClean.js`), so it is never saved into any perspective’s `dashboardSettings`.  
   - Declare it in `src/types.js` in the "GLOBAL SETTINGS WHICH APPLY TO ALL PERSPECTIVES" section (with a comment that it must be in `cleanDashboardSettingsInAPerspective()`).
+  - Example: `preferredWindowType` (`New Window` | `Main Window` | `Split View`) — set in the Dashboard settings dialog, stored only in top-level `dashboardSettings`, read by `showDashboardReact` via `getDashboardSettings()`.
 - **If per-perspective:**  
   - Do **not** add it to that remove list. It will be stored in each perspective’s `dashboardSettings` and in the merged “current” dashboard settings.
 - **If Plugin-global:**  
-  - Do **not** put it in `dashboardSettings`. Add it to `plugin.json` under `plugin.settings` and read it from the plugin settings object (e.g. `settings.preferredWindowType`). No change to `cleanDashboardSettingsInAPerspective()` or to the Dashboard settings UI unless you also expose it there.
+  - Do **not** put it in `dashboardSettings`. Add it to `plugin.json` under `plugin.settings` and read it from the plugin settings object (e.g. `settings._logLevel`). No change to `cleanDashboardSettingsInAPerspective()` or to the Dashboard settings UI unless you also expose it there.
 
 ## (b) Normalising each perspective on update/install
 
@@ -37,7 +38,7 @@ When you add a new setting that lives in `dashboardSettings` (or might be confus
 
 | Location | What it is |
 |----------|------------|
-| **Plugin settings** (DataStore.settings / settings.json) | The plugin’s settings object. **Plugin-global** keys (e.g. `preferredWindowType`, `pluginID`) live at **top level** here and are defined in `plugin.json` under `plugin.settings`—reserved for things NotePlan or commands need. The same object also contains `dashboardSettings` (object) and `perspectiveSettings` (array of `TPerspectiveDef`). Originally, dashboardSettings and perspectiveSettings were stringified JSON; in 2025 they were changed to objects and continue to work. |
+| **Plugin settings** (DataStore.settings / settings.json) | The plugin’s settings object. **Plugin-global** keys (e.g. `pluginID`, `_logLevel`) live at **top level** here and are defined in `plugin.json` under `plugin.settings`. The same object also contains `dashboardSettings` (object) and `perspectiveSettings` (array of `TPerspectiveDef`). Originally, dashboardSettings and perspectiveSettings were stringified JSON; in 2025 they were changed to objects and continue to work. |
 | **dashboardSettings** | A single object **inside** plugin settings. It holds **Dashboard-global** keys (same for all perspectives, stripped from each perspective’s copy) and, when perspectives are off, is the only source. When perspectives are **on**, the “current” dashboard settings are built by merging the **active perspective’s** `dashboardSettings` with those Dashboard-global keys (see `getDashboardSettingsFromPerspective()` in `reactMain.js`). Dashboard-global keys are stripped from each perspective’s copy by `cleanDashboardSettingsInAPerspective()`. |
 | **perspectiveSettings** | Array of `TPerspectiveDef`. Each item has `dashboardSettings` (per-perspective keys only; Dashboard-global keys are removed before saving here). So: **per-perspective** value → stored in `perspectiveSettings[i].dashboardSettings`; **Dashboard-global** value → stored only in the top-level `dashboardSettings` object. |
 
@@ -73,7 +74,8 @@ For bulk perspective edits, `preparePerspectiveSettingsForSave()` applies the sa
 ## Reference: where things are implemented
 
 - **Types and checklist comments:** `src/types.js` (`TDashboardSettings`, “GLOBAL SETTINGS”, “if you add a new setting”, “if you change a setting name”).
-- **Plugin-global (NotePlan/commands):** `plugin.json` → `plugin.settings`; read via plugin settings object (e.g. in `reactMain.js` for `preferredWindowType`).
+- **Plugin-global (NotePlan Settings pane / logging):** `plugin.json` → `plugin.settings`; read via plugin settings object (e.g. `_logLevel`).
+- **Dashboard-global open-window setting:** `preferredWindowType` lives in `dashboardSettings`; mapped to HTML window options in `src/preferredWindowType.js` and used from `reactMain.js`.
 - **Dashboard-global vs per-perspective (strip list):** `src/perspectiveHelpers.js` → `cleanDashboardSettingsInAPerspective()` → `patternsToRemove`.
 - **Setting definitions and UI:** `src/dashboardSettings.js` (`dashboardSettingDefs`, `dashboardFilterDefs`, `createDashboardSettingsItems()`, `DASHBOARD_DERIVED_SETTING_RULES`, `applyDerivedDashboardSettings()`).
 - **Save-time normalise / derived rules / tag cleanup:** `src/dashboardSettingsClean.js` → `prepareDashboardSettingsForSave()`, `preparePerspectiveSettingsForSave()`, `removeInvalidTagSections`, `cleanDashboardSettingsInAPerspective()`.

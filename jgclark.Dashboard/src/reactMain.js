@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2026-07-16 for v2.4.0.b51 by @jgclark + @CursorAI
+// Last updated 2026-07-27 for v2.4.0.b55 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,6 +13,7 @@ import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dash
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
 import { getAllSectionsData } from './dataGeneration'
+import { windowOptionsFromPreferredWindowType } from './preferredWindowType'
 import {
   getActivePerspectiveDef,
   loadPerspectiveDefsFromPluginSettings,
@@ -357,14 +358,14 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     const config = await getDashboardSettings() // pulls the JSON stringified dashboardSettings and parses it into object
     // clo(config, `showDashboardReact: keys:${Object.keys(config).length} config=`)
     const logSettings = await getLogSettings()
-    const settings = await loadDashboardPluginSettings()
 
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindow(perspectiveName, useDemoData)
     // logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
-    const preferredWindowType = settings?.preferredWindowType ?? 'New Window'
+    const preferredWindowType = config?.preferredWindowType
+    const { showInMainWindow, splitView } = windowOptionsFromPreferredWindowType(preferredWindowType)
     const platform = NotePlan.environment.platform
-    logDebug('showDashboardReact', `preferredWindowType = ${preferredWindowType} / platform = ${platform}`)
+    logDebug('showDashboardReact', `preferredWindowType = ${String(preferredWindowType)} → showInMainWindow=${String(showInMainWindow)} splitView=${String(splitView)} / platform = ${platform}`)
 
     // Add a pre-body script to set loggng details in DataStore.settings object, to pass to HTMLView, if we're running NP <3.21.
     const preBodyScript = usersVersionHas('APIsAvailableInWebViews') ? '' : `
@@ -393,8 +394,8 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       paddingWidth: platform === 'iPadOS' ? 32 : platform === 'iOS' ? 0 : 0,
       paddingHeight: platform === 'iPadOS' ? 32 : platform === 'iOS' ? 0 : 0,
       // If we should open in main/split view, or the default new window
-      showInMainWindow: preferredWindowType !== 'New Window',
-      splitView: preferredWindowType === 'Split View',
+      showInMainWindow,
+      splitView,
       // If we are opening in main/split view, then set the icon details
       icon: icon, // TODO(later): ideally be able to use "fa-duotone fa-grid-round-2"
       iconColor: iconColor,

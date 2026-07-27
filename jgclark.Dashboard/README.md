@@ -247,6 +247,13 @@ Dashboard provides a quick access Settings window, accessed from the cog wheel a
 
 <img width="550px" src="settings-dialog-2.1.0.png" alt="Settings dialog"/>
 
+### Opening the Dashboard
+- **Default Dashboard Window Type**: On NotePlan 3.20.1 and later, choose how **/show dashboard** opens the Dashboard: 
+- `Main Window` (take over the main editor area; default)
+- `New Window` (separate floating window)
+- `Split View` (split in the main window).
+This is a Dashboard-wide setting (the same for all Perspectives), not stored per Perspective.
+
 ### What to Include and Exclude
 The settings in "What to Include and Exclude" control what Spaces, folders, Reminder lists and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Reminder list selection is separate (see below). Finally, individual lines in notes can be ignored by adding terms:
 

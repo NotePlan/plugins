@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-07-16 for v2.4.0.b51 by @CursorAI
+// Last updated 2026-07-27 for v2.4.0.b55 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,7 +13,6 @@ import {
   isRemindersSectionEnabled,
   isTBSectionEnabled,
 } from './dashboardHelpers'
-import { loadDashboardPluginSettings } from './dashboardPluginSettings'
 import { getTodaySectionData, getTimeBlockSectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
 import { getOverdueSectionData } from './dataGenerationOverdue'
 import { getThisMonthSectionData, getThisQuarterSectionData, getThisYearSectionData } from './dataGenerationPeriods'
@@ -183,13 +182,12 @@ export async function getSomeSectionsData(
  * @param {boolean} _useDemoData?
  * @returns {Array<TSection>} data
  */
-export async function getInfoSectionData(_config: TDashboardSettings, _useDemoData: boolean = false): Promise<Array<TSection>> {
+export async function getInfoSectionData(config: TDashboardSettings, _useDemoData: boolean = false): Promise<Array<TSection>> {
   const sections: Array<TSection> = []
   const thisSectionCode = 'INFO'
   const outputLines = []
-  const settings = await loadDashboardPluginSettings()
   outputLines.push(`Device name '${NotePlan.environment.machineName}' (${NotePlan.environment.platform}) running NP v${NotePlan.environment.versionNumber} build ${NotePlan.environment.buildVersion}, and Dashboard v${pluginJson['plugin.version']}-${pluginJson['plugin.releaseStatus']}.`)
-  outputLines.push(`Screen: ${NotePlan.environment.screenWidth}x${NotePlan.environment.screenHeight}. Window type requested: ${settings?.preferredWindowType ?? '?'}`)
+  outputLines.push(`Screen: ${NotePlan.environment.screenWidth}x${NotePlan.environment.screenHeight}. Window type requested: ${config?.preferredWindowType ?? '?'}`)
   const storedWindowRect: Rect | false = getStoredWindowRect('jgclark.Dashboard.main')
   const liveWindowRect: Rect | false = getLiveWindowRect('')
   if (liveWindowRect) { outputLines.push(`Live window rect: ${rectToString(liveWindowRect)}`) }

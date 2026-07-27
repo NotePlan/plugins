@@ -67,12 +67,12 @@ describe(`${PLUGIN_NAME}`, () => {
       test('removes stray non-whitelist root keys such as preferredWindowType', () => {
         const raw = {
           pluginID: 'jgclark.Dashboard',
-          dashboardSettings: { showTodaySection: true, preferredWindowType: 'Main' },
+          dashboardSettings: { showTodaySection: true, preferredWindowType: 'Main Window' },
           perspectiveSettings: [
             { name: '-', dashboardSettings: { showTodaySection: true }, isModified: false, isActive: true },
           ],
           _logLevel: 'INFO',
-          preferredWindowType: 'Main',
+          preferredWindowType: 'Main Window',
           showTodaySection: true,
         }
         const { settings, report, needsWrite } = sanitizeDashboardPluginSettings(raw)
@@ -82,7 +82,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(settings.showTodaySection).toBeUndefined()
         expect(settings.pluginID).toBe('jgclark.Dashboard')
         expect(settings._logLevel).toBe('INFO')
-        expect(settings.dashboardSettings.preferredWindowType).toBe('Main')
+        expect(settings.dashboardSettings.preferredWindowType).toBe('Main Window')
         expect(settings.dashboardSettings.showTodaySection).toBe(true)
         expect(Array.isArray(settings.perspectiveSettings)).toBe(true)
       })

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-07-23 for v2.4.0.b54 by @jgclark + @CursorAI
+// Last updated 2026-07-27 for v2.4.0.b55 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -30,7 +30,7 @@ export type TDashboardSettings = {
   // Note: add dashboard-global keys to cleanDashboardSettingsInAPerspective() so they are not saved into perspective defs. Do NOT add them to ALLOWED_ROOT_KEYS (that set is only for settings.json root keys).
   usePerspectives: boolean,
   applyIgnoreTermsToCalendarHeadingSections: boolean,
-  preferredWindowType: string, // 'Window' | 'Main' | 'Split'
+  preferredWindowType: string, // 'New Window' | 'Main Window' | 'Split View'
   showFeatureFlagMenu?: boolean, // hidden; when true, shows Feature Flags menu outside DEV logging mode
 
   /* FEATURE FLAGS ------------------------------------------------------ */
