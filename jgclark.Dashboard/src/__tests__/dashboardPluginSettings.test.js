@@ -1,5 +1,5 @@
 /* globals describe, expect, test */
-// Last updated 2026-05-15 for v2.4.0.b35 by @CursorAI
+// Last updated 2026-07-27 for v2.4.0.b55 by @CursorAI
 
 import { buildSanitizeReportLines, sanitizeDashboardPluginSettings } from '../dashboardPluginSettings.js'
 
@@ -62,6 +62,29 @@ describe(`${PLUGIN_NAME}`, () => {
           cleanedPerspectiveDefCount: 0,
         })
         expect(lines.some((l) => l.includes('0, 1'))).toBe(true)
+      })
+
+      test('removes stray non-whitelist root keys such as preferredWindowType', () => {
+        const raw = {
+          pluginID: 'jgclark.Dashboard',
+          dashboardSettings: { showTodaySection: true, preferredWindowType: 'Main' },
+          perspectiveSettings: [
+            { name: '-', dashboardSettings: { showTodaySection: true }, isModified: false, isActive: true },
+          ],
+          _logLevel: 'INFO',
+          preferredWindowType: 'Main',
+          showTodaySection: true,
+        }
+        const { settings, report, needsWrite } = sanitizeDashboardPluginSettings(raw)
+        expect(needsWrite).toBe(true)
+        expect(report.removedRootKeys).toEqual(expect.arrayContaining(['preferredWindowType', 'showTodaySection']))
+        expect(settings.preferredWindowType).toBeUndefined()
+        expect(settings.showTodaySection).toBeUndefined()
+        expect(settings.pluginID).toBe('jgclark.Dashboard')
+        expect(settings._logLevel).toBe('INFO')
+        expect(settings.dashboardSettings.preferredWindowType).toBe('Main')
+        expect(settings.dashboardSettings.showTodaySection).toBe(true)
+        expect(Array.isArray(settings.perspectiveSettings)).toBe(true)
       })
 
       test('does not remove allowed root keys or coerce a valid perspectiveSettings array', () => {

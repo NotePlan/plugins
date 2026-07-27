@@ -27,7 +27,7 @@ export type TNotePlanSettings = {
  */
 export type TDashboardSettings = {
   /* "GLOBAL" SETTINGS WHICH APPLY TO ALL PERSPECTIVES ------------------- */
-  // Note: add all of these to the list of items in ALLOWED_ROOT_KEYS (below) and cleanDashboardSettingsInAPerspective() so that they do not get saved to any specific perspective
+  // Note: add dashboard-global keys to cleanDashboardSettingsInAPerspective() so they are not saved into perspective defs. Do NOT add them to ALLOWED_ROOT_KEYS (that set is only for settings.json root keys).
   usePerspectives: boolean,
   applyIgnoreTermsToCalendarHeadingSections: boolean,
   preferredWindowType: string, // 'Window' | 'Main' | 'Split'

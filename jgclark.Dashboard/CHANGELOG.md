@@ -8,7 +8,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
-## [2.4.0.b55] 2026-07-???
+## [2.4.0.b55] 2026-07-27
+- Fix: settings sanitiser now strips any root key not on the allow-list (e.g. a stray `preferredWindowType`), not only numeric or perspective-shaped keys (thanks, @dwertheimer)
 - dev: Trying to bring more consistency to box-shadow on controls (WIP)
 
 ## [2.4.0.b54] 2026-07-23

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Load/save jgclark.Dashboard settings.json with sanitization (repair corrupt root
 // structure from array-spread bugs, double-encoded JSON, etc.).
-// Last updated 2026-05-28 for v2.4.0.b45, @jgclark + @Cursor
+// Last updated 2026-07-27 for v2.4.0.b55, @jgclark + @Cursor
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -52,7 +52,7 @@ export function invalidateDashboardPluginSettingsCache(): void {
 export function buildSanitizeReportLines(report: TDashboardPluginSettingsSanitizeReport): Array<string> {
   const parts: Array<string> = []
   if (report.removedRootKeys.length > 0) {
-    parts.push(`removed stray root key(s) [${report.removedRootKeys.join(', ')}] (duplicate perspective defs from array spread)`)
+    parts.push(`removed stray root key(s) [${report.removedRootKeys.join(', ')}] (not in ALLOWED_ROOT_KEYS)`)
   }
   if (report.coercedPerspectiveSettingsFromObject) {
     parts.push('coerced perspectiveSettings from numeric-key object to array')
@@ -90,30 +90,12 @@ function isNumericArrayIndexKey(key: string): boolean {
 }
 
 /**
- * Root-level duplicate from `{ ...perspectiveSettingsArray }` instead of `{ perspectiveSettings: array }`.
- * @param {any} value
+ * True when the key is not on the settings.json root whitelist (ALLOWED_ROOT_KEYS).
+ * @param {string} key
  * @returns {boolean}
  */
-function looksLikeStrayPerspectiveDefAtRoot(value: any): boolean {
-  return (
-    value != null &&
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    typeof value.name === 'string' &&
-    value.dashboardSettings != null &&
-    typeof value.dashboardSettings === 'object'
-  )
-}
-
-/**
- * @param {any} raw
- * @returns {boolean}
- */
-function shouldRemoveStrayRootKey(key: string, value: any): boolean {
-  if (ALLOWED_ROOT_KEYS.has(key)) return false
-  if (isNumericArrayIndexKey(key)) return true
-  if (looksLikeStrayPerspectiveDefAtRoot(value)) return true
-  return false
+function shouldRemoveStrayRootKey(key: string): boolean {
+  return !ALLOWED_ROOT_KEYS.has(key)
 }
 
 /**
@@ -181,7 +163,7 @@ export function sanitizeDashboardPluginSettings(
   const settings = { ...rawIn }
 
   Object.keys(settings).forEach((key) => {
-    if (shouldRemoveStrayRootKey(key, settings[key])) {
+    if (shouldRemoveStrayRootKey(key)) {
       report.removedRootKeys.push(key)
       delete settings[key]
     }
