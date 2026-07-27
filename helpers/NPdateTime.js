@@ -10,6 +10,7 @@ import { trimAnyQuotes } from './dataManipulation'
 import * as dt from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import { getFolderFromFilename } from './folders'
+import { isThenable } from './npBridgeResolve'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE, TEAMSPACE_INDICATOR } from './regex'
 import { hasScheduledDate } from './utils'
 import { getTeamspaceTitleFromID } from './NPTeamspace'
@@ -850,13 +851,20 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
     } else {
       weekNumber = Calendar.weekNumber(date)
       // Note: In some environments the Calendar API can return non-Date objects (e.g. {}) during early startup / WebView contexts.
-      // Treat that as equivalent to Calendar being unavailable and fall back to moment-based week boundaries.
+      // In WebView, startOfWeek/endOfWeek often return Thenables (Promises) that sync code cannot await.
+      // Treat both as equivalent to Calendar being unavailable and fall back to moment-based week boundaries.
       // $FlowIgnore[incompatible-type]
       startDate = Calendar.startOfWeek(date)
       // $FlowIgnore[incompatible-type]
       endDate = Calendar.endOfWeek(date)
-      if (!dt.isValidDateObject(startDate) || !dt.isValidDateObject(endDate)) {
-        logWarn('NPdateTime::getNPWeekData', `Calendar returned invalid week boundaries (start=${String(startDate)} end=${String(endDate)}), falling back to moment week boundaries`,)
+      const startIsThenable = isThenable(startDate)
+      const endIsThenable = isThenable(endDate)
+      const weekNumberIsThenable = isThenable(weekNumber)
+      if (startIsThenable || endIsThenable || weekNumberIsThenable || !dt.isValidDateObject(startDate) || !dt.isValidDateObject(endDate)) {
+        // Thenables are expected in WebView - fall back quietly. Warn only for unexpected invalid objects.
+        if (!startIsThenable && !endIsThenable && !weekNumberIsThenable) {
+          logWarn('NPdateTime::getNPWeekData', `Calendar returned invalid week boundaries (start=${String(startDate)} end=${String(endDate)}), falling back to moment week boundaries`)
+        }
         weekNumber = newMom.week() // uses moment locale
         startDate = newMom.startOf('week').toDate()
         endDate = newMom.endOf('week').toDate()
@@ -1596,8 +1604,14 @@ export function formatNPWeek(date: Date): string {
     const startDate = Calendar.startOfWeek(date)
     // $FlowIgnore[incompatible-type]
     const endDate = Calendar.endOfWeek(date)
-    if (!dt.isValidDateObject(startDate) || !dt.isValidDateObject(endDate)) {
-      logWarn('formatNPWeek', `Calendar returned invalid week boundaries (start=${String(startDate)} end=${String(endDate)}), falling back to ISO week`)
+    const startIsThenable = isThenable(startDate)
+    const endIsThenable = isThenable(endDate)
+    const weekNumberIsThenable = isThenable(weekNumber)
+    if (startIsThenable || endIsThenable || weekNumberIsThenable || !dt.isValidDateObject(startDate) || !dt.isValidDateObject(endDate)) {
+      // Thenables are expected in WebView - fall back quietly. Warn only for unexpected invalid objects.
+      if (!startIsThenable && !endIsThenable && !weekNumberIsThenable) {
+        logWarn('formatNPWeek', `Calendar returned invalid week boundaries (start=${String(startDate)} end=${String(endDate)}), falling back to ISO week`)
+      }
       return formatISOWeek(date)
     }
     const weekStartYear = startDate.getFullYear()

@@ -16,6 +16,17 @@
 //--------------------------------------------------------------------------
 
 /**
+ * True when value looks like a Thenable / Promise (has a `.then` function).
+ * Used by sync callers that cannot await WebView bridge returns.
+ *
+ * @param {mixed} value
+ * @returns {boolean}
+ */
+export function isThenable(value: mixed): boolean {
+  return value != null && typeof value === 'object' && typeof (value: any).then === 'function'
+}
+
+/**
  * Normalize a value from an NP bridge (or nested result after invocation).
  * - null / undefined: as-is
  * - Thenable: awaited once
@@ -30,7 +41,7 @@ export async function awaitBridgedValue(raw: any, thisArg?: any): Promise<any> {
   if (raw == null) {
     return raw
   }
-  if (typeof raw === 'object' && typeof raw.then === 'function') {
+  if (isThenable(raw)) {
     return await raw
   }
   if (typeof raw === 'function') {
@@ -84,7 +95,7 @@ export function isTopLevelApiPropSyncPlainObject(api: any, prop: string): boolea
   if (typeof raw === 'function') {
     return false
   }
-  if (typeof raw === 'object' && typeof raw.then === 'function') {
+  if (isThenable(raw)) {
     return false
   }
   return typeof raw === 'object'

@@ -10,6 +10,7 @@ import {
   awaitDataStoreProp,
   awaitTopLevelApiProp,
   isDataStorePropSyncPlainObject,
+  isThenable,
   isTopLevelApiPropSyncPlainObject,
 } from '../npBridgeResolve'
 
@@ -20,6 +21,16 @@ describe('npBridgeResolve', () => {
   afterEach(() => {
     global.DataStore = originalDS
     global.Calendar = originalCal
+  })
+
+  test('isThenable detects Promises and Thenables', () => {
+    expect(isThenable(Promise.resolve(1))).toBe(true)
+    expect(isThenable({ then: () => {} })).toBe(true)
+    expect(isThenable(null)).toBe(false)
+    expect(isThenable(undefined)).toBe(false)
+    expect(isThenable(new Date())).toBe(false)
+    expect(isThenable({})).toBe(false)
+    expect(isThenable(42)).toBe(false)
   })
 
   test('awaitTopLevelApiProp reads plain object from arbitrary namespace', async () => {
