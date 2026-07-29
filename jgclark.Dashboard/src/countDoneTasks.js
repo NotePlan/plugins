@@ -6,6 +6,8 @@
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
+import { WEBVIEW_WINDOW_ID } from './constants'
+import type { TDoneCount, TDoneDateFilter, TDoneTodayNotes } from './types'
 import {
   findScheduledDates,
   getDateStringFromCalendarFilename,
@@ -27,8 +29,6 @@ import { clo, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/de
 import { sendBannerMessage } from '@helpers/HTMLView'
 import { getNotesChangedInInterval, getNoteFromFilename } from '@helpers/NPnote'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
-import { WEBVIEW_WINDOW_ID } from './constants'
-import type { TDoneCount, TDoneDateFilter, TDoneTodayNotes } from './types'
 
 //--------------------------------------------------------------------------
 
@@ -578,7 +578,7 @@ export function updateDoneCountsFromChangedNotes(_reason: string = ''): number {
 /**
  * Test/diagnostic command: load todaysChangedNoteList.json, log the done-count map to the Plugin Console,
  * and show a short INFO banner in the Dashboard window (if open).
- * TODO(later): remove me in time
+* TODO(later): remove me in time
  * @returns {Promise<void>}
  */
 export async function logDoneCounts(): Promise<void> {

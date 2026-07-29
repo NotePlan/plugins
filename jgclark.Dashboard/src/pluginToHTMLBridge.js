@@ -109,14 +109,15 @@ function removeEmptySearchOrSavedSections(sections: Array<any>, _handlerResult: 
 }
 
 /**
- * Splice matching task/project rows out of in-memory `pluginData.sections` for `REMOVE_LINE_FROM_JSON`.
+ * Splice matching rows out of in-memory `pluginData.sections` for `REMOVE_LINE_FROM_JSON`
+ * (tasks/checklists, projects, or Apple Reminders).
  * Idempotent on the same `sections` reference. Call again on a **fresh** `getGlobalSharedData()` snapshot before `sendToHTMLWindow(UPDATE_DATA, ...)`:
  * the plugin<->webview bridge often returns a **deserialized copy**, so the first
  * pass may not mutate the object that gets posted to React (e.g. Wins rollup still seeing the removed `>>` row in DT).
  * @author @CursorAI
  * @param {Array<any>} sections - `pluginData.sections`
- * @param {MessageDataObject} data - bridge message (item para / project)
- * @param {boolean} isProject - project row vs task/checklist
+ * @param {MessageDataObject} data - bridge message (item para / project / reminder)
+ * @param {boolean} isProject - project row vs task/checklist/reminder
  * @param {'initial' | 'payload'} pass - which pass (for logs)
  * @returns {number} number of rows removed
  */
@@ -127,7 +128,22 @@ function removeLineItemsFromPluginSections(
   pass: 'initial' | 'payload',
 ): number {
   if (!Array.isArray(sections)) return 0
-  let removed = 0
+
+  /**
+   * Splice sectionItems at the given indexes (highest itemIndex first so splices stay valid).
+   * @param {Array<{ sectionIndex: number, itemIndex: number }>} indexes
+   * @returns {number}
+   */
+  function spliceIndexes(indexes: Array<{ sectionIndex: number, itemIndex: number }>): number {
+    let count = 0
+    indexes.reverse().forEach((index) => {
+      const { sectionIndex, itemIndex } = index
+      logDebug('processActionOnReturn', `(${pass}) -> removing item ${data.item?.ID || '?'} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+      sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+      count += 1
+    })
+    return count
+  }
 
   // First handle project items
   if (isProject) {
@@ -146,12 +162,36 @@ function removeLineItemsFromPluginSections(
         )}`,
       )
     }
-    indexes.reverse().forEach((index) => {
-      const { sectionIndex, itemIndex } = index
-      sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-      removed += 1
-    })
-    return removed
+    return spliceIndexes(indexes)
+  }
+
+  // Apple Reminders: match by stable Calendar reminder.id (row IDs are index-based and remapped on refresh)
+  const isReminder = data.item?.itemType === 'reminder' || Boolean(data.item?.reminder?.id)
+  if (isReminder) {
+    const reminderId = data.item?.reminder?.id ?? ''
+    logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON (${pass}): reminder ID:${data?.item?.ID || ''} reminder.id:"${reminderId}"`)
+    if (reminderId) {
+      const indexes = findSectionItems(sections, ['itemType', 'reminder.id'], {
+        itemType: 'reminder',
+        'reminder.id': reminderId,
+      })
+      if (indexes.length) {
+        logInfo(
+          'processActionOnReturn',
+          `(${pass}) -> found ${indexes.length} reminder item(s) to remove: ${String(
+            indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', '),
+          )}`,
+        )
+        return spliceIndexes(indexes)
+      }
+    }
+    const fallbackIndexes = findSectionItems(sections, ['ID'], { ID: data.item?.ID ?? '' })
+    if (fallbackIndexes.length) {
+      logInfo('processActionOnReturn', `(${pass}) -> reminder fallback match by row ID found ${fallbackIndexes.length} item(s) to remove`)
+      return spliceIndexes(fallbackIndexes)
+    }
+    logWarn('processActionOnReturn', `(${pass}) -> no reminder items found to remove for reminder.id="${reminderId}" rowID="${data.item?.ID || ''}"`)
+    return 0
   }
 
   // Or handle task or checklist items
@@ -163,25 +203,14 @@ function removeLineItemsFromPluginSections(
   })
   if (indexes.length) {
     logInfo('processActionOnReturn', `(${pass}) -> found ${indexes.length} items to remove: ${String(indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', '))}`)
-    indexes.reverse().forEach((index) => {
-      const { sectionIndex, itemIndex } = index
-      logDebug('processActionOnReturn', `(${pass}) -> removing item ${data.item?.ID || '?'} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
-      sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-      removed += 1
-    })
-    return removed
+    return spliceIndexes(indexes)
   }
 
   // Or Handle fallback for cases where content matching misses due to fast section refresh/rebuild.
   const fallbackIndexes = findSectionItems(sections, ['ID'], { ID: data.item?.ID ?? '' })
   if (fallbackIndexes.length) {
     logInfo('processActionOnReturn', `(${pass}) -> fallback match by ID found ${fallbackIndexes.length} item(s) to remove`)
-    fallbackIndexes.reverse().forEach((index) => {
-      const { sectionIndex, itemIndex } = index
-      sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-      removed += 1
-    })
-    return removed
+    return spliceIndexes(fallbackIndexes)
   }
   logWarn('processActionOnReturn', `(${pass}) -> no items found to remove for content="${oldContent}" filename="${oldFilename}"`)
   return 0
@@ -580,13 +609,20 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       return
     }
     const isProject = data.item?.itemType === 'project'
+    const isReminder = data.item?.itemType === 'reminder' || Boolean(data.item?.reminder?.id)
     const actsOnALine = actionsOnSuccess.some((str) => str.includes('LINE'))
 
     const filename: string = isProject ? data.item?.project?.filename ?? '' : data.item?.para?.filename ?? ''
-    logDebug('processActionOnReturn',
-      isProject ? `item.ID: ${data.item?.ID ?? '?'} = PROJECT: ${data.item?.project?.title || 'no project title'}` : `item.ID: ${data.item?.ID ?? '?'} = TASK: updatedParagraph "${updatedParagraph?.content ?? 'N/A'}"`,
+    logDebug(
+      'processActionOnReturn',
+      isProject
+        ? `item.ID: ${data.item?.ID ?? '?'} = PROJECT: ${data.item?.project?.title || 'no project title'}`
+        : isReminder
+          ? `item.ID: ${data.item?.ID ?? '?'} = REMINDER: "${data.item?.reminder?.title || ''}" id=${data.item?.reminder?.id || ''}`
+          : `item.ID: ${data.item?.ID ?? '?'} = TASK: updatedParagraph "${updatedParagraph?.content ?? 'N/A'}"`,
     )
-    if (actsOnALine && filename === '') {
+    // Reminders have no note filename; tasks/projects should
+    if (actsOnALine && filename === '' && !isReminder) {
       logWarn('processActionOnReturn', `Starting with no filename`)
     }
     if (filename !== '') {

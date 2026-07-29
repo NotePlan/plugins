@@ -235,7 +235,7 @@ Live data comes from incomplete Apple Reminders on lists enabled in NotePlan (`C
 - undated + before yesterday → the dedicated **Reminders** (`REM`) section
 - dated **after tomorrow** → filtered out (not shown anywhere)
 
-v1 UI: status icon click completes the reminder (`completeReminder` → `Calendar.update` with `isCompleted = true`); ctrl-click deletes it (`deleteReminder` → `Calendar.remove`). Both refresh the section the row was shown in. Edit dialog still TODO.
+v1 UI: status icon click completes the reminder (`completeReminder` → `Calendar.update` with `isCompleted = true`); ctrl-click deletes it (`deleteReminder` → `Calendar.remove`). Both then `REMOVE_LINE_FROM_JSON` matched by stable `reminder.id` (REM row IDs are index-based, so a mid-list section-only refresh reused StatusIcon local state and left text-without-icon rows). Edit dialog still TODO.
 
 ### Opening a reminder in Apple Reminders
 

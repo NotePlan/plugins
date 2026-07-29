@@ -1,20 +1,21 @@
 //--------------------------------------------------------------------------
 // ReminderItem.jsx
 // Dashboard React component for an Apple Reminder row:
-// icon, title/notes/time/location, listname context.
+// icon, title/notes/time/location, listname context (RHS, matching ItemNoteLink).
 //
 // Open-in-Reminders: when NotePlan >= 3.21.2 (appleAppCallbacksAvailable),
 // content click opens via openURL -> x-apple-reminderkit://REMCDReminder/{id}.
 // On older builds that scheme is blocked by NotePlan.openURL.
 // See also ARCHITECTURE-How_Stuff_Works.md -> "Reminders section".
 //
-// Last updated 2026-07-15 for v2.4.0.b51 by @CursorAI
+// Last updated 2026-07-28 for v2.4.0.b55 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useCallback } from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import StatusIcon from './StatusIcon.jsx'
+import './ItemContent.css'
 import './TaskItem.css'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
@@ -102,23 +103,6 @@ function ReminderItem({ item, thisSection }: Props): Node {
       </span>,
     )
   }
-  if (showListnameContext) {
-    const listnameColor = listColor || 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))'
-    const listnameBackgroundColor = listColor
-      ? colorToModernSpecWithOpacity(listColor, 0.1) || `rgb(from ${listColor} r g b / 0.05)`
-      : 'var(--bg-placeholder-color, rgba(76, 79, 105, 0.05))'
-    contentParts.push(
-      <span
-        key="listname"
-        className="reminderContext pad-left-larger"
-        title={`List: ${reminder.listname}`}
-        style={{ borderColor: listnameColor, backgroundColor: listnameBackgroundColor }}
-      >
-        <i className="fa-regular fa-list pad-right" />
-        {reminder.listname}
-      </span>,
-    )
-  }
   // TODO(future): Enable this if the API is extended to cover flagged status
   // if (reminder.flagged) {
   //   contentParts.push(
@@ -127,6 +111,27 @@ function ReminderItem({ item, thisSection }: Props): Node {
   //     </span>,
   //   )
   // }
+
+  // Listname on RHS (same float pattern as ItemNoteLink in ItemContent)
+  let listnameEl: Node = null
+  if (showListnameContext) {
+    const listnameColor = listColor || 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))'
+    const listnameBackgroundColor = listColor
+      ? colorToModernSpecWithOpacity(listColor, 0.1) || `rgb(from ${listColor} r g b / 0.05)`
+      : 'var(--bg-placeholder-color, rgba(76, 79, 105, 0.05))'
+    listnameEl = (
+      <span className="itemNoteLinkEnd">
+        <span
+          className="reminderContext"
+          title={`List: ${reminder.listname}`}
+          style={{ borderColor: listnameColor, backgroundColor: listnameBackgroundColor }}
+        >
+          <i className="fa-regular fa-list pad-right" />
+          {reminder.listname}
+        </span>
+      </span>
+    )
+  }
 
   const contentClassName = canOpenInReminders ? 'content clickTarget reminderContent' : 'content reminderContent'
   const contentEl = canOpenInReminders ? (
@@ -140,7 +145,10 @@ function ReminderItem({ item, thisSection }: Props): Node {
   return (
     <div className="sectionItemRow reminderItemRow" id={item.ID}>
       <StatusIcon item={item} respondToClicks={true} iconColor={listColor || undefined} />
-      <div className="sectionItemContent reminderItemContent">{contentEl}</div>
+      <div className="sectionItemContent reminderItemContent">
+        {contentEl}
+        {listnameEl}
+      </div>
     </div>
   )
 }

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Icon before an item
 // Called by TaskItem component.
-// Last updated 2026-07-14 for v2.4.0.b50, @jgclark
+// Last updated 2026-07-29 for v2.4.0.b55, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
@@ -27,13 +27,15 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, iconColor }:
   const shouldShowTooltips = !dialogIsOpen || location === 'dialog'
   const isReminder = item.itemType === 'reminder'
 
-  useEffect(() => {
-    // This effect runs when `item.itemType` changes
-    setIconClassName(getClassNameFromType(item.itemType))
-  }, [item.itemType]) // Depend on `item.itemType` to update the icon when it changes
-
   // Initial state setup for iconClassName based on the item type
   const [iconClassName, setIconClassName] = useState(getClassNameFromType(item.itemType))
+
+  // Reset local icon when the row identity changes. REM section IDs are index-based; after a mid-list
+  // complete/delete + refresh, React can reuse this component for a different reminder while keeping
+  // stale "done"/empty icon state unless we reset on item.ID (and itemType).
+  useEffect(() => {
+    setIconClassName(getClassNameFromType(item.itemType))
+  }, [item.itemType, item.ID])
 
   function getClassNameFromType(itemType: string): string {
     switch (itemType) {

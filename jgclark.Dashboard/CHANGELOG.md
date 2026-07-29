@@ -9,6 +9,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 ## [2.4.0.b55] 2026-07-27
+- Fix: completing or deleting a **Reminder** mid-list no longer leaves a "zombie" row (text without circle icon) - remove the row from React state by stable `reminder.id` instead of relying on index-based REM IDs after section refresh
+- Change: Reminder listname badges are right-aligned like task `ItemNoteLink` lozenges
 - Fix: **Default Dashboard Window Type** is honored again when opening Dashboard - read from `dashboardSettings` (not a stray plugin-root key), UI options aligned to NotePlan labels (`New Window` / `Main Window` / `Split View`), with short legacy aliases normalized on load/save
 - Fix: settings sanitiser now strips any root key not on the allow-list (e.g. a stray `preferredWindowType`), not only numeric or perspective-shaped keys (thanks, @dwertheimer)
 - Fix: quiet WebView WARN spam when `Calendar.startOfWeek` / `endOfWeek` return Promises -- sync `getNPWeekData` falls back to moment without logging on every relative-date init

@@ -289,7 +289,9 @@ function removeLineSuccessActionsForSection(sectionCode: TSectionCode, ...extras
 }
 
 /**
- * Complete an Apple Reminder via Calendar.update (isCompleted = true), then refresh its section.
+ * Complete an Apple Reminder via Calendar.update (isCompleted = true), then remove its row from React state.
+ * Uses REMOVE_LINE_FROM_JSON (not only section refresh): REM IDs are index-based, so a mid-list refresh
+ * reuses StatusIcon instances whose local "done"/empty icon state would otherwise stick on the next row.
  * @param {MessageDataObject} data - must include item.reminder.id and item.sectionCode
  * @returns {Promise<TBridgeClickHandlerResult>}
  */
@@ -315,7 +317,7 @@ export async function doCompleteReminder(data: MessageDataObject): Promise<TBrid
     calendarItem.isCompleted = true
     await Calendar.update(calendarItem)
     logDebug('doCompleteReminder', `done for id=${reminderId} ("${calendarItem.title || ''}") in section ${sectionCode}`)
-    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode] })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: [sectionCode] })
   } catch (err) {
     logError('doCompleteReminder', err.message)
     const sectionCode = data.item?.sectionCode
@@ -327,7 +329,8 @@ export async function doCompleteReminder(data: MessageDataObject): Promise<TBrid
 }
 
 /**
- * Delete an Apple Reminder via Calendar.remove, then refresh its section.
+ * Delete an Apple Reminder via Calendar.remove, then remove its row from React state.
+ * Same REMOVE_LINE_FROM_JSON rationale as doCompleteReminder (stable mid-list removal).
  * @param {MessageDataObject} data - must include item.reminder.id and item.sectionCode
  * @returns {Promise<TBridgeClickHandlerResult>}
  */
@@ -352,7 +355,7 @@ export async function doDeleteReminder(data: MessageDataObject): Promise<TBridge
     }
     await Calendar.remove(calendarItem)
     logDebug('doDeleteReminder', `done for id=${reminderId} ("${calendarItem.title || ''}") in section ${sectionCode}`)
-    return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode] })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: [sectionCode] })
   } catch (err) {
     logError('doDeleteReminder', err.message)
     const sectionCode = data.item?.sectionCode
