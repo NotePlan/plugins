@@ -1,13 +1,16 @@
 /* globals describe, expect, test, jest, beforeEach, afterEach */
-// Last updated 2026-07-18 for v2.4.0.b52 by @CursorAI
+// Last updated 2026-07-29 for v2.4.0.b56 by @CursorAI
 
 import { CustomConsole } from '@jest/console'
+import moment from 'moment/min/moment-with-locales'
 import { DataStore, Editor, CommandBar, NotePlan, simpleFormatter } from '@mocks/index'
 import {
+  bucketReminderItems,
   dedupeReminderListTitles,
   getEnabledReminderLists,
   getReminderListsForConfig,
 } from '../dataGenerationReminders.js'
+import { getTodaysDateHyphenated } from '@helpers/dateTime'
 
 global.DataStore = DataStore
 global.Editor = Editor
@@ -31,6 +34,27 @@ const ALL_LISTS = [
   { title: 'Home', color: '#34C759', isEnabled: false },
   { title: 'Shopping', color: '#AF52DE', isEnabled: false },
 ]
+
+/**
+ * Build a minimal reminder TSectionItem for bucketing tests.
+ * @param {string} id
+ * @param {{ date?: string, time?: string, title?: string }} fields
+ * @returns {any}
+ */
+function makeReminderItem(id, fields = {}) {
+  return {
+    ID: id,
+    sectionCode: 'REM',
+    itemType: 'reminder',
+    reminder: {
+      title: fields.title || id,
+      listname: 'Test',
+      flagged: false,
+      date: fields.date,
+      time: fields.time,
+    },
+  }
+}
 
 describe(`${PLUGIN_NAME}`, () => {
   describe(`${FILENAME}`, () => {
@@ -102,6 +126,34 @@ describe(`${PLUGIN_NAME}`, () => {
           includedReminderLists: 'Work, NoSuchList',
         })
         expect(result.titles).toEqual(['Work'])
+      })
+    })
+
+    describe('bucketReminderItems()', () => {
+      test('splits today timed/untimed, yesterday, tomorrow, past, undated; drops future', () => {
+        const today = getTodaysDateHyphenated()
+        const yesterday = moment().subtract(1, 'days').format('YYYY-MM-DD')
+        const tomorrow = moment().add(1, 'days').format('YYYY-MM-DD')
+        const past = moment().subtract(5, 'days').format('YYYY-MM-DD')
+        const future = moment().add(3, 'days').format('YYYY-MM-DD')
+
+        const items = [
+          makeReminderItem('timed', { date: today, time: '09:00', title: 'Timed today' }),
+          makeReminderItem('untimed', { date: today, title: 'Untimed today' }),
+          makeReminderItem('yest', { date: yesterday, title: 'Yesterday' }),
+          makeReminderItem('tom', { date: tomorrow, title: 'Tomorrow' }),
+          makeReminderItem('past', { date: past, title: 'Past' }),
+          makeReminderItem('undated', { title: 'Undated' }),
+          makeReminderItem('future', { date: future, title: 'Future' }),
+        ]
+
+        const buckets = bucketReminderItems(items)
+        expect(buckets.timedTodayItems.map((i) => i.ID)).toEqual(['timed'])
+        expect(buckets.untimedTodayItems.map((i) => i.ID)).toEqual(['untimed'])
+        expect(buckets.yesterdayItems.map((i) => i.ID)).toEqual(['yest'])
+        expect(buckets.tomorrowItems.map((i) => i.ID)).toEqual(['tom'])
+        expect(buckets.overdueItems.map((i) => i.ID)).toEqual(['past'])
+        expect(buckets.undatedItems.map((i) => i.ID)).toEqual(['undated'])
       })
     })
   })

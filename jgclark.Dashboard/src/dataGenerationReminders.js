@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for REM (Reminders) Section and day/TB reminder buckets
-// Last updated 2026-07-18 for v2.4.0.b52, @jgclark + @CursorAI
+// Last updated 2026-07-29 for v2.4.0.b56, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { isRemindersSectionEnabled } from './dashboardHelpers'
+import { isCurrentRemindersEnabled, isUndatedOverdueRemindersEnabled } from './dashboardHelpers'
 import { reminderItems } from './demoData'
 import type { TActionButton, TDashboardSettings, TReminderForDashboard, TSection, TSectionCode, TSectionItem, TSettingItem } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
@@ -18,14 +18,15 @@ import { usersVersionHas } from '@helpers/NPVersions'
 
 /**
  * Buckets of incomplete reminders for Dashboard sections.
- * Today is split timed vs untimed; REM section holds undated + before yesterday.
- * Dates after tomorrow are excluded (future-dated beyond the Tomorrow day bucket).
+ * Today is split timed vs untimed; REM holds undated only; past-dated go to overdueItems.
+ * Dates after tomorrow are excluded.
  */
 export type TRemindersGeneratedData = {
   timedTodayItems: Array<TSectionItem>,
   untimedTodayItems: Array<TSectionItem>,
   yesterdayItems: Array<TSectionItem>,
   tomorrowItems: Array<TSectionItem>,
+  overdueItems: Array<TSectionItem>,
   remindersSection: ?TSection,
 }
 
@@ -46,6 +47,7 @@ function emptyRemindersGeneratedData(): TRemindersGeneratedData {
     untimedTodayItems: [],
     yesterdayItems: [],
     tomorrowItems: [],
+    overdueItems: [],
     remindersSection: null,
   }
 }
@@ -342,15 +344,16 @@ export function filterRemindersWhoseTimeHasBeenReached(reminderItems: Array<TSec
 }
 
 /**
- * Bucket incomplete reminder items into today timed/untimed, yesterday, tomorrow, and the rest.
- * Reminders dated after tomorrow are dropped (not shown in REM or day sections).
+ * Bucket incomplete reminder items into today timed/untimed, yesterday, tomorrow, past-dated overdue, and undated.
+ * Reminders dated after tomorrow are dropped (not shown anywhere).
  * @param {Array<TSectionItem>} allItems
  * @returns {{
  *   timedTodayItems: Array<TSectionItem>,
  *   untimedTodayItems: Array<TSectionItem>,
  *   yesterdayItems: Array<TSectionItem>,
  *   tomorrowItems: Array<TSectionItem>,
- *   restItems: Array<TSectionItem>,
+ *   overdueItems: Array<TSectionItem>,
+ *   undatedItems: Array<TSectionItem>,
  * }}
  */
 export function bucketReminderItems(allItems: Array<TSectionItem>): {
@@ -358,7 +361,8 @@ export function bucketReminderItems(allItems: Array<TSectionItem>): {
   untimedTodayItems: Array<TSectionItem>,
   yesterdayItems: Array<TSectionItem>,
   tomorrowItems: Array<TSectionItem>,
-  restItems: Array<TSectionItem>,
+  overdueItems: Array<TSectionItem>,
+  undatedItems: Array<TSectionItem>,
 } {
   const todayISO = getTodaysDateHyphenated()
   const yesterdayISO = moment().subtract(1, 'days').format('YYYY-MM-DD')
@@ -368,13 +372,14 @@ export function bucketReminderItems(allItems: Array<TSectionItem>): {
   const untimedTodayItems: Array<TSectionItem> = []
   const yesterdayItems: Array<TSectionItem> = []
   const tomorrowItems: Array<TSectionItem> = []
-  const restItems: Array<TSectionItem> = []
+  const overdueItems: Array<TSectionItem> = []
+  const undatedItems: Array<TSectionItem> = []
   let skippedFutureCount = 0
 
   for (const item of allItems) {
     const reminder = item.reminder
     if (!reminder) {
-      restItems.push(item)
+      undatedItems.push(item)
       continue
     }
     const date = reminder.date
@@ -391,9 +396,12 @@ export function bucketReminderItems(allItems: Array<TSectionItem>): {
     } else if (date && date > tomorrowISO) {
       // Future beyond tomorrow: omit from Dashboard entirely
       skippedFutureCount += 1
+    } else if (date && date < yesterdayISO) {
+      // Past-dated (before yesterday) → Overdue
+      overdueItems.push(item)
     } else {
-      // undated or before yesterday
-      restItems.push(item)
+      // Undated (no usable date)
+      undatedItems.push(item)
     }
   }
 
@@ -406,12 +414,13 @@ export function bucketReminderItems(allItems: Array<TSectionItem>): {
     untimedTodayItems: sortReminderSectionItems(untimedTodayItems),
     yesterdayItems: sortReminderSectionItems(yesterdayItems),
     tomorrowItems: sortReminderSectionItems(tomorrowItems),
-    restItems: sortReminderSectionItems(restItems),
+    overdueItems: sortReminderSectionItems(overdueItems),
+    undatedItems: sortReminderSectionItems(undatedItems),
   }
 }
 
 /**
- * Fetch incomplete reminders, bucket by date (dropping those after tomorrow), and build the REM section for the remainder.
+ * Fetch incomplete reminders, bucket by date (dropping those after tomorrow), and build the REM section for undated items.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @returns {Promise<TRemindersGeneratedData>}
@@ -421,8 +430,10 @@ export async function getRemindersGeneratedData(
   useDemoData: boolean = false,
 ): Promise<TRemindersGeneratedData> {
   try {
-    // Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
-    if (!isRemindersSectionEnabled(config)) {
+    const currentRemindersEnabled = isCurrentRemindersEnabled(config)
+    const undatedOverdueRemindersEnabled = isUndatedOverdueRemindersEnabled(config)
+    // Missing keys mean ON; only skip fetch when both toggles are explicitly off
+    if (!currentRemindersEnabled && !undatedOverdueRemindersEnabled) {
       return emptyRemindersGeneratedData()
     }
 
@@ -467,14 +478,21 @@ export async function getRemindersGeneratedData(
     const buckets = bucketReminderItems(allItems)
     logDebug(
       'getRemindersGeneratedData',
-      `- buckets: timedToday=${String(buckets.timedTodayItems.length)} untimedToday=${String(buckets.untimedTodayItems.length)} yesterday=${String(buckets.yesterdayItems.length)} tomorrow=${String(buckets.tomorrowItems.length)} rest=${String(buckets.restItems.length)}`,
+      `- buckets: timedToday=${String(buckets.timedTodayItems.length)} untimedToday=${String(buckets.untimedTodayItems.length)} yesterday=${String(buckets.yesterdayItems.length)} tomorrow=${String(buckets.tomorrowItems.length)} overdue=${String(buckets.overdueItems.length)} undated=${String(buckets.undatedItems.length)}`,
     )
 
+    // Zero out buckets owned by a disabled toggle
+    const timedTodayItems = currentRemindersEnabled ? buckets.timedTodayItems : []
+    const untimedTodayItems = currentRemindersEnabled ? buckets.untimedTodayItems : []
+    const yesterdayItems = currentRemindersEnabled ? buckets.yesterdayItems : []
+    const tomorrowItems = currentRemindersEnabled ? buckets.tomorrowItems : []
+    const overdueItems = undatedOverdueRemindersEnabled ? buckets.overdueItems : []
+    let undatedItems = undatedOverdueRemindersEnabled ? buckets.undatedItems : []
+
     const maxInSection = config.maxItemsToShowInSection ?? 24
-    let restItems = buckets.restItems
-    const totalRestCount = restItems.length
-    if (totalRestCount > maxInSection) {
-      restItems = restItems.slice(0, maxInSection)
+    const totalUndatedCount = undatedItems.length
+    if (totalUndatedCount > maxInSection) {
+      undatedItems = undatedItems.slice(0, maxInSection)
     }
 
     let sectionDescription = '{countWithLimit} reminders'
@@ -508,7 +526,7 @@ export async function getRemindersGeneratedData(
             actionPluginID: `${pluginJson['plugin.id']}`,
             display: '<i class= "fa-regular fa-fw fa-circle-plus RemindersColor" ></i> ',
             tooltip: 'Add a new Reminder',
-            postActionRefresh: ['REM', 'DT', 'TB', 'DO'],
+            postActionRefresh: ['REM', 'DT', 'TB', 'DO', 'DY', 'OVERDUE'],
             formFields: reminderFormFields,
             submitOnEnter: true,
             submitButtonText: 'Add & Close',
@@ -517,28 +535,31 @@ export async function getRemindersGeneratedData(
         ]
         : []
 
-    const remindersSection: TSection = {
-      ID: thisSectionCode,
-      sectionCode: thisSectionCode,
-      name: 'Reminders',
-      showSettingName: 'showRemindersSection',
-      description: sectionDescription,
-      FAIconClass: 'fa-regular fa-fw fa-list',
-      sectionTitleColorPart: 'RemindersSectionColor',
-      sectionItems: restItems,
-      generatedDate: new Date(),
-      isReferenced: false,
-      actionButtons: actionButtons,
-      totalCount: totalRestCount,
-    }
+    const remindersSection: ?TSection = undatedOverdueRemindersEnabled
+      ? {
+        ID: thisSectionCode,
+        sectionCode: thisSectionCode,
+        name: 'Reminders',
+        showSettingName: 'showUndatedOverdueReminders',
+        description: sectionDescription,
+        FAIconClass: 'fa-regular fa-fw fa-list',
+        sectionTitleColorPart: 'RemindersSectionColor',
+        sectionItems: undatedItems,
+        generatedDate: new Date(),
+        isReferenced: false,
+        actionButtons: actionButtons,
+        totalCount: totalUndatedCount,
+      }
+      : null
 
-    logTimer('getRemindersGeneratedData', startTime, `- REM rest section has ${String(restItems.length)} of ${String(totalRestCount)} items, 100`)
+    logTimer('getRemindersGeneratedData', startTime, `- REM undated section has ${String(undatedItems.length)} of ${String(totalUndatedCount)} items, 100`)
 
     return {
-      timedTodayItems: buckets.timedTodayItems,
-      untimedTodayItems: buckets.untimedTodayItems,
-      yesterdayItems: buckets.yesterdayItems,
-      tomorrowItems: buckets.tomorrowItems,
+      timedTodayItems,
+      untimedTodayItems,
+      yesterdayItems,
+      tomorrowItems,
+      overdueItems,
       remindersSection,
     }
   } catch (error) {

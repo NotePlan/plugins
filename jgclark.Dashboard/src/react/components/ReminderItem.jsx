@@ -8,7 +8,7 @@
 // On older builds that scheme is blocked by NotePlan.openURL.
 // See also ARCHITECTURE-How_Stuff_Works.md -> "Reminders section".
 //
-// Last updated 2026-07-28 for v2.4.0.b55 by @jgclark + @CursorAI
+// Last updated 2026-07-29 for v2.4.0.b56 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useCallback } from 'react'
@@ -144,7 +144,7 @@ function ReminderItem({ item, thisSection }: Props): Node {
 
   return (
     <div className="sectionItemRow reminderItemRow" id={item.ID}>
-      <StatusIcon item={item} respondToClicks={true} iconColor={listColor || undefined} />
+      <StatusIcon item={item} respondToClicks={true} iconColor="rgba(from var(--fg-RemindersColor) r g b / 0.6)" />
       <div className="sectionItemContent reminderItemContent">
         {contentEl}
         {listnameEl}

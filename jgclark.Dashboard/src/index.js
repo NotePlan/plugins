@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2026-07-16 for v2.4.0.b51 by @CursorAI
+// last updated 2026-07-29 for v2.4.0.b56 by @CursorAI
 // ----------------------------------------------------------------------------
 
 /**
@@ -112,10 +112,6 @@ export async function onUpdateOrInstall(): Promise<void> {
     // const defaults = getDashboardSettingsDefaultsWithSectionsSetToFalse()
     // const migratedDashboardSettings = { ...defaults, ...renameKeys(initialDashboardSettings, keysToChange) }
 
-    // Note: most *new* settings are merged from defaults at runtime. For showRemindersSection we also
-    // backfill into stored settings so upgrades (and empty fresh installs) persist the new default of ON.
-    // Respect an explicit false if the user already turned Reminders off.
-
     // Note: Workaround for number types getting changed to strings at some point in our Settings system.  FIXME: but lower priority for now.
     initialDashboardSettings.newTaskSectionHeadingLevel = parseInt(initialDashboardSettings.newTaskSectionHeadingLevel || 2)
     initialDashboardSettings.maxItemsToShowInSection = parseInt(initialDashboardSettings.maxItemsToShowInSection || 24)
@@ -124,11 +120,18 @@ export async function onUpdateOrInstall(): Promise<void> {
 
     clo(initialDashboardSettings, `onUpdateOrInstall - initialDashboardSettings:`)
 
+    // Force-migrate Reminders toggles: replace showRemindersSection with showCurrentReminders +
+    // showUndatedOverdueReminders, both forced ON, and delete the legacy key.
     let settingsNeedSave = false
-    if (initialDashboardSettings.showRemindersSection === undefined) {
-      initialDashboardSettings.showRemindersSection = true
+    initialDashboardSettings.showCurrentReminders = true
+    initialDashboardSettings.showUndatedOverdueReminders = true
+    if (Object.prototype.hasOwnProperty.call(initialDashboardSettings, 'showRemindersSection')) {
+      delete initialDashboardSettings.showRemindersSection
       settingsNeedSave = true
-      logInfo(`onUpdateOrInstall`, `- set showRemindersSection=true (default on for upgrades / fresh installs)`)
+      logInfo(`onUpdateOrInstall`, `- migrated showRemindersSection -> showCurrentReminders + showUndatedOverdueReminders (both forced true)`)
+    } else {
+      settingsNeedSave = true
+      logInfo(`onUpdateOrInstall`, `- set showCurrentReminders + showUndatedOverdueReminders = true`)
     }
 
     const perspectiveDefsRaw = initialSettings?.perspectiveSettings
@@ -139,14 +142,15 @@ export async function onUpdateOrInstall(): Promise<void> {
       if (!p || typeof p !== 'object') return p
       const perspectiveDashboardSettings =
         (typeof p.dashboardSettings === 'string' ? parseSettings(p.dashboardSettings) : p.dashboardSettings) ?? {}
-      if (perspectiveDashboardSettings.showRemindersSection !== undefined) {
-        return p
+      const nextPerspectiveSettings = { ...perspectiveDashboardSettings, showCurrentReminders: true, showUndatedOverdueReminders: true }
+      if (Object.prototype.hasOwnProperty.call(nextPerspectiveSettings, 'showRemindersSection')) {
+        delete nextPerspectiveSettings.showRemindersSection
       }
       settingsNeedSave = true
-      logInfo(`onUpdateOrInstall`, `- set showRemindersSection=true on perspective '${String(p.name)}'`)
+      logInfo(`onUpdateOrInstall`, `- migrated reminders toggles on perspective '${String(p.name)}' (both forced true)`)
       return {
         ...p,
-        dashboardSettings: { ...perspectiveDashboardSettings, showRemindersSection: true },
+        dashboardSettings: nextPerspectiveSettings,
       }
     })
 
@@ -156,7 +160,7 @@ export async function onUpdateOrInstall(): Promise<void> {
         dashboardSettings: initialDashboardSettings,
         perspectiveSettings: newPerspectiveDefs,
       })
-      logInfo(`onUpdateOrInstall`, `- saved settings after showRemindersSection default backfill`)
+      logInfo(`onUpdateOrInstall`, `- saved settings after reminders toggle migration`)
     }
 
     // Rebuild wantedTagMentionsList.json from every saved perspective (fixes stale file after upgrade).

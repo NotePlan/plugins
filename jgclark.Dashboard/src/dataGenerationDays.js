@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2026-07-23 for v2.4.0.b54 by @jgclark + @CursorAI
+// Last updated 2026-07-29 for v2.4.0.b56 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -15,7 +15,7 @@ import {
   createSectionItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
-  isRemindersSectionEnabled,
+  isCurrentRemindersEnabled,
   isTBSectionEnabled,
   setTimeFieldsOnDashboardPara,
   makeDashboardParas,
@@ -273,8 +273,8 @@ export function getTimeBlockSectionData(
     let timeBlockItems: Array<TSectionItem> = []
     const mustContainString = NPSettings.timeblockMustContainString
     let itemCounter = 0
-    // Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
-    const remindersSectionEnabled = isRemindersSectionEnabled(config)
+    // Missing showCurrentReminders means ON (default); only an explicit false disables Current Reminders.
+    const remindersSectionEnabled = isCurrentRemindersEnabled(config)
     const timeBlockSectionEnabled = Boolean(config.showTimeBlockSection)
 
     // const combinedParas = sortedOrCombinedParas.concat(sortedRefParas)

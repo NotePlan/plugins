@@ -17,7 +17,7 @@ type Props = {
   respondToClicks: boolean,
   onIconClick?: (item: TSectionItem, actionType: string) => void,
   location?: string, /* where being called from so we can make decisions (currently only #"dialog" to show/not show things) */
-  iconColor?: string, /* optional CSS color override for the icon (e.g. reminder list color) */
+  iconColor?: string, /* optional CSS color override for the icon (e.g. Reminders section color) */
 }
 
 const StatusIcon = ({ item, respondToClicks, onIconClick, location, iconColor }: Props): Node => {

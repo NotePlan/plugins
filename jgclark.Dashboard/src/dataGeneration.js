@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-07-27 for v2.4.0.b55 by @jgclark + @CursorAI
+// Last updated 2026-07-29 for v2.4.0.b56 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,7 +10,8 @@ import { allSectionCodes } from './constants.js'
 import {
   getDashboardSettings,
   getListOfEnabledSections,
-  isRemindersSectionEnabled,
+  isCurrentRemindersEnabled,
+  isUndatedOverdueRemindersEnabled,
   isTBSectionEnabled,
 } from './dashboardHelpers'
 import { getTodaySectionData, getTimeBlockSectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
@@ -87,44 +88,74 @@ export async function getSomeSectionsData(
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('INFO')) sections.push(...(await getInfoSectionData(config, useDemoData)))
 
-    // Generate Reminders first when needed for day/TB injection and/or the REM section itself.
-    // Missing showRemindersSection means ON (default); only an explicit false disables Reminders.
-    const remindersSectionEnabled = isRemindersSectionEnabled(config)
-    const wantRemSection = sectionCodesToGet.includes('REM') && remindersSectionEnabled
+    // Generate Reminders first when needed for day/TB/OVERDUE injection and/or the REM section itself.
+    const currentRemindersEnabled = isCurrentRemindersEnabled(config)
+    const undatedOverdueRemindersEnabled = isUndatedOverdueRemindersEnabled(config)
+    const wantRemSection = sectionCodesToGet.includes('REM') && undatedOverdueRemindersEnabled
     const wantRemForDaySections =
-      remindersSectionEnabled &&
+      currentRemindersEnabled &&
       (sectionCodesToGet.includes('DT') ||
         sectionCodesToGet.includes('DY') ||
         sectionCodesToGet.includes('DO') ||
         sectionCodesToGet.includes('TB'))
+    const wantRemForOverdue =
+      undatedOverdueRemindersEnabled && sectionCodesToGet.includes('OVERDUE') && Boolean(config.showOverdueSection)
     let remindersData: TRemindersGeneratedData = {
       timedTodayItems: [],
       untimedTodayItems: [],
       yesterdayItems: [],
       tomorrowItems: [],
+      overdueItems: [],
       remindersSection: null,
     }
-    if (wantRemSection || wantRemForDaySections) {
+    if (wantRemSection || wantRemForDaySections || wantRemForOverdue) {
       remindersData = await getRemindersGeneratedData(config, useDemoData)
     }
 
+    // Yesterday reminders go to DY when Yesterday is on; otherwise spill into Overdue (if undated/overdue toggle allows)
+    const yesterdayForDaySection = currentRemindersEnabled && config.showYesterdaySection ? remindersData.yesterdayItems : []
+    const yesterdaySpillToOverdue =
+      currentRemindersEnabled && !config.showYesterdaySection && undatedOverdueRemindersEnabled ? remindersData.yesterdayItems : []
+    const overdueReminderItems = undatedOverdueRemindersEnabled
+      ? remindersData.overdueItems.concat(yesterdaySpillToOverdue)
+      : []
+
     // DT and TB sections are now generated separately but share paragraph data fetching
     if (sectionCodesToGet.includes('DT')) {
-      const todaySections = getTodaySectionData(config, useDemoData, useEditorWherePossible, remindersData.untimedTodayItems)
+      const todaySections = getTodaySectionData(
+        config,
+        useDemoData,
+        useEditorWherePossible,
+        currentRemindersEnabled ? remindersData.untimedTodayItems : [],
+      )
       sections.push(...todaySections)
     }
     if (sectionCodesToGet.includes('TB') && isTBSectionEnabled(config)) {
-      sections.push(...getTimeBlockSectionData(config, useDemoData, useEditorWherePossible, remindersData.timedTodayItems))
+      sections.push(
+        ...getTimeBlockSectionData(
+          config,
+          useDemoData,
+          useEditorWherePossible,
+          currentRemindersEnabled ? remindersData.timedTodayItems : [],
+        ),
+      )
     }
     // Note: the WINS section is generated separately in the front end after the other sections are generated.
     if (wantRemSection && remindersData.remindersSection) {
       sections.push(remindersData.remindersSection)
     }
     if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) {
-      sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible, remindersData.yesterdayItems))
+      sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible, yesterdayForDaySection))
     }
     if (sectionCodesToGet.includes('DO') && config.showTomorrowSection) {
-      sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible, remindersData.tomorrowItems))
+      sections.push(
+        ...getTomorrowSectionData(
+          config,
+          useDemoData,
+          useEditorWherePossible,
+          currentRemindersEnabled ? remindersData.tomorrowItems : [],
+        ),
+      )
     }
     if (sectionCodesToGet.includes('LW') && config.showLastWeekSection) sections.push(...getLastWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
@@ -162,7 +193,9 @@ export async function getSomeSectionsData(
         }
       }
     }
-    if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
+    if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) {
+      sections.push(await getOverdueSectionData(config, useDemoData, overdueReminderItems))
+    }
     if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
 
     // logDebug('getSomeSectionsData', `=> 🔹 sections ${getDisplayListOfSectionCodes(sections)} (unfiltered)`)

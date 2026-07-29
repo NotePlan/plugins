@@ -274,11 +274,11 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "Hide the '>>', '!!', '!', and '!!' priority markers (if your theme uses priorities markers)",
   },
   {
-    label: 'Show note link for tasks?',
+    label: 'Show note/reminder links?',
     key: 'showTaskContext', // was 'includeTaskContext' before v2.2.0
     type: 'switch',
     default: true,
-    description: 'Whether to show the note link for an open task or checklist',
+    description: 'Whether to show the note link for an open task or checklist, or the Apple Reminders list link for an open reminder.',
     controlsOtherKeys: ['showFolderName'],
   },
   {

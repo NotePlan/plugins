@@ -10,7 +10,7 @@ This plugin provides a **dashboard window** for your NotePlan data that in one p
 - all open items with an added priority
 - the next Project notes ready to review (if you have the "Projects and Reviews" plugin installed)
 - it shows today's Time Blocks you've set
-- and any items from Apple Reminders (when that section is enabled)
+- and any items from Apple Reminders (when Current and/or Undated/Overdue Reminders filters are enabled)
 - plus a 'Search' field to show all open items that match a search.
 
 This avoids you having to keep _copying_ tasks into your Today note to see them, but instead you can _see_ them all in one place in the Dashboard window.  From there you can quickly edit, complete, cancel or move any of these items to be due on different days/week/months, with the pop-up Edit Dialog.
@@ -149,12 +149,16 @@ The display will **automatically refresh** in the background if you set the "Aut
 
 It shows the time first, minus any 'Text must contain' string that you have set in NP's 'Todo' settings pane. Where a time block is defined on a heading or list item, then the calendar+clock icon is shown in place of the task/checklist icon.
 
-When the [Reminders section](#reminders-section) is enabled, this section additionally shows today's Apple Reminders that have a due time -- but only once that due time has been reached. Timed reminders for later today stay hidden until then (the section refreshes about once a minute while the Dashboard window is visible). The section appears if **either** Time Block or Reminders is enabled (or both). With Reminders on and Time Block off, only those timed reminders appear (title **Timed Reminders**). With both sources present the title is **Timed Items**; with Reminders off it stays **Time Blocks**.
+When **Show Current Reminders** is on (Filters), this section additionally shows today's Apple Reminders that have a due time -- but only once that due time has been reached. Timed reminders for later today stay hidden until then (the section refreshes about once a minute while the Dashboard window is visible). The section appears if **either** Time Block or Current Reminders is enabled (or both). With Current Reminders on and Time Block off, only those timed reminders appear (title **Timed Reminders**). With both sources present the title is **Timed Items**; with Current Reminders off it stays **Time Blocks**.
 
 ### Reminders section
 <img src="reminders-section-2.4.0.png" width="740px" margin="8px" border="1px solid grey" alt="reminders section" />
 
-(From v2.4b50) The **Reminders** section shows incomplete items from your **Apple Reminders** lists. By default it draws from the same reminder lists you have enabled in NotePlan's own settings (Preferences → Calendars → Reminders). However, each Perspective can override that set with **Reminder Lists to Include** (a comma-separated list of exact list names). Leave it blank to keep NotePlan's enabled lists; you can also name lists that are disabled in NotePlan if this Perspective should include them. Reminder rows show the list name, location and notes, and use the list's Apple Reminders color as an accent. (The 'flagged' status is not available outside Apple Reminders.)
+(From v2.4b50; toggles split in v2.4b56) Incomplete items from your **Apple Reminders** lists can appear across several Dashboard sections. By default Dashboard draws from the same reminder lists you have enabled in NotePlan's own settings (Preferences → Calendars → Reminders). However, each Perspective can override that set with **Reminder Lists to Include** (a comma-separated list of exact list names). Leave it blank to keep NotePlan's enabled lists; you can also name lists that are disabled in NotePlan if this Perspective should include them. Reminder rows show the list name, location and notes, and use the list's Apple Reminders color as an accent. (The 'flagged' status is not available outside Apple Reminders.)
+
+Two Filters control which reminders appear:
+- **Show Current Reminders** -- covers reminders due **today**, **yesterday**, and **tomorrow** (including timed reminders in Timed Items / Timed Reminders).
+- **Show Undated/Overdue Reminders** -- covers **undated** reminders in the dedicated Reminders section, and **past-dated** reminders in Overdue (Overdue section must also be enabled).
 
 Open reminders are split across the Dashboard rather than shown in a single list:
 
@@ -163,9 +167,10 @@ Open reminders are split across the Dashboard rather than shown in a single list
 | Due today **with a time**, and that time has been reached | **Timed Reminders** / **Timed Items** (with any active time blocks) |
 | Due today **with a time**, but still in the future | hidden until that time |
 | Due today **without** a time | **Today** |
-| Due yesterday | **Yesterday** |
-| Due tomorrow | **Tomorrow** |
-| Undated, or older than yesterday | **Reminders** section |
+| Due yesterday | **Yesterday** (or **Overdue** if Yesterday is off) |
+| Due tomorrow | **Tomorrow** (ignored if Tomorrow is off) |
+| Older than yesterday | **Overdue** |
+| Undated | **Reminders** section |
 | Dated after tomorrow | not shown |
 
 The following Actions are possible, all of which are reflected in Apple Reminders too:

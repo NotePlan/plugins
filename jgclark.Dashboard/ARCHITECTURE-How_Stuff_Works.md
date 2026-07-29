@@ -227,12 +227,13 @@ All three share the same tail behaviour: recalculate done-task counts (when `don
 
 ## Reminders section (`REM`)
 
-Controlled by **`showRemindersSection`**. Backend: `dataGenerationReminders.js` (`getRemindersGeneratedData()`). Frontend: `ReminderItem.jsx` via `ItemRow`.
+Controlled by two Filters: **`showCurrentReminders`** (today / yesterday / tomorrow injection, including timed → TB) and **`showUndatedOverdueReminders`** (undated REM section + past-dated → OVERDUE). Backend: `dataGenerationReminders.js` (`getRemindersGeneratedData()`). Frontend: `ReminderItem.jsx` via `ItemRow`.
 
-Live data comes from incomplete Apple Reminders on lists enabled in NotePlan (`Calendar.availableReminderLists({ enabledOnly: true })` then `Calendar.remindersByLists`). Items are split into:
-- timed today whose due time has been reached → Time Blocks (`TB`); future-timed today reminders stay out of TB until then. When Reminders is enabled, TB is titled **Timed Reminders** if only reminders are present, or **Timed Items** if NotePlan timeblocks are also present (or only timeblocks). TB is generated when **either** Time Block or Reminders is enabled (NotePlan timeblocks only when Time Block is on).
-- untimed today / yesterday / tomorrow → day sections (`DT` / `DY` / `DO`) as referenced items
-- undated + before yesterday → the dedicated **Reminders** (`REM`) section
+Live data comes from incomplete Apple Reminders on lists enabled in NotePlan (`Calendar.availableReminderLists({ enabledOnly: true })` then `Calendar.remindersByLists`), or Perspective override via `includedReminderLists`. Items are split into:
+- timed today whose due time has been reached → Time Blocks (`TB`); future-timed today reminders stay out of TB until then. When Current Reminders is enabled, TB is titled **Timed Reminders** if only reminders are present, or **Timed Items** if NotePlan timeblocks are also present (or only timeblocks). TB is generated when **either** Time Block or Current Reminders is enabled (NotePlan timeblocks only when Time Block is on).
+- untimed today → Today (`DT`); yesterday → Yesterday (`DY`) or Overdue if Yesterday is off; tomorrow → Tomorrow (`DO`) or ignored if Tomorrow is off
+- undated → the dedicated **Reminders** (`REM`) section
+- past-dated (before yesterday) → **Overdue** (`OVERDUE`), when Undated/Overdue Reminders and Show Overdue are both on
 - dated **after tomorrow** → filtered out (not shown anywhere)
 
 v1 UI: status icon click completes the reminder (`completeReminder` → `Calendar.update` with `isCompleted = true`); ctrl-click deletes it (`deleteReminder` → `Calendar.remove`). Both then `REMOVE_LINE_FROM_JSON` matched by stable `reminder.id` (REM row IDs are index-based, so a mid-list section-only refresh reused StatusIcon local state and left text-without-icon rows). Edit dialog still TODO.

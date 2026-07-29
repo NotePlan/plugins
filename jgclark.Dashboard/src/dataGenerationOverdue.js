@@ -1,12 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2026-07-10 for v2.4.0.b47, @jgclark
+// Last updated 2026-07-29 for v2.4.0.b56, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { createSectionItemObject, filterParasByRelevantFolders, filterParasByIgnoreTerms, filterParasByIncludedCalendarSections, filterParasByExcludedCalendarSections, filterParasByAllowedTeamspaces, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
+import { assignReminderItemsToSection } from './dataGenerationReminders'
 import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
@@ -16,12 +17,17 @@ import { removeDuplicates } from '@helpers/utils'
 
 // ----------------------------------------------------------
 /**
- * Generate data for a section for Overdue tasks
+ * Generate data for a section for Overdue tasks (and optionally overdue/past reminders).
  * Note: Could try to send yesterday items to getRelevantOverdueTasks() somehow
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
+ * @param {Array<TSectionItem>} overdueReminderItems? - past-dated (and yesterday-fallback) reminders to append
  */
-export async function getOverdueSectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
+export async function getOverdueSectionData(
+  config: TDashboardSettings,
+  useDemoData: boolean = false,
+  overdueReminderItems: Array<TSectionItem> = [],
+): Promise<TSection> {
   try {
     const thisSectionCode = 'OVERDUE'
     let totalOverdue = 0
@@ -131,6 +137,19 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       }
     }
     logDebug('getOverdueSectionData', `- finished processing ${String(totalOverdue)} overdue items after ${timer(thisStartTime)}`)
+
+    // Append overdue reminders into remaining slots under maxItemsToShowInSection
+    if (overdueReminderItems.length > 0) {
+      const remainingSlots = Math.max(0, (maxInSection ?? 24) - items.length)
+      const remindersToAdd = overdueReminderItems.slice(0, remainingSlots)
+      if (remindersToAdd.length > 0) {
+        const assigned = assignReminderItemsToSection(remindersToAdd, thisSectionCode, thisSectionCode, itemCount)
+        items.push(...assigned)
+        itemCount += assigned.length
+        totalOverdue += overdueReminderItems.length
+        logDebug('getOverdueSectionData', `- added ${String(assigned.length)} of ${String(overdueReminderItems.length)} overdue reminder(s)`)
+      }
+    }
 
     let sectionDescription = `{countWithLimit} open {itemType}`
     if (config.lookBackDaysForOverdue > 0) {

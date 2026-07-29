@@ -127,7 +127,8 @@ export type TDashboardSettings = {
   showYesterdaySection: boolean,
   showInfoSection: boolean,
   showWinsSection: boolean,
-  showRemindersSection: boolean,
+  showCurrentReminders: boolean, // inject reminders into Timed / Today / Yesterday / Tomorrow
+  showUndatedOverdueReminders: boolean, // REM (undated) + past-dated reminders in Overdue
   treatTopPriorityAsWins: boolean,
   winsPriorityMarker: string, // '>>', '!!!' or '!!' -- which priority marker to treat as a 'Win'/'big rock' when treatTopPriorityAsWins is true
   customSectionDisplayOrder: ?Array<TSectionCode>

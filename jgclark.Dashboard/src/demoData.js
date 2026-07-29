@@ -269,6 +269,28 @@ export const reminderItems: Array<TSectionItem> = [
       flagged: false,
     },
   },
+  {
+    ID: 'REM-6',
+    sectionCode: 'REM',
+    itemType: 'reminder',
+    reminder: {
+      title: 'Renew library books',
+      listname: 'Errands',
+      flagged: false,
+      date: new moment().subtract(5, 'days').format('YYYY-MM-DD'),
+    },
+  },
+  {
+    ID: 'REM-7',
+    sectionCode: 'REM',
+    itemType: 'reminder',
+    reminder: {
+      title: 'Dentist appointment prep',
+      listname: 'Home',
+      flagged: true,
+      date: new moment().add(1, 'days').format('YYYY-MM-DD'),
+    },
+  },
 ]
 
 // -------------------------------------------------------------------------

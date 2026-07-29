@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-07-23 for v2.4.0.b54 by @jgclark
+// Last updated 2026-07-29 for v2.4.0.b56 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
@@ -272,15 +272,15 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
     const pluginData: TPluginData = reactWindowData.pluginData
     if (pluginData.dashboardSettings && !isTBSectionEnabled(pluginData.dashboardSettings) && sectionCodesToRefresh.includes('TB')) {
       sectionCodesToRefresh = sectionCodesToRefresh.filter((sectionCode) => sectionCode !== 'TB')
-      logDebug('refreshSomeSections', `Filtered TB from requested sections as Time Block and Reminders are both disabled -> ${String(sectionCodesToRefresh)}`)
+      logDebug('refreshSomeSections', `Filtered TB from requested sections as Time Block and Current Reminders are both disabled -> ${String(sectionCodesToRefresh)}`)
       if (sectionCodesToRefresh.length === 0) {
         logDebug('refreshSomeSections', 'No eligible sections remain after filtering; skipping refresh')
         return handlerResult(true)
       }
     }
-    if (sectionCodesToRefresh.includes('REM') && pluginData.dashboardSettings?.showRemindersSection === false) {
+    if (sectionCodesToRefresh.includes('REM') && pluginData.dashboardSettings?.showUndatedOverdueReminders === false) {
       sectionCodesToRefresh = sectionCodesToRefresh.filter((sectionCode) => sectionCode !== 'REM')
-      logDebug('refreshSomeSections', `Filtered REM from requested sections as Reminders is disabled -> ${String(sectionCodesToRefresh)}`)
+      logDebug('refreshSomeSections', `Filtered REM from requested sections as Undated/Overdue Reminders is disabled -> ${String(sectionCodesToRefresh)}`)
       if (sectionCodesToRefresh.length === 0) {
         logDebug('refreshSomeSections', 'No eligible sections remain after filtering; skipping refresh')
         return handlerResult(true)

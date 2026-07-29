@@ -1,6 +1,6 @@
 /**
  * CSS for the Dropdown menus
- * Last updated for v2.4.0 by @jgclark
+ * Last updated 2026-07-29 for v2.4.0.b56 by @jgclark + @CursorAI
  */
 
 /* Content in just 1 column */
@@ -12,6 +12,8 @@
   grid-template-areas: "justTheOne";
   color: var(--fg-main-color);
   background-color: var(--bg-main-color); /* was var(--bg-alt-color) but that doesn't work so well with apple's own switch colouring */
+  /* Panel edge for Filters + Feature Flags DropdownMenus */
+  border: 1pt solid var(--divider-color, #CDCFD0);
   box-shadow: 1px 1px 0px 0px rgba(from var(--fg-main-color) r g b / 0.2);
   overflow: hidden;
   max-height: 0;
@@ -76,8 +78,15 @@
   padding: 0.75rem;
   transition: max-height 0.2s ease-out, opacity 0.2s ease-out, visibility 0s;
   animation: unfurl 0.2s ease-out forwards, showScrollbar 0s 0.2s forwards;
+  border: 1pt solid var(--divider-color, #CDCFD0);
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
+}
+
+/* Explicit panel border for both header DropdownMenus (Filters + Feature Flags) */
+.dropdown.filter .dropdown-content.show,
+.dropdown.feature-flags .dropdown-content.show {
+  border: 1pt solid var(--divider-color, #CDCFD0);
 }
 
 /* Flex container to align dropdowns */
