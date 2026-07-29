@@ -9,6 +9,8 @@ log file inside its app container (in addition to NotePlan's own log).
 output, and puts a **regex filter box** on screen that you can retype at any moment without
 restarting anything.
 
+<img width="1490" height="816" alt="CleanShot 2026-07-29 at 14 57 49@2x" src="https://github.com/user-attachments/assets/c0467c4a-d94e-464d-8db7-24ac20491c92" />
+
 ## Why not just `tail | grep`?
 
 - **It follows log rotation.** NotePlan starts a brand-new timestamped file
