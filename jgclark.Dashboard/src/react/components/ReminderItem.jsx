@@ -115,16 +115,16 @@ function ReminderItem({ item, thisSection }: Props): Node {
   // Listname on RHS (same float pattern as ItemNoteLink in ItemContent)
   let listnameEl: Node = null
   if (showListnameContext) {
-    const listnameColor = listColor || 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.7))'
+    const listnameBorderColor = listColor || 'var(--fg-placeholder-color, rgba(76, 79, 105, 0.25))'
     const listnameBackgroundColor = listColor
-      ? colorToModernSpecWithOpacity(listColor, 0.1) || `rgb(from ${listColor} r g b / 0.05)`
+      ? colorToModernSpecWithOpacity(listColor, 0.05) || `rgba(from ${listColor} r g b / 0.05)`
       : 'var(--bg-placeholder-color, rgba(76, 79, 105, 0.05))'
     listnameEl = (
       <span className="itemNoteLinkEnd">
         <span
           className="reminderContext"
           title={`List: ${reminder.listname}`}
-          style={{ borderColor: listnameColor, backgroundColor: listnameBackgroundColor }}
+          style={{ borderColor: listnameBorderColor, backgroundColor: listnameBackgroundColor }}
         >
           <i className="fa-regular fa-list pad-right" />
           {reminder.listname}

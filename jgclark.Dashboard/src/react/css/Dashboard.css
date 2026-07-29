@@ -52,7 +52,7 @@ body {
 /* Add a focus-visible outline to any element that is focussed and the browser decides needs to show a focus ring */
 /* This is overridden later for a certain type of buttons */
 :focus-visible {
-	outline: 1px solid rgb(from var(--tint-color) r g b / 0.5);
+	outline: 1px solid rgba(from var(--tint-color) r g b / 0.5);
 	border-radius: 4px;
 }
 
@@ -86,7 +86,7 @@ dialog::backdrop {
 }
 
 .dialogTriggerIcon {
-	color: rgb(from var(--fg-main-color) r g b / 0.4);
+	color: rgba(from var(--fg-main-color) r g b / 0.4);
 	cursor: pointer;
 	padding-left: 0.5rem;
 	padding-right: 0.3rem;
@@ -123,8 +123,8 @@ dialog::backdrop {
 	input[type="number"] {
 		color: var(--fg-sidebar-color);
 		background-color: var(--bg-alt-color);
-		border: 1px solid rgb(from var(--fg-main-color) r g b/0.3);
-		box-shadow: 1px 1px 0px 0px rgb(from var(--fg-main-color) r g b / 0.2);
+		border: 1px solid rgba(from var(--fg-main-color) r g b/0.3);
+		box-shadow: 1px 1px 0px 0px rgba(from var(--fg-main-color) r g b / 0.2);
 	}
 
 
@@ -153,7 +153,7 @@ dialog::backdrop {
 			/* Remove the default focus ring */
 			outline: none;
 			border-radius: 0px;
-			border-bottom: 1px solid rgb(from var(--tint-color) r g b / 0.5);
+			border-bottom: 1px solid rgba(from var(--tint-color) r g b / 0.5);
 		}
 	}
 }
@@ -222,7 +222,7 @@ button,
 }
 
 .greyedText {
-	color: rgb(from var(--fg-sidebar-color) r g b / 0.5);
+	color: rgba(from var(--fg-sidebar-color) r g b / 0.5);
 }
 
 /* --------------------------------------------------------------- */
@@ -335,8 +335,9 @@ button,
 	/* ItemNoteLink lozenge: wraps teamspace + folder + note title; same tint fill/border as .scheduledDate */
 	.itemNoteLink {
 		font-size: 84%;
-		background-color: rgb(from var(--tint-color) r g b / 0.1);
-		border: 1px solid rgb(from var(--tint-color) r g b / 0.4);
+		color: rgba(from var(--fg-main-color) r g b / 0.5);
+		background-color: rgba(from var(--tint-color) r g b / 0.03);
+		border: 1px solid rgba(from var(--tint-color) r g b / 0.15);
 		border-radius: 5px;
 		padding-inline: 3px;
 		margin-left: 0.3rem;
@@ -360,7 +361,8 @@ button,
 	/* Reminder list name badge (non-clickable context) */
 	.reminderContext {
 		font-size: 80%;
-		border: 1px solid var(--divider-color, #CDCFD0);
+		border: 1px solid rgba(from var(--divider-color, #CDCFD0) r g b / 0.15);
+		color: rgba(from var(--fg-placeholder-color, #4C4F69) r g b / 0.5);
 		border-radius: 4px;
 		padding: 0px 3px;
 		white-space: nowrap;
@@ -375,7 +377,7 @@ button,
 
 	/* Teamspace note link - default layer */
 	.teamspaceName {
-		color: rgb(from var(--teamspace-color) r g b / 0.8);
+		color: rgba(from var(--teamspace-color) r g b / 0.5);
 		white-space: nowrap;
 	}
 
@@ -416,7 +418,7 @@ button,
 
 	/* Project items */
 	.projectProgress {
-		color: rgb(from var(--fg-main-color) r g b/.65);
+		color: rgba(from var(--fg-main-color) r g b/.65);
 		padding-top: 3px;
 		line-height: 1rem;
 		overflow: hidden;
@@ -444,7 +446,7 @@ button,
 	/* As of v2.3.0.b16, this is not used, but is retained for future reference. */
 	.parentMarkerIcon {
 		font-size: 70%;
-		color: rgb(from var(--fg-main-color) r g b / 0.7);
+		color: rgba(from var(--fg-main-color) r g b / 0.7);
 		background-color: var(--divider-color);
 		margin-left: 0.35rem;
 		border-radius: 30%;
@@ -505,7 +507,7 @@ input.apple-switch {
 	outline: none;
 	width: 2.0rem;
 	height: 1.2rem;
-	border: 1px solid rgb(from var(--fg-main-color) r g b / 0.3);
+	border: 1px solid rgba(from var(--fg-main-color) r g b / 0.3);
 	border-radius: 1.9rem;
 	background-color: var(--bg-apple-switch-color);
 	/* box-shadow: 1px 1px 1px 0px var(--divider-color); */
