@@ -226,6 +226,21 @@ The common script you will run `npc plugin:dev <plugin>` however, you may need t
 - `npm run format`: auto-format all Javascript files using `prettier`
 - `gh release delete <release name>`: Will delete the release from the repository, so making it unavailable in NotePlan as well. (Though it won't remove it from anyone who has already downloaded it.)
 
+### Viewing Plugin Logs
+
+Everything your plugin (or its WebView) logs goes into NotePlan's rolling log file. `nplog` is a
+terminal viewer for it — it follows the newest log file across NotePlan restarts, filters live by
+regex as you type, and keeps pretty-printed objects together as a single entry instead of
+scattering them across lines.
+
+```bash
+./scripts/nplog/install.sh   # one-time; symlinks `nplog` onto your PATH
+nplog                        # follow the log
+nplog 'ERROR|WARN'           # start with a filter set (though you can change it at any time)
+```
+
+See [scripts/nplog/README.md](scripts/nplog/README.md) for the key bindings and options.
+
 ## Editor Setup
 
 Use the setup guide for your preferred editor (we prefer Visual Studio Code), and then read the section on Working with Multiple Files.
