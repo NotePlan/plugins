@@ -8,6 +8,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix long-standing layout bug where some tooltips were getting clipped
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
+## [2.4.0.b57] 2026-07-29
+- New: sticky **Filter settings…** search at the top of Dashboard Settings - matches label/description (from 3+ characters).
+
 ## [2.4.0.b56] 2026-07-29
 - Change: Filters **Show Reminders** is now two toggles: **Show Current Reminders** (today / yesterday / tomorrow, including timed) and **Show Undated/Overdue Reminders** (undated REM section + past-dated reminders in Overdue). Upgrade forces both on and removes the old key.
 - Change: Reminder bucketing - past-dated → **Overdue**; undated → **Reminders**; yesterday falls back to Overdue when Yesterday is off; tomorrow is ignored when Tomorrow is off.

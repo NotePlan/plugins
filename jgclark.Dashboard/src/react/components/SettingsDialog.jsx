@@ -3,18 +3,19 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2026-06-13 for v2.4.0.b45 by @jgclark + @CursorAI
+// Last updated 2026-07-29 for v2.4.0.b57 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
-import React, { useEffect, useRef, useState, type ElementRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState, type ElementRef } from 'react'
 import { defaultSectionDisplayOrder } from '../../constants.js'
 import type { TSettingItem, TDashboardSettings, TSectionCode } from '../../types.js'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import { setPerspectivesIfJSONChanged } from '../../perspectiveHelpers'
 import { useAppContext } from './AppContext.jsx'
+import { filterSettingsItems } from './settingsDialogFilter.js'
 import '../css/SettingsDialog.css' // Import the CSS file
 import Modal from './Modal'
 import OrderingPanel from '@helpers/react/DynamicDialog/OrderingPanel.jsx'
@@ -57,6 +58,8 @@ const SettingsDialog = ({
   //----------------------------------------------------------------------
   const dialogRef = useRef<?ElementRef<'dialog'>>(null)
   const dropdownRef = useRef<?{ current: null | HTMLInputElement }>(null)
+  const filterInputRef = useRef<?HTMLInputElement>(null)
+  const [settingsFilterQuery, setSettingsFilterQuery] = useState('')
   const [changesMade, setChangesMade] = useState(false)
   const [updatedSettings, setUpdatedSettings] = useState(() => {
     const initialSettings: Settings = {}
@@ -92,6 +95,24 @@ const SettingsDialog = ({
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
+
+  const handleFilterChange = useCallback((event: SyntheticInputEvent<HTMLInputElement>) => {
+    setSettingsFilterQuery(event.target.value)
+  }, [])
+
+  const handleFilterClear = useCallback(() => {
+    setSettingsFilterQuery('')
+    if (filterInputRef.current) {
+      filterInputRef.current.focus()
+    }
+  }, [])
+
+  const handleFilterKeyDown = useCallback((event: SyntheticKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation()
+      setSettingsFilterQuery('')
+    }
+  }, [])
 
   // No longer used
   // const handleEscapeKey = (event: KeyboardEvent) => {
@@ -171,6 +192,16 @@ const SettingsDialog = ({
     logDebug('SettingsDialog/main', `Starting`)
   }, [])
 
+  // Autofocus the filter input when the dialog opens
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (filterInputRef.current) {
+        filterInputRef.current.focus()
+      }
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [])
+
   // Effect to handle scrolling to target when dialog opens
   useEffect(() => {
     if (reactSettings?.settingsDialog?.scrollTarget) {
@@ -225,7 +256,9 @@ const SettingsDialog = ({
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
-  // logDebug('SettingsDialog/pre-Render', `before render of ${String(items.length)} settings.`)
+  const filteredItems = filterSettingsItems(items, settingsFilterQuery)
+  const filterActive = settingsFilterQuery.trim().length >= 3
+  const noFilterMatches = filterActive && filteredItems.length === 0
 
   return (
     <Modal
@@ -268,59 +301,75 @@ const SettingsDialog = ({
             <button className="PCButton save-button-inactive">Save & Close</button>
           )}
         </div>
+        <div className="settings-dialog-filter">
+          <input
+            ref={filterInputRef}
+            type="search"
+            className="settings-dialog-filter-input"
+            placeholder="Filter settings…"
+            value={settingsFilterQuery}
+            onChange={handleFilterChange}
+            onKeyDown={handleFilterKeyDown}
+            aria-label="Filter settings"
+          />
+          {settingsFilterQuery !== '' && (
+            <button type="button" className="settings-dialog-filter-clear PCButton" onClick={handleFilterClear} title="Clear filter">
+              Clear
+            </button>
+          )}
+        </div>
         <div className="settings-dialog-content">
-          {/* Iterate over all the settings */}
-          {items.map((item, index) => {
+          {noFilterMatches ? (
+            <div className="settings-dialog-filter-empty item-description">No settings match “{settingsFilterQuery.trim()}”.</div>
+          ) : (
+            filteredItems.map((item, index) => {
+              // Handle orderingPanel type specially
+              if (item.type === 'orderingPanel') {
+                return (
+                  <details key={`sdc${index}`} data-settings-key={item.key} className="ui-item">
+                    <summary className="ordering-panel-summary">
+                      <span className="switch-label">{item.label || 'Reorder Sections'}</span>
+                      {item.description && <div className="item-description">{item.description}</div>}
+                    </summary>
+                    <OrderingPanel
+                      sections={sections}
+                      dashboardSettings={dashboardSettings}
+                      defaultOrder={defaultSectionDisplayOrder}
+                      onSave={(newOrder) => {
+                        // Track the section order change (will be saved when "Save & Close" is clicked)
+                        setSectionOrderChange(newOrder)
+                        setChangesMade(true)
+                      }}
+                    />
+                  </details>
+                )
+              }
 
-            // Handle orderingPanel type specially
-            if (item.type === 'orderingPanel') {
               return (
-                <details key={`sdc${index}`} data-settings-key={item.key} className="ui-item">
-                  <summary className="ordering-panel-summary">
-                    <span className="switch-label">{item.label || 'Reorder Sections'}</span>
-                    {item.description && <div className="item-description">{item.description}</div>}
-                  </summary>
-                  <OrderingPanel
-                    sections={sections}
-                    dashboardSettings={dashboardSettings}
-                    defaultOrder={defaultSectionDisplayOrder}
-                    onSave={(newOrder) => {
-                      // Track the section order change (will be saved when "Save & Close" is clicked)
-                      setSectionOrderChange(newOrder)
-                      setChangesMade(true)
-                    }}
-                  />
-                </details>
+                <div key={`sdc${index}`} data-settings-key={item.key}>
+                  {renderItem({
+                    index,
+                    item: {
+                      ...item,
+                      type: item.type,
+                      value: typeof item.key === 'undefined' ? '' : typeof updatedSettings[item.key] === 'boolean' ? '' : updatedSettings[item.key],
+                      checked: typeof item.key === 'undefined' ? false : typeof updatedSettings[item.key] === 'boolean' ? updatedSettings[item.key] : false,
+                    },
+                    disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
+                    handleFieldChange,
+                    labelPosition,
+                    showSaveButton: false, // Do not show save button
+                    // $FlowFixMe[incompatible-exact] reason for suppression
+                    // $FlowFixMe[incompatible-call] reason for suppression
+                    inputRef: item.type === 'dropdown-select' ? dropdownRef : undefined, // Assign ref to the dropdown input
+                    indent: !!item.dependsOnKey,
+                    className: '', // for future use
+                    showDescAsTooltips: false,
+                  })}
+                </div>
               )
-            }
-
-            return (
-              <div key={`sdc${index}`} data-settings-key={item.key}>
-                {renderItem({
-                  index,
-                  item: {
-                    ...item,
-                    type: item.type,
-                    value: typeof item.key === 'undefined' ? '' : typeof updatedSettings[item.key] === 'boolean' ? '' : updatedSettings[item.key],
-                    checked: typeof item.key === 'undefined' ? false : typeof updatedSettings[item.key] === 'boolean' ? updatedSettings[item.key] : false,
-                  },
-                  disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
-                  handleFieldChange,
-                  labelPosition,
-                  showSaveButton: false, // Do not show save button
-                  // $FlowFixMe[incompatible-exact] reason for suppression
-                  // $FlowFixMe[incompatible-call] reason for suppression
-                  inputRef: item.type === 'dropdown-select' ? dropdownRef : undefined, // Assign ref to the dropdown input
-                  indent: !!item.dependsOnKey,
-                  className: '', // for future use
-                  showDescAsTooltips: false,
-                })}
-                {/* {item.description && (
-							<div className="item-description">{item.description}</div>
-						)} */}
-              </div>
-            )
-          })}
+            })
+          )}
           <div className="item-description">{pluginDisplayVersion}</div>
         </div>
       </div>
