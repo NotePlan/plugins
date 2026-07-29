@@ -1,5 +1,5 @@
 /* globals describe, expect, test, jest, beforeEach, afterEach */
-// Last updated 2026-07-29 for v2.4.0.b56 by @CursorAI
+// Last updated 2026-07-29 for v2.4.0.b57 by @CursorAI
 
 import { CustomConsole } from '@jest/console'
 import moment from 'moment/min/moment-with-locales'
@@ -9,6 +9,9 @@ import {
   dedupeReminderListTitles,
   getEnabledReminderLists,
   getReminderListsForConfig,
+  mapAppleReminderPriorityToDashboard,
+  mapCalendarItemToReminderForDashboard,
+  sortReminderSectionItems,
 } from '../dataGenerationReminders.js'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
 
@@ -38,7 +41,7 @@ const ALL_LISTS = [
 /**
  * Build a minimal reminder TSectionItem for bucketing tests.
  * @param {string} id
- * @param {{ date?: string, time?: string, title?: string }} fields
+ * @param {{ date?: string, time?: string, title?: string, priority?: number }} fields
  * @returns {any}
  */
 function makeReminderItem(id, fields = {}) {
@@ -52,6 +55,7 @@ function makeReminderItem(id, fields = {}) {
       flagged: false,
       date: fields.date,
       time: fields.time,
+      priority: fields.priority,
     },
   }
 }
@@ -154,6 +158,51 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(buckets.tomorrowItems.map((i) => i.ID)).toEqual(['tom'])
         expect(buckets.overdueItems.map((i) => i.ID)).toEqual(['past'])
         expect(buckets.undatedItems.map((i) => i.ID)).toEqual(['undated'])
+      })
+    })
+
+    describe('sortReminderSectionItems()', () => {
+      test('sorts by time, then priority desc, then date', () => {
+        const items = [
+          makeReminderItem('late-low', { date: '2026-07-20', time: '18:00', priority: 1, title: 'Late low' }),
+          makeReminderItem('early-high', { date: '2026-07-22', time: '09:00', priority: 3, title: 'Early high' }),
+          makeReminderItem('early-low', { date: '2026-07-21', time: '09:00', priority: 1, title: 'Early low' }),
+          makeReminderItem('untimed-med', { date: '2026-07-10', priority: 2, title: 'Untimed med' }),
+          makeReminderItem('untimed-high', { date: '2026-07-28', priority: 3, title: 'Untimed high' }),
+        ]
+        expect(sortReminderSectionItems(items).map((i) => i.ID)).toEqual([
+          'early-high',
+          'early-low',
+          'late-low',
+          'untimed-high',
+          'untimed-med',
+        ])
+      })
+    })
+
+    describe('mapAppleReminderPriorityToDashboard() / mapCalendarItemToReminderForDashboard()', () => {
+      test('maps Apple 0/1/5/9 to Dashboard 0/3/2/1', () => {
+        expect(mapAppleReminderPriorityToDashboard(0)).toBe(0)
+        expect(mapAppleReminderPriorityToDashboard(1)).toBe(3) // high
+        expect(mapAppleReminderPriorityToDashboard(5)).toBe(2) // medium
+        expect(mapAppleReminderPriorityToDashboard(9)).toBe(1) // low
+        expect(mapAppleReminderPriorityToDashboard(undefined)).toBe(0)
+        expect(mapAppleReminderPriorityToDashboard(4)).toBe(0)
+      })
+
+      test('stores only non-zero Dashboard priority on the reminder', () => {
+        const base = {
+          title: 'T',
+          calendar: 'List',
+          isCompleted: false,
+          isAllDay: true,
+          occurences: [],
+        }
+        expect(mapCalendarItemToReminderForDashboard({ ...base, priority: 1 }).priority).toBe(3)
+        expect(mapCalendarItemToReminderForDashboard({ ...base, priority: 5 }).priority).toBe(2)
+        expect(mapCalendarItemToReminderForDashboard({ ...base, priority: 9 }).priority).toBe(1)
+        expect(mapCalendarItemToReminderForDashboard({ ...base, priority: 0 }).priority).toBeUndefined()
+        expect(mapCalendarItemToReminderForDashboard({ ...base }).priority).toBeUndefined()
       })
     })
   })

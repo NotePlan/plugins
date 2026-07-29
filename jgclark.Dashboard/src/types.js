@@ -262,6 +262,7 @@ export type TReminderForDashboard = {
   color?: string, // optional list color as hex (from Calendar.availableReminderLists)
   // TODO(future): Enable this if the API is extended to cover flagged status
   flagged: boolean, // whether the reminder is flagged (always false until API supports it)
+  priority?: number, // Dashboard 0/omit = none; 1 / 2 / 3 = low / medium / high (from Apple 0 / 9 / 5 / 1)
   date?: string, // optional local calendar date YYYY-MM-DD (converted from API Zulu/UTC)
   time?: string, // optional local HH:MM in 24-hour format (converted from API Zulu/UTC)
   location?: string, // optional location

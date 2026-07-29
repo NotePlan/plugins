@@ -1838,12 +1838,20 @@ declare interface TCalendarItem {
    */
   isCompleted: boolean;
   /**
+   * Priority for reminders.
+   * Values: 0 = none, 1 = high, 5 = medium, 9 = low.
+   * Can be set via optional 11th argument in CalendarItem.create() or Calendar.update().
+   * Note: map these to NotePlan-style 0 / 1 / 2 / 3 via mapAppleReminderPriorityToDashboard().
+   * Available from v3.21.2
+   */
+  priority?: number;
+  /**
    * All the dates the event or reminder occurs (if it's a multi-day event for example)
-   * Note: 'occurences' is a typo in either the API or the code; it should be 'occurrences'.
-   * TODO(EduardMe): check where the typo is, and fix it.
+   * Note: 'occurences' was used originally, but the correct spelling is now available as an alias.
    * Note: Available from v3.0.15
    */
 +occurences: $ReadOnlyArray < Date >;
++occurrences: $ReadOnlyArray < Date >;
   /**
    * The calendar or reminders list where this event or reminder is (or should be) saved. If you set nothing, the event or reminder will be added to the default and this field will be set after adding.
    * Note: Available from v3.0.15.
@@ -1928,6 +1936,7 @@ declare interface TCalendarItem {
     notes?: string,
     url?: string,
     availability?: number,
+    priority ?: number
   ): TCalendarItem;
   /**
    * CalendarItem.findLinkedFilenames()

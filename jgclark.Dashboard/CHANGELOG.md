@@ -11,6 +11,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.4.0.b57] 2026-07-29
 - New: sticky **Filter settings…** search at the top of Dashboard Settings - matches label/description (from 3+ characters).
 - Reduce opacity of 'chips' showing Reminder list name, and note names.
+- New: Support for Reminder **priority** when provided, shown with the same styling as tasks, sorted after time and before date, and included in **Hide lower-priority items?** filtering.
 
 ## [2.4.0.b56] 2026-07-29
 - Change: Filters **Show Reminders** is now two toggles: **Show Current Reminders** (today / yesterday / tomorrow, including timed) and **Show Undated/Overdue Reminders** (undated REM section + past-dated reminders in Overdue). Upgrade forces both on and removes the old key.

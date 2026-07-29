@@ -8,7 +8,7 @@
 // On older builds that scheme is blocked by NotePlan.openURL.
 // See also ARCHITECTURE-How_Stuff_Works.md -> "Reminders section".
 //
-// Last updated 2026-07-29 for v2.4.0.b56 by @jgclark + @CursorAI
+// Last updated 2026-07-29 for v2.4.0.b57 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useCallback } from 'react'
@@ -80,7 +80,14 @@ function ReminderItem({ item, thisSection }: Props): Node {
     )
   }
   contentParts.push(
-    <span key="title" className="reminderTitle">
+    <span
+      key="title"
+      className={
+        !dashboardSettings?.hidePriorityMarkers && reminder.priority != null && reminder.priority >= 1 && reminder.priority <= 3
+          ? `reminderTitle priority${String(reminder.priority)}`
+          : 'reminderTitle'
+      }
+    >
       {reminder.title}
     </span>,
   )

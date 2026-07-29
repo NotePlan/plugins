@@ -173,6 +173,8 @@ Open reminders are split across the Dashboard rather than shown in a single list
 | Undated | **Reminders** section |
 | Dated after tomorrow | not shown |
 
+Priority from Apple Reminders (none / low / medium / high) is mapped to Dashboard levels matching task `!` / `!!` / `!!!` styling. They also participate in **Hide lower-priority items?** Filtering, and reminder lists sort by time, then priority, then date.
+
 The following Actions are possible, all of which are reflected in Apple Reminders too:
 - Click the **circle** icon to complete the reminder;
 - **Ctrl-click** the circle to delete the reminder;

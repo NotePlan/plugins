@@ -8,7 +8,7 @@
 //   (priority / earliest / due date / most recent) -- do not re-sort by priority here.
 // - Limit = only show the first N of M items
 //
-// Last updated 2026-07-15 for v2.4.0.b51, @jgclark + @CursorAI
+// Last updated 2026-07-29 for v2.4.0.b57, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -21,6 +21,17 @@ import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 // Constants & Types
 //----------------------------------------------------------------------
 
+/**
+ * Effective display/filter priority for a section item: task para.priority or reminder.priority.
+ * @param {TSectionItem} item
+ * @returns {number}
+ */
+export function getItemDisplayPriority(item: TSectionItem): number {
+  if (item.itemType === 'reminder') {
+    return item.reminder?.priority ?? 0
+  }
+  return item.para?.priority ?? 0
+}
 type UseSectionSortAndFilter = {
   filteredItems: Array<TSectionItem>,
   itemsToShow: Array<TSectionItem>,
@@ -104,16 +115,27 @@ const useSectionSortAndFilter = (
       setItemsToShow(memoizedItems)
       setAllSortedItems(memoizedItems)
     }
-    // Handle REM section differently: generator already sorted (date / time); skip priority filter
+    // Handle REM section differently: generator already sorted (time / priority / date); still apply lower-priority filter
     // Backend may slice to maxItemsToShowInSection and set totalCount; surface that via limitApplied for {countWithLimit}
     // TODO(future): Enable flagged-first sort mention if the API is extended to cover flagged status
     // TODO(later): periodic auto-refresh while Dashboard is visible
     else if (section.sectionCode === 'REM') {
-      setItemsToShow(memoizedItems)
+      let remItems = memoizedItems
+      const remMaxPriority = getMaxPriorityInItems(memoizedItems, memoizedDashboardSettings)
+      if (filterByPriority && !showAllTasks) {
+        const priorityToUse =
+          currentMaxPriorityFromAllVisibleSections > -1 ? currentMaxPriorityFromAllVisibleSections : remMaxPriority
+        if (priorityToUse > 0) {
+          remItems = remItems.filter((f) => getItemDisplayPriority(f) >= priorityToUse)
+        }
+      }
+      setItemsToShow(remItems)
       setAllSortedItems(memoizedItems)
       const remTotal = section.totalCount ?? memoizedItems.length
       setLimitApplied(remTotal > memoizedItems.length)
-      setCalculatedMaxPriority(-1)
+      setCalculatedMaxPriority(remMaxPriority)
+      setNumFilteredOutThisSection(Math.max(0, memoizedItems.length - remItems.length))
+      setFilteredItems(remItems)
     }
     // Handle INFO section differently: no filtering
     else if (section.sectionCode === 'INFO') {
@@ -225,7 +247,7 @@ const useSectionSortAndFilter = (
               ? currentMaxPriorityFromAllVisibleSections
               : thisSectionCalculatedMaxPriority
             // logDebug('useSectionSortAndFilter', `${section.sectionCode}: starting to filter ${String(typeWantedItems.length)} items with all ${String(currentMaxPriorityFromAllVisibleSections)} / this ${String(thisSectionCalculatedMaxPriority)}`)
-            filteredItems = filteredItems.filter((f) => (f.para?.priority ?? 0) >= priorityToUse)
+            filteredItems = filteredItems.filter((f) => getItemDisplayPriority(f) >= priorityToUse)
             // logDebug('useSectionSortAndFilter', `  filtered to ${filteredItems.length} items using priority ${priorityToUse}`)
           } else {
             // logDebug('useSectionSortAndFilter', `${section.sectionCode}: no priority filtering`)
@@ -336,7 +358,7 @@ export function getMaxPriorityInItems(items: Array<TSectionItem>, dashboardSetti
     if (treatSingleItemTypesAsZeroItems.includes(i.itemType)) {
       continue
     }
-    const p = i.para?.priority
+    const p = getItemDisplayPriority(i)
     if (!p) {
       continue
     }
@@ -391,9 +413,9 @@ export function itemSort(a: TSectionItem, b: TSectionItem): number {
     return itemTypeB - itemTypeA
   }
 
-  // Sort by priority (second)
-  const priorityA = a.para?.priority ?? 0
-  const priorityB = b.para?.priority ?? 0
+  // Sort by priority (second) - tasks use para.priority; reminders use reminder.priority
+  const priorityA = getItemDisplayPriority(a)
+  const priorityB = getItemDisplayPriority(b)
   if (priorityA !== priorityB) {
     return priorityB - priorityA
   }

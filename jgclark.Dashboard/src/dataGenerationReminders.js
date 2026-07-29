@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for REM (Reminders) Section and day/TB reminder buckets
-// Last updated 2026-07-29 for v2.4.0.b56, @jgclark + @CursorAI
+// Last updated 2026-07-29 for v2.4.0.b57, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -182,6 +182,21 @@ export function getReminderListsForConfig(config: TDashboardSettings): TReminder
 }
 
 /**
+ * Map Apple Reminders / EventKit priority values to Dashboard (NotePlan-style) priority.
+ * Apple: 0 = none, 1 = high, 5 = medium, 9 = low.
+ * Dashboard: 0 = none, 1 = low (!), 2 = medium (!!), 3 = high (!!!).
+ * @param {mixed} applePriority - raw value from TCalendarItem.priority
+ * @returns {number} 0 / 1 / 2 / 3
+ */
+export function mapAppleReminderPriorityToDashboard(applePriority: mixed): number {
+  const raw = typeof applePriority === 'number' ? applePriority : parseInt(String(applePriority ?? ''), 10)
+  if (raw === 1) return 3 // high
+  if (raw === 5) return 2 // medium
+  if (raw === 9) return 1 // low
+  return 0 // none or unknown
+}
+
+/**
  * Map a NotePlan CalendarItem (reminder) into TReminderForDashboard.
  * Does not pass TCalendarItem through to section items.
  * @param {TCalendarItem} calendarItem
@@ -202,6 +217,10 @@ export function mapCalendarItemToReminderForDashboard(
   }
   if (calendarItem.id) {
     reminder.id = calendarItem.id
+  }
+  const dashboardPriority = mapAppleReminderPriorityToDashboard(calendarItem.priority)
+  if (dashboardPriority >= 1 && dashboardPriority <= 3) {
+    reminder.priority = dashboardPriority
   }
   if (listname && colorByTitle[listname]) {
     reminder.color = colorByTitle[listname]
@@ -234,14 +253,14 @@ export function mapCalendarItemToReminderForDashboard(
   }
   if (calendarItem.title.match(/test/i) || calendarItem.title.match(/new/i)) {
     // TODO(future): Enable flagged in this clof list if the API is extended to cover flagged status
-    clof(calendarItem, "CalendarItem (for Reminder): ", ['title', 'date', 'occurences', 'isAllDay', 'isCompleted' /*, 'flagged' */])
+    clof(calendarItem, "CalendarItem (for Reminder): ", ['title', 'date', 'occurences', 'isAllDay', 'isCompleted', 'priority' /*, 'flagged' */])
     clo(reminder, "  => Reminder: ")
   }
   return reminder
 }
 
 /**
- * Sort reminders: by date then time (timed before undated), then title.
+ * Sort reminders: by time (timed before undated), then priority desc, then date, then title.
  * TODO(future): Enable flagged-first sorting if the API is extended to cover flagged status
  * @param {Array<TSectionItem>} items
  * @returns {Array<TSectionItem>}
@@ -257,17 +276,24 @@ export function sortReminderSectionItems(items: Array<TSectionItem>): Array<TSec
     //   return ra.flagged ? -1 : 1
     // }
 
-    const dateA = ra.date || '9999-99-99'
-    const dateB = rb.date || '9999-99-99'
-    if (dateA !== dateB) {
-      return dateA < dateB ? -1 : 1
-    }
-
-    // Timed before undated within the same date
+    // Timed before undated; earlier times first
     const timeA = ra.time || '99:99'
     const timeB = rb.time || '99:99'
     if (timeA !== timeB) {
       return timeA < timeB ? -1 : 1
+    }
+
+    // Higher priority first (1 / 2 / 3); missing treated as 0
+    const priorityA = ra.priority ?? 0
+    const priorityB = rb.priority ?? 0
+    if (priorityA !== priorityB) {
+      return priorityB - priorityA
+    }
+
+    const dateA = ra.date || '9999-99-99'
+    const dateB = rb.date || '9999-99-99'
+    if (dateA !== dateB) {
+      return dateA < dateB ? -1 : 1
     }
 
     return (ra.title || '').localeCompare(rb.title || '')
