@@ -1,29 +1,31 @@
-2026-07-29 09:14:01 JSLog: 2026-07-29 09:14:01 | DEBUG | jgclark.Dashboard v2.4.0 :: routeRequestsFromReact received actionType="refreshSomeSections"
-2026-07-29 09:14:02 JSLog: 2026-07-29 09:14:02 | INFO  | ************* bridgeClickDashboardItem: refreshSomeSections *************
-2026-07-29 09:14:03 JSLog: 2026-07-29 09:14:03 | DEBUG | refreshSomeSections :: Starting for TB
-2026-07-29 09:14:04 JSLog: [WebView Log] 2026-07-29 09:14:04 | DEBUG | Section :: - DT Today: useEffect has pluginData changed
-2026-07-29 09:14:04 [PluginRefresh] start (local=59)
-2026-07-29 09:14:05 JSLog: 2026-07-29 09:14:05 | DEBUG | getListOfEnabledSections :: sectionsToShow: TB,REM,DT,TAG,SEARCH
-2026-07-29 09:14:06 JSLog: 2026-07-29 09:14:06 🥺 WARN 🥺 Calendar.startOfWeek returned a Promise, falling back to moment
-2026-07-29 09:14:07 JSLog: 2026-07-29 09:14:07 | DEBUG | getRemindersGeneratedData :: fetched 14 reminders from 4 lists
-2026-07-29 09:14:08 JSLog: 2026-07-29 09:14:08 | DEBUG |   => Reminder:  :: {
-2026-07-29 09:14:08 "title": "Send out the newsletter",
-2026-07-29 09:14:08 "listname": "Reminders",
-2026-07-29 09:14:08 "flagged": false,
-2026-07-29 09:14:08 "occurrences": {
-2026-07-29 09:14:08 "weekly": true,
-2026-07-29 09:14:08 "days": [
-2026-07-29 09:14:08 "mon",
-2026-07-29 09:14:08 "tue"
-2026-07-29 09:14:08 ],
-2026-07-29 09:14:08 },
-2026-07-29 09:14:08 "date": "2026-07-30"
-2026-07-29 09:14:08 }
-2026-07-29 09:14:09 JSLog: [WebView Error ❗️] 2026-07-29 09:14:09 ❗️ ERROR ❗️ makeParaContentToLookLikeNPDisplayInReact, No para/content in item REM-3
-2026-07-29 09:14:10 JSLog: 2026-07-29 09:14:10 | DEBUG | setPluginData :: Sending changeMessage: "Finished refreshSomeSections for [TB] (126ms)"
-2026-07-29 09:14:11 JSLog: 2026-07-29 09:14:11 🥺 WARN 🥺 perspective 'Today-All*' has unsaved changes
-2026-07-29 09:14:12 JSLog: [WebView Log] 2026-07-29 09:14:12 | DEBUG | PerspectiveSelector :: selectedValue: {"label":"Today-All*"}
-2026-07-29 09:14:12 initFunc result: undefined
-2026-07-29 09:14:13 JSLog: 2026-07-29 09:14:13 ❗️ ERROR ❗️ TypeError: Cannot read properties of undefined (reading 'title')
-2026-07-29 09:14:14 JSLog: 2026-07-29 09:14:14 | DEBUG | processActionOnReturn :: no post process actions to perform
-2026-07-29 09:14:15 JSLog: 2026-07-29 09:14:15 | DEBUG | getTimeBlockSectionData :: added 3 timed reminder(s) into TB
+2026-07-29 09:15:02 JSLog: Executing function 'onMessageFromHTMLView'
+2026-07-29 09:15:02 JSLog: 2026-07-29 09:14:01 | DEBUG | jgclark.Dashboard v2.4.0 :: routeRequestsFromReact received actionType="refreshSomeSections"
+2026-07-29 09:15:02 JSLog: 2026-07-29 09:14:02 | INFO  | ************* bridgeClickDashboardItem: refreshSomeSections *************
+2026-07-29 09:15:02 JSLog: 2026-07-29 09:14:03 | DEBUG | refreshSomeSections :: Starting for TB
+2026-07-29 09:15:02 JSLog: [WebView Log] 2026-07-29 09:14:04 | DEBUG | Section :: - DT Today: useEffect has pluginData changed
+2026-07-29 09:15:02 [PluginRefresh] start (local=59)
+2026-07-29 09:15:02 JSLog: 2026-07-29 09:14:05 | DEBUG | getListOfEnabledSections :: sectionsToShow: TB,REM,DT,TAG,SEARCH
+2026-07-29 09:15:02 JSLog: 2026-07-29 09:14:06 🥺 WARN 🥺 Calendar.startOfWeek returned a Promise, falling back to moment
+2026-07-29 09:15:02 JSLog: 2026-07-29 09:14:07 | DEBUG | getRemindersGeneratedData :: fetched 14 reminders from 4 lists
+2026-07-29 09:15:02 JSLog: 2026-07-29 09:14:08 | DEBUG |   => Reminder:  :: {
+2026-07-29 09:15:02 "title": "Send out the newsletter",
+2026-07-29 09:15:02 "listname": "Reminders",
+2026-07-29 09:15:02 "flagged": false,
+2026-07-29 09:15:02 "occurrences": {
+2026-07-29 09:15:02 "weekly": true,
+2026-07-29 09:15:02 "days": [
+2026-07-29 09:15:02 "mon",
+2026-07-29 09:15:02 "tue"
+2026-07-29 09:15:02 ],
+2026-07-29 09:15:02 },
+2026-07-29 09:15:02 "date": "2026-07-30"
+2026-07-29 09:15:02 }
+2026-07-29 09:15:02 JSLog: [WebView Error ❗️] 2026-07-29 09:14:09 ❗️ ERROR ❗️ makeParaContentToLookLikeNPDisplayInReact, No para/content in item REM-3
+2026-07-29 09:15:02 JSLog: 2026-07-29 09:14:10 | DEBUG | setPluginData :: Sending changeMessage: "Finished refreshSomeSections for [TB] (126ms)"
+2026-07-29 09:15:02 JSLog: Executing function 'onMessageFromHTMLView'
+2026-07-29 09:15:02 JSLog: 2026-07-29 09:14:57 | DEBUG | routeRequestsFromReact received actionType="refreshEnabledSections"
+2026-07-29 09:15:02 JSLog: 2026-07-29 09:14:58 🥺 WARN 🥺 perspective 'Today-All*' has unsaved changes
+2026-07-29 09:15:02 JSLog: [WebView Log] 2026-07-29 09:14:59 | DEBUG | PerspectiveSelector :: selectedValue: {"label":"Today-All*"}
+2026-07-29 09:15:02 initFunc result: undefined
+2026-07-29 09:15:02 JSLog: 2026-07-29 09:14:59 ❗️ ERROR ❗️ TypeError: Cannot read properties of undefined (reading 'title')
+2026-07-29 09:15:02 JSLog: 2026-07-29 09:14:59 | DEBUG | getTimeBlockSectionData :: added 3 timed reminder(s) into TB
