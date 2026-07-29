@@ -113,19 +113,38 @@ arrow keys work too.
 Matches are highlighted, and `┈┈┈` rules mark places where lines were skipped between
 non-adjacent matches.
 
-### Timestamps
+### Dimmed boilerplate
 
-Every line carries a `2026-07-29 11:34:54`, which is mostly noise once you're reading a
-filtered slice. By default they're **dimmed** rather than removed, so they stay available but
-recede. `^T` (or `--no-time`) removes them entirely:
+Three things repeat on essentially every line and tell you nothing while you're scanning:
+
+- the timestamp — `2026-07-29 11:34:54`
+- the severity marker — `| DEBUG |`, `| INFO  |`, `| WARN |`, `| ERROR |`
+- the source tag — `[WebView]`
+
+All three are **dimmed** rather than removed, so they're still there when you want them but
+your actual message text is what stands out:
 
 ```
- 2026-07-29 11:53:01 | DEBUG | refreshSomeSections :: Starting for TB     <- dimmed stamp
- DEBUG | refreshSomeSections :: Starting for TB                           <- after ^T
+2026-07-29 15:09:36 | DEBUG | refreshSomeSections :: Starting for TB
+└────── dimmed ─────┘         └── your message, full brightness ──┘
 ```
 
-Filtering always runs against the *full* line, so you can still search for a time even while
-timestamps are hidden.
+`^T` (or `--no-time`) drops the timestamps entirely — the severity marker and source tag stay
+dimmed:
+
+```
+| DEBUG | refreshSomeSections :: Starting for TB
+```
+
+Two deliberate exceptions:
+
+- **Filter matches always win.** A hit is highlighted even where it lands inside dimmed text,
+  so searching `DEBUG` still shows you where it matched.
+- **Object bodies are never dimmed.** The lines of a multi-line object are *data*, so they
+  render at full brightness even when a value happens to look like a timestamp.
+
+Filtering always runs against the *full* line, so you can still search for a time or a
+severity even while they're hidden or dimmed.
 
 ### Multi-line objects
 

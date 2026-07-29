@@ -318,32 +318,45 @@ function termSize() {
 // leaves one of these inside the payload after we cut the JSLog: marker.
 const TIMESTAMP_RE = /\b\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?\b|\b\d{2}:\d{2}:\d{2}(?:[.,]\d+)?\b/g
 
+// Boilerplate that repeats on essentially every line and carries no
+// information once you're scanning: the timestamp, the "| DEBUG |" severity
+// marker (levels are space-padded to equal width, e.g. "| INFO  |"), and the
+// "[WebView]" source tag. Dimmed rather than removed so they're still there
+// when you need them.
+const LEVEL_RE = /\|[ \t]*(?:DEBUG|INFO|WARN|WARNING|ERROR|FATAL|TRACE)[ \t]*\|/gi
+const SOURCE_TAG_RE = /\[WebView\]/gi
+const NOISE_RES = [TIMESTAMP_RE, LEVEL_RE, SOURCE_TAG_RE]
+
+// Removing the timestamp leaves a gap and often a leading space before the
+// "| DEBUG |" marker. Tidy the whitespace but leave the marker's own pipes
+// alone -- they're part of it, and it still gets dimmed as noise.
 function stripTime(text) {
   return text
     .replace(TIMESTAMP_RE, '')
     .replace(/ {2,}/g, ' ')
-    .replace(/^[\s|]+/, '')
-    .replace(/^(\[[^\]]+\])\s*\|\s*/, '$1 ') // "[WebView] | DEBUG" -> "[WebView] DEBUG"
+    .replace(/^\s+/, '')
 }
 
-// Styling has to happen in one pass: dimming timestamps and highlighting
-// matches independently would nest escape codes, and the inner [0m reset
-// would cancel the outer style for the rest of the line.
+// Styling has to happen in one pass: dimming noise and highlighting matches
+// independently would nest escape codes, and the inner [0m reset would cancel
+// the outer style for the rest of the line.
 const STYLE_NONE = 0
 const STYLE_DIM = 1
 const STYLE_MATCH = 2
 
-function styleLine(text, hl, dimTimes) {
+function styleLine(text, hl, dimNoise) {
   const n = text.length
   if (!n) return text
   const styles = new Uint8Array(n)
 
-  if (dimTimes) {
-    TIMESTAMP_RE.lastIndex = 0
-    let m
-    while ((m = TIMESTAMP_RE.exec(text)) !== null) {
-      const end = Math.min(n, m.index + m[0].length)
-      for (let i = m.index; i < end; i++) styles[i] = STYLE_DIM
+  if (dimNoise) {
+    for (const re of NOISE_RES) {
+      re.lastIndex = 0
+      let m
+      while ((m = re.exec(text)) !== null) {
+        const end = Math.min(n, m.index + m[0].length)
+        for (let i = m.index; i < end; i++) styles[i] = STYLE_DIM
+      }
     }
   }
 
@@ -412,10 +425,13 @@ function render() {
     if (row.gap) {
       buf += `${ESC}[2m${'┈'.repeat(Math.min(cols, 40))}${ESC}[0m`
     } else {
-      // continuation rows already had their repeated timestamp stripped at
-      // ingest, so there is nothing to dim or hide on them
+      // Continuation rows are object/array body -- their timestamp was already
+      // stripped at ingest, and they hold real data, so nothing there is
+      // dimmed as chrome. Dimming is otherwise independent of ^T: with
+      // timestamps hidden there's no timestamp left to dim, but the severity
+      // marker and source tag still recede.
       const text = state.showTime || row.cont ? row.text : stripTime(row.text)
-      buf += styleLine(text.slice(0, cols), hl, state.showTime && !row.cont)
+      buf += styleLine(text.slice(0, cols), hl, !row.cont)
     }
   }
 
