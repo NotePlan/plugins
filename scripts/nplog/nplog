@@ -97,7 +97,7 @@ const JSLOG_MARKER = 'JSLog:'
 const LEADING_TS_RE = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?[ \t]?/
 
 function tidy(text) {
-  return text.replace(/\[WebView Log\]/g, '[WebView]')
+  return text.replace(/\[WebView Log\]/g, '[WebView]').replace(/\[WebView Error[^\]]*\]/g, '[WebView Error]')
 }
 
 // Returns the payload if this raw line starts a new log entry, else null.
@@ -318,18 +318,56 @@ function termSize() {
 // leaves one of these inside the payload after we cut the JSLog: marker.
 const TIMESTAMP_RE = /\b\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?\b|\b\d{2}:\d{2}:\d{2}(?:[.,]\d+)?\b/g
 
-// Boilerplate that repeats on essentially every line and carries no
-// information once you're scanning: the timestamp, the "| DEBUG |" severity
-// marker (levels are space-padded to equal width, e.g. "| INFO  |"), and the
-// "[WebView]" source tag. Dimmed rather than removed so they're still there
-// when you need them.
-const LEVEL_RE = /\|[ \t]*(?:DEBUG|INFO|WARN|WARNING|ERROR|FATAL|TRACE)[ \t]*\|/gi
+// Severity markers, per LOG_LEVEL_STRINGS in helpers/dev.js -- the source of
+// truth. Note WARN and ERROR are delimited by emoji, not pipes:
+//   '| DEBUG |'  '| INFO  |'  '🥺 WARN 🥺'  '❗️ ERROR ❗️'
+// (DEBUG/INFO are space-padded to equal width.) The pipe forms of WARN/ERROR
+// are also accepted, in case a plugin formats its own lines that way.
+// '❗️' is U+2757 followed by an optional variation selector U+FE0F.
+// At least one delimiter is required on some side of the word: a bare "WARN"
+// or "ERROR" appearing in a message must NOT be styled as a severity marker.
+// One real line had only the trailing emoji ("WARN 🥺"), so each side is
+// individually optional as long as the other is present. "ERROR:" is
+// NotePlan's own native form, seen only with --raw.
+// Escapes rather than literals below, because the emoji are easy to mangle in
+// an editor and "❗️?" misleadingly looks like an optional "❗" when in fact the
+// "?" applies to the invisible variation selector. WARN = U+1F97A (🥺),
+// ERROR = U+2757 (❗) + optional U+FE0F variation selector.
+const ROUTINE_LEVEL_RE = /\|[ \t]*(?:DEBUG|INFO)[ \t]*\|/gi
+const WARN_LEVEL_RE = /\u{1F97A}[ \t]*WARN(?:[ \t]*\u{1F97A})?|WARN[ \t]*\u{1F97A}|\|[ \t]*WARN(?:ING)?[ \t]*\|/giu
+const ERROR_LEVEL_RE = /\u2757\uFE0F?[ \t]*ERROR(?:[ \t]*\u2757\uFE0F?)?|ERROR[ \t]*\u2757\uFE0F?|\|[ \t]*ERROR[ \t]*\||\bERROR:/gi
 const SOURCE_TAG_RE = /\[WebView\]/gi
-const NOISE_RES = [TIMESTAMP_RE, LEVEL_RE, SOURCE_TAG_RE]
+// WebView errors carry their own tag, e.g. "[WebView Error ❗️]" -- normalised
+// by tidy() and coloured as an error rather than dimmed, since it's signal.
+const SOURCE_ERROR_TAG_RE = /\[WebView Error\]/gi
+
+// Styling has to happen in one pass: styling noise and highlighting matches
+// independently would nest escape codes, and the inner reset would cancel the
+// outer style for the rest of the line.
+const STYLE_NONE = 0
+const STYLE_DIM = 1
+const STYLE_WARN = 2
+const STYLE_ERROR = 3
+const STYLE_MATCH = 4
+
+// Chrome that repeats on essentially every line and carries no information
+// once you're scanning -- timestamp, routine severity, source tag -- is dimmed
+// rather than removed, so it's there when you want it. WARN and ERROR are the
+// exception: they're the one part of the prefix that IS signal, so they get
+// colour. Faint + colour rather than bold, so they read as quietly flagged
+// instead of shouting on every other line.
+const NOISE_SPANS = [
+  { re: TIMESTAMP_RE, style: STYLE_DIM },
+  { re: SOURCE_TAG_RE, style: STYLE_DIM },
+  { re: ROUTINE_LEVEL_RE, style: STYLE_DIM },
+  { re: WARN_LEVEL_RE, style: STYLE_WARN },
+  { re: ERROR_LEVEL_RE, style: STYLE_ERROR },
+  { re: SOURCE_ERROR_TAG_RE, style: STYLE_ERROR },
+]
 
 // Removing the timestamp leaves a gap and often a leading space before the
 // "| DEBUG |" marker. Tidy the whitespace but leave the marker's own pipes
-// alone -- they're part of it, and it still gets dimmed as noise.
+// alone -- they're part of it, and it still gets styled as a severity marker.
 function stripTime(text) {
   return text
     .replace(TIMESTAMP_RE, '')
@@ -337,25 +375,18 @@ function stripTime(text) {
     .replace(/^\s+/, '')
 }
 
-// Styling has to happen in one pass: dimming noise and highlighting matches
-// independently would nest escape codes, and the inner [0m reset would cancel
-// the outer style for the rest of the line.
-const STYLE_NONE = 0
-const STYLE_DIM = 1
-const STYLE_MATCH = 2
-
-function styleLine(text, hl, dimNoise) {
+function styleLine(text, hl, styleNoise) {
   const n = text.length
   if (!n) return text
   const styles = new Uint8Array(n)
 
-  if (dimNoise) {
-    for (const re of NOISE_RES) {
-      re.lastIndex = 0
+  if (styleNoise) {
+    for (const span of NOISE_SPANS) {
+      span.re.lastIndex = 0
       let m
-      while ((m = re.exec(text)) !== null) {
+      while ((m = span.re.exec(text)) !== null) {
         const end = Math.min(n, m.index + m[0].length)
-        for (let i = m.index; i < end; i++) styles[i] = STYLE_DIM
+        for (let i = m.index; i < end; i++) styles[i] = span.style
       }
     }
   }
@@ -370,10 +401,14 @@ function styleLine(text, hl, dimNoise) {
         continue
       }
       const end = Math.min(n, m.index + m[0].length)
-      for (let i = m.index; i < end; i++) styles[i] = STYLE_MATCH // match wins over dim
+      for (let i = m.index; i < end; i++) styles[i] = STYLE_MATCH // match outranks everything
     }
   }
 
+  // Orange for WARN, red for ERROR, each paired with faint (2) so they read as
+  // quietly flagged rather than shouting. 256-colour is used for orange since
+  // the 8-colour palette has none; every modern terminal supports it.
+  // [22m resets intensity only, so coloured spans need [0m to clear colour too.
   let res = ''
   let i = 0
   while (i < n) {
@@ -382,6 +417,8 @@ function styleLine(text, hl, dimNoise) {
     while (j < n && styles[j] === style) j++
     const chunk = text.slice(i, j)
     if (style === STYLE_DIM) res += `${ESC}[2m${chunk}${ESC}[22m`
+    else if (style === STYLE_WARN) res += `${ESC}[2;38;5;208m${chunk}${ESC}[0m`
+    else if (style === STYLE_ERROR) res += `${ESC}[2;38;5;196m${chunk}${ESC}[0m`
     else if (style === STYLE_MATCH) res += `${ESC}[43;30m${chunk}${ESC}[0m`
     else res += chunk
     i = j
@@ -436,25 +473,30 @@ function render() {
   }
 
   const ctx = CONTEXT_MODES[state.mode]
-  const modeLabel = ctx === 0 ? 'match only' : `match +${ctx}`
+  const modeLabel = ctx === 0 ? 'match only' : `match+${ctx} lines`
   const followLabel = state.follow ? 'FOLLOW' : 'SCROLL'
   const reLabel = !state.filter ? '' : valid ? 're  ' : 'LITERAL(bad re)  '
   const timeLabel = state.showTime ? '' : 'no-time  '
   // count entries, not gap separators or the extra rows of a multi-line entry
   const shown = state.filter ? view.reduce((n, r) => n + (r.gap ? 0 : 1), 0) : lines.length
-  const right = ` ${reLabel}${timeLabel}ctx:${modeLabel}  ${shown}/${lines.length}  ${followLabel} `
+  // A matched entry can be a pretty-printed object occupying many screen rows,
+  // which reads as "why am I still seeing extra lines in match-only mode?".
+  // Surface the row count whenever it exceeds the entry count, so the extra
+  // lines are visibly accounted for.
+  const rowCount = rows.reduce((n, r) => n + (r.gap ? 0 : 1), 0)
+  const linesLabel = rowCount > shown ? ` (${rowCount} rows)` : ''
+  const right = ` ${reLabel}${timeLabel}ctx:${modeLabel}  ${shown}/${lines.length}${linesLabel}  ${followLabel} `
   const left = ` filter: ${state.filter}`
   const gapWidth = Math.max(1, cols - left.length - right.length)
   const statusLine = pad(left + ' '.repeat(gapWidth) + right, cols)
 
   buf += `${ESC}[${termRows - 1};1H${ESC}[2K${ESC}[7m${statusLine}${ESC}[0m`
 
-  // Spell out the context cycle -- "Tab mode" gave no clue what it did. The
-  // next mode in the cycle is named so Tab's effect is predictable.
-  const nextCtx = CONTEXT_MODES[(state.mode + 1) % CONTEXT_MODES.length]
-  const nextLabel = nextCtx === 0 ? 'match only' : `match +${nextCtx}`
-  const full = ` TAB=more context (now ${modeLabel} → ${nextLabel})   ^T times   ^U clear   ^L wipe   ^B/^F page   ^P/^N line   ^A/^E top/end   ^C quit`
-  const compact = ` TAB=context→${nextLabel}   ^T times   ^U clear   ^B/^F page   ^A/^E top/end   ^C quit`
+  // Name what TAB actually cycles. An earlier "TAB=context→match +1" read as
+  // though TAB *did something to* "match +1"; the current setting already
+  // shows in the status bar above, so just describe the control.
+  const full = ` TAB: context (match+N lines)   ^T times   ^U clear   ^L wipe   ^B/^F page   ^P/^N line   ^A/^E top/end   ^C quit`
+  const compact = ` TAB: context (match+N lines)   ^T times   ^U clear   ^B/^F page   ^A/^E top/end   ^C quit`
   const help = full.length <= cols ? full : compact
   buf += `${ESC}[${termRows};1H${ESC}[2K${ESC}[2m${pad(state.status || help, cols)}${ESC}[0m`
 
@@ -547,6 +589,12 @@ function openFile(file, seed) {
 }
 
 function checkRotation() {
+  // --file pins one specific log; auto-rotation would otherwise yank us onto
+  // whatever NotePlan is currently writing a second later.
+  if (opts.file) {
+    readNewBytes()
+    return
+  }
   const latest = findLatestLog()
   if (latest && latest !== currentFile) {
     closeEntry() // don't let a block from the old file swallow the new one

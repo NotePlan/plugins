@@ -34,7 +34,8 @@ Node.js (any recent version). No npm packages — it is a single dependency-free
 
 Works in any terminal emulator, including iTerm2. It only uses the universally-supported
 ANSI/VT100 basics — alternate screen (`?1049h`), cursor positioning, erase-line, reverse
-video, dim, and 8-colour SGR — plus Node's own raw-mode key handling, which is
+video, dim, and SGR colour (256-colour for the WARN orange) — plus Node's own raw-mode key
+handling, which is
 terminal-agnostic.
 
 Verified on macOS **Terminal.app** and **iTerm2**. It should be equally happy in Ghostty,
@@ -61,6 +62,13 @@ to your shell profile.
 
 You can also skip installing and just run it in place: `node scripts/nplog/nplog`.
 
+Want to see it without waiting for NotePlan to log something? A sample log is committed
+alongside it:
+
+```bash
+nplog --file scripts/nplog/sample.log
+```
+
 ## Usage
 
 ```bash
@@ -80,7 +88,7 @@ Everything is a control key, because compact Mac keyboards have no PgUp / PgDn /
 | Key | Action |
 | --- | --- |
 | *(type anything)* | edit the filter — applies live |
-| `Tab` | more context: `match only` → `+1` → `+5` → `+10` → back |
+| `Tab` | cycle context: `match only` → `match+1 lines` → `+5` → `+10` → back |
 | `^T` | show / hide timestamps |
 | `^U` | clear the filter |
 | `^L` | clear the buffer (drop history, keep following) |
@@ -89,8 +97,8 @@ Everything is a control key, because compact Mac keyboards have no PgUp / PgDn /
 | `^A` / `^E` | jump to top / end (`^E` also resumes following) |
 | `^C` | quit |
 
-The bottom line always spells out what `Tab` will do next, e.g.
-`TAB=more context (now match only → match +1)`.
+The bottom line names each control, e.g. `TAB: context (match+N lines)`; the status bar above
+it shows the setting currently in effect.
 
 If you *do* have a full-size keyboard (or use Fn+arrow), `PgUp`, `PgDn`, `Home`, `End` and the
 arrow keys work too.
@@ -98,7 +106,7 @@ arrow keys work too.
 ### The status bar
 
 ```
- filter: getRemindersGenerated|refreshSomeSections   re  ctx:match only  2942/8723  FOLLOW
+ filter: getRemindersGenerated|refreshSomeSections   re  ctx:match only  52/8791 (416 rows)  FOLLOW
 ```
 
 - `re` — the filter compiled as a regex. If it can't (say you've typed `Section(` and haven't
@@ -106,31 +114,48 @@ arrow keys work too.
   instead. It never errors out mid-typing.
 - `no-time` — appears only when timestamps are hidden (`^T`).
 - `ctx:match only` — current context mode.
-- `2942/8723` — lines currently shown / lines in the buffer.
+- `52/8791` — matching **entries** shown / total entries in the buffer.
+- `(416 rows)` — appears only when those entries occupy more screen rows than there are
+  entries, i.e. when some match is a pretty-printed object. This is why `match only` can still
+  fill the screen: one matching entry can be a 12-line object. See
+  [Multi-line objects](#multi-line-objects).
 - `FOLLOW` / `SCROLL` — whether new output auto-scrolls. Scrolling up switches to `SCROLL`;
   `^E` returns to `FOLLOW`.
 
 Matches are highlighted, and `┈┈┈` rules mark places where lines were skipped between
 non-adjacent matches.
 
-### Dimmed boilerplate
+### Dimmed boilerplate, coloured severity
 
-Three things repeat on essentially every line and tell you nothing while you're scanning:
+The same prefix repeats on every line and crowds out the message you're reading, so it's
+**dimmed** rather than removed — still there when you want it, but out of the way:
 
 - the timestamp — `2026-07-29 11:34:54`
-- the severity marker — `| DEBUG |`, `| INFO  |`, `| WARN |`, `| ERROR |`
+- the routine severity markers — `| DEBUG |`, `| INFO  |`
 - the source tag — `[WebView]`
-
-All three are **dimmed** rather than removed, so they're still there when you want them but
-your actual message text is what stands out:
 
 ```
 2026-07-29 15:09:36 | DEBUG | refreshSomeSections :: Starting for TB
 └────── dimmed ─────┘         └── your message, full brightness ──┘
 ```
 
-`^T` (or `--no-time`) drops the timestamps entirely — the severity marker and source tag stay
-dimmed:
+`WARN` and `ERROR` are the exception — they're the one part of the prefix that *is* signal, so
+they're **coloured** (orange and red) instead of dimmed. They're deliberately muted rather than
+bold: enough to catch your eye while scanning, without shouting on every other line.
+
+Note these two use **emoji delimiters** rather than pipes — see `LOG_LEVEL_STRINGS` in
+[`helpers/dev.js`](../../helpers/dev.js), which is the source of truth for all four:
+
+```
+2026-07-27 18:34:37 🥺 WARN 🥺 sendToHTMLWindow :: Window does not exist    <- orange
+[WebView Error] 2026-07-24 08:06:37 ❗️ ERROR ❗️ No para/content in item     <- red
+```
+
+The `[WebView Error]` tag is coloured red too, rather than dimmed like the plain `[WebView]`
+tag. NotePlan's own native `ERROR:` lines (visible only with `--raw`) are also picked up.
+
+`^T` (or `--no-time`) drops the timestamps entirely — the severity marker and source tag keep
+their styling:
 
 ```
 | DEBUG | refreshSomeSections :: Starting for TB
