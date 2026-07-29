@@ -9,7 +9,7 @@ log file inside its app container (in addition to NotePlan's own log).
 output, and puts a **regex filter box** on screen that you can retype at any moment without
 restarting anything.
 
-<img width="1120" height="440" alt="nplog-screenshot" src="https://github.com/user-attachments/assets/6798f142-8ad6-4e95-bf44-2e5f089fa401" />
+<img width="1774" height="892" alt="CleanShot 2026-07-29 at 16 08 46@2x" src="https://github.com/user-attachments/assets/dca65479-0b7b-440b-ad86-957090563e9a" />
 
 ## Why not just `tail | grep`?
 
