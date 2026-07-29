@@ -1,0 +1,709 @@
+#!/usr/bin/env node
+'use strict'
+
+// nplog -- live viewer for NotePlan's JSLog output.
+//
+// Replaces `noteplan_log_filtered.sh | lnav -`. It does three things lnav
+// made awkward:
+//   * follows the *newest* log file, re-detecting when NotePlan rotates to a
+//     new timestamped filename (lnav pins whatever fd it was handed on stdin)
+//   * keeps an always-visible filter bar; typing re-filters the whole buffer
+//     live, case-insensitively
+//   * context modes -- matched lines only, or match plus the next 1/5/10 lines
+//
+// The buffer lives in memory, so filtering searches history we've already read
+// rather than only what is still in the terminal's scrollback. Nothing is
+// written to the terminal's normal buffer (we run on the alternate screen), so
+// there is no need to grow iTerm's scrollback.
+
+const fs = require('fs')
+const os = require('os')
+const path = require('path')
+
+// NPLOG_DIR overrides the location -- handy for beta builds in a different
+// container, and it's what the rotation tests point at.
+const LOG_DIR = process.env.NPLOG_DIR || path.join(os.homedir(), 'Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Logs')
+
+const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
+const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
+const POLL_MS = 1000 // how often we look for rotation / new bytes
+const RENDER_MS = 80 // coalesce redraws while output is streaming
+
+// ---- options ---------------------------------------------------------------
+
+function parseArgs(argv) {
+  const opts = { filter: '', mode: 0, raw: false, file: null, showTime: true }
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]
+    if (a === '--raw') opts.raw = true
+    else if (a === '--no-time' || a === '--no-timestamps') opts.showTime = false
+    else if (a === '--file') opts.file = argv[++i]
+    else if (a === '--mode') {
+      const idx = CONTEXT_MODES.indexOf(Number(argv[++i]))
+      if (idx >= 0) opts.mode = idx
+    } else if (a === '-h' || a === '--help') {
+      console.log('Usage: nplog [regex] [--mode 0|1|5|10] [--raw] [--no-time] [--file PATH]')
+      console.log('  regex      case-insensitive; invalid patterns fall back to a literal match')
+      console.log('  --mode     0 = matched lines only, N = match plus next N lines')
+      console.log('  --raw      keep non-JSLog lines too')
+      console.log('  --no-time  hide timestamps entirely (toggle live with ^T)')
+      process.exit(0)
+    } else if (!a.startsWith('-')) opts.filter = a
+  }
+  return opts
+}
+
+const opts = parseArgs(process.argv.slice(2))
+
+// ---- log file discovery ----------------------------------------------------
+
+// NotePlan writes "co.noteplan.NotePlan3 <timestamp>.log" and starts a fresh
+// file on relaunch; beta builds nest a second Logs/ dir inside the first.
+function findLatestLog() {
+  const dirs = [LOG_DIR, path.join(LOG_DIR, 'Logs')]
+  let best = null
+  for (const dir of dirs) {
+    let entries
+    try {
+      entries = fs.readdirSync(dir)
+    } catch (err) {
+      continue
+    }
+    for (const name of entries) {
+      if (!name.startsWith('co.noteplan.NotePlan3') || !name.endsWith('.log')) continue
+      const full = path.join(dir, name)
+      try {
+        const st = fs.statSync(full)
+        if (!st.isFile()) continue
+        if (!best || st.mtimeMs > best.mtimeMs) best = { file: full, mtimeMs: st.mtimeMs }
+      } catch (err) {
+        /* file vanished mid-scan */
+      }
+    }
+  }
+  return best ? best.file : null
+}
+
+// ---- line processing -------------------------------------------------------
+
+// Lines look like "2026-07-29 11:34:54 JSLog: <payload>". The old shell script
+// anchored on /^JSLog:/, which stopped matching when NotePlan added the
+// leading timestamp -- so it silently emitted nothing. Strip the timestamp
+// first, then anchor: verified across ~48k lines of real logs, every line
+// containing "JSLog:" has it immediately after the timestamp, so this is both
+// safe and a much stronger signal than an anywhere-match (a pretty-printed
+// JSON *value* could otherwise contain the marker text).
+const JSLOG_MARKER = 'JSLog:'
+const LEADING_TS_RE = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?[ \t]?/
+
+function tidy(text) {
+  return text.replace(/\[WebView Log\]/g, '[WebView]')
+}
+
+// Returns the payload if this raw line starts a new log entry, else null.
+function entryPayload(line) {
+  const body = line.replace(LEADING_TS_RE, '')
+  if (!body.startsWith(JSLOG_MARKER)) return null
+  return tidy(body.slice(JSLOG_MARKER.length).replace(/^[ \t]/, ''))
+}
+
+// Brace/bracket depth, ignoring anything inside a JSON string literal so a
+// value like "{not real}" or "]" doesn't throw the count off. `state` carries
+// across lines because one entry spans many physical lines.
+function updateDepth(text, state) {
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (state.inString) {
+      if (state.escape) state.escape = false
+      else if (c === '\\') state.escape = true
+      else if (c === '"') state.inString = false
+    } else if (c === '"') state.inString = true
+    else if (c === '{' || c === '[') state.depth++
+    else if (c === '}' || c === ']') state.depth--
+  }
+  return state
+}
+
+// ---- buffer ----------------------------------------------------------------
+
+// One element per logical entry. A pretty-printed object spans several
+// physical log lines but is stored as ONE entry (with embedded newlines) so
+// that filtering and the context modes treat it as a single unit -- matching
+// "title" shows you the whole object, not one orphaned field.
+const lines = []
+let bufferVersion = 0
+
+// The entry currently being extended by continuation lines, if any:
+// {index, depth, inString, escape, count}. Declared before pushLine because
+// pushLine adjusts its index when the ring buffer trims.
+let openEntry = null
+const MAX_CONT_LINES = 500 // runaway guard for a block that never closes
+
+function closeEntry() {
+  openEntry = null
+}
+
+function pushLine(text) {
+  lines.push(text)
+  if (lines.length > MAX_LINES) {
+    const dropped = lines.length - MAX_LINES
+    lines.splice(0, dropped)
+    if (openEntry) openEntry.index -= dropped
+  }
+  bufferVersion++
+}
+
+const INDENT_UNIT = 2 // spaces per nesting level
+const INDENT_BASE = 2 // every continuation line sits at least this far in
+
+function appendToOpenEntry(rawLine) {
+  // Continuation lines repeat the parent's timestamp verbatim; strip it so a
+  // pretty-printed object reads as actual JSON instead of a timestamp column.
+  // NotePlan also flattens the original indentation, so re-indent by nesting
+  // depth -- the body is visibly part of the entry above it, and nested
+  // objects step in as you'd expect.
+  const text = tidy(rawLine.replace(LEADING_TS_RE, '')).trim()
+  if (openEntry.index < 0) return closeEntry() // scrolled out of the ring buffer
+
+  const depthBefore = openEntry.depth
+  openEntry.count++
+  updateDepth(text, openEntry)
+  // min(before, after) keeps a closing brace aligned with its opener rather
+  // than with the fields it encloses
+  const level = Math.max(0, Math.min(depthBefore, openEntry.depth))
+  const indent = ' '.repeat(INDENT_BASE + INDENT_UNIT * level)
+
+  lines[openEntry.index] += '\n' + indent + text
+  bufferVersion++
+  if (openEntry.depth <= 0 || openEntry.count >= MAX_CONT_LINES) closeEntry()
+}
+
+function consumeLine(rawLine) {
+  const payload = entryPayload(rawLine)
+
+  // A new "<timecode> JSLog:" line always ends any open block, even if its
+  // braces never balanced (truncated or malformed output).
+  if (payload !== null) {
+    closeEntry()
+    pushLine(payload)
+    const st = updateDepth(payload, { depth: 0, inString: false, escape: false })
+    if (st.depth > 0) openEntry = { index: lines.length - 1, count: 0, ...st }
+    return
+  }
+
+  if (openEntry) return appendToOpenEntry(rawLine)
+
+  const body = tidy(rawLine.replace(LEADING_TS_RE, ''))
+  if (opts.raw) {
+    pushLine(body)
+    return
+  }
+
+  // Not a JSLog line and nothing open. NotePlan interleaves its own native
+  // logging here, which we drop -- except a bare fragment that opens a
+  // structure (the "{" often lands on the line *after* the JSLog header), so
+  // start a block for it rather than losing the object entirely.
+  const st = updateDepth(body, { depth: 0, inString: false, escape: false })
+  if (st.depth > 0) {
+    pushLine(body)
+    openEntry = { index: lines.length - 1, count: 0, ...st }
+  }
+}
+
+// ---- view (filter + context) ----------------------------------------------
+
+const state = { filter: opts.filter, mode: opts.mode, follow: true, scroll: 0, file: null, status: '', showTime: opts.showTime }
+let viewCache = { key: null, rows: [] }
+
+// The filter is a case-insensitive regex. While it's being typed it will
+// often be transiently invalid ("foo(", "a["), so rather than erroring we
+// fall back to matching it literally and flag that in the status bar.
+let filterCache = { text: null, test: null, hl: null, valid: true }
+
+function getFilter() {
+  if (filterCache.text === state.filter) return filterCache
+  const text = state.filter
+  let test = null
+  let hl = null
+  let valid = true
+  // 's' (dotAll) so `.` spans the newlines inside a multi-line entry, letting
+  // a pattern like `Reminder.*title` match across a pretty-printed object.
+  if (text) {
+    try {
+      test = new RegExp(text, 'is')
+      hl = new RegExp(text, 'gis')
+    } catch (err) {
+      valid = false
+      const literal = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      test = new RegExp(literal, 'is')
+      hl = new RegExp(literal, 'gis')
+    }
+  }
+  filterCache = { text, test, hl, valid }
+  return filterCache
+}
+
+// Returns matched ENTRIES: {text, index} plus {gap:true} separators between
+// non-adjacent context groups so it's obvious entries were skipped. An entry's
+// text may contain newlines; buildRows() expands that for display.
+function buildView() {
+  const { test } = getFilter()
+  const ctx = CONTEXT_MODES[state.mode]
+  const key = `${bufferVersion}|${state.filter}|${ctx}`
+  if (viewCache.key === key) return viewCache.rows
+
+  let rows
+  if (!test) {
+    rows = lines.map((text, index) => ({ text, index }))
+  } else {
+    const keep = new Uint8Array(lines.length)
+    for (let i = 0; i < lines.length; i++) {
+      if (!test.test(lines[i])) continue
+      const end = Math.min(lines.length - 1, i + ctx)
+      for (let j = i; j <= end; j++) keep[j] = 1
+    }
+    rows = []
+    let prev = -2
+    for (let i = 0; i < lines.length; i++) {
+      if (!keep[i]) continue
+      if (prev >= 0 && i > prev + 1) rows.push({ gap: true })
+      rows.push({ text: lines[i], index: i })
+      prev = i
+    }
+  }
+  viewCache = { key, rows }
+  return rows
+}
+
+// Flatten entries into one row per physical display line, so scrolling and
+// paging move by what's actually on screen. `cont` marks continuation rows of
+// a multi-line entry -- they carry no timestamp of their own.
+let rowsCache = { key: null, rows: [] }
+
+function buildRows() {
+  const ctx = CONTEXT_MODES[state.mode]
+  const key = `${bufferVersion}|${state.filter}|${ctx}|${state.showTime ? 1 : 0}`
+  if (rowsCache.key === key) return rowsCache.rows
+
+  const view = buildView()
+  const rows = []
+  for (const item of view) {
+    if (item.gap) {
+      rows.push(item)
+      continue
+    }
+    if (item.text.indexOf('\n') === -1) {
+      rows.push({ text: item.text, index: item.index })
+      continue
+    }
+    const segs = item.text.split('\n')
+    for (let s = 0; s < segs.length; s++) {
+      rows.push({ text: segs[s], index: item.index, cont: s > 0 })
+    }
+  }
+  rowsCache = { key, rows }
+  return rows
+}
+
+// ---- rendering -------------------------------------------------------------
+
+const ESC = '\x1b'
+const out = process.stdout
+
+function termSize() {
+  return { cols: out.columns || 100, rows: out.rows || 30 }
+}
+
+// "2026-07-29 11:34:54" and "11:34:54", with optional milliseconds. NotePlan
+// leaves one of these inside the payload after we cut the JSLog: marker.
+const TIMESTAMP_RE = /\b\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?\b|\b\d{2}:\d{2}:\d{2}(?:[.,]\d+)?\b/g
+
+function stripTime(text) {
+  return text
+    .replace(TIMESTAMP_RE, '')
+    .replace(/ {2,}/g, ' ')
+    .replace(/^[\s|]+/, '')
+    .replace(/^(\[[^\]]+\])\s*\|\s*/, '$1 ') // "[WebView] | DEBUG" -> "[WebView] DEBUG"
+}
+
+// Styling has to happen in one pass: dimming timestamps and highlighting
+// matches independently would nest escape codes, and the inner [0m reset
+// would cancel the outer style for the rest of the line.
+const STYLE_NONE = 0
+const STYLE_DIM = 1
+const STYLE_MATCH = 2
+
+function styleLine(text, hl, dimTimes) {
+  const n = text.length
+  if (!n) return text
+  const styles = new Uint8Array(n)
+
+  if (dimTimes) {
+    TIMESTAMP_RE.lastIndex = 0
+    let m
+    while ((m = TIMESTAMP_RE.exec(text)) !== null) {
+      const end = Math.min(n, m.index + m[0].length)
+      for (let i = m.index; i < end; i++) styles[i] = STYLE_DIM
+    }
+  }
+
+  if (hl) {
+    hl.lastIndex = 0
+    let m
+    while ((m = hl.exec(text)) !== null) {
+      // a pattern like "x*" can match empty -- step past it or exec never ends
+      if (m[0].length === 0) {
+        hl.lastIndex++
+        continue
+      }
+      const end = Math.min(n, m.index + m[0].length)
+      for (let i = m.index; i < end; i++) styles[i] = STYLE_MATCH // match wins over dim
+    }
+  }
+
+  let res = ''
+  let i = 0
+  while (i < n) {
+    const style = styles[i]
+    let j = i
+    while (j < n && styles[j] === style) j++
+    const chunk = text.slice(i, j)
+    if (style === STYLE_DIM) res += `${ESC}[2m${chunk}${ESC}[22m`
+    else if (style === STYLE_MATCH) res += `${ESC}[43;30m${chunk}${ESC}[0m`
+    else res += chunk
+    i = j
+  }
+  return res
+}
+
+function pad(text, width) {
+  return text.length >= width ? text.slice(0, width) : text + ' '.repeat(width - text.length)
+}
+
+let renderTimer = null
+
+function scheduleRender() {
+  if (renderTimer) return
+  renderTimer = setTimeout(() => {
+    renderTimer = null
+    render()
+  }, RENDER_MS)
+}
+
+function render() {
+  const { cols, rows: termRows } = termSize()
+  const logHeight = Math.max(1, termRows - 2)
+  const view = buildView()
+  const rows = buildRows()
+  const { hl, valid } = getFilter()
+
+  // follow == pin to the end; otherwise honour the user's scroll position
+  const maxScroll = Math.max(0, rows.length - logHeight)
+  if (state.follow) state.scroll = maxScroll
+  else state.scroll = Math.min(state.scroll, maxScroll)
+
+  const slice = rows.slice(state.scroll, state.scroll + logHeight)
+  let buf = `${ESC}[H` // home; we repaint every row so no full clear needed
+
+  for (let r = 0; r < logHeight; r++) {
+    const row = slice[r]
+    buf += `${ESC}[${r + 1};1H${ESC}[2K`
+    if (!row) continue
+    if (row.gap) {
+      buf += `${ESC}[2m${'┈'.repeat(Math.min(cols, 40))}${ESC}[0m`
+    } else {
+      // continuation rows already had their repeated timestamp stripped at
+      // ingest, so there is nothing to dim or hide on them
+      const text = state.showTime || row.cont ? row.text : stripTime(row.text)
+      buf += styleLine(text.slice(0, cols), hl, state.showTime && !row.cont)
+    }
+  }
+
+  const ctx = CONTEXT_MODES[state.mode]
+  const modeLabel = ctx === 0 ? 'match only' : `match +${ctx}`
+  const followLabel = state.follow ? 'FOLLOW' : 'SCROLL'
+  const reLabel = !state.filter ? '' : valid ? 're  ' : 'LITERAL(bad re)  '
+  const timeLabel = state.showTime ? '' : 'no-time  '
+  // count entries, not gap separators or the extra rows of a multi-line entry
+  const shown = state.filter ? view.reduce((n, r) => n + (r.gap ? 0 : 1), 0) : lines.length
+  const right = ` ${reLabel}${timeLabel}ctx:${modeLabel}  ${shown}/${lines.length}  ${followLabel} `
+  const left = ` filter: ${state.filter}`
+  const gapWidth = Math.max(1, cols - left.length - right.length)
+  const statusLine = pad(left + ' '.repeat(gapWidth) + right, cols)
+
+  buf += `${ESC}[${termRows - 1};1H${ESC}[2K${ESC}[7m${statusLine}${ESC}[0m`
+
+  // Spell out the context cycle -- "Tab mode" gave no clue what it did. The
+  // next mode in the cycle is named so Tab's effect is predictable.
+  const nextCtx = CONTEXT_MODES[(state.mode + 1) % CONTEXT_MODES.length]
+  const nextLabel = nextCtx === 0 ? 'match only' : `match +${nextCtx}`
+  const full = ` TAB=more context (now ${modeLabel} → ${nextLabel})   ^T times   ^U clear   ^L wipe   ^B/^F page   ^P/^N line   ^A/^E top/end   ^C quit`
+  const compact = ` TAB=context→${nextLabel}   ^T times   ^U clear   ^B/^F page   ^A/^E top/end   ^C quit`
+  const help = full.length <= cols ? full : compact
+  buf += `${ESC}[${termRows};1H${ESC}[2K${ESC}[2m${pad(state.status || help, cols)}${ESC}[0m`
+
+  // park the cursor at the end of the filter text so typing feels native
+  buf += `${ESC}[${termRows - 1};${Math.min(cols, left.length + 1)}H`
+  out.write(buf)
+}
+
+// ---- tailing ---------------------------------------------------------------
+
+let currentFile = null
+let position = 0
+let carry = ''
+
+function ingest(chunk) {
+  carry += chunk
+  const parts = carry.split('\n')
+  carry = parts.pop()
+  for (const line of parts) {
+    if (!line) continue
+    consumeLine(line)
+  }
+}
+
+function readNewBytes() {
+  if (!currentFile) return
+  let st
+  try {
+    st = fs.statSync(currentFile)
+  } catch (err) {
+    return
+  }
+  if (st.size < position) {
+    // truncated in place -- restart from the top of the file
+    position = 0
+    carry = ''
+  }
+  if (st.size === position) return
+  let fd
+  try {
+    fd = fs.openSync(currentFile, 'r')
+  } catch (err) {
+    return
+  }
+  try {
+    const len = st.size - position
+    const buf = Buffer.allocUnsafe(len)
+    const got = fs.readSync(fd, buf, 0, len, position)
+    position += got
+    ingest(buf.slice(0, got).toString('utf8'))
+  } finally {
+    fs.closeSync(fd)
+  }
+  scheduleRender()
+}
+
+// Seed from the tail of the file so there's immediate history to filter,
+// without pulling a multi-megabyte log fully into memory.
+const SEED_BYTES = 2 * 1024 * 1024
+
+function openFile(file, seed) {
+  currentFile = file
+  carry = ''
+  state.file = path.basename(file)
+  let st
+  try {
+    st = fs.statSync(file)
+  } catch (err) {
+    position = 0
+    return
+  }
+  if (seed && st.size > 0) {
+    const start = Math.max(0, st.size - SEED_BYTES)
+    const fd = fs.openSync(file, 'r')
+    try {
+      const len = st.size - start
+      const buf = Buffer.allocUnsafe(len)
+      const got = fs.readSync(fd, buf, 0, len, start)
+      let text = buf.slice(0, got).toString('utf8')
+      if (start > 0) text = text.slice(text.indexOf('\n') + 1) // drop partial first line
+      ingest(text)
+      carry = ''
+    } finally {
+      fs.closeSync(fd)
+    }
+    position = st.size
+  } else {
+    position = seed ? st.size : 0
+  }
+}
+
+function checkRotation() {
+  const latest = findLatestLog()
+  if (latest && latest !== currentFile) {
+    closeEntry() // don't let a block from the old file swallow the new one
+    pushLine(`--- switching to ${path.basename(latest)} ---`)
+    openFile(latest, false)
+    scheduleRender()
+  }
+  readNewBytes()
+}
+
+// ---- input -----------------------------------------------------------------
+
+function cycleMode() {
+  state.mode = (state.mode + 1) % CONTEXT_MODES.length
+}
+
+function pageBy(delta) {
+  const { rows: termRows } = termSize()
+  const logHeight = Math.max(1, termRows - 2)
+  const maxScroll = Math.max(0, buildRows().length - logHeight)
+  state.scroll = Math.max(0, Math.min(maxScroll, state.scroll + delta))
+  state.follow = state.scroll >= maxScroll
+}
+
+function onKey(str) {
+  const { rows: termRows } = termSize()
+  const page = Math.max(1, termRows - 4)
+
+  if (str === '\x03') return quit() // Ctrl-C
+  if (str === '\x15') {
+    state.filter = ''
+    state.follow = true
+    return render()
+  }
+  if (str === '\x0c') {
+    lines.length = 0
+    closeEntry() // its index no longer refers to anything
+    bufferVersion++
+    state.follow = true
+    return render()
+  }
+  if (str === '\t') {
+    cycleMode()
+    return render()
+  }
+  if (str === '\x14') {
+    // ^T -- Mac keyboards have no dedicated key for this, and timestamps are
+    // usually noise once you're reading a filtered slice
+    state.showTime = !state.showTime
+    return render()
+  }
+  if (str === '\x7f' || str === '\b') {
+    state.filter = state.filter.slice(0, -1)
+    return render()
+  }
+
+  // Control-key navigation. Compact Mac keyboards have no PgUp/PgDn/Home/End,
+  // so these are the primary bindings; the escape sequences below still work
+  // for full-size keyboards and Fn+arrow.
+  if (str === '\x02') {
+    pageBy(-page) // ^B back a page
+    return render()
+  }
+  if (str === '\x06') {
+    pageBy(page) // ^F forward a page
+    return render()
+  }
+  if (str === '\x10') {
+    pageBy(-1) // ^P previous line
+    return render()
+  }
+  if (str === '\x0e') {
+    pageBy(1) // ^N next line
+    return render()
+  }
+  if (str === '\x01') {
+    state.scroll = 0 // ^A top of buffer
+    state.follow = false
+    return render()
+  }
+  if (str === '\x05') {
+    state.follow = true // ^E end, resume following
+    return render()
+  }
+
+  // arrow / navigation escape sequences
+  if (str === `${ESC}[5~`) {
+    pageBy(-page)
+    return render()
+  }
+  if (str === `${ESC}[6~`) {
+    pageBy(page)
+    return render()
+  }
+  if (str === `${ESC}[A`) {
+    pageBy(-1)
+    return render()
+  }
+  if (str === `${ESC}[B`) {
+    pageBy(1)
+    return render()
+  }
+  if (str === `${ESC}[H` || str === `${ESC}[1~`) {
+    state.scroll = 0
+    state.follow = false
+    return render()
+  }
+  if (str === `${ESC}[F` || str === `${ESC}[4~`) {
+    state.follow = true
+    return render()
+  }
+  if (str.charCodeAt(0) === 27) return // ignore other escape sequences
+
+  // printable input edits the filter
+  if (str >= ' ' && str <= '~') {
+    state.filter += str
+    state.follow = true
+    return render()
+  }
+}
+
+// ---- lifecycle -------------------------------------------------------------
+
+let exiting = false
+
+function quit(code) {
+  if (exiting) return
+  exiting = true
+  try {
+    if (process.stdin.isTTY) process.stdin.setRawMode(false)
+  } catch (err) {
+    /* already torn down */
+  }
+  out.write(`${ESC}[?1049l${ESC}[?25h`) // leave alt screen, restore cursor
+  // signal handlers hand us the signal *name*, and process.exit() rejects a
+  // non-number, so coerce anything that isn't a real exit code to 0
+  process.exit(typeof code === 'number' ? code : 0)
+}
+
+function main() {
+  const file = opts.file || findLatestLog()
+  if (!file) {
+    console.error(`nplog: no co.noteplan.NotePlan3*.log found under ${LOG_DIR}`)
+    process.exit(1)
+  }
+
+  if (!process.stdin.isTTY) {
+    console.error('nplog: needs an interactive terminal (stdin is not a TTY)')
+    process.exit(1)
+  }
+
+  openFile(file, true)
+
+  out.write(`${ESC}[?1049h${ESC}[2J`) // alternate screen keeps the real scrollback clean
+  process.stdin.setRawMode(true)
+  process.stdin.resume()
+  process.stdin.setEncoding('utf8')
+  process.stdin.on('data', (chunk) => {
+    // a paste or fast key repeat can deliver several keys at once; escape
+    // sequences must stay intact, so only split when no ESC is present
+    if (chunk.indexOf(ESC) === -1 && chunk.length > 1) {
+      for (const ch of chunk) onKey(ch)
+    } else {
+      onKey(chunk)
+    }
+  })
+
+  out.on('resize', render)
+  process.on('SIGINT', () => quit(0))
+  process.on('SIGTERM', () => quit(0))
+
+  setInterval(checkRotation, POLL_MS)
+  render()
+}
+
+main()
