@@ -22,25 +22,39 @@ nplog --file scripts/nplog/sample.log
 2. **Don't run `clear` first.** iTerm intercepts the clear-scrollback escape with an
    "A control sequence attempted to clear scrollback history" banner that lands on top of your
    screenshot. A new window is already clean.
-3. **Size the window so the content exactly fills it.** `sample.log` renders as **27 rows** plus
-   2 status rows, so ~30–31 rows is right. Too tall leaves a dead band of empty background
-   under the log; too short truncates. On a Retina Mac these bounds give 31 rows × 158 cols:
+3. **Size the window so the content exactly fills it.** `sample.log` renders as **29 rows** plus
+   2 status rows, so ~32 rows is right. Too tall leaves a dead band of empty background under
+   the log; too short and the first rule scrolls off the top (the view follows the tail). On a
+   Retina Mac these bounds give 32 rows × 167 cols:
 
    ```bash
-   osascript -e 'tell application "iTerm2" to set bounds of window id <ID> to {120, 120, 1240, 560}'
+   osascript -e 'tell application "iTerm2" to set bounds of window id <ID> to {120, 120, 1300, 585}'
    ```
 
 4. **Crop to the window**, don't capture the whole desktop:
 
    ```bash
-   screencapture -x -o -R120,120,1120,440 ~/Desktop/nplog-screenshot.png
+   screencapture -x -o -R120,120,1180,465 ~/Downloads/nplog-screenshot.png
    ```
 
    `-R` takes `x,y,width,height` in screen points and matches the bounds above. `-x` suppresses
    the shutter sound; `-o` omits the window shadow.
 
-5. **Check the status bar reads `15/15 (27 rows)`.** If the entry count differs, the ingest
+   Write to `~/Downloads`, not `~/Desktop`. A cloud-sync client (Dropbox, iCloud Desktop &
+   Documents) may be managing `~/Desktop`, in which case a file written there can be relocated
+   out from under you — the write reports success and the file still isn't where you left it.
+   After capturing, confirm the file really exists before relying on it.
+
+5. **Check the status bar reads `17/17 (29 rows)`.** If the entry count differs, the ingest
    logic changed — investigate before publishing the image.
+
+6. **Confirm iTerm actually brought your window to the front** before capturing, or you will
+   screenshot whatever was on top instead. `select` alone is not enough:
+
+   ```bash
+   osascript -e 'tell application "iTerm2" to activate'
+   test "$(osascript -e 'tell application "iTerm2" to return id of current window')" = "<ID>"
+   ```
 
 Screenshots are **not** committed to the repo. Upload the PNG to the GitHub README via the web
 editor, which rehosts it under `user-attachments`; the README's `<img>` tag points there.
@@ -60,6 +74,9 @@ Keep all of these when editing it, or the screenshot stops proving anything:
 | multi-line object | the `=> Reminder:` block, with a nested object *and* a nested array so depth-aware indentation is visible |
 | native non-JSLog lines | `[PluginRefresh] start`, `initFunc result:` — hidden by default, and the reason `--raw` shows more |
 | filterable text | `refreshSomeSections` appears on several lines; good for demoing highlight + the `┈┈┈` gap rule |
+| run separator | two `Executing function 'onMessageFromHTMLView'` lines, which become the rules themselves |
+| idle separator | a deliberate 47-second gap (`09:14:10` → `09:14:57`) so the lull rule appears, merged with the run rule |
+| outer vs inner timestamps | every line's outer flush stamp is `09:15:02`, deliberately unlike the inner ones — a fixture where they matched would hide the bug below |
 
 To show the filter/highlight instead of the default view, type into the running instance rather
 than passing an argument — e.g. `refreshSomeSections` — then screenshot.
@@ -95,6 +112,29 @@ ls ~/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application\ Support/
 
 Last verified: 1210/1210 WARN and 1336/1336 ERROR lines styled, with no false positives on
 prose like `"handling WARN cases"` or `"errorCount = 3"`.
+
+## Every line carries TWO timestamps
+
+The other easiest thing to get wrong, and it produced a whole class of nonsense output.
+
+```
+2026-07-29 15:51:09 JSLog: 2026-07-29 15:49:21 | DEBUG | routeRequestsFromReact ...
+└─ outer: when NotePlan flushed ─┘ └─ inner: when the plugin logged ─┘
+```
+
+Output is written in batches, so the two disagree on roughly **two thirds** of real lines, by as
+much as a couple of **hours**. The inner one is the real event time and the one displayed on
+screen, so all timing arithmetic must use it (`payloadStamp()`, not the raw line prefix). Deriving
+idle gaps from the outer stamp produced lulls that never happened and rules labelled with a time
+*later* than the lines beneath them.
+
+Two consequences to preserve:
+
+- Lines like `Executing function 'x'` carry **no** inner timestamp. They inherit the previous
+  entry's, so they don't invent a gap — which also means a measured lull lands on the line
+  *after* the run marker, not on it. That is why the lull/run merge searches both directions.
+- A fixture whose outer and inner stamps agree cannot catch a regression here. `sample.log`
+  deliberately uses a single late flush stamp for every line.
 
 ## Other things worth knowing before you change rendering
 

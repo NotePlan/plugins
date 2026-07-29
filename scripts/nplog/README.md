@@ -25,6 +25,8 @@ restarting anything.
 - **Pretty-printed objects stay intact.** `console.log` of an object spans a dozen physical
   log lines; `grep` hands you one orphaned field. `nplog` treats the whole object as a single
   entry — see [Multi-line objects](#multi-line-objects).
+- **Runs are visually separated.** Output arrives in bursts; a rule marks where each batch of
+  work begins so you're not hunting for the boundary — see [Run separators](#run-separators).
 
 ## Requirements
 
@@ -77,6 +79,8 @@ nplog dashboard                    # start with a filter already applied
 nplog 'Section|Perspective'        # regex alternation
 nplog --mode 5                     # start in "match + next 5 lines" mode
 nplog --no-time                    # start with timestamps hidden
+nplog --idle-gap 10                # only rule off lulls of 10s+ (0 = never)
+nplog --no-separators              # no run/idle rules at all
 nplog --raw                        # keep non-JSLog lines (NotePlan's own native logging)
 nplog --file "/path/to/some.log"   # pin one file instead of auto-following
 ```
@@ -90,6 +94,7 @@ Everything is a control key, because compact Mac keyboards have no PgUp / PgDn /
 | *(type anything)* | edit the filter — applies live |
 | `Tab` | cycle context: `match only` → `match+1 lines` → `+5` → `+10` → back |
 | `^T` | show / hide timestamps |
+| `^G` | show / hide the run + idle rules |
 | `^U` | clear the filter |
 | `^L` | clear the buffer (drop history, keep following) |
 | `^B` / `^F` | page **b**ack / **f**orward |
@@ -170,6 +175,36 @@ Two deliberate exceptions:
 
 Filtering always runs against the *full* line, so you can still search for a time or a
 severity even while they're hidden or dimmed.
+
+### Run separators
+
+Plugin output arrives in bursts. Finding where one batch of work ended and the next began means
+scanning timestamps by eye, so `nplog` draws a rule at each boundary:
+
+```
+2026-07-29 09:14:10 | DEBUG | setPluginData :: Sending changeMessage: "Finished ..."
+───────────────────────────── 47s idle  Executing function 'onMessageFromHTMLView' ─────────────
+2026-07-29 09:14:57 | DEBUG | routeRequestsFromReact received actionType="refreshEnabled..."
+```
+
+Two things trigger a rule:
+
+- **A run start.** NotePlan logs `Executing function 'name'` when it invokes a plugin entry
+  point. That line *becomes* the rule rather than sitting beneath it, so the boundary costs one
+  row instead of two.
+- **A lull.** When the log goes quiet for `--idle-gap` seconds (default **3**) the rule reports
+  how long. Useful because plenty of runs are triggered by timers or refreshes and never log an
+  `Executing function` line at all — on a real day's log, lulls catch a few hundred boundaries
+  that the run marker alone misses.
+
+When a lull and a run coincide they merge into the one rule, as above. The label starts in the
+same column as your message text, so the rules line up with the log rather than cutting across
+it. `^G` toggles them off; `--idle-gap 0` keeps run rules but drops lull rules.
+
+Rules also survive filtering, which is when they earn their keep — with a filter applied you're
+looking at scattered matches, and the rule tells you which run each group came from. A boundary
+hidden *by* the filter still surfaces: the rule is drawn for the whole stretch of log between
+two visible entries, so it reports real idle time rather than time the filter hid.
 
 ### Multi-line objects
 

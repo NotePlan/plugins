@@ -28,25 +28,34 @@ const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
 const POLL_MS = 1000 // how often we look for rotation / new bytes
 const RENDER_MS = 80 // coalesce redraws while output is streaming
+// Output arrives in bursts, so most consecutive entries share a second. A 3s
+// lull reliably means one batch of work finished and another began.
+const DEFAULT_IDLE_GAP_SEC = 3
 
 // ---- options ---------------------------------------------------------------
 
 function parseArgs(argv) {
-  const opts = { filter: '', mode: 0, raw: false, file: null, showTime: true }
+  const opts = { filter: '', mode: 0, raw: false, file: null, showTime: true, separators: true, idleGapSec: DEFAULT_IDLE_GAP_SEC }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '--raw') opts.raw = true
     else if (a === '--no-time' || a === '--no-timestamps') opts.showTime = false
-    else if (a === '--file') opts.file = argv[++i]
+    else if (a === '--no-separators') opts.separators = false
+    else if (a === '--idle-gap') {
+      const n = Number(argv[++i])
+      if (Number.isFinite(n) && n >= 0) opts.idleGapSec = n
+    } else if (a === '--file') opts.file = argv[++i]
     else if (a === '--mode') {
       const idx = CONTEXT_MODES.indexOf(Number(argv[++i]))
       if (idx >= 0) opts.mode = idx
     } else if (a === '-h' || a === '--help') {
-      console.log('Usage: nplog [regex] [--mode 0|1|5|10] [--raw] [--no-time] [--file PATH]')
-      console.log('  regex      case-insensitive; invalid patterns fall back to a literal match')
-      console.log('  --mode     0 = matched lines only, N = match plus next N lines')
-      console.log('  --raw      keep non-JSLog lines too')
-      console.log('  --no-time  hide timestamps entirely (toggle live with ^T)')
+      console.log('Usage: nplog [regex] [--mode 0|1|5|10] [--raw] [--no-time] [--idle-gap SECS] [--no-separators] [--file PATH]')
+      console.log('  regex             case-insensitive; invalid patterns fall back to a literal match')
+      console.log('  --mode            0 = matched lines only, N = match plus next N lines')
+      console.log('  --raw             keep non-JSLog lines too')
+      console.log('  --no-time         hide timestamps entirely (toggle live with ^T)')
+      console.log(`  --idle-gap SECS   rule when the log goes quiet this long (default ${DEFAULT_IDLE_GAP_SEC}, 0 = off)`)
+      console.log('  --no-separators   no run/idle rules at all (toggle live with ^G)')
       process.exit(0)
     } else if (!a.startsWith('-')) opts.filter = a
   }
@@ -131,6 +140,9 @@ function updateDepth(text, state) {
 // that filtering and the context modes treat it as a single unit -- matching
 // "title" shows you the whole object, not one orphaned field.
 const lines = []
+// Epoch ms per entry, parsed from the raw line's leading timestamp, used to
+// detect idle gaps. NaN when a line carried no parseable timestamp.
+const stamps = []
 let bufferVersion = 0
 
 // The entry currently being extended by continuation lines, if any:
@@ -143,11 +155,13 @@ function closeEntry() {
   openEntry = null
 }
 
-function pushLine(text) {
+function pushLine(text, stampMs) {
   lines.push(text)
+  stamps.push(typeof stampMs === 'number' ? stampMs : NaN)
   if (lines.length > MAX_LINES) {
     const dropped = lines.length - MAX_LINES
     lines.splice(0, dropped)
+    stamps.splice(0, dropped)
     if (openEntry) openEntry.index -= dropped
   }
   bufferVersion++
@@ -178,6 +192,31 @@ function appendToOpenEntry(rawLine) {
   if (openEntry.depth <= 0 || openEntry.count >= MAX_CONT_LINES) closeEntry()
 }
 
+// Each line carries TWO timestamps: the outer one NotePlan writes when it
+// flushes to the file, and an inner one the logger recorded when the plugin
+// actually logged. They disagree on ~2/3 of real lines, by as much as a couple
+// of HOURS, because output is flushed in batches. The inner one is the real
+// event time and the one shown on screen, so all gap arithmetic uses it --
+// using the outer one produced idle gaps that were pure fiction, and rules
+// labelled with a time later than the lines beneath them.
+const INNER_TS_RE = /^(?:\[[^\]]*\]\s*)?(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?)/
+
+// Lines like "Executing function 'x'" carry no inner timestamp at all; they
+// inherit the previous entry's, so they don't invent a gap.
+let lastStampMs = NaN
+
+function payloadStamp(payload) {
+  const m = INNER_TS_RE.exec(payload)
+  if (m) {
+    const t = Date.parse(m[1].replace(' ', 'T'))
+    if (Number.isFinite(t)) {
+      lastStampMs = t
+      return t
+    }
+  }
+  return lastStampMs
+}
+
 function consumeLine(rawLine) {
   const payload = entryPayload(rawLine)
 
@@ -185,7 +224,7 @@ function consumeLine(rawLine) {
   // braces never balanced (truncated or malformed output).
   if (payload !== null) {
     closeEntry()
-    pushLine(payload)
+    pushLine(payload, payloadStamp(payload))
     const st = updateDepth(payload, { depth: 0, inString: false, escape: false })
     if (st.depth > 0) openEntry = { index: lines.length - 1, count: 0, ...st }
     return
@@ -195,7 +234,7 @@ function consumeLine(rawLine) {
 
   const body = tidy(rawLine.replace(LEADING_TS_RE, ''))
   if (opts.raw) {
-    pushLine(body)
+    pushLine(body, payloadStamp(body))
     return
   }
 
@@ -205,14 +244,24 @@ function consumeLine(rawLine) {
   // start a block for it rather than losing the object entirely.
   const st = updateDepth(body, { depth: 0, inString: false, escape: false })
   if (st.depth > 0) {
-    pushLine(body)
+    pushLine(body, payloadStamp(body))
     openEntry = { index: lines.length - 1, count: 0, ...st }
   }
 }
 
 // ---- view (filter + context) ----------------------------------------------
 
-const state = { filter: opts.filter, mode: opts.mode, follow: true, scroll: 0, file: null, status: '', showTime: opts.showTime }
+const state = {
+  filter: opts.filter,
+  mode: opts.mode,
+  follow: true,
+  scroll: 0,
+  file: null,
+  status: '',
+  showTime: opts.showTime,
+  separators: opts.separators,
+  idleGapMs: opts.idleGapSec * 1000,
+}
 let viewCache = { key: null, rows: [] }
 
 // The filter is a case-insensitive regex. While it's being typed it will
@@ -280,18 +329,129 @@ function buildView() {
 // a multi-line entry -- they carry no timestamp of their own.
 let rowsCache = { key: null, rows: [] }
 
+// NotePlan logs "Executing function 'name'" when it invokes a plugin entry
+// point, which is where each batch of work begins -- the natural place to break
+// the wall of output into runs.
+const RUN_START_RE = /^Executing function\b['" ]*([^'"]*)/
+
+function humanGap(ms) {
+  const s = Math.round(ms / 1000)
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  if (m < 60) return s % 60 ? `${m}m${s % 60}s` : `${m}m`
+  return `${Math.floor(m / 60)}h${m % 60}m`
+}
+
+// What run/idle boundary falls in buffer entries [from..to], or null.
+//
+// A range rather than a single entry, because with a filter applied the run
+// that a match belongs to is usually one of the hidden entries above it --
+// checking only the displayed entry finds nothing, which is exactly when you
+// most want to know which run you're looking at. Unfiltered, the range is one
+// entry wide and this behaves as "is this entry a boundary".
+//
+// Both tests read the *buffer*, never the filtered view: an idle gap means the
+// log itself went quiet, not that a filter hid the lines in between.
+function separatorForRange(from, to) {
+  if (!state.separators) return null
+  let runText = ''
+  let runIndex = -1
+  let idleMs = 0
+
+  for (let i = Math.max(0, from); i <= to; i++) {
+    const text = lines[i]
+    if (text === undefined) continue
+    if (RUN_START_RE.test(text)) {
+      runText = text.trim() // last run in the range -- the one being entered
+      runIndex = i
+    }
+    if (state.idleGapMs > 0 && i > 0) {
+      const delta = stamps[i] - stamps[i - 1]
+      // widest lull in the range, so a filtered view reports the real one
+      if (Number.isFinite(delta) && delta >= state.idleGapMs && delta > idleMs) idleMs = delta
+    }
+  }
+  if (runIndex === -1 && idleMs === 0) return null
+
+  // The "Executing function 'x'" line becomes the rule's own text rather than a
+  // separate row beneath it -- one line instead of two, and no clock, since the
+  // entries below carry their own timestamps.
+  return { idle: idleMs ? `${humanGap(idleMs)} idle` : '', runText, runIndex }
+}
+
+// An idle lull is usually followed a line or two later by the "Executing
+// function" that ended it. Two rules that close together read as clutter, so
+// fold the lull into the run rule when they share a second.
+const IDLE_MERGE_LOOKAHEAD = 6
+
+// Width of the standard "2026-07-29 15:48:27 | DEBUG |" prefix, so an idle
+// rule's text begins in the same column the message text does.
+const SEP_LABEL_INDENT = '2026-07-29 15:48:27 | DEBUG |'.length
+
 function buildRows() {
   const ctx = CONTEXT_MODES[state.mode]
-  const key = `${bufferVersion}|${state.filter}|${ctx}|${state.showTime ? 1 : 0}`
+  const key = `${bufferVersion}|${state.filter}|${ctx}|${state.showTime ? 1 : 0}|${state.separators ? state.idleGapMs : 'off'}`
   if (rowsCache.key === key) return rowsCache.rows
 
   const view = buildView()
+  // Each displayed entry owns the buffer range since the previous displayed
+  // one, so a boundary hidden by the filter still surfaces at the right place.
+  let prevIndex = -1
+  const seps = view.map((item) => {
+    if (item.gap) return null
+    const sep = separatorForRange(prevIndex < 0 ? item.index : prevIndex + 1, item.index)
+    prevIndex = item.index
+    return sep
+  })
+
+  // A lull and the run that ended it belong to the same moment, so collapse the
+  // pair into one labelled rule. They can appear in either order: the
+  // "Executing function" line carries no timestamp of its own and inherits the
+  // *previous* entry's, which pushes the measured gap onto the line after it.
+  for (let i = 0; i < seps.length; i++) {
+    // Only an idle-ONLY rule may be folded into a neighbour. Skipping rules
+    // that already carry run text matters: the loop mutates entries ahead of
+    // itself, and without this a rule that just received a lull would be taken
+    // as a source on a later pass and dropped, losing its run text.
+    if (!seps[i] || !seps[i].idle || seps[i].runText) continue
+    let merged = false
+    for (let k = i - 1; k >= Math.max(0, i - IDLE_MERGE_LOOKAHEAD); k--) {
+      if (!seps[k]) continue
+      if (seps[k].runText && !seps[k].idle) {
+        seps[k].idle = seps[i].idle // fold the lull into the run rule
+        seps[i] = null
+        merged = true
+      }
+      break
+    }
+    if (merged) continue
+    for (let j = i + 1; j < Math.min(seps.length, i + 1 + IDLE_MERGE_LOOKAHEAD); j++) {
+      if (!seps[j]) continue
+      if (seps[j].runText && !seps[j].idle) {
+        seps[j].idle = seps[i].idle
+        seps[i] = null
+      }
+      break
+    }
+  }
+
   const rows = []
-  for (const item of view) {
+  for (let i = 0; i < view.length; i++) {
+    const item = view[i]
     if (item.gap) {
       rows.push(item)
       continue
     }
+    const sep = seps[i]
+    const prevRow = rows.length > 0 ? rows[rows.length - 1] : null
+    if (sep && !(prevRow && prevRow.sep)) {
+      // A labelled rule says everything the anonymous skipped-lines rule does
+      // and more, so replace rather than stack the two.
+      if (prevRow && prevRow.gap) rows.pop()
+      rows.push({ sep: true, label: [sep.idle, sep.runText].filter(Boolean).join('  ') })
+    }
+    // The rule already displays this entry's text, so don't repeat it below.
+    if (sep && sep.runIndex === item.index) continue
     if (item.text.indexOf('\n') === -1) {
       rows.push({ text: item.text, index: item.index })
       continue
@@ -461,6 +621,15 @@ function render() {
     if (!row) continue
     if (row.gap) {
       buf += `${ESC}[2m${'┈'.repeat(Math.min(cols, 40))}${ESC}[0m`
+    } else if (row.sep) {
+      // A solid rule spanning the width, distinct from the dotted skipped-lines
+      // rule above. A run boundary is just the rule; an idle lull also carries
+      // its duration, indented so the text lands in the message column rather
+      // than over on top of where the timestamp/severity prefix would be.
+      const label = row.label ? ` ${row.label} ` : ''
+      const lead = label ? Math.min(SEP_LABEL_INDENT, Math.max(0, cols - label.length)) : 0
+      const fill = Math.max(0, cols - lead - label.length)
+      buf += `${ESC}[2m${'─'.repeat(lead)}${label}${'─'.repeat(fill)}${ESC}[0m`
     } else {
       // Continuation rows are object/array body -- their timestamp was already
       // stripped at ingest, and they hold real data, so nothing there is
@@ -495,8 +664,8 @@ function render() {
   // Name what TAB actually cycles. An earlier "TAB=context→match +1" read as
   // though TAB *did something to* "match +1"; the current setting already
   // shows in the status bar above, so just describe the control.
-  const full = ` TAB: context (match+N lines)   ^T times   ^U clear   ^L wipe   ^B/^F page   ^P/^N line   ^A/^E top/end   ^C quit`
-  const compact = ` TAB: context (match+N lines)   ^T times   ^U clear   ^B/^F page   ^A/^E top/end   ^C quit`
+  const full = ` TAB: context (match+N lines)   ^T times   ^G runs   ^U clear   ^L wipe   ^B/^F page   ^P/^N line   ^A/^E top/end   ^C quit`
+  const compact = ` TAB: context (match+N lines)   ^T times   ^G runs   ^U clear   ^B/^F page   ^A/^E top/end   ^C quit`
   const help = full.length <= cols ? full : compact
   buf += `${ESC}[${termRows};1H${ESC}[2K${ESC}[2m${pad(state.status || help, cols)}${ESC}[0m`
 
@@ -644,6 +813,10 @@ function onKey(str) {
     // ^T -- Mac keyboards have no dedicated key for this, and timestamps are
     // usually noise once you're reading a filtered slice
     state.showTime = !state.showTime
+    return render()
+  }
+  if (str === '\x07') {
+    state.separators = !state.separators // ^G -- group into runs
     return render()
   }
   if (str === '\x7f' || str === '\b') {
