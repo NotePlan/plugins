@@ -156,10 +156,8 @@
     "@samverschueren/stream-to-observable": "0.3.1",
     "babel": "^6.23.0",
     "babel-cli": "^6.26.0",
-    "babelify": "^10.0.0",
     "bcrypt": "5.1.1",
     "bqpjs": "^0.1.1",
-    "browserify": "^17.0.1",
     "bump-regex": "4.1.0",
     "chroma-js": "^3.1.2",
     "chrono-node": "^2.7.7",
@@ -214,7 +212,6 @@
     "@rollup/rollup-darwin-arm64": "^4.34.6"
   },
   "overrides": {
-    "ejs": "^3.1.7",
-    "cipher-base": "^1.0.5"
+    "ejs": "^3.1.7"
   }
 }
