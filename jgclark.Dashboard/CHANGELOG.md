@@ -14,6 +14,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - New: Support for Reminders to have **priority** when provided, shown with the same styling as tasks, sorted after time and before date, and included in **Hide lower-priority items?** filtering.
 - New: **Add Reminder** parses leading `!!!` / `!!` / `!` in the title to set Apple priority level, and strips those markers from the stored text.
 - Fix: **Add Reminder** without a date no longer leaves an epoch (1970-01-01) due date in Apple Reminders. dev: create with `date: null`, then re-fetch via `reminderByID` and `Calendar.update` with `date: null` (NotePlan >= 3.21.2).
+- Change: Reminder time chip (clock) only shown in Today / Timed Items sections, not in Yesterday, Tomorrow, Overdue, or Reminders.
 
 ## [2.4.0.b56] 2026-07-29
 - Change: Filters **Show Reminders** is now two toggles: **Show Current Reminders** (today / yesterday / tomorrow, including timed) and **Show Undated/Overdue Reminders** (undated REM section + past-dated reminders in Overdue). Upgrade forces both on and removes the old key.

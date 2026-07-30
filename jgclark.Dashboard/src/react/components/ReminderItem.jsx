@@ -59,8 +59,10 @@ function ReminderItem({ item, thisSection }: Props): Node {
   const listColor = reminder.color || null
   // Date lozenge only in REM (calendar/TB sections already convey the day)
   const showDateLozenge = thisSection.sectionCode === 'REM'
+  // Time chip only in today's sections (TB holds timed-today reminders; DT holds untimed today)
+  const showTimeChip = thisSection.sectionCode === 'TB' || thisSection.sectionCode === 'DT'
 
-  // Build main content: optional date (REM only; omit today like tasks), optional time, title, details, location
+  // Build main content: optional date (REM only; omit today like tasks), optional time (today only), title, details, location
   const contentParts: Array<Node> = []
   const todayHyphenated = getTodaysDateHyphenated()
   if (showDateLozenge && reminder.date && reminder.date !== todayHyphenated) {
@@ -71,7 +73,7 @@ function ReminderItem({ item, thisSection }: Props): Node {
       </span>,
     )
   }
-  if (reminder.time) {
+  if (showTimeChip && reminder.time) {
     contentParts.push(
       <span key="time" className="timeBlock margin-right-larger">
         <i className="fa-regular fa-clock pad-right" />
