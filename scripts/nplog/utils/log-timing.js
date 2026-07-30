@@ -287,14 +287,22 @@ class Tailer {
 // payload form the console log already uses natively. Returns null for
 // NotePlan's own native (non-plugin) log lines, which the console log never
 // has anyway.
+// Trailing whitespace is a real, observed difference between the two files
+// (confirmed via --record/--replay: pairs otherwise byte-identical except
+// Full-Log missing a trailing space MCP-Log has) and carries no signal, so
+// it's stripped here rather than left to surface as a "near match" -- every
+// occurrence of it would otherwise show up as one, burying genuine ones.
 function normalizeMainLine(rawLine) {
   const body = rawLine.replace(LEADING_TS_RE, '')
   if (!body.startsWith(JSLOG_MARKER)) return null
-  return body.slice(JSLOG_MARKER.length).replace(/^[ \t]/, '')
+  return body
+    .slice(JSLOG_MARKER.length)
+    .replace(/^[ \t]/, '')
+    .trimEnd()
 }
 
 function normalizeConsoleLine(rawLine) {
-  return rawLine
+  return rawLine.trimEnd()
 }
 
 class Source {
@@ -344,10 +352,12 @@ class Source {
   }
 
   // Offline equivalent of poll() for replaying a previously recorded,
-  // already-normalized line. Returns the same shape poll() does (or null).
+  // already-normalized line. trimEnd() defensively -- a sample recorded
+  // before trailing-whitespace normalization was added would otherwise
+  // still show the whitespace-only near-matches it exists to fix.
   recordEntry(payload, wallMs) {
     this.linesTotal++
-    return this._ingest(payload, wallMs)
+    return this._ingest(payload.trimEnd(), wallMs)
   }
 
   reset() {
