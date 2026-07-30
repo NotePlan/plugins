@@ -213,6 +213,20 @@ Corollaries: the default `--timeout` is 90s, not 30s; and `--follow` exists beca
 fixed wait can be right when a Dashboard refresh ping-pongs asynchronously for anything
 from 2 to 30 seconds.
 
+## `lines` and `stamps` are index-parallel -- never touch one alone
+
+`stamps[i]` is the timestamp for `lines[i]`. Nothing enforces that structurally, so any
+code that adds or removes entries must do it to **both**: `pushLine()` appends to each, and
+the `MAX_LINES` ring-buffer trim splices each. `^L` (clear display) originally did
+`lines.length = 0` without clearing `stamps`, which silently offset every subsequent entry
+from its timestamp.
+
+Worth knowing because the failure is nowhere near the cause and looks like a *separator*
+bug, not a buffer bug: idle rules start appearing mid-burst between lines that are actually
+contiguous, labelled with a clock minutes away from the lines around them (a stale
+pre-clear stamp). If you see a separator whose clock disagrees with its neighbours' visible
+timestamps, suspect a stamps/lines desync before suspecting `separatorForRange()`.
+
 ## Other things worth knowing before you change rendering
 
 - **Styling happens in one pass.** `styleLine()` paints a per-character style array and then
