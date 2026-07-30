@@ -4,6 +4,33 @@ All notable changes to `nplog` are documented here. Versions follow
 [Semantic Versioning](https://semver.org/): MAJOR for breaking CLI/output changes, MINOR for
 new features, PATCH for fixes. Check the current version with `nplog --version`.
 
+## [1.1.0] - 2026-07-30
+
+- **Added `--plugin ID`**, tailing one plugin's `_MCP-console.log` instead of the main log.
+  Same interactive viewer, filters, context modes, and `--json` headless mode -- just a
+  lower-latency, single-plugin-scoped source. `_MCP-console.log` has no outer flush-timestamp or
+  `JSLog:` marker to strip (it's already the same "payload" shape `entryPayload()` produces from
+  the main log), so it's parsed with a dedicated `consumePluginLine()` rather than reusing
+  `consumeLine()`'s marker-stripping.
+- NotePlan truncates and rewrites `_MCP-console.log` in place on every plugin invocation.
+  `nplog` now **keeps streaming through resets** rather than needing a restart, and shows a
+  visible `--- ... was reset by NotePlan (new run) ---` marker in the buffer when it happens.
+- Fixed a real bug this surfaced: **`size < position` is not a reliable truncation signal.**
+  Confirmed an in-place rewrite doesn't change the file's inode, and if new content regrows to
+  match or exceed the old read position before the next poll, a size-only check misses the
+  truncation entirely -- `nplog` would then silently read from the stale position into
+  unrelated new content and display a plausible-looking but WRONG line, indistinguishable from a
+  genuinely torn line in the source file. Fixed with a content fingerprint: the last 64 bytes
+  ending at the read position are now re-verified against disk on every poll regardless of size.
+- Warns (rather than erroring) when the target `_MCP-console.log` is missing or empty -- likely
+  means the plugin hasn't logged anything yet this session, or its MCP integration has never
+  been used -- and keeps watching for it to appear.
+- **`--plugin` needs to know where NotePlan's container lives**, which differs between the App
+  Store and Setapp builds (different bundle IDs). `install.sh` now detects which one you have
+  and, if it can't tell (or you have both), asks once and writes the answer to
+  `~/.config/nplog/config.json`. `NPLOG_APP_SUPPORT_DIR` overrides it; auto-detection is the
+  fallback if neither is set.
+
 ## [1.0.3] - 2026-07-30
 
 - Clarified `^U` vs `^L`, which read as near-synonyms ("clear" vs "wipe") and were easy to

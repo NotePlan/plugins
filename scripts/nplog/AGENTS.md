@@ -159,18 +159,43 @@ it. `opensStructure()` is the guard; don't relax it.
 | promptness | lags; flushes in batches | written immediately |
 
 The second is what the NotePlan MCP's `noteplan_plugins action:"log"` reads, and it is
-**deliberately not used here**. Measured on a live system for the same second: 32 unique
+**not used by default**. Measured on a live system for the same second: 32 unique
 lines there vs 66 in the main log, with nothing present there and missing here. Watching
 one file across three Dashboard invocations it went 9 lines → 20,982 bytes → 5,314 bytes
 — it *shrank*, because each invocation truncates it. Since the Dashboard refreshes on a
 timer, an unrelated background refresh wipes the run you were investigating within
-seconds. The main log is a strict superset and the only durable record.
+seconds. The main log is a strict superset and the only durable record, hence the default.
 
-If you ever do want to parse that file, note its lines carry **no** `JSLog:` marker, so
-`entryPayload()` returns null for every one of them and you keep only the object bodies
-(measured: 1424 lines collapsed to 69 entries, every plain line silently dropped). That
-is what `markerOptional` exists for; `--raw` needs it too, and additionally used to
-return before the block-opening check so it could not group objects at all.
+**`--plugin ID` opts into that file explicitly** when speed matters more than durability
+(`utils/log-timing.js`'s investigation found it wins the completeness/speed race within a
+single run essentially every time it's not truncated out from under you). Its lines carry
+**no** `JSLog:` marker, so `entryPayload()` returns null for every one of them -- that's
+why `--plugin` routes through a dedicated `consumePluginLine()` rather than `consumeLine()`.
+Critically, `consumePluginLine()` does **not** apply `LEADING_TS_RE`-stripping the way the
+`--raw`/`markerOptional` fallback in `consumeLine()` does: those lines already have only
+ONE timestamp (no outer flush-timestamp to strip, unlike every line in the main log), and
+stripping it would silently break `payloadStamp()`'s gap arithmetic and drop the timestamp
+from what's displayed. `markerOptional` itself is still unwired to any flag -- it predates
+`--plugin` and was an earlier, incomplete idea for parsing this same file; it's dead code,
+not what `--plugin` actually uses.
+
+`_MCP-console.log` is truncated and rewritten **in place** on every plugin invocation.
+`Tailer`'s naive `size < position` check (still what the main log uses, since it's
+practically never truncated) is not reliable for this: confirmed the rewrite doesn't
+change the inode, and if the new content regrows past the old read position before the
+next poll, a size-only check misses it -- `nplog` would then silently read stale-position
+bytes into unrelated new content and display a plausible-looking but WRONG line,
+indistinguishable from a genuinely torn line in the source file. `captureTailFingerprint()`
+/ `wasFileRewritten()` fix this by re-verifying the last `TAIL_FINGERPRINT_LEN` (64) bytes
+against disk on every poll, regardless of size. If you ever see `--plugin` mode behave
+oddly around a reset, check this before assuming NotePlan's write is corrupt.
+
+**Container path resolution** (`resolveContainerDir()`) matters for `--plugin` because App
+Store and Setapp NotePlan use different Containers bundle IDs, hence different paths for
+both `Logs/` and `Plugins/`. Precedence: `NPLOG_APP_SUPPORT_DIR` env var, then
+`~/.config/nplog/config.json` (written by `install.sh`, which detects or asks once), then
+auto-detect by checking which container directory actually exists on disk. `NPLOG_DIR`
+(pre-existing) still overrides just the `Logs` path specifically, for back-compat.
 
 ## The main log flushes in BATCHES -- never treat quiet as finished
 
