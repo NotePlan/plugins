@@ -146,7 +146,15 @@ export async function getOverdueSectionData(
         const assigned = assignReminderItemsToSection(remindersToAdd, thisSectionCode, thisSectionCode, itemCount)
         items.push(...assigned)
         itemCount += assigned.length
-        totalOverdue += overdueReminderItems.length
+        // Count only what was actually added. Adding the full incoming length
+        // inflated the header count whenever maxItemsToShowInSection left fewer
+        // slots than there were reminders, so the section claimed more items
+        // than it showed and the extras were silently unreachable.
+        totalOverdue += assigned.length
+        const droppedForSlots = overdueReminderItems.length - remindersToAdd.length
+        if (droppedForSlots > 0) {
+          logWarn('getOverdueSectionData', `- ${String(droppedForSlots)} overdue reminder(s) did not fit in maxItemsToShowInSection=${String(maxInSection ?? 24)} and are not shown anywhere`)
+        }
         logDebug('getOverdueSectionData', `- added ${String(assigned.length)} of ${String(overdueReminderItems.length)} overdue reminder(s)`)
       }
     }

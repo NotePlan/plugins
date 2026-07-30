@@ -25,7 +25,7 @@ import { getTaggedSectionData } from './dataGenerationTags'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
-import { logDebug, logError } from '@helpers/dev'
+import { logDebug, logError, logWarn } from '@helpers/dev'
 import { getLiveWindowRect, getStoredWindowRect, rectToString } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------
@@ -119,6 +119,23 @@ export async function getSomeSectionsData(
     const overdueReminderItems = undatedOverdueRemindersEnabled
       ? remindersData.overdueItems.concat(yesterdaySpillToOverdue)
       : []
+    // A reminder only reaches the UI if the section that hosts its bucket is on.
+    // When every candidate host is off it is dropped with no trace, which reads as
+    // "my reminders are missing" -- so say so out loud. Yesterday spills to Overdue,
+    // but if Overdue is off too there is nowhere left for it to go.
+    // Spilling to Overdue only counts as a home if Overdue is actually on screen.
+    const overdueSectionVisible = Boolean(config.showOverdueSection)
+    const yesterdayHomeless =
+      remindersData.yesterdayItems.length > 0 && yesterdayForDaySection.length === 0 && !(yesterdaySpillToOverdue.length > 0 && overdueSectionVisible)
+    const overdueHomeless = remindersData.overdueItems.length > 0 && !overdueSectionVisible
+    const tomorrowHomeless = remindersData.tomorrowItems.length > 0 && !config.showTomorrowSection
+    if (yesterdayHomeless || overdueHomeless || tomorrowHomeless) {
+      const parts = []
+      if (yesterdayHomeless) parts.push(`${String(remindersData.yesterdayItems.length)} yesterday (Yesterday section off${overdueSectionVisible ? '' : ', and Overdue off so the spill has nowhere to land'})`)
+      if (overdueHomeless) parts.push(`${String(remindersData.overdueItems.length)} overdue (Overdue section off)`)
+      if (tomorrowHomeless) parts.push(`${String(remindersData.tomorrowItems.length)} tomorrow (Tomorrow section off)`)
+      logWarn('getSomeSectionsData', `- ${parts.join('; ')} reminder(s) have no visible section and will not be shown anywhere`)
+    }
 
     // DT and TB sections are now generated separately but share paragraph data fetching
     if (sectionCodesToGet.includes('DT')) {
