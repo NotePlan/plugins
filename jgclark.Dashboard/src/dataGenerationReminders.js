@@ -346,6 +346,9 @@ export function assignReminderItemsToSection(
   idPrefix: string,
   startIndex: number = 0,
 ): Array<TSectionItem> {
+  if (reminderItems.length > 0) {
+    logDebug('assignReminderItemsToSection', `- placing ${String(reminderItems.length)} reminder(s) into section ${String(sectionCode)}`)
+  }
   return reminderItems.map((item, i) => ({
     ...item,
     ID: `${idPrefix}-${startIndex + i}`,
