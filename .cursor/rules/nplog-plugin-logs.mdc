@@ -1,0 +1,73 @@
+---
+description: How to read NotePlan's plugin log when debugging a plugin
+alwaysApply: true
+---
+
+# Reading NotePlan plugin logs
+
+Use `nplog` (in `scripts/nplog/`) to read NotePlan's plugin log. Run it as
+`node scripts/nplog/nplog` from the repo root, or as `nplog` after a one-time
+`./scripts/nplog/install.sh`.
+
+## Never grep the raw log file
+
+All three obvious greps return **empty**, and empty reads as "no errors", which is worse
+than an error:
+
+- `grep '^JSLog:'` matches nothing. Every line has a timestamp before the marker.
+- `grep '| ERROR |'` matches nothing. WARN and ERROR use emoji delimiters
+  (`🥺 WARN 🥺`, `❗️ ERROR ❗️`), not pipes. See `LOG_LEVEL_STRINGS` in `helpers/dev.js`.
+- Filtering on the leading timestamp is wrong on about two thirds of lines, by up to
+  hours. That is the flush time, not the event time.
+
+A pretty-printed object also spans a dozen physical lines with only the first carrying the
+marker, so grepping a field hands back an orphan.
+
+## Use --json for programmatic reading
+
+The default mode is a full-screen interactive viewer and will hang a non-TTY caller.
+
+```bash
+node scripts/nplog/nplog --json --last-run          # the most recent plugin invocation
+node scripts/nplog/nplog --since 10m --json         # last 10 minutes (also 30s, 2h, 19:36)
+node scripts/nplog/nplog --since 10m --json --min-level warn
+node scripts/nplog/nplog --json --mode 10 '\[DIAG\]'  # a match plus the next 10 entries
+```
+
+Output is NDJSON, one object per entry then a summary. Each record carries `ts`, `level`
+(debug/info/warn/error), `source` (plugin/webview), `run` (which `Executing function`
+invocation it belongs to, so an error can be attributed to the call that caused it), and
+`text` (the whole entry, objects intact).
+
+**Exit code 1 means at least one emitted entry was an ERROR.** Check that before reading
+anything.
+
+## After triggering an action
+
+```bash
+CURSOR=$(node scripts/nplog/nplog --mark)
+open "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard"
+node scripts/nplog/nplog --since "$CURSOR" --follow --wait-idle 5 --json
+```
+
+An x-callback returns immediately while the plugin keeps running, and a Dashboard refresh
+ping-pongs asynchronously for anything from 2 to 30 seconds, so do not guess a duration.
+`--follow` streams entries as they arrive; `--wait-idle 5` stops after five seconds of
+silence, which is a sound "finished" signal because a run still in flight writes something
+within that window.
+
+**Never read the log immediately after firing an action.** It flushes in batches. Measured
+on a live system: the file sat untouched for 24 seconds, then gained 80 lines at once.
+`--wait-idle` will not report "done" before it has seen output, and the summary includes
+`sawOutput` and `timedOut` so "the action logged nothing" is distinguishable from "I looked
+too early". Do not set `--timeout` below about 30s (default is 90).
+
+## Do not use the per-plugin log as evidence
+
+`Plugins/<id>/_MCP-console.log`, which the NotePlan MCP's `noteplan_plugins action:"log"`
+reads, is truncated on every plugin invocation. For a plugin that refreshes on a timer such
+as the Dashboard, an unrelated background refresh wipes the run under investigation within
+seconds. Measured for the same second: 32 unique lines there against 66 in the main log.
+The main log is a strict superset, and `nplog` reads only that.
+
+Full docs in `scripts/nplog/README.md`; parser internals in `scripts/nplog/AGENTS.md`.
