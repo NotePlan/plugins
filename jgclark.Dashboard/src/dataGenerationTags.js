@@ -6,7 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import type { TDashboardSettings, TSection, TSectionItem, TSectionDetails } from './types'
-import { createSectionItemObject, isLineDisallowedByIgnoreTerms, isNoteFromAllowedTeamspace, makeDashboardParas } from './dashboardHelpers'
+import { createSectionItemObject, isLineDisallowedByIgnoreTerms, isNoteFromAllowedTeamspace, makeDashboardParas, resolveAllowedTeamspaceIDs } from './dashboardHelpers'
 import { tagParasFromNote } from './demoData'
 import { isTagCacheEnabled } from './dashboardSettingsClean'
 import {
@@ -131,7 +131,7 @@ export async function getTaggedSectionData(
         const allowedFolders = getFoldersMatching(includedFolders,false, excludedFolders)
 
         // Get allowed teamspaces
-        const allowedTeamspaceIDs = config.includedTeamspaces ?? ['private']
+        const allowedTeamspaceIDs = resolveAllowedTeamspaceIDs(config)
 
         for (const n of notesWithTag) {
           // logTimer('getTaggedSectionData', thisStartTime, `- start of processing for note "${n.filename}"`)
