@@ -30,7 +30,11 @@
 //      already lost it (MCP-Log: truncated by a later invocation before we
 //      polled). Full-Log flush lag has been observed well past a minute,
 //      so the gap timeout defaults generously (see gapTimeoutMs below) --
-//      too short and it mislabels merely-slow lines as missing.
+//      too short and it mislabels merely-slow lines as missing. On quit
+//      ('q'/Ctrl-C), everything still pending is immediately reported as a
+//      gap regardless of --gap-timeout-ms -- there's no more time left for
+//      it to match, so a session shorter than the timeout still gets a
+//      real answer instead of an empty gap report.
 //
 // Interactive controls (needs a TTY): 'c' clears all accumulated stats and
 // pending state -- run it right before firing the NotePlan action you want
@@ -372,15 +376,24 @@ function runCompare(opts) {
     }
   }
 
-  function sweepGaps() {
-    const cutoff = Date.now() - opts.gapTimeoutMs
+  // force=true (used right before the final summary) drains everything still
+  // pending regardless of age -- there's no more time left for it to match,
+  // so the final report should account for it rather than silently omitting
+  // anything that hadn't yet crossed --gap-timeout-ms. A session shorter than
+  // the timeout would otherwise end with a "Still waiting to match" count
+  // and zero reported gaps, which reads as "no completeness problem found"
+  // when really nothing had been checked yet.
+  function sweepGaps(force) {
+    const cutoff = force ? Infinity : Date.now() - opts.gapTimeoutMs
+    const tag = force ? '(still pending at exit)' : `(never reached ${b.label} within ${fmtMs(opts.gapTimeoutMs)})`
+    const tagB = force ? '(still pending at exit)' : `(never reached ${a.label} within ${fmtMs(opts.gapTimeoutMs)})`
     for (const [payload] of pendingFromA.drainStale(cutoff)) {
       gaps.push({ label: a.label, payload })
-      console.log(`GAP    only in ${a.label} (never reached ${b.label} within ${fmtMs(opts.gapTimeoutMs)})   ${excerpt(payload)}`)
+      console.log(`GAP    only in ${a.label} ${tag}   ${excerpt(payload)}`)
     }
     for (const [payload] of pendingFromB.drainStale(cutoff)) {
       gaps.push({ label: b.label, payload })
-      console.log(`GAP    only in ${b.label} (never reached ${a.label} within ${fmtMs(opts.gapTimeoutMs)})   ${excerpt(payload)}`)
+      console.log(`GAP    only in ${b.label} ${tagB}   ${excerpt(payload)}`)
     }
   }
 
@@ -452,6 +465,7 @@ function runCompare(opts) {
   setupKeys(clearAll, () => {
     clearInterval(pollTimer)
     clearInterval(reportTimer)
+    sweepGaps(true) // force -- flush everything still pending as a gap, not just what's timed out
     printSummary(true)
     process.exit(0)
   })
