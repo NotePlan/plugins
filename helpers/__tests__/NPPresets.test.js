@@ -181,6 +181,58 @@ describe(`${PLUGIN_NAME}`, () => {
         const updatedCommands = newPluginJson['plugin.commands']
         expect(updatedCommands[3].data).toEqual('someData')
       })
+      test('should write plugin.json only once, no matter how many presets there are', async () => {
+        // Regression guard: this used to call savePluginCommand() per preset, which re-read and re-wrote
+        // plugin.json every time and assigned DataStore.settings, making NotePlan fire onSettingsUpdated
+        // re-entrantly and throw once per preset.
+        DataStore.settings = {
+          ...DataStore.settings,
+          ...{
+            runPreset01: { jsFunction: 'runPreset01', data: 'one' },
+            runPreset02: { jsFunction: 'runPreset02', data: 'two' },
+            runPreset03: { jsFunction: 'runPreset03', data: 'three' },
+          },
+        }
+        const spy = jest.spyOn(DataStore, 'saveJSON')
+        const pluginJson = await DataStore.loadJSON('') //get the default json
+        await f.rememberPresetsAfterInstall(pluginJson)
+        expect(spy).toHaveBeenCalledTimes(1)
+        spy.mockRestore()
+      })
+      test('should not assign DataStore.settings (which triggers onSettingsUpdated re-entrantly)', async () => {
+        // Counts *assignments*, not the resulting value: the old code wrote back a deep-equal object, so
+        // comparing before/after would pass even when the (trigger-firing) assignment did happen.
+        const originalSettings = { ...DataStore.settings, ...{ runPreset01: { jsFunction: 'runPreset01', data: 'someData' } } }
+        let stored = originalSettings
+        let assignments = 0
+        Object.defineProperty(DataStore, 'settings', {
+          configurable: true,
+          enumerable: true,
+          get: () => stored,
+          set: (value) => {
+            assignments += 1
+            stored = value
+          },
+        })
+        const pluginJson = await DataStore.loadJSON('') //get the default json
+        await f.rememberPresetsAfterInstall(pluginJson)
+        // restore a plain data property before asserting, so a failure can't leave the mock patched
+        Object.defineProperty(DataStore, 'settings', { configurable: true, enumerable: true, writable: true, value: originalSettings })
+        expect(assignments).toEqual(0)
+      })
+      test('should skip preset settings that are empty strings or have no jsFunction', async () => {
+        DataStore.settings = {
+          ...DataStore.settings,
+          ...{ runPreset09: '', runPreset08: { name: 'no jsFunction here' } },
+        }
+        const spy = jest.spyOn(DataStore, 'saveJSON')
+        const pluginJson = await DataStore.loadJSON('') //get the default json
+        await f.rememberPresetsAfterInstall(pluginJson)
+        // nothing valid to restore in these two, so they must not produce their own writes
+        const calls = spy.mock.calls.length
+        spy.mockRestore()
+        expect(calls).toBeLessThanOrEqual(1)
+      })
     })
   })
 })

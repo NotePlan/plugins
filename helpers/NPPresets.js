@@ -212,18 +212,26 @@ export function getCommandIndex(pluginJson: any, functionName: string): number {
  * @param {object} pluginJson - the entire settings object
  */
 export async function rememberPresetsAfterInstall(pluginJson: any): Promise<void> {
+  const pluginID = pluginJson['plugin.id']
   const settings = DataStore.settings
-  const settingsKeys = Object.keys(settings)
-  for (let index = 0; index < settingsKeys.length; index++) {
-    const setting = settingsKeys[index]
-    if (setting.includes('runPreset')) {
-      // settings will be empty strings until they are set by a user
-      if (settings[setting] === '') continue
-      logDebug(pluginJson, `rememberPresetsAfterInstall: ${setting} was prev set to: ${JSP(settings[setting])}`)
-      await savePluginCommand(pluginJson, settings[setting])
-    }
+  // settings will be empty strings until they are set by a user
+  const presetKeys = Object.keys(settings).filter((key) => key.includes('runPreset') && settings[key] !== '' && settings[key]?.jsFunction)
+  if (presetKeys.length === 0) return
+  // NOTE: deliberately does not call savePluginCommand() in a loop here. That assigns DataStore.settings once per
+  // preset, and each assignment makes NotePlan write settings.json and re-enter the plugin via onSettingsUpdated
+  // mid-statement, which throws "undefined is not an object (evaluating 'DataStore.settings = ...')" every time.
+  // The presets we are restoring are read *from* settings, so there is nothing to save back -- we only need to
+  // re-apply them to the freshly-installed plugin.json. One read, one write, no settings trigger.
+  const livePluginJson = await getPluginJson(pluginID)
+  if (!livePluginJson) {
+    logError(pluginJson, `rememberPresetsAfterInstall: Could not find plugin.json for ${pluginID}`)
+    return
   }
-  // clo(pluginJson, `Before plugin update/install, pluginJson is:`)
-  // const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
-  // clo(livePluginJson, `After plugin update/install, pluginJson is:`)
+  let updatedPluginJson = livePluginJson
+  for (const key of presetKeys) {
+    logDebug(pluginJson, `rememberPresetsAfterInstall: ${key} was prev set to: ${JSP(settings[key])}`)
+    updatedPluginJson = updateJSONForFunctionNamed(updatedPluginJson, settings[key], false)
+  }
+  logDebug(pluginJson, `rememberPresetsAfterInstall: restoring ${presetKeys.length} preset(s) to ${pluginID}/plugin.json in a single write`)
+  await savePluginJson(pluginID, updatedPluginJson)
 }
