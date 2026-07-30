@@ -14,20 +14,23 @@
 //      the original measure-flush-delay.js behavior.
 //
 //   2. Two files (--file + --compare-file): also races the two sources
-//      against each other. The intended pairing is the main JSLog file
-//      (what nplog reads) against a single plugin's
-//      `_MCP-console.log` (what the NotePlan MCP's `noteplan_plugins
-//      action:"log"` reads) -- same content, but the console log has the
-//      outer flush-timestamp and "JSLog:" marker already stripped, and
-//      gets TRUNCATED on every plugin invocation rather than appended to.
-//      Matching lines (by exact payload text, FIFO per distinct payload so
-//      repeated identical lines don't get confused with each other) are
-//      reported as MATCH with which side arrived first and by how much.
-//      A line that shows up on one side and doesn't show up on the other
-//      within --gap-timeout-ms is reported as a GAP -- this is the
-//      completeness signal: it means whichever file didn't get it either
-//      never will (main log: filtered out somehow) or already lost it
-//      (console log: truncated by a later invocation before we polled).
+//      against each other. The intended pairing is "Full-Log" -- the main
+//      JSLog file nplog itself reads -- against "MCP-Log", a single
+//      plugin's `_MCP-console.log` (what the NotePlan MCP's
+//      `noteplan_plugins action:"log"` reads). Same content, but the
+//      MCP-Log has the outer flush-timestamp and "JSLog:" marker already
+//      stripped, and gets TRUNCATED on every plugin invocation rather than
+//      appended to. Matching lines (by exact payload text, FIFO per
+//      distinct payload so repeated identical lines don't get confused
+//      with each other) are reported as MATCH with which side arrived
+//      first and by how much. A line that shows up on one side and
+//      doesn't show up on the other within --gap-timeout-ms is reported as
+//      a GAP -- this is the completeness signal: it means whichever file
+//      didn't get it either never will (Full-Log: filtered out somehow) or
+//      already lost it (MCP-Log: truncated by a later invocation before we
+//      polled). Full-Log flush lag has been observed well past a minute,
+//      so the gap timeout defaults generously (see gapTimeoutMs below) --
+//      too short and it mislabels merely-slow lines as missing.
 //
 // Interactive controls (needs a TTY): 'c' clears all accumulated stats and
 // pending state -- run it right before firing the NotePlan action you want
@@ -36,7 +39,7 @@
 //
 // Usage:
 //   node log-timing.js [--file PATH] [--poll-ms N] [--report-every SECS]
-//   node log-timing.js --file MAIN_LOG --compare-file MCP_CONSOLE_LOG [--gap-timeout-ms N]
+//   node log-timing.js --file FULL_LOG --compare-file MCP_CONSOLE_LOG [--gap-timeout-ms N]
 //
 // --file defaults to the newest co.noteplan.NotePlan3*.log, same discovery
 // nplog itself uses.
@@ -51,7 +54,11 @@ const LEADING_TS_RE = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?[ \t]?
 const INNER_TS_RE = /^(?:\[[^\]]*\]\s*)?(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?)/
 
 function parseArgs(argv) {
-  const opts = { file: null, compareFile: null, pollMs: 100, reportEverySec: 15, gapTimeoutMs: 8000 }
+  // Full-Log flush lag is not a fixed cost -- observed up to ~55s in practice, documented
+  // historically up to two hours -- so a short timeout mislabels lines that are just slow, not
+  // missing, as one-sided gaps. Defaulting to 2 minutes trades faster gap feedback for correctness;
+  // raise it further with --gap-timeout-ms if the Full-Log is still catching up when this fires.
+  const opts = { file: null, compareFile: null, pollMs: 100, reportEverySec: 15, gapTimeoutMs: 120000 }
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--file') opts.file = argv[++i]
     else if (argv[i] === '--compare-file') opts.compareFile = argv[++i]
@@ -121,7 +128,14 @@ function stats(arr) {
 class Tailer {
   constructor(filePath) {
     this.filePath = filePath
-    this.position = fs.statSync(filePath).size // start at EOF -- only new activity counts
+    // Doesn't exist yet is normal, not an error -- e.g. a plugin's
+    // _MCP-console.log before that plugin has ever logged anything. Start
+    // at 0 so whatever gets written first is picked up.
+    try {
+      this.position = fs.statSync(filePath).size
+    } catch (err) {
+      this.position = 0
+    }
     this.carry = ''
     this.carryStartWall = null
     this.truncations = 0
@@ -283,13 +297,13 @@ function excerpt(text) {
 }
 
 function runCompare(opts) {
-  const a = new Source('MAIN', opts.file, normalizeMainLine)
-  const b = new Source('CONSOLE', opts.compareFile, normalizeConsoleLine)
-  const pendingFromA = new PendingQueue() // A saw it, waiting on B
-  const pendingFromB = new PendingQueue() // B saw it, waiting on A
+  const a = new Source('Full-Log', opts.file, normalizeMainLine)
+  const b = new Source('MCP-Log', opts.compareFile, normalizeConsoleLine)
+  const pendingFromA = new PendingQueue() // a saw it, waiting on b
+  const pendingFromB = new PendingQueue() // b saw it, waiting on a
 
   let matches = []
-  let gaps = [] // {side: 'MAIN'|'CONSOLE', payload, waitedMs}
+  let gaps = [] // {label: a.label|b.label, payload}
 
   function clearAll() {
     a.reset()
@@ -318,13 +332,13 @@ function runCompare(opts) {
 
   function sweepGaps() {
     const cutoff = Date.now() - opts.gapTimeoutMs
-    for (const [payload, wallMs] of pendingFromA.drainStale(cutoff)) {
-      gaps.push({ side: 'MAIN', payload })
-      console.log(`GAP    only in MAIN (never reached CONSOLE within ${fmtMs(opts.gapTimeoutMs)})   ${excerpt(payload)}`)
+    for (const [payload] of pendingFromA.drainStale(cutoff)) {
+      gaps.push({ label: a.label, payload })
+      console.log(`GAP    only in ${a.label} (never reached ${b.label} within ${fmtMs(opts.gapTimeoutMs)})   ${excerpt(payload)}`)
     }
-    for (const [payload, wallMs] of pendingFromB.drainStale(cutoff)) {
-      gaps.push({ side: 'CONSOLE', payload })
-      console.log(`GAP    only in CONSOLE (never reached MAIN within ${fmtMs(opts.gapTimeoutMs)})   ${excerpt(payload)}`)
+    for (const [payload] of pendingFromB.drainStale(cutoff)) {
+      gaps.push({ label: b.label, payload })
+      console.log(`GAP    only in ${b.label} (never reached ${a.label} within ${fmtMs(opts.gapTimeoutMs)})   ${excerpt(payload)}`)
     }
   }
 
@@ -335,28 +349,28 @@ function runCompare(opts) {
     const d = stats(matches.map((m) => m.deltaMs))
     console.log(`Matched lines (seen in both files): ${matches.length}`)
     if (d) {
-      const mainFirst = matches.filter((m) => m.firstLabel === 'MAIN').length
-      const consoleFirst = matches.filter((m) => m.firstLabel === 'CONSOLE').length
+      const aFirst = matches.filter((m) => m.firstLabel === a.label).length
+      const bFirst = matches.filter((m) => m.firstLabel === b.label).length
       console.log(`  race delta: min ${fmtMs(d.min)}  avg ${fmtMs(d.avg)}  max ${fmtMs(d.max)}`)
-      console.log(`  MAIN first: ${mainFirst}   CONSOLE first: ${consoleFirst}`)
+      console.log(`  ${a.label} first: ${aFirst}   ${b.label} first: ${bFirst}`)
     }
-    const gapsMain = gaps.filter((g) => g.side === 'MAIN').length
-    const gapsConsole = gaps.filter((g) => g.side === 'CONSOLE').length
-    console.log(`Gaps (only ever seen on one side): MAIN-only ${gapsMain}   CONSOLE-only ${gapsConsole}`)
+    const gapsA = gaps.filter((g) => g.label === a.label).length
+    const gapsB = gaps.filter((g) => g.label === b.label).length
+    console.log(`Gaps (only ever seen on one side): ${a.label}-only ${gapsA}   ${b.label}-only ${gapsB}`)
     const stillPendingA = [...pendingFromA.map.values()].reduce((n, arr) => n + arr.length, 0)
     const stillPendingB = [...pendingFromB.map.values()].reduce((n, arr) => n + arr.length, 0)
     if (stillPendingA || stillPendingB) {
-      console.log(`Still waiting to match: ${stillPendingA} from MAIN, ${stillPendingB} from CONSOLE (< ${fmtMs(opts.gapTimeoutMs)} old)`)
+      console.log(`Still waiting to match: ${stillPendingA} from ${a.label}, ${stillPendingB} from ${b.label} (< ${fmtMs(opts.gapTimeoutMs)} old)`)
     }
   }
 
-  console.log(`MAIN:    ${opts.file}`)
-  console.log(`CONSOLE: ${opts.compareFile}`)
+  console.log(`${a.label}: ${opts.file}`)
+  console.log(`${b.label}:  ${opts.compareFile}`)
   console.log(`Polling every ${opts.pollMs}ms. Gap timeout ${fmtMs(opts.gapTimeoutMs)}. Press 'c' to clear and start a fresh window, 'q'/Ctrl-C for a final summary.\n`)
 
   const pollTimer = setInterval(() => {
-    handleSide('MAIN', a.poll(), pendingFromA, pendingFromB, 'CONSOLE')
-    handleSide('CONSOLE', b.poll(), pendingFromB, pendingFromA, 'MAIN')
+    handleSide(a.label, a.poll(), pendingFromA, pendingFromB, b.label)
+    handleSide(b.label, b.poll(), pendingFromB, pendingFromA, a.label)
     sweepGaps()
   }, opts.pollMs)
   const reportTimer = setInterval(() => printSummary(false), Math.max(1000, opts.reportEverySec * 1000))

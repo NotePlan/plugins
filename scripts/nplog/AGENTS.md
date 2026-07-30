@@ -232,10 +232,14 @@ from 2 to 30 seconds.
 - **`utils/log-timing.js`** — standalone, not part of nplog's own runtime. Tails one log file
   and reports wall-clock-now minus each complete line's own timestamp (single-file mode), or
   races two files against each other by matching identical payload text FIFO-per-payload
-  (`--compare-file`, meant for the main JSLog file vs. one plugin's `_MCP-console.log`) to report
-  which arrives first and by how much, plus one-sided "gap" lines that never showed up on the
-  other side within `--gap-timeout-ms`. `_MCP-console.log` truncates on every plugin invocation
-  rather than appending, so its `Tailer` treats `size < position` as truncation-and-restart, not
-  an error — worth knowing if you extend this to another file that behaves the same way. Press
+  (`--compare-file`, labeled **Full-Log** for `--file` — the main JSLog file — vs. **MCP-Log** for
+  `--compare-file`, one plugin's `_MCP-console.log`) to report which arrives first and by how
+  much, plus one-sided "gap" lines that never showed up on the other side within
+  `--gap-timeout-ms` (default 2 minutes — Full-Log flush lag has been observed past a minute in
+  practice and documented historically up to two hours, so anything shorter mislabels merely-slow
+  lines as missing). `_MCP-console.log` truncates on every plugin invocation rather than
+  appending, so its `Tailer` treats `size < position` as truncation-and-restart, not an error —
+  worth knowing if you extend this to another file that behaves the same way; it also tolerates
+  the compare file not existing yet (e.g. a plugin that hasn't logged anything this session). Press
   `c` while it's running to reset all accumulated stats/pending state without restarting the
   process, so a comparison window can be scoped to exactly one triggered action.
