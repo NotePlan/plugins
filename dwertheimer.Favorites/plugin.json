@@ -9,7 +9,9 @@
   "plugin.version": "1.4.2",
   "plugin.lastUpdateInfo": "1.4.2: Preset re-sync no longer floods the log with JS exceptions.\n1.4.1: Fix clipped unfavorite star icon; add 'Group favorites by folder' setting.\n1.4.0: Add 'Group by folder' toggle to Favorites browser Notes view.\n1.3.6: PluginRequestEnvelope / requestFromPlugin aligned with np.Shared 1.0.7.\n1.3.5: Fix sidebar icon colour issue\n1.3.4: Fix dark mode issues (thx @clayrussell)\n1.3.3: Use new sidebar view feature\n1.3.0: Add new '/favorites browser' command to open favorites in a sidebar window to view and open favorite notes and commands\n1.3.1: Fix request timeout issue\n1.3.2: Fix frontmatter not being removed when unfavoriting",
   "plugin.dependencies": [],
-  "plugin.requiredFiles": ["react.c.FavoritesView.bundle.dev.js"],
+  "plugin.requiredFiles": [
+    "react.c.FavoritesView.bundle.dev.js"
+  ],
   "plugin.script": "script.js",
   "plugin.url": "Put a link to a web page or your github readme file here, and it will be displayed as the 'website' in the plugin preference pane to give users more info on the plugin before/after install, e.g.  https://github.com/dwertheimer/Noteplan-plugins/blob/main/np.plugin-flow-skeleton/readme.md",
   "plugin.commands": [
@@ -52,7 +54,9 @@
         "icon": "star",
         "iconColor": "#F8E160"
       },
-      "arguments": [ "IsFloating: If true or 'true', opens as a floating window instead of main window (optional, defaults to false)"]
+      "arguments": [
+        "IsFloating: If true or 'true', opens as a floating window instead of main window (optional, defaults to false)"
+      ]
     },
     {
       "name": "onFavoritesBrowserAction",
@@ -259,7 +263,12 @@
       "type": "string",
       "default": "Star or Frontmatter (either)",
       "required": true,
-      "choices": ["Star in title", "Frontmatter only", "Star and Frontmatter (both)"  , "Star or Frontmatter (either)"]
+      "choices": [
+        "Star in title",
+        "Frontmatter only",
+        "Star and Frontmatter (both)",
+        "Star or Frontmatter (either)"
+      ]
     },
     {
       "type": "string",
