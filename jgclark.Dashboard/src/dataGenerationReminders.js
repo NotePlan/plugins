@@ -563,7 +563,10 @@ export async function getRemindersGeneratedData(
       if (!overdueSectionVisible && buckets.overdueItems.length > 0) {
         fallbackItems.push(...buckets.overdueItems)
       }
-      if (!config.showYesterdaySection && !overdueSectionVisible && buckets.yesterdayItems.length > 0) {
+      // Yesterday is a *current* reminder, so it stays subject to "Show Current
+      // Reminders" -- adopting it here when that toggle is off would resurrect an
+      // item the user explicitly hid ("reminders due today, yesterday, or tomorrow").
+      if (currentRemindersEnabled && !config.showYesterdaySection && !overdueSectionVisible && buckets.yesterdayItems.length > 0) {
         fallbackItems.push(...buckets.yesterdayItems)
       }
       if (fallbackItems.length > 0) {
