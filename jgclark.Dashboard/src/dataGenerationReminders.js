@@ -549,6 +549,29 @@ export async function getRemindersGeneratedData(
     const overdueItems = undatedOverdueRemindersEnabled ? buckets.overdueItems : []
     let undatedItems = undatedOverdueRemindersEnabled ? buckets.undatedItems : []
 
+    // Fallback chain, so a dated reminder is never silently discarded just because
+    // the section that would have hosted it is switched off. This section's setting
+    // is "Show Undated/Overdue Reminders", so an overdue reminder belongs here by
+    // name, and a yesterday one is overdue in every sense that matters once there is
+    // no Yesterday section to put it in. Order: own section -> Overdue -> here.
+    // Tomorrow is deliberately excluded: a future reminder is neither undated nor
+    // overdue, and hiding the Tomorrow section is a reasonable way to say you don't
+    // want to see it yet.
+    if (undatedOverdueRemindersEnabled) {
+      const overdueSectionVisible = Boolean(config.showOverdueSection)
+      const fallbackItems: Array<TSectionItem> = []
+      if (!overdueSectionVisible && buckets.overdueItems.length > 0) {
+        fallbackItems.push(...buckets.overdueItems)
+      }
+      if (!config.showYesterdaySection && !overdueSectionVisible && buckets.yesterdayItems.length > 0) {
+        fallbackItems.push(...buckets.yesterdayItems)
+      }
+      if (fallbackItems.length > 0) {
+        logDebug('getRemindersGeneratedData', `- REM fallback: adopting ${String(fallbackItems.length)} reminder(s) whose own section is off (overdueVisible=${String(overdueSectionVisible)} yesterdayVisible=${String(Boolean(config.showYesterdaySection))})`)
+        undatedItems = sortReminderSectionItems(undatedItems.concat(fallbackItems))
+      }
+    }
+
     const maxInSection = config.maxItemsToShowInSection ?? 24
     const totalUndatedCount = undatedItems.length
     if (totalUndatedCount > maxInSection) {
