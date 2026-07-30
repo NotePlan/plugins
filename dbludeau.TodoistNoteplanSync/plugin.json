@@ -18,7 +18,8 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dbludeau.TodoistNoteplanSync/CHANGELOG.md",
   "plugin.commands": [
     {
-      "note": "================== COMMMANDS ========================"
+      "note": "================== COMMMANDS ========================",
+      "type": "separator"
     },
     {
       "name": "todoist sync everything",
@@ -109,7 +110,8 @@
   ],
   "plugin.settings": [
     {
-      "note": "================== SETTINGS ========================"
+      "note": "================== SETTINGS ========================",
+      "type": "separator"
     },
     {
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
@@ -185,7 +187,8 @@
       "type": "separator"
     },
     {
-      "note": "================== TODOIST TEAMS SETTINGS ========================"
+      "note": "================== TODOIST TEAMS SETTINGS ========================",
+      "type": "separator"
     },
     {
       "type": "heading",
@@ -206,7 +209,8 @@
       "default": false
     },
     {
-      "note": "================== DEBUGGING SETTINGS ========================"
+      "note": "================== DEBUGGING SETTINGS ========================",
+      "type": "separator"
     },
     {
       "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
