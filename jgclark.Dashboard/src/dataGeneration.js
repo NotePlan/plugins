@@ -128,11 +128,16 @@ export async function getSomeSectionsData(
       remindersData.yesterdayItems.length > 0 && yesterdayForDaySection.length === 0 && !Boolean(config.showOverdueSection) && !remCanHost
     const overdueHomeless = remindersData.overdueItems.length > 0 && !Boolean(config.showOverdueSection) && !remCanHost
     const tomorrowHomeless = remindersData.tomorrowItems.length > 0 && !config.showTomorrowSection
-    if (yesterdayHomeless || overdueHomeless || tomorrowHomeless) {
+    // Untimed today falls back to REM, so it is only lost when REM cannot host either.
+    // Timed today reminders that are not yet due are intentionally shown nowhere
+    // (see the DESIGN DECISION note in dataGenerationDays.js), so they are not warned about.
+    const untimedTodayHomeless = remindersData.untimedTodayItems.length > 0 && !config.showTodaySection && !remCanHost
+    if (yesterdayHomeless || overdueHomeless || tomorrowHomeless || untimedTodayHomeless) {
       const parts = []
       if (yesterdayHomeless) parts.push(`${String(remindersData.yesterdayItems.length)} yesterday`)
       if (overdueHomeless) parts.push(`${String(remindersData.overdueItems.length)} overdue`)
       if (tomorrowHomeless) parts.push(`${String(remindersData.tomorrowItems.length)} tomorrow (no fallback: Tomorrow section off)`)
+      if (untimedTodayHomeless) parts.push(`${String(remindersData.untimedTodayItems.length)} untimed today`)
       logWarn('getSomeSectionsData', `- ${parts.join('; ')} reminder(s) have no visible section and will not be shown anywhere`)
     }
 
