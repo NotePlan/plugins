@@ -15,7 +15,8 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/shared.AI/CHANGELOG.md",
   "plugin.commands": [
     {
-      "note": "================== COMMMANDS ========================"
+      "note": "================== COMMMANDS ========================",
+      "type": "separator"
     },
     {
       "name": "NotePlan AI: Check Version",
@@ -23,7 +24,8 @@
       "jsFunction": "versionCheck"
     },
     {
-      "note": "************************************ CHAT ****************************************"
+      "note": "************************************ CHAT ****************************************",
+      "type": "separator"
     },
     {
       "name": "NotePlan AI: Insert Chat",
@@ -63,7 +65,8 @@
       ]
     },
     {
-      "note": "************************************ SUMMARIZE ****************************************"
+      "note": "************************************ SUMMARIZE ****************************************",
+      "type": "separator"
     },
     {
       "name": "Summarize Note/Selection",
@@ -73,7 +76,8 @@
       "arguments": []
     },
     {
-      "note": "************************************ RESEARCH ****************************************"
+      "note": "************************************ RESEARCH ****************************************",
+      "type": "separator"
     },
     {
       "name": "NotePlan AI: Research",
@@ -127,7 +131,8 @@
       "arguments": []
     },
     {
-      "note": "************************************ IMAGES ****************************************"
+      "note": "************************************ IMAGES ****************************************",
+      "type": "separator"
     },
     {
       "name": "NotePlan AI: Images",
@@ -140,7 +145,8 @@
       "arguments": []
     },
     {
-      "note": "************************************ INTRO WIZARD ****************************************"
+      "note": "************************************ INTRO WIZARD ****************************************",
+      "type": "separator"
     },
     {
       "name": "NotePlan AI: Update Plugin Settings",
@@ -322,7 +328,8 @@
       "arguments": []
     },
     {
-      "note": "************************************ UNUSED/DEPRECATED ****************************************"
+      "note": "************************************ UNUSED/DEPRECATED ****************************************",
+      "type": "separator"
     },
     {
       "name": "OpenAI: Test Connection",
@@ -336,7 +343,8 @@
   ],
   "plugin.settings": [
     {
-      "note": "================== SETTINGS ========================"
+      "note": "================== SETTINGS ========================",
+      "type": "separator"
     },
     {
       "type": "hidden",

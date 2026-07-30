@@ -18,7 +18,8 @@
   "commandMigrationMessage": "@eduard we are pretending commands from this plugin have been migrated to the Task Sorting plugin. You should click 'Yes' below. The plugin will install, but this script execution will crash, so you won't see anything after you click the 'Yes' button, though you can see the new plugin (Task Sorting) has been installed.",
   "plugin.commands": [
     {
-      "note": "================== COMMMANDS ========================"
+      "note": "================== COMMMANDS ========================",
+      "type": "separator"
     },
     {
       "name": "Test onInstallOrUpdate",
@@ -28,7 +29,8 @@
   ],
   "plugin.settings": [
     {
-      "note": "================== SETTINGS ========================"
+      "note": "================== SETTINGS ========================",
+      "type": "separator"
     },
     {
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
@@ -42,7 +44,8 @@
       "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
     },
     {
-      "note": "================== DEBUGGING SETTINGS ========================"
+      "note": "================== DEBUGGING SETTINGS ========================",
+      "type": "separator"
     },
     {
       "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",

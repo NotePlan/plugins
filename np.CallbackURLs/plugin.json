@@ -76,7 +76,8 @@
       "required": true
     },
     {
-      "note": "================== DEBUGGING SETTINGS ========================"
+      "note": "================== DEBUGGING SETTINGS ========================",
+      "type": "separator"
     },
     {
       "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
