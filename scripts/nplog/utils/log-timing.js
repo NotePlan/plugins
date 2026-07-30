@@ -119,6 +119,29 @@ function stats(arr) {
   return { min, max, avg, n: arr.length }
 }
 
+// Plain monospace table -- right-pads every column to the widest cell (plus
+// its header) in that column, so it lines up in any terminal without needing
+// box-drawing characters.
+function renderTable(headers, rows) {
+  const widths = headers.map((h, i) => Math.max(String(h).length, ...rows.map((r) => String(r[i]).length)))
+  const line = (cells) => cells.map((c, i) => String(c).padEnd(widths[i])).join('  ').trimEnd()
+  return [line(headers), line(widths.map((w) => '-'.repeat(w))), ...rows.map(line)].join('\n')
+}
+
+// Repeated identical lines (noise messages especially) would otherwise bury
+// genuinely distinct examples under dozens of copies of the same one. Group
+// by exact payload, sort by frequency, and cap how many distinct examples
+// print -- the count alongside each still shows how much it dominated.
+function summarizeExamples(payloads, maxExamples) {
+  const counts = new Map()
+  for (const p of payloads) counts.set(p, (counts.get(p) || 0) + 1)
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1])
+  const shown = sorted.slice(0, maxExamples)
+  const omitted = sorted.length - shown.length
+  const omittedOccurrences = omitted > 0 ? sorted.slice(maxExamples).reduce((n, [, c]) => n + c, 0) : 0
+  return { shown, uniqueCount: sorted.length, omitted, omittedOccurrences }
+}
+
 // ---- tailing: one instance per file, independent position/carry state ----
 // Truncation (size < position, e.g. _MCP-console.log rewritten on every
 // plugin invocation) restarts from 0 rather than erroring. If we had unread
@@ -248,12 +271,29 @@ class Source {
   printReport() {
     const d = stats(this.delays)
     console.log(`[${this.label}] lines: ${this.linesTotal} (${this.delays.length} timestamped, ${this.completedNoTimestamp} not)`)
-    if (d) console.log(`  own-timestamp delay: min ${fmtMs(d.min)}  avg ${fmtMs(d.avg)}  max ${fmtMs(d.max)}`)
+    if (d) console.log(`  own-timestamp delay (vs wall clock): min ${fmtMs(d.min)}  avg ${fmtMs(d.avg)}  max ${fmtMs(d.max)}`)
     const p = stats(this.partials)
     if (p) console.log(`  partial-line completion: n=${p.n}  min ${fmtMs(p.min)}  avg ${fmtMs(p.avg)}  max ${fmtMs(p.max)}`)
     if (this.tailer.truncations) {
       console.log(`  truncated ${this.tailer.truncations}x (${this.tailer.truncationsWithLoss}x with unread content lost)`)
     }
+  }
+
+  // One row for the cross-file summary table -- own-timestamp delay is
+  // wall-clock-now minus each line's own embedded timestamp, computed
+  // identically for both files (this is not Full-Log-specific).
+  statsRow() {
+    const d = stats(this.delays)
+    const trunc = this.tailer.truncations ? `${this.tailer.truncations}x (${this.tailer.truncationsWithLoss} w/ loss)` : '-'
+    return [
+      this.label,
+      this.linesTotal,
+      this.delays.length,
+      d ? fmtMs(d.min) : '-',
+      d ? fmtMs(d.avg) : '-',
+      d ? fmtMs(d.max) : '-',
+      trunc,
+    ]
   }
 }
 
@@ -342,25 +382,42 @@ function runCompare(opts) {
     }
   }
 
+  const MAX_GAP_EXAMPLES = 8
+
+  function printGapExamples(label, otherLabel) {
+    const payloads = gaps.filter((g) => g.label === label).map((g) => g.payload)
+    if (!payloads.length) return
+    const { shown, uniqueCount, omitted, omittedOccurrences } = summarizeExamples(payloads, MAX_GAP_EXAMPLES)
+    console.log(`\n${label} only (never reached ${otherLabel}): ${payloads.length} total, ${uniqueCount} unique`)
+    for (const [payload, count] of shown) {
+      console.log(`  x${count}  ${excerpt(payload)}`)
+    }
+    if (omitted > 0) console.log(`  ... +${omitted} more unique (${omittedOccurrences} more occurrences)`)
+  }
+
   function printSummary(final) {
-    console.log(final ? '\n=== Final summary ===' : `\n--- rolling report (${new Date().toLocaleTimeString()}) ---`)
-    a.printReport()
-    b.printReport()
+    console.log(final ? '\n=== Final summary ===\n' : `\n--- rolling report (${new Date().toLocaleTimeString()}) ---\n`)
+    console.log('Own-timestamp delay vs wall clock, per file:')
+    console.log(
+      renderTable(['Source', 'Lines', 'Timestamped', 'Delay-min', 'Delay-avg', 'Delay-max', 'Truncations'], [a.statsRow(), b.statsRow()]),
+    )
+
     const d = stats(matches.map((m) => m.deltaMs))
-    console.log(`Matched lines (seen in both files): ${matches.length}`)
+    console.log(`\nMatched lines (seen in both files): ${matches.length}`)
     if (d) {
       const aFirst = matches.filter((m) => m.firstLabel === a.label).length
       const bFirst = matches.filter((m) => m.firstLabel === b.label).length
       console.log(`  race delta: min ${fmtMs(d.min)}  avg ${fmtMs(d.avg)}  max ${fmtMs(d.max)}`)
       console.log(`  ${a.label} first: ${aFirst}   ${b.label} first: ${bFirst}`)
     }
-    const gapsA = gaps.filter((g) => g.label === a.label).length
-    const gapsB = gaps.filter((g) => g.label === b.label).length
-    console.log(`Gaps (only ever seen on one side): ${a.label}-only ${gapsA}   ${b.label}-only ${gapsB}`)
+
+    printGapExamples(a.label, b.label)
+    printGapExamples(b.label, a.label)
+
     const stillPendingA = [...pendingFromA.map.values()].reduce((n, arr) => n + arr.length, 0)
     const stillPendingB = [...pendingFromB.map.values()].reduce((n, arr) => n + arr.length, 0)
     if (stillPendingA || stillPendingB) {
-      console.log(`Still waiting to match: ${stillPendingA} from ${a.label}, ${stillPendingB} from ${b.label} (< ${fmtMs(opts.gapTimeoutMs)} old)`)
+      console.log(`\nStill waiting to match: ${stillPendingA} from ${a.label}, ${stillPendingB} from ${b.label} (< ${fmtMs(opts.gapTimeoutMs)} old)`)
     }
   }
 
