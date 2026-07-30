@@ -5,6 +5,8 @@
 - **Fixed**: Re-syncing presets (`onUpdateOrInstall`) threw a `TypeError: undefined is not an object (evaluating 'DataStore.settings = ...')` twice per preset — 40 JS exceptions in the log for a 20-preset install. `rememberPresetsAfterInstall()` assigned `DataStore.settings` once per preset, and each assignment made NotePlan fire `onSettingsUpdated` re-entrantly mid-statement. The presets themselves were always restored correctly, so this was log noise rather than data loss, but it buried genuine errors and did 20x the necessary work. Presets are now re-applied to `plugin.json` in a single read/write, with no settings write at all (the settings are the source being read from).
 - **Fixed**: `plugin.settings` had a section-heading entry with no `key` and no `type`, producing `plugin.settings[26] has no valid key; skipping` on every settings update. Marked it as a `separator`, like the entry below it.
 
+## [1.4.1] - 2026-07-21 @dwertheimer
+
 - **Fixed**: The unfavorite star icon on each note row was getting clipped at the top of the row.
 - **Feature**: Added a "Group favorites by folder" plugin setting (bool). This controls the initial state of the Notes list's "group by folder" toggle when the Favorites browser window opens; users can still switch modes from the toggle itself within the session.
 
