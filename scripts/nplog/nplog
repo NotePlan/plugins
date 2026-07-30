@@ -24,6 +24,13 @@ const path = require('path')
 // container, and it's what the rotation tests point at.
 const LOG_DIR = process.env.NPLOG_DIR || path.join(os.homedir(), 'Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Logs')
 
+// NotePlan also keeps a per-plugin console log at <Plugins>/<id>/_MCP-console.log
+// -- already scoped to that plugin and already stripped of the "JSLog:" marker.
+// It's what the NotePlan MCP's `noteplan_plugins action:"log"` reads.
+function pluginsDir() {
+  return process.env.NPLOG_PLUGINS_DIR || path.join(path.dirname(LOG_DIR), 'Plugins')
+}
+
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
 const POLL_MS = 1000 // how often we look for rotation / new bytes
@@ -35,13 +42,46 @@ const DEFAULT_IDLE_GAP_SEC = 3
 // ---- options ---------------------------------------------------------------
 
 function parseArgs(argv) {
-  const opts = { filter: '', mode: 0, raw: false, file: null, showTime: true, separators: true, idleGapSec: DEFAULT_IDLE_GAP_SEC }
+  const opts = {
+    filter: '',
+    mode: 0,
+    raw: false,
+    file: null,
+    showTime: true,
+    separators: true,
+    idleGapSec: DEFAULT_IDLE_GAP_SEC,
+    // non-interactive / agent mode
+    json: false,
+    mark: false,
+    since: null,
+    lastRun: false,
+    waitIdleSec: 0,
+    timeoutSec: 30,
+    minLevel: null,
+    maxEntries: 500,
+    plugin: null,
+  }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '--raw') opts.raw = true
     else if (a === '--no-time' || a === '--no-timestamps') opts.showTime = false
     else if (a === '--no-separators') opts.separators = false
-    else if (a === '--idle-gap') {
+    else if (a === '--json') opts.json = true
+    else if (a === '--mark') opts.mark = true
+    else if (a === '--last-run') opts.lastRun = true
+    else if (a === '--since') opts.since = argv[++i]
+    else if (a === '--plugin') opts.plugin = argv[++i]
+    else if (a === '--min-level') opts.minLevel = String(argv[++i] || '').toLowerCase()
+    else if (a === '--wait-idle') {
+      const n = Number(argv[++i])
+      if (Number.isFinite(n) && n >= 0) opts.waitIdleSec = n
+    } else if (a === '--timeout') {
+      const n = Number(argv[++i])
+      if (Number.isFinite(n) && n >= 0) opts.timeoutSec = n
+    } else if (a === '--max-entries') {
+      const n = Number(argv[++i])
+      if (Number.isFinite(n) && n > 0) opts.maxEntries = n
+    } else if (a === '--idle-gap') {
       const n = Number(argv[++i])
       if (Number.isFinite(n) && n >= 0) opts.idleGapSec = n
     } else if (a === '--file') opts.file = argv[++i]
@@ -49,15 +89,43 @@ function parseArgs(argv) {
       const idx = CONTEXT_MODES.indexOf(Number(argv[++i]))
       if (idx >= 0) opts.mode = idx
     } else if (a === '-h' || a === '--help') {
-      console.log('Usage: nplog [regex] [--mode 0|1|5|10] [--raw] [--no-time] [--idle-gap SECS] [--no-separators] [--file PATH]')
+      console.log('Usage: nplog [regex] [options]')
+      console.log('')
+      console.log('Interactive (default):')
       console.log('  regex             case-insensitive; invalid patterns fall back to a literal match')
-      console.log('  --mode            0 = matched lines only, N = match plus next N lines')
+      console.log('  --mode            0 = matched lines only, N = match plus next N entries')
       console.log('  --raw             keep non-JSLog lines too')
       console.log('  --no-time         hide timestamps entirely (toggle live with ^T)')
       console.log(`  --idle-gap SECS   rule when the log goes quiet this long (default ${DEFAULT_IDLE_GAP_SEC}, 0 = off)`)
       console.log('  --no-separators   no run/idle rules at all (toggle live with ^G)')
+      console.log('  --file PATH       pin one log instead of following the newest')
+      console.log('  --plugin ID       read that plugin\'s own console log (see below)')
+      console.log('')
+      console.log('Non-interactive, for scripts and agents:')
+      console.log('  --json            emit NDJSON (one JSON object per entry) and exit')
+      console.log('                    exit code 1 if any emitted entry is an ERROR')
+      console.log('  --mark            print an opaque cursor for the current end of log, and exit')
+      console.log('  --since WHEN      cursor from --mark, OR a duration back from now')
+      console.log('                    (10m, 30s, 2h; bare number = minutes), OR a local')
+      console.log('                    wall-clock time (19:36, 19:36:56, "2026-07-29 19:36")')
+      console.log('  --last-run        only entries since the most recent "Executing function"')
+      console.log('  --wait-idle SECS  wait until the log has been quiet this long before emitting')
+      console.log(`  --timeout SECS    give up waiting after this long (default ${30})`)
+      console.log('  --min-level LVL   debug | info | warn | error')
+      console.log('  --max-entries N   keep only the last N (default 500)')
+      console.log('')
+      console.log('Typical agent loop:')
+      console.log('  C=$(nplog --mark)')
+      console.log('  open "noteplan://x-callback-url/runPlugin?pluginID=...&command=..."')
+      console.log('  nplog --since "$C" --wait-idle 3 --json --min-level warn')
       process.exit(0)
     } else if (!a.startsWith('-')) opts.filter = a
+  }
+  // A plugin's own console log is already scoped and already has the "JSLog:"
+  // marker stripped, so entries must not be required to carry it.
+  if (opts.plugin) {
+    opts.file = path.join(pluginsDir(), opts.plugin, '_MCP-console.log')
+    opts.markerOptional = true
   }
   return opts
 }
@@ -114,6 +182,15 @@ function entryPayload(line) {
   const body = line.replace(LEADING_TS_RE, '')
   if (!body.startsWith(JSLOG_MARKER)) return null
   return tidy(body.slice(JSLOG_MARKER.length).replace(/^[ \t]/, ''))
+}
+
+// A line may only begin a multi-line block if it actually *opens* a structure --
+// i.e. it ends with "{" or "[". Unbalanced-depth alone is far too loose: prose
+// like "[IAPHandler Received a purchase update" has a stray "[" and was
+// swallowing hundreds of following lines into one enormous entry.
+function opensStructure(text) {
+  const t = text.trimEnd()
+  return t.endsWith('{') || t.endsWith('[')
 }
 
 // Brace/bracket depth, ignoring anything inside a JSON string literal so a
@@ -226,15 +303,20 @@ function consumeLine(rawLine) {
     closeEntry()
     pushLine(payload, payloadStamp(payload))
     const st = updateDepth(payload, { depth: 0, inString: false, escape: false })
-    if (st.depth > 0) openEntry = { index: lines.length - 1, count: 0, ...st }
+    if (st.depth > 0 && opensStructure(payload)) openEntry = { index: lines.length - 1, count: 0, ...st }
     return
   }
 
   if (openEntry) return appendToOpenEntry(rawLine)
 
   const body = tidy(rawLine.replace(LEADING_TS_RE, ''))
-  if (opts.raw) {
+  if (opts.raw || opts.markerOptional) {
+    // Every line starts an entry here, but still open a block on an unbalanced
+    // brace so pretty-printed objects stay grouped -- returning early instead
+    // (as this used to) left --raw unable to group them at all.
     pushLine(body, payloadStamp(body))
+    const st = updateDepth(body, { depth: 0, inString: false, escape: false })
+    if (st.depth > 0 && opensStructure(body)) openEntry = { index: lines.length - 1, count: 0, ...st }
     return
   }
 
@@ -243,7 +325,7 @@ function consumeLine(rawLine) {
   // structure (the "{" often lands on the line *after* the JSLog header), so
   // start a block for it rather than losing the object entirely.
   const st = updateDepth(body, { depth: 0, inString: false, escape: false })
-  if (st.depth > 0) {
+  if (st.depth > 0 && opensStructure(body)) {
     pushLine(body, payloadStamp(body))
     openEntry = { index: lines.length - 1, count: 0, ...st }
   }
@@ -907,6 +989,250 @@ function quit(code) {
   process.exit(typeof code === 'number' ? code : 0)
 }
 
+// ---- non-interactive mode -------------------------------------------------
+
+const LEVEL_RANK = { debug: 10, info: 20, warn: 30, error: 40 }
+
+// ISO 8601 with the local UTC offset rather than a "Z" time. The log is written
+// in local time and the timestamp inside `text` is local, so emitting UTC here
+// would make the two fields of the same record disagree by hours.
+function localIso(ms) {
+  if (!Number.isFinite(ms)) return null
+  const d = new Date(ms)
+  const p = (n, w = 2) => String(Math.abs(n)).padStart(w, '0')
+  const tz = -d.getTimezoneOffset()
+  const sign = tz >= 0 ? '+' : '-'
+  return (
+    `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}` +
+    `T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}` +
+    `${sign}${p(Math.floor(Math.abs(tz) / 60))}:${p(Math.abs(tz) % 60)}`
+  )
+}
+
+// Severity of an entry, from the same markers the display styles.
+function entryLevel(text) {
+  ERROR_LEVEL_RE.lastIndex = 0
+  if (ERROR_LEVEL_RE.test(text)) return 'error'
+  WARN_LEVEL_RE.lastIndex = 0
+  if (WARN_LEVEL_RE.test(text)) return 'warn'
+  if (/\|[ \t]*INFO[ \t]*\|/i.test(text)) return 'info'
+  if (/\|[ \t]*DEBUG[ \t]*\|/i.test(text)) return 'debug'
+  return null
+}
+
+// A cursor is "<basename>:<byteOffset>". The basename matters because NotePlan
+// rotates to a new file: if the name no longer matches we are reading a
+// different log and must start from its beginning rather than a stale offset.
+function makeCursor(file, offset) {
+  return `${path.basename(file)}:${offset}`
+}
+
+function parseCursor(cursor, file) {
+  const at = String(cursor).lastIndexOf(':')
+  if (at < 0) return 0
+  const name = cursor.slice(0, at)
+  const off = Number(cursor.slice(at + 1))
+  if (name !== path.basename(file) || !Number.isFinite(off) || off < 0) return 0
+  return off
+}
+
+// --since accepts three shapes, because an agent usually knows "the last ten
+// minutes" but a script that bracketed an action knows an exact cursor:
+//   <logname>.log:12345   a cursor from --mark (byte-exact, survives nothing else)
+//   10m / 30s / 2h / 10   a duration back from now (bare number = minutes)
+//   19:36 / 19:36:56 /    a local wall-clock time, today unless a date is given
+//   "2026-07-29 19:36:56"
+// Cursors resolve to a byte offset; the time forms resolve to a timestamp and
+// filter on each entry's own (inner) clock, which is the real event time.
+const DURATION_RE = /^(\d+(?:\.\d+)?)\s*(s|sec|secs|m|min|mins|h|hr|hrs)?$/i
+const TIME_ONLY_RE = /^\d{1,2}:\d{2}(:\d{2})?$/
+const DATETIME_RE = /^\d{4}-\d{2}-\d{2}[ T]\d{1,2}:\d{2}(:\d{2})?$/
+
+function resolveSince(since, file) {
+  const raw = String(since).trim()
+
+  if (/\.log:\d+$/i.test(raw)) return { kind: 'offset', offset: parseCursor(raw, file) }
+
+  const dur = DURATION_RE.exec(raw)
+  if (dur) {
+    const n = Number(dur[1])
+    const unit = (dur[2] || 'm').toLowerCase()
+    const mult = unit.startsWith('s') ? 1000 : unit.startsWith('h') ? 3600000 : 60000
+    return { kind: 'time', ms: Date.now() - n * mult }
+  }
+
+  if (TIME_ONLY_RE.test(raw)) {
+    const now = new Date()
+    const [h, m, s] = raw.split(':').map(Number)
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s || 0, 0)
+    // a time later than now must mean yesterday's clock reading
+    if (d.getTime() > now.getTime()) d.setDate(d.getDate() - 1)
+    return { kind: 'time', ms: d.getTime() }
+  }
+
+  if (DATETIME_RE.test(raw)) {
+    const ms = Date.parse(raw.replace(' ', 'T'))
+    if (Number.isFinite(ms)) return { kind: 'time', ms }
+  }
+
+  const loose = Date.parse(raw)
+  if (Number.isFinite(loose)) return { kind: 'time', ms: loose }
+
+  return { kind: 'invalid', raw }
+}
+
+function fileSize(file) {
+  try {
+    return fs.statSync(file).size
+  } catch (err) {
+    return 0
+  }
+}
+
+// Blocking sleep that actually parks the thread. Synchronous on purpose -- this
+// path is a short-lived one-shot command and a plain loop keeps the settle logic
+// trivial -- but spinning on Date.now() pegged a core, which matters for a tool
+// an agent may call in a loop. Atomics.wait blocks without burning CPU.
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+}
+
+function emitJson(file, startOffset) {
+  const collected = []
+  let seq = 0
+  let run = ''
+  for (let i = 0; i < lines.length; i++) {
+    const text = lines[i]
+    const m = RUN_START_RE.exec(text)
+    if (m) run = m[1] || ''
+    collected.push({ i, text, run })
+  }
+
+  let chosen = collected
+  if (Number.isFinite(opts.sinceMs) && opts.sinceMs !== null) {
+    // entries with no parseable stamp inherit the previous one, so this is safe
+    chosen = chosen.filter((e) => !Number.isFinite(stamps[e.i]) || stamps[e.i] >= opts.sinceMs)
+  }
+  if (opts.lastRun) {
+    let from = -1
+    for (let i = collected.length - 1; i >= 0; i--) {
+      if (RUN_START_RE.test(collected[i].text)) {
+        from = i
+        break
+      }
+    }
+    if (from >= 0) chosen = collected.slice(from)
+  }
+
+  // Filter honours --mode the same way the interactive view does: a match plus
+  // the next N entries. That is the useful shape for "find my [DIAG] line and
+  // show me what happened right after it". Note nothing is clipped here --
+  // truncating to the terminal width is a display concern only, so a matched
+  // object arrives whole however many lines it spans.
+  const { test } = getFilter()
+  if (test) {
+    const ctx = CONTEXT_MODES[opts.mode]
+    const keep = new Set()
+    for (let i = 0; i < chosen.length; i++) {
+      if (!test.test(chosen[i].text)) continue
+      for (let j = i; j <= Math.min(chosen.length - 1, i + ctx); j++) keep.add(j)
+    }
+    chosen = chosen.filter((_, i) => keep.has(i))
+  }
+
+  if (opts.minLevel && LEVEL_RANK[opts.minLevel]) {
+    const floor = LEVEL_RANK[opts.minLevel]
+    chosen = chosen.filter((e) => {
+      const lvl = entryLevel(e.text)
+      return lvl ? LEVEL_RANK[lvl] >= floor : false
+    })
+  }
+
+  const dropped = Math.max(0, chosen.length - opts.maxEntries)
+  if (dropped) chosen = chosen.slice(-opts.maxEntries)
+
+  let sawError = false
+  for (const e of chosen) {
+    const level = entryLevel(e.text)
+    if (level === 'error') sawError = true
+    const ts = localIso(stamps[e.i])
+    const rec = {
+      seq: seq++,
+      ts,
+      level,
+      source: /^\[WebView/.test(e.text) ? 'webview' : 'plugin',
+      run: e.run || null,
+      text: e.text,
+    }
+    process.stdout.write(`${JSON.stringify(rec)}\n`)
+  }
+
+  const summary = {
+    summary: true,
+    file: path.basename(file),
+    emitted: chosen.length,
+    entriesScanned: lines.length,
+    droppedByMaxEntries: dropped,
+    cursor: makeCursor(file, position),
+    hasError: sawError,
+  }
+  process.stdout.write(`${JSON.stringify(summary)}\n`)
+  process.exit(sawError ? 1 : 0)
+}
+
+function runHeadless(file) {
+  if (opts.mark) {
+    process.stdout.write(`${makeCursor(file, fileSize(file))}\n`)
+    process.exit(0)
+  }
+
+  // Start where the caller asked, or from the tail seed for a one-shot read.
+  currentFile = file
+  carry = ''
+  let sinceMs = null
+  if (opts.since) {
+    const resolved = resolveSince(opts.since, file)
+    if (resolved.kind === 'invalid') {
+      console.error(`nplog: could not read --since "${resolved.raw}" as a cursor, a duration (10m), or a time (19:36)`)
+      process.exit(2)
+    }
+    if (resolved.kind === 'offset') {
+      position = resolved.offset
+      readNewBytes()
+    } else {
+      // Time-based: byte offsets tell us nothing about event times, so read the
+      // whole file and filter on each entry's stamp. The ring buffer keeps the
+      // newest MAX_LINES entries, which is the end we care about.
+      sinceMs = resolved.ms
+      position = 0
+      readNewBytes()
+    }
+  } else {
+    openFile(file, true)
+  }
+  opts.sinceMs = sinceMs
+
+  if (opts.waitIdleSec > 0) {
+    const deadline = Date.now() + opts.timeoutSec * 1000
+    let quietSince = Date.now()
+    let lastSize = fileSize(file)
+    for (;;) {
+      sleep(250)
+      const size = fileSize(file)
+      if (size !== lastSize) {
+        lastSize = size
+        quietSince = Date.now()
+        readNewBytes()
+      }
+      if (Date.now() - quietSince >= opts.waitIdleSec * 1000) break
+      if (Date.now() >= deadline) break
+    }
+    readNewBytes()
+  }
+
+  emitJson(file, position)
+}
+
 function main() {
   const file = opts.file || findLatestLog()
   if (!file) {
@@ -914,8 +1240,13 @@ function main() {
     process.exit(1)
   }
 
+  // Headless first: these modes are meant to be piped, so they must not
+  // require a TTY and must never touch the alternate screen.
+  if (opts.json || opts.mark) return runHeadless(file)
+
   if (!process.stdin.isTTY) {
     console.error('nplog: needs an interactive terminal (stdin is not a TTY)')
+    console.error('       for scripted use add --json (see --help)')
     process.exit(1)
   }
 

@@ -136,6 +136,33 @@ Two consequences to preserve:
 - A fixture whose outer and inner stamps agree cannot catch a regression here. `sample.log`
   deliberately uses a single late flush stamp for every line.
 
+## Only a line that *opens* a structure may start a block
+
+A multi-line entry begins when a line ends with `{` or `[`. Unbalanced depth alone is
+far too loose — NotePlan's own native logging contains prose like
+
+```
+[IAPHandler Received a purchase update
+```
+
+whose stray `[` made the parser swallow the next several hundred lines into one 40 KB
+entry, which then got classified as an ERROR because the word appeared somewhere inside
+it. `opensStructure()` is the guard; don't relax it.
+
+## Two log files, two formats
+
+| File | Shape |
+| --- | --- |
+| `Logs/co.noteplan.NotePlan3 <ts>.log` | everything, every plugin; each line prefixed `<timestamp> JSLog:` |
+| `Plugins/<id>/_MCP-console.log` | one plugin, marker already stripped, accumulates forever (some are months stale) |
+
+The second is what the NotePlan MCP's `noteplan_plugins action:"log"` reads, and what
+`--plugin <id>` reads. Because its lines carry **no** `JSLog:` marker, parsing it
+requires `markerOptional` — otherwise `entryPayload()` returns null for every line and
+you keep only the object bodies (measured: 1424 lines collapsed to 69 entries, all the
+plain lines silently dropped). `--raw` has the same requirement and used to return early
+before the block-opening check, so it could not group objects at all.
+
 ## Other things worth knowing before you change rendering
 
 - **Styling happens in one pass.** `styleLine()` paints a per-character style array and then
@@ -150,6 +177,12 @@ Two consequences to preserve:
   corrupt later rows or the status bar. Truncation uses `slice(0, cols)`, which counts UTF-16
   code units rather than display columns, so a line of emoji can come up a little short of the
   margin — harmless, and deliberately not "fixed" with a width table.
+- **Headless mode must never touch the alternate screen.** `--json`/`--mark` branch out
+  of `main()` before the TTY check, because they are meant to be piped. If you add
+  interactive setup to `main()`, put it after that branch.
+- **`sleep()` uses `Atomics.wait`, not a spin loop.** The settle loop in `--wait-idle` is
+  synchronous by design, but polling `Date.now()` pegged a core — which matters for a
+  command an agent may call repeatedly.
 - **Reading the screen back over AppleScript is unreliable while output streams.**
   `contents of current session` can return a half-drawn frame, which looks like a rendering bug
   (a status bar reading `DEBU` instead of `DEBUG`). Verify against a static log with `--file`, or
