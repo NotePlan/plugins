@@ -127,8 +127,8 @@ Everything is a control key, because compact Mac keyboards have no PgUp / PgDn /
 | `Tab` | cycle context: `match only` → `match+1 lines` → `+5` → `+10` → back |
 | `^T` | show / hide timestamps |
 | `^G` | show / hide the run + idle rules |
-| `^U` | clear the filter |
-| `^L` | clear the buffer (drop history, keep following) |
+| `^U` | clear the filter text |
+| `^L` | clear the display (drop buffer history, keep following, start fresh) |
 | `^B` / `^F` | page **b**ack / **f**orward |
 | `^P` / `^N` | one line **p**revious / **n**ext |
 | `^A` / `^E` | jump to top / end (`^E` also resumes following) |
@@ -143,7 +143,14 @@ arrow keys work too.
 ### The status bar
 
 ```
- filter: getRemindersGenerated|refreshSomeSections   re  ctx:match only  52/8791 (416 rows)  FOLLOW
+ filter (^U clear): getRemindersGenerated|refreshSomeSections   re  ctx:match only  52/8791 (416 rows)  FOLLOW
+```
+
+With no filter typed, that space names the other clear command instead — `^L` — since "clear"
+and "wipe" read as near-synonyms otherwise and it's easy to reach for the wrong one:
+
+```
+ filter: (^L clears display)   ctx:match only  8791/8791  FOLLOW
 ```
 
 - `re` — the filter compiled as a regex. If it can't (say you've typed `Section(` and haven't

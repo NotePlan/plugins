@@ -4,6 +4,14 @@ All notable changes to `nplog` are documented here. Versions follow
 [Semantic Versioning](https://semver.org/): MAJOR for breaking CLI/output changes, MINOR for
 new features, PATCH for fixes. Check the current version with `nplog --version`.
 
+## [1.0.3] - 2026-07-30
+
+- Clarified `^U` vs `^L`, which read as near-synonyms ("clear" vs "wipe") and were easy to
+  confuse. The filter box in the status bar now names what each one does inline: `filter (^U
+  clear): foo` while typing, or `filter: (^L clears display)` when the filter's empty. The
+  bottom help line now reads `^U clear filter` / `^L clear display` instead of `^U clear` /
+  `^L wipe`. No behavior changed — both commands already did what they say.
+
 ## [1.0.2] - 2026-07-30
 
 - Idle/run separator rules now carry a local `YYYY-MM-DD HH:MM:SS` clock at the start of their
