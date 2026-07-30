@@ -2,7 +2,7 @@
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
 ## [1.2.0] - 2026-07-30
-- New: `@repeat(interval, <date>)` now supports a concrete base date, in any NotePlan calendar-note date-spec — day (`YYYY-MM-DD`), week (`YYYY-Wnn`), month (`YYYY-MM`), quarter (`YYYY-Qn`) or year (`YYYY`). When present, the next repeat is calculated from that fixed date rather than from the task's scheduled date or completion date. The `+` prefix (e.g. `@repeat(+1m, 2026-05-12)`) still takes precedence, in which case the concrete date is ignored for scheduling.
+- New: `@repeat(interval, <date>)` now supports a concrete base date, written using any of NotePlan's calendar-note date formats — day (`YYYY-MM-DD`), week (`YYYY-Wnn`), month (`YYYY-MM`), quarter (`YYYY-Qn`) or year (`YYYY`). This works the same whether the task is in a project note or a calendar note. When present, the next repeat is calculated from that fixed date rather than from the task's scheduled date or completion date. The `+` prefix (e.g. `@repeat(+1m, 2026-05-12)`) still takes precedence, in which case the concrete date is ignored for scheduling.
 - After each completion or cancellation, the concrete date is advanced by the same interval and keeps its original format (e.g. `2026-W19` → `2026-W20`), including correctly across 52- and 53-week year boundaries.
 
 ## [1.1.4] - 2026-05-21

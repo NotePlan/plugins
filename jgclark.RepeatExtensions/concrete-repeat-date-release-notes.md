@@ -17,7 +17,7 @@ Adds an optional concrete base date to `@repeat` tags, using the syntax `@repeat
 ```
 
 - **`interval`** — any existing interval format (e.g. `1d`, `2w`, `3m`, `1y`).
-- **`<date>`** — the repeat anchor, given in any NotePlan calendar-note date-spec:
+- **`<date>`** — the repeat anchor, given in any of NotePlan's calendar-note date formats (works the same in project notes and calendar notes):
   - day: `YYYY-MM-DD`
   - week: `YYYY-Wnn`
   - month: `YYYY-MM`
