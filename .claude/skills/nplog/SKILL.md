@@ -100,8 +100,12 @@ For a plugin that refreshes on a timer (the Dashboard does), the run you care ab
 wiped seconds later by an unrelated background refresh. Measured for the same second:
 32 unique lines there vs 66 in the main log.
 
-The main log is a strict superset and the only durable record. `nplog` reads only that.
-Use the MCP's log for a quick human eyeball if you like, never as evidence.
+The main log is a strict superset and the only durable record. `nplog` reads that by
+default. Use the MCP's log for a quick human eyeball if you like, never as evidence about
+a specific past run -- unless you're only interested in what's happening in the *current*
+run, in which case `nplog --plugin <pluginID>` tails it directly (much lower latency than
+the main log's flush lag) and keeps streaming through the resets. Still not durable
+history -- just a faster window onto whatever is happening right now.
 
 ## Notes
 

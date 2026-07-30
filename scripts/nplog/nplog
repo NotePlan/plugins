@@ -31,9 +31,52 @@ function isExcludedNoise(text) {
   return false
 }
 
-// NPLOG_DIR overrides the location -- handy for beta builds in a different
-// container, and it's what the rotation tests point at.
-const LOG_DIR = process.env.NPLOG_DIR || path.join(os.homedir(), 'Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Logs')
+// Where NotePlan's container lives differs by how it was installed --
+// App Store and Setapp use different bundle IDs, hence different Containers
+// paths. install.sh asks which one you have (once, when it can't tell on
+// its own) and writes the answer to CONFIG_FILE; NPLOG_APP_SUPPORT_DIR
+// overrides both, for CI/testing or a beta build in a nonstandard location.
+const APPSTORE_CONTAINER = path.join(os.homedir(), 'Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3')
+const SETAPP_CONTAINER = path.join(os.homedir(), 'Library/Containers/co.noteplan.NotePlan-setapp/Data/Library/Application Support/co.noteplan.NotePlan-setapp')
+const CONFIG_FILE = path.join(os.homedir(), '.config/nplog/config.json')
+
+function loadConfiguredContainerDir() {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'))
+    if (cfg && typeof cfg.appSupportDir === 'string' && cfg.appSupportDir) return cfg.appSupportDir
+  } catch (err) {
+    // no config yet, or unreadable -- fall through to auto-detect
+  }
+  return null
+}
+
+function resolveContainerDir() {
+  if (process.env.NPLOG_APP_SUPPORT_DIR) return process.env.NPLOG_APP_SUPPORT_DIR
+  const configured = loadConfiguredContainerDir()
+  if (configured) return configured
+  // No config written yet (install.sh wasn't run, or was skipped) -- fall
+  // back to whichever container actually exists on disk. If both or
+  // neither exist this can guess wrong; run install.sh to resolve it once.
+  try {
+    if (fs.statSync(APPSTORE_CONTAINER).isDirectory()) return APPSTORE_CONTAINER
+  } catch (err) {
+    // doesn't exist -- try the other one
+  }
+  try {
+    if (fs.statSync(SETAPP_CONTAINER).isDirectory()) return SETAPP_CONTAINER
+  } catch (err) {
+    // doesn't exist either
+  }
+  return APPSTORE_CONTAINER // still return something, so errors downstream are clear rather than a crash here
+}
+
+const CONTAINER_DIR = resolveContainerDir()
+
+// NPLOG_DIR overrides just the Logs path specifically (kept for
+// compatibility with existing setups); NPLOG_APP_SUPPORT_DIR / the config
+// file above cover both this and PLUGINS_DIR from one source of truth.
+const LOG_DIR = process.env.NPLOG_DIR || path.join(CONTAINER_DIR, 'Logs')
+const PLUGINS_DIR = path.join(CONTAINER_DIR, 'Plugins')
 
 // Deliberately NOT used: <Plugins>/<id>/_MCP-console.log, the per-plugin file the
 // NotePlan MCP's `noteplan_plugins action:"log"` reads. It looks appealing (already
@@ -44,7 +87,7 @@ const LOG_DIR = process.env.NPLOG_DIR || path.join(os.homedir(), 'Library/Contai
 // there and missing here. The main log is a strict superset and the only ground truth.
 
 // Bump this and add a matching entry to CHANGELOG.md for any user-visible change.
-const VERSION = '1.0.3'
+const VERSION = '1.1.0'
 
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
@@ -66,6 +109,7 @@ function parseArgs(argv) {
     mode: 0,
     raw: false,
     file: null,
+    plugin: null,
     // Hidden by default -- the repeated timestamp/severity/source prefix is
     // chrome once you're scanning, and idle/run separators now carry their
     // own clock (see separatorClock), so a bird's-eye sense of the log's
@@ -112,6 +156,7 @@ function parseArgs(argv) {
       const n = Number(argv[++i])
       if (Number.isFinite(n) && n >= 0) opts.idleGapSec = n
     } else if (a === '--file') opts.file = argv[++i]
+    else if (a === '--plugin') opts.plugin = argv[++i]
     else if (a === '--mode') {
       const idx = CONTEXT_MODES.indexOf(Number(argv[++i]))
       if (idx >= 0) opts.mode = idx
@@ -127,6 +172,11 @@ function parseArgs(argv) {
       console.log(`  --idle-gap SECS   rule when the log goes quiet this long (default ${DEFAULT_IDLE_GAP_SEC}, 0 = off)`)
       console.log('  --no-separators   no run/idle rules at all (toggle live with ^G)')
       console.log('  --file PATH       pin one log instead of following the newest')
+      console.log("  --plugin ID       tail one plugin's _MCP-console.log instead of the main log")
+      console.log('                    (lower latency for that plugin, but only the current run --')
+      console.log('                    NotePlan truncates it on every invocation; keeps streaming')
+      console.log('                    through resets. Path resolved from ~/.config/nplog/config.json,')
+      console.log('                    written by install.sh, or NPLOG_APP_SUPPORT_DIR)')
       console.log('  --version         print the version and exit')
       console.log('')
       console.log('Non-interactive, for scripts and agents:')
@@ -158,6 +208,15 @@ function parseArgs(argv) {
 }
 
 const opts = parseArgs(process.argv.slice(2))
+
+// --plugin is a pinned-file mode like --file, plus a different line format
+// (see consumePluginLine): _MCP-console.log has no outer flush-timestamp or
+// "JSLog:" marker to strip -- it's already in the same "payload" shape
+// entryPayload() produces from the main log.
+if (opts.plugin) {
+  opts.file = path.join(PLUGINS_DIR, opts.plugin, '_MCP-console.log')
+  opts.pluginMode = true
+}
 
 // ---- log file discovery ----------------------------------------------------
 
@@ -361,6 +420,24 @@ function consumeLine(rawLine) {
     pushLine(body, payloadStamp(body))
     openEntry = { index: lines.length - 1, count: 0, ...st }
   }
+}
+
+// --plugin mode: _MCP-console.log lines are already in "payload" form --
+// no outer flush-timestamp, no "JSLog:" marker -- so unlike consumeLine(),
+// nothing here needs LEADING_TS_RE-stripping before treating a line as an
+// entry. Stripping it (as the --raw/markerOptional path in consumeLine()
+// does) would be wrong here: there is only ONE timestamp per line, and
+// removing it would break payloadStamp()'s gap arithmetic and drop the
+// timestamp from what's displayed. appendToOpenEntry() is still reused for
+// continuation lines -- its own LEADING_TS_RE-strip is a no-op if a
+// continuation line here doesn't repeat a timestamp, and correct if it does.
+function consumePluginLine(rawLine) {
+  if (openEntry) return appendToOpenEntry(rawLine)
+  const body = tidy(rawLine)
+  if (isExcludedNoise(body)) return
+  pushLine(body, payloadStamp(body))
+  const st = updateDepth(body, { depth: 0, inString: false, escape: false })
+  if (st.depth > 0 && opensStructure(body)) openEntry = { index: lines.length - 1, count: 0, ...st }
 }
 
 // ---- view (filter + context) ----------------------------------------------
@@ -808,13 +885,67 @@ let currentFile = null
 let position = 0
 let carry = ''
 
+// `size < position` alone is NOT a reliable signal that a file was
+// truncated and rewritten in place -- confirmed empirically that an
+// in-place O_TRUNC rewrite doesn't change the inode, and if the new content
+// regrows to match or exceed the old position before the next poll, a
+// size-only check misses it entirely. This matters most for --plugin mode,
+// where _MCP-console.log is truncated and rewritten on every plugin
+// invocation: missing it isn't just a missed reset notice -- readNewBytes()
+// would silently read starting at the stale `position` into unrelated new
+// content and display a plausible-looking but WRONG line, indistinguishable
+// from a genuinely torn line in the source file. The last TAIL_FINGERPRINT_LEN
+// bytes ending at `position` are therefore re-verified against disk on
+// every poll, catching a same-size-or-larger rewrite too. See
+// scripts/nplog/utils/log-timing.js's Tailer for the investigation that
+// found this.
+const TAIL_FINGERPRINT_LEN = 64
+let tailFingerprint = Buffer.alloc(0)
+
+function captureTailFingerprint() {
+  if (position <= 0 || !currentFile) {
+    tailFingerprint = Buffer.alloc(0)
+    return
+  }
+  const len = Math.min(TAIL_FINGERPRINT_LEN, position)
+  let fd
+  try {
+    fd = fs.openSync(currentFile, 'r')
+    const buf = Buffer.allocUnsafe(len)
+    fs.readSync(fd, buf, 0, len, position - len)
+    tailFingerprint = buf
+  } catch (err) {
+    tailFingerprint = Buffer.alloc(0) // unreadable -- can't verify; next poll's own stat/read failure is the fallback
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd)
+  }
+}
+
+function wasFileRewritten(currentSize) {
+  if (position <= 0) return false
+  if (currentSize < position) return true // unambiguous, cheap case
+  if (tailFingerprint.length === 0) return false
+  let fd
+  try {
+    fd = fs.openSync(currentFile, 'r')
+    const buf = Buffer.allocUnsafe(tailFingerprint.length)
+    const got = fs.readSync(fd, buf, 0, tailFingerprint.length, position - tailFingerprint.length)
+    return got !== tailFingerprint.length || !buf.equals(tailFingerprint)
+  } catch (err) {
+    return false
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd)
+  }
+}
+
 function ingest(chunk) {
   carry += chunk
   const parts = carry.split('\n')
   carry = parts.pop()
   for (const line of parts) {
     if (!line) continue
-    consumeLine(line)
+    if (opts.pluginMode) consumePluginLine(line)
+    else consumeLine(line)
   }
 }
 
@@ -826,10 +957,16 @@ function readNewBytes() {
   } catch (err) {
     return
   }
-  if (st.size < position) {
-    // truncated in place -- restart from the top of the file
+  if (wasFileRewritten(st.size)) {
+    // truncated/rewritten in place -- restart from the top of the file.
+    // For --plugin this is routine (NotePlan wipes _MCP-console.log on
+    // every invocation), so it's surfaced as a visible marker rather than
+    // silently losing whatever was unread at the reset.
+    closeEntry() // don't let a block from before the reset swallow new content
+    if (opts.pluginMode) pushLine(`--- ${path.basename(currentFile)} was reset by NotePlan (new run) ---`)
     position = 0
     carry = ''
+    tailFingerprint = Buffer.alloc(0)
   }
   if (st.size === position) return
   let fd
@@ -847,6 +984,7 @@ function readNewBytes() {
   } finally {
     fs.closeSync(fd)
   }
+  captureTailFingerprint()
   scheduleRender()
 }
 
@@ -863,6 +1001,7 @@ function openFile(file, seed) {
     st = fs.statSync(file)
   } catch (err) {
     position = 0
+    tailFingerprint = Buffer.alloc(0)
     return
   }
   if (seed && st.size > 0) {
@@ -883,6 +1022,7 @@ function openFile(file, seed) {
   } else {
     position = seed ? st.size : 0
   }
+  captureTailFingerprint()
 }
 
 function checkRotation() {
@@ -1388,6 +1528,25 @@ function main() {
   if (!file) {
     console.error(`nplog: no co.noteplan.NotePlan3*.log found under ${LOG_DIR}`)
     process.exit(1)
+  }
+
+  if (opts.pluginMode) {
+    let st = null
+    try {
+      st = fs.statSync(file)
+    } catch (err) {
+      // doesn't exist -- st stays null
+    }
+    if (!st || st.size === 0) {
+      console.error(`nplog: ${file}`)
+      console.error(st ? '       exists but is empty.' : "       doesn't exist yet.")
+      console.error(`       '${opts.plugin}' may not have logged anything this NotePlan session yet,`)
+      console.error('       or NotePlan may not have started writing this file for it at all --')
+      console.error("       that can happen if this plugin's MCP integration has never been used.")
+      console.error('       Trigger any command for this plugin in NotePlan; nplog will keep')
+      console.error("       watching and pick it up the moment it appears -- no need to restart.")
+      console.error('')
+    }
   }
 
   // Headless first: these modes are meant to be piped, so they must not

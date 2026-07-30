@@ -65,7 +65,9 @@ Pass a different directory to override the location, e.g.
 
 Because it's a **symlink**, a later `git pull` updates the tool you actually run — there's no
 need to re-install. If `~/.local/bin` isn't on your `PATH`, the installer tells you what to add
-to your shell profile.
+to your shell profile. It also detects (or asks, once) which NotePlan install you have —
+needed for [`--plugin`](#--plugin-fastest-data-for-one-plugin) — and remembers the answer in
+`~/.config/nplog/config.json`.
 
 You can also skip installing and just run it in place: `node scripts/nplog/nplog`.
 
@@ -115,6 +117,7 @@ nplog --idle-gap 10                # only rule off lulls of 10s+ (0 = never)
 nplog --no-separators              # no run/idle rules at all
 nplog --raw                        # keep non-JSLog lines (NotePlan's own native logging)
 nplog --file "/path/to/some.log"   # pin one file instead of auto-following
+nplog --plugin jgclark.Dashboard   # fastest data for one plugin -- see below
 ```
 
 ### Keys
@@ -398,11 +401,11 @@ a crash:
 | `grep '\| ERROR \|'` | zero matches; WARN/ERROR use emoji delimiters |
 | filter on the leading timestamp | wrong on ~2/3 of lines, by up to hours |
 
-### Why only the main log
+### Why only the main log (by default)
 
 There is a second, tempting source: `<Plugins>/<id>/_MCP-console.log`, which the NotePlan
 MCP's `noteplan_plugins action:"log"` reads. It is already scoped to one plugin and
-already has the `JSLog:` marker stripped. **nplog deliberately does not use it.**
+already has the `JSLog:` marker stripped. **nplog does not use it by default.**
 
 Measured on a live system:
 
@@ -412,16 +415,57 @@ Measured on a live system:
 | completeness (same second) | 66 unique lines | 32 — a subset, nothing it had was missing here |
 | promptness | lags, flushes in batches | written immediately |
 
-The truncation is disqualifying: Dashboard refreshes on a timer, so the run you care
-about is wiped seconds later by an unrelated background refresh. Watching one file
+The truncation is disqualifying as a *default*: Dashboard refreshes on a timer, so the run
+you care about is wiped seconds later by an unrelated background refresh. Watching one file
 through three invocations, it went 9 lines → 20,982 bytes → 5,314 bytes — it shrank.
 
-The main log is a strict superset and the only durable record, so that is what nplog
-reads. Its one weakness — the flush lag — is handled by `--wait-idle` refusing to call
-an untouched file "finished".
+The main log is a strict superset and the only durable record, so that is what nplog reads
+by default. Its one weakness — the flush lag — is handled by `--wait-idle` refusing to call
+an untouched file "finished". When speed matters more than durability, opt in explicitly
+with [`--plugin`](#--plugin-fastest-data-for-one-plugin) below.
 
 Agents working in this repo get this as a skill — see
 [`.claude/skills/nplog/SKILL.md`](../../.claude/skills/nplog/SKILL.md).
+
+### `--plugin`: fastest data for one plugin
+
+```bash
+nplog --plugin jgclark.Dashboard
+```
+
+Tails that plugin's `_MCP-console.log` instead of the main log — same interactive viewer,
+filters, context modes, and `--json` headless mode, just a different, much lower-latency
+source. In practice it wins the race against the main log's flush lag essentially every time
+(see the investigation in [`utils/AGENTS.md`](AGENTS.md) if you want the numbers).
+
+The tradeoff from the table above still applies: `_MCP-console.log` only ever holds the
+**current run** — NotePlan truncates and rewrites it on every invocation of that plugin.
+`nplog` keeps streaming right through a reset (no restart needed) and drops a marker in the
+buffer when it happens:
+
+```
+--- _MCP-console.log was reset by NotePlan (new run) ---
+```
+
+If you see that a lot, it just means the plugin runs often (a timer-driven refresh, say) —
+not that anything is wrong. If you need the *complete* history across multiple runs rather
+than just the fastest view of the current one, use the default main-log mode instead, or see
+[`utils/log-timing.js`](utils/log-timing.js) for comparing the two.
+
+**First-time setup:** `--plugin` needs to know where NotePlan's container lives, which
+differs between the App Store and Setapp builds. `./install.sh` detects this automatically,
+or asks once if it can't tell, and remembers the answer in `~/.config/nplog/config.json`. Set
+`NPLOG_APP_SUPPORT_DIR` yourself to override it (or skip `install.sh` and let auto-detection
+run every time).
+
+If the plugin hasn't logged anything yet this session, `nplog` warns rather than erroring,
+and keeps watching for the file to appear:
+
+```
+nplog: /Users/you/Library/.../Plugins/some.plugin/_MCP-console.log
+       doesn't exist yet.
+       'some.plugin' may not have logged anything this NotePlan session yet, ...
+```
 
 ## Filtering is regex
 
