@@ -122,6 +122,18 @@ export function getEnabledReminderLists(): TReminderListsResult {
     const enabledLists = Calendar.availableReminderLists({ enabledOnly: true })
     const result = titlesAndColorsFromReminderListObjects(enabledLists)
     logDebug('getEnabledReminderLists', `- ${String(result.titles.length)} enabled reminder list(s): ${result.titles.join(', ') || '(none)'}`)
+    // Name the lists that exist but are switched off in NotePlan. A reminder living
+    // in one of them is simply absent from the Dashboard, with nothing anywhere to
+    // say why -- which reads as "the Dashboard lost my reminder".
+    try {
+      const allTitles = titlesAndColorsFromReminderListObjects(Calendar.availableReminderLists()).titles
+      const ignored = allTitles.filter((t) => !result.titles.includes(t))
+      if (ignored.length > 0) {
+        logDebug('getEnabledReminderLists', `- ignoring ${String(ignored.length)} list(s) disabled in NotePlan: ${ignored.join(', ')}`)
+      }
+    } catch (err) {
+      logDebug('getEnabledReminderLists', `- could not enumerate all lists to report ignored ones: ${err.message}`)
+    }
     return result
   }
   // Older NotePlan: cannot read enabled/disabled or colors; use all accessible list titles
@@ -287,6 +299,10 @@ export function mapCalendarItemToReminderForDashboard(
     clof(calendarItem, "CalendarItem (for Reminder): ", ['title', 'date', 'occurences', 'isAllDay', 'isCompleted', 'priority'])
     clo(reminder, "  => Reminder: ")
   }
+  // One compact line per reminder: the raw EventKit fields next to what we derived.
+  // Strictly better than the older `if (title.match(/test/i))` dump, which only
+  // covered reminders that happened to have "test" in the name.
+  logDebug('reminderFromCalendarItem', `- list="${String(listname ?? "?")}" "${String(calendarItem.title).slice(0, 34)}" rawDate=${String(calendarItem.date)} isAllDay=${String(calendarItem.isAllDay)} occurences=${String(calendarItem.occurences ? calendarItem.occurences.length : 'none')} -> date=${String(reminder.date ?? 'UNDATED')} time=${String(reminder.time ?? '-')}`)
   return reminder
 }
 
@@ -468,6 +484,14 @@ export function bucketReminderItems(allItems: Array<TSectionItem>): {
   if (skippedFutureCount > 0) {
     logDebug('bucketReminderItems', `- skipped ${String(skippedFutureCount)} reminder(s) dated after ${tomorrowISO}`)
   }
+  // Which bucket each reminder landed in, so a mis-bucketed one is visible.
+  const bucketOf = (arr, name) => arr.forEach((it) => logDebug('bucketReminderItems', `- bucket=${name} "${String(it.reminder?.title ?? '?').slice(0, 34)}" date=${String(it.reminder?.date ?? 'UNDATED')} time=${String(it.reminder?.time ?? '-')}`))
+  bucketOf(timedTodayItems, 'timedToday')
+  bucketOf(untimedTodayItems, 'untimedToday')
+  bucketOf(yesterdayItems, 'yesterday')
+  bucketOf(tomorrowItems, 'tomorrow')
+  bucketOf(overdueItems, 'overdue')
+  bucketOf(undatedItems, 'undated')
 
   return {
     timedTodayItems: sortReminderSectionItems(timedTodayItems),
@@ -552,11 +576,16 @@ export async function getRemindersGeneratedData(
     // Fallback chain, so a dated reminder is never silently discarded just because
     // the section that would have hosted it is switched off. This section's setting
     // is "Show Undated/Overdue Reminders", so an overdue reminder belongs here by
-    // name, and a yesterday one is overdue in every sense that matters once there is
-    // no Yesterday section to put it in. Order: own section -> Overdue -> here.
-    // Tomorrow is deliberately excluded: a future reminder is neither undated nor
-    // overdue, and hiding the Tomorrow section is a reasonable way to say you don't
-    // want to see it yet.
+    // name; a yesterday one is overdue in every sense that matters once there is no
+    // Yesterday section to put it in; and an untimed reminder due today would
+    // otherwise vanish entirely when the Today section is off. Order in each case is
+    // own section -> Overdue (where applicable) -> here.
+    //
+    // Two buckets deliberately have no fallback:
+    //   - tomorrow: a future reminder is neither undated nor overdue, and hiding the
+    //     Tomorrow section is a reasonable way to say you don't want to see it yet.
+    //   - today's TIMED reminders whose time has not been reached: see the note in
+    //     getTimeBlockSectionData -- those are meant to stay hidden until they are due.
     if (undatedOverdueRemindersEnabled) {
       const overdueSectionVisible = Boolean(config.showOverdueSection)
       const fallbackItems: Array<TSectionItem> = []
@@ -569,6 +598,12 @@ export async function getRemindersGeneratedData(
       if (currentRemindersEnabled && !config.showYesterdaySection && !overdueSectionVisible && buckets.yesterdayItems.length > 0) {
         fallbackItems.push(...buckets.yesterdayItems)
       }
+      // Untimed reminders due today have only ever had one home, the Today section,
+      // so with that off they had nowhere to go at all. Same "Show Current Reminders"
+      // gate as yesterday, for the same reason.
+      if (currentRemindersEnabled && !config.showTodaySection && buckets.untimedTodayItems.length > 0) {
+        fallbackItems.push(...buckets.untimedTodayItems)
+      }
       if (fallbackItems.length > 0) {
         logDebug('getRemindersGeneratedData', `- REM fallback: adopting ${String(fallbackItems.length)} reminder(s) whose own section is off (overdueVisible=${String(overdueSectionVisible)} yesterdayVisible=${String(Boolean(config.showYesterdaySection))})`)
         undatedItems = sortReminderSectionItems(undatedItems.concat(fallbackItems))
@@ -577,6 +612,7 @@ export async function getRemindersGeneratedData(
 
     const maxInSection = config.maxItemsToShowInSection ?? 24
     const totalUndatedCount = undatedItems.length
+    logDebug('getRemindersGeneratedData', `- REM section will hold ${String(undatedItems.length)} reminder(s)`)
     if (totalUndatedCount > maxInSection) {
       undatedItems = undatedItems.slice(0, maxInSection)
     }
