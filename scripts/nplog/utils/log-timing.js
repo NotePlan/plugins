@@ -335,6 +335,20 @@ class PendingQueue {
   clear() {
     this.map.clear()
   }
+  // Oldest entry across every key -- each per-key array is already FIFO
+  // (pushed in arrival order), so only its head can be the oldest.
+  oldestWall() {
+    let oldest = null
+    for (const arr of this.map.values()) {
+      if (arr.length && (oldest === null || arr[0] < oldest)) oldest = arr[0]
+    }
+    return oldest
+  }
+  size() {
+    let n = 0
+    for (const arr of this.map.values()) n += arr.length
+    return n
+  }
 }
 
 function excerpt(text, maxLen = 100) {
@@ -351,6 +365,25 @@ function runCompare(opts) {
   let matches = []
   let gaps = [] // {label: a.label|b.label, payload}
 
+  // Live "keep waiting" countdown, written with \r so it updates in place
+  // rather than spamming the scrollback -- only when stdout is a real TTY,
+  // since a piped/redirected output would otherwise get raw \r bytes mixed
+  // into it. countdownLine holds the currently-displayed text (or '' if
+  // nothing's shown) so clearCountdown() knows how many columns to blank.
+  let countdownLine = ''
+  function clearCountdown() {
+    if (countdownLine) {
+      process.stdout.write(`\r${' '.repeat(countdownLine.length)}\r`)
+      countdownLine = ''
+    }
+  }
+  // Anything that prints a real line of output must go through this first,
+  // so it doesn't get smashed onto the end of the in-place countdown.
+  function logLine(text) {
+    clearCountdown()
+    console.log(text)
+  }
+
   function clearAll() {
     a.reset()
     b.reset()
@@ -358,7 +391,7 @@ function runCompare(opts) {
     pendingFromB.clear()
     matches = []
     gaps = []
-    console.log(`\n=== cleared @ ${new Date().toLocaleTimeString()} -- go trigger the NotePlan action now ===\n`)
+    logLine(`\n=== cleared @ ${new Date().toLocaleTimeString()} -- go trigger the NotePlan action now ===\n`)
   }
 
   function handleSide(sideLabel, entries, ownPending, otherPending, otherLabel) {
@@ -369,7 +402,7 @@ function runCompare(opts) {
         const firstLabel = delta >= 0 ? otherLabel : sideLabel
         const deltaAbs = Math.abs(delta)
         matches.push({ deltaMs: deltaAbs, firstLabel })
-        console.log(`MATCH  Δ${fmtMs(deltaAbs)}  ${firstLabel} first   ${excerpt(payload)}`)
+        logLine(`MATCH  Δ${fmtMs(deltaAbs)}  ${firstLabel} first   ${excerpt(payload)}`)
       } else {
         ownPending.push(payload, wallMs)
       }
@@ -389,11 +422,11 @@ function runCompare(opts) {
     const tagB = force ? '(still pending at exit)' : `(never reached ${a.label} within ${fmtMs(opts.gapTimeoutMs)})`
     for (const [payload] of pendingFromA.drainStale(cutoff)) {
       gaps.push({ label: a.label, payload })
-      console.log(`GAP    only in ${a.label} ${tag}   ${excerpt(payload)}`)
+      logLine(`GAP    only in ${a.label} ${tag}   ${excerpt(payload)}`)
     }
     for (const [payload] of pendingFromB.drainStale(cutoff)) {
       gaps.push({ label: b.label, payload })
-      console.log(`GAP    only in ${b.label} ${tagB}   ${excerpt(payload)}`)
+      logLine(`GAP    only in ${b.label} ${tagB}   ${excerpt(payload)}`)
     }
   }
 
@@ -426,6 +459,7 @@ function runCompare(opts) {
   }
 
   function printSummary(final) {
+    clearCountdown()
     console.log(final ? '\n=== Final summary ===\n' : `\n--- rolling report (${new Date().toLocaleTimeString()}) ---\n`)
     console.log('Own-timestamp delay vs wall clock, per file:')
     console.log(
@@ -462,9 +496,27 @@ function runCompare(opts) {
   }, opts.pollMs)
   const reportTimer = setInterval(() => printSummary(false), Math.max(1000, opts.reportEverySec * 1000))
 
+  // Ticks the in-place "keep waiting" line so it's obvious whether it's
+  // still worth leaving the process running -- shows the oldest pending
+  // line's remaining time until it either matches or becomes a reported gap.
+  function tickCountdown() {
+    const oldestA = pendingFromA.oldestWall()
+    const oldestB = pendingFromB.oldestWall()
+    const oldest = oldestA === null ? oldestB : oldestB === null ? oldestA : Math.min(oldestA, oldestB)
+    if (oldest === null) return clearCountdown()
+    const remaining = Math.max(0, opts.gapTimeoutMs - (Date.now() - oldest))
+    const totalPending = pendingFromA.size() + pendingFromB.size()
+    const text = `⏳ ${fmtMs(remaining)} until oldest pending line resolves (${totalPending} pending) -- 'q' for a report now`
+    process.stdout.write(`\r${text.padEnd(countdownLine.length)}`)
+    countdownLine = text
+  }
+  const countdownTimer = process.stdout.isTTY ? setInterval(tickCountdown, 1000) : null
+
   setupKeys(clearAll, () => {
     clearInterval(pollTimer)
     clearInterval(reportTimer)
+    if (countdownTimer) clearInterval(countdownTimer)
+    clearCountdown()
     sweepGaps(true) // force -- flush everything still pending as a gap, not just what's timed out
     printSummary(true)
     process.exit(0)
