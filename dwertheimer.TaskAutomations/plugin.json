@@ -275,7 +275,8 @@
     },
     {
       "DELETE_ME_IN_FUTURE": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv",
-      "DELETE_ME_IN_FUTURE2": "Task Sorter settings to be removed in a future release"
+      "DELETE_ME_IN_FUTURE2": "Task Sorter settings to be removed in a future release",
+      "type": "separator"
     },
     {
       "type": "separator"
@@ -419,7 +420,8 @@
     },
     {
       "DELETE_ME_IN_FUTURE3": "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
-      "DELETE_ME_IN_FUTURE4": "Task Sorter settings to be removed in a future release"
+      "DELETE_ME_IN_FUTURE4": "Task Sorter settings to be removed in a future release",
+      "type": "separator"
     },
     {
       "type": "separator"

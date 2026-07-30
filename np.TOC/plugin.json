@@ -14,7 +14,8 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.TOC/CHANGELOG.md",
   "plugin.commands": [
     {
-      "note": "================== COMMMANDS ========================"
+      "note": "================== COMMMANDS ========================",
+      "type": "separator"
     },
     {
       "name": "insert TOC",
@@ -38,7 +39,8 @@
   ],
   "plugin.settings": [
     {
-      "note": "================== SETTINGS ========================"
+      "note": "================== SETTINGS ========================",
+      "type": "separator"
     },
     {
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
