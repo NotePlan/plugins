@@ -452,6 +452,13 @@ not that anything is wrong. If you need the *complete* history across multiple r
 than just the fastest view of the current one, use the default main-log mode instead, or see
 [`utils/log-timing.js`](utils/log-timing.js) for comparing the two.
 
+**Run separators are idle-only in this mode.** The named-run rules you get on the main log —
+`Executing function 'onMessageFromHTMLView'` — are NotePlan's *own* notice that it invoked a
+plugin entry point, not something the plugin's `console.log` produced, so they never reach
+`_MCP-console.log` (measured: 33 in the main log over the same window, 0 here). You still get
+[idle-lull rules](#run-separators), just not ones labelled with the command that started the
+work. If you specifically need to see which command kicked off a run, use the main log.
+
 **First-time setup:** `--plugin` needs to know where NotePlan's container lives, which
 differs between the App Store and Setapp builds. `./install.sh` detects this automatically,
 or asks once if it can't tell, and remembers the answer in `~/.config/nplog/config.json`. Set
