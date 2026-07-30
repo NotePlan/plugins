@@ -44,11 +44,15 @@ const LOG_DIR = process.env.NPLOG_DIR || path.join(os.homedir(), 'Library/Contai
 // there and missing here. The main log is a strict superset and the only ground truth.
 
 // Bump this and add a matching entry to CHANGELOG.md for any user-visible change.
-const VERSION = '1.0.0'
+const VERSION = '1.0.1'
 
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
-const POLL_MS = 1000 // how often we look for rotation / new bytes
+// NotePlan itself batches writes to this file -- sometimes by tens of seconds,
+// historically by up to two hours -- so this interval is a small addition on
+// top of that, not the dominant source of latency. Kept short anyway so nplog
+// isn't adding a full second of its own once bytes do land.
+const POLL_MS = 250 // how often we look for rotation / new bytes
 const RENDER_MS = 80 // coalesce redraws while output is streaming
 // Output arrives in bursts, so most consecutive entries share a second. A 3s
 // lull reliably means one batch of work finished and another began.
