@@ -128,18 +128,20 @@ function renderTable(headers, rows) {
   return [line(headers), line(widths.map((w) => '-'.repeat(w))), ...rows.map(line)].join('\n')
 }
 
-// Repeated identical lines (noise messages especially) would otherwise bury
-// genuinely distinct examples under dozens of copies of the same one. Group
-// by exact payload, sort by frequency, and cap how many distinct examples
-// print -- the count alongside each still shows how much it dominated.
-function summarizeExamples(payloads, maxExamples) {
+// Group by exact payload and split on frequency rather than just capping by
+// rank. A high repeat count is a good proxy for "structural noise" (a
+// render-loop or a plugin-list scan hitting the same line every pass); a
+// one-off or rarely-seen line is much more likely to be something actually
+// worth a human's attention. So: summarize the frequent bucket (a handful of
+// samples is enough to identify it), but never cap the rare bucket -- that's
+// the one the question "is this meaningful or noise" is actually about.
+function splitByFrequency(payloads, freqThreshold) {
   const counts = new Map()
   for (const p of payloads) counts.set(p, (counts.get(p) || 0) + 1)
-  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1])
-  const shown = sorted.slice(0, maxExamples)
-  const omitted = sorted.length - shown.length
-  const omittedOccurrences = omitted > 0 ? sorted.slice(maxExamples).reduce((n, [, c]) => n + c, 0) : 0
-  return { shown, uniqueCount: sorted.length, omitted, omittedOccurrences }
+  const entries = [...counts.entries()].sort((a, b) => b[1] - a[1])
+  const frequent = entries.filter(([, c]) => c > freqThreshold)
+  const rare = entries.filter(([, c]) => c <= freqThreshold)
+  return { frequent, rare, uniqueCount: entries.length }
 }
 
 // ---- tailing: one instance per file, independent position/carry state ----
@@ -331,9 +333,9 @@ class PendingQueue {
   }
 }
 
-function excerpt(text) {
+function excerpt(text, maxLen = 100) {
   const oneLine = text.split('\n')[0]
-  return oneLine.length > 100 ? `${oneLine.slice(0, 100)}…` : oneLine
+  return oneLine.length > maxLen ? `${oneLine.slice(0, maxLen)}…` : oneLine
 }
 
 function runCompare(opts) {
@@ -382,17 +384,32 @@ function runCompare(opts) {
     }
   }
 
-  const MAX_GAP_EXAMPLES = 8
+  // A line repeated more than this many times within one gap side is treated
+  // as structural noise (a render loop, a plugin-list scan) and only
+  // summarized; anything at or below it is shown in full, uncapped -- that's
+  // the bucket worth actually reading.
+  const NOISE_FREQ_THRESHOLD = 3
+  const MAX_NOISE_SAMPLES = 5
 
   function printGapExamples(label, otherLabel) {
     const payloads = gaps.filter((g) => g.label === label).map((g) => g.payload)
     if (!payloads.length) return
-    const { shown, uniqueCount, omitted, omittedOccurrences } = summarizeExamples(payloads, MAX_GAP_EXAMPLES)
+    const { frequent, rare, uniqueCount } = splitByFrequency(payloads, NOISE_FREQ_THRESHOLD)
     console.log(`\n${label} only (never reached ${otherLabel}): ${payloads.length} total, ${uniqueCount} unique`)
-    for (const [payload, count] of shown) {
-      console.log(`  x${count}  ${excerpt(payload)}`)
+
+    if (frequent.length) {
+      const shown = frequent.slice(0, MAX_NOISE_SAMPLES)
+      const omittedOccurrences = frequent.slice(MAX_NOISE_SAMPLES).reduce((n, [, c]) => n + c, 0)
+      console.log(`  Repeated >${NOISE_FREQ_THRESHOLD}x (likely structural noise, not a completeness gap):`)
+      for (const [payload, count] of shown) console.log(`    x${count}  ${excerpt(payload)}`)
+      if (frequent.length > MAX_NOISE_SAMPLES) {
+        console.log(`    ... +${frequent.length - MAX_NOISE_SAMPLES} more frequent unique lines (${omittedOccurrences} more occurrences)`)
+      }
     }
-    if (omitted > 0) console.log(`  ... +${omitted} more unique (${omittedOccurrences} more occurrences)`)
+    if (rare.length) {
+      console.log(`  Seen ≤${NOISE_FREQ_THRESHOLD}x each -- worth a look, shown in full (${rare.length}):`)
+      for (const [payload, count] of rare) console.log(`    x${count}  ${excerpt(payload, 220)}`)
+    }
   }
 
   function printSummary(final) {
