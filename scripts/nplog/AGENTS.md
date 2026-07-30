@@ -231,15 +231,29 @@ from 2 to 30 seconds.
 
 - **`utils/log-timing.js`** — standalone, not part of nplog's own runtime. Tails one log file
   and reports wall-clock-now minus each complete line's own timestamp (single-file mode), or
-  races two files against each other by matching identical payload text FIFO-per-payload
-  (`--compare-file`, labeled **Full-Log** for `--file` — the main JSLog file — vs. **MCP-Log** for
-  `--compare-file`, one plugin's `_MCP-console.log`) to report which arrives first and by how
-  much, plus one-sided "gap" lines that never showed up on the other side within
-  `--gap-timeout-ms` (default 2 minutes — Full-Log flush lag has been observed past a minute in
-  practice and documented historically up to two hours, so anything shorter mislabels merely-slow
-  lines as missing). `_MCP-console.log` truncates on every plugin invocation rather than
-  appending, so its `Tailer` treats `size < position` as truncation-and-restart, not an error —
-  worth knowing if you extend this to another file that behaves the same way; it also tolerates
-  the compare file not existing yet (e.g. a plugin that hasn't logged anything this session). Press
-  `c` while it's running to reset all accumulated stats/pending state without restarting the
-  process, so a comparison window can be scoped to exactly one triggered action.
+  checks two files for completeness against each other (`--compare-file`, labeled **Full-Log**
+  for `--file` — the main JSLog file — vs. **MCP-Log** for `--compare-file`, one plugin's
+  `_MCP-console.log`). Which side is faster is not reported (MCP-Log wins essentially every race,
+  already established) — only whether a line ever showed up on both sides.
+  - **Matching is by `PREFIX_LEN` (100) leading characters, not full text**, FIFO per distinct
+    prefix. A prefix match with a differing tail is a **near match** (both full tails printed
+    side by side), not a hard gap — two log lines sharing their first 100 chars are almost always
+    "the same line" with a differing trailing detail. Trade-off: two genuinely different lines
+    that happen to share a 100-char prefix would incorrectly pair up.
+  - **`../noise-exclusions.js`** (the same list nplog's live viewer uses) is applied before a line
+    is even counted — dropped lines show up as `Excluded` in the per-file stats row, never as a
+    gap. Add a pattern there, not here, if a new noise message dominates gap reports.
+  - **One-sided "gap"** lines (no exact or near match within `--gap-timeout-ms`, default 2
+    minutes — Full-Log flush lag has been observed past a minute in practice, documented
+    historically up to two hours, so anything shorter mislabels merely-slow lines as missing).
+  - **`--record FILE`** appends every processed (post-exclusion) line from both sides as NDJSON
+    (`{side, wallMs, payload}`); **`--replay FILE`** re-runs the exact same matching/reporting
+    logic against a recorded file with zero live tailing — the way to iterate on the matching
+    algorithm itself (tweak `PREFIX_LEN`, add an exclusion) without re-triggering NotePlan every
+    time. Both live comparator and replay share one `makeComparator()` closure factory so the two
+    paths can't drift apart.
+  - `_MCP-console.log` truncates on every plugin invocation rather than appending, so its
+    `Tailer` treats `size < position` as truncation-and-restart, not an error; it also tolerates
+    the compare file not existing yet (e.g. a plugin that hasn't logged anything this session).
+  - Press `c` while running live to reset all accumulated stats/pending state without restarting
+    the process, so a comparison window can be scoped to exactly one triggered action.
