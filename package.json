@@ -163,6 +163,7 @@
     "bump-regex": "4.1.0",
     "chroma-js": "^3.1.2",
     "chrono-node": "^2.7.7",
+    "cipher-base": "^1.0.5",
     "clipboardy": "3.0.0",
     "columnify": "^1.6.0",
     "commander": "^8.1.0",
