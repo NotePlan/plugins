@@ -169,6 +169,7 @@
     "contentful-html-rich-text-converter": "1.0.11",
     "date-fns": "^2.30.0",
     "dayjs": "1.11.13",
+    "ejs": "^3.1.7",
     "enquirer": "^2.4.1",
     "fast-glob": "^3.3.2",
     "findup-sync": "4.0.0",
