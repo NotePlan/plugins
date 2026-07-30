@@ -781,11 +781,9 @@ function render() {
   const rowCount = rows.reduce((n, r) => n + (r.gap ? 0 : 1), 0)
   const linesLabel = rowCount > shown ? ` (${rowCount} rows)` : ''
   const right = ` ${reLabel}${timeLabel}ctx:${modeLabel}  ${shown}/${lines.length}${linesLabel}  ${followLabel} `
-  // "clear" and "wipe" read as near-synonyms in the footer, so people can't
-  // tell ^U (clears the filter text) from ^L (drops buffer history and starts
-  // fresh) apart without reading the docs. Naming what each one clears, right
-  // where the filter box is, fixes that without adding a new command.
-  const left = state.filter ? ` filter (^U clear): ${state.filter}` : ` filter: (^L clears display)`
+  // Always named here, not just when there's text to clear, so it doesn't
+  // also need repeating in the footer below.
+  const left = ` filter (^U to clear): ${state.filter}`
   const gapWidth = Math.max(1, cols - left.length - right.length)
   const statusLine = pad(left + ' '.repeat(gapWidth) + right, cols)
 
@@ -794,8 +792,8 @@ function render() {
   // Name what TAB actually cycles. An earlier "TAB=context→match +1" read as
   // though TAB *did something to* "match +1"; the current setting already
   // shows in the status bar above, so just describe the control.
-  const full = ` TAB: context (match+N lines)   ^T times   ^G runs   ^U clear filter   ^L clear display   ^B/^F page   ^P/^N line   ^A/^E top/end   ^C quit`
-  const compact = ` TAB: context (match+N lines)   ^T times   ^G runs   ^U clear filter   ^B/^F page   ^A/^E top/end   ^C quit`
+  const full = ` TAB: context (match+N lines)   ^T times   ^G runs   ^L clear display   ^B/^F page   ^P/^N line   ^A/^E top/end   ^C quit`
+  const compact = ` TAB: context (match+N lines)   ^T times   ^G runs   ^B/^F page   ^A/^E top/end   ^C quit`
   const help = full.length <= cols ? full : compact
   buf += `${ESC}[${termRows};1H${ESC}[2K${ESC}[2m${pad(state.status || help, cols)}${ESC}[0m`
 

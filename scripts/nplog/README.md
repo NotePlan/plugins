@@ -143,15 +143,11 @@ arrow keys work too.
 ### The status bar
 
 ```
- filter (^U clear): getRemindersGenerated|refreshSomeSections   re  ctx:match only  52/8791 (416 rows)  FOLLOW
+ filter (^U to clear): getRemindersGenerated|refreshSomeSections   re  ctx:match only  52/8791 (416 rows)  FOLLOW
 ```
 
-With no filter typed, that space names the other clear command instead — `^L` — since "clear"
-and "wipe" read as near-synonyms otherwise and it's easy to reach for the wrong one:
-
-```
- filter: (^L clears display)   ctx:match only  8791/8791  FOLLOW
-```
+The `(^U to clear)` hint is always there, filter typed or not — that's also why it isn't repeated
+in the bottom help line.
 
 - `re` — the filter compiled as a regex. If it can't (say you've typed `Section(` and haven't
   closed the paren yet) this reads `LITERAL(bad re)` and the text is matched literally
