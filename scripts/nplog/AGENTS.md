@@ -212,3 +212,10 @@ from 2 to 30 seconds.
   `contents of current session` can return a half-drawn frame, which looks like a rendering bug
   (a status bar reading `DEBU` instead of `DEBUG`). Verify against a static log with `--file`, or
   take a screenshot, before believing it.
+- **`noise-exclusions.js` drops lines entirely, before they reach the buffer.** This is not the
+  same thing as the dimmed chrome in `styleLine()` (timestamp/severity/source tag, still visible,
+  still filterable) — an excluded line is gone from both the interactive view and `--json`,
+  unrecoverable by any filter, and doesn't count toward `entriesScanned`. Only add a pattern here
+  for noise that has zero signal on every viewing (a benign warning NotePlan logs constantly); if
+  you'd ever want to see it with a broader filter, it belongs in `NOISE_SPANS` (dimmed) instead,
+  not here.
