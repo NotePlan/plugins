@@ -6,8 +6,8 @@
   "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "1.20.0.b1",
-  "plugin.releaseStatus": "beta",
+  "plugin.version": "1.20.0",
+  "plugin.releaseStatus": "full",
   "plugin.lastUpdateInfo": "v1.20.0: new '/Cancel incomplete tasks in a folder' command for import cleanup (#746).\nv1.19.4: fix '/Move top-level tasks in Editor to heading' when called from the CommandBar (#747).\nv1.19.3: further fix to '/Generate @repeats in recent notes' command.\nv1.19.2: fix to '/Generate @repeats in recent notes' command, which was failing on invalid lines from the API.\nv1.19.1: fix to '/Remove empty lines' command.\nv1.19.0: new '/Cancel incomplete tasks in a past year' command.\nv1.18.1: small tweaks.\nv1.18.0: new '/Clean up note filenames' command.\nv1.17.0: new '/Remove empty lines' command. Improvements to '/Remove empty elements' and '/Remove section from all notes' commands.\nv1.16.0: new '/Remove empty elements from recent notes' command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -403,16 +403,6 @@
       "type": "string",
       "default": "Missing Daily Notes.md",
       "required": false
-    },
-    {
-      "hidden": true,
-      "name": "openCalendarNoteInSplit",
-      "description": "Open calendar note in a split window (for callback)",
-      "jsFunction": "openCalendarNoteInSplit",
-      "arguments": [
-        "filename",
-        "cursor point (optional)"
-      ]
     },
     {
       "key": "stubsNoteFilename",
