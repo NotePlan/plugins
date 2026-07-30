@@ -458,10 +458,18 @@ everything up to and including the marker, and abbreviates `[WebView Log]` to `[
 
 **Use `--raw` to see NotePlan's own non-plugin logging too.**
 
+A handful of lines are dropped entirely regardless of filter — known-noisy messages that carry
+no signal on any viewing (e.g. `Skipping plugin command 'unknown': ...`, which NotePlan logs
+constantly and harmlessly). The list lives in [`noise-exclusions.js`](noise-exclusions.js); add a
+regex there for anything else that just buries real output.
+
 > **Gotcha if you write your own filter:** don't anchor on `^JSLog:`. NotePlan added the
 > leading `2026-07-29 11:34:54` timestamp at some point, and that anchor silently stopped
 > matching — the original `noteplan_log_filtered.sh` emitted *nothing* for months rather than
 > erroring. Strip the timestamp first, *then* anchor on `JSLog:`.
+
+See [`CHANGELOG.md`](CHANGELOG.md) for release notes. Check your installed version with
+`nplog --version`.
 
 ## Notes
 

@@ -20,6 +20,17 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 
+// Patterns for lines we never want to see, dropped before they enter the
+// buffer -- see noise-exclusions.js for what's in the list and why.
+const NOISE_EXCLUSIONS = require('./noise-exclusions')
+
+function isExcludedNoise(text) {
+  for (let i = 0; i < NOISE_EXCLUSIONS.length; i++) {
+    if (NOISE_EXCLUSIONS[i].test(text)) return true
+  }
+  return false
+}
+
 // NPLOG_DIR overrides the location -- handy for beta builds in a different
 // container, and it's what the rotation tests point at.
 const LOG_DIR = process.env.NPLOG_DIR || path.join(os.homedir(), 'Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Logs')
@@ -31,6 +42,9 @@ const LOG_DIR = process.env.NPLOG_DIR || path.join(os.homedir(), 'Library/Contai
 // on a timer, the run you care about is wiped seconds later. Measured against this
 // log for the same second: 32 unique lines there vs 66 here, with zero lines present
 // there and missing here. The main log is a strict superset and the only ground truth.
+
+// Bump this and add a matching entry to CHANGELOG.md for any user-visible change.
+const VERSION = '1.0.0'
 
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
@@ -64,7 +78,10 @@ function parseArgs(argv) {
   }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
-    if (a === '--raw') opts.raw = true
+    if (a === '--version' || a === '-v') {
+      console.log(VERSION)
+      process.exit(0)
+    } else if (a === '--raw') opts.raw = true
     else if (a === '--no-time' || a === '--no-timestamps') opts.showTime = false
     else if (a === '--no-separators') opts.separators = false
     else if (a === '--json') opts.json = true
@@ -100,6 +117,7 @@ function parseArgs(argv) {
       console.log(`  --idle-gap SECS   rule when the log goes quiet this long (default ${DEFAULT_IDLE_GAP_SEC}, 0 = off)`)
       console.log('  --no-separators   no run/idle rules at all (toggle live with ^G)')
       console.log('  --file PATH       pin one log instead of following the newest')
+      console.log('  --version         print the version and exit')
       console.log('')
       console.log('Non-interactive, for scripts and agents:')
       console.log('  --json            emit NDJSON (one JSON object per entry) and exit')
@@ -303,6 +321,7 @@ function consumeLine(rawLine) {
   // braces never balanced (truncated or malformed output).
   if (payload !== null) {
     closeEntry()
+    if (isExcludedNoise(payload)) return
     pushLine(payload, payloadStamp(payload))
     const st = updateDepth(payload, { depth: 0, inString: false, escape: false })
     if (st.depth > 0 && opensStructure(payload)) openEntry = { index: lines.length - 1, count: 0, ...st }
@@ -312,6 +331,7 @@ function consumeLine(rawLine) {
   if (openEntry) return appendToOpenEntry(rawLine)
 
   const body = tidy(rawLine.replace(LEADING_TS_RE, ''))
+  if (isExcludedNoise(body)) return
   if (opts.raw || opts.markerOptional) {
     // Every line starts an entry here, but still open a block on an unbalanced
     // brace so pretty-printed objects stay grouped -- returning early instead
