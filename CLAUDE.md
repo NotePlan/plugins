@@ -39,6 +39,22 @@ The most frequently used functions in the codebase are:
 - Configuration: getSettings, updateSettingsForPlugin
 - UI interaction: showMessage, showMessageYesNo, displayTitle
 
+## Viewing Plugin Logs
+
+Use `nplog` (in `scripts/nplog/`) to read NotePlan's plugin log. **Do not grep the raw log
+file** — the three obvious greps all silently return zero results, which reads as "no
+errors": `^JSLog:` misses the timestamp prefix, `| ERROR |` misses the emoji delimiters
+(`🥺 WARN 🥺`, `❗️ ERROR ❗️`), and the leading timestamp is the *flush* time, wrong on
+about two thirds of lines.
+
+- Humans: `nplog` for the interactive viewer (one-time `./scripts/nplog/install.sh`)
+- Scripts/agents: `node scripts/nplog/nplog --json` emits NDJSON, exit 1 if anything errored
+- After firing an x-callback: add `--follow --wait-idle 5` to stream until the run settles
+  (the log flushes in batches and can lag 20s+, so never read it immediately)
+- A Claude Code skill is committed at `.claude/skills/nplog/SKILL.md` — a hidden directory,
+  so `ls` won't show it; it loads automatically for anyone working in this repo
+- Full docs: `scripts/nplog/README.md`
+
 ## Debugging Infinite Loops and Freezes
 
 - Do not rely only on `logDebug`/`logInfo` when NotePlan freezes. The plugin console can buffer logs, and if the JSContext hangs the last useful line may never flush.

@@ -9,6 +9,11 @@ log file inside its app container (in addition to NotePlan's own log).
 output, and puts a **regex filter box** on screen that you can retype at any moment without
 restarting anything.
 
+It also has a [headless `--json` mode](#headless-mode-scripts-ci-and-ai-agents) for scripts
+and AI agents, and ships an accompanying Claude Code skill at
+[`.claude/skills/nplog/SKILL.md`](../../.claude/skills/nplog/SKILL.md) (a hidden directory —
+`ls` won't show it) so agents use the tool rather than grepping the log by hand.
+
 <img width="1774" height="892" alt="CleanShot 2026-07-29 at 16 08 46@2x" src="https://github.com/user-attachments/assets/dca65479-0b7b-440b-ad86-957090563e9a" />
 
 ## Why not just `tail | grep`?
