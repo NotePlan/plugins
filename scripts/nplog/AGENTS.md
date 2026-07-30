@@ -149,19 +149,44 @@ whose stray `[` made the parser swallow the next several hundred lines into one 
 entry, which then got classified as an ERROR because the word appeared somewhere inside
 it. `opensStructure()` is the guard; don't relax it.
 
-## Two log files, two formats
+## Two log files -- only one is ground truth
 
-| File | Shape |
-| --- | --- |
-| `Logs/co.noteplan.NotePlan3 <ts>.log` | everything, every plugin; each line prefixed `<timestamp> JSLog:` |
-| `Plugins/<id>/_MCP-console.log` | one plugin, marker already stripped, accumulates forever (some are months stale) |
+| | `Logs/co.noteplan.NotePlan3 <ts>.log` | `Plugins/<id>/_MCP-console.log` |
+| --- | --- | --- |
+| scope | everything, every plugin | one plugin |
+| prefix | `<timestamp> JSLog:` on every line | marker already stripped |
+| retention | append-only for the whole session | **truncated on every plugin invocation** |
+| promptness | lags; flushes in batches | written immediately |
 
-The second is what the NotePlan MCP's `noteplan_plugins action:"log"` reads, and what
-`--plugin <id>` reads. Because its lines carry **no** `JSLog:` marker, parsing it
-requires `markerOptional` — otherwise `entryPayload()` returns null for every line and
-you keep only the object bodies (measured: 1424 lines collapsed to 69 entries, all the
-plain lines silently dropped). `--raw` has the same requirement and used to return early
-before the block-opening check, so it could not group objects at all.
+The second is what the NotePlan MCP's `noteplan_plugins action:"log"` reads, and it is
+**deliberately not used here**. Measured on a live system for the same second: 32 unique
+lines there vs 66 in the main log, with nothing present there and missing here. Watching
+one file across three Dashboard invocations it went 9 lines → 20,982 bytes → 5,314 bytes
+— it *shrank*, because each invocation truncates it. Since the Dashboard refreshes on a
+timer, an unrelated background refresh wipes the run you were investigating within
+seconds. The main log is a strict superset and the only durable record.
+
+If you ever do want to parse that file, note its lines carry **no** `JSLog:` marker, so
+`entryPayload()` returns null for every one of them and you keep only the object bodies
+(measured: 1424 lines collapsed to 69 entries, every plain line silently dropped). That
+is what `markerOptional` exists for; `--raw` needs it too, and additionally used to
+return before the block-opening check so it could not group objects at all.
+
+## The main log flushes in BATCHES -- never treat quiet as finished
+
+The main log's one weakness. Measured live: after firing an x-callback the file sat
+untouched for **24 seconds**, then gained 80 lines in one write. The outer-vs-inner
+timestamp gap has historically reached **two hours**.
+
+This makes a naive settle loop actively harmful: a quiet-timer started right after an
+action fires immediately, emits zero entries, and the caller concludes the action logged
+nothing. `--wait-idle` therefore tracks "has anything arrived at all" separately from
+"has it gone quiet", refuses to finish until it has seen output, and reports `sawOutput` /
+`timedOut` in the summary so a missed read is distinguishable from a silent run.
+
+Corollaries: the default `--timeout` is 90s, not 30s; and `--follow` exists because no
+fixed wait can be right when a Dashboard refresh ping-pongs asynchronously for anything
+from 2 to 30 seconds.
 
 ## Other things worth knowing before you change rendering
 

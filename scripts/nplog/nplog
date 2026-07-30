@@ -24,12 +24,13 @@ const path = require('path')
 // container, and it's what the rotation tests point at.
 const LOG_DIR = process.env.NPLOG_DIR || path.join(os.homedir(), 'Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Logs')
 
-// NotePlan also keeps a per-plugin console log at <Plugins>/<id>/_MCP-console.log
-// -- already scoped to that plugin and already stripped of the "JSLog:" marker.
-// It's what the NotePlan MCP's `noteplan_plugins action:"log"` reads.
-function pluginsDir() {
-  return process.env.NPLOG_PLUGINS_DIR || path.join(path.dirname(LOG_DIR), 'Plugins')
-}
+// Deliberately NOT used: <Plugins>/<id>/_MCP-console.log, the per-plugin file the
+// NotePlan MCP's `noteplan_plugins action:"log"` reads. It looks appealing (already
+// scoped to one plugin, marker already stripped) but it is truncated on every plugin
+// invocation, so it holds only the most recent one -- and for a plugin that refreshes
+// on a timer, the run you care about is wiped seconds later. Measured against this
+// log for the same second: 32 unique lines there vs 66 here, with zero lines present
+// there and missing here. The main log is a strict superset and the only ground truth.
 
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
@@ -55,11 +56,11 @@ function parseArgs(argv) {
     mark: false,
     since: null,
     lastRun: false,
+    follow: false,
     waitIdleSec: 0,
-    timeoutSec: 30,
+    timeoutSec: 90,
     minLevel: null,
     maxEntries: 500,
-    plugin: null,
   }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
@@ -69,8 +70,8 @@ function parseArgs(argv) {
     else if (a === '--json') opts.json = true
     else if (a === '--mark') opts.mark = true
     else if (a === '--last-run') opts.lastRun = true
+    else if (a === '--follow') opts.follow = true
     else if (a === '--since') opts.since = argv[++i]
-    else if (a === '--plugin') opts.plugin = argv[++i]
     else if (a === '--min-level') opts.minLevel = String(argv[++i] || '').toLowerCase()
     else if (a === '--wait-idle') {
       const n = Number(argv[++i])
@@ -99,7 +100,6 @@ function parseArgs(argv) {
       console.log(`  --idle-gap SECS   rule when the log goes quiet this long (default ${DEFAULT_IDLE_GAP_SEC}, 0 = off)`)
       console.log('  --no-separators   no run/idle rules at all (toggle live with ^G)')
       console.log('  --file PATH       pin one log instead of following the newest')
-      console.log('  --plugin ID       read that plugin\'s own console log (see below)')
       console.log('')
       console.log('Non-interactive, for scripts and agents:')
       console.log('  --json            emit NDJSON (one JSON object per entry) and exit')
@@ -109,8 +109,13 @@ function parseArgs(argv) {
       console.log('                    (10m, 30s, 2h; bare number = minutes), OR a local')
       console.log('                    wall-clock time (19:36, 19:36:56, "2026-07-29 19:36")')
       console.log('  --last-run        only entries since the most recent "Executing function"')
+      console.log('  --follow          stream entries as they arrive instead of one shot.')
+      console.log('                    Use when a run\'s duration is unknown (an x-callback')
+      console.log('                    may ping-pong async for 20-30s). Combine with')
+      console.log('                    --wait-idle to stop once it settles.')
       console.log('  --wait-idle SECS  wait until the log has been quiet this long before emitting')
-      console.log(`  --timeout SECS    give up waiting after this long (default ${30})`)
+      console.log('  --timeout SECS    give up waiting after this long (default 90; the log')
+      console.log('                    flushes in batches and can lag 20s+, so do not go low)')
       console.log('  --min-level LVL   debug | info | warn | error')
       console.log('  --max-entries N   keep only the last N (default 500)')
       console.log('')
@@ -120,12 +125,6 @@ function parseArgs(argv) {
       console.log('  nplog --since "$C" --wait-idle 3 --json --min-level warn')
       process.exit(0)
     } else if (!a.startsWith('-')) opts.filter = a
-  }
-  // A plugin's own console log is already scoped and already has the "JSLog:"
-  // marker stripped, so entries must not be required to carry it.
-  if (opts.plugin) {
-    opts.file = path.join(pluginsDir(), opts.plugin, '_MCP-console.log')
-    opts.markerOptional = true
   }
   return opts
 }
@@ -232,8 +231,11 @@ function closeEntry() {
   openEntry = null
 }
 
+let totalPushed = 0
+
 function pushLine(text, stampMs) {
   lines.push(text)
+  totalPushed++
   stamps.push(typeof stampMs === 'number' ? stampMs : NaN)
   if (lines.length > MAX_LINES) {
     const dropped = lines.length - MAX_LINES
@@ -1097,7 +1099,71 @@ function sleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
 }
 
-function emitJson(file, startOffset) {
+function emitSummary(file, waitInfo, emitted, sawError) {
+  const w = waitInfo || {}
+  const summary = {
+    summary: true,
+    file: path.basename(file),
+    emitted,
+    entriesScanned: lines.length,
+    droppedByMaxEntries: w.dropped || 0,
+    cursor: makeCursor(file, position),
+    hasError: sawError,
+  }
+  // Distinguish "the action logged nothing" from "I gave up before NotePlan
+  // flushed". Without this an agent cannot tell a clean run from a missed read.
+  if (opts.waitIdleSec > 0 || opts.follow) {
+    summary.sawOutput = Boolean(w.sawOutput)
+    summary.timedOut = Boolean(w.timedOut)
+    if (w.timedOut && !w.sawOutput) {
+      summary.warning = `nothing was written within --timeout ${opts.timeoutSec}s; NotePlan flushes this log in batches, so try a longer --timeout before concluding the action produced no output`
+    }
+  }
+  process.stdout.write(`${JSON.stringify(summary)}\n`)
+}
+
+// ---- streaming (--follow) --------------------------------------------------
+// Emitting as entries arrive, rather than one shot, is the answer to "how long
+// does this take?" -- an x-callback can ping-pong asynchronously for 20-30s, so
+// any fixed wait is a guess. The caller streams and decides when it has enough.
+let lastEmittedAbs = 0
+let streamSeq = 0
+let streamRun = ''
+let streamSawError = false
+
+function streamPending(flush) {
+  const base = totalPushed - lines.length // absolute index of lines[0]
+  // A multi-line entry grows in place, so hold back the open one until it closes
+  // (or until the final flush) rather than streaming half an object.
+  const limit = totalPushed - (!flush && openEntry ? 1 : 0)
+  const { test } = getFilter()
+  const floor = opts.minLevel && LEVEL_RANK[opts.minLevel] ? LEVEL_RANK[opts.minLevel] : 0
+
+  for (let abs = Math.max(lastEmittedAbs, base); abs < limit; abs++) {
+    const text = lines[abs - base]
+    if (text === undefined) continue
+    const m = RUN_START_RE.exec(text)
+    if (m) streamRun = m[1] || ''
+    if (opts.sinceMs !== null && Number.isFinite(opts.sinceMs) && Number.isFinite(stamps[abs - base]) && stamps[abs - base] < opts.sinceMs) continue
+    if (test && !test.test(text)) continue
+    const level = entryLevel(text)
+    if (floor && !(level && LEVEL_RANK[level] >= floor)) continue
+    if (level === 'error') streamSawError = true
+    process.stdout.write(
+      `${JSON.stringify({
+        seq: streamSeq++,
+        ts: localIso(stamps[abs - base]),
+        level,
+        source: /^\[WebView/.test(text) ? 'webview' : 'plugin',
+        run: streamRun || null,
+        text,
+      })}\n`,
+    )
+  }
+  if (limit > lastEmittedAbs) lastEmittedAbs = limit
+}
+
+function emitJson(file, waitInfo) {
   const collected = []
   let seq = 0
   let run = ''
@@ -1167,16 +1233,7 @@ function emitJson(file, startOffset) {
     process.stdout.write(`${JSON.stringify(rec)}\n`)
   }
 
-  const summary = {
-    summary: true,
-    file: path.basename(file),
-    emitted: chosen.length,
-    entriesScanned: lines.length,
-    droppedByMaxEntries: dropped,
-    cursor: makeCursor(file, position),
-    hasError: sawError,
-  }
-  process.stdout.write(`${JSON.stringify(summary)}\n`)
+  emitSummary(file, { ...(waitInfo || {}), dropped }, chosen.length, sawError)
   process.exit(sawError ? 1 : 0)
 }
 
@@ -1212,25 +1269,74 @@ function runHeadless(file) {
   }
   opts.sinceMs = sinceMs
 
+  // --follow: stream as entries arrive. With --wait-idle it also stops once the
+  // log has been quiet that long, which is the practical "the run finished"
+  // signal -- a run still in flight writes something within a few seconds.
+  if (opts.follow) {
+    let timedOut = false
+    let sawOutput = lines.length > 0
+    streamPending(false)
+    const deadline = opts.timeoutSec > 0 ? Date.now() + opts.timeoutSec * 1000 : Infinity
+    let lastChange = Date.now()
+    let lastSize = fileSize(file)
+    const finish = () => {
+      readNewBytes()
+      streamPending(true)
+      emitSummary(file, { sawOutput, timedOut }, streamSeq, streamSawError)
+      process.exit(streamSawError ? 1 : 0)
+    }
+    process.on('SIGINT', finish)
+    process.on('SIGTERM', finish)
+    for (;;) {
+      sleep(250)
+      const size = fileSize(file)
+      if (size !== lastSize) {
+        lastSize = size
+        lastChange = Date.now()
+        sawOutput = true
+        readNewBytes()
+        streamPending(false)
+      }
+      if (opts.waitIdleSec > 0 && sawOutput && Date.now() - lastChange >= opts.waitIdleSec * 1000) break
+      if (Date.now() >= deadline) {
+        timedOut = true
+        break
+      }
+    }
+    return finish()
+  }
+
+  let timedOut = false
+  // "Did anything arrive?" is tracked separately from "has it gone quiet?" because
+  // NotePlan flushes this log in BATCHES. Right after an action the file is often
+  // untouched for 20s or more (measured: 24s here, and historically minutes), so a
+  // naive quiet-timer fires instantly and reports zero entries -- which an agent
+  // reads as "the action logged nothing" rather than "I looked too early". Quiet
+  // only counts as finished once output has actually been seen.
+  let sawOutput = lines.length > 0
   if (opts.waitIdleSec > 0) {
     const deadline = Date.now() + opts.timeoutSec * 1000
-    let quietSince = Date.now()
+    let lastChange = Date.now()
     let lastSize = fileSize(file)
     for (;;) {
       sleep(250)
       const size = fileSize(file)
       if (size !== lastSize) {
         lastSize = size
-        quietSince = Date.now()
+        lastChange = Date.now()
+        sawOutput = true
         readNewBytes()
       }
-      if (Date.now() - quietSince >= opts.waitIdleSec * 1000) break
-      if (Date.now() >= deadline) break
+      if (sawOutput && Date.now() - lastChange >= opts.waitIdleSec * 1000) break
+      if (Date.now() >= deadline) {
+        timedOut = true
+        break
+      }
     }
     readNewBytes()
   }
 
-  emitJson(file, position)
+  emitJson(file, { timedOut, sawOutput })
 }
 
 function main() {

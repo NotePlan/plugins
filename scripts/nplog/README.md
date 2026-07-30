@@ -71,6 +71,33 @@ alongside it:
 nplog --file scripts/nplog/sample.log
 ```
 
+## Using it from an AI agent
+
+This repo ships a Claude Code **skill** at
+[`.claude/skills/nplog/SKILL.md`](../../.claude/skills/nplog/SKILL.md), so an agent
+reaches for this tool instead of grepping the log by hand.
+
+**Claude Code needs no installation.** Project skills under `.claude/skills/` are picked
+up automatically for anyone working in this repo — clone, and it is there. (Verified: the
+skill became available to a running session within moments of the file being created.)
+
+To make it available in *every* directory, not just this repo, link it into your user
+skills folder:
+
+```bash
+mkdir -p ~/.claude/skills
+ln -s "$PWD/.claude/skills/nplog" ~/.claude/skills/nplog
+```
+
+A symlink rather than a copy, so `git pull` keeps it current. Note the skill invokes the
+tool as `node scripts/nplog/nplog`, which assumes the repo root is the working directory;
+if you link it globally, run `scripts/nplog/install.sh` too so a bare `nplog` is on
+`PATH` from anywhere.
+
+**Other AI tools** (Cursor, Windsurf, plain API agents) do not read `.claude/skills/`.
+Point them at that file, or at the [Headless mode](#headless-mode-scripts-ci-and-ai-agents)
+section below — the CLI itself is tool-agnostic.
+
 ## Usage
 
 ```bash
@@ -276,7 +303,6 @@ to scrape.
 nplog --json --last-run                 # the most recent plugin invocation
 nplog --since 10m --json                # the last 10 minutes
 nplog --since 10m --json --min-level warn
-nplog --plugin jgclark.Dashboard --json # just that plugin's own console log
 ```
 
 **Exit code 1 if any emitted entry was an ERROR.** That alone answers "did it work?"
@@ -290,11 +316,26 @@ the log straight after firing one shows nothing. Bracket the action instead:
 ```bash
 CURSOR=$(nplog --mark)
 open "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard"
-nplog --since "$CURSOR" --wait-idle 3 --timeout 30 --json
+nplog --since "$CURSOR" --follow --wait-idle 5 --json
 ```
 
-`--wait-idle 3` returns once the log has been quiet for three seconds — i.e. the run
-finished — or gives up at `--timeout`. This is the whole reason the mode exists.
+You cannot know in advance how long a command takes — a Dashboard refresh ping-pongs
+asynchronously between plugin and WebView for anything from two to thirty seconds. So
+don't guess a duration:
+
+- `--follow` streams entries as they arrive, so you see progress instead of waiting blind.
+- `--wait-idle 5` stops once the log has been quiet for five seconds. A run still in
+  flight writes *something* within five seconds, so silence that long means it finished.
+- `--timeout` (default 90s) is the hard cap.
+
+Drop `--follow` if you only want the final batch in one shot.
+
+> **The log flushes in batches, so don't set a short timeout.** Measured on a live
+> system: after an action the file sat untouched for **24 seconds**, then gained 80 lines
+> at once. Historically the gap between an event and its flush has been as much as two
+> hours. `--wait-idle` therefore never treats "quiet" as "finished" until it has actually
+> seen output, and the summary reports `sawOutput` / `timedOut` so you can tell *"the
+> action logged nothing"* from *"I looked too early"*.
 
 ### `--since` takes three shapes
 
@@ -342,13 +383,27 @@ a crash:
 | `grep '\| ERROR \|'` | zero matches; WARN/ERROR use emoji delimiters |
 | filter on the leading timestamp | wrong on ~2/3 of lines, by up to hours |
 
-### Relationship to the NotePlan MCP
+### Why only the main log
 
-The MCP's `noteplan_plugins` `action: "log"` reads the same per-plugin file that
-`--plugin` does, with `tail` and `clear` options. Reach for the MCP for a quick look at
-one plugin; reach for `--json` when you need structured levels, intact objects, run
-attribution, an error exit code, waiting on an async run, or the main log. They
-compose: `--plugin <id>` gives you the MCP's scoping plus this parsing.
+There is a second, tempting source: `<Plugins>/<id>/_MCP-console.log`, which the NotePlan
+MCP's `noteplan_plugins action:"log"` reads. It is already scoped to one plugin and
+already has the `JSLog:` marker stripped. **nplog deliberately does not use it.**
+
+Measured on a live system:
+
+| | main log | `_MCP-console.log` |
+| --- | --- | --- |
+| retention | append-only, whole session | **truncated on every plugin invocation** |
+| completeness (same second) | 66 unique lines | 32 — a subset, nothing it had was missing here |
+| promptness | lags, flushes in batches | written immediately |
+
+The truncation is disqualifying: Dashboard refreshes on a timer, so the run you care
+about is wiped seconds later by an unrelated background refresh. Watching one file
+through three invocations, it went 9 lines → 20,982 bytes → 5,314 bytes — it shrank.
+
+The main log is a strict superset and the only durable record, so that is what nplog
+reads. Its one weakness — the flush lag — is handled by `--wait-idle` refusing to call
+an untouched file "finished".
 
 Agents working in this repo get this as a skill — see
 [`.claude/skills/nplog/SKILL.md`](../../.claude/skills/nplog/SKILL.md).
