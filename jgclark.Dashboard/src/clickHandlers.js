@@ -19,6 +19,7 @@ import {
   cloneDashboardSettingsBeforeSave,
   getDashboardSettings,
   getDashboardSettingsDefaults,
+  getLogSettings,
   handlerResult,
   makeDashboardParas,
   setPluginData,
@@ -63,8 +64,30 @@ const windowCustomId = `${pluginID}.main`
  ****************************************************************************************************************************/
 
 /**
- * Evaluate JS string and return result
+ * Evaluate an arbitrary JS string in the plugin backend and return the result.
  * WARNING: DO NOT USE THIS FOR ANYTHING OTHER THAN TESTING.
+ *
+ * Why eval is used here at all: this is the backing handler for the Dashboard's
+ * internal React test suite (src/react/components/testing/*.tests.js), which needs
+ * to call arbitrary NotePlan API methods (e.g. Editor.openNoteByFilename(...)) from
+ * the webview side to set up test fixtures. Writing a bespoke bridge handler for every
+ * possible test setup operation isn't practical, so the test harness sends the JS as a
+ * string and this function evals it in the backend JSContext, which has full NotePlan
+ * API access (filesystem, DataStore, Editor, etc.).
+ *
+ * Reachability / risk: the Dashboard webview only ever loads this plugin's own bundled
+ * local JS - no remote content, and no note content is eval'd or rendered unescaped
+ * into the webview - so this can only be reached today by the plugin's own trusted test
+ * code, or by an attacker who has *already* achieved script execution inside the webview
+ * via some unrelated XSS bug. In that (currently hypothetical) scenario, this handler
+ * would let them escalate from webview-only JS execution to the privileged backend
+ * JSContext. The UI entry point for the test suite (Dashboard.jsx's `showDebugPanel`) is
+ * already gated behind `_logLevel === 'DEV'` and the `FFlag_DebugPanel` feature flag, but
+ * that only hides the *button* - the bridge handler itself had no runtime check, so
+ * anything able to construct a bridge message could reach eval() regardless of dev mode.
+ * The check below closes that gap by enforcing the same DEV + FFlag_DebugPanel gate here,
+ * so it can't be bypassed by anything other than the debug test harness itself.
+ *
  * @param {MessageDataObject} data
  * @returns
  */
@@ -74,8 +97,14 @@ export async function doEvaluateString(data: MessageDataObject): Promise<TBridge
     logError('doEvaluateString', 'No stringToEvaluate provided')
     return handlerResult(false, [], { errorMsg: 'No stringToEvaluate provided', errorMessageLevel: 'ERROR' })
   }
+  const { _logLevel } = await getLogSettings()
+  const dashboardSettings = await getDashboardSettings()
+  if (_logLevel !== 'DEV' || !dashboardSettings?.FFlag_DebugPanel) {
+    logError('doEvaluateString', 'Refusing to eval: only available when _logLevel=DEV and FFlag_DebugPanel is enabled (dev/test builds only)')
+    return handlerResult(false, [], { errorMsg: 'evaluateString is only available in DEV mode with the debug panel enabled', errorMessageLevel: 'ERROR' })
+  }
   logDebug('doEvaluateString', `Evaluating string: "${stringToEvaluate}"`)
-  // use JS eval to evaluate the string
+  // use JS eval to evaluate the string -- see the big comment above for why this is safe here
   try {
     const result = await eval(stringToEvaluate)
     return handlerResult(true, [], { result })
