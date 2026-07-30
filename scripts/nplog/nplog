@@ -87,7 +87,7 @@ const PLUGINS_DIR = path.join(CONTAINER_DIR, 'Plugins')
 // there and missing here. The main log is a strict superset and the only ground truth.
 
 // Bump this and add a matching entry to CHANGELOG.md for any user-visible change.
-const VERSION = '1.1.0'
+const VERSION = '1.1.1'
 
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
@@ -1067,7 +1067,12 @@ function onKey(str) {
     return render()
   }
   if (str === '\x0c') {
+    // `stamps` is index-parallel to `lines` -- clearing one without the other
+    // desyncs every subsequent entry from its timestamp, which surfaces as
+    // idle separators with a stale clock appearing mid-run between lines that
+    // are actually contiguous. Always clear both together.
     lines.length = 0
+    stamps.length = 0
     closeEntry() // its index no longer refers to anything
     bufferVersion++
     state.follow = true

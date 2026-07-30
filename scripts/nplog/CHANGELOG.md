@@ -4,6 +4,15 @@ All notable changes to `nplog` are documented here. Versions follow
 [Semantic Versioning](https://semver.org/): MAJOR for breaking CLI/output changes, MINOR for
 new features, PATCH for fixes. Check the current version with `nplog --version`.
 
+## [1.1.1] - 2026-07-30
+
+- **Fixed `^L` (clear display) corrupting every timestamp afterwards.** It cleared the `lines`
+  buffer but not the index-parallel `stamps` array, so from then on entry *N*'s text was paired
+  with a stale pre-clear timestamp. The visible symptom was an idle separator appearing in the
+  middle of a contiguous burst of output, labelled with a clock minutes off from the lines
+  around it (e.g. `───── 2026-07-30 15:50:30  54s idle ─────` sitting between lines all stamped
+  `16:44:27`). Both arrays are now always cleared together.
+
 ## [1.1.0] - 2026-07-30
 
 - **Added `--plugin ID`**, tailing one plugin's `_MCP-console.log` instead of the main log.
