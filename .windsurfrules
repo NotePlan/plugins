@@ -34,3 +34,10 @@ For JS/TS, please provide Flow (as appropriate) and JSDOC with all responses. If
 
 **DO NOT EVER HARD-CODE JEST WORKAROUNDS INTO FUNCTIONS WE ARE TESTING**
 When you run jest tests, always include the flag --no-watch at the end because my jest config by default watches
+
+## Viewing Plugin Logs
+
+Use `nplog` in `scripts/nplog/` to read NotePlan's plugin log; do not grep the raw log
+file (`^JSLog:` and `| ERROR |` both silently match nothing, and the leading timestamp is
+the flush time). `node scripts/nplog/nplog --json` emits NDJSON and exits 1 on errors.
+See `scripts/nplog/README.md`.
