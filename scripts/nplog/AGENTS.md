@@ -226,3 +226,16 @@ from 2 to 30 seconds.
   function` lines), so it's effectively never NaN in practice. If you ever change `payloadStamp`
   to allow NaN through, `separatorClock` already no-ops on non-finite input, but the separator
   would then silently lose its clock — worth a deliberate decision, not an accident.
+
+## Diagnostic utilities (`utils/`)
+
+- **`utils/log-timing.js`** — standalone, not part of nplog's own runtime. Tails one log file
+  and reports wall-clock-now minus each complete line's own timestamp (single-file mode), or
+  races two files against each other by matching identical payload text FIFO-per-payload
+  (`--compare-file`, meant for the main JSLog file vs. one plugin's `_MCP-console.log`) to report
+  which arrives first and by how much, plus one-sided "gap" lines that never showed up on the
+  other side within `--gap-timeout-ms`. `_MCP-console.log` truncates on every plugin invocation
+  rather than appending, so its `Tailer` treats `size < position` as truncation-and-restart, not
+  an error — worth knowing if you extend this to another file that behaves the same way. Press
+  `c` while it's running to reset all accumulated stats/pending state without restarting the
+  process, so a comparison window can be scoped to exactly one triggered action.
