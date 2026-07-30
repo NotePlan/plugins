@@ -247,13 +247,34 @@ from 2 to 30 seconds.
     minutes — Full-Log flush lag has been observed past a minute in practice, documented
     historically up to two hours, so anything shorter mislabels merely-slow lines as missing).
   - **`--record FILE`** appends every processed (post-exclusion) line from both sides as NDJSON
-    (`{side, wallMs, payload}`); **`--replay FILE`** re-runs the exact same matching/reporting
-    logic against a recorded file with zero live tailing — the way to iterate on the matching
-    algorithm itself (tweak `PREFIX_LEN`, add an exclusion) without re-triggering NotePlan every
-    time. Both live comparator and replay share one `makeComparator()` closure factory so the two
-    paths can't drift apart.
-  - `_MCP-console.log` truncates on every plugin invocation rather than appending, so its
-    `Tailer` treats `size < position` as truncation-and-restart, not an error; it also tolerates
-    the compare file not existing yet (e.g. a plugin that hasn't logged anything this session).
+    (`{side, wallMs, payload}`, plus `{side, event: 'truncation', wallMs}` boundary events --
+    see below); **`--replay FILE`** re-runs the exact same matching/reporting logic against a
+    recorded file with zero live tailing — the way to iterate on the matching algorithm itself
+    (tweak `PREFIX_LEN`, add an exclusion) without re-triggering NotePlan every time. Both live
+    comparator and replay share one `makeComparator()` closure factory so the two paths can't
+    drift apart.
+  - **`_MCP-console.log` truncates on every plugin invocation rather than appending** -- it's a
+    single-run rolling buffer, not a history. `Tailer` detects this via `_wasRewritten()`, and
+    when detected, `orphanPendingFor()` immediately drains whatever's still waiting to match into
+    the truncated side into a distinct `orphaned` gap reason -- that content belongs to a run
+    whose MCP-Log output is now permanently gone, so there's no timeout worth waiting out, and
+    leaving it pending risks a stale line from the old run cross-matching a coincidentally
+    identical line the new run logs. Reported separately in the summary from `timeout`/`exit`
+    gaps because it means something different: structural (multiple runs happened in the
+    comparison window), not a within-run completeness failure.
+  - **`size < position` alone is NOT a reliable truncation signal** -- confirmed empirically that
+    an in-place `O_TRUNC` rewrite doesn't change the inode, and if the new content regrows to
+    match or exceed the old position before the next poll, a size-only check misses the
+    truncation entirely. The consequence isn't just a missed gap -- `Tailer` would silently read
+    starting at the stale `position` into unrelated new content and produce a plausible-looking
+    but wrong line, indistinguishable from a genuinely torn line in the source file. This was
+    directly responsible for at least some of the "torn line" artifacts seen in early manual
+    investigation of the raw log file, before this existed to catch it. Fixed by
+    `_captureFingerprint()`/`_wasRewritten()`: the last `FINGERPRINT_LEN` (64) bytes ending at
+    `position` are re-verified against disk on every poll regardless of size, so a same-size or
+    larger rewrite is still caught. If you ever see a `Tailer` for a different truncating file
+    behave oddly, check this first before assuming the source file is corrupt.
+  - `Tailer` also tolerates the compare file not existing yet (e.g. a plugin that hasn't logged
+    anything this session).
   - Press `c` while running live to reset all accumulated stats/pending state without restarting
     the process, so a comparison window can be scoped to exactly one triggered action.
