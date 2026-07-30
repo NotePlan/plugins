@@ -707,7 +707,7 @@ export function getOpenItemParasForTimePeriod(
     const { matchingNotes, possTimePeriodNote } = getMatchingCalendarNotes(NPCalendarFilenameStr)
 
     // Filter notes by allowed teamspaces
-    const allowedTeamspaceIDs = dashboardSettings.includedTeamspaces ?? ['private']
+    const allowedTeamspaceIDs = resolveAllowedTeamspaceIDs(dashboardSettings)
     const filteredMatchingNotes = matchingNotes.filter((note) => isNoteFromAllowedTeamspace(note, allowedTeamspaceIDs))
     logDebug('getOpenItemParasForTimePeriod', `- after teamspace filter: ${filteredMatchingNotes.length} of ${matchingNotes.length} notes`)
 
@@ -1120,6 +1120,47 @@ export function isLineDisallowedByIgnoreTerms(lineContent: string, ignoreItemsWi
 }
 
 /**
+ * Resolve which teamspaces this config should read notes from, discarding IDs that
+ * no longer exist.
+ *
+ * Why this exists: `includedTeamspaces` is a plain list of IDs, and 'private' has to
+ * appear in it for your own notes to be read at all. So a list holding only teamspace
+ * IDs silently hides every private note -- which for most users is every note they
+ * have. That is survivable while the IDs are real, because it is what you asked for.
+ * It is not survivable when the IDs are stale: signing out of Spaces (or leaving them)
+ * leaves a list that matches nothing, the Dashboard shows no tasks at all, and the
+ * settings UI reports "You are not a member of any Spaces" so there is nothing to
+ * click to undo it. Seen in the wild: 6 unreachable IDs, no 'private', zero tasks.
+ *
+ * When nothing in the list is reachable, the only sensible reading is private notes.
+ * @param {TDashboardSettings} dashboardSettings
+ * @returns {Array<string>} teamspace IDs to allow, possibly healed to ['private']
+ */
+export function resolveAllowedTeamspaceIDs(dashboardSettings: TDashboardSettings): Array<string> {
+  const configured = dashboardSettings.includedTeamspaces
+  // Absent means "private only"; an explicitly empty list means "don't filter".
+  // Both are long-standing behaviour, so leave them alone.
+  if (!configured) return ['private']
+  if (configured.length === 0) return configured
+
+  let existingIDs: Array<string> = []
+  try {
+    existingIDs = getAllTeamspaceIDsAndTitles().map((t) => t.id)
+  } catch (err) {
+    // No teamspace API / not signed in: treat every configured ID as unreachable
+    existingIDs = []
+  }
+  const reachable = configured.filter((id) => id === 'private' || existingIDs.includes(id))
+  if (reachable.length > 0) return reachable
+
+  logWarn(
+    'resolveAllowedTeamspaceIDs',
+    `includedTeamspaces lists ${String(configured.length)} teamspace(s) but none are reachable and 'private' is not among them, so no note could ever match. Falling back to private notes. Check the "Spaces to Include" setting; you may be signed out of Spaces.`,
+  )
+  return ['private']
+}
+
+/**
  * Check if a note is from an allowed teamspace based on dashboard settings.
  * If no teamspaces specified, allow all (backward compatibility).
  * @param {TNote} note - note to check
@@ -1151,7 +1192,7 @@ export function filterNotesByAllowedTeamspaces(
   notes: Array<TNote>,
   dashboardSettings: TDashboardSettings
 ): Array<TNote> {
-  const allowedTeamspaceIDs = dashboardSettings.includedTeamspaces ?? ['private']
+  const allowedTeamspaceIDs = resolveAllowedTeamspaceIDs(dashboardSettings)
   return notes.filter((note) => isNoteFromAllowedTeamspace(note, allowedTeamspaceIDs))
 }
 
@@ -1191,7 +1232,7 @@ export function filterParasByAllowedTeamspaces(
   startTime: Date,
   functionName: string
 ): Array<TParagraph> {
-  const allowedTeamspaceIDs = dashboardSettings.includedTeamspaces ?? ['private']
+  const allowedTeamspaceIDs = resolveAllowedTeamspaceIDs(dashboardSettings)
   const filteredParas = paras.filter((p) => {
     const note = getNoteFromPara(p)
     if (!note) {
