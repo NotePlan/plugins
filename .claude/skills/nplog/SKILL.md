@@ -17,12 +17,22 @@ interactive viewer for humans and will hang a non-TTY caller.
 ```bash
 CURSOR=$(node scripts/nplog/nplog --mark)
 open "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard"
-node scripts/nplog/nplog --since "$CURSOR" --wait-idle 3 --timeout 30 --json
+node scripts/nplog/nplog --since "$CURSOR" --follow --wait-idle 5 --json
 ```
 
-`--wait-idle 3` matters: an x-callback returns **immediately** while the plugin runs
-asynchronously. Without it you read the log before the plugin has finished and see
-nothing. It returns once the log has been quiet for 3s, or at `--timeout`.
+An x-callback returns **immediately** while the plugin keeps running — a Dashboard
+refresh ping-pongs asynchronously for anywhere from 2 to 30 seconds. Do not guess a
+duration:
+
+- `--follow` streams entries as they arrive.
+- `--wait-idle 5` stops after five seconds of silence. A run still in flight writes
+  something within five seconds, so that much quiet means it finished.
+- `--timeout` (default 90s) is the hard cap.
+
+**The log flushes in batches.** Measured: the file sat untouched for 24s after an action,
+then gained 80 lines at once. So never conclude "the action logged nothing" from an empty
+result — check the summary's `sawOutput` and `timedOut` fields, which exist precisely to
+tell that apart from "I looked too early". Do not lower `--timeout` below ~30s.
 
 **Exit code 1 means at least one emitted entry was an ERROR** — check it before
 reading anything, it is the cheapest possible signal.
@@ -30,9 +40,6 @@ reading anything, it is the cheapest possible signal.
 ## Recipes
 
 ```bash
-# just this plugin's own console log (already scoped — usually the best starting point)
-node scripts/nplog/nplog --plugin jgclark.Dashboard --json
-
 # only the most recent plugin invocation
 node scripts/nplog/nplog --json --last-run
 
@@ -56,7 +63,7 @@ NDJSON — one object per entry, then one summary object:
 
 ```json
 {"seq":0,"ts":"2026-07-29T09:14:59-07:00","level":"error","source":"plugin","run":"onMessageFromHTMLView","text":"…"}
-{"summary":true,"file":"…","emitted":6,"entriesScanned":17,"droppedByMaxEntries":0,"cursor":"…","hasError":true}
+{"summary":true,"file":"…","emitted":6,"entriesScanned":17,"droppedByMaxEntries":0,"cursor":"…","hasError":true,"sawOutput":true,"timedOut":false}
 ```
 
 - `level` — `debug` | `info` | `warn` | `error` | `null`
@@ -66,6 +73,8 @@ NDJSON — one object per entry, then one summary object:
 - `text` — the whole entry. A pretty-printed object arrives **whole**, newlines
   included, because one object is one entry
 - `cursor` — feed back into `--since` for the next read
+- `sawOutput` / `timedOut` — only when waiting. `sawOutput:false` with `timedOut:true`
+  means you gave up before NotePlan flushed, **not** that nothing was logged
 
 ## Do not grep the raw log
 
@@ -82,25 +91,22 @@ Also: a pretty-printed object spans a dozen physical lines and only the first ca
 the marker, so grepping a field hands you an orphan with no idea which object it
 belonged to. `--json` solves all four.
 
-## Relationship to the NotePlan MCP
+## Do not use the MCP's plugin log as ground truth
 
-The MCP's `noteplan_plugins` with `action: "log"` reads
-`<Plugins>/<pluginId>/_MCP-console.log` — the same per-plugin file `--plugin` reads.
-It supports `tail: N` and `clear: true`, and `clear` before an action is a workable
-alternative to `--mark`.
+The NotePlan MCP's `noteplan_plugins action:"log"` reads
+`<Plugins>/<id>/_MCP-console.log`. It looks ideal — already scoped to one plugin — but
+it is **truncated on every plugin invocation**, so it holds only the most recent one.
+For a plugin that refreshes on a timer (the Dashboard does), the run you care about is
+wiped seconds later by an unrelated background refresh. Measured for the same second:
+32 unique lines there vs 66 in the main log.
 
-Prefer the MCP when you just want a quick eyeball of one plugin's recent output.
-Prefer `nplog --json` when you need any of: structured levels, objects kept intact,
-run attribution, an error exit code, waiting for an async run to finish, or the main
-log rather than one plugin's file.
-
-They compose — `--plugin <id>` gives you MCP's per-plugin scoping *and* this parsing.
+The main log is a strict superset and the only durable record. `nplog` reads only that.
+Use the MCP's log for a quick human eyeball if you like, never as evidence.
 
 ## Notes
 
-- `--plugin` reads a file that **accumulates** and is never rotated; some are months
-  stale. Check the `ts` of what you get back before trusting it as recent.
-- No NotePlan window needs focus for `--json`; it only reads files. Firing an
-  x-callback does require NotePlan to be running.
+- No NotePlan window needs focus; `nplog` only reads files. Firing an x-callback does
+  require NotePlan to be running — check with `pgrep -fl NotePlan` (the beta's process
+  is named `NotePlan Beta`, so `pgrep -x NotePlan` misses it).
 - See `scripts/nplog/README.md` for the interactive viewer and
   `scripts/nplog/AGENTS.md` for parser internals.

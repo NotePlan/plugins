@@ -245,10 +245,14 @@ one-shot command that emits NDJSON and exits 1 if anything errored:
 ```bash
 CURSOR=$(nplog --mark)
 open "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard"
-nplog --since "$CURSOR" --wait-idle 3 --json    # what that action logged
+nplog --since "$CURSOR" --follow --wait-idle 5 --json   # stream what that action logged
 ```
 
-See [scripts/nplog/README.md](scripts/nplog/README.md) for the key bindings and options.
+AI agents working in this repo get this automatically as a Claude Code skill
+(`.claude/skills/nplog/`) — no installation needed.
+
+See [scripts/nplog/README.md](scripts/nplog/README.md) for the key bindings, headless
+options, and how to make the skill available outside this repo.
 
 ## Editor Setup
 
