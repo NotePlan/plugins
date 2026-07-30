@@ -110,7 +110,7 @@ nplog                              # follow the newest log
 nplog dashboard                    # start with a filter already applied
 nplog 'Section|Perspective'        # regex alternation
 nplog --mode 5                     # start in "match + next 5 lines" mode
-nplog --no-time                    # start with timestamps hidden
+nplog --show-time                  # start with per-line timestamps shown (hidden by default)
 nplog --idle-gap 10                # only rule off lulls of 10s+ (0 = never)
 nplog --no-separators              # no run/idle rules at all
 nplog --raw                        # keep non-JSLog lines (NotePlan's own native logging)
@@ -149,7 +149,8 @@ arrow keys work too.
 - `re` — the filter compiled as a regex. If it can't (say you've typed `Section(` and haven't
   closed the paren yet) this reads `LITERAL(bad re)` and the text is matched literally
   instead. It never errors out mid-typing.
-- `no-time` — appears only when timestamps are hidden (`^T`).
+- `no-time` — appears whenever timestamps are hidden, which is the default (`^T` or
+  `--show-time` to reveal them).
 - `ctx:match only` — current context mode.
 - `52/8791` — matching **entries** shown / total entries in the buffer.
 - `(416 rows)` — appears only when those entries occupy more screen rows than there are
@@ -164,12 +165,19 @@ non-adjacent matches.
 
 ### Dimmed boilerplate, coloured severity
 
-The same prefix repeats on every line and crowds out the message you're reading, so it's
-**dimmed** rather than removed — still there when you want it, but out of the way:
+The same prefix repeats on every line and crowds out the message you're reading. The timestamp
+is **hidden by default** (see [Run separators](#run-separators) below for why that's safe to do)
+rather than just dimmed — the other two repeating bits stay visible but **dimmed**, still there
+when you want them, but out of the way:
 
-- the timestamp — `2026-07-29 11:34:54`
 - the routine severity markers — `| DEBUG |`, `| INFO  |`
 - the source tag — `[WebView]`
+
+```
+| DEBUG | refreshSomeSections :: Starting for TB
+```
+
+With `^T` (or `--show-time`) the timestamp comes back, dimmed the same way:
 
 ```
 2026-07-29 15:09:36 | DEBUG | refreshSomeSections :: Starting for TB
@@ -191,13 +199,6 @@ Note these two use **emoji delimiters** rather than pipes — see `LOG_LEVEL_STR
 The `[WebView Error]` tag is coloured red too, rather than dimmed like the plain `[WebView]`
 tag. NotePlan's own native `ERROR:` lines (visible only with `--raw`) are also picked up.
 
-`^T` (or `--no-time`) drops the timestamps entirely — the severity marker and source tag keep
-their styling:
-
-```
-| DEBUG | refreshSomeSections :: Starting for TB
-```
-
 Two deliberate exceptions:
 
 - **Filter matches always win.** A hit is highlighted even where it lands inside dimmed text,
@@ -214,10 +215,16 @@ Plugin output arrives in bursts. Finding where one batch of work ended and the n
 scanning timestamps by eye, so `nplog` draws a rule at each boundary:
 
 ```
-2026-07-29 09:14:10 | DEBUG | setPluginData :: Sending changeMessage: "Finished ..."
-───────────────────────────── 47s idle  Executing function 'onMessageFromHTMLView' ─────────────
-2026-07-29 09:14:57 | DEBUG | routeRequestsFromReact received actionType="refreshEnabled..."
+setPluginData :: Sending changeMessage: "Finished ..."
+───────────────────────────── 2026-07-29 09:14:57  47s idle  Executing function 'onMessageFromHTMLView' ─────────────
+routeRequestsFromReact received actionType="refreshEnabled..."
 ```
+
+**This is why timestamps can be hidden by default.** Each rule leads with a
+`YYYY-MM-DD HH:MM:SS` clock — the moment the boundary was crossed — so scrolling past the
+separators gives you a bird's-eye sense of where you are in the log time-wise without needing a
+timestamp on every single line. `^T` (or `--show-time`) brings the per-line timestamps back if
+you need exact times on entries between separators.
 
 Two things trigger a rule:
 

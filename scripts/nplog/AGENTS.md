@@ -219,3 +219,10 @@ from 2 to 30 seconds.
   for noise that has zero signal on every viewing (a benign warning NotePlan logs constantly); if
   you'd ever want to see it with a broader filter, it belongs in `NOISE_SPANS` (dimmed) instead,
   not here.
+- **Timestamps are hidden by default (`showTime: false`); separators carry the clock instead.**
+  `separatorClock()` in `separatorForRange()` reads `stamps[to]` — `to` being the entry the
+  boundary is entering — and relies on `payloadStamp()` always resolving to a real number (it
+  backfills from `lastStampMs` when a line has no timestamp of its own, e.g. `Executing
+  function` lines), so it's effectively never NaN in practice. If you ever change `payloadStamp`
+  to allow NaN through, `separatorClock` already no-ops on non-finite input, but the separator
+  would then silently lose its clock — worth a deliberate decision, not an accident.

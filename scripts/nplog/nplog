@@ -44,7 +44,7 @@ const LOG_DIR = process.env.NPLOG_DIR || path.join(os.homedir(), 'Library/Contai
 // there and missing here. The main log is a strict superset and the only ground truth.
 
 // Bump this and add a matching entry to CHANGELOG.md for any user-visible change.
-const VERSION = '1.0.1'
+const VERSION = '1.0.2'
 
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
@@ -66,7 +66,11 @@ function parseArgs(argv) {
     mode: 0,
     raw: false,
     file: null,
-    showTime: true,
+    // Hidden by default -- the repeated timestamp/severity/source prefix is
+    // chrome once you're scanning, and idle/run separators now carry their
+    // own clock (see separatorClock), so a bird's-eye sense of the log's
+    // time-of-day survives without it. --show-time or ^T bring it back.
+    showTime: false,
     separators: true,
     idleGapSec: DEFAULT_IDLE_GAP_SEC,
     // non-interactive / agent mode
@@ -86,7 +90,8 @@ function parseArgs(argv) {
       console.log(VERSION)
       process.exit(0)
     } else if (a === '--raw') opts.raw = true
-    else if (a === '--no-time' || a === '--no-timestamps') opts.showTime = false
+    else if (a === '--no-time' || a === '--no-timestamps') opts.showTime = false // already the default; accepted for compatibility
+    else if (a === '--show-time' || a === '--time') opts.showTime = true
     else if (a === '--no-separators') opts.separators = false
     else if (a === '--json') opts.json = true
     else if (a === '--mark') opts.mark = true
@@ -117,7 +122,8 @@ function parseArgs(argv) {
       console.log('  regex             case-insensitive; invalid patterns fall back to a literal match')
       console.log('  --mode            0 = matched lines only, N = match plus next N entries')
       console.log('  --raw             keep non-JSLog lines too')
-      console.log('  --no-time         hide timestamps entirely (toggle live with ^T)')
+      console.log('  --show-time       show per-line timestamps (hidden by default; toggle live with ^T)')
+      console.log('  --no-time         hide timestamps (default; kept for compatibility)')
       console.log(`  --idle-gap SECS   rule when the log goes quiet this long (default ${DEFAULT_IDLE_GAP_SEC}, 0 = off)`)
       console.log('  --no-separators   no run/idle rules at all (toggle live with ^G)')
       console.log('  --file PATH       pin one log instead of following the newest')
@@ -450,6 +456,18 @@ function humanGap(ms) {
   return `${Math.floor(m / 60)}h${m % 60}m`
 }
 
+// Local "YYYY-MM-DD HH:MM:SS" clock for a separator, matching the format of
+// the per-line timestamps it's standing in for. With timestamps hidden by
+// default (^T to show them), the separators are the only clock left on
+// screen, so scrolling past them gives a bird's-eye sense of where you are in
+// the log without having to reveal every line's timestamp.
+function separatorClock(ms) {
+  if (!Number.isFinite(ms)) return ''
+  const d = new Date(ms)
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+
 // What run/idle boundary falls in buffer entries [from..to], or null.
 //
 // A range rather than a single entry, because with a filter applied the run
@@ -482,9 +500,9 @@ function separatorForRange(from, to) {
   if (runIndex === -1 && idleMs === 0) return null
 
   // The "Executing function 'x'" line becomes the rule's own text rather than a
-  // separate row beneath it -- one line instead of two, and no clock, since the
-  // entries below carry their own timestamps.
-  return { idle: idleMs ? `${humanGap(idleMs)} idle` : '', runText, runIndex }
+  // separate row beneath it -- one line instead of two. The clock is the
+  // timestamp of `to`, the entry being entered as this boundary is crossed.
+  return { idle: idleMs ? `${humanGap(idleMs)} idle` : '', runText, runIndex, clock: separatorClock(stamps[to]) }
 }
 
 // An idle lull is usually followed a line or two later by the "Executing
@@ -556,7 +574,7 @@ function buildRows() {
       // A labelled rule says everything the anonymous skipped-lines rule does
       // and more, so replace rather than stack the two.
       if (prevRow && prevRow.gap) rows.pop()
-      rows.push({ sep: true, label: [sep.idle, sep.runText].filter(Boolean).join('  ') })
+      rows.push({ sep: true, label: [sep.clock, sep.idle, sep.runText].filter(Boolean).join('  ') })
     }
     // The rule already displays this entry's text, so don't repeat it below.
     if (sep && sep.runIndex === item.index) continue

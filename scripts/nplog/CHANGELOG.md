@@ -4,6 +4,15 @@ All notable changes to `nplog` are documented here. Versions follow
 [Semantic Versioning](https://semver.org/): MAJOR for breaking CLI/output changes, MINOR for
 new features, PATCH for fixes. Check the current version with `nplog --version`.
 
+## [1.0.2] - 2026-07-30
+
+- Idle/run separator rules now carry a local `YYYY-MM-DD HH:MM:SS` clock at the start of their
+  label (e.g. `───── 2026-07-30 09:00:10  10s idle  Executing function 'x' ─────`).
+- **Timestamps are now hidden by default** (`^T`, or `--show-time`/`--time`, to show them;
+  `--no-time`/`--no-timestamps` still accepted, now a no-op). With the clock moved onto the
+  separators, hiding the repeated per-line timestamp no longer loses your sense of where you
+  are in the log time-wise -- the separators give a bird's-eye view of the clock as you scroll.
+
 ## [1.0.1] - 2026-07-30
 
 - Lowered the file-poll interval from 1s to 250ms (`POLL_MS` in `nplog`) so nplog adds less of
