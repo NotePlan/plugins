@@ -431,6 +431,7 @@ const dt = () => {
           plugins: [...options.plugins, ...defaultPlugins],
           context: options.context,
           cache: cachedBundle,
+          onwarn: options.onwarn,
         }
 
         const outputOptions = options.output
