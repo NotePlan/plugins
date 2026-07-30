@@ -190,6 +190,13 @@ indistinguishable from a genuinely torn line in the source file. `captureTailFin
 against disk on every poll, regardless of size. If you ever see `--plugin` mode behave
 oddly around a reset, check this before assuming NotePlan's write is corrupt.
 
+**`Executing function 'X'` never appears in `_MCP-console.log`** -- measured 33 occurrences
+in the main log over a window where the plugin file had 0. It's NotePlan's own notice that
+it invoked a plugin entry point, not plugin `console.log` output. Consequence: `--plugin`
+mode gets idle-lull separators but never named-run separators, since `RUN_START_RE` has
+nothing to match. That's structural, not a bug -- don't "fix" it by synthesizing run rules
+from plugin output; use the main log when you need to see which command started a run.
+
 **Container path resolution** (`resolveContainerDir()`) matters for `--plugin` because App
 Store and Setapp NotePlan use different Containers bundle IDs, hence different paths for
 both `Logs/` and `Plugins/`. Precedence: `NPLOG_APP_SUPPORT_DIR` env var, then

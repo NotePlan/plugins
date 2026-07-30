@@ -4,6 +4,17 @@ All notable changes to `nplog` are documented here. Versions follow
 [Semantic Versioning](https://semver.org/): MAJOR for breaking CLI/output changes, MINOR for
 new features, PATCH for fixes. Check the current version with `nplog --version`.
 
+## [1.1.2] - 2026-07-30
+
+- nplog's own stream-boundary notices — the `--plugin` reset marker and the main-log
+  `switching to <newer file>` marker — now render as **separator rules** (dimmed, dashes either
+  side, same `SEP_LABEL_INDENT` lead as an idle/run rule) instead of as plain log text. They're
+  boundaries in the stream, so they now look like one.
+- Documented a structural limitation of `--plugin` mode: **named-run separators
+  (`Executing function 'X'`) never appear there.** That line is NotePlan's own notice that it
+  invoked a plugin entry point, not plugin `console.log` output, so it only exists in the main
+  log (measured: 33 vs 0 over the same window). `--plugin` still gets idle-lull rules.
+
 ## [1.1.1] - 2026-07-30
 
 - **Fixed `^L` (clear display) corrupting every timestamp afterwards.** It cleared the `lines`

@@ -87,7 +87,7 @@ const PLUGINS_DIR = path.join(CONTAINER_DIR, 'Plugins')
 // there and missing here. The main log is a strict superset and the only ground truth.
 
 // Bump this and add a matching entry to CHANGELOG.md for any user-visible change.
-const VERSION = '1.1.1'
+const VERSION = '1.1.2'
 
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
@@ -331,6 +331,28 @@ function pushLine(text, stampMs) {
     if (openEntry) openEntry.index -= dropped
   }
   bufferVersion++
+}
+
+// nplog's own notices about the log source itself -- "this file was reset",
+// "we switched to a newer file" -- rather than anything a plugin logged.
+// They're rendered as separator rules (dimmed, dashes either side, same as
+// an idle/run rule) because that is what they are: a boundary in the stream.
+//
+// The marker is carried IN the line's own text rather than in a parallel
+// array, deliberately: a second index-parallel array is exactly the shape
+// that produced the ^L stamps/lines desync bug (see AGENTS.md), and text
+// can't drift out of sync with itself. NUL never appears in log output, so
+// it's safe as a sentinel; strip it with noticeLabel() anywhere the text
+// escapes to a consumer (JSON, etc).
+const NOTICE_PREFIX = '\u0000notice\u0000'
+
+function pushNotice(label) {
+  pushLine(NOTICE_PREFIX + label)
+}
+
+// Returns the human-readable label if `text` is a notice, else null.
+function noticeLabel(text) {
+  return text.startsWith(NOTICE_PREFIX) ? text.slice(NOTICE_PREFIX.length) : null
 }
 
 const INDENT_UNIT = 2 // spaces per nesting level
@@ -655,6 +677,12 @@ function buildRows() {
     }
     // The rule already displays this entry's text, so don't repeat it below.
     if (sep && sep.runIndex === item.index) continue
+    // nplog's own stream-boundary notices render as rules, not as log text.
+    const notice = noticeLabel(item.text)
+    if (notice !== null) {
+      rows.push({ sep: true, label: notice })
+      continue
+    }
     if (item.text.indexOf('\n') === -1) {
       rows.push({ text: item.text, index: item.index })
       continue
@@ -963,7 +991,7 @@ function readNewBytes() {
     // every invocation), so it's surfaced as a visible marker rather than
     // silently losing whatever was unread at the reset.
     closeEntry() // don't let a block from before the reset swallow new content
-    if (opts.pluginMode) pushLine(`--- ${path.basename(currentFile)} was reset by NotePlan (new run) ---`)
+    if (opts.pluginMode) pushNotice(`${path.basename(currentFile)} was reset by NotePlan (new run)`)
     position = 0
     carry = ''
     tailFingerprint = Buffer.alloc(0)
@@ -1035,7 +1063,7 @@ function checkRotation() {
   const latest = findLatestLog()
   if (latest && latest !== currentFile) {
     closeEntry() // don't let a block from the old file swallow the new one
-    pushLine(`--- switching to ${path.basename(latest)} ---`)
+    pushNotice(`switching to ${path.basename(latest)}`)
     openFile(latest, false)
     scheduleRender()
   }
@@ -1345,7 +1373,9 @@ function streamPending(flush) {
         level,
         source: /^\[WebView/.test(text) ? 'webview' : 'plugin',
         run: streamRun || null,
-        text,
+        // notice lines are nplog's own, not the plugin's -- emit the label
+        // without the internal sentinel so consumers never see it
+        text: noticeLabel(text) ?? text,
       })}\n`,
     )
   }
@@ -1417,7 +1447,8 @@ function emitJson(file, waitInfo) {
       level,
       source: /^\[WebView/.test(e.text) ? 'webview' : 'plugin',
       run: e.run || null,
-      text: e.text,
+      // see streamPending: strip the internal notice sentinel before emitting
+      text: noticeLabel(e.text) ?? e.text,
     }
     process.stdout.write(`${JSON.stringify(rec)}\n`)
   }
