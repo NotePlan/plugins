@@ -266,6 +266,93 @@ Robustness details, all verified against real logs:
 - Sometimes the `{` lands on the line *after* the `JSLog:` header; that fragment starts its own
   block rather than being dropped.
 
+## Headless mode (scripts, CI, and AI agents)
+
+Everything above is the interactive viewer. `--json` turns the same parser into a
+one-shot command that prints NDJSON and exits — no TTY needed, no ANSI codes, nothing
+to scrape.
+
+```bash
+nplog --json --last-run                 # the most recent plugin invocation
+nplog --since 10m --json                # the last 10 minutes
+nplog --since 10m --json --min-level warn
+nplog --plugin jgclark.Dashboard --json # just that plugin's own console log
+```
+
+**Exit code 1 if any emitted entry was an ERROR.** That alone answers "did it work?"
+without reading a single line.
+
+### Answering "what happened when I did X?"
+
+An x-callback returns *immediately* while the plugin runs asynchronously, so reading
+the log straight after firing one shows nothing. Bracket the action instead:
+
+```bash
+CURSOR=$(nplog --mark)
+open "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard"
+nplog --since "$CURSOR" --wait-idle 3 --timeout 30 --json
+```
+
+`--wait-idle 3` returns once the log has been quiet for three seconds — i.e. the run
+finished — or gives up at `--timeout`. This is the whole reason the mode exists.
+
+### `--since` takes three shapes
+
+| Form | Example | Meaning |
+| --- | --- | --- |
+| cursor | `"…962.log:11993599"` | byte-exact, from `--mark` |
+| duration | `10m`, `30s`, `2h`, `10` | back from now (bare number = minutes) |
+| wall clock | `19:36`, `19:36:56`, `"2026-07-29 19:36"` | local time; a future time means yesterday |
+
+Durations and times filter on each entry's **own** timestamp — the real event time,
+not the flush time (see [the two-timestamp trap](AGENTS.md)).
+
+### Output
+
+One JSON object per entry, then a summary:
+
+```json
+{"seq":0,"ts":"2026-07-29T09:14:59-07:00","level":"error","source":"plugin","run":"onMessageFromHTMLView","text":"…"}
+{"summary":true,"file":"…","emitted":6,"entriesScanned":17,"droppedByMaxEntries":0,"cursor":"…","hasError":true}
+```
+
+- `level` — `debug` / `info` / `warn` / `error` / `null`
+- `source` — `plugin` or `webview`
+- `run` — which `Executing function` invocation this entry belongs to, so an error can
+  be attributed to the call that caused it
+- `text` — the entire entry; **a pretty-printed object arrives whole**, newlines and
+  all. Width clipping is a display concern and does not apply here
+- `cursor` — pass to the next `--since`
+- `droppedByMaxEntries` — truncation is always reported, never silent
+
+`--mode N` works here too, so you can pull a match plus the next N entries:
+
+```bash
+nplog --json --mode 10 '\[DIAG\]'      # the DIAG line and what happened after it
+```
+
+### Why a tool rather than `grep`
+
+Three traps, each returning **empty** — which reads as "no errors" and is worse than
+a crash:
+
+| Naive attempt | What happens |
+| --- | --- |
+| `grep '^JSLog:'` | zero matches; the timestamp comes first |
+| `grep '\| ERROR \|'` | zero matches; WARN/ERROR use emoji delimiters |
+| filter on the leading timestamp | wrong on ~2/3 of lines, by up to hours |
+
+### Relationship to the NotePlan MCP
+
+The MCP's `noteplan_plugins` `action: "log"` reads the same per-plugin file that
+`--plugin` does, with `tail` and `clear` options. Reach for the MCP for a quick look at
+one plugin; reach for `--json` when you need structured levels, intact objects, run
+attribution, an error exit code, waiting on an async run, or the main log. They
+compose: `--plugin <id>` gives you the MCP's scoping plus this parsing.
+
+Agents working in this repo get this as a skill — see
+[`.claude/skills/nplog/SKILL.md`](../../.claude/skills/nplog/SKILL.md).
+
 ## Filtering is regex
 
 The filter is a case-insensitive JavaScript regular expression, so:

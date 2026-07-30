@@ -239,6 +239,15 @@ nplog                        # follow the log
 nplog 'ERROR|WARN'           # start with a filter set (though you can change it at any time)
 ```
 
+For scripts, CI, or an AI agent debugging a plugin, `--json` turns the same parser into a
+one-shot command that emits NDJSON and exits 1 if anything errored:
+
+```bash
+CURSOR=$(nplog --mark)
+open "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard"
+nplog --since "$CURSOR" --wait-idle 3 --json    # what that action logged
+```
+
 See [scripts/nplog/README.md](scripts/nplog/README.md) for the key bindings and options.
 
 ## Editor Setup
