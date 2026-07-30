@@ -207,10 +207,22 @@ function excerpt(text, maxLen = PREFIX_LEN) {
 }
 
 // ---- tailing: one instance per file, independent position/carry state ----
-// Truncation (size < position, e.g. _MCP-console.log rewritten on every
-// plugin invocation) restarts from 0 rather than erroring. If we had unread
-// bytes at truncation time, that content is gone -- counted as "lost to
-// truncation" since we'll never see it.
+// Truncation (e.g. _MCP-console.log rewritten on every plugin invocation)
+// restarts from 0 rather than erroring. If we had unread bytes at
+// truncation time, that content is gone -- counted as "lost to truncation"
+// since we'll never see it.
+//
+// `size < position` alone is NOT a reliable truncation signal: an in-place
+// O_TRUNC rewrite (confirmed: doesn't change the inode either) can regrow
+// past the old position before the next poll, especially if the new
+// content happens to be the same size or larger. A size-only check misses
+// that entirely -- we'd silently read starting at `position` into whatever
+// unrelated new content now occupies that byte range, producing a plausible
+// but WRONG line (looks exactly like a "torn" line, but the corruption is
+// ours, not the source file's). FINGERPRINT_LEN trailing bytes are
+// therefore re-verified against disk on every poll before trusting
+// `position`; a mismatch means the file was rewritten regardless of size.
+const FINGERPRINT_LEN = 64
 
 class Tailer {
   constructor(filePath) {
@@ -227,6 +239,50 @@ class Tailer {
     this.carryStartWall = null
     this.truncations = 0
     this.truncationsWithLoss = 0
+    this.fingerprint = Buffer.alloc(0)
+    this._captureFingerprint()
+  }
+
+  // Snapshots the last FINGERPRINT_LEN bytes ending at `position`, so the
+  // next poll can confirm the file still agrees with what we think we've
+  // already read from that range.
+  _captureFingerprint() {
+    if (this.position <= 0) {
+      this.fingerprint = Buffer.alloc(0)
+      return
+    }
+    const len = Math.min(FINGERPRINT_LEN, this.position)
+    let fd
+    try {
+      fd = fs.openSync(this.filePath, 'r')
+      const buf = Buffer.allocUnsafe(len)
+      fs.readSync(fd, buf, 0, len, this.position - len)
+      this.fingerprint = buf
+    } catch (err) {
+      this.fingerprint = Buffer.alloc(0) // unreadable -- can't verify; next poll's stat failure (if any) is the fallback signal
+    } finally {
+      if (fd !== undefined) fs.closeSync(fd)
+    }
+  }
+
+  // True if the bytes immediately before `position` no longer match what we
+  // last read there -- i.e. rewritten with unrelated content since,
+  // regardless of whether the size happens to have shrunk.
+  _wasRewritten(currentSize) {
+    if (this.position <= 0) return false
+    if (currentSize < this.position) return true // unambiguous, cheap case
+    if (this.fingerprint.length === 0) return false // nothing to verify against
+    let fd
+    try {
+      fd = fs.openSync(this.filePath, 'r')
+      const buf = Buffer.allocUnsafe(this.fingerprint.length)
+      const got = fs.readSync(fd, buf, 0, this.fingerprint.length, this.position - this.fingerprint.length)
+      return got !== this.fingerprint.length || !buf.equals(this.fingerprint)
+    } catch (err) {
+      return false
+    } finally {
+      if (fd !== undefined) fs.closeSync(fd)
+    }
   }
 
   // Returns [{ rawLine, wallMs }, ...] for lines completed this poll.
@@ -239,12 +295,13 @@ class Tailer {
     } catch (err) {
       return []
     }
-    if (st.size < this.position) {
+    if (this._wasRewritten(st.size)) {
       this.truncations++
       if (this.position > 0) this.truncationsWithLoss++
       this.position = 0
       this.carry = ''
       this.carryStartWall = null
+      this.fingerprint = Buffer.alloc(0)
     }
     if (st.size === this.position) return []
 
@@ -259,6 +316,7 @@ class Tailer {
     } finally {
       fs.closeSync(fd)
     }
+    this._captureFingerprint()
 
     const now = Date.now()
     const oldCarryHadContent = this.carry.length > 0
@@ -483,14 +541,34 @@ function makeComparator(a, b, opts, logLine) {
   // silently omitting anything that hadn't yet crossed --gap-timeout-ms.
   function sweepGaps(force) {
     const cutoff = force ? Infinity : Date.now() - opts.gapTimeoutMs
+    const reason = force ? 'exit' : 'timeout'
     const tagFor = (otherLabel) => (force ? '(still pending at exit)' : `(never reached ${otherLabel} within ${fmtMs(opts.gapTimeoutMs)})`)
     for (const [, entry] of pendingFromA.drainStale(cutoff)) {
-      gaps.push({ label: a.label, payload: entry.payload })
+      gaps.push({ label: a.label, payload: entry.payload, reason })
       logLine(`GAP    only in ${a.label} ${tagFor(b.label)}   ${excerpt(entry.payload)}`)
     }
     for (const [, entry] of pendingFromB.drainStale(cutoff)) {
-      gaps.push({ label: b.label, payload: entry.payload })
+      gaps.push({ label: b.label, payload: entry.payload, reason })
       logLine(`GAP    only in ${b.label} ${tagFor(a.label)}   ${excerpt(entry.payload)}`)
+    }
+  }
+
+  // MCP-Log is truncated and rewritten at the start of every plugin
+  // invocation -- it's a single-run rolling buffer, not a history. If our
+  // comparison window spans more than one run (a manual refresh followed by
+  // an auto TBTimer refresh, say), anything still waiting to match into
+  // MCP-Log the instant it truncates belongs to a run whose MCP-Log content
+  // is now permanently gone -- there's no timeout worth waiting out, it's
+  // provably unmatchable. Call this the moment a truncation is detected
+  // (before processing that same poll's new entries), so a stale pending
+  // line from the old run can't accidentally cross-match a coincidentally
+  // identical line from the new run.
+  function orphanPendingFor(truncatedSideLabel) {
+    const target = truncatedSideLabel === b.label ? pendingFromA : pendingFromB
+    const orphanedLabel = truncatedSideLabel === b.label ? a.label : b.label
+    for (const [, entry] of target.drainStale(Infinity)) {
+      gaps.push({ label: orphanedLabel, payload: entry.payload, reason: 'orphaned' })
+      logLine(`GAP    only in ${orphanedLabel} (orphaned -- ${truncatedSideLabel} started a new run before this matched)   ${excerpt(entry.payload)}`)
     }
   }
 
@@ -500,25 +578,40 @@ function makeComparator(a, b, opts, logLine) {
   // the bucket worth actually reading.
   const NOISE_FREQ_THRESHOLD = 3
   const MAX_NOISE_SAMPLES = 5
+  const REASON_LABELS = {
+    orphaned: 'Orphaned by run boundary (a newer run started before this could match) -- structural, not a within-run loss',
+    timeout: 'Timed out waiting (never matched within --gap-timeout-ms)',
+    exit: 'Still pending when the process quit',
+  }
 
-  function printGapExamples(label, otherLabel) {
-    const payloads = gaps.filter((g) => g.label === label).map((g) => g.payload)
+  function printGapBucket(payloads, heading) {
     if (!payloads.length) return
     const { frequent, rare, uniqueCount } = splitByFrequency(payloads, NOISE_FREQ_THRESHOLD)
-    console.log(`\n${label} only (never reached ${otherLabel}): ${payloads.length} total, ${uniqueCount} unique`)
-
+    console.log(`  ${heading}: ${payloads.length} total, ${uniqueCount} unique`)
     if (frequent.length) {
       const shown = frequent.slice(0, MAX_NOISE_SAMPLES)
       const omittedOccurrences = frequent.slice(MAX_NOISE_SAMPLES).reduce((n, [, c]) => n + c, 0)
-      console.log(`  Repeated >${NOISE_FREQ_THRESHOLD}x (likely structural noise, not a completeness gap):`)
-      for (const [payload, count] of shown) console.log(`    x${count}  ${excerpt(payload)}`)
+      console.log(`    Repeated >${NOISE_FREQ_THRESHOLD}x (likely structural noise):`)
+      for (const [payload, count] of shown) console.log(`      x${count}  ${excerpt(payload)}`)
       if (frequent.length > MAX_NOISE_SAMPLES) {
-        console.log(`    ... +${frequent.length - MAX_NOISE_SAMPLES} more frequent unique lines (${omittedOccurrences} more occurrences)`)
+        console.log(`      ... +${frequent.length - MAX_NOISE_SAMPLES} more frequent unique lines (${omittedOccurrences} more occurrences)`)
       }
     }
     if (rare.length) {
-      console.log(`  Seen ≤${NOISE_FREQ_THRESHOLD}x each -- worth a look, shown in full (${rare.length}):`)
-      for (const [payload, count] of rare) console.log(`    x${count}  ${excerpt(payload, 220)}`)
+      console.log(`    Seen ≤${NOISE_FREQ_THRESHOLD}x each -- worth a look, shown in full (${rare.length}):`)
+      for (const [payload, count] of rare) console.log(`      x${count}  ${excerpt(payload, 220)}`)
+    }
+  }
+
+  function printGapExamples(label, otherLabel) {
+    const forLabel = gaps.filter((g) => g.label === label)
+    if (!forLabel.length) return
+    console.log(`\n${label} only (never reached ${otherLabel}): ${forLabel.length} total`)
+    for (const reason of ['timeout', 'exit', 'orphaned']) {
+      printGapBucket(
+        forLabel.filter((g) => g.reason === reason).map((g) => g.payload),
+        REASON_LABELS[reason],
+      )
     }
   }
 
@@ -579,7 +672,7 @@ function makeComparator(a, b, opts, logLine) {
     return pendingFromA.size() + pendingFromB.size()
   }
 
-  return { pendingFromA, pendingFromB, handleSide, sweepGaps, printSummary, clearAll, oldestPendingWall, totalPending }
+  return { pendingFromA, pendingFromB, handleSide, sweepGaps, orphanPendingFor, printSummary, clearAll, oldestPendingWall, totalPending }
 }
 
 function makeRecorder(filePath, sideLabel) {
@@ -588,6 +681,14 @@ function makeRecorder(filePath, sideLabel) {
   return {
     write(payload, wallMs) {
       stream.write(`${JSON.stringify({ side: sideLabel, wallMs, payload })}\n`)
+    },
+    // Persists a truncation (run-boundary) event so --replay can reconstruct
+    // the same orphaning a live session applies -- without this, replaying a
+    // multi-run capture would blend runs together and either wait out the
+    // full gap timeout for provably-unmatchable lines, or worse, risk a
+    // stale line from one run cross-matching a duplicate in the next.
+    writeEvent(event, wallMs) {
+      stream.write(`${JSON.stringify({ side: sideLabel, event, wallMs })}\n`)
     },
     close() {
       stream.end()
@@ -632,9 +733,27 @@ function runCompare(opts) {
   if (opts.record) console.log(`Recording to: ${opts.record}`)
   console.log(`Polling every ${opts.pollMs}ms. Gap timeout ${fmtMs(opts.gapTimeoutMs)}. Press 'c' to clear and start a fresh window, 'q'/Ctrl-C for a final summary.\n`)
 
+  // Truncation counts checked BEFORE processing each poll's new entries, so
+  // orphaning (dropping stale pending lines from the just-ended run) happens
+  // before any of this tick's freshly-read post-truncation lines get a
+  // chance to match against them.
+  let lastTruncA = a.tailer ? a.tailer.truncations : 0
+  let lastTruncB = b.tailer ? b.tailer.truncations : 0
   const pollTimer = setInterval(() => {
-    cmp.handleSide(a.poll(), cmp.pendingFromA, cmp.pendingFromB, a.label)
-    cmp.handleSide(b.poll(), cmp.pendingFromB, cmp.pendingFromA, b.label)
+    const aEntries = a.poll()
+    if (a.tailer && a.tailer.truncations > lastTruncA) {
+      cmp.orphanPendingFor(a.label)
+      if (recorderA) recorderA.writeEvent('truncation', Date.now())
+      lastTruncA = a.tailer.truncations
+    }
+    const bEntries = b.poll()
+    if (b.tailer && b.tailer.truncations > lastTruncB) {
+      cmp.orphanPendingFor(b.label)
+      if (recorderB) recorderB.writeEvent('truncation', Date.now())
+      lastTruncB = b.tailer.truncations
+    }
+    cmp.handleSide(aEntries, cmp.pendingFromA, cmp.pendingFromB, a.label)
+    cmp.handleSide(bEntries, cmp.pendingFromB, cmp.pendingFromA, b.label)
     cmp.sweepGaps()
   }, opts.pollMs)
   const reportTimer = setInterval(() => cmp.printSummary(false), Math.max(1000, opts.reportEverySec * 1000))
@@ -688,18 +807,28 @@ function runReplay(opts) {
     if (!line.trim()) continue
     try {
       const rec = JSON.parse(line)
-      if (rec && typeof rec.payload === 'string' && Number.isFinite(rec.wallMs)) entries.push(rec)
+      if (!rec || !Number.isFinite(rec.wallMs)) continue
+      if (typeof rec.payload === 'string' || typeof rec.event === 'string') entries.push(rec)
     } catch (err) {
       // skip a malformed line rather than aborting the whole replay
     }
   }
   entries.sort((x, y) => x.wallMs - y.wallMs)
 
-  const countA = entries.filter((e) => e.side === a.label).length
-  const countB = entries.filter((e) => e.side === b.label).length
-  console.log(`Replaying ${entries.length} recorded lines from ${opts.replay} (${countA} ${a.label}, ${countB} ${b.label})\n`)
+  const lineCount = entries.filter((e) => typeof e.payload === 'string')
+  const countA = lineCount.filter((e) => e.side === a.label).length
+  const countB = lineCount.filter((e) => e.side === b.label).length
+  const truncEvents = entries.length - lineCount.length
+  console.log(
+    `Replaying ${lineCount.length} recorded lines from ${opts.replay} (${countA} ${a.label}, ${countB} ${b.label})` +
+      (truncEvents ? `, ${truncEvents} recorded run-boundary event(s)\n` : '\n'),
+  )
 
   for (const rec of entries) {
+    if (typeof rec.event === 'string') {
+      if (rec.event === 'truncation') cmp.orphanPendingFor(rec.side)
+      continue
+    }
     const src = rec.side === a.label ? a : rec.side === b.label ? b : null
     if (!src) continue
     const entry = src.recordEntry(rec.payload, rec.wallMs)
