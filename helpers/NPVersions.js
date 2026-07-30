@@ -1,6 +1,7 @@
 // @flow
 //-------------------------------------------------------------------------------
 // Version-related helper functions for NotePlan plugins
+// Last updated 2026-07-30 by @jgclark
 //-------------------------------------------------------------------------------
 
 import { clo, JSP, logError, logDebug, logWarn } from './dev'
@@ -41,7 +42,7 @@ export function usersVersionHas(feature: string): boolean {
     commandBarForms: '3.21.0', // Apr 2026, macOS build 1502
     APIsAvailableInWebViews: '3.21.0', // ~ Apr 2026
     appleAppCallbacksAvailable: '3.21.2', // Jul 2026, macOS build 1524 (NotePlan.openURL allows x-apple-reminderkit)
-    addRemindersSupport: '3.21.2', // Jul 2026, macOS build 1525?
+    addRemindersSupport: '3.21.2', // Jul 2026, macOS build 1525
   }
 
   // Check if the user's version meets the requirement for the requested feature

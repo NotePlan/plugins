@@ -9,6 +9,7 @@ CRITICAL: Never use dynamic imports. Rollup will not process them correctly. Alw
 ## NotePlan domain facts
 - NotePlan's supported task priority markers are exactly `!`, `!!`, `!!!`, and `>>`. The corresponding `paragraph.priority` values are 1, 2, 3, and 4. `!!!!` (four exclamation marks) is NOT a supported priority marker.
 - "priority marker" or just "Marker" is user-facing language. Users think in terms of the symbols (`>>`, `!!!`, `!!`, `!`), not the underlying numeric `.priority` values. Use the symbols in settings/labels/descriptions, but key code logic off `.priority` when possible.
+- Prefer `@flow-typed/Noteplan.js` over the public website when looking up NotePlan plugin APIs (Calendar, CalendarItem, Editor, DataStore, etc.). That file is usually more detailed and closer to what Eduard ships. Offer to sync missing notes into it when you learn them from gists/changelogs, but ensure developer specifically checks and approves the change.
 
 ## Code Style Guidelines
 - Use Flow for static typing

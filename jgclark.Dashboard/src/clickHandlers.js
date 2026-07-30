@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-07-16 for v2.4.0.b51 by @jgclark + @CursorAI
+// Last updated 2026-07-30 for v2.4.0.b57 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -29,6 +29,7 @@ import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
 import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } from './perspectiveSettingsOnDashboardSave'
 import { dashboardFolderFilterSettingsChanged } from './reviewsListSync'
+import { mapDashboardPriorityToAppleReminder, parseLeadingPriorityFromReminderText } from './dataGenerationReminders'
 import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TSectionCode } from './types'
 import { getDateObjFromDateString, getDateObjFromDateTimeString, getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
@@ -134,15 +135,78 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
 }
 
 /**
+ * Resolve Calendar.add return value (sync CalendarItem, or Promise in newer NotePlan builds).
+ * @param {mixed} addResult
+ * @returns {Promise<?TCalendarItem>}
+ */
+async function resolveCalendarAddResult(addResult: mixed): Promise<?TCalendarItem> {
+  if (addResult == null) return null
+  if (typeof addResult === 'object' && typeof (addResult: any).then === 'function') {
+    return await ((addResult: any): Promise<?TCalendarItem>)
+  }
+  return ((addResult: any): TCalendarItem)
+}
+
+/**
+ * Clear due date on an existing reminder (NotePlan >= 3.21.2).
+ * Must re-fetch via reminderByID after create -- mutating the object returned from Calendar.add is unreliable.
+ * Prefer plain-object Calendar.update so `date: null` is not coerced by CalendarItem setters (null → epoch).
+ * @param {string} reminderId
+ * @param {string} fallbackListName
+ * @returns {Promise<void>}
+ */
+async function clearReminderDueDateAfterCreate(reminderId: string, fallbackListName: string): Promise<void> {
+  const reminder = await Calendar.reminderByID(reminderId)
+  if (!reminder || !reminder.id) {
+    logWarn('doAddReminder', `clearReminderDueDateAfterCreate: reminderByID returned nothing for id=${reminderId}`)
+    return
+  }
+  logDebug('doAddReminder', `clearReminderDueDateAfterCreate: before update id=${reminderId} date=${String(reminder.date)}`)
+
+  // Plain object update (same pattern as HTML-view Calendar APIs). Do not assign reminder.date = null
+  // on the CalendarItem first -- that setter has historically turned null into epoch before update ran.
+  // $FlowIgnore[incompatible-call] Calendar.update accepts a reminder-shaped object with date: null (v3.21.2+)
+  await Calendar.update({
+    id: reminder.id,
+    title: reminder.title,
+    date: null,
+    type: 'reminder',
+    isAllDay: true,
+    calendar: reminder.calendar || fallbackListName,
+    isCompleted: Boolean(reminder.isCompleted),
+    notes: reminder.notes || '',
+    url: reminder.url || '',
+    ...(typeof reminder.priority === 'number' ? { priority: reminder.priority } : {}),
+  })
+
+  const after = await Calendar.reminderByID(reminderId)
+  // Any non-null date (including epoch) means the due date was not cleared
+  const stillHasDate = Boolean(after && after.date != null)
+  logDebug(
+    'doAddReminder',
+    `clearReminderDueDateAfterCreate: after update id=${reminderId} date=${String(after?.date)} occurences=${String((after?.occurences && after.occurences.length) || 0)} stillHasDate=${String(stillHasDate)}`,
+  )
+
+  // Fallback: docs pattern -- mutate fetched CalendarItem then update
+  if (stillHasDate && after) {
+    logWarn('doAddReminder', `clearReminderDueDateAfterCreate: plain-object update left a date; retrying via reminder.date = null`)
+    after.date = null
+    await Calendar.update(after)
+    const verified = await Calendar.reminderByID(reminderId)
+    logDebug('doAddReminder', `clearReminderDueDateAfterCreate: after property-assign retry date=${String(verified?.date)}`)
+  }
+}
+
+/**
  * Add a new Apple Reminder from the Reminders section heading button.
  * Dialog supplies text, list, and optional date/time.
+ * Leading !!! / !! / ! in the text set Apple priority (high / medium / low) and are stripped from the title.
  * Dated today → DT/TB; tomorrow → DO; undated → REM (caller refreshes those sections).
  *
- * NotePlan API notes:
- * - Calendar.add requires a real CalendarItem from CalendarItem.create (plain dicts without date are rejected).
- * - CalendarItem.create always requires a Date; the API has no true "null due date".
- * - For undated reminders we pass Unix epoch (1970-01-01T00:00:00.000Z). mapCalendarItemToReminderForDashboard
- *   treats epoch as undated. Apple Reminders may still show that as 1/1/1970 until null date is supported.
+ * NotePlan API notes (see flow-typed/Noteplan.js):
+ * - Dated reminders: CalendarItem.create + Calendar.add.
+ * - Undated (v3.21.2+): Calendar.add plain object with date: null, then confirm clear via Calendar.update.
+ * - Clearing due date: re-fetch with reminderByID, then Calendar.update with date: null (do not mutate add() return).
  * - TODO(future): Enable flagged create/update if the API is extended to cover flagged status.
  *
  * @param {MessageDataObject} data - actionType addReminder, userInputObj { text, list, date?, time? }, sectionCodes
@@ -164,6 +228,12 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
       throw new Error('doAddReminder: No Reminder List provided')
     }
 
+    const { title: reminderTitle, dashboardPriority } = parseLeadingPriorityFromReminderText(content)
+    if (!reminderTitle || reminderTitle.trim() === '') {
+      throw new Error('doAddReminder: No reminder text provided after removing priority markers')
+    }
+    const applePriority = dashboardPriority > 0 ? mapDashboardPriorityToAppleReminder(dashboardPriority) : null
+
     // Normalise optional date from calendarpicker (YYYY-MM-DD string, Date, or empty/null)
     let trimmedDate = ''
     if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
@@ -173,13 +243,45 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
     }
     const trimmedTime = typeof timeStr === 'string' ? timeStr.trim() : ''
 
-    // Pass null (not undefined) for endDate so the native bridge does not shift later args (incl. isAllDay).
-    // TODO(future): remove this workaround once the API is fixed to support null date.
-    let dueDate: Date
     let isAllDay = true
     const wantUndated = trimmedDate === ''
+    const listTrimmed = listName.trim()
 
-    if (!wantUndated) {
+    logDebug(
+      'doAddReminder',
+      `- adding reminder "${reminderTitle}" to list "${listTrimmed}" date=${trimmedDate || '(undated)'} time=${trimmedTime || '(none)'} wantUndated=${String(wantUndated)} dashboardPriority=${String(dashboardPriority)} applePriority=${String(applePriority ?? '(unset)')}`,
+    )
+
+    let created: ?TCalendarItem = null
+
+    if (wantUndated) {
+      if (trimmedTime !== '') {
+        logWarn('doAddReminder', `Time "${trimmedTime}" ignored because date field was blank (creating undated reminder)`)
+      }
+      // NP 3.21.2+: create undated via plain object with date: null (CalendarItem.create still requires a Date)
+      const undatedPayload: { [string]: mixed } = {
+        title: reminderTitle,
+        date: null,
+        type: 'reminder',
+        isAllDay: true,
+        calendar: listTrimmed,
+        isCompleted: false,
+        notes: '',
+        url: '',
+      }
+      if (applePriority != null) {
+        undatedPayload.priority = applePriority
+      }
+      // $FlowIgnore[incompatible-call] plain object form of Calendar.add (v3.21+)
+      created = await resolveCalendarAddResult(Calendar.add(undatedPayload))
+      if (!created || !created.id) {
+        throw new Error('doAddReminder: Calendar.add failed for undated reminder (returned undefined / no id)')
+      }
+      // Always re-fetch and clear via update -- add(date:null) alone may still leave epoch in EventKit
+      await clearReminderDueDateAfterCreate(created.id, listTrimmed)
+    } else {
+      // Pass null (not undefined) for endDate so the native bridge does not shift later args (incl. isAllDay).
+      let dueDate: Date
       if (trimmedTime !== '') {
         dueDate = getDateObjFromDateTimeString(`${trimmedDate} ${trimmedTime}`)
         isAllDay = false
@@ -191,41 +293,33 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
         dueDate = dateOnly
         isAllDay = true
       }
-    } else {
-      // Epoch = "no date" for Dashboard (see mapCalendarItemToReminderForDashboard isEpochDate)
-      dueDate = new Date(0)
-      logInfo('doAddReminder', `- creating undated reminder, but because of API limitation, setting it to epoch (1970-01-01) date, which later be filtered out.`)
-      isAllDay = true
-      if (trimmedTime !== '') {
-        logWarn('doAddReminder', `Time "${trimmedTime}" ignored because date field was blank (creating undated reminder)`)
+
+      const reminderItem: TCalendarItem = CalendarItem.create(
+        reminderTitle,
+        dueDate,
+        null, // endDate unused for reminders; use null not undefined (avoids bridge arg shift)
+        'reminder',
+        isAllDay,
+        listTrimmed,
+        false, // isCompleted
+        '', // notes
+        '', // url
+      )
+      // Re-assert after create: some NotePlan builds do not keep isAllDay from create() for reminders
+      reminderItem.isAllDay = isAllDay
+      if (applePriority != null) {
+        reminderItem.priority = applePriority
+      }
+
+      created = await resolveCalendarAddResult(Calendar.add(reminderItem))
+      if (!created) {
+        throw new Error('doAddReminder: Calendar.add failed (returned undefined)')
       }
     }
 
-    const reminderItem: TCalendarItem = CalendarItem.create(
-      content.trim(),
-      dueDate,
-      null, // endDate unused for reminders; use null not undefined (avoids bridge arg shift)
-      'reminder',
-      isAllDay,
-      listName.trim(),
-      false, // isCompleted
-      '', // notes
-      '', // url
-    )
-    // Re-assert after create: some NotePlan builds do not keep isAllDay from create() for reminders
-    reminderItem.isAllDay = isAllDay
-
     logDebug(
       'doAddReminder',
-      `- adding reminder "${content.trim()}" to list "${listName.trim()}" date=${trimmedDate || '(undated = epoch)'} time=${trimmedTime || '(none)'} isAllDay=${String(isAllDay)} wantUndated=${String(wantUndated)}`,
-    )
-    const created = Calendar.add(reminderItem)
-    if (!created) {
-      throw new Error('doAddReminder: Calendar.add failed (returned undefined)')
-    }
-    logDebug(
-      'doAddReminder',
-      `- created reminder id=${String(created.id || '')} date=${String(created.date || '')} isAllDay=${String(created.isAllDay)} occurences=${String((created.occurences && created.occurences.length) || 0)}`,
+      `- created reminder id=${String(created.id || '')} date=${String(created.date || '')} isAllDay=${String(created.isAllDay)} occurences=${String((created.occurences && created.occurences.length) || 0)} priority=${String(created.priority ?? '')}`,
     )
 
     const codesToRefresh = sectionCodes && sectionCodes.length > 0 ? sectionCodes : ['REM', 'DT', 'TB', 'DO']

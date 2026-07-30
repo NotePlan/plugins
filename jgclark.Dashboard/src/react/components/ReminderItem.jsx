@@ -8,7 +8,7 @@
 // On older builds that scheme is blocked by NotePlan.openURL.
 // See also ARCHITECTURE-How_Stuff_Works.md -> "Reminders section".
 //
-// Last updated 2026-07-29 for v2.4.0.b57 by @jgclark + @CursorAI
+// Last updated 2026-07-30 for v2.4.0.b57 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useCallback } from 'react'
@@ -80,14 +80,7 @@ function ReminderItem({ item, thisSection }: Props): Node {
     )
   }
   contentParts.push(
-    <span
-      key="title"
-      className={
-        !dashboardSettings?.hidePriorityMarkers && reminder.priority != null && reminder.priority >= 1 && reminder.priority <= 3
-          ? `reminderTitle priority${String(reminder.priority)}`
-          : 'reminderTitle'
-      }
-    >
+    <span key="title" className="reminderTitle">
       {reminder.title}
     </span>,
   )
@@ -119,6 +112,12 @@ function ReminderItem({ item, thisSection }: Props): Node {
   //   )
   // }
 
+  // Same as tasks: wrap the whole content block in .priorityN (theme flagged-1/2/3 styles).
+  // Hide priority markers only strips ! from task text; it must not remove this class.
+  const dashboardPriority = Number(reminder.priority) || 0
+  const priorityClass = dashboardPriority >= 1 && dashboardPriority <= 3 ? `priority${String(dashboardPriority)}` : ''
+  const contentBody = priorityClass ? <span className={priorityClass}>{contentParts}</span> : contentParts
+
   // Listname on RHS (same float pattern as ItemNoteLink in ItemContent)
   let listnameEl: Node = null
   if (showListnameContext) {
@@ -143,10 +142,10 @@ function ReminderItem({ item, thisSection }: Props): Node {
   const contentClassName = canOpenInReminders ? 'content clickTarget reminderContent' : 'content reminderContent'
   const contentEl = canOpenInReminders ? (
     <a className={contentClassName} onClick={handleContentClick} title="Open in Reminders">
-      {contentParts}
+      {contentBody}
     </a>
   ) : (
-    <span className={contentClassName}>{contentParts}</span>
+    <span className={contentClassName}>{contentBody}</span>
   )
 
   return (

@@ -1493,6 +1493,9 @@ declare class Calendar {
    * the event using `eventsBetween(...)`, `remindersBetween(...)`, `eventByID(...)`, `reminderByID(...)`, etc.
    * Returns a promise, because it needs to fetch the original event objects first in the background,
    * then updates it. Use it with `await`.
+   * Since v3.21.2: setting `.date = null` on a reminder removes its due date (events always require a date).
+   * For a newly created reminder, re-fetch with `reminderByID(id)` before clearing -- do not rely on mutating the object returned from `.add(...)`.
+   * Prefer passing a plain object `{ id, title, date: null, type: 'reminder', ... }` to `.update(...)` so `null` is not coerced by CalendarItem setters.
    * Note: Available from v3.0.26
    * @param {CalendarItem}
    * @return {Promise}
@@ -1816,8 +1819,10 @@ declare interface TCalendarItem {
   /**
    * The date (with time) of the event or reminder.
    * Note: For reminders, NotePlan/EventKit stores this in Zulu (UTC). Convert to local timezone before display or date bucketing.
+   * Note: From v3.21.2, reminders may have `date = null` (no due date). Set via `Calendar.update()` after create;
+   * `CalendarItem.create()` still requires a Date. Events always require a date.
    */
-  date: Date;
+  date: Date | null;
   /**
    * The endDate (with time) of the event (reminders have no endDate).
    * So, this can be optional.

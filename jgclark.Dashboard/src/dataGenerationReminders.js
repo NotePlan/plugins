@@ -197,6 +197,39 @@ export function mapAppleReminderPriorityToDashboard(applePriority: mixed): numbe
 }
 
 /**
+ * Map Dashboard priority (0 / 1 / 2 / 3) back to Apple Reminders / EventKit priority.
+ * @param {number} dashboardPriority
+ * @returns {number} Apple: 0 = none, 1 = high, 5 = medium, 9 = low
+ */
+export function mapDashboardPriorityToAppleReminder(dashboardPriority: number): number {
+  if (dashboardPriority === 3) return 1 // high
+  if (dashboardPriority === 2) return 5 // medium
+  if (dashboardPriority === 1) return 9 // low
+  return 0
+}
+
+/**
+ * Parse leading !!! / !! / ! priority markers from reminder text (NotePlan task style).
+ * Requires whitespace after the markers and non-empty remaining text; otherwise leaves text unchanged and priority unset (0).
+ * @param {string} text
+ * @returns {{ title: string, dashboardPriority: number }}
+ */
+export function parseLeadingPriorityFromReminderText(text: string): { title: string, dashboardPriority: number } {
+  const trimmed = text.trim()
+  const match = trimmed.match(/^(!{1,3})\s+(.+)$/)
+  if (!match) {
+    return { title: trimmed, dashboardPriority: 0 }
+  }
+  const bangs = match[1]
+  const rest = match[2].trim()
+  if (rest === '') {
+    return { title: trimmed, dashboardPriority: 0 }
+  }
+  const dashboardPriority = bangs === '!!!' ? 3 : bangs === '!!' ? 2 : 1
+  return { title: rest, dashboardPriority }
+}
+
+/**
  * Map a NotePlan CalendarItem (reminder) into TReminderForDashboard.
  * Does not pass TCalendarItem through to section items.
  * @param {TCalendarItem} calendarItem
@@ -232,11 +265,10 @@ export function mapCalendarItemToReminderForDashboard(
     reminder.location = calendarItem.location
   }
   if (calendarItem.date) {
-    // Note: API bug: all reminders report a date: depending how they're created they can be current datetime, or epoch start (1970-01-01T00:00:00.000Z)
+    // Note: API quirk: some undated reminders still report a date (now, or epoch 1970-01-01T00:00:00.000Z).
     // This test to see if there are 'occurences' (i.e. dated) works around this.
     // Note: 'occurences' is a typo in the API, it should be 'occurrences'.
-    // TODO(later): remove workarounds when bugs are fixed.
-    // Also: writing date=null via the plugin bridge becomes 1970-01-01T00:00:00.000Z -- treat epoch as undated.
+    // From NotePlan v3.21.2, Calendar.update with date=null clears due date; keep epoch treatment for older/legacy items.
     // Reminder due dates from NotePlan/EventKit are stored in Zulu (UTC). Coerce bridge Date-or-ISO-string, then
     // convert to local timezone for Dashboard date bucketing (YYYY-MM-DD) and timed display (HH:mm).
     const rawDate: Date | string = calendarItem.date
@@ -251,9 +283,8 @@ export function mapCalendarItemToReminderForDashboard(
       }
     }
   }
-  if (calendarItem.title.match(/test/i) || calendarItem.title.match(/new/i)) {
-    // TODO(future): Enable flagged in this clof list if the API is extended to cover flagged status
-    clof(calendarItem, "CalendarItem (for Reminder): ", ['title', 'date', 'occurences', 'isAllDay', 'isCompleted', 'priority' /*, 'flagged' */])
+  if (calendarItem.title.match(/test/i)) {
+    clof(calendarItem, "CalendarItem (for Reminder): ", ['title', 'date', 'occurences', 'isAllDay', 'isCompleted', 'priority'])
     clo(reminder, "  => Reminder: ")
   }
   return reminder

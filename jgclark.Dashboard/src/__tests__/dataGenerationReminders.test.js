@@ -11,6 +11,8 @@ import {
   getReminderListsForConfig,
   mapAppleReminderPriorityToDashboard,
   mapCalendarItemToReminderForDashboard,
+  mapDashboardPriorityToAppleReminder,
+  parseLeadingPriorityFromReminderText,
   sortReminderSectionItems,
 } from '../dataGenerationReminders.js'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
@@ -190,6 +192,13 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(mapAppleReminderPriorityToDashboard(4)).toBe(0)
       })
 
+      test('mapDashboardPriorityToAppleReminder is the reverse mapping', () => {
+        expect(mapDashboardPriorityToAppleReminder(0)).toBe(0)
+        expect(mapDashboardPriorityToAppleReminder(3)).toBe(1)
+        expect(mapDashboardPriorityToAppleReminder(2)).toBe(5)
+        expect(mapDashboardPriorityToAppleReminder(1)).toBe(9)
+      })
+
       test('stores only non-zero Dashboard priority on the reminder', () => {
         const base = {
           title: 'T',
@@ -203,6 +212,20 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(mapCalendarItemToReminderForDashboard({ ...base, priority: 9 }).priority).toBe(1)
         expect(mapCalendarItemToReminderForDashboard({ ...base, priority: 0 }).priority).toBeUndefined()
         expect(mapCalendarItemToReminderForDashboard({ ...base }).priority).toBeUndefined()
+      })
+    })
+
+    describe('parseLeadingPriorityFromReminderText()', () => {
+      test('parses !!! / !! / ! and strips them from the title', () => {
+        expect(parseLeadingPriorityFromReminderText('!!! Urgent call')).toEqual({ title: 'Urgent call', dashboardPriority: 3 })
+        expect(parseLeadingPriorityFromReminderText('!! Follow up')).toEqual({ title: 'Follow up', dashboardPriority: 2 })
+        expect(parseLeadingPriorityFromReminderText('! Buy milk')).toEqual({ title: 'Buy milk', dashboardPriority: 1 })
+      })
+
+      test('leaves text unchanged when there is no leading priority marker', () => {
+        expect(parseLeadingPriorityFromReminderText('Just a reminder')).toEqual({ title: 'Just a reminder', dashboardPriority: 0 })
+        expect(parseLeadingPriorityFromReminderText('Hello !!! world')).toEqual({ title: 'Hello !!! world', dashboardPriority: 0 })
+        expect(parseLeadingPriorityFromReminderText('!!!! not four bangs')).toEqual({ title: '!!!! not four bangs', dashboardPriority: 0 })
       })
     })
   })
