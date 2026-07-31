@@ -87,7 +87,7 @@ const PLUGINS_DIR = path.join(CONTAINER_DIR, 'Plugins')
 // there and missing here. The main log is a strict superset and the only ground truth.
 
 // Bump this and add a matching entry to CHANGELOG.md for any user-visible change.
-const VERSION = '1.3.0'
+const VERSION = '1.4.0'
 
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
@@ -109,7 +109,7 @@ function parseArgs(argv) {
     mode: 0,
     raw: false,
     file: null,
-    plugin: null,
+    plugins: [],
     // Hidden by default -- the repeated timestamp/severity/source prefix is
     // chrome once you're scanning, and idle/run separators now carry their
     // own clock (see separatorClock), so a bird's-eye sense of the log's
@@ -156,7 +156,10 @@ function parseArgs(argv) {
       const n = Number(argv[++i])
       if (Number.isFinite(n) && n >= 0) opts.idleGapSec = n
     } else if (a === '--file') opts.file = argv[++i]
-    else if (a === '--plugin') opts.plugin = argv[++i]
+    else if (a === '--plugin') {
+      const id = argv[++i]
+      if (id) opts.plugins.push(id)
+    }
     else if (a === '--mode') {
       const idx = CONTEXT_MODES.indexOf(Number(argv[++i]))
       if (idx >= 0) opts.mode = idx
@@ -173,6 +176,8 @@ function parseArgs(argv) {
       console.log('  --no-separators   no run/idle rules at all (toggle live with ^G)')
       console.log('  --file PATH       pin one log instead of following the newest')
       console.log("  --plugin ID       tail one plugin's _MCP-console.log instead of the main log")
+      console.log('                    repeat it to tail several, threaded together by timestamp')
+      console.log('                    and prefixed with [PluginTag]')
       console.log('                    (lower latency for that plugin, but only the current run --')
       console.log('                    NotePlan truncates it on every invocation; keeps streaming')
       console.log('                    through resets. Path resolved from ~/.config/nplog/config.json,')
@@ -209,13 +214,49 @@ function parseArgs(argv) {
 
 const opts = parseArgs(process.argv.slice(2))
 
+// Timestamp-ordered insertion is a merge concern, so it only applies when
+// there is something to merge. It is disabled under --follow because
+// streamPending() emits by absolute buffer index, which assumes append-only;
+// --follow consumers get a `ts` on every record and can sort themselves.
+opts.mergeByTime = false
+
 // --plugin is a pinned-file mode like --file, plus a different line format
 // (see consumePluginLine): _MCP-console.log has no outer flush-timestamp or
 // "JSLog:" marker to strip -- it's already in the same "payload" shape
 // entryPayload() produces from the main log.
-if (opts.plugin) {
-  opts.file = path.join(PLUGINS_DIR, opts.plugin, '_MCP-console.log')
+// --plugin is a pinned-file mode like --file, plus a different line format
+// (see consumePluginLine): _MCP-console.log has no outer flush-timestamp or
+// "JSLog:" marker to strip -- it's already in the same "payload" shape
+// entryPayload() produces from the main log.
+//
+// Repeating --plugin tails several at once, threaded together by timestamp.
+// Each needs its OWN tail state (byte position, partial-line carry, rewrite
+// fingerprint) and its own parse state (the multi-line entry currently open,
+// the last seen timestamp) -- they're independent files that truncate at
+// independent moments. Rather than thread a context argument through every
+// consume/tail function, each source's state is swapped into the existing
+// module-level globals around its turn (see withSource): the single-source
+// code paths stay byte-for-byte what they were, which matters because those
+// are the well-tested ones.
+const pluginSources = opts.plugins.map((id) => ({
+  id,
+  // Short label for the [tag] prefix -- "jgclark.Dashboard" -> "Dashboard".
+  // Only used when more than one plugin is being tailed.
+  tag: id.split('.').pop() || id,
+  file: path.join(PLUGINS_DIR, id, '_MCP-console.log'),
+  position: 0,
+  carry: '',
+  fingerprint: Buffer.alloc(0),
+  openEntry: null,
+  lastStampMs: NaN,
+}))
+
+if (pluginSources.length) {
   opts.pluginMode = true
+  opts.multiPlugin = pluginSources.length > 1
+  opts.plugin = pluginSources[0].id // status bar / single-source messaging
+  opts.file = pluginSources[0].file
+  opts.mergeByTime = opts.multiPlugin && !opts.follow
 }
 
 // ---- log file discovery ----------------------------------------------------
@@ -320,15 +361,64 @@ function closeEntry() {
 
 let totalPushed = 0
 
+// Merging several plugin logs means a line can arrive just after one that is
+// older than it -- the files are polled in turn and flush independently -- so
+// entries are inserted by timestamp rather than appended. Bounded: anything
+// older than the last MERGE_LOOKBACK entries is appended instead of churning
+// the whole buffer. The scan stops at the first entry that is NOT newer, which
+// keeps equal stamps in arrival order -- the common case, since MCP timestamps
+// have whole-second resolution so ties are everywhere.
+const MERGE_LOOKBACK = 500
+
+function insertionIndex(stampMs) {
+  if (!Number.isFinite(stampMs)) return lines.length
+  const floor = Math.max(0, lines.length - MERGE_LOOKBACK)
+  let i = lines.length
+  while (i > floor) {
+    const prev = stamps[i - 1]
+    if (Number.isFinite(prev) && prev <= stampMs) break
+    // A notice is a positional marker ("started watching here", "log was
+    // reset") -- it means "this is where you were in the stream", so nothing
+    // may be reordered across it even though it carries no timestamp.
+    if (parseNotice(lines[i - 1]) !== null) break
+    // Otherwise this entry has no usable time of its own (a log line that
+    // arrived before its source had seen any timestamp). Stepping over it
+    // rather than stopping matters: treating NaN as a wall meant one
+    // untimestamped line at the head of a source's output pinned every later
+    // entry from that source behind it, so nothing merged at all.
+    i--
+  }
+  return i
+}
+
+// Every open multi-line entry holds an index into `lines`, so any splice has
+// to move them. The source currently swapped in by withSource() is skipped
+// because its openEntry IS the global one -- adjusting both would double-count.
+function shiftOpenEntries(fromIndex, delta) {
+  if (openEntry && openEntry.index >= fromIndex) openEntry.index += delta
+  for (const src of pluginSources) {
+    if (src === activeSource) continue
+    if (src.openEntry && src.openEntry.index >= fromIndex) src.openEntry.index += delta
+  }
+}
+
 function pushLine(text, stampMs) {
-  lines.push(text)
+  const stamp = typeof stampMs === 'number' ? stampMs : NaN
+  const at = opts.mergeByTime ? insertionIndex(stamp) : lines.length
+  if (at >= lines.length) {
+    lines.push(text)
+    stamps.push(stamp)
+  } else {
+    lines.splice(at, 0, text)
+    stamps.splice(at, 0, stamp)
+    shiftOpenEntries(at, 1)
+  }
   totalPushed++
-  stamps.push(typeof stampMs === 'number' ? stampMs : NaN)
   if (lines.length > MAX_LINES) {
     const dropped = lines.length - MAX_LINES
     lines.splice(0, dropped)
     stamps.splice(0, dropped)
-    if (openEntry) openEntry.index -= dropped
+    shiftOpenEntries(0, -dropped)
   }
   bufferVersion++
 }
@@ -469,9 +559,15 @@ function consumePluginLine(rawLine) {
   if (openEntry) return appendToOpenEntry(rawLine)
   const body = tidy(rawLine)
   if (isExcludedNoise(body)) return
-  pushLine(body, payloadStamp(body))
-  const st = updateDepth(body, { depth: 0, inString: false, escape: false })
-  if (st.depth > 0 && opensStructure(body)) openEntry = { index: lines.length - 1, count: 0, ...st }
+  // Stamp from the UNTAGGED text. INNER_TS_RE allows one optional leading
+  // "[...]" group, which a "[WebView Log]" line already spends -- prefixing
+  // the plugin tag first would push the timestamp out of reach and silently
+  // drop every WebView line's stamp.
+  const stamp = payloadStamp(body)
+  const text = opts.multiPlugin && activeSource ? `[${activeSource.tag}] ${body}` : body
+  pushLine(text, stamp)
+  const st = updateDepth(text, { depth: 0, inString: false, escape: false })
+  if (st.depth > 0 && opensStructure(text)) openEntry = { index: lines.length - 1, count: 0, ...st }
 }
 
 // ---- view (filter + context) ----------------------------------------------
@@ -782,6 +878,13 @@ const ROUTINE_LEVEL_RE = /\|[ \t]*(?:DEBUG|INFO)[ \t]*\|/gi
 const WARN_LEVEL_RE = /\u{1F97A}[ \t]*WARN(?:[ \t]*\u{1F97A})?|WARN[ \t]*\u{1F97A}|\|[ \t]*WARN(?:ING)?[ \t]*\|/giu
 const ERROR_LEVEL_RE = /\u2757\uFE0F?[ \t]*ERROR(?:[ \t]*\u2757\uFE0F?)?|ERROR[ \t]*\u2757\uFE0F?|\|[ \t]*ERROR[ \t]*\||\bERROR:/gi
 const SOURCE_TAG_RE = /\[WebView\]/gi
+// With several --plugin sources every line is prefixed with its short tag.
+// That's orientation, not content, so it recedes like the other chrome.
+// Built from the actual tags (escaped) rather than a generic /^\[\w+\]/, which
+// would also dim genuine bracketed text at the start of a message.
+const PLUGIN_TAG_RE = opts.multiPlugin
+  ? new RegExp(`^\\[(?:${pluginSources.map((src) => src.tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\]`, 'g')
+  : null
 // WebView errors carry their own tag, e.g. "[WebView Error ❗️]" -- normalised
 // by tidy() and coloured as an error rather than dimmed, since it's signal.
 const SOURCE_ERROR_TAG_RE = /\[WebView Error\]/gi
@@ -804,6 +907,7 @@ const STYLE_MATCH = 4
 const NOISE_SPANS = [
   { re: TIMESTAMP_RE, style: STYLE_DIM },
   { re: SOURCE_TAG_RE, style: STYLE_DIM },
+  ...(PLUGIN_TAG_RE ? [{ re: PLUGIN_TAG_RE, style: STYLE_DIM }] : []),
   { re: ROUTINE_LEVEL_RE, style: STYLE_DIM },
   { re: WARN_LEVEL_RE, style: STYLE_WARN },
   { re: ERROR_LEVEL_RE, style: STYLE_ERROR },
@@ -947,7 +1051,7 @@ function render() {
   // ("_MCP-console.log") doesn't say which plugin. Naming it here keeps that
   // scope visible at all times without spending a row on it. The cursor-park
   // math below is driven off left.length, so it follows automatically.
-  const scope = opts.pluginMode ? `${opts.plugin}  ` : ''
+  const scope = opts.pluginMode ? `${pluginSources.map((src) => src.id).join(' + ')}  ` : ''
   const left = ` ${scope}filter (^U to clear): ${state.filter}`
   const gapWidth = Math.max(1, cols - left.length - right.length)
   const statusLine = pad(left + ' '.repeat(gapWidth) + right, cols)
@@ -974,6 +1078,43 @@ function render() {
 let currentFile = null
 let position = 0
 let carry = ''
+
+// The plugin source whose state is currently swapped into the module globals,
+// or null when the globals belong to the single-file/main-log path.
+let activeSource = null
+
+// Runs `fn` with `src`'s tail+parse state loaded into the module globals, then
+// saves whatever it became back onto `src`. This is what lets several plugin
+// logs share one set of well-tested read/parse functions without threading a
+// context parameter through all of them -- and it means the single-source
+// paths execute exactly the code they always did.
+function withSource(src, fn) {
+  activeSource = src
+  currentFile = src.file
+  position = src.position
+  carry = src.carry
+  tailFingerprint = src.fingerprint
+  openEntry = src.openEntry
+  lastStampMs = src.lastStampMs
+  try {
+    fn()
+  } finally {
+    src.position = position
+    src.carry = carry
+    src.fingerprint = tailFingerprint
+    src.openEntry = openEntry
+    src.lastStampMs = lastStampMs
+    activeSource = null
+  }
+}
+
+function pollPluginSources() {
+  for (const src of pluginSources) withSource(src, readNewBytes)
+}
+
+function seedPluginSources(seed) {
+  for (const src of pluginSources) withSource(src, () => openFile(src.file, seed))
+}
 
 // `size < position` alone is NOT a reliable signal that a file was
 // truncated and rewritten in place -- confirmed empirically that an
@@ -1053,7 +1194,7 @@ function readNewBytes() {
     // every invocation), so it's surfaced as a visible marker rather than
     // silently losing whatever was unread at the reset.
     closeEntry() // don't let a block from before the reset swallow new content
-    if (opts.pluginMode) pushNotice(`${path.basename(currentFile)} was reset by NotePlan (new run)`)
+    if (opts.pluginMode) pushNotice(`${activeSource ? activeSource.id : path.basename(currentFile)} log was reset by NotePlan (new run)`)
     position = 0
     carry = ''
     tailFingerprint = Buffer.alloc(0)
@@ -1116,6 +1257,12 @@ function openFile(file, seed) {
 }
 
 function checkRotation() {
+  // Each plugin log is pinned and independent -- no rotation, but each needs
+  // its own tail state, so poll them in turn.
+  if (opts.pluginMode) {
+    pollPluginSources()
+    return
+  }
   // --file pins one specific log; auto-rotation would otherwise yank us onto
   // whatever NotePlan is currently writing a second later.
   if (opts.file) {
@@ -1516,7 +1663,7 @@ function streamPending(flush) {
         seq: streamSeq++,
         ts: localIso(stamps[abs - base]),
         level,
-        source: /^\[WebView/.test(text) ? 'webview' : 'plugin',
+        source: /\[WebView/.test(text) ? 'webview' : 'plugin',
         run: streamRun || null,
         // notice lines are nplog's own, not the plugin's -- emit the label
         // without the internal sentinel so consumers never see it
@@ -1590,7 +1737,7 @@ function emitJson(file, waitInfo) {
       seq: seq++,
       ts,
       level,
-      source: /^\[WebView/.test(e.text) ? 'webview' : 'plugin',
+      source: /\[WebView/.test(e.text) ? 'webview' : 'plugin',
       run: e.run || null,
       // see streamPending: strip the internal notice sentinel before emitting
       text: (parseNotice(e.text) || {}).label ?? e.text,
@@ -1602,10 +1749,71 @@ function emitJson(file, waitInfo) {
   process.exit(sawError ? 1 : 0)
 }
 
+// Multi-plugin headless tail: the single-source path keys "has anything
+// changed?" off one file's size, so this watches the combined size of every
+// source instead. Same batching caveat as the single-file case -- quiet only
+// counts as finished once output has actually been seen.
+function totalPluginSize() {
+  let n = 0
+  for (const src of pluginSources) n += fileSize(src.file)
+  return n
+}
+
+function finishHeadless(file, sinceMs) {
+  let timedOut = false
+  let sawOutput = lines.length > 0
+  if (opts.waitIdleSec > 0) {
+    const deadline = Date.now() + opts.timeoutSec * 1000
+    let lastChange = Date.now()
+    let lastSize = totalPluginSize()
+    for (;;) {
+      sleep(250)
+      const size = totalPluginSize()
+      if (size !== lastSize) {
+        lastSize = size
+        lastChange = Date.now()
+        sawOutput = true
+        pollPluginSources()
+      }
+      if (sawOutput && Date.now() - lastChange >= opts.waitIdleSec * 1000) break
+      if (Date.now() >= deadline) {
+        timedOut = true
+        break
+      }
+    }
+    pollPluginSources()
+  }
+  emitJson(file, { timedOut, sawOutput })
+}
+
 function runHeadless(file) {
   if (opts.mark) {
     process.stdout.write(`${makeCursor(file, fileSize(file))}\n`)
     process.exit(0)
+  }
+
+  // Several plugin logs: byte cursors are meaningless across a set of files,
+  // so --since falls back to reading each in full and filtering by each
+  // entry's own timestamp -- which is what the time-based branch below does
+  // anyway. Seed everything, then let opts.sinceMs do the filtering.
+  if (opts.multiPlugin) {
+    let sinceMsMulti = null
+    if (opts.since) {
+      const resolved = resolveSince(opts.since, file)
+      if (resolved.kind === 'invalid') {
+        console.error(`nplog: could not read --since "${resolved.raw}" as a cursor, a duration (10m), or a time (19:36)`)
+        process.exit(2)
+      }
+      if (resolved.kind === 'offset') {
+        console.error('nplog: --since with a byte cursor is meaningless across multiple --plugin logs;')
+        console.error('       use a duration (10m) or a wall-clock time (19:36) instead')
+        process.exit(2)
+      }
+      sinceMsMulti = resolved.ms
+    }
+    seedPluginSources(true)
+    opts.sinceMs = sinceMsMulti
+    return finishHeadless(file, sinceMsMulti)
   }
 
   // Start where the caller asked, or from the tail seed for a one-shot read.
@@ -1713,17 +1921,21 @@ function main() {
 
   let pluginHadHistory = false
   if (opts.pluginMode) {
-    let st = null
-    try {
-      st = fs.statSync(file)
-    } catch (err) {
-      // doesn't exist -- st stays null
+    const empties = []
+    for (const src of pluginSources) {
+      let st = null
+      try {
+        st = fs.statSync(src.file)
+      } catch (err) {
+        // doesn't exist -- st stays null
+      }
+      if (st && st.size > 0) pluginHadHistory = true
+      else empties.push({ src, exists: Boolean(st) })
     }
-    pluginHadHistory = Boolean(st && st.size > 0)
-    if (!st || st.size === 0) {
-      console.error(`nplog: ${file}`)
-      console.error(st ? '       exists but is empty.' : "       doesn't exist yet.")
-      console.error(`       '${opts.plugin}' may not have logged anything this NotePlan session yet,`)
+    for (const { src, exists } of empties) {
+      console.error(`nplog: ${src.file}`)
+      console.error(exists ? '       exists but is empty.' : "       doesn't exist yet.")
+      console.error(`       '${src.id}' may not have logged anything this NotePlan session yet,`)
       console.error('       or NotePlan may not have started writing this file for it at all --')
       console.error("       that can happen if this plugin's MCP integration has never been used.")
       console.error('       Trigger any command for this plugin in NotePlan; nplog will keep')
@@ -1749,12 +1961,14 @@ function main() {
   // retained data starts, one for where live capture began. The second is a
   // navigable boundary, so ← always has something to land on even before the
   // first reset -- "show me only what I actually watched".
-  if (opts.pluginMode && pluginHadHistory) {
-    pushNotice('start of retained output -- NotePlan overwrites this file each run, so nothing earlier survives', false)
-  }
-  openFile(file, true)
   if (opts.pluginMode) {
+    if (pluginHadHistory) {
+      pushNotice('start of retained output -- NotePlan overwrites these files each run, so nothing earlier survives', false)
+    }
+    seedPluginSources(true)
     pushNotice(`nplog started watching here -- ${separatorClock(Date.now())}`, true)
+  } else {
+    openFile(file, true)
   }
 
   out.write(`${ESC}[?1049h${ESC}[2J`) // alternate screen keeps the real scrollback clean

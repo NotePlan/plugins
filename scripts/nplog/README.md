@@ -476,6 +476,28 @@ filters, context modes, and `--json` headless mode, just a different, much lower
 source. In practice it wins the race against the main log's flush lag essentially every time
 (see the investigation in [`utils/AGENTS.md`](AGENTS.md) if you want the numbers).
 
+**Repeat `--plugin` to watch several at once**, threaded together by timestamp:
+
+```bash
+nplog --plugin jgclark.Dashboard --plugin np.Shared
+```
+
+Every line gets a dimmed `[PluginTag]` prefix so you can tell the sources apart, and the status
+bar lists them all. This is how you follow a flow that crosses plugins — a Dashboard action that
+goes through np.Shared's bridge, say — without giving up the low latency.
+
+```
+[Shared]    2026-07-30 16:00:01 | DEBUG | bridge::runPluginCommand …
+[Dashboard] 2026-07-30 16:00:01 | DEBUG | routeRequestsFromReact …
+```
+
+A multi-line object from one plugin stays intact even if the other logs into the middle of it —
+each source is parsed independently and only merged once its entry is assembled. Equal
+timestamps keep arrival order (MCP stamps are whole seconds, so ties are the norm), and nplog's
+own rules act as anchors that nothing gets reordered across.
+
+One `--plugin` behaves exactly as before: no tag prefix, no merging.
+
 The tradeoff from the table above still applies: `_MCP-console.log` only ever holds the
 **current run** — NotePlan truncates and rewrites it on every invocation of that plugin.
 `nplog` keeps streaming right through a reset (no restart needed) and drops a marker in the

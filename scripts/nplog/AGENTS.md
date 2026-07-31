@@ -197,6 +197,29 @@ mode gets idle-lull separators but never named-run separators, since `RUN_START_
 nothing to match. That's structural, not a bug -- don't "fix" it by synthesizing run rules
 from plugin output; use the main log when you need to see which command started a run.
 
+**Repeated `--plugin` merges several logs, via state-swapping rather than a refactor.** Each
+source needs its own byte position, partial-line carry, rewrite fingerprint, open multi-line
+entry and last-seen timestamp — the files truncate independently. Rather than thread a context
+argument through every read/parse function, `withSource()` swaps a source's state into the
+existing module globals for its turn and saves it back after. The consequence worth knowing:
+**the single-source paths execute byte-for-byte the code they always did**, so the
+well-exercised case can't regress from the multi-source work. `activeSource` names whichever
+source is swapped in, which is why `shiftOpenEntries()` skips it — its `openEntry` *is* the
+global one, and adjusting both would double-count.
+
+Merging inserts by timestamp (`insertionIndex`) instead of appending. Two traps there, both
+already paid for:
+
+- **A `NaN` stamp must not stop the backscan.** It did at first, and one untimestamped line at
+  the head of a source's output then pinned every later entry from that source behind it —
+  nothing merged at all. Same shape as the idle-gap `NaN` bug above; the fix is likewise to
+  step over stampless entries rather than treat them as a wall.
+- **Notices *must* stop it.** "started watching here" / "log was reset" are positional markers,
+  so reordering across them would move the marker relative to what it marks.
+
+Ordering is display-only: it's off under `--follow`, because `streamPending()` emits by absolute
+buffer index and mid-buffer insertion would break that. Headless consumers get `ts` per record.
+
 **Container path resolution** (`resolveContainerDir()`) matters for `--plugin` because App
 Store and Setapp NotePlan use different Containers bundle IDs, hence different paths for
 both `Logs/` and `Plugins/`. Precedence: `NPLOG_APP_SUPPORT_DIR` env var, then
