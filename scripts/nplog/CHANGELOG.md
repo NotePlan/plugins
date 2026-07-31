@@ -4,6 +4,22 @@ All notable changes to `nplog` are documented here. Versions follow
 [Semantic Versioning](https://semver.org/): MAJOR for breaking CLI/output changes, MINOR for
 new features, PATCH for fixes. Check the current version with `nplog --version`.
 
+## [1.2.0] - 2026-07-30
+
+- **`←` / `→` jump between run boundaries**, scrolling the previous/next one to the top of the
+  page so you can read forward from where the work started — the usual "where did I kick this
+  off?" motion, and one that works without having to know what to filter for yet. The footer
+  reports where you landed (`run 7/12   2026-07-30 16:03:00  47s idle  Executing function '…'`)
+  and says so at either end rather than wrapping.
+  - Only run and idle rules count as boundaries. The `--plugin` reset notice deliberately does
+    **not** — NotePlan rewriting `_MCP-console.log` is a truncation artifact that doesn't
+    reliably coincide with a new run, so jumping to one would be misleading.
+  - A boundary inside the final page can't reach the top (not enough rows below it); the view
+    stops at the bottom but the jump still "counts", so pressing `←` again continues from that
+    boundary instead of silently skipping it.
+- The footer's `^G runs` is now `^G rules`, since with run *navigation* on the same bar "runs"
+  read as though `^G` moved between them rather than toggling their display.
+
 ## [1.1.3] - 2026-07-30
 
 - `--plugin` mode now names the plugin in the status bar, immediately left of the filter

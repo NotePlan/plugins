@@ -234,6 +234,25 @@ contiguous, labelled with a clock minutes away from the lines around them (a sta
 pre-clear stamp). If you see a separator whose clock disagrees with its neighbours' visible
 timestamps, suspect a stamps/lines desync before suspecting `separatorForRange()`.
 
+## `boundary` vs. `sep` rows -- ←/→ navigation only targets one of them
+
+`buildRows()` emits two kinds of `{sep: true}` row and they are *not* interchangeable:
+
+- **run/idle rules** carry `boundary: true`. These are real breaks in the work, and they're
+  what `jumpToBoundary()` (←/→) navigates between.
+- **notice rules** (the `--plugin` reset marker, the main-log `switching to …` marker) do not.
+  They render identically, but a `_MCP-console.log` reset is a NotePlan file-rewrite artifact
+  that does not reliably coincide with a new run -- jumping to one lands you somewhere
+  misleading. If you add another notice type, leave `boundary` off it unless it genuinely
+  marks the start of a run.
+
+`jumpToBoundary()` keeps its own `lastBoundaryRow` rather than reading `state.scroll` back,
+because a boundary inside the final page can't reach the top -- render clamps scroll to
+`maxScroll`. Measuring the next jump from the clamped position would silently skip that
+boundary, so the *intended* row is remembered and used as the reference when it still matches.
+`lastBoundaryRow` is cleared on `^L` (row indices no longer mean anything) and by any key
+other than ←/→ and ↑/↓.
+
 ## Other things worth knowing before you change rendering
 
 - **Styling happens in one pass.** `styleLine()` paints a per-character style array and then

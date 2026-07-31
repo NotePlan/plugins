@@ -127,6 +127,7 @@ Everything is a control key, because compact Mac keyboards have no PgUp / PgDn /
 | Key | Action |
 | --- | --- |
 | *(type anything)* | edit the filter — applies live |
+| `←` / `→` | jump to the **previous / next run boundary**, putting it at the top of the page — see [Jumping between runs](#jumping-between-runs) |
 | `Tab` | cycle context: `match only` → `match+1 lines` → `+5` → `+10` → back |
 | `^T` | show / hide timestamps |
 | `^G` | show / hide the run + idle rules |
@@ -257,6 +258,32 @@ Rules also survive filtering, which is when they earn their keep — with a filt
 looking at scattered matches, and the rule tells you which run each group came from. A boundary
 hidden *by* the filter still surfaces: the rule is drawn for the whole stretch of log between
 two visible entries, so it reports real idle time rather than time the filter hid.
+
+### Jumping between runs
+
+`←` and `→` jump to the previous / next run boundary and put it at the **top of the page**, so
+you can read forward from where the work actually started. This is usually what you want when
+you're asking *"where did I kick this off?"* — and it beats filtering, because you often don't
+yet know what to filter for.
+
+The footer shows where you landed:
+
+```
+ run 7/12   2026-07-30 16:03:00  47s idle  Executing function 'onMessageFromHTMLView'
+```
+
+`←` goes back in time, `→` forward. Both stop at the ends rather than wrapping, and say so.
+
+Only the [run and idle rules](#run-separators) count as boundaries. The `--plugin` mode
+[reset notice](#--plugin-fastest-data-for-one-plugin) deliberately does **not** — NotePlan
+rewriting `_MCP-console.log` is a file-truncation artifact, and it doesn't reliably line up
+with a new run, so jumping to one would land you somewhere misleading. In `--plugin` mode that
+leaves idle lulls as the only boundaries, since
+[named-run rules never appear there](#--plugin-fastest-data-for-one-plugin).
+
+A boundary inside the final page can't literally reach the top — there aren't enough rows below
+it — so the view stops at the bottom while the footer still names the boundary you asked for.
+Pressing `←` again continues from that boundary rather than from where the screen stopped.
 
 ### Multi-line objects
 
