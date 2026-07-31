@@ -87,7 +87,7 @@ const PLUGINS_DIR = path.join(CONTAINER_DIR, 'Plugins')
 // there and missing here. The main log is a strict superset and the only ground truth.
 
 // Bump this and add a matching entry to CHANGELOG.md for any user-visible change.
-const VERSION = '1.2.0'
+const VERSION = '1.3.0'
 
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
@@ -342,17 +342,29 @@ function pushLine(text, stampMs) {
 // array, deliberately: a second index-parallel array is exactly the shape
 // that produced the ^L stamps/lines desync bug (see AGENTS.md), and text
 // can't drift out of sync with itself. NUL never appears in log output, so
-// it's safe as a sentinel; strip it with noticeLabel() anywhere the text
+// it's safe as a sentinel; strip it with parseNotice() anywhere the text
 // escapes to a consumer (JSON, etc).
 const NOTICE_PREFIX = '\u0000notice\u0000'
 
-function pushNotice(label) {
-  pushLine(NOTICE_PREFIX + label)
+// Layout after the sentinel: one flag char ('B' = navigable boundary, '-' =
+// not) then the label. The flag rides along in the text for the same reason
+// the sentinel does -- no parallel array to fall out of sync.
+//
+// boundary=true only for notices that genuinely mark "a new stretch of work
+// starts here" and so are worth landing on with the arrow keys. A
+// _MCP-console.log reset is NOT one: it's a NotePlan file-rewrite artifact
+// that doesn't reliably coincide with a run.
+function pushNotice(label, boundary) {
+  pushLine(NOTICE_PREFIX + (boundary ? 'B' : '-') + label)
 }
 
-// Returns the human-readable label if `text` is a notice, else null.
-function noticeLabel(text) {
-  return text.startsWith(NOTICE_PREFIX) ? text.slice(NOTICE_PREFIX.length) : null
+// Returns {label, boundary} if `text` is one of nplog's notices, else null.
+function parseNotice(text) {
+  if (!text.startsWith(NOTICE_PREFIX)) return null
+  return {
+    boundary: text.charAt(NOTICE_PREFIX.length) === 'B',
+    label: text.slice(NOTICE_PREFIX.length + 1),
+  }
 }
 
 const INDENT_UNIT = 2 // spaces per nesting level
@@ -567,6 +579,28 @@ function separatorClock(ms) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
+// Not every entry has a parseable timestamp -- nplog's own notices carry
+// none, and neither does anything logged before the first timestamped line.
+// Comparing strictly against stamps[i-1] made a NaN on either side produce a
+// NaN delta, so a real lull *spanning* such an entry went undetected. That
+// bit hardest exactly where it mattered most: across a --plugin reset the
+// notice sits between the old run's last line and the new run's first, which
+// hid the single most useful boundary in the buffer. Walk back to the nearest
+// real stamp instead, so the gap is measured across the gap-less entry.
+//
+// Bounded because the scan is per-entry: a long stretch of stampless lines
+// would otherwise make this quadratic. Past the cap there is no usable
+// reference anyway, so reporting "no gap" is the honest answer.
+const MAX_STAMP_BACKSCAN = 50
+
+function prevFiniteStamp(i) {
+  const floor = Math.max(0, i - MAX_STAMP_BACKSCAN)
+  for (let k = i; k >= floor; k--) {
+    if (Number.isFinite(stamps[k])) return stamps[k]
+  }
+  return NaN
+}
+
 // What run/idle boundary falls in buffer entries [from..to], or null.
 //
 // A range rather than a single entry, because with a filter applied the run
@@ -591,7 +625,7 @@ function separatorForRange(from, to) {
       runIndex = i
     }
     if (state.idleGapMs > 0 && i > 0) {
-      const delta = stamps[i] - stamps[i - 1]
+      const delta = stamps[i] - prevFiniteStamp(i - 1)
       // widest lull in the range, so a filtered view reports the real one
       if (Number.isFinite(delta) && delta >= state.idleGapMs && delta > idleMs) idleMs = delta
     }
@@ -669,24 +703,38 @@ function buildRows() {
     }
     const sep = seps[i]
     const prevRow = rows.length > 0 ? rows[rows.length - 1] : null
-    if (sep && !(prevRow && prevRow.sep)) {
-      // A labelled rule says everything the anonymous skipped-lines rule does
-      // and more, so replace rather than stack the two.
-      if (prevRow && prevRow.gap) rows.pop()
+    if (sep) {
       // `boundary` marks the rules that represent a real break in the work --
       // an idle lull or an "Executing function" run start. That's what ←/→
-      // navigate between. Deliberately NOT set on the notice rows below: an
+      // navigate between. Notice rows (below) don't get it on their own: an
       // _MCP-console.log reset is a NotePlan file-rewrite artifact, not a
-      // reliable indicator that a new run began, so jumping to one would land
-      // you somewhere misleading.
-      rows.push({ sep: true, boundary: true, label: [sep.clock, sep.idle, sep.runText].filter(Boolean).join('  ') })
+      // reliable indicator that a new run began.
+      const label = [sep.clock, sep.idle, sep.runText].filter(Boolean).join('  ')
+      if (prevRow && prevRow.sep) {
+        // A rule already sits here, so don't stack a second one -- but don't
+        // silently drop this boundary either. That combination is exactly
+        // what a --plugin reset produces: the reset notice lands first and
+        // used to swallow the idle rule for the very gap that separates the
+        // old run from the new one, leaving the most useful boundary in the
+        // buffer unreachable with ←/→. Fold the detail into the existing rule
+        // and let it become navigable instead.
+        if (!prevRow.boundary) {
+          prevRow.boundary = true
+          if (label) prevRow.label = prevRow.label ? `${prevRow.label}   ${label}` : label
+        }
+      } else {
+        // A labelled rule says everything the anonymous skipped-lines rule
+        // does and more, so replace rather than stack the two.
+        if (prevRow && prevRow.gap) rows.pop()
+        rows.push({ sep: true, boundary: true, label })
+      }
     }
     // The rule already displays this entry's text, so don't repeat it below.
     if (sep && sep.runIndex === item.index) continue
     // nplog's own stream-boundary notices render as rules, not as log text.
-    const notice = noticeLabel(item.text)
+    const notice = parseNotice(item.text)
     if (notice !== null) {
-      rows.push({ sep: true, label: notice })
+      rows.push({ sep: true, boundary: notice.boundary, label: notice.label })
       continue
     }
     if (item.text.indexOf('\n') === -1) {
@@ -1472,7 +1520,7 @@ function streamPending(flush) {
         run: streamRun || null,
         // notice lines are nplog's own, not the plugin's -- emit the label
         // without the internal sentinel so consumers never see it
-        text: noticeLabel(text) ?? text,
+        text: (parseNotice(text) || {}).label ?? text,
       })}\n`,
     )
   }
@@ -1545,7 +1593,7 @@ function emitJson(file, waitInfo) {
       source: /^\[WebView/.test(e.text) ? 'webview' : 'plugin',
       run: e.run || null,
       // see streamPending: strip the internal notice sentinel before emitting
-      text: noticeLabel(e.text) ?? e.text,
+      text: (parseNotice(e.text) || {}).label ?? e.text,
     }
     process.stdout.write(`${JSON.stringify(rec)}\n`)
   }
@@ -1663,6 +1711,7 @@ function main() {
     process.exit(1)
   }
 
+  let pluginHadHistory = false
   if (opts.pluginMode) {
     let st = null
     try {
@@ -1670,6 +1719,7 @@ function main() {
     } catch (err) {
       // doesn't exist -- st stays null
     }
+    pluginHadHistory = Boolean(st && st.size > 0)
     if (!st || st.size === 0) {
       console.error(`nplog: ${file}`)
       console.error(st ? '       exists but is empty.' : "       doesn't exist yet.")
@@ -1692,7 +1742,20 @@ function main() {
     process.exit(1)
   }
 
+  // Whatever is already in a plugin's _MCP-console.log at startup is the tail
+  // of a run that was underway before nplog existed -- NotePlan overwrote
+  // anything earlier. Book-ending the seeded content makes that legible
+  // instead of looking like a normal, complete run: one notice for where the
+  // retained data starts, one for where live capture began. The second is a
+  // navigable boundary, so ← always has something to land on even before the
+  // first reset -- "show me only what I actually watched".
+  if (opts.pluginMode && pluginHadHistory) {
+    pushNotice('start of retained output -- NotePlan overwrites this file each run, so nothing earlier survives', false)
+  }
   openFile(file, true)
+  if (opts.pluginMode) {
+    pushNotice(`nplog started watching here -- ${separatorClock(Date.now())}`, true)
+  }
 
   out.write(`${ESC}[?1049h${ESC}[2J`) // alternate screen keeps the real scrollback clean
   process.stdin.setRawMode(true)

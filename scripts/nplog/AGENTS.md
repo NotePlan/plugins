@@ -246,6 +246,20 @@ timestamps, suspect a stamps/lines desync before suspecting `separatorForRange()
   misleading. If you add another notice type, leave `boundary` off it unless it genuinely
   marks the start of a run.
 
+Two traps that both hid boundaries, worth knowing because neither looks like a boundary bug:
+
+- **Gaps must be measured against the nearest *real* timestamp, not `stamps[i-1]`.** Notices
+  carry no timestamp (`NaN`), and `NaN` on either side of a subtraction makes the delta `NaN`,
+  so the lull *spanning* a notice vanished. That killed exactly the boundary you most want: the
+  one between the pre-reset run and the post-reset run, with the reset notice sitting in the
+  middle. `prevFiniteStamp()` walks back past stampless entries (capped, so it can't go
+  quadratic).
+- **The anti-stacking guard in `buildRows()` must not suppress a boundary behind a notice.** It
+  originally read `if (sep && !(prevRow && prevRow.sep))`, which was right when only run/idle
+  rules were `sep` rows — but notices became `sep` rows too, so a reset notice silently ate the
+  idle rule for the gap right after it. They now merge: the notice row is upgraded to
+  `boundary: true` and the idle/clock detail is appended to its label.
+
 `jumpToBoundary()` keeps its own `lastBoundaryRow` rather than reading `state.scroll` back,
 because a boundary inside the final page can't reach the top -- render clamps scroll to
 `maxScroll`. Measuring the next jump from the clamped position would silently skip that
