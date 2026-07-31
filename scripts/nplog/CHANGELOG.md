@@ -4,6 +4,14 @@ All notable changes to `nplog` are documented here. Versions follow
 [Semantic Versioning](https://semver.org/): MAJOR for breaking CLI/output changes, MINOR for
 new features, PATCH for fixes. Check the current version with `nplog --version`.
 
+## [1.1.3] - 2026-07-30
+
+- `--plugin` mode now names the plugin in the status bar, immediately left of the filter
+  (`jgclark.Dashboard  filter (^U to clear): …`), so it stays obvious that the buffer is one
+  plugin's output rather than everything NotePlan logged. The filename alone
+  (`_MCP-console.log`) doesn't say which plugin, and it's easy to forget once you're deep in a
+  filter. Nothing is shown in normal main-log mode.
+
 ## [1.1.2] - 2026-07-30
 
 - nplog's own stream-boundary notices — the `--plugin` reset marker and the main-log

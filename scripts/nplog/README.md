@@ -152,6 +152,13 @@ arrow keys work too.
 The `(^U to clear)` hint is always there, filter typed or not — that's also why it isn't repeated
 in the bottom help line.
 
+In [`--plugin`](#--plugin-fastest-data-for-one-plugin) mode the plugin ID sits immediately left
+of the filter, so the narrowed scope stays visible at all times:
+
+```
+ jgclark.Dashboard  filter (^U to clear): Reminder   re  ctx:match only  12/318  FOLLOW
+```
+
 - `re` — the filter compiled as a regex. If it can't (say you've typed `Section(` and haven't
   closed the paren yet) this reads `LITERAL(bad re)` and the text is matched literally
   instead. It never errors out mid-typing.
