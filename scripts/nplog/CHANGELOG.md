@@ -4,6 +4,24 @@ All notable changes to `nplog` are documented here. Versions follow
 [Semantic Versioning](https://semver.org/): MAJOR for breaking CLI/output changes, MINOR for
 new features, PATCH for fixes. Check the current version with `nplog --version`.
 
+## [1.4.0] - 2026-07-30
+
+- **`--plugin` can now be repeated** to tail several plugin logs at once, threaded together by
+  timestamp: `nplog --plugin jgclark.Dashboard --plugin np.Shared`. Each line is prefixed with a
+  dimmed `[PluginTag]` so you can tell the sources apart, and the status bar lists them all.
+  A single `--plugin` is unchanged — no tag, no merging.
+  - Each source keeps its **own** tail state (byte position, partial-line carry, rewrite
+    fingerprint) and parse state (open multi-line entry, last timestamp), since the files
+    truncate at independent moments. A multi-line object from one plugin therefore stays intact
+    even while another plugin logs into the middle of it.
+  - Entries are inserted by timestamp rather than appended, with a bounded lookback. Equal
+    stamps keep arrival order, which matters because MCP timestamps are whole seconds.
+    nplog's own notices act as positional anchors that nothing reorders across.
+  - Ordering is a display concern, so it's skipped under `--follow` (whose streaming emits by
+    absolute buffer index); every record still carries `ts` for consumers that want to sort.
+    `--since` with a byte cursor is refused for multiple logs — a cursor names one file — while
+    durations and wall-clock times work normally.
+
 ## [1.3.0] - 2026-07-30
 
 Startup in `--plugin` mode is a common case that read badly: the file already contains the tail
