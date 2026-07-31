@@ -4,6 +4,30 @@ All notable changes to `nplog` are documented here. Versions follow
 [Semantic Versioning](https://semver.org/): MAJOR for breaking CLI/output changes, MINOR for
 new features, PATCH for fixes. Check the current version with `nplog --version`.
 
+## [1.3.0] - 2026-07-30
+
+Startup in `--plugin` mode is a common case that read badly: the file already contains the tail
+of a run that began before nplog did, and `←`/`→` reported no boundaries even after triggering a
+command. Three fixes, two of them real bugs:
+
+- **`--plugin` now book-ends the seeded history.** A rule marks where the retained output starts
+  (NotePlan overwrites the file each run, so nothing earlier survives) and another marks
+  `nplog started watching here -- <clock>`. The second is a navigable boundary, so `←` has
+  somewhere useful to land immediately — "show me only what I actually watched" — rather than
+  reporting nothing at all.
+- **Fixed: a lull spanning an entry with no timestamp went undetected.** Idle gaps compared
+  strictly against the immediately-preceding entry, so a `NaN` stamp on either side produced a
+  `NaN` delta. nplog's own notices carry no timestamp, which meant the notice sitting between a
+  `--plugin` reset and the new run's first line hid the single most useful boundary in the
+  buffer. Gaps are now measured against the nearest real timestamp, walking past stampless
+  entries.
+- **Fixed: a notice rule swallowed the boundary immediately after it.** The anti-stacking guard
+  in `buildRows()` suppressed a rule whenever one already sat directly above — correct for two
+  run/idle rules, but since 1.1.2 notices are rules too, so the reset notice silently ate the
+  idle rule for the very gap that separates the old run from the new one. They now **merge**
+  into one navigable rule carrying both facts:
+  `─── _MCP-console.log was reset by NotePlan (new run)   2026-07-30 17:40:36  1h40m idle ───`
+
 ## [1.2.0] - 2026-07-30
 
 - **`←` / `→` jump between run boundaries**, scrolling the previous/next one to the top of the

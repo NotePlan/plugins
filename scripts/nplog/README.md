@@ -274,12 +274,16 @@ The footer shows where you landed:
 
 `←` goes back in time, `→` forward. Both stop at the ends rather than wrapping, and say so.
 
-Only the [run and idle rules](#run-separators) count as boundaries. The `--plugin` mode
-[reset notice](#--plugin-fastest-data-for-one-plugin) deliberately does **not** — NotePlan
-rewriting `_MCP-console.log` is a file-truncation artifact, and it doesn't reliably line up
-with a new run, so jumping to one would land you somewhere misleading. In `--plugin` mode that
-leaves idle lulls as the only boundaries, since
-[named-run rules never appear there](#--plugin-fastest-data-for-one-plugin).
+Only the [run and idle rules](#run-separators) count as boundaries — plus the
+`nplog started watching here` rule in `--plugin` mode, so there's always somewhere to land even
+before the first reset. A bare `--plugin` reset notice deliberately does **not** count on its
+own: NotePlan rewriting `_MCP-console.log` is a file-truncation artifact that doesn't reliably
+line up with a new run. When a reset *does* coincide with a real idle gap — which is the normal
+case when you trigger a command — the two merge into one navigable rule carrying both facts:
+
+```
+───── _MCP-console.log was reset by NotePlan (new run)   2026-07-30 17:40:36  1h40m idle ─────
+```
 
 A boundary inside the final page can't literally reach the top — there aren't enough rows below
 it — so the view stops at the bottom while the footer still names the boundary you asked for.
@@ -498,6 +502,19 @@ differs between the App Store and Setapp builds. `./install.sh` detects this aut
 or asks once if it can't tell, and remembers the answer in `~/.config/nplog/config.json`. Set
 `NPLOG_APP_SUPPORT_DIR` yourself to override it (or skip `install.sh` and let auto-detection
 run every time).
+
+**What you see on startup.** The file already holds the tail of a run that began before nplog
+did, so that seeded content is book-ended to make it legible rather than looking like a normal
+complete run:
+
+```
+───── start of retained output -- NotePlan overwrites this file each run, so nothing earlier survives ─────
+  … whatever was already in the file …
+───── nplog started watching here -- 2026-07-30 17:40:31 ─────
+```
+
+The second rule is a [jump target](#jumping-between-runs), so `←` gets you to "only what I
+actually watched" straight away.
 
 If the plugin hasn't logged anything yet this session, `nplog` warns rather than erroring,
 and keeps watching for the file to appear:
