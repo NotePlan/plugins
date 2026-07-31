@@ -87,7 +87,7 @@ const PLUGINS_DIR = path.join(CONTAINER_DIR, 'Plugins')
 // there and missing here. The main log is a strict superset and the only ground truth.
 
 // Bump this and add a matching entry to CHANGELOG.md for any user-visible change.
-const VERSION = '1.1.3'
+const VERSION = '1.2.0'
 
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
@@ -673,7 +673,13 @@ function buildRows() {
       // A labelled rule says everything the anonymous skipped-lines rule does
       // and more, so replace rather than stack the two.
       if (prevRow && prevRow.gap) rows.pop()
-      rows.push({ sep: true, label: [sep.clock, sep.idle, sep.runText].filter(Boolean).join('  ') })
+      // `boundary` marks the rules that represent a real break in the work --
+      // an idle lull or an "Executing function" run start. That's what ←/→
+      // navigate between. Deliberately NOT set on the notice rows below: an
+      // _MCP-console.log reset is a NotePlan file-rewrite artifact, not a
+      // reliable indicator that a new run began, so jumping to one would land
+      // you somewhere misleading.
+      rows.push({ sep: true, boundary: true, label: [sep.clock, sep.idle, sep.runText].filter(Boolean).join('  ') })
     }
     // The rule already displays this entry's text, so don't repeat it below.
     if (sep && sep.runIndex === item.index) continue
@@ -903,8 +909,10 @@ function render() {
   // Name what TAB actually cycles. An earlier "TAB=context→match +1" read as
   // though TAB *did something to* "match +1"; the current setting already
   // shows in the status bar above, so just describe the control.
-  const full = ` TAB: context (match+N lines)   ^T times   ^G runs   ^L clear display   ^B/^F page   ^P/^N line   ^A/^E top/end   ^C quit`
-  const compact = ` TAB: context (match+N lines)   ^T times   ^G runs   ^B/^F page   ^A/^E top/end   ^C quit`
+  // "^G runs" became "^G rules" once ←/→ existed -- with run *navigation* on
+  // the same bar, "runs" read as though ^G moved between them.
+  const full = ` TAB: context (match+N lines)   ←/→ prev/next run   ^T times   ^G rules   ^L clear display   ^B/^F page   ^P/^N line   ^A/^E top/end   ^C quit`
+  const compact = ` TAB: context   ←/→ run   ^T times   ^G rules   ^B/^F page   ^A/^E top/end   ^C quit`
   const help = full.length <= cols ? full : compact
   buf += `${ESC}[${termRows};1H${ESC}[2K${ESC}[2m${pad(state.status || help, cols)}${ESC}[0m`
 
@@ -1090,9 +1098,81 @@ function pageBy(delta) {
   state.follow = state.scroll >= maxScroll
 }
 
+// The row we last *intended* to put at the top, which is not always where we
+// ended up: a boundary within the final page can't reach the top, because
+// render clamps scroll to maxScroll. Without remembering the intent, the next
+// jump would measure from the clamped position and silently skip that
+// boundary. null whenever the last scroll wasn't a boundary jump.
+let lastBoundaryRow = null
+
+// Jump so the previous/next run boundary sits at the top of the page. This is
+// the "where did this run start?" motion -- scanning forward from a boundary
+// is the usual way to read plugin output, and it beats filtering when you
+// don't yet know what to filter for.
+function jumpToBoundary(dir) {
+  const rows = buildRows()
+  const { rows: termRows } = termSize()
+  const logHeight = Math.max(1, termRows - 2)
+  const maxScroll = Math.max(0, rows.length - logHeight)
+
+  const marks = []
+  for (let i = 0; i < rows.length; i++) if (rows[i].boundary) marks.push(i)
+  if (!marks.length) {
+    state.status = state.separators
+      ? ' no run boundaries yet -- nothing has paused long enough to rule off'
+      : ' run rules are hidden (^G to show them) -- nothing to jump between'
+    return
+  }
+
+  // Following means we're pinned to the bottom, so treat the reference as
+  // past the last row -- otherwise a boundary inside the final page would be
+  // "not before us" and the first press would skip it.
+  let cur
+  if (lastBoundaryRow !== null && Math.min(lastBoundaryRow, maxScroll) === state.scroll) cur = lastBoundaryRow
+  else if (state.follow) cur = rows.length
+  else cur = state.scroll
+
+  let target = null
+  if (dir < 0) {
+    for (let i = marks.length - 1; i >= 0; i--) {
+      if (marks[i] < cur) {
+        target = marks[i]
+        break
+      }
+    }
+  } else {
+    for (let i = 0; i < marks.length; i++) {
+      if (marks[i] > cur) {
+        target = marks[i]
+        break
+      }
+    }
+  }
+
+  if (target === null) {
+    state.status = dir < 0 ? ' already at the oldest run boundary' : ' already at the newest run boundary'
+    return
+  }
+
+  lastBoundaryRow = target
+  state.scroll = Math.min(target, maxScroll)
+  state.follow = false
+  const label = (rows[target].label || '').trim()
+  state.status = ` run ${marks.indexOf(target) + 1}/${marks.length}${label ? `   ${label}` : ''}`
+}
+
 function onKey(str) {
   const { rows: termRows } = termSize()
   const page = Math.max(1, termRows - 4)
+
+  // The jump readout in the footer is transient -- it describes where the last
+  // ←/→ landed, so any other key makes it stale. Clearing it in one place
+  // beats remembering to clear it in every other handler.
+  const isBoundaryJump = str === `${ESC}[D` || str === `${ESC}[C`
+  if (!isBoundaryJump) {
+    state.status = ''
+    if (str !== `${ESC}[A` && str !== `${ESC}[B`) lastBoundaryRow = null
+  }
 
   if (str === '\x03') return quit() // Ctrl-C
   if (str === '\x15') {
@@ -1107,6 +1187,7 @@ function onKey(str) {
     // are actually contiguous. Always clear both together.
     lines.length = 0
     stamps.length = 0
+    lastBoundaryRow = null // row indices no longer refer to anything
     closeEntry() // its index no longer refers to anything
     bufferVersion++
     state.follow = true
@@ -1175,6 +1256,16 @@ function onKey(str) {
   }
   if (str === `${ESC}[B`) {
     pageBy(1)
+    return render()
+  }
+  // Left/right jump between run boundaries -- the "where did this run start?"
+  // motion. Left goes back in time, right forward.
+  if (str === `${ESC}[D`) {
+    jumpToBoundary(-1)
+    return render()
+  }
+  if (str === `${ESC}[C`) {
+    jumpToBoundary(1)
     return render()
   }
   if (str === `${ESC}[H` || str === `${ESC}[1~`) {
