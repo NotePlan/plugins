@@ -87,7 +87,7 @@ const PLUGINS_DIR = path.join(CONTAINER_DIR, 'Plugins')
 // there and missing here. The main log is a strict superset and the only ground truth.
 
 // Bump this and add a matching entry to CHANGELOG.md for any user-visible change.
-const VERSION = '1.1.2'
+const VERSION = '1.1.3'
 
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
@@ -887,8 +887,14 @@ function render() {
   const linesLabel = rowCount > shown ? ` (${rowCount} rows)` : ''
   const right = ` ${reLabel}${timeLabel}ctx:${modeLabel}  ${shown}/${lines.length}${linesLabel}  ${followLabel} `
   // Always named here, not just when there's text to clear, so it doesn't
-  // also need repeating in the footer below.
-  const left = ` filter (^U to clear): ${state.filter}`
+  // also need repeating in the footer below. In --plugin mode the buffer is
+  // one plugin's output rather than everything NotePlan logged, which is
+  // easy to forget once you're deep in a filter -- and the filename alone
+  // ("_MCP-console.log") doesn't say which plugin. Naming it here keeps that
+  // scope visible at all times without spending a row on it. The cursor-park
+  // math below is driven off left.length, so it follows automatically.
+  const scope = opts.pluginMode ? `${opts.plugin}  ` : ''
+  const left = ` ${scope}filter (^U to clear): ${state.filter}`
   const gapWidth = Math.max(1, cols - left.length - right.length)
   const statusLine = pad(left + ' '.repeat(gapWidth) + right, cols)
 
