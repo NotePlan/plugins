@@ -320,14 +320,12 @@ export function getTimeBlockSectionData(
     const noteTimeBlockCount = timeBlockItems.length
     let dueNowReminderCount = 0
 
-    // Append today's timed reminders whose due time has been reached (when Reminders section is enabled)
-    //
-    // DESIGN DECISION (@jgclark): a timed reminder due later today is shown NOWHERE
-    // until its time arrives. It is excluded here, and the Today section only ever
-    // receives *untimed* today reminders, so there is no other section that could
-    // pick it up -- this is deliberate, not an oversight, and it is why the REM
-    // fallback in dataGenerationReminders.js skips this bucket while catching the
-    // others. If you want "due later today" visible ahead of time, the change is to
+    // Append today's timed reminders whose due time has been reached (when Reminders section is enabled).
+    // Note: DESIGN DECISION: a timed reminder due later today is shown NOWHERE until its time arrives.
+    // It is excluded here, and the Today section only ever receives *untimed* today reminders,
+    // so there is no other section that could pick it up -- this is deliberate, not an oversight,
+    // and it is why the REM fallback in dataGenerationReminders.js skips this bucket while catching the others.
+    // If you want "due later today" visible ahead of time, the change is to
     // route the skipped items below into the Today section (or REM when Today is off)
     // rather than dropping them, and to drop them from here once their time passes so
     // they do not appear twice.
@@ -346,7 +344,10 @@ export function getTimeBlockSectionData(
       }
     }
 
-    // Title: Time Blocks (reminders off); Timed Reminders (reminders only / no timeblocks); Timed Items (mixed or timeblocks-with-reminders-on)
+    // Set Title: 
+    // - "Time Blocks" (reminders off);
+    // - "Timed Reminders" (reminders only / no timeblocks);
+    // - "Timed Items" (mixed or timeblocks-with-reminders-on)
     let sectionName = 'Time Blocks'
     if (!timeBlockSectionEnabled && remindersSectionEnabled) {
       sectionName = 'Timed Reminders'

@@ -321,7 +321,11 @@ const useSectionSortAndFilter = (
       setItemsToShow(itemsToShow)
       setAllSortedItems(allSortedBeforeDisplayFilter)
       setNumFilteredOutThisSection(numFilteredOutThisSection)
-      const limitAppliedHere = limitToApply > 0 && orderedFilteredItems.length > limitToApply
+      // Local slice OR backend already limited (totalCount > items passed) -- surface via {countWithLimit}
+      const backendLimitApplied =
+        typeof section.totalCount === 'number' && section.totalCount > orderedFilteredItems.length
+      const limitAppliedHere =
+        (limitToApply > 0 && orderedFilteredItems.length > limitToApply) || backendLimitApplied
       setLimitApplied(limitAppliedHere)
     }
   }, [section, memoizedItems, memoizedDashboardSettings, currentMaxPriorityFromAllVisibleSections, showAllTasks])

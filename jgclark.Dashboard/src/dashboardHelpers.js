@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-07-29 for v2.4.0.b56 by @jgclark + @CursorAI
+// Last updated 2026-07-30 for v2.4.0.b58 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'

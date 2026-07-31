@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for REM (Reminders) Section and day/TB reminder buckets
-// Last updated 2026-07-29 for v2.4.0.b57, @jgclark + @CursorAI
+// Last updated 2026-07-31 for v2.4.0.b58, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -14,7 +14,10 @@ import { getTodaysDateHyphenated } from '@helpers/dateTime'
 import { clo, clof, logDebug, logError, logTimer, logWarn, timer } from '@helpers/dev'
 import { usersVersionHas } from '@helpers/NPVersions'
 
-// TODO(later): periodic auto-refresh while Dashboard is visible (TB-style timer)
+// TODO: move some helpers to new helpers file.
+
+//-----------------------------------------------------------------------------
+// Types
 
 /**
  * Buckets of incomplete reminders for Dashboard sections.
@@ -37,6 +40,9 @@ export type TReminderListsResult = {
   titles: Array<string>,
   colorByTitle: { [string]: string },
 }
+
+//-----------------------------------------------------------------------------
+// Helper functions
 
 /**
  * @returns {TRemindersGeneratedData}
@@ -93,7 +99,7 @@ function titlesAndColorsFromReminderListObjects(lists: Array<any>): TReminderLis
 }
 
 /**
- * All accessible reminder lists (including NotePlan-disabled): titles plus optional color-by-title map.
+ * Return all accessible reminder lists (including NotePlan-disabled): titles plus optional color-by-title map.
  * Uses Calendar.availableReminderLists() when available (NP >= 3.20.0);
  * otherwise falls back to all list titles (no colors on older NP).
  * @returns {TReminderListsResult}
@@ -112,7 +118,7 @@ export function getAllAccessibleReminderLists(): TReminderListsResult {
 }
 
 /**
- * Enabled reminder lists from NotePlan settings: titles plus optional color-by-title map.
+ * Return enabled reminder lists from NotePlan settings: titles plus optional color-by-title map.
  * Uses Calendar.availableReminderLists({ enabledOnly: true }) when available (NP >= 3.20.0);
  * otherwise falls back to all list titles (no colors / enable filter on older NP).
  * @returns {TReminderListsResult}
@@ -129,10 +135,10 @@ export function getEnabledReminderLists(): TReminderListsResult {
       const allTitles = titlesAndColorsFromReminderListObjects(Calendar.availableReminderLists()).titles
       const ignored = allTitles.filter((t) => !result.titles.includes(t))
       if (ignored.length > 0) {
-        logDebug('getEnabledReminderLists', `- ignoring ${String(ignored.length)} list(s) disabled in NotePlan: ${ignored.join(', ')}`)
+        logDebug('getEnabledReminderLists', `- ignoring ${String(ignored.length)} list(s) disabled in NotePlan: [${ignored.join(', ')}]`)
       }
     } catch (err) {
-      logDebug('getEnabledReminderLists', `- could not enumerate all lists to report ignored ones: ${err.message}`)
+      logWarn('getEnabledReminderLists', `- could not enumerate all lists to report ignored ones: ${err.message}`)
     }
     return result
   }
@@ -173,10 +179,7 @@ export function getReminderListsForConfig(config: TDashboardSettings): TReminder
   }
 
   if (missingTitles.length > 0) {
-    logWarn(
-      'getReminderListsForConfig',
-      `includedReminderLists names not found among accessible lists: ${missingTitles.join(', ')}`,
-    )
+    logWarn('getReminderListsForConfig', `includedReminderLists names not found among accessible lists: ${missingTitles.join(', ')}`)
   }
 
   const colorByTitle: { [string]: string } = {}
@@ -186,10 +189,7 @@ export function getReminderListsForConfig(config: TDashboardSettings): TReminder
     }
   }
 
-  logDebug(
-    'getReminderListsForConfig',
-    `- Perspective override: ${String(matchedTitles.length)} of ${String(configuredNames.length)} configured list(s): ${matchedTitles.join(', ') || '(none)'}`,
-  )
+  logDebug('getReminderListsForConfig', `- Perspective override: ${String(matchedTitles.length)} of ${String(configuredNames.length)} configured list(s): ${matchedTitles.join(', ') || '(none)'}`)
   return { titles: matchedTitles, colorByTitle }
 }
 
@@ -222,6 +222,7 @@ export function mapDashboardPriorityToAppleReminder(dashboardPriority: number): 
 
 /**
  * Parse leading !!! / !! / ! priority markers from reminder text (NotePlan task style).
+ * Note: This is a Dashboard-specific convention, to allow users to set priority in the reminder text in the add-reminder-dialog, in the same way as they do for tasks.
  * Requires whitespace after the markers and non-empty remaining text; otherwise leaves text unchanged and priority unset (0).
  * @param {string} text
  * @returns {{ title: string, dashboardPriority: number }}
@@ -295,14 +296,11 @@ export function mapCalendarItemToReminderForDashboard(
       }
     }
   }
-  if (calendarItem.title.match(/test/i)) {
-    clof(calendarItem, "CalendarItem (for Reminder): ", ['title', 'date', 'occurences', 'isAllDay', 'isCompleted', 'priority'])
-    clo(reminder, "  => Reminder: ")
-  }
-  // One compact line per reminder: the raw EventKit fields next to what we derived.
+
+  // Log one compact line per reminder: the raw EventKit fields next to what we derived.
   // Strictly better than the older `if (title.match(/test/i))` dump, which only
   // covered reminders that happened to have "test" in the name.
-  logDebug('reminderFromCalendarItem', `- list="${String(listname ?? "?")}" "${String(calendarItem.title).slice(0, 34)}" rawDate=${String(calendarItem.date)} isAllDay=${String(calendarItem.isAllDay)} occurences=${String(calendarItem.occurences ? calendarItem.occurences.length : 'none')} -> date=${String(reminder.date ?? 'UNDATED')} time=${String(reminder.time ?? '-')}`)
+  logDebug('reminderFromCalendarItem', `- list="${String(listname ?? "?")}" "${String(calendarItem.title).slice(0, 34)}" rawDate=${String(calendarItem.date).slice(0, 16)} isAllDay=${String(calendarItem.isAllDay)} occurences=${String(calendarItem.occurences ? calendarItem.occurences.length : 'none')} -> date=${String(reminder.date ?? 'UNDATED')} time=${String(reminder.time ?? '-')}`)
   return reminder
 }
 
@@ -363,7 +361,7 @@ export function assignReminderItemsToSection(
   startIndex: number = 0,
 ): Array<TSectionItem> {
   if (reminderItems.length > 0) {
-    logDebug('assignReminderItemsToSection', `- placing ${String(reminderItems.length)} reminder(s) into section ${String(sectionCode)}`)
+    // logDebug('assignReminderItemsToSection', `- placing ${String(reminderItems.length)} reminder(s) into section ${String(sectionCode)}`)
   }
   return reminderItems.map((item, i) => ({
     ...item,
@@ -484,7 +482,7 @@ export function bucketReminderItems(allItems: Array<TSectionItem>): {
   if (skippedFutureCount > 0) {
     logDebug('bucketReminderItems', `- skipped ${String(skippedFutureCount)} reminder(s) dated after ${tomorrowISO}`)
   }
-  // Which bucket each reminder landed in, so a mis-bucketed one is visible.
+  // Log which bucket each reminder landed in, so a mis-bucketed one is visible.
   const bucketOf = (arr, name) => arr.forEach((it) => logDebug('bucketReminderItems', `- bucket=${name} "${String(it.reminder?.title ?? '?').slice(0, 34)}" date=${String(it.reminder?.date ?? 'UNDATED')} time=${String(it.reminder?.time ?? '-')}`))
   bucketOf(timedTodayItems, 'timedToday')
   bucketOf(untimedTodayItems, 'untimedToday')
@@ -502,6 +500,9 @@ export function bucketReminderItems(allItems: Array<TSectionItem>): {
     undatedItems: sortReminderSectionItems(undatedItems),
   }
 }
+
+//-----------------------------------------------------------------------------
+// Main function
 
 /**
  * Fetch incomplete reminders, bucket by date (dropping those after tomorrow), and build the REM section for undated items.
@@ -521,10 +522,11 @@ export async function getRemindersGeneratedData(
       return emptyRemindersGeneratedData()
     }
 
-    const thisSectionCode = 'REM'
-    const startTime = new Date()
     logDebug('getRemindersGeneratedData', `--------- Gathering Reminders ${useDemoData ? 'DEMO ' : ''}items --------`)
 
+    const thisSectionCode = 'REM'
+    const startTime = new Date()
+    let bucketsIncludedStr = ''
     let allItems: Array<TSectionItem> = []
     let listTitlesForAdd: Array<string> = []
 
@@ -565,7 +567,7 @@ export async function getRemindersGeneratedData(
       `- buckets: timedToday=${String(buckets.timedTodayItems.length)} untimedToday=${String(buckets.untimedTodayItems.length)} yesterday=${String(buckets.yesterdayItems.length)} tomorrow=${String(buckets.tomorrowItems.length)} overdue=${String(buckets.overdueItems.length)} undated=${String(buckets.undatedItems.length)}`,
     )
 
-    // Zero out buckets owned by a disabled toggle
+    // Empty out buckets owned by a disabled toggle
     const timedTodayItems = currentRemindersEnabled ? buckets.timedTodayItems : []
     const untimedTodayItems = currentRemindersEnabled ? buckets.untimedTodayItems : []
     const yesterdayItems = currentRemindersEnabled ? buckets.yesterdayItems : []
@@ -578,8 +580,8 @@ export async function getRemindersGeneratedData(
     // is "Show Undated/Overdue Reminders", so an overdue reminder belongs here by
     // name; a yesterday one is overdue in every sense that matters once there is no
     // Yesterday section to put it in; and an untimed reminder due today would
-    // otherwise vanish entirely when the Today section is off. Order in each case is
-    // own section -> Overdue (where applicable) -> here.
+    // otherwise vanish entirely when the Today section is off.
+    // Order in each case is Own section > Overdue (where applicable) > here.
     //
     // Two buckets deliberately have no fallback:
     //   - tomorrow: a future reminder is neither undated nor overdue, and hiding the
@@ -587,23 +589,30 @@ export async function getRemindersGeneratedData(
     //   - today's TIMED reminders whose time has not been reached: see the note in
     //     getTimeBlockSectionData -- those are meant to stay hidden until they are due.
     if (undatedOverdueRemindersEnabled) {
+      bucketsIncludedStr += 'undated'
       const overdueSectionVisible = Boolean(config.showOverdueSection)
       const fallbackItems: Array<TSectionItem> = []
-      if (!overdueSectionVisible && buckets.overdueItems.length > 0) {
-        fallbackItems.push(...buckets.overdueItems)
+
+      // Untimed reminders due today have only ever had one home, the Today section,
+      // so with that off they had nowhere to go at all. Same "Show Current Reminders"
+      // gate as yesterday, for the same reason.
+      if (currentRemindersEnabled && !config.showTodaySection && buckets.untimedTodayItems.length > 0) {
+        fallbackItems.push(...buckets.untimedTodayItems)
+        bucketsIncludedStr += ' + today'
       }
       // Yesterday is a *current* reminder, so it stays subject to "Show Current
       // Reminders" -- adopting it here when that toggle is off would resurrect an
       // item the user explicitly hid ("reminders due today, yesterday, or tomorrow").
       if (currentRemindersEnabled && !config.showYesterdaySection && !overdueSectionVisible && buckets.yesterdayItems.length > 0) {
         fallbackItems.push(...buckets.yesterdayItems)
+        bucketsIncludedStr += ' + yesterday'
       }
-      // Untimed reminders due today have only ever had one home, the Today section,
-      // so with that off they had nowhere to go at all. Same "Show Current Reminders"
-      // gate as yesterday, for the same reason.
-      if (currentRemindersEnabled && !config.showTodaySection && buckets.untimedTodayItems.length > 0) {
-        fallbackItems.push(...buckets.untimedTodayItems)
+      // Overdue reminders
+      if (!overdueSectionVisible && buckets.overdueItems.length > 0) {
+        fallbackItems.push(...buckets.overdueItems)
+        bucketsIncludedStr += ' + overdue'
       }
+      // Log lists
       if (fallbackItems.length > 0) {
         logDebug('getRemindersGeneratedData', `- REM fallback: adopting ${String(fallbackItems.length)} reminder(s) whose own section is off (overdueVisible=${String(overdueSectionVisible)} yesterdayVisible=${String(Boolean(config.showYesterdaySection))})`)
         undatedItems = sortReminderSectionItems(undatedItems.concat(fallbackItems))
@@ -617,7 +626,10 @@ export async function getRemindersGeneratedData(
       undatedItems = undatedItems.slice(0, maxInSection)
     }
 
-    let sectionDescription = '{countWithLimit} reminders'
+    // Set the REM section description.
+    // Includes types of reminders in the section (undated + overdue) and the total count.
+    // {itemType} is pluralised in Section.jsx (reminder / reminders) from current totalCount.
+    let sectionDescription = `{countWithLimit} ${bucketsIncludedStr} {itemType}`
     if (config?.FFlag_ShowSectionTimings) {
       sectionDescription += ` [${timer(startTime)}]`
     }
@@ -637,8 +649,6 @@ export async function getRemindersGeneratedData(
       },
       { type: 'calendarpicker', label: 'Date (optional):', key: 'date', dateFormat: 'YYYY-MM-DD' },
       { type: 'input', label: 'Time (optional, HH:MM):', key: 'time' },
-      // TODO(future): Enable this if the API is extended to cover flagged status
-      // { type: 'switch', label: 'Flagged?', key: 'flagged', default: false },
     ]
     const actionButtons: Array<TActionButton> =
       usersVersionHas('addRemindersSupport') && listTitlesForAdd.length > 0

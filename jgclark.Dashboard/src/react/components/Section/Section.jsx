@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2026-07-24 for v2.4.0.b54 by @jgclark + @CursorAI
+// Last updated 2026-07-31 for v2.4.0.b58 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -538,7 +538,9 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   }
 
   // Replace {itemType} in description, and pluralise it if neccesary
-  descriptionToUse = descriptionToUse.replace('{itemType}', getTaskOrItemDisplayString(totalCount ?? 0, dashboardSettings.ignoreChecklistItems ? 'task' : 'item'))
+  // REM uses "reminder(s)"; other sections use task/item per ignoreChecklistItems
+  const itemTypeWord = section.sectionCode === 'REM' ? 'reminder' : dashboardSettings.ignoreChecklistItems ? 'task' : 'item'
+  descriptionToUse = descriptionToUse.replace('{itemType}', getTaskOrItemDisplayString(totalCount ?? 0, itemTypeWord))
 
   // logInfo('Section', `- ${section.sectionCode}: limitApplied? ${String(limitApplied)} / numItemsToShow: ${String(numItemsToShow)} / numItems: ${String(items.length)} / numFilteredOutThisSection: ${String(numFilteredOutThisSection)}. ${section.description} -> ${descriptionToUse}`)
 

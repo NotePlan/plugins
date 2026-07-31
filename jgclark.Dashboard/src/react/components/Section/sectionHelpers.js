@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2026-07-29 for v2.4.0.b56 by @jgclark + @CursorAI
+// Last updated 2026-07-31 for v2.4.0.b58 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
@@ -263,6 +263,7 @@ export function getSectionsWithoutDuplicateLines(
 
       // If the item has a synced line, use the blockId for the key, not the constructed key
       // because we want to delete duplicates that are in different sections of synced lines also
+      const itemCountBeforeDedupe = section.sectionItems.length
       section.sectionItems = section.sectionItems.filter((item) => {
         let key: string
         if (item.itemType === 'reminder' && item.reminder) {
@@ -283,6 +284,29 @@ export function getSectionsWithoutDuplicateLines(
 
         return false
       })
+      // Keep section.totalCount aligned with what Hide Duplicates left in the section.
+      // Description text uses totalCount ({countWithLimit}); the list / IP button use
+      // sectionItems. Without this, Overdue could claim e.g. "15 open items" after copies
+      // were kept in TAG / Today / etc.
+      //
+      // When still at maxItemsToShowInSection after removals, more items may exist beyond
+      // the backend slice -- reduce totalCount by removedCount but keep it >= remaining.
+      // When under that limit, the remaining rows are the full set to show, so set
+      // totalCount to the remaining real-item count (ignore filter/preLimit messages).
+      const removedCount = itemCountBeforeDedupe - section.sectionItems.length
+      if (removedCount > 0) {
+        const realItemsRemaining = section.sectionItems.filter(
+          (item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType),
+        ).length
+        const maxInSection = dashboardSettings?.maxItemsToShowInSection
+        const stillAtCapacity =
+          typeof maxInSection === 'number' && maxInSection > 0 && realItemsRemaining >= maxInSection
+        if (stillAtCapacity && typeof section.totalCount === 'number') {
+          section.totalCount = Math.max(realItemsRemaining, section.totalCount - removedCount)
+        } else {
+          section.totalCount = realItemsRemaining
+        }
+      }
       // logInfo('getSectionsWithoutDuplicateLines', `- ${section.sectionCode} ends with ${section.sectionItems.length} items`) // OK
     })
     const totalItemsAfterDedupe = countTotalSectionItems(orderedSections, dontDedupeList)

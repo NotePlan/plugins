@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2026-07-29 for v2.4.0.b56, @jgclark + @CursorAI
+// Last updated 2026-07-31 for v2.4.0.b58, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -95,6 +95,13 @@ export async function getOverdueSectionData(
     }
 
     const items: Array<TSectionItem> = []
+    // Reserve slots for overdue / yesterday-spill reminders before limiting tasks.
+    // Previously tasks filled maxItemsToShowInSection first, so reminders were dropped
+    // whenever there were enough tasks -- then Hide Duplicates could free rows, but the
+    // reminder had already been omitted (e.g. yesterday reminder with Yesterday section off).
+    const sectionLimit = maxInSection ?? 24
+    const reminderSlotsToReserve = Math.min(overdueReminderItems.length, sectionLimit)
+    const taskSlots = Math.max(0, sectionLimit - reminderSlotsToReserve)
 
     if (overdueParas.length > 0) {
       // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
@@ -117,13 +124,13 @@ export async function getOverdueSectionData(
       const sortedOverdueTaskParas = sortListBy(dashboardParas, sortOrder)
       logDebug('getOverdueSectionData', `- Sorted ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
 
-      // Apply limit to set of ordered results, in case there are hundreds of items.
+      // Apply limit to ordered tasks, leaving room for reserved reminder slots.
       // Note: There is also display filtering in the Section component via useSectionSortAndFilter.
       // Note: this doesn't attempt to calculate parentIDs. TODO: Should it?
-      const overdueTaskParasLimited = totalOverdue > maxInSection
-        ? sortedOverdueTaskParas.slice(0, maxInSection)
+      const overdueTaskParasLimited = sortedOverdueTaskParas.length > taskSlots
+        ? sortedOverdueTaskParas.slice(0, taskSlots)
         : sortedOverdueTaskParas
-      logInfo('getOverdueSectionData', `- after limit, now ${overdueTaskParasLimited.length} of ${totalOverdue} items will be passed to React`)
+      logInfo('getOverdueSectionData', `- after limit (${String(taskSlots)} task slots, ${String(reminderSlotsToReserve)} reserved for reminders), now ${overdueTaskParasLimited.length} of ${totalOverdue} tasks will be passed to React`)
 
       // Create section items from the limited set of overdue tasks
       for (const p of overdueTaskParasLimited) {
@@ -136,11 +143,11 @@ export async function getOverdueSectionData(
         }
       }
     }
-    logDebug('getOverdueSectionData', `- finished processing ${String(totalOverdue)} overdue items after ${timer(thisStartTime)}`)
+    logDebug('getOverdueSectionData', `- finished processing ${String(totalOverdue)} overdue tasks after ${timer(thisStartTime)}`)
 
-    // Append overdue reminders into remaining slots under maxItemsToShowInSection
+    // Append overdue reminders into the reserved slots (and any leftover task slots)
     if (overdueReminderItems.length > 0) {
-      const remainingSlots = Math.max(0, (maxInSection ?? 24) - items.length)
+      const remainingSlots = Math.max(0, sectionLimit - items.length)
       const remindersToAdd = overdueReminderItems.slice(0, remainingSlots)
       if (remindersToAdd.length > 0) {
         const assigned = assignReminderItemsToSection(remindersToAdd, thisSectionCode, thisSectionCode, itemCount)
@@ -151,11 +158,11 @@ export async function getOverdueSectionData(
         // slots than there were reminders, so the section claimed more items
         // than it showed and the extras were silently unreachable.
         totalOverdue += assigned.length
-        const droppedForSlots = overdueReminderItems.length - remindersToAdd.length
-        if (droppedForSlots > 0) {
-          logWarn('getOverdueSectionData', `- ${String(droppedForSlots)} overdue reminder(s) did not fit in maxItemsToShowInSection=${String(maxInSection ?? 24)} and are not shown anywhere`)
-        }
         logDebug('getOverdueSectionData', `- added ${String(assigned.length)} of ${String(overdueReminderItems.length)} overdue reminder(s)`)
+      }
+      const droppedForSlots = overdueReminderItems.length - remindersToAdd.length
+      if (droppedForSlots > 0) {
+        logWarn('getOverdueSectionData', `- ${String(droppedForSlots)} overdue reminder(s) did not fit in maxItemsToShowInSection=${String(sectionLimit)} and are not shown anywhere`)
       }
     }
 

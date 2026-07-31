@@ -165,6 +165,121 @@ describe('sectionHelpers', () => {
       expect(wins.sectionItems).toHaveLength(1)
       expect(dt.sectionItems).toHaveLength(0)
     })
+
+    test('reduces totalCount when Hide Duplicates removes items from OVERDUE', () => {
+      const sharedPara = { filename: 'note.md', content: 'Pay bills #home' }
+      const onlyOverduePara = { filename: 'old.md', content: 'Unique overdue task' }
+      const sections = [
+        {
+          sectionCode: 'TAG',
+          name: '#home',
+          showSettingName: 'showTagSection_#home',
+          totalCount: 1,
+          sectionItems: [{ ID: 'TAG-0', itemType: 'open', para: sharedPara }],
+        },
+        {
+          sectionCode: 'OVERDUE',
+          name: 'Overdue Tasks',
+          showSettingName: 'showOverdueSection',
+          totalCount: 2,
+          sectionItems: [
+            { ID: 'OVERDUE-0', itemType: 'open', para: sharedPara },
+            { ID: 'OVERDUE-1', itemType: 'open', para: onlyOverduePara },
+          ],
+        },
+      ]
+      const result = sh.getSectionsWithoutDuplicateLines(
+        sections,
+        ['filename', 'content'],
+        baseOrder,
+        [],
+        { showOverdueSection: true, showTagSection_home: true, maxItemsToShowInSection: 10 },
+      )
+      const overdue = result.find((s) => s.sectionCode === 'OVERDUE')
+      const tag = result.find((s) => s.sectionCode === 'TAG')
+      expect(tag.sectionItems).toHaveLength(1)
+      expect(overdue.sectionItems).toHaveLength(1)
+      // Under the section limit after dedupe -- totalCount matches remaining items
+      expect(overdue.totalCount).toBe(1)
+    })
+
+    test('when under maxItemsToShowInSection after dedupe, sets totalCount to remaining items', () => {
+      const sharedPara = { filename: 'note.md', content: 'Shared overdue #work' }
+      const onlyOverdueParas = Array.from({ length: 9 }, (_, i) => ({
+        filename: `old${i}.md`,
+        content: `Only in overdue ${i}`,
+      }))
+      const sections = [
+        {
+          sectionCode: 'TAG',
+          name: '#work',
+          showSettingName: 'showTagSection_#work',
+          totalCount: 1,
+          sectionItems: [{ ID: 'TAG-0', itemType: 'open', para: sharedPara }],
+        },
+        {
+          sectionCode: 'OVERDUE',
+          name: 'Overdue Tasks',
+          showSettingName: 'showOverdueSection',
+          // Backend passed a full page of 10; more exist beyond the slice
+          totalCount: 15,
+          sectionItems: [
+            { ID: 'OVERDUE-0', itemType: 'open', para: sharedPara },
+            ...onlyOverdueParas.map((para, i) => ({ ID: `OVERDUE-${i + 1}`, itemType: 'open', para })),
+          ],
+        },
+      ]
+      const result = sh.getSectionsWithoutDuplicateLines(
+        sections,
+        ['filename', 'content'],
+        baseOrder,
+        [],
+        { showOverdueSection: true, showTagSection_work: true, maxItemsToShowInSection: 10 },
+      )
+      const overdue = result.find((s) => s.sectionCode === 'OVERDUE')
+      // One dup removed; still 9 items -- under capacity of 10, so totalCount = remaining
+      expect(overdue.sectionItems).toHaveLength(9)
+      expect(overdue.totalCount).toBe(9)
+    })
+
+    test('when at capacity after dedupe, preserves headroom in totalCount', () => {
+      const sharedPara = { filename: 'note.md', content: 'Shared overdue #work' }
+      const onlyOverdueParas = Array.from({ length: 10 }, (_, i) => ({
+        filename: `old${i}.md`,
+        content: `Only in overdue ${i}`,
+      }))
+      const sections = [
+        {
+          sectionCode: 'TAG',
+          name: '#work',
+          showSettingName: 'showTagSection_#work',
+          totalCount: 1,
+          sectionItems: [{ ID: 'TAG-0', itemType: 'open', para: sharedPara }],
+        },
+        {
+          sectionCode: 'OVERDUE',
+          name: 'Overdue Tasks',
+          showSettingName: 'showOverdueSection',
+          totalCount: 20,
+          // 11 items passed somehow (or max is 10 and we have 11 before filter - use 10 unique + 1 dup = 11 before, 10 after)
+          sectionItems: [
+            { ID: 'OVERDUE-0', itemType: 'open', para: sharedPara },
+            ...onlyOverdueParas.map((para, i) => ({ ID: `OVERDUE-${i + 1}`, itemType: 'open', para })),
+          ],
+        },
+      ]
+      const result = sh.getSectionsWithoutDuplicateLines(
+        sections,
+        ['filename', 'content'],
+        baseOrder,
+        [],
+        { showOverdueSection: true, showTagSection_work: true, maxItemsToShowInSection: 10 },
+      )
+      const overdue = result.find((s) => s.sectionCode === 'OVERDUE')
+      // 11 -> 10 after removing dup; at capacity, totalCount reduced by 1 only
+      expect(overdue.sectionItems).toHaveLength(10)
+      expect(overdue.totalCount).toBe(19)
+    })
   })
 
   // Note: used to live in sectionHelpers.js, but now in dataGenerationPriority.js

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-07-15 for v2.4.0.b51 by @CursorAI & @jgclark
+// Last updated 2026-07-31 for v2.4.0.b58 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -140,6 +140,11 @@ function removeLineItemsFromPluginSections(
       const { sectionIndex, itemIndex } = index
       logDebug('processActionOnReturn', `(${pass}) -> removing item ${data.item?.ID || '?'} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
       sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+      // Keep totalCount in step with local removals so section descriptions
+      // ({countWithLimit}) show the current count, not "1 of 2" after a complete.
+      if (typeof sections[sectionIndex].totalCount === 'number' && sections[sectionIndex].totalCount > 0) {
+        sections[sectionIndex].totalCount -= 1
+      }
       count += 1
     })
     return count

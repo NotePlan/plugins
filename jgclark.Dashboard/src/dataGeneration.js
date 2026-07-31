@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-07-29 for v2.4.0.b56 by @jgclark + @CursorAI
+// Last updated 2026-07-31 for v2.4.0.b58 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -119,8 +119,9 @@ export async function getSomeSectionsData(
     const overdueReminderItems = undatedOverdueRemindersEnabled
       ? remindersData.overdueItems.concat(yesterdaySpillToOverdue)
       : []
-    // A reminder only reaches the UI if some section hosts it. Yesterday and overdue
-    // reminders now fall back to the REM ("Undated/Overdue Reminders") section when
+
+    // A reminder only reaches the UI if some section hosts it.
+    // Yesterday and overdue reminders now fall back to the REM ("Undated/Overdue Reminders") section when
     // their own section is off, so they are only truly lost if REM is off too.
     // Tomorrow has no fallback by design, so it is lost whenever Tomorrow is off.
     const remCanHost = undatedOverdueRemindersEnabled
@@ -128,6 +129,7 @@ export async function getSomeSectionsData(
       remindersData.yesterdayItems.length > 0 && yesterdayForDaySection.length === 0 && !Boolean(config.showOverdueSection) && !remCanHost
     const overdueHomeless = remindersData.overdueItems.length > 0 && !Boolean(config.showOverdueSection) && !remCanHost
     const tomorrowHomeless = remindersData.tomorrowItems.length > 0 && !config.showTomorrowSection
+
     // Untimed today falls back to REM, so it is only lost when REM cannot host either.
     // Timed today reminders that are not yet due are intentionally shown nowhere
     // (see the DESIGN DECISION note in dataGenerationDays.js), so they are not warned about.
@@ -141,7 +143,7 @@ export async function getSomeSectionsData(
       logWarn('getSomeSectionsData', `- ${parts.join('; ')} reminder(s) have no visible section and will not be shown anywhere`)
     }
 
-    // DT and TB sections are now generated separately but share paragraph data fetching
+    // DT and TB sections are generated separately but share paragraph data fetching
     if (sectionCodesToGet.includes('DT')) {
       const todaySections = getTodaySectionData(
         config,
@@ -161,7 +163,7 @@ export async function getSomeSectionsData(
         ),
       )
     }
-    // Note: the WINS section is generated separately in the front end after the other sections are generated.
+
     if (wantRemSection && remindersData.remindersSection) {
       sections.push(remindersData.remindersSection)
     }
@@ -190,11 +192,11 @@ export async function getSomeSectionsData(
       const projectSection = await getProjectActiveSectionData(config, useDemoData)
       if (projectSection) sections.push(projectSection)
     }
-  if (sectionCodesToGet.includes('PROJREVIEW') && config.showProjectReviewSection) {
-    logDebug('getSomeSectionsData', `🔹 Getting Project section data as part of ${sectionCodesToGet.toString()}`)
-    const projectSection = await getProjectReviewSectionData(config, useDemoData)
-    if (projectSection) sections.push(projectSection)
-  }
+    if (sectionCodesToGet.includes('PROJREVIEW') && config.showProjectReviewSection) {
+      logDebug('getSomeSectionsData', `🔹 Getting Project section data as part of ${sectionCodesToGet.toString()}`)
+      const projectSection = await getProjectReviewSectionData(config, useDemoData)
+      if (projectSection) sections.push(projectSection)
+    }
 
     // The rest can all be slow to generate
     if (sectionCodesToGet.includes('SAVEDSEARCH')) sections.push(...(await getSavedSearchResults(config, useDemoData)))
@@ -219,9 +221,12 @@ export async function getSomeSectionsData(
     }
     if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
 
+    // Note: The WINS section is generated separately in the front end after the other sections are generated.
+
     // logDebug('getSomeSectionsData', `=> 🔹 sections ${getDisplayListOfSectionCodes(sections)} (unfiltered)`)
 
-    sections = sections.filter((s) => s) //get rid of any nulls b/c just in case any the sections above could return null
+    // get rid of any nulls b/c just in case any the sections above could return null
+    sections = sections.filter((s) => s) 
 
     return sections
   } catch (error) {
