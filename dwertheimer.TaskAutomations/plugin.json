@@ -5,8 +5,8 @@
   "plugin.name": "✅ Overdue Task Processing",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "3.1.1",
-  "plugin.lastUpdateInfo": "Fix: 'This week' and 'Next week' in the follow-up date picker now respect NotePlan's 'Start Week On' setting. Previously, when the week started on Monday (or any day other than Sunday), 'this week' pointed to the previous week and 'next week' to the current week.",
+  "plugin.version": "3.2.0",
+  "plugin.lastUpdateInfo": "Rescheduling an overdue item in a calendar note now uses NotePlan's normal scheduling method: the original is marked '[>]' and a back-linked copy is added to the destination note. Set 'Use simplified (re)scheduling method?' to keep the previous in-place behaviour. Also: 'This week' and 'Next week' in the follow-up date picker now respect NotePlan's 'Start Week On' setting.",
   "DELETE_ME": "DON'T DELETE commandMigrationMessage or offerToDownloadPlugin until they are documented somewhere",
   "commandMigrationMessage": "NOTE: Task Sorting commands have been moved from the Task Automations plugin to the Task Sorting plugin. This plugin has been renamed to 'Overdue Task Processing'.",
   "offerToDownloadPlugin": {
@@ -429,6 +429,30 @@
     {
       "type": "heading",
       "title": "Overdue Task Scan Settings"
+    },
+    {
+      "key": "useLiteScheduleMethod",
+      "title": "Use simplified (re)scheduling method?",
+      "description": "When you reschedule a task to a >date during a review, if set then the item simply has its '>date' updated in the note it is in. It does not show with the special 🕓 [>] task icon, and a copy isn't added into the date it's being scheduled to. If not set, NotePlan's normal method is used: the original is marked '[>] task >newDate' and a copy '[ ] task <origDate' is added to the destination calendar note. Note: tasks in regular (non-calendar) notes always use the simplified method.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "newTaskSectionHeading",
+      "title": "Section heading to add rescheduled tasks under",
+      "description": "When NotePlan's normal (re)scheduling method adds a copy of a task into a calendar note, this sets the Section heading to add it under. (Don't include leading #s.) Leave blank to add it at the end of the note. Use '<<top of note>>' or '<<bottom of note>>' to always add at the top/bottom, or '<<carry forward>>' to maintain the current hierarchy of headings in the new note.",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "newTaskSectionHeadingLevel",
+      "title": "Heading level for new headings",
+      "description": "Heading level (1-5) to use when adding new headings in notes. Note: you can also set this to 0, which means add the task under the heading, but only if it already exists.",
+      "type": "number",
+      "default": 2,
+      "required": true
     },
     {
       "key": "numLastUsedChoices",

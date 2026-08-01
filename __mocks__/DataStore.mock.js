@@ -97,6 +97,9 @@ export const DataStore = {
 		]
 } }], */
   // async referencedBlocks() { return null },
+  updateCache(note, shouldUpdateTags = false) {
+    return note
+  },
   // async saveData() { return null },
   async saveJSON(object, filename) {
     __json = object

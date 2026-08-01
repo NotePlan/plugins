@@ -7,8 +7,11 @@
 
 NOTE: A COUPLE OF RELEASES AFTER 3.0.0 DELETE THE SETTINGS THAT PERTAIN TO TASKS
 
-## [3.1.1] (upcoming)
+## [3.2.0] (upcoming)
 
+- Fix (#741): rescheduling an overdue item to a `>date` now uses NotePlan's normal scheduling method for items in calendar notes: the original is marked `[>]` (`scheduled`/`checklistScheduled`) **and** a copy back-linking to the original date (`<origDate`) is added to the destination calendar note. Previously only the `>date` was rewritten, so the item never showed the `[>]` marker. Note: marking the original `[>]` *without* adding the copy would make the item vanish from the new date, so the two always happen together.
+- New setting "Use simplified (re)scheduling method?" — if set, rescheduling just updates the `>date` in place (the previous behaviour) with no `[>]` marker and no copy. Items in regular (non-calendar) notes always use this simplified method, matching NotePlan's "Schedule by linking in regular notes" preference.
+- New settings "Section heading to add rescheduled tasks under" and "Heading level for new headings", controlling where the copy is placed in the destination note. These mirror the equivalent settings in the Dashboard plugin.
 - Fix: "This week" and "Next week" in the follow-up date picker now respect NotePlan's "Start Week On" setting. Previously, when the week started on Monday (or any day other than Sunday), "this week" pointed to the previous week and "next week" to the current week (fix in shared `helpers/NPdateTime.js` getWeekOptions).
 
 ## [3.0.0] @dwertheimer 2024-03-26
