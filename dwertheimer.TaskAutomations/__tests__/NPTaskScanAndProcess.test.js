@@ -169,6 +169,17 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(before.type).toEqual('open')
       })
 
+      test('should default to the lite method in a calendar note when the setting is missing', async () => {
+        const { useLiteScheduleMethod: _omitted, ...settingsWithoutIt } = DataStore.settings
+        DataStore.settings = settingsWithoutIt
+        const note = new Note({ filename: '20221231.md', type: 'Calendar' })
+        const before = { content: '>2022-12-31 task content', type: 'open', note }
+
+        await handleArrowDatesAction(before, '>2023-01-01')
+        expect(before.content).toEqual('task content >2023-01-01')
+        expect(before.type).toEqual('open')
+      })
+
       test('should leave the type alone in a calendar note when useLiteScheduleMethod is set', async () => {
         DataStore.settings = { ...DataStore.settings, useLiteScheduleMethod: true }
         const note = new Note({ filename: '20221231.md', type: 'Calendar' })
@@ -181,6 +192,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
 
       test("should mark a calendar note item scheduled and add a back-linked copy in the destination note (NotePlan's full method)", async () => {
+        DataStore.settings = { ...DataStore.settings, useLiteScheduleMethod: false }
         const originNote = new Note({ filename: '20221231.md', type: 'Calendar' })
         const destNote = new Note({ filename: '20230101.md', type: 'Calendar' })
         destNote.insertParagraph = jest.fn()
@@ -197,6 +209,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
 
       test('should use checklistScheduled for a checklist item taking the full method', async () => {
+        DataStore.settings = { ...DataStore.settings, useLiteScheduleMethod: false }
         const originNote = new Note({ filename: '20221231.md', type: 'Calendar' })
         const destNote = new Note({ filename: '20230101.md', type: 'Calendar' })
         destNote.insertParagraph = jest.fn()

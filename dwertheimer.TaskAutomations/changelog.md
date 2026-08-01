@@ -7,7 +7,12 @@
 
 NOTE: A COUPLE OF RELEASES AFTER 3.0.0 DELETE THE SETTINGS THAT PERTAIN TO TASKS
 
-## [3.2.0] (upcoming)
+## [3.2.1] @dwertheimer 2026-08-01
+
+- Change: "Use simplified (re)scheduling method?" now defaults to **on**, so rescheduling an overdue item keeps the in-place behaviour it had before 3.2.0. NotePlan's normal scheduling method (mark the original `[>]` plus a back-linked copy in the destination calendar note) is now opt-in — turn the setting off to get it. 3.2.0 shipped this the other way round, which changed the default behaviour of the overdue review for everyone.
+- Note: if you installed 3.2.0, your saved setting takes precedence over the new default, so check "Use simplified (re)scheduling method?" in settings if you want the in-place behaviour back.
+
+## [3.2.0] @dwertheimer 2026-08-01
 
 - Fix (#741): rescheduling an overdue item to a `>date` now uses NotePlan's normal scheduling method for items in calendar notes: the original is marked `[>]` (`scheduled`/`checklistScheduled`) **and** a copy back-linking to the original date (`<origDate`) is added to the destination calendar note. Previously only the `>date` was rewritten, so the item never showed the `[>]` marker. Note: marking the original `[>]` *without* adding the copy would make the item vanish from the new date, so the two always happen together.
 - New setting "Use simplified (re)scheduling method?" — if set, rescheduling just updates the `>date` in place (the previous behaviour) with no `[>]` marker and no copy. Items in regular (non-calendar) notes always use this simplified method, matching NotePlan's "Schedule by linking in regular notes" preference.

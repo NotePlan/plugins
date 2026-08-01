@@ -339,7 +339,9 @@ export async function handleArrowDatesAction(origPara: TParagraph, userChoice: s
   // (which is also what NotePlan's "Schedule by linking in regular notes" preference does).
   const { useLiteScheduleMethod, newTaskSectionHeading, newTaskSectionHeadingLevel } = DataStore.settings
   const dateStrToAdd = userChoice.replace(/^>/, '')
-  const useLite = origPara.note?.type === 'Notes' || useLiteScheduleMethod
+  // Note: default to 'lite' when the setting is missing, so that users who haven't saved settings yet get the same
+  // in-place behaviour as the plugin.json default (rather than silently opting in to the full method).
+  const useLite = origPara.note?.type === 'Notes' || (useLiteScheduleMethod ?? true)
   logDebug(pluginJson, `handleArrowDatesAction: scheduling to '${dateStrToAdd}' using ${useLite ? 'lite' : 'NP full'} method`)
   if (useLite) {
     scheduleItemLiteMethod(origPara, dateStrToAdd)
