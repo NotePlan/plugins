@@ -1,7 +1,7 @@
 /* global describe, expect, test, beforeAll, beforeEach, jest */
 import moment from 'moment'
 import { DataStore, Editor, CommandBar, NotePlan, Note, Paragraph } from '@mocks/index'
-import { generateRepeatForPara } from '../NPExtendedRepeat'
+import { generateRepeatForPara, generateRepeatForCancelledPara } from '../NPExtendedRepeat'
 
 const repeatConfig = {
   deleteCompletedRepeat: false,
@@ -231,5 +231,99 @@ describe('NPExtendedRepeat generateRepeatForPara', () => {
 
     await generateRepeatForPara(origPara, origNote, repeatConfig, true, true)
     expect(Editor.save).not.toHaveBeenCalled()
+  })
+})
+
+describe('NPExtendedRepeat generateRepeatForPara: concrete @repeat(...) base date is advanced in the new repeat', () => {
+  async function expectAdvancedConcreteDate(repeatTag: string, expectedRepeatTag: string) {
+    const taskLine = `* [x] Task @done(2026-05-20 09:00 AM) @repeat(${repeatTag})`
+    const origPara = new Paragraph({
+      type: 'done',
+      content: taskLine.slice(5),
+      lineIndex: 1,
+      rawContent: taskLine,
+    })
+    const origNote = new Note({
+      type: 'Notes',
+      filename: 'Projects/chores.md',
+      paragraphs: [
+        new Paragraph({ type: 'title', content: 'Chores', headingLevel: 1, lineIndex: 0 }),
+        origPara,
+      ],
+    })
+    origPara.note = origNote
+    origNote.resetLineIndexesAndContent()
+
+    const newPara = await generateRepeatForPara(origPara, origNote, repeatConfig, false)
+    expect(newPara).not.toBeNull()
+    const inserted = origNote.paragraphs[1]
+    expect(inserted.content).toContain(`@repeat(${expectedRepeatTag})`)
+  }
+
+  test('day-spec: @repeat(1m, 2024-01-15) -> @repeat(1m, 2024-02-15)', async () => {
+    await expectAdvancedConcreteDate('1m, 2024-01-15', '1m, 2024-02-15')
+  })
+
+  test('week-spec: @repeat(1w, 2026-W19) -> @repeat(1w, 2026-W20)', async () => {
+    await expectAdvancedConcreteDate('1w, 2026-W19', '1w, 2026-W20')
+  })
+
+  test('month-spec: @repeat(1m, 2026-05) -> @repeat(1m, 2026-06)', async () => {
+    await expectAdvancedConcreteDate('1m, 2026-05', '1m, 2026-06')
+  })
+
+  test('quarter-spec: @repeat(1q, 2026-Q2) -> @repeat(1q, 2026-Q3)', async () => {
+    await expectAdvancedConcreteDate('1q, 2026-Q2', '1q, 2026-Q3')
+  })
+
+  test('year-spec: @repeat(1y, 2026) -> @repeat(1y, 2027)', async () => {
+    await expectAdvancedConcreteDate('1y, 2026', '1y, 2027')
+  })
+
+  test('week-spec year end: @repeat(1w, 2026-W53) -> @repeat(1w, 2027-W01)', async () => {
+    await expectAdvancedConcreteDate('1w, 2026-W53', '1w, 2027-W01')
+  })
+
+  test('+ prefix is retained and the concrete date still advances: @repeat(+1w, 2026-W19) -> @repeat(+1w, 2026-W20)', async () => {
+    await expectAdvancedConcreteDate('+1w, 2026-W19', '+1w, 2026-W20')
+  })
+})
+
+describe('NPExtendedRepeat generateRepeatForCancelledPara: concrete @repeat(...) base date is advanced in the new repeat', () => {
+  async function expectAdvancedConcreteDate(repeatTag: string, expectedRepeatTag: string) {
+    const taskLine = `* [-] Task @repeat(${repeatTag})`
+    const origPara = new Paragraph({
+      type: 'cancelled',
+      content: taskLine,
+      lineIndex: 1,
+      rawContent: taskLine,
+    })
+    const origNote = new Note({
+      type: 'Notes',
+      filename: 'Projects/chores.md',
+      paragraphs: [
+        new Paragraph({ type: 'title', content: 'Chores', headingLevel: 1, lineIndex: 0 }),
+        origPara,
+      ],
+    })
+    origPara.note = origNote
+    origNote.resetLineIndexesAndContent()
+
+    const newPara = await generateRepeatForCancelledPara(origPara, origNote, false)
+    expect(newPara).not.toBeNull()
+    const inserted = origNote.paragraphs.find((p) => p.content.includes('@repeat('))
+    expect(inserted?.content).toContain(`@repeat(${expectedRepeatTag})`)
+  }
+
+  test('day-spec: @repeat(1m, 2024-01-15) -> @repeat(1m, 2024-02-15)', async () => {
+    await expectAdvancedConcreteDate('1m, 2024-01-15', '1m, 2024-02-15')
+  })
+
+  test('week-spec: @repeat(1w, 2026-W19) -> @repeat(1w, 2026-W20)', async () => {
+    await expectAdvancedConcreteDate('1w, 2026-W19', '1w, 2026-W20')
+  })
+
+  test('month-spec: @repeat(1m, 2026-05) -> @repeat(1m, 2026-06)', async () => {
+    await expectAdvancedConcreteDate('1m, 2026-05', '1m, 2026-06')
   })
 })

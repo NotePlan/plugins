@@ -27,6 +27,10 @@ import {
   RE_DONE_DATE_TIME_CAPTURES,
   RE_DONE_DATE_OPT_TIME,
   RE_ISO_DATE,
+  RE_NP_WEEK_SPEC,
+  RE_NP_MONTH_SPEC,
+  RE_NP_QUARTER_SPEC,
+  RE_NP_YEAR_SPEC,
 } from '@helpers/dateTime'
 import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { calcOffsetDateStr, getFirstDateInPeriod } from '@helpers/NPdateTime'
@@ -41,7 +45,10 @@ const LOG_CONTEXT = 'extendedRepeat'
 //------------------------------------------------------------------
 // Regexes + config type + settings + date math
 
-const EXTENDED_REPEAT_STR: string = `@repeat\\(${RE_DATE_INTERVAL}\\)` // find @repeat()
+// A concrete @repeat(...) base date can be given in any NP calendar-note date-spec: day, week, month, quarter or year
+const CONCRETE_REPEAT_DATE_STR: string = `(?:${RE_ISO_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`
+const RE_CONCRETE_REPEAT_DATE_FULL: RegExp = new RegExp(`^${CONCRETE_REPEAT_DATE_STR}$`) // validate a standalone date-spec string
+const EXTENDED_REPEAT_STR: string = `@repeat\\(${RE_DATE_INTERVAL}(?:,\\s*${CONCRETE_REPEAT_DATE_STR})?\\)` // find @repeat()
 export const RE_EXTENDED_REPEAT: RegExp = new RegExp(EXTENDED_REPEAT_STR) // find @repeat()
 const EXTENDED_REPEAT_CAPTURE_STR: string = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
 export const RE_EXTENDED_REPEAT_CAPTURE: RegExp = new RegExp(EXTENDED_REPEAT_CAPTURE_STR) // find @repeat() and return part inside brackets
@@ -88,6 +95,18 @@ export function generateNewRepeatDate(noteToUse: CoreNoteFields, currentContent:
   const reRepeatArray = currentContent.match(RE_EXTENDED_REPEAT_CAPTURE) ?? []
   let dateIntervalString: string = reRepeatArray.length > 0 ? reRepeatArray[1] : ''
 
+  let concreteBaseDate: string = ''
+  if (dateIntervalString.includes(',')) {
+    const [intervalPart, datePart] = dateIntervalString.split(',').map((s) => s.trim())
+    // Only accept the split if the interval part is a valid interval (guards against malformed @repeat tags)
+    if (new RegExp(`^${RE_DATE_INTERVAL}$`).test(intervalPart)) {
+      dateIntervalString = intervalPart
+      if (datePart && RE_CONCRETE_REPEAT_DATE_FULL.test(datePart)) {
+        concreteBaseDate = datePart
+      }
+    }
+  }
+
   let outputTimeframe = 'day'
   if (currentContent.match(RE_SCHEDULED_DAILY_NOTE_LINK) || isDailyNote(noteToUse)) {
     outputTimeframe = 'day'
@@ -108,6 +127,18 @@ export function generateNewRepeatDate(noteToUse: CoreNoteFields, currentContent:
   if (dateIntervalString.length === 0) {
     logError('generateNewRepeatDate', 'No @repeat(interval) found in content; cannot compute new date')
     return completedDate
+  }
+
+  if (concreteBaseDate.length > 0) {
+    if (dateIntervalString.startsWith('+')) {
+      // + prefix takes precedence: concrete date is immaterial, fall through to completion-date branch
+      logWarn('generateNewRepeatDate', `- concrete base date ${concreteBaseDate} ignored because + prefix takes precedence; scheduling from completion date`)
+    } else {
+      // No + prefix: concrete date wins over scheduled/completion date
+      newRepeatDateStr = calcOffsetDateStr(concreteBaseDate, dateIntervalString, outputTimeframe)
+      logDebug('generateNewRepeatDate', `- adding from concrete base date ${concreteBaseDate} -> ${newRepeatDateStr}`)
+      return newRepeatDateStr
+    }
   }
 
   if (dateIntervalString.startsWith('+')) {
@@ -218,6 +249,21 @@ export async function generateRepeatForPara(
     newRepeatContent = newRepeatContent.replace(new RegExp(RE_DONE_DATE_OPT_TIME.source, 'gi'), '')
     newRepeatContent = stripTaskMarkersFromString(newRepeatContent)
     newRepeatContent = textWithoutSyncedCopyTag(newRepeatContent).trim()
+
+    // If the @repeat tag contains a concrete base date, advance it by the same interval so future
+    // completions continue to calculate from the correct anchor (as a daily ISO date, independent
+    // of the outputTimeframe used for the scheduled >date marker).
+    const capturedRepeat = origPara.content.match(RE_EXTENDED_REPEAT_CAPTURE)
+    if (capturedRepeat && capturedRepeat[1].includes(',')) {
+      const [intervalOnly, oldConcreteDate] = capturedRepeat[1].split(',').map((s) => s.trim())
+      if (oldConcreteDate && RE_CONCRETE_REPEAT_DATE_FULL.test(oldConcreteDate) && new RegExp(`^${RE_DATE_INTERVAL}$`).test(intervalOnly.replace(/^\+/, ''))) {
+        const intervalForCalc = intervalOnly.startsWith('+') ? intervalOnly.substring(1) : intervalOnly
+        const newConcreteDate = calcOffsetDateStr(oldConcreteDate, intervalForCalc, 'base')
+        newRepeatContent = newRepeatContent.replace(`@repeat(${capturedRepeat[1]})`, `@repeat(${intervalOnly}, ${newConcreteDate})`)
+        logDebug('generateRepeatForPara', `- advanced concrete base date from ${oldConcreteDate} to ${newConcreteDate}`)
+      }
+    }
+
     logDebug('generateRepeatForPara', `- newRepeatContent: "${newRepeatContent}"`)
 
     const insertInOpenEditor =
@@ -349,6 +395,18 @@ export async function generateRepeatForCancelledPara(
       .replace(/^\s*?\-\s\[-\]\s/, '')
       .replace(/^\s*?\+\s\[+\]\s/, '')
     newRepeatContent = textWithoutSyncedCopyTag(newRepeatContent).trim()
+
+    // Advance the concrete base date in @repeat(...) if present
+    const capturedRepeat = origPara.content.match(RE_EXTENDED_REPEAT_CAPTURE)
+    if (capturedRepeat && capturedRepeat[1].includes(',')) {
+      const [intervalOnly, oldConcreteDate] = capturedRepeat[1].split(',').map((s) => s.trim())
+      if (oldConcreteDate && RE_CONCRETE_REPEAT_DATE_FULL.test(oldConcreteDate) && new RegExp(`^${RE_DATE_INTERVAL}$`).test(intervalOnly.replace(/^\+/, ''))) {
+        const intervalForCalc = intervalOnly.startsWith('+') ? intervalOnly.substring(1) : intervalOnly
+        const newConcreteDate = calcOffsetDateStr(oldConcreteDate, intervalForCalc, 'base')
+        newRepeatContent = newRepeatContent.replace(`@repeat(${capturedRepeat[1]})`, `@repeat(${intervalOnly}, ${newConcreteDate})`)
+        logDebug('generateRepeatForCancelledPara', `- advanced concrete base date from ${oldConcreteDate} to ${newConcreteDate}`)
+      }
+    }
 
     let newPara: TParagraph
     if (noteIsOpenInEditor) {
