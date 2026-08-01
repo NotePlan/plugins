@@ -52,11 +52,14 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
     })
 
     test('wraps scheduled >dates in scheduledDate lozenge with calendar icon', () => {
-      const html = makeStringContentToLookLikeNPDisplayInReact('Call bank >2026-08-01', { truncateLength: 0, taskPriority: 0 })
+      // Note: this date must stay in the past. stripTodaysDateRefsFromString() runs before the lozenge is applied
+      // and deletes any >date that happens to be *today*, so a date that can become today makes this test fail on
+      // exactly that one day. (It previously used >2026-08-01 and duly failed on 2026-08-01.)
+      const html = makeStringContentToLookLikeNPDisplayInReact('Call bank >2020-01-01', { truncateLength: 0, taskPriority: 0 })
       expect(html).toContain('class="scheduledDate"')
       expect(html).toContain('fa-regular fa-calendar')
       // Date text without the leading '>' marker (calendar icon replaces it)
-      expect(html).toMatch(/scheduledDate"><i class="fa-regular fa-calendar pad-right"><\/i>2026-08-01<\/span>/)
+      expect(html).toMatch(/scheduledDate"><i class="fa-regular fa-calendar pad-right"><\/i>2020-01-01<\/span>/)
     })
 
     test('places timeblock label at the start using startTime/endTime, stripping original TB from content', () => {
