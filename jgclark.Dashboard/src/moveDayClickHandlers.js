@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions to move items from one day to another
-// Last updated 2025-12-07 for v2.4.0.b by @jgclark
+// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -458,9 +458,11 @@ export async function scheduleTodayToTomorrow(
  * Function to schedule or move all open overdue tasks from their notes to today
  * Uses config setting 'rescheduleNotMove' to decide whether to reschedule or move.
  * Note: This uses an API call that doesn't include open checklist items.
- * TODO: use 'moveOnlyShown' to filter to only items currently shown in the section
+ * When moveOnlyShown is true, applies the same priority threshold as other bulk-move
+ * handlers (currentMaxPriorityFromAllVisibleSections). Folder/ignore/calendar filters
+ * already run inside getRelevantOverdueTasks.
  * @param {MessageDataObject} data
- * @param {boolean} moveOnlyShown - if true, only move items currently shown in the section
+ * @param {boolean} moveOnlyShown - if true, only move items at/above the visible priority threshold
  * @returns {TBridgeClickHandlerResult}
  */
 export async function scheduleAllOverdueOpenToToday(
@@ -472,36 +474,13 @@ export async function scheduleAllOverdueOpenToToday(
     const config: TDashboardSettings = await getDashboardSettings()
     const thisStartTime = new Date()
     const reactWindowData: any = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    const currentMaxPriority = reactWindowData?.pluginData?.currentMaxPriorityFromAllVisibleSections ?? NaN
 
-    // Get list of open tasks/checklists from yesterday note
-    // Note: we need full TParagraphs, not ReducedParagraphs
-    // const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
-    // const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr)
-    // if (!yesterdaysNote) {
-    //   throw new Error(`Couldn't find yesterday's note, which shouldn't happen.`)
-    // }
-    // // Override one setting so we can work on combined items
-    // config.separateSectionForReferencedNotes = false
-    // const [yesterdaysCombinedSortedDashboardParas, _sortedRefParas] = getOpenItemParasForTimePeriod(yesterdaysNote.filename, "day", config, false)
-
-    // Now dedupe with Yesterday data
-    // Now convert these back to full TParagraph
-    // const calendarNoteParas: Array<TParagraph> = []
-    // for (const yCSDP of yesterdaysCombinedSortedDashboardParas) {
-    //   const p: TParagraph | null = getParagraphFromStaticObject(yCSDP)
-    //   if (p) {
-    //     yesterdaysCombinedSortedDashboardParas.push(p)
-    //   } else {
-    //     logWarn('scheduleAllOverdueOpenToToday', `Couldn't find para matching "${yCSDP.content}"`)
-    //   }
-    // }
-
-    // Get paras for all overdue items in notes
-    // Note: we need full TParagraphs, not ReducedParagraphs
-    // $FlowIgnore[prop-missing]
-    // eslint-disable-next-line no-unused-vars
+    // Get paras for all overdue items in notes (full TParagraphs, not ReducedParagraphs).
     // Pass [] for yesterdaysParas on purpose: schedule-all should still move yesterday-dated overdue tasks.
     // (Section generation does pass DY paras for display dedupe when Yesterday is on.)
+    // $FlowIgnore[prop-missing]
+    // eslint-disable-next-line no-unused-vars
     const { filteredOverdueParas, preLimitOverdueCount } = await getRelevantOverdueTasks(config, []) // Note: does not include open checklist items
     const overdueParas = filteredOverdueParas
     const initialTotalOverdue = filteredOverdueParas.length
@@ -510,15 +489,31 @@ export async function scheduleAllOverdueOpenToToday(
       return { success: false }
     }
 
-    // TODO: Do we need to Apply the filtering here as well?
+    logDebug('scheduleAllOverdueOpenToToday', `starting with moveOnlyShown ${String(moveOnlyShown)}`)
 
+    // Reduce to dashboard paras, then optionally keep only items at/above the visible priority threshold
+    let dashboardParas = makeDashboardParas(overdueParas)
+    if (moveOnlyShown && !isNaN(currentMaxPriority)) {
+      // Overdue is a single list (not calendar+ref); reuse helper with empty calendar side
+      const [, filteredOverdueDashboardParas] = filterParasByPriority([], dashboardParas, currentMaxPriority, 'scheduleAllOverdueOpenToToday')
+      dashboardParas = filteredOverdueDashboardParas
+      if (dashboardParas.length === 0) {
+        logInfo('scheduleAllOverdueOpenToToday', `After moveOnlyShown priority filter (>= ${String(currentMaxPriority)}), no overdue items left to move. Stopping.`)
+        return { success: true, actionsOnSuccess: [] }
+      }
+    } else {
+      logDebug('scheduleAllOverdueOpenToToday', `Not filtering to only shown items because moveOnlyShown is false or currentMaxPriorityFromAllVisibleSections is undefined`)
+    }
 
     // Remove child items from the list of paras
-    const dashboardParas = makeDashboardParas(overdueParas)
     const overdueParasWithoutChildren = removeChildItems(dashboardParas)
     const totalToMove = overdueParasWithoutChildren.length
-    if (totalToMove !== initialTotalOverdue) {
-      logDebug('scheduleAllOverdueOpenToToday', `- Excluding children reduced total to move from ${initialTotalOverdue} to ${totalToMove}`)
+    if (totalToMove !== dashboardParas.length) {
+      logDebug('scheduleAllOverdueOpenToToday', `- Excluding children reduced total to move from ${dashboardParas.length} to ${totalToMove}`)
+    }
+    if (totalToMove === 0) {
+      logInfo('scheduleAllOverdueOpenToToday', `No overdue items left after excluding children. Stopping.`)
+      return { success: true, actionsOnSuccess: [] }
     }
 
     logTimer('scheduleAllOverdueOpenToToday', thisStartTime, `Found ${totalToMove} overdue items to ${config.rescheduleNotMove ? 'rescheduleItem' : 'move'} to today`)

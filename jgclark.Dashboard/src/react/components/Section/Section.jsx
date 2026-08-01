@@ -425,7 +425,9 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
       ? !isTBSectionVisibleInSettings(dashboardSettings)
       : Boolean(dashboardSettings && dashboardSettings[section.showSettingName] === false)) // note this can be updated later
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
-  let numItemsToShow = itemsToShow.length
+  // Count only actionable rows; filter / lookback / congrats messages must not inflate description or IP counts
+  const numItemsToShow = itemsToShow.filter((item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType)).length
+  const moveOnlyShownItemsWhenFiltered = dashboardSettings?.moveOnlyShownItemsWhenFiltered ?? true
 
   // Figure out a style for the section title
   const titleStyle: Object = sectionFilename ? { cursor: 'pointer' } : {}
@@ -440,7 +442,6 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   if (processActionButtons) {
     // Transform "All → ..." buttons to "All shown → ..." when both filterPriorityItems and moveOnlyShownItemsWhenFiltered are active
     const filterPriorityItems = dashboardSettings?.filterPriorityItems ?? false
-    const moveOnlyShownItemsWhenFiltered = dashboardSettings?.moveOnlyShownItemsWhenFiltered ?? true
     const shouldShowOnlyShown = filterPriorityItems && moveOnlyShownItemsWhenFiltered
 
     if (shouldShowOnlyShown) {
@@ -456,9 +457,11 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
           actionName = 'moveOnlyShownThisWeekNextWeek'
         } else if (actionName === 'moveAllLastWeekThisWeek') {
           actionName = 'moveOnlyShownLastWeekThisWeek'
+        } else if (actionName === 'scheduleAllOverdueToday') {
+          actionName = 'scheduleOnlyShownOverdueToday'
         }
-        // If this is a "move only shown" button
-        if (actionName.startsWith('moveOnlyShown')) {
+        // If this is a "move/schedule only shown" button (Overdue uses scheduleOnlyShown* naming)
+        if (actionName.startsWith('moveOnlyShown') || actionName.startsWith('scheduleOnlyShown')) {
           // logInfo('Section', `Section ${section.sectionCode} transforming button action ${initialActionName} to '${button.actionName}', and display from 'All' to 'All shown'`)
           button.actionName = actionName
           button.display = button.display.replace(/^All (?!shown)/, 'All shown ') // the negative lookahead ensures we don't replace 'All shown' with 'All shown shown', which was happening before
@@ -469,18 +472,15 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
     }
   }
 
-  // If we have no data items to show (other than a congrats message), remove any processing buttons, and only show 'add...' buttons
-  if (numItemsToShow === 1 && treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)) {
-    processActionButtons = []
-  }
-
-  // Deal with some special cases where we don't want to show item counts
-  // If we have only one item to show, and it's a single item type that we don't want to count (e.g. 'Nothing left on this list'), set numItemsToShow to 0
-  if (numItemsToShow === 1 && treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)) numItemsToShow = 0
-
-  // If the last one is the filterIndicator or offerToFilter, decrement the number of items to show
-  if (numItemsToShow > 0 && (itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator' || itemsToShow[numItemsToShow - 1].itemType === 'offerToFilter')) {
-    numItemsToShow--
+  // No actionable items visible: hide Move-all when only-shown mode (nothing shown to move), or when
+  // the section only has empty/congrats messages (no "hidden by priority" indicator that implies work remains).
+  if (numItemsToShow === 0) {
+    const hasPriorityFilterMessage = itemsToShow.some(
+      (item) => item.itemType === 'filterIndicator' || item.itemType === 'offerToFilter',
+    )
+    if (moveOnlyShownItemsWhenFiltered || !hasPriorityFilterMessage) {
+      processActionButtons = []
+    }
   }
 
   // Form the description to use, replacing {closedOrOpenTaskCount} and {countWithLimit} placeholders with actual values
@@ -593,10 +593,10 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
     ) : null
 
   // Decide whether to show interactiveProcessing button:
-  // - don't show IP button if there are no items to show, or if the first item is a single item type that we don't want to count (e.g. 'Nothing left on this list')
-  // - when moveOnlyShownItemsWhenFiltered is false, N and the IP dialog include lower-priority / limit-hidden items as well.
+  // - when moveOnlyShownItemsWhenFiltered, N is visible actionable rows only (message rows excluded)
+  // - when that setting is false, N and the IP dialog include lower-priority / limit-hidden items as well
+  // - hide when there is nothing actionable for the chosen mode (e.g. all tasks priority-filtered and only-shown on)
   // - TODO(later): enable for PROJREVIEW/PROJACT
-  const moveOnlyShownItemsWhenFiltered = dashboardSettings?.moveOnlyShownItemsWhenFiltered ?? true
   const ipItemCount = moveOnlyShownItemsWhenFiltered
     ? numItemsToShow
     : allSortedItems.filter((row) => row.itemType === 'open' || row.itemType === 'checklist').length
@@ -604,8 +604,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
     dashboardSettings.enableInteractiveProcessing &&
     interactiveProcessingPossibleSectionTypes.includes(section.sectionCode) &&
     ipItemCount > 1 &&
-    itemsToShow.length > 0 &&
-    !treatSingleItemTypesAsZeroItems.includes(itemsToShow[0].itemType)
+    itemsToShow.length > 0
 
   // TB section can show up blank, without this extra check
   if (itemsToShow.length === 0) {

@@ -74,8 +74,17 @@ export const SEARCH_RELATED_SECTION_CODES: Array<TSectionCode> = ['SEARCH', 'SAV
 // i.e. build in React front end, not in back end
 export const SYNTHETIC_SECTION_CODES: Array <TSectionCode> = ['WINS']
 
-// Treat these itemTypes as if they are zero items, so we don't show the Interactive or other Processing buttons, and correct the count in the description
-export const treatSingleItemTypesAsZeroItems = ['itemCongrats', 'winsCongrats', 'projectCongrats', 'noSearchResults', 'preLimitOverdues']
+// Treat these itemTypes as non-countable message rows: no Interactive / Move-all processing,
+// and exclude them from section description counts (congrats, empty-state, filter notices, lookback notices).
+export const treatSingleItemTypesAsZeroItems = [
+  'itemCongrats',
+  'winsCongrats',
+  'projectCongrats',
+  'noSearchResults',
+  'preLimitOverdues',
+  'filterIndicator',
+  'offerToFilter',
+]
 
 /** Font Awesome classes for the Item and Wins congrats messages (`section.FAIconClass`); use the same for `winsCongrats` message rows. */
 export const winsSectionHeaderFAIconClass = 'fa-regular fa-trophy'
