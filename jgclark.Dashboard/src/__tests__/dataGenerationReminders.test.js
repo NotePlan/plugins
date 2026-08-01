@@ -5,15 +5,7 @@ import { CustomConsole } from '@jest/console'
 import moment from 'moment/min/moment-with-locales'
 import { DataStore, Editor, CommandBar, NotePlan, simpleFormatter } from '@mocks/index'
 import { bucketReminderItems, sortReminderSectionItems } from '../reminderBuckets.js'
-import {
-  dedupeReminderListTitles,
-  getEnabledReminderLists,
-  getReminderListsForConfig,
-  mapAppleReminderPriorityToDashboard,
-  mapCalendarItemToReminderForDashboard,
-  mapDashboardPriorityToAppleReminder,
-  parseLeadingPriorityFromReminderText,
-} from '../reminderMapping.js'
+import { getReminderListsForConfig } from '../reminderMapping.js'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
 
 global.DataStore = DataStore
@@ -82,24 +74,6 @@ describe(`${PLUGIN_NAME}`, () => {
       delete global.Calendar
     })
 
-    describe('dedupeReminderListTitles()', () => {
-      test('trims, skips blanks, and preserves first-seen order', () => {
-        expect(dedupeReminderListTitles([' Work ', '', 'Home', 'Work', '  '])).toEqual(['Work', 'Home'])
-      })
-    })
-
-    describe('getEnabledReminderLists()', () => {
-      test('returns only NotePlan-enabled lists with colors', () => {
-        const result = getEnabledReminderLists()
-        expect(result.titles).toEqual(['Reminders', 'Work'])
-        expect(result.colorByTitle).toEqual({
-          Reminders: '#FF3B30',
-          Work: '#007AFF',
-        })
-        expect(global.Calendar.availableReminderLists).toHaveBeenCalledWith({ enabledOnly: true })
-      })
-    })
-
     describe('getReminderListsForConfig()', () => {
       test('blank includedReminderLists falls back to NotePlan-enabled lists', () => {
         const result = getReminderListsForConfig({ includedReminderLists: '' })
@@ -112,7 +86,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result.titles).toEqual(['Reminders', 'Work'])
       })
 
-      test('parses CSV, dedupes, and matches accessible lists including NotePlan-disabled', () => {
+      test('parses CSV and matches accessible lists including NotePlan-disabled', () => {
         const result = getReminderListsForConfig({
           includedReminderLists: 'Home, Work, Home, Shopping',
         })
@@ -122,7 +96,6 @@ describe(`${PLUGIN_NAME}`, () => {
           Work: '#007AFF',
           Shopping: '#AF52DE',
         })
-        // Override path uses all accessible lists (not enabledOnly)
         expect(global.Calendar.availableReminderLists).toHaveBeenCalledWith()
       })
 
@@ -163,7 +136,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     describe('sortReminderSectionItems()', () => {
-      test('sorts by time, then priority desc, then date', () => {
+      test('sorts section items by reminder time, then priority desc, then date', () => {
         const items = [
           makeReminderItem('late-low', { date: '2026-07-20', time: '18:00', priority: 1, title: 'Late low' }),
           makeReminderItem('early-high', { date: '2026-07-22', time: '09:00', priority: 3, title: 'Early high' }),
@@ -178,53 +151,6 @@ describe(`${PLUGIN_NAME}`, () => {
           'untimed-high',
           'untimed-med',
         ])
-      })
-    })
-
-    describe('mapAppleReminderPriorityToDashboard() / mapCalendarItemToReminderForDashboard()', () => {
-      test('maps Apple 0/1/5/9 to Dashboard 0/3/2/1', () => {
-        expect(mapAppleReminderPriorityToDashboard(0)).toBe(0)
-        expect(mapAppleReminderPriorityToDashboard(1)).toBe(3) // high
-        expect(mapAppleReminderPriorityToDashboard(5)).toBe(2) // medium
-        expect(mapAppleReminderPriorityToDashboard(9)).toBe(1) // low
-        expect(mapAppleReminderPriorityToDashboard(undefined)).toBe(0)
-        expect(mapAppleReminderPriorityToDashboard(4)).toBe(0)
-      })
-
-      test('mapDashboardPriorityToAppleReminder is the reverse mapping', () => {
-        expect(mapDashboardPriorityToAppleReminder(0)).toBe(0)
-        expect(mapDashboardPriorityToAppleReminder(3)).toBe(1)
-        expect(mapDashboardPriorityToAppleReminder(2)).toBe(5)
-        expect(mapDashboardPriorityToAppleReminder(1)).toBe(9)
-      })
-
-      test('stores only non-zero Dashboard priority on the reminder', () => {
-        const base = {
-          title: 'T',
-          calendar: 'List',
-          isCompleted: false,
-          isAllDay: true,
-          occurences: [],
-        }
-        expect(mapCalendarItemToReminderForDashboard({ ...base, priority: 1 }).priority).toBe(3)
-        expect(mapCalendarItemToReminderForDashboard({ ...base, priority: 5 }).priority).toBe(2)
-        expect(mapCalendarItemToReminderForDashboard({ ...base, priority: 9 }).priority).toBe(1)
-        expect(mapCalendarItemToReminderForDashboard({ ...base, priority: 0 }).priority).toBeUndefined()
-        expect(mapCalendarItemToReminderForDashboard({ ...base }).priority).toBeUndefined()
-      })
-    })
-
-    describe('parseLeadingPriorityFromReminderText()', () => {
-      test('parses !!! / !! / ! and strips them from the title', () => {
-        expect(parseLeadingPriorityFromReminderText('!!! Urgent call')).toEqual({ title: 'Urgent call', dashboardPriority: 3 })
-        expect(parseLeadingPriorityFromReminderText('!! Follow up')).toEqual({ title: 'Follow up', dashboardPriority: 2 })
-        expect(parseLeadingPriorityFromReminderText('! Buy milk')).toEqual({ title: 'Buy milk', dashboardPriority: 1 })
-      })
-
-      test('leaves text unchanged when there is no leading priority marker', () => {
-        expect(parseLeadingPriorityFromReminderText('Just a reminder')).toEqual({ title: 'Just a reminder', dashboardPriority: 0 })
-        expect(parseLeadingPriorityFromReminderText('Hello !!! world')).toEqual({ title: 'Hello !!! world', dashboardPriority: 0 })
-        expect(parseLeadingPriorityFromReminderText('!!!! not four bangs')).toEqual({ title: '!!!! not four bangs', dashboardPriority: 0 })
       })
     })
   })

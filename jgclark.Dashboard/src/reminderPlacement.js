@@ -6,7 +6,7 @@
 //-----------------------------------------------------------------------------
 
 import { isCurrentRemindersEnabled, isUndatedOverdueRemindersEnabled } from './dashboardHelpers'
-import { filterRemindersWhoseTimeHasBeenReached, sortReminderSectionItems, type TReminderBuckets } from './reminderBuckets'
+import { filterSectionItemsWhoseReminderTimeHasBeenReached, sortReminderSectionItems, type TReminderBuckets } from './reminderBuckets'
 import type { TDashboardSettings, TSectionItem } from './types'
 import { logDebug } from '@helpers/dev'
 
@@ -101,7 +101,7 @@ export function placeReminderBuckets(buckets: TReminderBuckets, config: TDashboa
   const undated = undatedOverdueRemindersEnabled ? buckets.undatedItems : []
 
   // Timed today -> TB only (after optional hide-until-due). No fallback by design.
-  const forTB = hideUntilDue ? filterRemindersWhoseTimeHasBeenReached(timedToday) : timedToday
+  const forTB = hideUntilDue ? filterSectionItemsWhoseReminderTimeHasBeenReached(timedToday) : timedToday
   if (hideUntilDue && timedToday.length > forTB.length) {
     logDebug(
       'placeReminderBuckets',

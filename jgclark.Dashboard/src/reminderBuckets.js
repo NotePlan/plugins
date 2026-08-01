@@ -1,13 +1,19 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Pure reminder date bucketing, sorting, and section-merge helpers
+// Pure reminder date bucketing and section-merge helpers (Dashboard-specific)
+// Shared time/sort helpers live in @helpers/NPReminders
 // Last updated 2026-08-01 for v2.4.0.b60, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import type { TReminderForDashboard, TSectionCode, TSectionItem } from './types'
+import type { TSectionCode, TSectionItem } from './types'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
 import { logDebug } from '@helpers/dev'
+import {
+  compareRemindersByTimePriorityDate,
+  reminderHasTime,
+  reminderTimeHasBeenReached,
+} from '@helpers/NPReminders'
 
 //-----------------------------------------------------------------------------
 // Types
@@ -30,75 +36,21 @@ export type TReminderBuckets = {
 // Helpers
 
 /**
- * Whether a reminder has a non-empty time string.
- * @param {TReminderForDashboard} reminder
- * @returns {boolean}
- */
-export function reminderHasTime(reminder: TReminderForDashboard): boolean {
-  return Boolean(reminder.time && reminder.time.trim() !== '')
-}
-
-/**
- * Whether a timed reminder's due time has been reached (time <= now, same calendar day assumed).
- * @param {TReminderForDashboard} reminder
- * @returns {boolean}
- */
-export function reminderTimeHasBeenReached(reminder: TReminderForDashboard): boolean {
-  if (!reminderHasTime(reminder) || !reminder.time) {
-    return false
-  }
-  const nowTime = moment().format('HH:mm')
-  return reminder.time <= nowTime
-}
-
-/**
- * Keep only reminder items whose due time has already been reached.
+ * Keep only section items whose reminder due time has already been reached.
  * @param {Array<TSectionItem>} reminderItems
  * @returns {Array<TSectionItem>}
  */
-export function filterRemindersWhoseTimeHasBeenReached(reminderItems: Array<TSectionItem>): Array<TSectionItem> {
+export function filterSectionItemsWhoseReminderTimeHasBeenReached(reminderItems: Array<TSectionItem>): Array<TSectionItem> {
   return reminderItems.filter((item) => item.reminder != null && reminderTimeHasBeenReached(item.reminder))
 }
 
 /**
- * Sort reminders: by time (timed before undated), then priority desc, then date, then title.
- * TODO(future): Enable flagged-first sorting if the API is extended to cover flagged status
+ * Sort section items by their reminder: time, then priority desc, then date, then title.
  * @param {Array<TSectionItem>} items
  * @returns {Array<TSectionItem>}
  */
 export function sortReminderSectionItems(items: Array<TSectionItem>): Array<TSectionItem> {
-  return items.slice().sort((a, b) => {
-    const ra = a.reminder
-    const rb = b.reminder
-    if (!ra || !rb) return 0
-
-    // TODO(future): Enable this if the API is extended to cover flagged status
-    // if (ra.flagged !== rb.flagged) {
-    //   return ra.flagged ? -1 : 1
-    // }
-
-    // Timed before undated; earlier times first
-    const timeA = ra.time || '99:99'
-    const timeB = rb.time || '99:99'
-    if (timeA !== timeB) {
-      return timeA < timeB ? -1 : 1
-    }
-
-    // Higher priority first (1 / 2 / 3); missing treated as 0
-    const priorityA = ra.priority ?? 0
-    const priorityB = rb.priority ?? 0
-    if (priorityA !== priorityB) {
-      return priorityB - priorityA
-    }
-
-    const dateA = ra.date || '9999-99-99'
-    const dateB = rb.date || '9999-99-99'
-    if (dateA !== dateB) {
-      return dateA < dateB ? -1 : 1
-    }
-
-    return (ra.title || '').localeCompare(rb.title || '')
-  })
+  return items.slice().sort((a, b) => compareRemindersByTimePriorityDate(a.reminder, b.reminder))
 }
 
 /**

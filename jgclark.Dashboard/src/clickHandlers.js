@@ -30,7 +30,6 @@ import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
 import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } from './perspectiveSettingsOnDashboardSave'
 import { dashboardFolderFilterSettingsChanged } from './reviewsListSync'
-import { mapDashboardPriorityToAppleReminder, parseLeadingPriorityFromReminderText } from './reminderMapping'
 import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TSectionCode } from './types'
 import { getDateObjFromDateString, getDateObjFromDateTimeString, getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
@@ -38,6 +37,7 @@ import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { smartOpenNoteInEditorFromFilename, smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename } from '@helpers/NPParagraph'
+import { mapNotePlanPriorityToAppleReminder, parseLeadingPriorityFromReminderText } from '@helpers/NPReminders'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getWindowFromCustomId, getLiveWindowRectFromWin, rectToString, storeWindowRect } from '@helpers/NPWindows'
@@ -257,11 +257,11 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
       throw new Error('doAddReminder: No Reminder List provided')
     }
 
-    const { title: reminderTitle, dashboardPriority } = parseLeadingPriorityFromReminderText(content)
+    const { title: reminderTitle, notePlanPriority } = parseLeadingPriorityFromReminderText(content)
     if (!reminderTitle || reminderTitle.trim() === '') {
       throw new Error('doAddReminder: No reminder text provided after removing priority markers')
     }
-    const applePriority = dashboardPriority > 0 ? mapDashboardPriorityToAppleReminder(dashboardPriority) : null
+    const applePriority = notePlanPriority > 0 ? mapNotePlanPriorityToAppleReminder(notePlanPriority) : null
 
     // Normalise optional date from calendarpicker (YYYY-MM-DD string, Date, or empty/null)
     let trimmedDate = ''
@@ -278,7 +278,7 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
 
     logDebug(
       'doAddReminder',
-      `- adding reminder "${reminderTitle}" to list "${listTrimmed}" date=${trimmedDate || '(undated)'} time=${trimmedTime || '(none)'} wantUndated=${String(wantUndated)} dashboardPriority=${String(dashboardPriority)} applePriority=${String(applePriority ?? '(unset)')}`,
+      `- adding reminder "${reminderTitle}" to list "${listTrimmed}" date=${trimmedDate || '(undated)'} time=${trimmedTime || '(none)'} wantUndated=${String(wantUndated)} notePlanPriority=${String(notePlanPriority)} applePriority=${String(applePriority ?? '(unset)')}`,
     )
 
     let created: ?TCalendarItem = null

@@ -6,6 +6,7 @@
 
 // Types for Settings
 
+import type { TReminder } from '@helpers/NPReminders'
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 export type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 
@@ -255,20 +256,8 @@ export type TParagraphForDashboard = {
   linkedNoteIcons?: { [string]: TLinkedNoteIconInfo },
 }
 
-// a reminder item within a section, from v2.5.0
-export type TReminderForDashboard = {
-  id?: string, // CalendarItem id for future complete/update actions
-  title: string, // the title of the reminder
-  notes?: string, // optional notes on the reminder
-  listname: string, // the list the reminder is in
-  color?: string, // optional list color as hex (from Calendar.availableReminderLists)
-  // TODO(future): Enable this if the API is extended to cover flagged status
-  flagged: boolean, // whether the reminder is flagged (always false until API supports it)
-  priority?: number, // Dashboard 0/omit = none; 1 / 2 / 3 = low / medium / high (from Apple 0 / 9 / 5 / 1)
-  date?: string, // optional local calendar date YYYY-MM-DD (converted from API Zulu/UTC)
-  time?: string, // optional local HH:MM in 24-hour format (converted from API Zulu/UTC)
-  location?: string, // optional location
-}
+// a reminder item within a section (alias of shared TReminder from @helpers/NPReminders)
+export type TReminderForDashboard = TReminder
 
 //-----------------------------------------------------------
 

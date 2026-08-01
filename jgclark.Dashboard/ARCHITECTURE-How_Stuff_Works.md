@@ -252,7 +252,7 @@ Implementation notes:
 - When both DY and OVERDUE are on, the flat yesterday list is passed into overdue generation for content dedupe. React **Hide Duplicates** (priority order puts `DY` before `OVERDUE`) remains the display safety net.
 - `scheduleAllOverdueOpenToToday` still calls `getRelevantOverdueTasks(config, [])` so yesterday-dated overdue tasks are not excluded from bulk schedule.
 
-When `TCalendarItem.priority` is present (Apple: 0 = none, 1 = high, 5 = medium, 9 = low), `mapAppleReminderPriorityToDashboard()` stores Dashboard 0 / 3 / 2 / 1 on `TReminderForDashboard.priority` and the UI uses theme classes `.priority1`–`.priority3` (same as tasks). Reminder lists sort by time, then priority desc, then date. Hide lower-priority items uses `reminder.priority` as well as `para.priority`.
+When `TCalendarItem.priority` is present (Apple: 0 = none, 1 = high, 5 = medium, 9 = low), `mapAppleReminderPriorityToNotePlan()` (in `@helpers/NPReminders`) stores NotePlan-style 0 / 3 / 2 / 1 on `TReminderForDashboard.priority` and the UI uses theme classes `.priority1`–`.priority3` (same as tasks). Reminder lists sort by time, then priority desc, then date. Hide lower-priority items uses `reminder.priority` as well as `para.priority`.
 
 v1 UI: status icon click completes the reminder (`completeReminder` → `Calendar.update` with `isCompleted = true`); ctrl-click deletes it (`deleteReminder` → `Calendar.remove`). Both then `REMOVE_LINE_FROM_JSON` matched by stable `reminder.id` (REM row IDs are index-based, so a mid-list section-only refresh reused StatusIcon local state and left text-without-icon rows). Edit dialog still TODO.
 

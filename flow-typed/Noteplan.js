@@ -1846,7 +1846,7 @@ declare interface TCalendarItem {
    * Priority for reminders.
    * Values: 0 = none, 1 = high, 5 = medium, 9 = low.
    * Can be set via optional 11th argument in CalendarItem.create() or Calendar.update().
-   * Note: map these to NotePlan-style 0 / 1 / 2 / 3 via mapAppleReminderPriorityToDashboard().
+   * Note: map these to NotePlan-style 0 / 1 / 2 / 3 via mapAppleReminderPriorityToNotePlan() in @helpers/NPReminders.
    * Available from v3.21.2
    */
   priority?: number;
