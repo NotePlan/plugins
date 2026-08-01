@@ -4,6 +4,7 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { moveParagraphToNote } from '@helpers/NPMoveItems'
 import { getOverdueParagraphs } from '@helpers/NPParagraph'
+import { scheduleItem, scheduleItemLiteMethod } from '@helpers/NPScheduleItems'
 import { getNPWeekData, getWeekOptions } from '@helpers/NPdateTime'
 import { filterNotesAgainstExcludeFolders, noteType } from '@helpers/note'
 import { getReferencedParagraphs, getTodaysReferences } from '@helpers/NPnote'
@@ -320,15 +321,30 @@ export async function handleOpenTaskAction(origPara: TParagraph): Promise<number
 // change the date to the user's choice of >date
 export async function handleArrowDatesAction(origPara: TParagraph, userChoice: string, optionChosen?: CommandBarChoice): Promise<number> {
   const cmdPressed = optionChosen ? optionChosen.keyModifiers?.length && optionChosen.keyModifiers.includes('cmd') : false
-  origPara.content = replaceArrowDatesInString(origPara.content, cmdPressed ? '' : userChoice)
-  // Mark the task as scheduled (change type from open/checklist to scheduled)
-  if (origPara.type === 'open') origPara.type = 'scheduled'
-  if (origPara.type === 'checklist') origPara.type = 'checklistScheduled'
-  updateParagraph(origPara) // Note: after origPara is updated, the pointer is no longer good in Obj-C
   if (cmdPressed) {
+    // CMD means "move this task to that note", so strip the >date here and let processCmdKey() do the move
+    origPara.content = replaceArrowDatesInString(origPara.content, '')
+    updateParagraph(origPara) // Note: after origPara is updated, the pointer is no longer good in Obj-C
     logDebug(pluginJson, `handleArrowDatesAction: keyModifiers: ${optionChosen ? optionChosen.keyModifiers.toString() : ''}`)
     const updatedPara = origPara.note?.paragraphs[origPara.lineIndex] || origPara // get the updated paragraph
     await processCmdKey(updatedPara, userChoice)
+    return CONTINUE
+  }
+
+  // Two ways to (re)schedule, matching jgclark.Dashboard::doRescheduleItem():
+  // - 'lite': just update the >date in place, leaving the type as open/checklist so the item still shows on the new date.
+  // - NotePlan's full method: mark the original 'scheduled'/'checklistScheduled' ([>]) *and* add a copy in the destination
+  //   calendar note that back-links to the original date ('<origDate'). Without that copy the item would simply disappear.
+  // Note: the full method only makes sense for items in calendar notes; items in regular notes are always done 'lite'
+  // (which is also what NotePlan's "Schedule by linking in regular notes" preference does).
+  const { useLiteScheduleMethod, newTaskSectionHeading, newTaskSectionHeadingLevel } = DataStore.settings
+  const dateStrToAdd = userChoice.replace(/^>/, '')
+  const useLite = origPara.note?.type === 'Notes' || useLiteScheduleMethod
+  logDebug(pluginJson, `handleArrowDatesAction: scheduling to '${dateStrToAdd}' using ${useLite ? 'lite' : 'NP full'} method`)
+  if (useLite) {
+    scheduleItemLiteMethod(origPara, dateStrToAdd)
+  } else {
+    scheduleItem(origPara, dateStrToAdd, newTaskSectionHeading ?? '', Number(newTaskSectionHeadingLevel ?? 2))
   }
   return CONTINUE
 }
