@@ -68,6 +68,35 @@ You can specify scheduled dates to all the other calendar note types supported b
 
 The resulting repeat lines will also be specified using that same note type, and will write to the appropriate new calendar note (unless it came from a project note, in which case it will stay in the same project note).
 
+## Specifying a Concrete Base Date
+As well as an interval, `@repeat(...)` can also take a **concrete base date** to repeat from: `@repeat(interval, <date>)`. When present, the next repeat is calculated from that fixed date, rather than from the task's scheduled date or completion date. After each completion (or cancellation) the date is automatically advanced by the interval, so it keeps in step for future cycles.
+
+`<date>` can be given in any of NotePlan's calendar-note date formats, and works the same whether the task is in a project note or a calendar note:
+- day: `YYYY-MM-DD`
+- week: `YYYY-Wnn`
+- month: `YYYY-MM`
+- quarter: `YYYY-Qn`
+- year: `YYYY`
+
+For example, the next repeat is always calculated from the base date — not the completion date, and not the scheduled `>date` either, even if the task had been rescheduled away from its base date:
+```
+* project reporting @repeat(1m, 2026-05-13) >2026-05-17
+(completed on 2026-05-20)
+* project reporting @repeat(1m, 2026-06-13) >2026-06-13
+```
+```
+* do expenses @repeat(1m, 2026-05-12)
+(completed on 2026-05-20)
+* do expenses @repeat(1m, 2026-06-12) >2026-06-12
+```
+```
+* review backlog @repeat(1w, 2026-W19)
+(completed on 2026-05-20)
+* review backlog @repeat(1w, 2026-W20) >2026-W20
+```
+
+If the interval has a `+` prefix (e.g. `@repeat(+1m, 2026-05-12)`), the `+` takes precedence as usual: the next repeat is scheduled from the completion/cancellation date, and the concrete date is ignored for scheduling (though it's still advanced in the new task). 
+
 ## Configuration
 For Repeat Extensions plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**, and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed.
 

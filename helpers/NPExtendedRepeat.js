@@ -46,9 +46,9 @@ const LOG_CONTEXT = 'extendedRepeat'
 // Regexes + config type + settings + date math
 
 // A concrete @repeat(...) base date can be given in any NP calendar-note date-spec: day, week, month, quarter or year
-const RE_CONCRETE_REPEAT_DATE: string = `(?:${RE_ISO_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`
-const RE_CONCRETE_REPEAT_DATE_FULL: RegExp = new RegExp(`^${RE_CONCRETE_REPEAT_DATE}$`) // validate a standalone date-spec string
-const EXTENDED_REPEAT_STR: string = `@repeat\\(${RE_DATE_INTERVAL}(?:,\\s*${RE_CONCRETE_REPEAT_DATE})?\\)` // find @repeat()
+const CONCRETE_REPEAT_DATE_STR: string = `(?:${RE_ISO_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`
+const RE_CONCRETE_REPEAT_DATE_FULL: RegExp = new RegExp(`^${CONCRETE_REPEAT_DATE_STR}$`) // validate a standalone date-spec string
+const EXTENDED_REPEAT_STR: string = `@repeat\\(${RE_DATE_INTERVAL}(?:,\\s*${CONCRETE_REPEAT_DATE_STR})?\\)` // find @repeat()
 export const RE_EXTENDED_REPEAT: RegExp = new RegExp(EXTENDED_REPEAT_STR) // find @repeat()
 const EXTENDED_REPEAT_CAPTURE_STR: string = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
 export const RE_EXTENDED_REPEAT_CAPTURE: RegExp = new RegExp(EXTENDED_REPEAT_CAPTURE_STR) // find @repeat() and return part inside brackets
