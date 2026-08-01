@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2026-07-31 for v2.4.0.b58, @jgclark + @CursorAI
+// Last updated 2026-08-01 for v2.4.0.b60, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -18,15 +18,25 @@ import { removeDuplicates } from '@helpers/utils'
 // ----------------------------------------------------------
 /**
  * Generate data for a section for Overdue tasks (and optionally overdue/past reminders).
- * Note: Could try to send yesterday items to getRelevantOverdueTasks() somehow
+ *
+ * Yesterday task routing is owned by the orchestrator (`getSomeSectionsData`):
+ * - When Yesterday is off, it passes open yesterday calendar/ref tasks as `yesterdaySpillDashboardParas`
+ *   (those undated open items are not returned by DataStore.listOverdueTasks).
+ * - When Yesterday is on, it passes the same flat list as `yesterdaysParasForDedupe` so this section
+ *   drops content that already appears in DY. React Hide Duplicates (DY before OVERDUE) remains a display safety net.
+ *
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {Array<TSectionItem>} overdueReminderItems? - past-dated (and yesterday-fallback) reminders to append
+ * @param {Array<TParagraphForDashboard>} yesterdaySpillDashboardParas? - DY-off spill of yesterday open tasks
+ * @param {Array<{ content: string }>} yesterdaysParasForDedupe? - DY-on list used to strip DY duplicates from overdue
  */
 export async function getOverdueSectionData(
   config: TDashboardSettings,
   useDemoData: boolean = false,
   overdueReminderItems: Array<TSectionItem> = [],
+  yesterdaySpillDashboardParas: Array<TParagraphForDashboard> = [],
+  yesterdaysParasForDedupe: Array<{ content: string }> = [],
 ): Promise<TSection> {
   try {
     const thisSectionCode = 'OVERDUE'
@@ -67,31 +77,50 @@ export async function getOverdueSectionData(
         })
       }
 
-      // Then add the 'yesterday' items
-      const yesterdayItems = openYesterdayParas.concat(refYesterdayParas)
-      yesterdayItems.forEach((item) => {
-        const thisExtendedPara = {
-          ...item.para,
-          note: {
-            filename: item.para?.filename ?? 'test_filename.md',
-            title: item.para?.title ?? undefined,
-            type: item.para?.noteType ?? 'Notes',
-            changedDate: item.para?.changedDate ?? new Date('2023-07-06T00:00:00.000Z'),
-            isTeamspace: false,
-          },
-        }
-        overdueParas.push(thisExtendedPara)
-      })
+      // Demo spill: only add yesterday demo items when Yesterday section would be off (mirrors live routing)
+      if (!config.showYesterdaySection) {
+        const yesterdayItems = openYesterdayParas.concat(refYesterdayParas)
+        yesterdayItems.forEach((item) => {
+          const thisExtendedPara = {
+            ...item.para,
+            note: {
+              filename: item.para?.filename ?? 'test_filename.md',
+              title: item.para?.title ?? undefined,
+              type: item.para?.noteType ?? 'Notes',
+              changedDate: item.para?.changedDate ?? new Date('2023-07-06T00:00:00.000Z'),
+              isTeamspace: false,
+            },
+          }
+          overdueParas.push(thisExtendedPara)
+        })
+        clo(yesterdayItems, 'yesterdaySpillDemoItems')
+      }
       preLimitCount = overdueParas.length
-      clo(yesterdayItems, 'yesterdayItems')
+      dashboardParas = overdueParas
     } else {
       // Get overdue tasks (de-duping any sync'd lines)
       // Note: Cannot move the reduce into here otherwise separate call to this function by scheduleAllOverdueOpenToToday() doesn't have all it needs to work
-      // TODO: Send Yesterday items to getRelevantOverdueTasks() somehow
-      const { filteredOverdueParas, preLimitOverdueCount } = await getRelevantOverdueTasks(config, [])
+      const { filteredOverdueParas, preLimitOverdueCount } = await getRelevantOverdueTasks(config, yesterdaysParasForDedupe)
       overdueParas = filteredOverdueParas
       preLimitCount = preLimitOverdueCount
       logDebug('getOverdueSectionData', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
+
+      // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
+      // Note: this takes ~600ms for 1,000 items
+      dashboardParas = makeDashboardParas(overdueParas)
+
+      // Merge DY-off spill of yesterday open tasks (calendar + refs). listOverdueTasks does not return
+      // undated open items sitting in yesterday's note, so without this they would vanish when DY is off.
+      if (yesterdaySpillDashboardParas.length > 0) {
+        const beforeMerge = dashboardParas.length
+        // $FlowFixMe[incompatible-call]
+        dashboardParas = removeDuplicates(dashboardParas.concat(yesterdaySpillDashboardParas), ['filename', 'content'])
+        logDebug(
+          'getOverdueSectionData',
+          `- merged ${String(yesterdaySpillDashboardParas.length)} yesterday-spill task(s); ${String(beforeMerge)} -> ${String(dashboardParas.length)} after filename+content dedupe`,
+        )
+      }
+      logDebug('getOverdueSectionData', `- after reducing/merging paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
     }
 
     const items: Array<TSectionItem> = []
@@ -103,13 +132,7 @@ export async function getOverdueSectionData(
     const reminderSlotsToReserve = Math.min(overdueReminderItems.length, sectionLimit)
     const taskSlots = Math.max(0, sectionLimit - reminderSlotsToReserve)
 
-    if (overdueParas.length > 0) {
-      // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
-      // Note: this takes ~600ms for 1,000 items
-      // clo(overdueParas, 'getOverdueSectionData / overdueParas:')
-      dashboardParas = makeDashboardParas(overdueParas)
-      logDebug('getOverdueSectionData', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
-
+    if (dashboardParas.length > 0) {
       totalOverdue = dashboardParas.length
 
       // Sort all overdue paragraphs by one of several options
@@ -170,10 +193,11 @@ export async function getOverdueSectionData(
     if (config.lookBackDaysForOverdue > 0) {
       sectionDescription += ` from last ${String(config.lookBackDaysForOverdue)} days`
     }
-    if (overdueParas.length > 0) sectionDescription += ` ordered by ${config.overdueSortOrder}`
+    if (dashboardParas.length > 0) sectionDescription += ` ordered by ${config.overdueSortOrder}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(thisStartTime)}]`
 
     // If we have more than the limit, then we need to show the total count as an extra information message
+    // (lookBackDays filter only applies to listOverdueTasks results, not yesterday spill)
     if (preLimitCount > overdueParas.length) {
       items.push({
         ID: `${thisSectionCode}-${String(overdueParas.length)}`,
@@ -227,13 +251,14 @@ export async function getOverdueSectionData(
  * The results are deduped.
  * The number of items returned is not limited.
  * If we are showing the Yesterday section, and we have some yesterdaysParas passed, then don't return any ones matching this list.
+ * Note: scheduleAllOverdueOpenToToday intentionally passes [] so yesterday-dated overdue tasks are still moved.
  * @param {TDashboardSettings} dashboardSettings
- * @param {Array<TParagraph>} yesterdaysParas
+ * @param {Array<{ content: string }>} yesterdaysParas - items already shown in DY (content match); empty skips this filter
  * @returns {{ filteredOverdueParas: Array<TParagraph>, preLimitOverdueCount: number }}
  */
 export async function getRelevantOverdueTasks(
   dashboardSettings: TDashboardSettings,
-  yesterdaysParas: Array<TParagraph>
+  yesterdaysParas: Array<{ content: string }>
 ): Promise<{
   filteredOverdueParas: Array<TParagraph>, preLimitOverdueCount: number
 }> {
@@ -280,23 +305,21 @@ export async function getRelevantOverdueTasks(
       logTimer('getRelevantOverdueTasks', thisStartTime, `After limiting, ${filteredOverdueParas.length} overdue items`)
     }
 
-    // Remove items already in Yesterday section (if turned on)
-    if (dashboardSettings.showYesterdaySection) {
-      if (yesterdaysParas.length > 0) {
-        // Filter out all items in array filteredOverdueParas that also appear in array yesterdaysParas
-        // V1: Cursor says this includes an array mutation bug, because of the slice()
-        // filteredOverdueParas.map((p) => {
-        //   if (yesterdaysParas.filter((y) => y.content === p.content).length > 0) {
-        //     logDebug('getRelevantOverdueTasks', `- removing duplicate item {${p.content}} from overdue list`)
-        //     filteredOverdueParas.splice(filteredOverdueParas.indexOf(p), 1)
-        //   }
-        // })
-        // V2
-        // $FlowIgnore[incompatible-call] - Flow has trouble inferring filter predicate type
-        filteredOverdueParas = filteredOverdueParas.filter((p): boolean =>
-          !yesterdaysParas.some((y) => y.content === p.content)
-        )
-      }
+    // Remove items already in Yesterday section (if turned on and paras were supplied by the orchestrator)
+    if (dashboardSettings.showYesterdaySection && yesterdaysParas.length > 0) {
+      // Filter out all items in array filteredOverdueParas that also appear in array yesterdaysParas
+      // V1: Cursor says this includes an array mutation bug, because of the slice()
+      // filteredOverdueParas.map((p) => {
+      //   if (yesterdaysParas.filter((y) => y.content === p.content).length > 0) {
+      //     logDebug('getRelevantOverdueTasks', `- removing duplicate item {${p.content}} from overdue list`)
+      //     filteredOverdueParas.splice(filteredOverdueParas.indexOf(p), 1)
+      //   }
+      // })
+      // V2
+      // $FlowIgnore[incompatible-call] - Flow has trouble inferring filter predicate type
+      filteredOverdueParas = filteredOverdueParas.filter((p): boolean =>
+        !yesterdaysParas.some((y) => y.content === p.content)
+      )
     }
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping with yesterday -> ${filteredOverdueParas.length}`)
 

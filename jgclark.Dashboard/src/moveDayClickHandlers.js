@@ -500,7 +500,9 @@ export async function scheduleAllOverdueOpenToToday(
     // Note: we need full TParagraphs, not ReducedParagraphs
     // $FlowIgnore[prop-missing]
     // eslint-disable-next-line no-unused-vars
-    const { filteredOverdueParas, preLimitOverdueCount } = await getRelevantOverdueTasks(config, []) // Note: does not include open checklist items. Note: turned off dedupe with yesterday's items
+    // Pass [] for yesterdaysParas on purpose: schedule-all should still move yesterday-dated overdue tasks.
+    // (Section generation does pass DY paras for display dedupe when Yesterday is on.)
+    const { filteredOverdueParas, preLimitOverdueCount } = await getRelevantOverdueTasks(config, []) // Note: does not include open checklist items
     const overdueParas = filteredOverdueParas
     const initialTotalOverdue = filteredOverdueParas.length
     if (initialTotalOverdue === 0) {
@@ -508,7 +510,7 @@ export async function scheduleAllOverdueOpenToToday(
       return { success: false }
     }
 
-    // TODO: Apply the filtering here as well
+    // TODO: Do we need to Apply the filtering here as well?
 
 
     // Remove child items from the list of paras

@@ -175,6 +175,8 @@ Open reminders are split across the Dashboard rather than shown in a single list
 | Undated | **Reminders** section |
 | Dated after tomorrow | not shown |
 
+The same Yesterday → Overdue spill applies to **open tasks** in yesterday's daily note (and items scheduled to yesterday): when the Yesterday section is hidden, those tasks appear in Overdue alongside dated overdue tasks and any spilled yesterday reminders.
+
 Priority from Apple Reminders (none / low / medium / high) is mapped to Dashboard levels matching task `!` / `!!` / `!!!` styling. They also participate in **Hide lower-priority items?** Filtering, and reminder lists sort by time, then priority, then date.
 
 The following Actions are possible, all of which are reflected in Apple Reminders too:
@@ -230,6 +232,8 @@ The 'Start Reviews' button does the same as the button of the same name in the P
 
 ### Overdue section
 This finds open items with a schedule date (e.g. `>2025-01-22`) in the past. This can generate a lot of tasks, and take a while, so there's a setting "Number of days to look back for Overdue tasks", which if set to any number > 0, will filter by due date (if set) or on date of a calendar note.
+
+If the **Yesterday** section is turned off, Overdue also includes open tasks from yesterday's note and items scheduled to yesterday (the same spill pattern used for yesterday reminders).
 
 You can set the "Sort order for Tag/Mention and Overdue items": 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.
 

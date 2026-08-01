@@ -1,11 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-07-31 for v2.4.0.b58 by @jgclark + @CursorAI
+// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import type { TDashboardSettings, TSectionCode, TSection } from './types'
+import type { TDashboardSettings, TParagraphForDashboard, TSectionCode, TSection } from './types'
 import { allSectionCodes } from './constants.js'
 import {
   getDashboardSettings,
@@ -14,7 +14,14 @@ import {
   isUndatedOverdueRemindersEnabled,
   isTBSectionEnabled,
 } from './dashboardHelpers'
-import { getTodaySectionData, getTimeBlockSectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
+import {
+  flattenYesterdayOpenItemParas,
+  getTodaySectionData,
+  getTimeBlockSectionData,
+  getTomorrowSectionData,
+  getYesterdayOpenItemParas,
+  getYesterdaySectionData,
+} from './dataGenerationDays'
 import { getOverdueSectionData } from './dataGenerationOverdue'
 import { getThisMonthSectionData, getThisQuarterSectionData, getThisYearSectionData } from './dataGenerationPeriods'
 import { getPrioritySectionData } from './dataGenerationPriority'
@@ -112,6 +119,20 @@ export async function getSomeSectionsData(
       remindersData = await getRemindersGeneratedData(config, useDemoData)
     }
 
+    // -------------------------------------------------------------------------
+    // Yesterday / Overdue routing (orchestrator owns placement for tasks + reminders)
+    //
+    // Reminders:
+    //   DY on  -> Yesterday section
+    //   DY off -> Overdue (if Undated/Overdue Reminders on), else REM fallback
+    // Tasks:
+    //   DY on  -> Yesterday section; when OVERDUE also on, same paras used to dedupe overdue
+    //   DY off -> spill open yesterday calendar/ref tasks into Overdue
+    //            (listOverdueTasks does not return undated opens sitting in yesterday's note)
+    // -------------------------------------------------------------------------
+    const wantDY = sectionCodesToGet.includes('DY') && Boolean(config.showYesterdaySection)
+    const wantOD = sectionCodesToGet.includes('OVERDUE') && Boolean(config.showOverdueSection)
+
     // Yesterday reminders go to DY when Yesterday is on; otherwise spill into Overdue (if undated/overdue toggle allows)
     const yesterdayForDaySection = currentRemindersEnabled && config.showYesterdaySection ? remindersData.yesterdayItems : []
     const yesterdaySpillToOverdue =
@@ -119,6 +140,24 @@ export async function getSomeSectionsData(
     const overdueReminderItems = undatedOverdueRemindersEnabled
       ? remindersData.overdueItems.concat(yesterdaySpillToOverdue)
       : []
+
+    // Shared yesterday task fetch when either DY or OVERDUE needs those paras (skip demo: generators use demoData)
+    let yesterdayOpenAndRef: ?[Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] = null
+    if (!useDemoData && (wantDY || wantOD)) {
+      yesterdayOpenAndRef = getYesterdayOpenItemParas(config, useEditorWherePossible)
+    }
+    const yesterdayFlatTasks: Array<TParagraphForDashboard> = yesterdayOpenAndRef
+      ? flattenYesterdayOpenItemParas(yesterdayOpenAndRef[0], yesterdayOpenAndRef[1])
+      : []
+    // DY off + OVERDUE on -> spill yesterday open tasks into Overdue
+    const yesterdaySpillTaskParas: Array<TParagraphForDashboard> =
+      !config.showYesterdaySection && wantOD ? yesterdayFlatTasks : []
+    // DY on + OVERDUE on -> strip DY content from overdue (React Hide Duplicates is the display safety net)
+    const yesterdayParasForOverdueDedupe: Array<TParagraphForDashboard> =
+      config.showYesterdaySection && wantOD ? yesterdayFlatTasks : []
+    if (yesterdaySpillTaskParas.length > 0) {
+      logDebug('getSomeSectionsData', `- DY off: spilling ${String(yesterdaySpillTaskParas.length)} yesterday open task(s) into OVERDUE`)
+    }
 
     // A reminder only reaches the UI if some section hosts it.
     // Yesterday and overdue reminders now fall back to the REM ("Undated/Overdue Reminders") section when
@@ -167,8 +206,9 @@ export async function getSomeSectionsData(
     if (wantRemSection && remindersData.remindersSection) {
       sections.push(remindersData.remindersSection)
     }
-    if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) {
-      sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible, yesterdayForDaySection))
+    if (wantDY) {
+      // Pass shared prefetch so we do not scan yesterday's note twice when OVERDUE also needs it
+      sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible, yesterdayForDaySection, yesterdayOpenAndRef))
     }
     if (sectionCodesToGet.includes('DO') && config.showTomorrowSection) {
       sections.push(
@@ -216,8 +256,16 @@ export async function getSomeSectionsData(
         }
       }
     }
-    if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) {
-      sections.push(await getOverdueSectionData(config, useDemoData, overdueReminderItems))
+    if (wantOD) {
+      sections.push(
+        await getOverdueSectionData(
+          config,
+          useDemoData,
+          overdueReminderItems,
+          yesterdaySpillTaskParas,
+          yesterdayParasForOverdueDedupe,
+        ),
+      )
     }
     if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
 

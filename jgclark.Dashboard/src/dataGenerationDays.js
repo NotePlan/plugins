@@ -379,6 +379,38 @@ export function getTimeBlockSectionData(
 }
 
 /**
+ * Fetch open items from yesterday's daily note and items scheduled to yesterday.
+ * Shared by the orchestrator (`getSomeSectionsData`) so DY and OVERDUE can share one fetch and route consistently:
+ * - DY on -> Yesterday section
+ * - DY off + OVERDUE on -> spill into Overdue (open calendar items are not in listOverdueTasks)
+ * - DY on + OVERDUE on -> pass flat list to overdue generator for content dedupe
+ * @param {TDashboardSettings} config
+ * @param {boolean} useEditorWherePossible?
+ * @returns {[Array<TParagraphForDashboard>, Array<TParagraphForDashboard>]} calendar (or combined) paras, referenced paras
+ */
+export function getYesterdayOpenItemParas(
+  config: TDashboardSettings,
+  useEditorWherePossible: boolean = false,
+): [Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] {
+  const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
+  return getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible)
+}
+
+/**
+ * Flatten yesterday calendar + referenced paras into one list for OVERDUE spill / dedupe.
+ * When separateSectionForReferencedNotes is off, sortedRefParas is already empty (combined into first array).
+ * @param {Array<TParagraphForDashboard>} sortedOrCombinedParas
+ * @param {Array<TParagraphForDashboard>} sortedRefParas
+ * @returns {Array<TParagraphForDashboard>}
+ */
+export function flattenYesterdayOpenItemParas(
+  sortedOrCombinedParas: Array<TParagraphForDashboard>,
+  sortedRefParas: Array<TParagraphForDashboard>,
+): Array<TParagraphForDashboard> {
+  return sortedOrCombinedParas.concat(sortedRefParas)
+}
+
+/**
  * Get open items from Yesterday's note, and scheduled to Yesterday from other notes.
  * Includes relevant Teamspace calendar notes.
  * Dated reminders from the Reminders yesterday bucket are added into the referenced dataset.
@@ -386,6 +418,7 @@ export function getTimeBlockSectionData(
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @param {Array<TSectionItem>} referencedReminderItems? - yesterday's reminders (starting point for referenced items)
+ * @param {?[Array<TParagraphForDashboard>, Array<TParagraphForDashboard>]} prefetchedOpenAndRefParas? - from orchestrator shared fetch; skips a second getOpenItemParasForTimePeriod
  * @returns {Array<TSection>} 1 or 2 section(s)
  */
 export function getYesterdaySectionData(
@@ -393,6 +426,7 @@ export function getYesterdaySectionData(
   useDemoData: boolean = false,
   useEditorWherePossible: boolean,
   referencedReminderItems: Array<TSectionItem> = [],
+  prefetchedOpenAndRefParas: ?[Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] = null,
 ): Array<TSection> {
   try {
     let itemCount = 0
@@ -425,8 +459,12 @@ export function getYesterdaySectionData(
       })
       itemCount = items.length
     } else {
-      // Get list of open tasks/checklists from yesterday's daily note (if it exists)
-      if (yesterdaysNote) {
+      // Prefer orchestrator-prefetched paras (shared with OVERDUE spill/dedupe) to avoid a second vault scan
+      if (prefetchedOpenAndRefParas) {
+        ;[sortedOrCombinedParas, sortedRefParas] = prefetchedOpenAndRefParas
+        items = createSectionItemsFromParas(sortedOrCombinedParas, thisSectionCode)
+        itemCount += items.length
+      } else if (yesterdaysNote) {
         // Get list of open tasks/checklists from this calendar note
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod(filenameDateStr, 'day', config, useEditorWherePossible)
 
