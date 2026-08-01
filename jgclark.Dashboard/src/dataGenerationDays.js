@@ -21,7 +21,7 @@ import {
   makeDashboardParas,
 } from './dashboardHelpers'
 import { openTodayItems, refTodayItems, openTomorrowParas, refTomorrowParas, openYesterdayParas, refYesterdayParas } from './demoData'
-import { assignReminderItemsToSection, filterRemindersWhoseTimeHasBeenReached } from './dataGenerationReminders'
+import { assignReminderItemsToSection } from './reminderBuckets'
 import { getTodaysDateUnhyphenated } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
@@ -320,27 +320,13 @@ export function getTimeBlockSectionData(
     const noteTimeBlockCount = timeBlockItems.length
     let dueNowReminderCount = 0
 
-    // Append today's timed reminders (when Current Reminders / master Show Reminders is enabled).
-    // When hideTimedRemindersUntilDue is on (default), a timed reminder due later today is shown
-    // NOWHERE until its time arrives. It is excluded here, and the Today section only ever receives
-    // *untimed* today reminders, so there is no other section that could pick it up -- this is
-    // deliberate, not an oversight, and it is why the REM fallback in dataGenerationReminders.js
-    // skips this bucket while catching the others.
-    // When hideTimedRemindersUntilDue is off, all timed-today reminders appear in TB immediately.
+    // Append today's timed reminders already filtered/placed by reminderPlacement.js (hide-until-due applied there).
     if (remindersSectionEnabled && timedTodayReminderItems.length > 0) {
-      const hideUntilDue = config.hideTimedRemindersUntilDue !== false
-      const remindersForTB = hideUntilDue ? filterRemindersWhoseTimeHasBeenReached(timedTodayReminderItems) : timedTodayReminderItems
-      const skippedFutureCount = timedTodayReminderItems.length - remindersForTB.length
-      if (skippedFutureCount > 0) {
-        logDebug('getTimeBlockSectionData', `- skipped ${String(skippedFutureCount)} timed reminder(s) whose time has not been reached yet (hideTimedRemindersUntilDue)`)
-      }
-      if (remindersForTB.length > 0) {
-        dueNowReminderCount = remindersForTB.length
-        const assigned = assignReminderItemsToSection(remindersForTB, TBsectionCode, TBsectionCode, itemCounter)
-        timeBlockItems = timeBlockItems.concat(assigned)
-        itemCounter += assigned.length
-        logDebug('getTimeBlockSectionData', `- added ${String(assigned.length)} timed reminder(s) into TB`)
-      }
+      dueNowReminderCount = timedTodayReminderItems.length
+      const assigned = assignReminderItemsToSection(timedTodayReminderItems, TBsectionCode, TBsectionCode, itemCounter)
+      timeBlockItems = timeBlockItems.concat(assigned)
+      itemCounter += assigned.length
+      logDebug('getTimeBlockSectionData', `- added ${String(assigned.length)} timed reminder(s) into TB`)
     }
 
     // Set Title: 

@@ -1,11 +1,11 @@
 /* globals describe, expect, test, jest, beforeEach, afterEach */
-// Last updated 2026-07-29 for v2.4.0.b57 by @CursorAI
+// Last updated 2026-08-01 for v2.4.0.b60 by @CursorAI
 
 import { CustomConsole } from '@jest/console'
 import moment from 'moment/min/moment-with-locales'
 import { DataStore, Editor, CommandBar, NotePlan, simpleFormatter } from '@mocks/index'
+import { bucketReminderItems, sortReminderSectionItems } from '../reminderBuckets.js'
 import {
-  bucketReminderItems,
   dedupeReminderListTitles,
   getEnabledReminderLists,
   getReminderListsForConfig,
@@ -13,8 +13,7 @@ import {
   mapCalendarItemToReminderForDashboard,
   mapDashboardPriorityToAppleReminder,
   parseLeadingPriorityFromReminderText,
-  sortReminderSectionItems,
-} from '../dataGenerationReminders.js'
+} from '../reminderMapping.js'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
 
 global.DataStore = DataStore

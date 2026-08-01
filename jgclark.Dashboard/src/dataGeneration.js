@@ -30,6 +30,7 @@ import { getRemindersGeneratedData, type TRemindersGeneratedData } from './dataG
 import { getSavedSearchResults } from './dataGenerationSearch'
 import { getTaggedSectionData } from './dataGenerationTags'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
+import type { TReminderPlacement } from './reminderPlacement'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
 import { logDebug, logError, logWarn } from '@helpers/dev'
@@ -96,6 +97,7 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('INFO')) sections.push(...(await getInfoSectionData(config, useDemoData)))
 
     // Generate Reminders first when needed for day/TB/OVERDUE injection and/or the REM section itself.
+    // Reminder date bucketing + section placement lives in reminderPlacement.js (not here).
     const currentRemindersEnabled = isCurrentRemindersEnabled(config)
     const undatedOverdueRemindersEnabled = isUndatedOverdueRemindersEnabled(config)
     const wantRemSection = sectionCodesToGet.includes('REM') && undatedOverdueRemindersEnabled
@@ -108,23 +110,26 @@ export async function getSomeSectionsData(
     const wantRemForOverdue =
       undatedOverdueRemindersEnabled && sectionCodesToGet.includes('OVERDUE') && Boolean(config.showOverdueSection)
     let remindersData: TRemindersGeneratedData = {
-      timedTodayItems: [],
-      untimedTodayItems: [],
-      yesterdayItems: [],
-      tomorrowItems: [],
-      overdueItems: [],
+      placement: {
+        forDT: [],
+        forTB: [],
+        forDY: [],
+        forDO: [],
+        forOVERDUE: [],
+        forREM: [],
+        remBucketsLabel: '',
+        homeless: [],
+      },
       remindersSection: null,
     }
     if (wantRemSection || wantRemForDaySections || wantRemForOverdue) {
       remindersData = await getRemindersGeneratedData(config, useDemoData)
     }
+    const placement: TReminderPlacement = remindersData.placement
 
     // -------------------------------------------------------------------------
-    // Yesterday / Overdue routing (orchestrator owns placement for tasks + reminders)
-    //
-    // Reminders:
-    //   DY on  -> Yesterday section
-    //   DY off -> Overdue (if Undated/Overdue Reminders on), else REM fallback
+    // Yesterday / Overdue task routing (orchestrator owns placement for tasks only).
+    // Reminder placement is already resolved in placement above.
     // Tasks:
     //   DY on  -> Yesterday section; when OVERDUE also on, same paras used to dedupe overdue
     //   DY off -> spill open yesterday calendar/ref tasks into Overdue
@@ -132,14 +137,6 @@ export async function getSomeSectionsData(
     // -------------------------------------------------------------------------
     const wantDY = sectionCodesToGet.includes('DY') && Boolean(config.showYesterdaySection)
     const wantOD = sectionCodesToGet.includes('OVERDUE') && Boolean(config.showOverdueSection)
-
-    // Yesterday reminders go to DY when Yesterday is on; otherwise spill into Overdue (if undated/overdue toggle allows)
-    const yesterdayForDaySection = currentRemindersEnabled && config.showYesterdaySection ? remindersData.yesterdayItems : []
-    const yesterdaySpillToOverdue =
-      currentRemindersEnabled && !config.showYesterdaySection && undatedOverdueRemindersEnabled ? remindersData.yesterdayItems : []
-    const overdueReminderItems = undatedOverdueRemindersEnabled
-      ? remindersData.overdueItems.concat(yesterdaySpillToOverdue)
-      : []
 
     // Shared yesterday task fetch when either DY or OVERDUE needs those paras (skip demo: generators use demoData)
     let yesterdayOpenAndRef: ?[Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] = null
@@ -159,48 +156,18 @@ export async function getSomeSectionsData(
       logDebug('getSomeSectionsData', `- DY off: spilling ${String(yesterdaySpillTaskParas.length)} yesterday open task(s) into OVERDUE`)
     }
 
-    // A reminder only reaches the UI if some section hosts it.
-    // Yesterday and overdue reminders now fall back to the REM ("Undated/Overdue Reminders") section when
-    // their own section is off, so they are only truly lost if REM is off too.
-    // Tomorrow has no fallback by design, so it is lost whenever Tomorrow is off.
-    const remCanHost = undatedOverdueRemindersEnabled
-    const yesterdayHomeless =
-      remindersData.yesterdayItems.length > 0 && yesterdayForDaySection.length === 0 && !Boolean(config.showOverdueSection) && !remCanHost
-    const overdueHomeless = remindersData.overdueItems.length > 0 && !Boolean(config.showOverdueSection) && !remCanHost
-    const tomorrowHomeless = remindersData.tomorrowItems.length > 0 && !config.showTomorrowSection
-
-    // Untimed today falls back to REM, so it is only lost when REM cannot host either.
-    // Timed today reminders that are not yet due are intentionally shown nowhere
-    // (see the DESIGN DECISION note in dataGenerationDays.js), so they are not warned about.
-    const untimedTodayHomeless = remindersData.untimedTodayItems.length > 0 && !config.showTodaySection && !remCanHost
-    if (yesterdayHomeless || overdueHomeless || tomorrowHomeless || untimedTodayHomeless) {
-      const parts = []
-      if (yesterdayHomeless) parts.push(`${String(remindersData.yesterdayItems.length)} yesterday`)
-      if (overdueHomeless) parts.push(`${String(remindersData.overdueItems.length)} overdue`)
-      if (tomorrowHomeless) parts.push(`${String(remindersData.tomorrowItems.length)} tomorrow (no fallback: Tomorrow section off)`)
-      if (untimedTodayHomeless) parts.push(`${String(remindersData.untimedTodayItems.length)} untimed today`)
+    if (placement.homeless.length > 0) {
+      const parts = placement.homeless.map((h) => `${String(h.count)} ${h.label}`)
       logWarn('getSomeSectionsData', `- ${parts.join('; ')} reminder(s) have no visible section and will not be shown anywhere`)
     }
 
     // DT and TB sections are generated separately but share paragraph data fetching
     if (sectionCodesToGet.includes('DT')) {
-      const todaySections = getTodaySectionData(
-        config,
-        useDemoData,
-        useEditorWherePossible,
-        currentRemindersEnabled ? remindersData.untimedTodayItems : [],
-      )
+      const todaySections = getTodaySectionData(config, useDemoData, useEditorWherePossible, placement.forDT)
       sections.push(...todaySections)
     }
     if (sectionCodesToGet.includes('TB') && isTBSectionEnabled(config)) {
-      sections.push(
-        ...getTimeBlockSectionData(
-          config,
-          useDemoData,
-          useEditorWherePossible,
-          currentRemindersEnabled ? remindersData.timedTodayItems : [],
-        ),
-      )
+      sections.push(...getTimeBlockSectionData(config, useDemoData, useEditorWherePossible, placement.forTB))
     }
 
     if (wantRemSection && remindersData.remindersSection) {
@@ -208,17 +175,10 @@ export async function getSomeSectionsData(
     }
     if (wantDY) {
       // Pass shared prefetch so we do not scan yesterday's note twice when OVERDUE also needs it
-      sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible, yesterdayForDaySection, yesterdayOpenAndRef))
+      sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible, placement.forDY, yesterdayOpenAndRef))
     }
     if (sectionCodesToGet.includes('DO') && config.showTomorrowSection) {
-      sections.push(
-        ...getTomorrowSectionData(
-          config,
-          useDemoData,
-          useEditorWherePossible,
-          currentRemindersEnabled ? remindersData.tomorrowItems : [],
-        ),
-      )
+      sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible, placement.forDO))
     }
     if (sectionCodesToGet.includes('LW') && config.showLastWeekSection) sections.push(...getLastWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
@@ -261,7 +221,7 @@ export async function getSomeSectionsData(
         await getOverdueSectionData(
           config,
           useDemoData,
-          overdueReminderItems,
+          placement.forOVERDUE,
           yesterdaySpillTaskParas,
           yesterdayParasForOverdueDedupe,
         ),

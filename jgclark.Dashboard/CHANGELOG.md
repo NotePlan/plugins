@@ -13,6 +13,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Fix: when the **Yesterday** section is off, open tasks from yesterday's note (and items scheduled to yesterday) now appear in **Overdue**, matching how yesterday reminders already spill. dev: Routing lives in the section orchestrator so DY and OVERDUE share one fetch.
 - Change: Filters "Show Reminders" is again a single master toggle: when off, reminders appear in no section. "Show Undated/Overdue Reminders" and "Reminder Lists to Include" move to Dashboard Settings under "Reminders Section", along with new "Hide timed reminders until their due time?" (default on). dev: "Show Current Reminders" stays as a hidden setting (forced on for now).
 - dev: when Yesterday and Overdue are both on, overdue generation now receives yesterday paras for content dedupe (React Hide Duplicates remains the display safety net).
+- dev: refactor Reminders bucketing/placement into `reminderMapping.js`, `reminderBuckets.js`, and `reminderPlacement.js` so day/TB/OVERDUE/REM share one routing table.
 
 ## [2.4.0.b59] 2026-07-31
 - Fix: **Overdue** section counted reminders it did not display. dev: When `maxItemsToShowInSection` left fewer slots than there were reminders, the surplus was sliced off the list but still added to the total, so the header claimed more items than the section held. Now counts only what was added, and warns when some do not fit.

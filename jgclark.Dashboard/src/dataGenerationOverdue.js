@@ -7,7 +7,7 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { createSectionItemObject, filterParasByRelevantFolders, filterParasByIgnoreTerms, filterParasByIncludedCalendarSections, filterParasByExcludedCalendarSections, filterParasByAllowedTeamspaces, makeDashboardParas, getNotePlanSettings } from './dashboardHelpers'
-import { assignReminderItemsToSection } from './dataGenerationReminders'
+import { assignReminderItemsToSection } from './reminderBuckets'
 import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
