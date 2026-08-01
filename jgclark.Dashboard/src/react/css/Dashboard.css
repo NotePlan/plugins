@@ -381,7 +381,8 @@ button,
 		white-space: nowrap;
 	}
 
-	/* Note: .scheduledDate lozenge styles come from generateCSSFromTheme (NPThemeToCSS) */
+	/* Note: .scheduledDate lozenge styles + --fg-reminderTime/--bg-reminderTime come from generateCSSFromTheme (NPThemeToCSS).
+	   .reminderTime chip layout lives in ReminderItem.css */
 
 	/* turn off text color and underlining by default on all content items... */
 	.content,

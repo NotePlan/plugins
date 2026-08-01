@@ -10,7 +10,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 -->
 
 ## [2.4.0.b61] 2026-08-01
-- Change: Reminder time chip now matches NotePlan's native style - pale lozenge with bell icon and colored text, placed after the title (was white-on-fill clock lozenge before the title). NotePlan timeblock chips are unchanged.
+- Change: Reminder time chip now matches NotePlan's new native style (from 3.20.2): pale lozenge with bell icon and colored text, placed after the title (was white-on-fill clock lozenge before the title).
+- Change: Reminder items now only apply priority coloring to the title, not to any location/date/time chips.
 
 ## [2.4.0.b60] 2026-08-01
 - Fix: when the **Yesterday** section is off, open tasks from yesterday's note (and items scheduled to yesterday) now appear in **Overdue**, matching how yesterday reminders already spill. dev: Routing lives in the section orchestrator so DY and OVERDUE share one fetch.

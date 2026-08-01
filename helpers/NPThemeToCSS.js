@@ -455,6 +455,11 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel.push('padding-inline: 3px')
     output.push(makeCSSSelector('.scheduledDate', tempSel))
 
+    // Reminder due-time chip colours (measured from NP 3.20.2+ native reminder time lozenge).
+    // Layout for .reminderTime lives in ReminderItem.css (Dashboard).
+    rootSel.push(`--fg-reminderTime: #26709e`)
+    rootSel.push(`--bg-reminderTime: #d7ebf8`)
+
     // Now put the important info and rootSel at the start of the output
     output.unshift(makeCSSSelector(':root', rootSel))
     output.unshift(`/* Generated from theme '${themeName}' by @jgclark's generateCSSFromTheme */`)

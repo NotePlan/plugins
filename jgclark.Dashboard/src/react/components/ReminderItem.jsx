@@ -8,7 +8,7 @@
 // On older builds that scheme is blocked by NotePlan.openURL.
 // See also ARCHITECTURE-How_Stuff_Works.md -> "Reminders section".
 //
-// Last updated 2026-07-30 for v2.4.0.b57 by @jgclark + @CursorAI
+// Last updated 2026-08-01 for v2.4.0.b61 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useCallback } from 'react'
@@ -16,6 +16,7 @@ import type { MessageDataObject, TSection, TSectionItem } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import StatusIcon from './StatusIcon.jsx'
 import './ItemContent.css'
+import './ReminderItem.css'
 import './TaskItem.css'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
@@ -62,7 +63,7 @@ function ReminderItem({ item, thisSection }: Props): Node {
   // Time chip only in today's sections (TB holds timed-today reminders; DT holds untimed today)
   const showTimeChip = thisSection.sectionCode === 'TB' || thisSection.sectionCode === 'DT'
 
-  // Build main content: optional date (REM only; omit today like tasks), optional time (today only), title, details, location
+  // Build main content: optional date (REM only; omit today like tasks), title, optional time chip (after title, matching NP), details, location
   const contentParts: Array<Node> = []
   const todayHyphenated = getTodaysDateHyphenated()
   if (showDateLozenge && reminder.date && reminder.date !== todayHyphenated) {
@@ -73,19 +74,25 @@ function ReminderItem({ item, thisSection }: Props): Node {
       </span>,
     )
   }
+
+  // Same as tasks: wrap the title part in .priorityN (theme flagged-1/2/3 styles).
+  // Hide priority markers only strips ! from task text; it must not remove this class.
+  const dashboardPriority = Number(reminder.priority) || 0
+  const priorityClass = dashboardPriority >= 1 && dashboardPriority <= 3 ? `priority${String(dashboardPriority)}` : ''
+  contentParts.push(
+    <span key="title" className={`reminderTitle ${priorityClass}`}>
+      {reminder.title}
+    </span>,
+  )
+  // NP shows reminder due-time as a chip with bell icon after the title (not the timeBlock clock style)
   if (showTimeChip && reminder.time) {
     contentParts.push(
-      <span key="time" className="timeBlock margin-right-larger">
-        <i className="fa-regular fa-clock pad-right" />
+      <span key="time" className="reminderTime">
+        <i className="fa-regular fa-fw fa-bell pad-right" />
         {reminder.time}
       </span>,
     )
   }
-  contentParts.push(
-    <span key="title" className="reminderTitle">
-      {reminder.title}
-    </span>,
-  )
   if (reminder.notes) {
     contentParts.push(
       <span key="details" className="reminderDetails pad-left" style={{ color: 'var(--fg-placeholder-color)' }}>
@@ -105,20 +112,6 @@ function ReminderItem({ item, thisSection }: Props): Node {
       </span>,
     )
   }
-  // TODO(future): Enable this if the API is extended to cover flagged status
-  // if (reminder.flagged) {
-  //   contentParts.push(
-  //     <span key="flagged" className="reminderFlagged pad-left-larger" title="Flagged" style={{ color: 'var(--tint-color, #dc8a78)', fontSize: '75%' }}>
-  //       <i className="fa-solid fa-flag" />
-  //     </span>,
-  //   )
-  // }
-
-  // Same as tasks: wrap the whole content block in .priorityN (theme flagged-1/2/3 styles).
-  // Hide priority markers only strips ! from task text; it must not remove this class.
-  const dashboardPriority = Number(reminder.priority) || 0
-  const priorityClass = dashboardPriority >= 1 && dashboardPriority <= 3 ? `priority${String(dashboardPriority)}` : ''
-  const contentBody = priorityClass ? <span className={priorityClass}>{contentParts}</span> : contentParts
 
   // Listname on RHS (same float pattern as ItemNoteLink in ItemContent)
   let listnameEl: Node = null
@@ -144,10 +137,10 @@ function ReminderItem({ item, thisSection }: Props): Node {
   const contentClassName = canOpenInReminders ? 'content clickTarget reminderContent' : 'content reminderContent'
   const contentEl = canOpenInReminders ? (
     <a className={contentClassName} onClick={handleContentClick} title="Open in Reminders">
-      {contentBody}
+      {contentParts}
     </a>
   ) : (
-    <span className={contentClassName}>{contentBody}</span>
+      <span className={contentClassName}>{contentParts}</span>
   )
 
   return (
