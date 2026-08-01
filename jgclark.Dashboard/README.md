@@ -10,7 +10,7 @@ This plugin provides a **dashboard window** for your NotePlan data that in one p
 - all open items with an added priority
 - the next Project notes ready to review (if you have the "Projects and Reviews" plugin installed)
 - it shows today's Time Blocks you've set
-- and any items from Apple Reminders (when Current and/or Undated/Overdue Reminders filters are enabled)
+- and any items from Apple Reminders (when **Show Reminders** is enabled in Filters)
 - plus a 'Search' field to show all open items that match a search.
 
 This avoids you having to keep _copying_ tasks into your Today note to see them, but instead you can _see_ them all in one place in the Dashboard window.  From there you can quickly edit, complete, cancel or move any of these items to be due on different days/week/months, with the pop-up Edit Dialog.
@@ -149,23 +149,25 @@ The display will **automatically refresh** in the background if you set the "Aut
 
 It shows the time first, minus any 'Text must contain' string that you have set in NP's 'Todo' settings pane. Where a time block is defined on a heading or list item, then the calendar+clock icon is shown in place of the task/checklist icon.
 
-When **Show Current Reminders** is on (Filters), this section additionally shows today's Apple Reminders that have a due time -- but only once that due time has been reached. Timed reminders for later today stay hidden until then (the section refreshes about once a minute while the Dashboard window is visible). The section appears if **either** Time Block or Current Reminders is enabled (or both). With Current Reminders on and Time Block off, only those timed reminders appear (title **Timed Reminders**). With both sources present the title is **Timed Items**; with Current Reminders off it stays **Time Blocks**.
+When **Show Reminders** is on (Filters), this section additionally shows today's Apple Reminders that have a due time. By default (**Hide timed reminders until their due time?** in Settings) they appear only once that due time has been reached; turn that setting off to show them in Timed Items immediately. The section refreshes about once a minute while the Dashboard window is visible. The section appears if **either** Time Block or Show Reminders is enabled (or both). With Show Reminders on and Time Block off, only those timed reminders appear (title **Timed Reminders**). With both sources present the title is **Timed Items**; with Show Reminders off it stays **Time Blocks**.
 
 ### Reminders section
 <img src="reminders-section-2.4.0.png" width="740px" margin="8px" border="1px solid grey" alt="reminders section" />
 
-(From v2.4b50; toggles split in v2.4b56) Incomplete items from your **Apple Reminders** lists can appear across several Dashboard sections. By default Dashboard draws from the same reminder lists you have enabled in NotePlan's own settings (Preferences → Calendars → Reminders). However, each Perspective can override that set with **Reminder Lists to Include** (a comma-separated list of exact list names). Leave it blank to keep NotePlan's enabled lists; you can also name lists that are disabled in NotePlan if this Perspective should include them. Reminder rows show the list name, location and notes, and use the list's Apple Reminders color as an accent. (The 'flagged' status is not available outside Apple Reminders.)
+(From v2.4b50; Filter/Settings layout updated in v2.4b59) Incomplete items from your **Apple Reminders** lists can appear across several Dashboard sections. The Filters menu has a single **Show Reminders** toggle: when off, reminders appear nowhere. Finer controls live in Dashboard Settings under **Reminders Section**:
 
-Two Filters control which reminders appear:
-- **Show Current Reminders** -- covers reminders due **today**, **yesterday**, and **tomorrow** (including timed reminders in Timed Items / Timed Reminders).
-- **Show Undated/Overdue Reminders** -- covers **undated** reminders in the dedicated Reminders section, and **past-dated** reminders in Overdue (Overdue section must also be enabled).
+- **Reminder Lists to Include** -- comma-separated list of exact Apple Reminders list names for this Perspective. Leave blank to use the lists enabled in NotePlan's Preferences → Calendars → Reminders; you can also name lists that are disabled in NotePlan if this Perspective should include them.
+- **Hide timed reminders until their due time?** -- when on (default), timed reminders due later today stay hidden until that time; when off, they appear in Timed Items immediately.
+- **Show Undated/Overdue Reminders?** -- undated reminders in the dedicated Reminders section, and past-dated reminders in Overdue (Overdue section must also be enabled).
+
+Reminder rows show the list name, location and notes, and use the list's Apple Reminders color as an accent. (The 'flagged' status is not available outside Apple Reminders.)
 
 Open reminders are split across the Dashboard rather than shown in a single list:
 
 | Reminder | Where it appears |
 | -------- | ---------------- |
-| Due today **with a time**, and that time has been reached | **Timed Reminders** / **Timed Items** (with any active time blocks) |
-| Due today **with a time**, but still in the future | hidden until that time |
+| Due today **with a time**, and that time has been reached (or hide-until-due is off) | **Timed Reminders** / **Timed Items** (with any active time blocks) |
+| Due today **with a time**, but still in the future (and hide-until-due is on) | hidden until that time |
 | Due today **without** a time | **Today** |
 | Due yesterday | **Yesterday** (or **Overdue** if Yesterday is off) |
 | Due tomorrow | **Tomorrow** (ignored if Tomorrow is off) |
@@ -262,12 +264,11 @@ Dashboard provides a quick access Settings window, accessed from the cog wheel a
 This is a Dashboard-wide setting (the same for all Perspectives), not stored per Perspective.
 
 ### What to Include and Exclude
-The settings in "What to Include and Exclude" control what Spaces, folders, Reminder lists and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Reminder list selection is separate (see below). Finally, individual lines in notes can be ignored by adding terms:
+The settings in "What to Include and Exclude" control what Spaces, folders and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Reminder list selection lives under **Reminders Section** (below). Finally, individual lines in notes can be ignored by adding terms:
 
 - **Folders to Include**: Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. The matches ared partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included. Note: Calendar notes are always included, where relevant.
 - **Folders to Exclude**: Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. The matches are partial, so 'Work' will exclude 'Work' and 'Work/CompanyA' etc.  Where there is a conflict, exclusions will take precedence over inclusions.  To ignore notes at the top-level (not in a folder), include '/' in the list. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)
 - **Calendar note terms to include**: Comma-separated list of terms for calendar notes only. A task is included if any heading above it starts with one of these values (case-insensitive prefix; e.g. `Wins` matches `Wins for 2026 Q2`), or if the task text itself contains the term (e.g. `#acme`, `@acme`, or `acme`). If left blank, all calendar items are included. Short terms can over-match. When this is set and Hide Duplicates is on, matching items stay in calendar / Overdue sections rather than only in a TAG section. Useful for Perspective focus (e.g. an ACME perspective with `acme` or `#acme`).
-- **Reminder Lists to Include**: Comma-separated list of Apple Reminders list names for this Perspective. Names must match exactly (after trimming). If left blank, Dashboard uses the lists enabled in NotePlan's Preferences → Calendars → Reminders. You can name lists that are disabled in NotePlan if this Perspective should include them.
 - **Ignore items in notes with these term(s)**: If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. (This check is not case sensitive.) This is useful for situations where completing the item is outside your control.
   - Apply to sections under headings in Calendar notes? If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored. This applies to the preceding headings all the way up the H5->H1 hierarchy of section headings for that line. For example in the following note:
   ```markdown
@@ -307,6 +308,11 @@ _The settings in the 'Moving/Scheduling Items' section are covered above_.
 ### Overdue Tasks settings
 - Number of days to look back for Overdue tasks: If set to any number > 0, will restrict Overdue tasks to just this last number of days.
 - Sort order for Overdue tasks: The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.
+
+### Reminders Section
+- **Reminder Lists to Include**: Comma-separated list of Apple Reminders list names for this Perspective. Names must match exactly (after trimming). If left blank, Dashboard uses the lists enabled in NotePlan's Preferences → Calendars → Reminders. You can name lists that are disabled in NotePlan if this Perspective should include them.
+- **Hide timed reminders until their due time?**: When on (default), timed reminders due later today are hidden until that time. When off, they appear in Timed Items immediately.
+- **Show Undated/Overdue Reminders?**: Show undated reminders in the Reminders section, and past-dated reminders in Overdue (and related fallbacks). Requires Filters **Show Reminders** to be on.
 
 ### Interactive Processing settings
 - Enable interactive processing for each section? If enabled, the Dashboard will display a button that will loop through all the open items in a given section and prompt you to act on them.
@@ -399,6 +405,9 @@ For the `setSetting` callbacks, the names of the possible settings (described ab
 | includedFolders | comma-separated values |
 | excludedFolders | comma-separated values |
 | includedReminderLists | comma-separated values |
+| showRemindersSection | true / false |
+| showUndatedOverdueReminders | true / false |
+| hideTimedRemindersUntilDue | true / false |
 | showFolderName | true / false |
 | includeTaskContext | true / false |
 | rescheduleNotMove | true / false |

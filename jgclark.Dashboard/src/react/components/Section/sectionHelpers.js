@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2026-07-31 for v2.4.0.b58 by @jgclark + @CursorAI
+// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
@@ -67,7 +67,8 @@ export function getVisibleSectionCodes(dashboardSettings: TDashboardSettings, se
 
 /**
  * TB section is visible when Time Block and/or Current Reminders setting is on.
- * Missing showCurrentReminders means ON (default); only an explicit false disables Current Reminders.
+ * Current Reminders also requires master Show Reminders (showRemindersSection) ON.
+ * Missing showCurrentReminders / showRemindersSection means ON (default).
  * Same rule as isTBSectionEnabled() / isCurrentRemindersEnabled() in dashboardHelpers
  * (kept local to avoid React/plugin circular imports).
  * @param {?TDashboardSettings} dashboardSettings
@@ -76,7 +77,8 @@ export function getVisibleSectionCodes(dashboardSettings: TDashboardSettings, se
 export function isTBSectionVisibleInSettings(dashboardSettings: ?TDashboardSettings): boolean {
   if (!dashboardSettings) return false
   const timeBlockOn = Boolean(dashboardSettings.showTimeBlockSection)
-  const currentRemindersOn = dashboardSettings.showCurrentReminders !== false
+  const masterOn = dashboardSettings.showRemindersSection !== false
+  const currentRemindersOn = masterOn && dashboardSettings.showCurrentReminders !== false
   return timeBlockOn || currentRemindersOn
 }
 

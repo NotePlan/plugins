@@ -9,10 +9,22 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
 -->
 
-## [2.4.0.b58] 2026-07-31
-- Changes: tweaks to 
+## [2.4.0.b60] 2026-08-01
+- Change: Filters "Show Reminders" is again a single master toggle: when off, reminders appear in no section. "Show Undated/Overdue Reminders" and "Reminder Lists to Include" move to Dashboard Settings under "Reminders Section", along with new "Hide timed reminders until their due time?" (default on). dev: "Show Current Reminders" stays as a hidden setting (forced on for now).
+
+## [2.4.0.b59] 2026-07-31
 - Fix: **Overdue** section counted reminders it did not display. dev: When `maxItemsToShowInSection` left fewer slots than there were reminders, the surplus was sliced off the list but still added to the total, so the header claimed more items than the section held. Now counts only what was added, and warns when some do not fit.
 - Fix: **Overdue** (and other) section descriptions showed a stale total after duplicate removal.
+- Change: tweaks to **Reminders** section description line
+- Fix: **Reminders** whose own section was switched off were discarded silently. Overdue, yesterday and untimed today reminders now fall back to the Reminders section (own section → Overdue → Reminders), so nothing disappears just because a section is hidden. Both fallbacks stay subject to "Show Reminders" / "Show Undated/Overdue Reminders", so an item you deliberately hid is not resurrected.
+- Fix: **(Team)Spaces**: Edge cases with no-longer valid "Spaces to Include" in settings. dev: When holding only unreachable teamspace IDs hid every task. Private notes are read only when `private` is in that list, so a list of stale IDs (e.g. after signing out of Spaces) filtered out every note before any task could be read - reminders still appeared, which made it look like tasks had vanished. Unreachable IDs are now discarded, falling back to private notes with a warning. Deliberate configurations are untouched.
+- dev: log when reminders or notes are dropped - reminder buckets with no visible host section, reminder lists disabled in NP, and overdue reminders that did not fit the section limit.
+- dev: add compact logging one line per reminder + bucket assignment etc.
+
+## [2.4.0.b58] 2026-07-31
+- Fix: **Overdue** section counted reminders it did not display. dev: When `maxItemsToShowInSection` left fewer slots than there were reminders, the surplus was sliced off the list but still added to the total, so the header claimed more items than the section held. Now counts only what was added, and warns when some do not fit.
+- Fix: **Overdue** (and other) section descriptions showed a stale total after duplicate removal.
+- Change: tweaks to **Reminders** section description line
 - Fix: **Reminders** whose own section was switched off were discarded silently. Overdue, yesterday and untimed today reminders now fall back to the Reminders section (own section → Overdue → Reminders), so nothing disappears just because a section is hidden. Both fallbacks stay subject to "Show Current Reminders" / "Show Undated/Overdue Reminders", so an item you deliberately hid is not resurrected.
 - Fix: **(Team)Spaces**: Edge cases with no-longer valid "Spaces to Include" in settings. dev: When holding only unreachable teamspace IDs hid every task. Private notes are read only when `private` is in that list, so a list of stale IDs (e.g. after signing out of Spaces) filtered out every note before any task could be read - reminders still appeared, which made it look like tasks had vanished. Unreachable IDs are now discarded, falling back to private notes with a warning. Deliberate configurations are untouched.
 - dev: log when reminders or notes are dropped - reminder buckets with no visible host section, reminder lists disabled in NP, and overdue reminders that did not fit the section limit.

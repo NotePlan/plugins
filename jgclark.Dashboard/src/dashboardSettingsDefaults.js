@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Default dashboard settings (no I/O or save-path dependencies).
 // Extracted from dashboardHelpers.js to break circular imports with dashboardSettingsClean.
-// Last updated 2026-07-29 for v2.4.0.b56 by @CursorAI
+// Last updated 2026-08-01 for v2.4.0.b59 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import { allSectionDetails } from './constants'
@@ -28,7 +28,7 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
   }, {})
 
   // Add section show settings from allSectionDetails
-  // Most sections default to true (including REM / showUndatedOverdueReminders), except INFO which defaults to false,
+  // Most sections default to true (including REM / showRemindersSection), except INFO which defaults to false,
   // and TAG sections are handled specially (one for each tag a user wants to see).
   const sectionDefaults = allSectionDetails.reduce((acc, section) => {
     if (section.showSettingName && section.showSettingName !== '') {
@@ -41,7 +41,7 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
   // Add showSearchSection (SEARCH section doesn't have showSettingName in allSectionDetails)
   // $FlowIgnore[prop-missing]
   sectionDefaults.showSearchSection = true
-  // Current Reminders is not a section showSettingName; default ON (covers today / yesterday / tomorrow)
+  // Current Reminders is hidden in UI for now but kept as a setting; default ON (covers today / yesterday / tomorrow)
   // $FlowIgnore[prop-missing]
   sectionDefaults.showCurrentReminders = true
 

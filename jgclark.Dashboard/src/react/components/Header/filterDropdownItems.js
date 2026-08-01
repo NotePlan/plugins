@@ -1,5 +1,5 @@
 // @flow
-// Last updated 2026-07-29 for v2.4.0.b56 by @jgclark + @CursorAI
+// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
 
 import { allSectionDetails } from '../../../constants.js'
 import type { TDashboardSettings } from '../../../types.js'
@@ -11,7 +11,7 @@ import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.js
 /**
  * Create two arrays of TSettingItems to use in Dropdown menu, using details in constants allSectionDetails, dashboardFilters.
  * The first array is for section toggling, the second array is for all the other toggles for the filter menu.
- * REM is special-cased into Show Current Reminders + Show Undated/Overdue Reminders.
+ * REM uses showRemindersSection → "Show Reminders" (master gate for all reminder display).
  * @param {TDashboardSettings} dashboardSettings
  * @returns {[Array<TSettingItem>, Array<TSettingItem>]}
  */
@@ -22,24 +22,6 @@ export const createFilterDropdownItems = (dashboardSettings: TDashboardSettings)
   const sectionDropbownItems: Array<TSettingItem> = []
   for (const s of allSections) {
     if (!s.showSettingName || s.showSettingName === '') continue
-    // Split legacy single "Show Reminders" into Current vs Undated/Overdue toggles
-    if (s.sectionCode === 'REM') {
-      sectionDropbownItems.push({
-        label: 'Show Current Reminders',
-        description: 'Show or hide reminders due today, yesterday, or tomorrow (including timed reminders in Timed Items)',
-        key: 'showCurrentReminders',
-        type: 'switch',
-        checked: (typeof dashboardSettings !== undefined && dashboardSettings.showCurrentReminders) ?? true,
-      })
-      sectionDropbownItems.push({
-        label: 'Show Undated/Overdue Reminders',
-        description: 'Show or hide undated reminders in the Reminders section, and past-dated reminders in Overdue',
-        key: 'showUndatedOverdueReminders',
-        type: 'switch',
-        checked: (typeof dashboardSettings !== undefined && dashboardSettings.showUndatedOverdueReminders) ?? true,
-      })
-      continue
-    }
     sectionDropbownItems.push({
       label: `Show ${s.sectionName}`,
       description: `Show or hide items in section ${s.sectionName}`,

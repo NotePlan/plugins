@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for REM (Reminders) Section and day/TB reminder buckets
-// Last updated 2026-07-31 for v2.4.0.b58, @jgclark + @CursorAI
+// Last updated 2026-08-01 for v2.4.0.b60, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -672,7 +672,7 @@ export async function getRemindersGeneratedData(
         ID: thisSectionCode,
         sectionCode: thisSectionCode,
         name: 'Reminders',
-        showSettingName: 'showUndatedOverdueReminders',
+        showSettingName: 'showRemindersSection',
         description: sectionDescription,
         FAIconClass: 'fa-regular fa-fw fa-list',
         sectionTitleColorPart: 'RemindersSectionColor',

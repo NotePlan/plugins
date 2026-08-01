@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2026-07-27 for v2.4.0.b55 by @jgclark + @CursorAI
+// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { defaultSectionDisplayOrder } from './constants.js'
@@ -155,15 +155,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     default: false,
     compactDisplay: true,
     dependsOnKey: 'ignoreItemsWithTerms',
-  },
-  {
-    key: 'includedReminderLists',
-    label: 'Reminder Lists to Include',
-    description:
-      "Comma-separated list of Apple Reminders list names to look in for this Perspective. Names must match exactly (after trimming). If left blank, Dashboard uses the reminder lists enabled in NotePlan's Preferences > Calendars > Reminders. You can name lists that are disabled in NotePlan if you want this Perspective to include them.",
-    type: 'input',
-    default: '',
-    compactDisplay: true,
   },
   {
     type: 'separator',
@@ -420,7 +411,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: 'Overdue Tasks settings',
+    label: 'Overdue Tasks Section',
   },
   {
     key: 'lookBackDaysForOverdue',
@@ -445,7 +436,45 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: 'Active Projects settings',
+    label: 'Reminders Section',
+  },
+  {
+    key: 'includedReminderLists',
+    label: 'Reminder Lists to Include',
+    description:
+      "Comma-separated list of Apple Reminders list names to look in for this Perspective. Names must match exactly. If left blank, Dashboard uses the reminder lists enabled in NotePlan's Preferences > Calendars > Reminders. (To be clear, this can include lists that are excluded usually in NotePlan.)",
+    type: 'input',
+    default: '',
+    compactDisplay: true,
+  },
+  {
+    key: 'hideTimedRemindersUntilDue',
+    label: 'Hide timed reminders until their due time?',
+    description: 'When on, timed reminders due later today are hidden until that time. When off, they appear in Timed Items immediately.',
+    type: 'switch',
+    default: true,
+    compactDisplay: true,
+  },
+  {
+    key: 'showUndatedOverdueReminders',
+    label: 'Show Undated/Overdue Reminders?',
+    description: 'Show undated reminders in the Reminders section, and past-dated reminders in Overdue (and related fallbacks).',
+    type: 'switch',
+    default: true,
+    compactDisplay: true,
+  },
+  {
+    key: 'showCurrentReminders',
+    label: 'Show Current Reminders',
+    type: 'hidden',
+    default: true,
+  },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
+    label: 'Active Projects Section',
   },
   {
     key: 'showProjectActiveOnlyWithNextActions',

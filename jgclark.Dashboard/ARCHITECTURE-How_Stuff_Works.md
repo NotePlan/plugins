@@ -227,10 +227,10 @@ All three share the same tail behaviour: recalculate done-task counts (when `don
 
 ## Reminders section (`REM`)
 
-Controlled by two Filters: **`showCurrentReminders`** (today / yesterday / tomorrow injection, including timed → TB) and **`showUndatedOverdueReminders`** (undated REM section + past-dated → OVERDUE). Backend: `dataGenerationReminders.js` (`getRemindersGeneratedData()`). Frontend: `ReminderItem.jsx` via `ItemRow`.
+Controlled by Filter **`showRemindersSection`** (master **Show Reminders** - when off, no reminders anywhere) plus Settings under **Reminders Section**: **`showUndatedOverdueReminders`** (undated REM section + past-dated → OVERDUE), **`includedReminderLists`**, and **`hideTimedRemindersUntilDue`** (default on). **`showCurrentReminders`** remains a hidden setting (forced on for now; injects into Timed / Today / Yesterday / Tomorrow when the master is on). Backend: `dataGenerationReminders.js` (`getRemindersGeneratedData()`). Frontend: `ReminderItem.jsx` via `ItemRow`.
 
 Live data comes from incomplete Apple Reminders on lists enabled in NotePlan (`Calendar.availableReminderLists({ enabledOnly: true })` then `Calendar.remindersByLists`), or Perspective override via `includedReminderLists`. Items are split into:
-- timed today whose due time has been reached → Time Blocks (`TB`); future-timed today reminders stay out of TB until then. When Current Reminders is enabled, TB is titled **Timed Reminders** if only reminders are present, or **Timed Items** if NotePlan timeblocks are also present (or only timeblocks). TB is generated when **either** Time Block or Current Reminders is enabled (NotePlan timeblocks only when Time Block is on).
+- timed today → Time Blocks (`TB`); when `hideTimedRemindersUntilDue` is on (default), only those whose due time has been reached; when off, all timed-today reminders appear in TB immediately. When Current Reminders is enabled, TB is titled **Timed Reminders** if only reminders are present, or **Timed Items** if NotePlan timeblocks are also present (or only timeblocks). TB is generated when **either** Time Block or Current Reminders is enabled (NotePlan timeblocks only when Time Block is on).
 - untimed today → Today (`DT`); yesterday → Yesterday (`DY`) or Overdue if Yesterday is off; tomorrow → Tomorrow (`DO`) or ignored if Tomorrow is off
 - undated → the dedicated **Reminders** (`REM`) section
 - past-dated (before yesterday) → **Overdue** (`OVERDUE`), when Undated/Overdue Reminders and Show Overdue are both on

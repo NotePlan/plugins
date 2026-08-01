@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-07-27 for v2.4.0.b55 by @jgclark + @CursorAI
+// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -127,8 +127,10 @@ export type TDashboardSettings = {
   showYesterdaySection: boolean,
   showInfoSection: boolean,
   showWinsSection: boolean,
-  showCurrentReminders: boolean, // inject reminders into Timed / Today / Yesterday / Tomorrow
-  showUndatedOverdueReminders: boolean, // REM (undated) + past-dated reminders in Overdue
+  showRemindersSection: boolean, // Filter master: Show Reminders - gates all reminder display
+  showCurrentReminders: boolean, // hidden for now; inject reminders into Timed / Today / Yesterday / Tomorrow (requires showRemindersSection)
+  showUndatedOverdueReminders: boolean, // Settings: REM (undated) + past-dated reminders in Overdue (requires showRemindersSection)
+  hideTimedRemindersUntilDue: boolean, // Settings: when true, timed-today reminders stay out of TB until due time
   treatTopPriorityAsWins: boolean,
   winsPriorityMarker: string, // '>>', '!!!' or '!!' -- which priority marker to treat as a 'Win'/'big rock' when treatTopPriorityAsWins is true
   customSectionDisplayOrder: ?Array<TSectionCode>

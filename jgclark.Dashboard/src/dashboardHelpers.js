@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-07-30 for v2.4.0.b58 by @jgclark + @CursorAI
+// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -746,24 +746,34 @@ export function getOpenItemParasForTimePeriod(
 }
 
 /**
+ * Whether the master "Show Reminders" Filter toggle is on.
+ * Missing showRemindersSection means ON (default); only an explicit false disables all reminder display.
+ * @param {TDashboardSettings} config
+ * @returns {boolean}
+ */
+export function isRemindersMasterEnabled(config: TDashboardSettings): boolean {
+  return config.showRemindersSection !== false
+}
+
+/**
  * Whether current (day/TB) reminder injection is enabled.
- * Missing showCurrentReminders means ON (default); only an explicit false disables it.
+ * Requires master Show Reminders ON. Missing showCurrentReminders means ON (default); only an explicit false disables it.
  * Covers Timed / Today / Yesterday / Tomorrow reminder placement.
  * @param {TDashboardSettings} config
  * @returns {boolean}
  */
 export function isCurrentRemindersEnabled(config: TDashboardSettings): boolean {
-  return config.showCurrentReminders !== false
+  return isRemindersMasterEnabled(config) && config.showCurrentReminders !== false
 }
 
 /**
  * Whether undated REM section and overdue reminder injection are enabled.
- * Missing showUndatedOverdueReminders means ON (default); only an explicit false disables it.
+ * Requires master Show Reminders ON. Missing showUndatedOverdueReminders means ON (default); only an explicit false disables it.
  * @param {TDashboardSettings} config
  * @returns {boolean}
  */
 export function isUndatedOverdueRemindersEnabled(config: TDashboardSettings): boolean {
-  return config.showUndatedOverdueReminders !== false
+  return isRemindersMasterEnabled(config) && config.showUndatedOverdueReminders !== false
 }
 
 /**

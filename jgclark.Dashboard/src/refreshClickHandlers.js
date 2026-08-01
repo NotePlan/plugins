@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-07-29 for v2.4.0.b56 by @jgclark
+// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
@@ -17,6 +17,7 @@ import {
   mergeSections,
   setPluginData,
   isTBSectionEnabled,
+  isUndatedOverdueRemindersEnabled,
 } from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
@@ -278,9 +279,9 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
         return handlerResult(true)
       }
     }
-    if (sectionCodesToRefresh.includes('REM') && pluginData.dashboardSettings?.showUndatedOverdueReminders === false) {
+    if (sectionCodesToRefresh.includes('REM') && pluginData.dashboardSettings && !isUndatedOverdueRemindersEnabled(pluginData.dashboardSettings)) {
       sectionCodesToRefresh = sectionCodesToRefresh.filter((sectionCode) => sectionCode !== 'REM')
-      logDebug('refreshSomeSections', `Filtered REM from requested sections as Undated/Overdue Reminders is disabled -> ${String(sectionCodesToRefresh)}`)
+      logDebug('refreshSomeSections', `Filtered REM from requested sections as Undated/Overdue Reminders (or master Show Reminders) is disabled -> ${String(sectionCodesToRefresh)}`)
       if (sectionCodesToRefresh.length === 0) {
         logDebug('refreshSomeSections', 'No eligible sections remain after filtering; skipping refresh')
         return handlerResult(true)

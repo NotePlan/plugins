@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2026-07-29 for v2.4.0.b56 by @CursorAI
+// Last updated 2026-08-01 for v2.4.0.b60 by @CursorAI
 // ----------------------------------------------------------------------------
 
 /**
@@ -120,19 +120,27 @@ export async function onUpdateOrInstall(): Promise<void> {
 
     clo(initialDashboardSettings, `onUpdateOrInstall - initialDashboardSettings:`)
 
-    // Force-migrate Reminders toggles: replace showRemindersSection with showCurrentReminders +
-    // showUndatedOverdueReminders, both forced ON, and delete the legacy key.
+    // Reminders settings migration (v2.4.0.b59):
+    // - Restore showRemindersSection as Filter master "Show Reminders"
+    // - Keep showCurrentReminders (hidden, forced ON for now)
+    // - Keep showUndatedOverdueReminders (now in Settings; default ON if missing)
+    // - Add hideTimedRemindersUntilDue (default ON if missing)
     let settingsNeedSave = false
-    initialDashboardSettings.showCurrentReminders = true
-    initialDashboardSettings.showUndatedOverdueReminders = true
-    if (Object.prototype.hasOwnProperty.call(initialDashboardSettings, 'showRemindersSection')) {
-      delete initialDashboardSettings.showRemindersSection
+    if (initialDashboardSettings.showRemindersSection === undefined) {
+      initialDashboardSettings.showRemindersSection = true
       settingsNeedSave = true
-      logInfo(`onUpdateOrInstall`, `- migrated showRemindersSection -> showCurrentReminders + showUndatedOverdueReminders (both forced true)`)
-    } else {
-      settingsNeedSave = true
-      logInfo(`onUpdateOrInstall`, `- set showCurrentReminders + showUndatedOverdueReminders = true`)
     }
+    initialDashboardSettings.showCurrentReminders = true
+    if (initialDashboardSettings.showUndatedOverdueReminders === undefined) {
+      initialDashboardSettings.showUndatedOverdueReminders = true
+      settingsNeedSave = true
+    }
+    if (initialDashboardSettings.hideTimedRemindersUntilDue === undefined) {
+      initialDashboardSettings.hideTimedRemindersUntilDue = true
+      settingsNeedSave = true
+    }
+    settingsNeedSave = true
+    logInfo(`onUpdateOrInstall`, `- reminders settings: showRemindersSection=${String(initialDashboardSettings.showRemindersSection)}, showCurrentReminders=true, showUndatedOverdueReminders=${String(initialDashboardSettings.showUndatedOverdueReminders)}, hideTimedRemindersUntilDue=${String(initialDashboardSettings.hideTimedRemindersUntilDue)}`)
 
     const perspectiveDefsRaw = initialSettings?.perspectiveSettings
     const perspectiveDefs = Array.isArray(perspectiveDefsRaw)
@@ -142,12 +150,17 @@ export async function onUpdateOrInstall(): Promise<void> {
       if (!p || typeof p !== 'object') return p
       const perspectiveDashboardSettings =
         (typeof p.dashboardSettings === 'string' ? parseSettings(p.dashboardSettings) : p.dashboardSettings) ?? {}
-      const nextPerspectiveSettings = { ...perspectiveDashboardSettings, showCurrentReminders: true, showUndatedOverdueReminders: true }
-      if (Object.prototype.hasOwnProperty.call(nextPerspectiveSettings, 'showRemindersSection')) {
-        delete nextPerspectiveSettings.showRemindersSection
+      const nextPerspectiveSettings = {
+        ...perspectiveDashboardSettings,
+        showCurrentReminders: true,
+        showRemindersSection: perspectiveDashboardSettings.showRemindersSection !== undefined ? perspectiveDashboardSettings.showRemindersSection : true,
+        showUndatedOverdueReminders:
+          perspectiveDashboardSettings.showUndatedOverdueReminders !== undefined ? perspectiveDashboardSettings.showUndatedOverdueReminders : true,
+        hideTimedRemindersUntilDue:
+          perspectiveDashboardSettings.hideTimedRemindersUntilDue !== undefined ? perspectiveDashboardSettings.hideTimedRemindersUntilDue : true,
       }
       settingsNeedSave = true
-      logInfo(`onUpdateOrInstall`, `- migrated reminders toggles on perspective '${String(p.name)}' (both forced true)`)
+      logInfo(`onUpdateOrInstall`, `- migrated reminders settings on perspective '${String(p.name)}'`)
       return {
         ...p,
         dashboardSettings: nextPerspectiveSettings,
