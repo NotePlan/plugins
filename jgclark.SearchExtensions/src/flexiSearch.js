@@ -374,9 +374,11 @@ export async function showFlexiSearchDialog(
     const paraTypesStr = String(DataStore.preference(`${pluginID}.paraTypesStr`)) ?? 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
-      // $FlowIgnore[incompatible-call] not pretty, but works
+      // These two prefs hold booleans, and String.replace() stringifies them at runtime. DataStore.preference() is declared `mixed`, so no real
+      // type can be written without wrapping the values in String() as the neighbouring prefs do - a code change, not a type change.
+      // $FlowIgnore[incompatible-call]
       .replace('%%CASESENSPREF%%', caseSensitiveSearching)
-      // $FlowIgnore[incompatible-call] not pretty, but works
+      // $FlowIgnore[incompatible-call]
       .replace('%%FULLWORDPREF%%', fullWordSearching)
       .replace('%%NOTETYPESSTRPREF%%', noteTypesStr)
       .replace('%%PARATYPESSTRPREF%%', paraTypesStr)

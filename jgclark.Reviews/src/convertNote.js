@@ -146,14 +146,14 @@ function buildFrontmatterAttrs(inputs: ConvertToProjectInputs, config: ReviewCon
 /**
  * Convert the given note (or current Editor note) into a project: prompt for metadata via CommandBar.showForm and write YAML frontmatter.
  * Requires NotePlan with command-bar forms (v3.21+).
- * @param {CoreNoteFields?} noteArg - optional note; defaults to Editor.note
+ * @param {TNote?} noteArg - optional note; defaults to Editor.note
  * @returns {Promise<void>}
  */
-export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> {
-  let resolvedNote: ?CoreNoteFields = null
+export async function convertToProject(noteArg?: TNote): Promise<void> {
+  let resolvedNote: ?TNote = null
   try {
     // Initial checks
-    const noteMaybe: ?CoreNoteFields = noteArg ?? Editor?.note
+    const noteMaybe: ?TNote = noteArg ?? Editor?.note
     if (!noteMaybe) {
       logWarn('convertToProject', `No note passed and not in an Editor.`)
       logInfo('convertToProject', `Convert to project failed: no note (pass a note or open one in the editor).`)
@@ -271,7 +271,9 @@ export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> 
       submitText: 'Convert',
       // Safe: as noted above, `min`/`max` are accepted at runtime for number fields, but the `fields` element type in flow-typed/Noteplan.js is an
       // exact object that doesn't list them yet, so Flow rejects them as extra props. Nothing here is unsound.
-      // $FlowIgnore[prop-missing]
+      // No real type can be written from here: the fix belongs in flow-typed/Noteplan.js, where showForm's `+fields` element type should be
+      // inexact (`{ ..., ... }`) or gain `min?: number, max?: number, optional?: boolean`.
+      // $FlowFixMe[prop-missing]
       fields,
     })
 
@@ -289,7 +291,6 @@ export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> 
 
     const attrs = buildFrontmatterAttrs(inputs, config)
     const possibleEditor = getOpenEditorFromFilename(resolvedNote.filename)
-    // $FlowFixMe[incompatible-type]
     const targetForFm: TEditor | TNote = possibleEditor || resolvedNote
     const noteForCache: TNote = (possibleEditor && possibleEditor.note) ? possibleEditor.note : ((resolvedNote: any): TNote)
 

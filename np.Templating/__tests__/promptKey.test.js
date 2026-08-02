@@ -196,8 +196,7 @@ describe('promptKey functionality', () => {
     it('should handle cancelled prompts', async () => {
       // Mock chooseOptionWithModifiers to return false
       const originalChooseOption = global.chooseOptionWithModifiers
-      // $FlowFixMe: Mock function type
-      global.chooseOptionWithModifiers = jest.fn().mockResolvedValue({ value: '' })
+      global.chooseOptionWithModifiers = jest.fn<Array<any>, { value: string }>().mockResolvedValue({ value: '' })
 
       const result = await NPTemplating.render("<%- promptKey('test-key', 'Choose a value') -%>", {})
       expect(result).toBe('')
@@ -209,8 +208,7 @@ describe('promptKey functionality', () => {
     it('should handle null responses', async () => {
       // Mock chooseOptionWithModifiers to return null
       const originalChooseOption = global.chooseOptionWithModifiers
-      // $FlowFixMe: Mock function type
-      global.chooseOptionWithModifiers = jest.fn().mockResolvedValue({ value: '' })
+      global.chooseOptionWithModifiers = jest.fn<Array<any>, { value: string }>().mockResolvedValue({ value: '' })
 
       const result = await NPTemplating.render("<%- promptKey('test-key', 'Choose a value') -%>", {})
       expect(result).toBe('')

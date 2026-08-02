@@ -205,7 +205,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // @flow
 
   return (
-    // $FlowIgnore
+    // Note: AppProvider's Props type is AppContextType minus the two dispatchers it creates itself.
     <AppProvider
       sendActionToPlugin={sendActionToPlugin}
       sendToPlugin={sendToPlugin}

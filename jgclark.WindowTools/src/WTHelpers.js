@@ -56,6 +56,7 @@ export const pluginWindowsAndCommands: Array<PluginWindowCommand> = [
 // Note: noteType renamed to resourceType at plugin v1.4.0
 export type EditorWinDetails = {
   resourceType: string, // NP noteType "Calendar" | "Notes" + "Folder"
+  noteType?: string, // legacy pre-v1.4.0 name for resourceType; still present in saved sets until updateWSObjectKeys() renames it
   filename: string,
   windowType: string, // "main" | "floating" | "split"
   title?: string, // optional, but persist it where used
@@ -101,6 +102,7 @@ export type WindowSetsConfig = {
   defaultEditorWidth: ?number, // only valid for macOS
   useSmartPlacement: boolean, // only valid for macOS
   _logDebug: string,
+  comment?: string, // written into a superseded plugin's settings.json by getPluginSettings() to mark it as old
 }
 
 /**
@@ -128,7 +130,6 @@ export async function getPluginSettings(): Promise<WindowSetsConfig> {
 
       // We can't delete the previous settings file,
       // but instead write a key into it to say it's old
-      // $FlowIgnore[prop-missing] as we want to overload it
       previousConfig.comment = '**This is a file from a previous version of the plugin. This folder can be deleted.**'
       // eslint-disable-next-line no-unused-vars
       const res2 = DataStore.saveJSON(previousConfig, `../${previousPluginID}/settings.json`)
@@ -347,8 +348,8 @@ export async function readWindowSetDefinitions(forMachineName: string = ''): Pro
       throw new Error(`Still no saved windowSets object found in local 'windowSets' pref on ${thisMachineName}`)
     }
 
-    // $FlowFixMe[incompatible-type]
-    let windowSets: Array<WindowSet> = windowSetsObject
+    // DataStore.preference() is declared `mixed`, so the shape of the stored JSON can only be asserted, not proved. Cast states the real type.
+    let windowSets: Array<WindowSet> = ((windowSetsObject: any): Array<WindowSet>)
     let machineDisplayName = ''
     if (forMachineName !== '') {
       windowSets = windowSets.filter((ws) => caseInsensitiveMatch(ws.machineName,  forMachineName))
@@ -601,7 +602,6 @@ export async function offerToAddExampleWSs(): Promise<number> {
 export function updateWSObjectKeys(ws: WindowSet): WindowSet {
   for (const ew of ws.editorWindows) {
     // If we have a noteType key then rename it to resourceType
-    // $FlowIgnore[prop-missing]
     if (ew.noteType) {
       ew.resourceType = ew.noteType
       logInfo('updateWSObjectKeys', `- renamed noteType '${ew.noteType}' to resourceType '${ew.resourceType}' in WS '${ws.name}'`)

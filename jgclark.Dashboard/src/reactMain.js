@@ -300,25 +300,24 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
     const dashboardSettings: TDashboardSettings = (await getDashboardSettings()) || {}
     // set everything off to begin with
     const keys = Object.keys(dashboardSettings).filter((key) => key.startsWith('show') && key.endsWith('Section'))
+    // Casts: every write below uses a key only known at runtime (showSettingName / showTagSection_<tag>),
+    // so they can only go through an indexed type. TDashboardSettings deliberately has no indexer, so that
+    // its statically-known keys stay checked everywhere else.
     allSectionDetails.forEach((section) => {
       const key = section.showSettingName
-      // $FlowIgnore[prop-missing]
-      if (key) dashboardSettings[key] = false
+      if (key) (dashboardSettings: TAnyObject)[key] = false
     })
 
     // also turn off the specific tag sections (e.g. "showTagSection_@home")
-    // $FlowIgnore[incompatible-type]
-    keys.forEach((key) => (dashboardSettings[key] = false))
+    keys.forEach((key) => ((dashboardSettings: TAnyObject)[key] = false))
     const sectionsToShow = limitToSections.split(',')
     sectionsToShow.forEach((sectionCode) => {
       const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
       if (showSectionKey) {
-        // $FlowIgnore
-        dashboardSettings[showSectionKey] = true
+        (dashboardSettings: TAnyObject)[showSectionKey] = true
       } else {
         if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
-          // $FlowIgnore
-          dashboardSettings[`showTagSection_${sectionCode}`] = true
+          (dashboardSettings: TAnyObject)[`showTagSection_${sectionCode}`] = true
         } else {
           logWarn(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails. Continuing with others.`)
         }
@@ -490,6 +489,10 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
     return newDashboardSettings
   } catch (error) {
     logError('getDashboardSettingsFromPerspective', error.message)
+    // KNOWN BUG - the declared return type is Promise<TDashboardSettings> but this path returns {}, and
+    // getInitialDataForReactWindow() assigns it straight into `dashboardSettings` and builds pluginData
+    // from it, so every setting silently reads as undefined instead of the failure being handled.
+    // Promise<?TDashboardSettings> is the correct declaration, but needs that caller to handle null first.
     // $FlowFixMe[prop-missing]
     return {}
   }
@@ -540,6 +543,10 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
     return dataToPass
   } catch (error) {
     logError(pluginJson, error.message)
+    // KNOWN BUG - the declared return type is Promise<PassedData> but this path returns {}, which is then
+    // handed to the React window as its whole initial payload (data.pluginData, data.dashboardSettings,
+    // ... are all undefined). Promise<?PassedData> is the correct declaration, but the caller at
+    // reactWindowInitialisedSoStartGeneratingData() has no null handling, so fix that first.
     // $FlowFixMe[prop-missing]
     return {}
   }

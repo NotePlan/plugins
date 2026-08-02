@@ -30,19 +30,17 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
   // Add section show settings from allSectionDetails
   // Most sections default to true (including REM / showRemindersSection), except INFO which defaults to false,
   // and TAG sections are handled specially (one for each tag a user wants to see).
-  const sectionDefaults = allSectionDetails.reduce((acc, section) => {
+  // Annotated accumulator: the keys are showSettingName values, which are only known at runtime.
+  const sectionDefaults = allSectionDetails.reduce((acc: { [string]: boolean }, section) => {
     if (section.showSettingName && section.showSettingName !== '') {
-      // $FlowIgnore[prop-missing]
       acc[section.showSettingName] = section.sectionCode !== 'INFO'
     }
     return acc
-  }, {})
+  }, ({}: { [string]: boolean }))
 
   // Add showSearchSection (SEARCH section doesn't have showSettingName in allSectionDetails)
-  // $FlowIgnore[prop-missing]
   sectionDefaults.showSearchSection = true
   // Current Reminders is hidden in UI for now but kept as a setting; default ON (covers today / yesterday / tomorrow)
-  // $FlowIgnore[prop-missing]
   sectionDefaults.showCurrentReminders = true
 
   // clo(dashboardSettingsDefaults, `dashboardSettingsDefaults:`)
@@ -65,6 +63,7 @@ export function getDashboardSettingsDefaultsWithSectionsSetToFalse(): TDashboard
   // Also turn off Current Reminders (not derived from allSectionDetails showSettingName)
   sectionsSetToFalse.showCurrentReminders = false
   clo(sectionsSetToFalse, `sectionsSetToFalse:`)
-  // $FlowIgnore[cannot-spread-indexer]
-  return { ...dashboardSettingsDefaults, ...sectionsSetToFalse }
+  // Cast: spreading an indexed object ({ [string]: any }) last into an object literal is a known Flow
+  // limitation -- it can't prove which explicit keys survive, so the literal gets no inferrable type.
+  return { ...dashboardSettingsDefaults, ...(sectionsSetToFalse: any) }
 }

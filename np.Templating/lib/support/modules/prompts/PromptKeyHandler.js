@@ -212,7 +212,6 @@ export default class PromptKeyHandler {
           // Prepare options for selection
           const optionsArray = tags.map((item) => ({ label: item, value: item }))
 
-          // $FlowFixMe: Flow doesn't understand chooseOptionWithModifiers return type
           const response = await chooseOptionWithModifiers(promptMessage, optionsArray, true)
 
           // Handle cancelled prompt
@@ -221,9 +220,7 @@ export default class PromptKeyHandler {
             return false
           }
 
-          // $FlowFixMe: Flow doesn't understand the response object structure
           if (typeof response === 'object' && response.value) {
-            // $FlowFixMe: We know response.value exists
             const chosenTag = String(response.value)
             logDebug(pluginJson, `PromptKeyHandler.promptKey: Returning selected tag="${chosenTag}"`)
             return chosenTag

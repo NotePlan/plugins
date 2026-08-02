@@ -101,9 +101,9 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
   logDebug('userInput / chooseOptionWithModifiers()', `About to showOptions with ${options.length} options & prompt:"${message}"`)
 
   // Add the "Add new item" option if addCreate is true
-  let displayOptions: Array<Option<T>> = [...options]
+  // Union element type because the '__ADD_NEW__' sentinel row genuinely holds a string value, not a T
+  let displayOptions: Array<Option<T> | Option<string>> = [...options]
   if (addCreate) {
-    // $FlowIgnore[incompatible-type]
     displayOptions = [{ label: '➕ Add new ' + addCreateItemDescriptor, value: '__ADD_NEW__' }, ...options]
   }
 
@@ -119,6 +119,8 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
     const result = await getInput('Enter new ' + addCreateItemDescriptor + ':', 'OK', 'Add New Item')
     if (result && typeof result === 'string') {
       // Return a custom result with the new item
+      // The declared return type spreads the type parameter (`{ ...TDefault, ... }`), which no concrete object literal can satisfy.
+      // A real type needs the TDefault parameter removed from this public signature, which would change every caller.
       // $FlowFixMe[incompatible-return]
       return {
         index: -1, // -1 indicates a custom entry
@@ -129,7 +131,7 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
     }
   }
 
-  // $FlowFixMe[incompatible-return]
+  // $FlowFixMe[incompatible-return] see above: `{ ...TDefault, ... }` is not satisfiable by any object literal
   return { ...displayOptions[index], index, keyModifiers }
 }
 
@@ -972,7 +974,9 @@ export async function processChosenHeading(note: CoreNoteFields, chosenHeading: 
       newHeading = await getInput(`Enter heading to add at the start of the note`, 'OK', 'New Heading')
       if (newHeading && typeof newHeading === 'string') {
         const startPos = 0
-        // $FlowIgnore
+        // `headingLevel` is declared `number` here, but insertHeading() wants headingLevelType (1..5). Narrowing this param
+        // is the real fix, but it is a public signature whose external callers pass plain numbers.
+        // $FlowIgnore[incompatible-call]
         note.insertHeading(newHeading, startPos, headingLevel)
         logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (calendar note)`)
         headingToReturn = newHeading
@@ -985,7 +989,7 @@ export async function processChosenHeading(note: CoreNoteFields, chosenHeading: 
       newHeading = await getInput(`Enter heading to add under the title`, 'OK', 'New Heading')
       if (newHeading && typeof newHeading === 'string') {
         const startPos = findStartOfActivePartOfNote(note)
-        // $FlowIgnore
+        // $FlowIgnore[incompatible-call] see above: `number` vs headingLevelType
         note.insertHeading(newHeading, startPos, headingLevel)
         logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (project note)`)
         headingToReturn = newHeading
@@ -999,7 +1003,7 @@ export async function processChosenHeading(note: CoreNoteFields, chosenHeading: 
       if (newHeading && typeof newHeading === 'string') {
         const indexEndOfActive = findEndOfActivePartOfNote(note)
         const newLindeIndex = indexEndOfActive + 1
-        // $FlowIgnore - headingLevel is a union type, and we've already checked it's a number
+        // $FlowIgnore[incompatible-call] see above: `number` vs headingLevelType
         note.insertHeading(newHeading, newLindeIndex, headingLevel || 2)
         logDebug('userInput / processChosenHeading', `appended new heading '${newHeading}' at line ${newLindeIndex}`)
         headingToReturn = newHeading
@@ -1083,7 +1087,8 @@ export async function askForISODate(question: string): Promise<string> {
 export async function datePicker(dateParams: string | Object, config?: { [string]: ?mixed } = {}): Promise<string | false> {
   try {
     const dateConfig = config.date ?? {}
-    // $FlowIgnore[incompatible-call]
+    // `config` is typed { [string]: ?mixed }, so `config.date` is mixed and Object.keys() rejects it. Typing `config` more
+    // precisely is the real fix, but its shape is caller-defined JSON5.
     // $FlowIgnore[not-an-object]
     clo(dateConfig, `userInput / datePicker dateParams="${JSON.stringify(dateParams)}" dateConfig typeof="${typeof dateConfig}" keys=${Object.keys(dateConfig || {}).toString()}`)
     let paramConfig = dateParams
@@ -1102,8 +1107,8 @@ export async function datePicker(dateParams: string | Object, config?: { [string
     logDebug('userInput / datePicker', `params: ${JSON.stringify(dateParams)} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
-      // $FlowIgnore[exponential-spread] known to be very small objects
       ...dateConfig,
+      // `paramConfig` is `string | Object` because it starts as `dateParams`; only the runtime typeof test narrows it.
       // $FlowIgnore[not-an-object]
       ...paramConfig,
     }
@@ -1319,6 +1324,7 @@ export async function chooseNote(
   const { note } = Editor
   if (allowNewNoteCreation) {
     opts.unshift('[New note]')
+    // Deliberate sentinel to keep indexes aligned with `opts`; no real type can describe an Array<TNote> holding a string.
     // $FlowIgnore[incompatible-type] just to keep the indexes matching; won't be used
     sortedNoteListFiltered.unshift('[New note]') // just keep the indexes matching
   }

@@ -80,6 +80,8 @@ export async function renameNoteToTitle(
 
     if (shouldPromptBeforeRenaming) {
       const currentFilename = currentFilepath.split('/').pop()
+      // Two maybe-typed values interpolated into a template literal: `.pop()` is `string | void`, and `note.title` is `string | void` (the
+      // guard above only tests `title === ''`). No real type is possible without adding a guard or a String() wrapper, i.e. a code change.
       // $FlowIgnore[incompatible-type]
       const promptResponse = await showMessageYesNoCancel(`Would you like to rename "${currentFilename}" to match the note title "${title}"?
 

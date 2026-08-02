@@ -47,24 +47,26 @@ export function removeInvalidChars(string: string): string {
 }
 
 /**
+ * Front matter attributes built from a Readwise source, keyed by attribute name.
+ * Matches the `newAttributes` parameter type of updateFrontMatterVars() in helpers/NPFrontMatter.
+ */
+export type ReadwiseFrontMatter = { [string]: string }
+
+/**
  * Parse readwise data and generate front matter
  * @param {*} source - the readwise data as a JSON object
- * @returns
+ * @returns {ReadwiseFrontMatter} - the front matter attributes
  */
-export function buildReadwiseFrontMatter(source: any): any {
-  const frontMatter = {}
-  // $FlowIgnore[prop-missing] - intentionally setting properties dynamically as frontMatter keys are dynamic
+export function buildReadwiseFrontMatter(source: any): ReadwiseFrontMatter {
+  const frontMatter: ReadwiseFrontMatter = {}
   frontMatter.author = `[[${escapeTwitterHandle(source.author)}]]`
   if (source.readable_title.toLowerCase().trim() !== source.title.toLowerCase().trim()) {
-    // $FlowIgnore[prop-missing] - intentionally setting properties dynamically as frontMatter keys are dynamic
     frontMatter.long_title = removeInvalidChars(source.title)
   }
   if (source.book_tags !== null && source.book_tags.length > 0) {
-    // $FlowIgnore[prop-missing] - intentionally setting properties dynamically as frontMatter keys are dynamic
     frontMatter.tags = source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')
   }
   if (source.unique_url !== null) {
-    // $FlowIgnore[prop-missing] - we are intentionally setting properties dynamically
     frontMatter.url = source.unique_url
   }
   return frontMatter

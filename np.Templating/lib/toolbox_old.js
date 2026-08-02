@@ -29,9 +29,10 @@ export async function confirm(message: string, choicesArray: Array<string> = ['Y
  */
 export async function chooseFolder(msg: string, includeArchive: boolean = false): Promise<string> {
   let folder: string
-  const folders = DataStore.folders // excludes Trash and Archive
+  // `DataStore.folders` is declared `$ReadOnlyArray<string>` because the API hands back a fresh copy each call;
+  // mutating that copy (rather than NotePlan's own list) is exactly what this function wants, hence the cast.
+  const folders: Array<string> = (DataStore.folders: any) // excludes Trash and Archive
   if (includeArchive) {
-    // $FlowFixMe
     folders.push('@Archive')
   }
   if (folders.length > 0) {

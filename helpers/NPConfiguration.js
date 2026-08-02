@@ -255,7 +255,9 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
 
     // eslint-disable-next-line
     let [format, ...contents] = block.split('\n')
-    // $FlowFixMe[incompatible-type]
+    // `contents` is the rest element of an array destructuring, so it is Array<string>; the code then reuses the same
+    // binding for the joined string. Only a second variable would fix this, not a different type.
+    // $FlowIgnore[incompatible-type]
     contents = contents.join('\n')
 
     const value: any = json5.parse(contents)

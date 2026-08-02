@@ -89,7 +89,8 @@ export type ChatObject = {
 export async function getFetchRequestObj(method: string = 'GET', body: any = null): any {
   const apiKey = await getOpenAIKey()
   if (apiKey?.length) {
-    const obj = {
+    // `body` is set conditionally below, so it belongs in the annotation as an optional property
+    const obj: { method: string, headers: { [string]: string }, body?: string } = {
       method,
       headers: {
         'Content-Type': 'application/json',
@@ -98,7 +99,6 @@ export async function getFetchRequestObj(method: string = 'GET', body: any = nul
     }
     if (body && method !== 'GET') {
       // logDebug(pluginJson, `getFetchRequestObj body type was: ${typeof body}`)
-      // $FlowFixMe
       obj.body = typeof body === 'object' ? JSON.stringify(body) : body
     }
     // clo(obj, 'getFetchRequestObj request object is:')

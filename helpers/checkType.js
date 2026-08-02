@@ -107,8 +107,9 @@ export const checkArray =
       for (const el of value) {
         checker(el)
       }
-      // This is a limitation of Flow
-      return (value: $FlowFixMe)
+      // Real type is Array<T>: every element has just been validated by `checker`. Flow can't express that,
+      // because a Checker is an ordinary throwing function, not a `%checks` predicate, so `value` stays Array<mixed>.
+      return ((value: any): Array<T>)
     }
     throw new Error(`Expected array, got ${typeof value}`)
   }
@@ -130,8 +131,9 @@ export const checkObj =
       for (const key in checkerObj) {
         checkerObj[key](value[key])
       }
-      // This is a limitation of Flow
-      return (value: $FlowFixMe)
+      // Real type is { [string]: mixed }: `typeof value === 'object' && value !== null` only refines `mixed`
+      // to Flow's opaque object type, which it will not widen to an indexed-object type, so a cast is required.
+      return ((value: any): { [string]: mixed })
     }
     throw new Error(`Expected object, got ${typeof value}`)
   }

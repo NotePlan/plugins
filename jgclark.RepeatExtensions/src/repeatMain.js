@@ -161,7 +161,10 @@ async function runTaskSorterAfterRepeatsImpl(
       logInfo('runTaskSorterAfterRepeats', `Will sort tasks according to user defaults from Task Sorting plugin`)
       for (const heading of headingList) {
         logInfo('runTaskSorterAfterRepeats', `- Sorting tasks under heading '${heading}'`)
-        // $FlowIgnore[incompatible-call] TNote vs CoreNoteFields
+        // Two problems, neither fixable from here. (1) sortFields is Array<string>, but dwertheimer.TaskSorting's sortTasksUnderHeading declares
+        // `_sortOrder: ?(string | Array<mixed>)` - Flow arrays are invariant, so Array<string> is rejected; that param should be
+        // `?(string | $ReadOnlyArray<string>)`. (2) noteToUse is CoreNoteFields but `_noteOverride` is `TNote | typeof Editor | null`.
+        // $FlowIgnore[incompatible-call] TNote vs CoreNoteFields, and Array<string> vs Array<mixed>
         await sortTasksUnderHeading(heading, sortFields, noteToUse)
       }
     } else {

@@ -22,7 +22,8 @@ import { logDebug, logError } from '@helpers/dev'
 
 // Reduced set of the above designed to carry settings into gatherOccurrences
 export type OccurrencesToLookFor = {
-  GOYesNo: Array<string>,
+  // Note: GOYesNo may arrive as a comma-separated string from settings as well as an array; gatherOccurrences() splits it when it is a string.
+  GOYesNo: string | Array<string>,
   GOHashtagsCount: Array<string>,
   GOHashtagsAverage: Array<string>,
   GOHashtagsTotal: Array<string>,

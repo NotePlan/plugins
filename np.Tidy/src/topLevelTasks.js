@@ -139,7 +139,6 @@ export function getFlatArrayOfParentsAndChildren(topLevelParas: Array<Paragraph>
     }
 
     // Iterate over children and add them if they are not already included
-    // $FlowFixMe[method-unbinding] I (JGC) don't understand this error
     const children = p.children()
     if (children && children.length) {
       children.forEach((c: TParagraph) => {

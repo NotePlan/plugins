@@ -169,8 +169,9 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
     const momentToStartLooking = todayStart.subtract(numDays, 'days')
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
-    // $FlowFixMe(incompatible-type)
-    const recentMatchedParas: Array<TParagraph> = allMatchedParas.filter((p) => p.note.changedDate >= jsdateToStartLooking)
+    // `TParagraph.note` is declared `?TNote`, but every paragraph returned by `DataStore.search()` above
+    // belongs to a note, so the real type here is TNote. Cast the one expression rather than the whole line.
+    const recentMatchedParas: Array<TParagraph> = allMatchedParas.filter((p) => ((p.note: any): TNote).changedDate >= jsdateToStartLooking)
 
     // Now map from paras -> notes and dedupe
     let numToRemove = allMatchedParas.length
@@ -266,8 +267,9 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     const momentToStartLooking = todayStart.subtract(numDays, 'days')
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
-    // $FlowFixMe(incompatible-type)
-    const recentMatchedParas: Array<TParagraph> = allMatchedParas.filter((p) => p.note.changedDate >= jsdateToStartLooking)
+    // `TParagraph.note` is declared `?TNote`, but every paragraph returned by `DataStore.search()` above
+    // belongs to a note, so the real type here is TNote. Cast the one expression rather than the whole line.
+    const recentMatchedParas: Array<TParagraph> = allMatchedParas.filter((p) => ((p.note: any): TNote).changedDate >= jsdateToStartLooking)
 
     // Now map from paras -> notes and dedupe
     let numToRemove = allMatchedParas.length
@@ -498,11 +500,11 @@ export async function removeOrphanedBlockIDs(params: string = ''): Promise<void>
     let numRemoved = 0
     logDebug('removeOrphanedBlockIDs', `Will delete all singleton blockIDs`)
     for (const thisPara of singletonBlockIDParas) {
-      const thisNote = thisPara.note
-      // $FlowFixMe[incompatible-use]
+      // `TParagraph.note` is declared `?TNote`; paragraphs from `DataStore.referencedBlocks()` always have one.
+      // Annotating the local gives both uses below the real type, instead of suppressing each line.
+      const thisNote: TNote = (thisPara.note: any)
       thisNote.removeBlockID(thisPara)
       logDebug('removeOrphanedBlockIDs', `- Removed singleton blockID from '${thisPara.content}'`)
-      // $FlowFixMe[incompatible-use]
       thisNote.updateParagraph(thisPara)
       numRemoved++
       // }
@@ -547,6 +549,12 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
     const blankNotes = allNotesSortedByChanged()
       .filter((n) => n.filename.match(/(.txt|.md)$/))
+      // KNOWN BUG - this guard does not do what it looks like it does, so the suppression has to stay.
+      // `TNote.content` is `string | void`. `n.content !== 'undefined'` compares against the *string*
+      // 'undefined', so it is true when content really is undefined; `n.content.length !== 'undefined'`
+      // compares a number against a string and is therefore always true (and throws first if content is
+      // undefined). The author meant `typeof n.content !== 'undefined'`. Not fixed here because that is a
+      // behaviour change, not a typing change.
       // $FlowFixMe[incompatible-type]
       .filter((n) => n.content !== 'undefined' && n.content.length !== 'undefined' && n.content.length <= 2)
     

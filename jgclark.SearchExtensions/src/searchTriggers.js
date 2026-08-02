@@ -34,9 +34,11 @@ function getUrlParams(query: string): { [key: string]: string } {
   }
   const urlParams: { [key: string]: string } = {}
   while ((match = search.exec(query)) !== null) {
-    // $FlowIgnore[incompatible-use] safe: the while condition only enters the body when exec() returned a non-null match, but Flow doesn't refine assignment-in-condition here
+    // Flow limitation, not something a real type can express: it does not refine an assignment made inside the while condition, so `match` stays
+    // nullable in the body. Dropping the annotation on `match` does not help either. Only restructuring the loop (a code change) would.
+    // $FlowIgnore[incompatible-use]
     urlParams[decode(match[1])] = decode(match[2])
-    // $FlowIgnore[incompatible-use] safe: same as above
+    // $FlowIgnore[incompatible-use] same as above
     console.log(`Found param: ${decode(match[1])} / ${decode(match[2])}`)
   }
   clo(urlParams)

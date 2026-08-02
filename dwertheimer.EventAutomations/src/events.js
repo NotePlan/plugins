@@ -39,17 +39,25 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   if (nowIshEvents && nowIshEvents.length > 0) {
     // events = [...nowIshEvents, ...[{ title: '---' }], ...allDaysEvents]
   }
-  // $FlowIgnore
+  // KNOWN BUG - getEventsForDay() returns `Array<TCalendarItem> | null` (it returns null from its catch), and the
+  // line above already hedges with `allDaysEvents?.length`, but this dereferences it unguarded. If fetching today's
+  // events throws, this line throws "cannot read property 'map' of null" instead of reporting the failure.
+  // $FlowIgnore[incompatible-use]
   const selections = allDaysEvents.map((event) => {
-    // $FlowIgnore
-    const time = toLocaleTime(event.date, [], { hour: '2-digit', minute: '2-digit', hour12: false })
-    // $FlowIgnore
-    if (event.title) return { label: `${time}: ${event.title}`, value: event.title, time, date: event.date.toLocaleDateString() }
+    // casts: TCalendarItem.date is `Date | null` because reminders may have no due date, but getEventsForDay()
+    // returns events, which always carry one (same reasoning/precedent as NPEventBlocks.js:272).
+    const time = toLocaleTime((event.date: any), [], { hour: '2-digit', minute: '2-digit', hour12: false })
+    if (event.title) return { label: `${time}: ${event.title}`, value: event.title, time, date: (event.date: any).toLocaleDateString() }
   })
+  // KNOWN BUG - the map callback above has no else branch, so any event with an empty title yields `undefined` in
+  // `selections`. chooseOption() does `options.map((o) => (typeof o === 'string' ? o : o.label))`, which throws on
+  // an undefined element. Also fails because Option<T> is the exact `{ label, value }` while these rows carry extra
+  // `time`/`date` payload; that half would clear if helpers/userInput.js declared Option inexact (`{ ..., ... }`).
   // $FlowIgnore
   const selectedEvent = await chooseOption('Choose an event to create a note for', selections, '')
   // Override the quickTemplateNote title with the selected event
-  // $FlowIgnore
+  // KNOWN BUG - same undefined elements as above: `.find()` reads `.value` off a possibly-undefined row.
+  // $FlowIgnore[incompatible-use]
   const selEvent = selections.find((event) => event.value === selectedEvent)
   // const theTime = selEvent.time === '00:00' ? '' : selEvent.time
   logDebug(pluginJson, `Selected event: ${selectedEvent} ${String(JSON.stringify(selEvent))}`)

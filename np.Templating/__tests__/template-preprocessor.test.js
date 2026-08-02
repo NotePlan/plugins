@@ -9,7 +9,7 @@
 
 // @flow
 import path from 'path'
-// $FlowIgnore[cannot-resolve-module] - `fs/promises` is a node builtin; flow-typed has no libdef for the subpath form
+// $FlowIgnore[cannot-resolve-module] `fs/promises` is a node builtin; flow-typed ships no libdef for the subpath form
 import fs from 'fs/promises'
 import { existsSync } from 'fs'
 import TemplatingEngine from '../lib/TemplatingEngine'

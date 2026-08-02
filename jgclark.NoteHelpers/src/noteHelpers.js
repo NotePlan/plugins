@@ -377,8 +377,7 @@ export async function addItemToFrontmatter(note: ?TNote, key: ?string, value: ?s
       // ignored and the user is always prompted. The guard should read `if (!value || value === '')`. The cast below is type-only; see LEFT report.
       thisValue = (value: any)
     }
-    // $FlowIgnore[invalid-computed-prop] safe: `thisKey` is a plain runtime string; Flow only allows literal computed keys in object literals
-    const res = updateFrontMatterVars(thisNote, { [thisKey]: thisValue })
+    const res = updateFrontMatterVars(thisNote, { [(thisKey: string)]: thisValue })
     if (res) {
       logDebug('note/addItemToFrontmatter', `addItemToFrontmatter(${thisKey}: ${thisValue}) returned ${String(res)}.`)
     } else {

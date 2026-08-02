@@ -33,7 +33,7 @@ type Props = {
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, type Node } from 'react'
 import { createPortal } from 'react-dom'
-import { type PassedData } from '../shared/types.js'
+import { type PassedData, type PassThroughVars } from '../shared/types.js'
 import { AppProvider } from './AppContext.jsx'
 import FormErrorBanner from './FormErrorBanner.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog'
@@ -887,8 +887,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
    */
   const addPassthroughVars = (data: PassedData): PassedData => {
     const newData = { ...data }
-    if (!newData.passThroughVars) newData.passThroughVars = {}
-    // $FlowIgnore
+    if (!newData.passThroughVars) newData.passThroughVars = ({}: PassThroughVars)
     newData.passThroughVars.lastWindowScrollTop = window.scrollY
     return newData
   }
@@ -912,8 +911,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
    * In that case, don't call this directly, use sendActionToPlugin() instead
    * @param {[command:string,data:any,additionalDetails:string]} param0
    */
-  // $FlowIgnore
-  const sendToPlugin = ([command: string, data: any, additionalDetails: string = '']) => {
+  const sendToPlugin = ([command, data, additionalDetails = '']: [string, any, string | void]) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')
@@ -1009,6 +1007,13 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     <>
       <AppProvider
         sendActionToPlugin={sendActionToPlugin}
+        /* KNOWN BUG - AppContext declares `sendToPlugin: (command: string, dataToSend: any) => void` (two positional
+           args), but the implementation above takes ONE argument and array-destructures it. A consumer doing
+           `sendToPlugin('foo', data)` off the context would destructure the string and get command === 'f'.
+           FormBrowserView/FormBuilderView fill this same slot with the 2-arg `sendActionToPlugin`, so the two
+           disagree. Nothing reads context.sendToPlugin today, which is why it has gone unnoticed. Left as-is:
+           choosing a calling convention is a behaviour change, not a typing one. */
+        // $FlowIgnore[incompatible-type]
         sendToPlugin={sendToPlugin}
         requestFromPlugin={requestFromPlugin}
         dispatch={dispatch}

@@ -474,7 +474,9 @@ export function smartCreateSectionsAndPara(
           } else {
             insertionIndex = latestInsertionLineIndex
           }
-          // $FlowFixMe[incompatible-call] headingLevel is a number, but the API expects an enumeration
+          // insertHeading() wants headingLevelType (1..5); `firstHeadingLevel + i` is plain arithmetic, which Flow
+          // always types as `number`. There is no type-level way to say 'stays within 1..5'.
+          // $FlowIgnore[incompatible-call]
           destNote.insertHeading(headingArray[i], insertionIndex, firstHeadingLevel + i) // add the heading
           logDebug('paragraph/smartCreateSectionsAndPara', `added heading "${headingArray[i]}" at line ${String(insertionIndex)} level ${String(firstHeadingLevel + i)}`)
           latestInsertionLineIndex = insertionIndex + 1
@@ -545,7 +547,9 @@ export function createSectionsAndParaAfterPreamble(
           // Heading doesn't exist, so add it
           let insertionIndex = 0
           insertionIndex = latestInsertionLineIndex
-          // $FlowFixMe[incompatible-call] headingLevel is a number, but the API expects an enumeration
+          // insertHeading() wants headingLevelType (1..5); `firstHeadingLevel + i` is plain arithmetic, which Flow
+          // always types as `number`. There is no type-level way to say 'stays within 1..5'.
+          // $FlowIgnore[incompatible-call]
           destNote.insertHeading(headingArray[i], insertionIndex, firstHeadingLevel + i) // add the heading
           logDebug('paragraph/smartCreateSectionsAndPara', `added heading "${headingArray[i]}" at line ${String(insertionIndex)} level ${String(firstHeadingLevel + i)}`)
           latestInsertionLineIndex = insertionIndex + 1
@@ -839,6 +843,8 @@ export function getTaskPriority(content: string): number {
   let numExclamations = 0
   if (content.match(/\B\!+\B(?!\[)/)) {
     // not in middle of word, or starting an image tag
+    // The `content.match()` in the `if` above guarantees a match, but it is a separate RegExp literal so Flow
+    // cannot connect the two and .match() stays ?RegExp$matchResult.
     // $FlowIgnore[incompatible-use]
     numExclamations = content.match(/\B\!+\B/)[0].length
     return numExclamations

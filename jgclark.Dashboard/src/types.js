@@ -7,7 +7,7 @@
 // Types for Settings
 
 import type { TReminder } from '@helpers/NPReminders'
-import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
+import type { TSettingItem, TSettingItemType as TDialogSettingItemType } from '@helpers/react/DynamicDialog/DynamicDialog'
 export type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 
 export type TDashboardLoggingConfig = {
@@ -278,6 +278,11 @@ export type TParagraphForDashboard = {
   dueDate?: string, // ISO string of due date, or 'none', required for sorting items in display
   /** Icons for notes linked mid-content via [[title]] / [alias]([[title]]); keyed by title without #heading. */
   linkedNoteIcons?: { [string]: TLinkedNoteIconInfo },
+  /**
+   * Only ever set by demoData.js, which emulates the TParagraph.children() API on its fixture paras.
+   * makeDashboardParas() never copies it, so it is absent on every para built from a real note.
+   */
+  children?: () => $ReadOnlyArray<{ content: string, indents: number }>,
 }
 
 // a reminder item within a section (alias of shared TReminder from @helpers/NPReminders)
@@ -529,6 +534,14 @@ export type TPluginData = {
 
 // TODO: figure out how to make this superclass of TSettingItemType from DynamicDialog.jsx -- applies to teamspace-multiselect (and orderingPanel at the moment) which are Dashboard-specific items.
 export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList' | 'orderingPanel' | 'teamspace-multiselect'
+
+/**
+ * A TSettingItem whose `type` may also be one of the Dashboard-only values above ('header',
+ * 'perspectiveList', 'teamspace-multiselect') that DynamicDialog's own TSettingItemType doesn't list.
+ * Use this for the Dashboard's own setting definitions; cast at the DynamicDialog boundary.
+ * TODO: remove once those three values are added to TSettingItemType in DynamicDialog.jsx (see above).
+ */
+export type TDashboardSettingItem = { ...TSettingItem, type: TDialogSettingItemType | TSettingItemType }
 
 export type TItemToProcess = {
   ...TSectionItem,

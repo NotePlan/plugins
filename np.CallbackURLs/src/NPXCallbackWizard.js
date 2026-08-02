@@ -449,8 +449,10 @@ export async function getHeadingLink(allowPrettyLink: boolean = true): Promise<s
     // if a heading is selected, use that. otherwise look for the heading this note is in
     const heading = selectedPara.type === 'title' ? selectedPara.content : selectedPara.heading
     log(pluginJson, `selectedPara.heading: ${heading}`)
-    // $FlowIgnore
-    const url = createOpenOrDeleteNoteCallbackUrl(selectedPara.note.title, 'title', heading) || ''
+    // `TParagraph.note` is `?TNote` and `TNote.title` is `string | void`. The `selectedPara?.note?.title !== null`
+    // guard above only excludes null, not undefined, so Flow cannot refine either one; cast the single argument
+    // rather than suppress the whole call. (Tightening that guard would be a behaviour change.)
+    const url = createOpenOrDeleteNoteCallbackUrl((selectedPara.note: any).title, 'title', heading) || ''
     if (allowPrettyLink) {
       const linkText = await getInputTrimmed(
         `Link to this note and heading "${heading}" copied to clipboard (click Cancel). If you would like to create a pretty link for pasting inside of NotePlan\ne.g. [text](url), enter the text to display + OK/Enter and a pretty link will be copied to the clipboard instead.`,

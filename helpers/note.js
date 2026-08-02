@@ -47,7 +47,6 @@ export function setTitle(note: CoreNoteFields, title: string): void {
       if (fmFields.hasOwnProperty('title')) {
         const newFmFields = { ...fmFields }
         newFmFields.title = title
-        // $FlowIgnore(incompatible-call)
         updateFrontMatterVars(note, newFmFields, true)
         titleIsChanged = true
       } else {
@@ -122,17 +121,19 @@ export function getNoteLinkForDisplay(filename: string, dateStyle: string): stri
   if (!note) {
     return '<error>'
   }
+  // Note: `note.date != null` guards all three branches below, but Flow drops property refinements after the
+  // displayTitle() call in the first branch, so `note.date` reads as ?Date again. A real fix means hoisting it to a local const.
   if (note.date != null) {
     return dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
       ? ` ([[${displayTitle(note)}]])`
       : dateStyle === 'scheduled'
-      ? // $FlowIgnore(incompatible-call)
+      ? // $FlowIgnore[incompatible-call]
         ` >${hyphenatedDate(note.date)} `
       : dateStyle === 'date'
-      ? // $FlowIgnore(incompatible-call)
+      ? // $FlowIgnore[incompatible-call]
         ` (${toNPLocaleDateString(note.date)})`
       : dateStyle === 'at'
-      ? // $FlowIgnore(incompatible-call)
+      ? // $FlowIgnore[incompatible-call]
         ` @${hyphenatedDate(note.date)} `
       : '?'
   } else {
@@ -312,11 +313,13 @@ export function getNoteByFilename(filename: string): ?TNote {
 export function getUniqueNoteTitle(title: string): string {
   try {
     let i = 0
-    let res: $ReadOnlyArray<TNote> = []
+    // KNOWN BUG - DataStore.projectNoteByTitle() returns ?$ReadOnlyArray<TNote>, so `res` really is maybe-typed (fixed below),
+    // but `res.length` is then read without a null check. The code needs a guard (or `?? []`), not a different type.
+    let res: ?$ReadOnlyArray<TNote> = []
     let newTitle = title
+    // $FlowIgnore[incompatible-use]
     while (++i === 1 || res.length > 0) {
       newTitle = i === 1 ? title : `${title} ${i}`
-      // $FlowFixMe(incompatible-type)
       res = DataStore.projectNoteByTitle(newTitle, true, false)
     }
     return newTitle
@@ -336,7 +339,8 @@ export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Ar
   const projectNotes = getRegularNotesFromFilteredFolders(foldersToIgnore, true)
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
-  // $FlowIgnore(unsafe-arithmetic)
+  // Date-minus-Date is valid JS but Flow has no type for it, so this cannot be expressed without changing the code.
+  // $FlowIgnore[unsafe-arithmetic]
   const allNotesSorted = allNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
   return allNotesSorted
 }
@@ -349,7 +353,8 @@ export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Ar
  */
 export function allRegularNotesSortedByChanged(foldersToIgnore: Array<string> = []): Array<TNote> {
   const regularNotes = getRegularNotesFromFilteredFolders(foldersToIgnore, true)
-  // $FlowIgnore(unsafe-arithmetic)
+  // Date-minus-Date is valid JS but Flow has no type for it, so this cannot be expressed without changing the code.
+  // $FlowIgnore[unsafe-arithmetic]
   const regularNotesSorted = regularNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
   return regularNotesSorted
 }
@@ -374,7 +379,8 @@ export function allNotesSortedByTitle(foldersToIgnore: Array<string> = [], exclu
  * @return {Array<TNote>} array of notes
  */
 export function calendarNotesSortedByChanged(): Array<TNote> {
-  // $FlowIgnore(unsafe-arithmetic)
+  // Date-minus-Date is valid JS but Flow has no type for it, so this cannot be expressed without changing the code.
+  // $FlowIgnore[unsafe-arithmetic]
   return DataStore.calendarNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
 }
 
@@ -435,7 +441,8 @@ export function pastCalendarNotes(): Array<TNote> {
  */
 export function weeklyNotesSortedByChanged(): Array<TNote> {
   const weeklyNotes = DataStore.calendarNotes.slice().filter((f) => f.filename.match(RE_WEEKLY_NOTE_FILENAME))
-  // $FlowIgnore(unsafe-arithmetic)
+  // Date-minus-Date is valid JS but Flow has no type for it, so this cannot be expressed without changing the code.
+  // $FlowIgnore[unsafe-arithmetic]
   return weeklyNotes.sort((first, second) => second.changedDate - first.changedDate)
 }
 
@@ -445,7 +452,8 @@ export function weeklyNotesSortedByChanged(): Array<TNote> {
  * @return {Array<TNote>} array of notes
  */
 export function projectNotesSortedByChanged(): Array<TNote> {
-  // $FlowIgnore(unsafe-arithmetic)
+  // Date-minus-Date is valid JS but Flow has no type for it, so this cannot be expressed without changing the code.
+  // $FlowIgnore[unsafe-arithmetic]
   return DataStore.projectNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
 }
 
@@ -551,7 +559,8 @@ export function replaceSection(
   newSectionContent: string,
 ): void {
   try {
-    // $FlowIgnore
+    // Deliberate duck-type test for the Editor: TNote has no `note` property, and there is no Flow type for 'either shape'.
+    // $FlowIgnore[prop-missing]
     const editorNote = note?.note
     const isEditor = editorNote !== undefined
     logDebug(
@@ -824,6 +833,7 @@ export function setIconForNote(note: TNote, icon: string, iconColor: ?string, ic
   if (iconStyle) {
     noteFrontmatter['icon-style'] = iconStyle
   }
-  // $FlowIgnore[cannot-write] documentation says this particular usage *is* safe
+  // The libdef declares `+frontmatterAttributes` (read-only); NP documentation says this particular usage *is* safe.
+  // $FlowIgnore[cannot-write]
   note.frontmatterAttributes = noteFrontmatter
 }

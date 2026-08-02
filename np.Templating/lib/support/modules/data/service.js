@@ -7,17 +7,22 @@
 
 // Temporary Implementation until `dot-prop` is ready
 // https://github.com/sindresorhus/dot-prop/issues/87
-// $FlowFixMe
-Object.arrayReference = function (o, s) {
-  // $FlowFixMe
+
+// The shape of the `arrayReference` helper this file bolts onto the global `Object`.
+type ArrayReferenceFn = (o: { [string]: any }, s: string) => any
+
+// `Object` is a global declared in Flow's core libdef, so the extra static cannot be declared here; the cast is the
+// narrowest way to write "we are adding a property Flow does not know about".
+;(Object: any).arrayReference = function (o: { [string]: any }, s: string): any {
+  // $FlowFixMe[reassign-const] `experimental.const_params` forbids reassigning a param; fixing it needs a local var (a runtime change)
   s = s.replace(/\[(\w+)\]/g, '.$1') // convert indexes to properties
-  // $FlowFixMe
+  // $FlowFixMe[reassign-const] as above
   s = s.replace(/^\./, '') // strip a leading dot
   const a = s.split('.')
   for (let i = 0, n = a.length; i < n; ++i) {
     const k = a[i]
     if (k in o) {
-      // $FlowFixMe
+      // $FlowFixMe[reassign-const] as above
       o = o[k]
     } else {
       return
@@ -44,7 +49,7 @@ const isURL = (str: string) => {
   return str.indexOf('http') >= 0
 }
 
-export async function getService(templateConfig: any, section: string = '', key: mixed = ''): Promise<string> {
+export async function getService(templateConfig: any, section: string = '', key: string | Array<string> = ''): Promise<string> {
   const serviceConfig = templateConfig?.services
 
   if (serviceConfig) {
@@ -74,13 +79,10 @@ export async function getService(templateConfig: any, section: string = '', key:
       if (dataKey === '*') {
         return formatData(data)
       }
-      // $FlowF8ixMe
       let result = ''
       if (Array.isArray(dataKey)) {
         dataKey.forEach((item) => {
-          // $FlowFixMe
-          const value = Object.arrayReference(data, item)
-          // $FlowFixMe
+          const value = ((Object: any).arrayReference: ArrayReferenceFn)(data, item)
           result += value ? value : item
         })
 
@@ -89,8 +91,7 @@ export async function getService(templateConfig: any, section: string = '', key:
         if (data.hasOwnProperty('error')) {
           return JSON.stringify(data.error, null, 1)
         }
-        // $FlowFixMe
-        return Object.arrayReference(data, `${dataKey}`)
+        return ((Object: any).arrayReference: ArrayReferenceFn)(data, `${dataKey}`)
       }
     } catch (error) {
       return error

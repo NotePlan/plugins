@@ -7,6 +7,10 @@
 /**
  * Data structure passed to React windows from the plugin
  */
+/* Data the React window round-trips back to the plugin unchanged. `lastWindowScrollTop` is the one
+ * field the framework itself reads/writes (see Root.jsx); the indexer carries caller-defined extras. */
+export type PassThroughVars = { lastWindowScrollTop?: number, [string]: any }
+
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
   title?: string /* React Window Title */,
@@ -18,7 +22,7 @@ export type PassedData = {
   logProfilingMessage: boolean /* whether you want to see profiling messages on React redraws (not super interesting) */,
   returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,
   componentPath: string /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */,
-  passThroughVars?: any /* any data you want to pass through to the React Window */,
+  passThroughVars?: PassThroughVars /* any data you want to pass through to the React Window */,
 }
 
 /**

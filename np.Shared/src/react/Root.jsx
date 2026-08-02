@@ -29,6 +29,12 @@ declare function sendMessageToPlugin(Array<string | any>): void
  *                             TYPES
  ****************************************************************************************************************************/
 
+// Flow's DOM lib types `document.styleSheets` as a list of `StyleSheet` — the abstract base type, which
+// carries none of the CSS members browsers expose on `CSSStyleSheet`. Flow's own `CSSStyleSheet` is also
+// missing the legacy `rules` alias and the Constructable-Stylesheets `replaceSync()`, so intersect it with
+// the two extras this file uses. Everything else (cssRules, href, title) comes from the real lib types.
+type TCSSStyleSheet = CSSStyleSheet & { +rules: CSSRuleList, +replaceSync: (text: string) => void, ... }
+
 /****************************************************************************************************************************
  *                             IMPORTS
  ****************************************************************************************************************************/
@@ -296,8 +302,9 @@ export function Root(/* props: Props */): Node {
       if (!shouldIgnoreMessage(event) && data) {
         // const str = JSON.stringify(event, null, 4)
         try {
-          // $FlowFixMe
-          const { type, payload } = event.data // remember: event is on prototype and not JSON.stringify-able
+          // `MessageEvent.data` is `mixed` in Flow's DOM lib (any structured-clonable value), so it has to be
+          // widened before it can be destructured. Name the shape we actually send so `type`/`payload` are typed.
+          const { type, payload }: { type: string, payload: any, ... } = (event.data: any) // remember: event is on prototype and not JSON.stringify-able
           if (!type) throw (`onMessageReceived: event.data.type is undefined`, event.data)
           if (!payload) throw (`onMessageReceived: event.data.payload is undefined`, event.data)
 
@@ -463,7 +470,7 @@ export function Root(/* props: Props */): Node {
    */
   function replaceStylesheetContent(oldName: string, newStyles: string) {
     // Convert the styleSheets collection to an array
-    const styleSheetsArray = Array.from(document.styleSheets)
+    const styleSheetsArray: Array<TCSSStyleSheet> = (Array.from(document.styleSheets): any)
 
     // TODO: trying to replace a stylesheet that was loaded as part of the HTML page
     // yields error: "This CSSStyleSheet object was not constructed by JavaScript"
@@ -472,12 +479,10 @@ export function Root(/* props: Props */): Node {
     // Find the stylesheet with the specified name or href
     const oldSheet = styleSheetsArray.find((sheet) => sheet && sheet.title === oldName)
     let wasSaved = false
-    // $FlowIgnore
     if (oldSheet && typeof oldSheet.replaceSync === 'function') {
       // Use replaceSync to replace the stylesheet's content
       logDebug(`Root`, `replaceStylesheetContent: found existing stylesheet "${oldName}" Will try to replace it.`)
       try {
-        // $FlowIgnore
         oldSheet.replaceSync(newStyles)
         wasSaved = true
       } catch (error) {
@@ -505,14 +510,11 @@ export function Root(/* props: Props */): Node {
   function testOutputStylesheets() {
     const styleSheets = document.styleSheets
     for (let i = 0; i < styleSheets.length; i++) {
-      const styleSheet = styleSheets[i]
+      const styleSheet: TCSSStyleSheet = (styleSheets[i]: any)
       try {
-        // $FlowIgnore
         const rules = styleSheet.cssRules || styleSheet.rules
         let cssText = ''
-        // $FlowIgnore
         for (let j = 0; j < rules.length; j++) {
-          // $FlowIgnore
           cssText += rules[j].cssText
           if (cssText.length >= 55) break
         }
@@ -601,12 +603,12 @@ export function Root(/* props: Props */): Node {
       const padding = `${'.'.repeat(10000)}/`
 
       const overrideConsoleMethod = (methodName: string) => {
-        // $FlowIgnore
-        const originalMethod = console[methodName]
+        // Flow's `console` is declared with named members and no string indexer, so a computed
+        // `console[methodName]` read/write cannot be expressed against that type at all.
+        const originalMethod: (...data: Array<any>) => void = (console: any)[methodName]
         originalConsoleMethodsRef.current[methodName] = originalMethod
 
-        // $FlowIgnore
-        console[methodName] = (...args: Array<any>) => {
+        ;(console: any)[methodName] = (...args: Array<any>) => {
           // NotePlan only captures the first 2 arguments, so we append padding to the first argument
           // Convert first arg to string and append padding to ensure it's always captured
           const paddedArgs = [...args]
@@ -636,8 +638,7 @@ export function Root(/* props: Props */): Node {
         logDebug(`Root`, ` logBufferBuster is DISABLED or missing in pluginData`)
         methodsToOverride.forEach((methodName) => {
           if (originalConsoleMethodsRef.current[methodName]) {
-            // $FlowIgnore
-            console[methodName] = originalConsoleMethodsRef.current[methodName]
+            ;(console: any)[methodName] = originalConsoleMethodsRef.current[methodName]
           }
         })
       }

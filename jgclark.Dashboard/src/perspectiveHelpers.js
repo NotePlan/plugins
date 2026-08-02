@@ -75,13 +75,14 @@ Named perspectives
 const pluginID = 'jgclark.Dashboard' // pluginJson['plugin.id']
 
 const standardSettings = cleanDashboardSettingsInAPerspective(
-  [...dashboardSettingDefs, ...dashboardFilterDefs, ...showSectionSettingItems].reduce((acc, s) => {
+  // Annotated accumulator: the keys are TSettingItem.key values, which are only known at runtime, so the
+  // reduce can only produce an indexed object; the cast is what turns that back into TDashboardSettingsIn.
+  ([...dashboardSettingDefs, ...dashboardFilterDefs, ...showSectionSettingItems].reduce((acc: { [string]: any }, s) => {
     if (s.key) {
-      // $FlowIgnore[prop-missing]
       acc[s.key] = s.default ?? true // turns on all settings without a default = all the showSection* settings
     }
     return acc
-  }, {}),
+  }, ({}: { [string]: any })): any),
 )
 
 /**
@@ -97,14 +98,12 @@ export async function getPerspectiveSettingDefaults(): Promise<Array<TPerspectiv
   clo(dashboardSettingsWithPerspectiveDefaults, 'getPerspectiveSettingDefaults')
 
   return [
-    // $FlowIgnore[prop-missing] rest specified later
     {
       name: '-',
       isModified: false,
       dashboardSettings: { ...dashboardSettingsWithPerspectiveDefaults },
       isActive: true,
     },
-    // $FlowIgnore[prop-missing] rest specified later
     {
       name: 'Home',
       isModified: false,
@@ -116,7 +115,6 @@ export async function getPerspectiveSettingDefaults(): Promise<Array<TPerspectiv
       },
       isActive: false,
     },
-    // $FlowIgnore[prop-missing] rest specified later
     {
       name: 'Work',
       isModified: false,
@@ -363,10 +361,11 @@ export function getPerspectiveLiveVsSavedDiff(
     acc[k] = perspectiveDef.dashboardSettings[k]
     return acc
   }, ({}: { [string]: any }))
-  // $FlowIgnore[cannot-spread-indexer]
+  // Cast: spreading an indexed object ({ [string]: any }) last into an object literal is a known Flow
+  // limitation -- it can't prove which explicit keys survive, so the literal gets no inferrable type.
   const activePerspDefDashboardSettingsWithDefaultsAndTAGs = {
     ...activePerspDefDashboardSettingsWithDefaults,
-    ...activePerspDefShowTagSectionObject,
+    ...(activePerspDefShowTagSectionObject: any),
   }
   const cleanedSavedSettings = cleanDashboardSettingsInAPerspective(activePerspDefDashboardSettingsWithDefaultsAndTAGs)
   const diff = compareObjects(cleanedSavedSettings, cleanedSettings, PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT)
@@ -474,7 +473,9 @@ export function getDisplayListOfPerspectiveNames(allDefs: Array<TPerspectiveDef>
       throw new Error(`No existing Perspective settings found.`)
     }
 
-    const options = allDefs.map((def) => ({
+    // Annotated so the array element type is TPerspectiveOptionObject (whose isModified is optional)
+    // rather than the literal's own `isModified: boolean`; arrays are invariant, so the two don't unify.
+    const options: Array<TPerspectiveOptionObject> = allDefs.map((def) => ({
       label: def.name,
       value: def.name,
       isModified: Boolean(def.isModified || false), // Ensure isModified is always a boolean
@@ -486,7 +487,6 @@ export function getDisplayListOfPerspectiveNames(allDefs: Array<TPerspectiveDef>
     } else {
       sortedOptions = [...sortedOptions.filter((obj) => obj.label === '-'), ...sortedOptions.filter((obj) => obj.label !== '-')]
     }
-    // $FlowIgnore
     return sortedOptions
   } catch (err) {
     logError('getDisplayListOfPerspectiveNames', err.message)

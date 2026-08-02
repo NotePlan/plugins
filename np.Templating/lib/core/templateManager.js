@@ -529,7 +529,9 @@ export async function createTemplate(title: string = '', metaData: any, content:
       }
       let templateContent = `---\ntitle: ${noteName || ''}\n${metaTagData.join('\n')}\n---\n`
       templateContent += content
-      // $FlowIgnore
+      // KNOWN BUG - `projectNoteByFilename()` returns `?TNote`, and there is no null check, so a failed/slow note
+      // creation makes this throw (the catch below swallows it and `createTemplate` silently returns false).
+      // $FlowFixMe[incompatible-use]
       note.content = templateContent
       return true
     } else {

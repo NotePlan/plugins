@@ -99,8 +99,9 @@ const sectionIsVisible = (section: TSection, dashboardSettings: TDashboardSettin
   const settingName = section.showSettingName
   if (!settingName) logDebug(`sectionHelpers`, `sectionCode ${sectionCode} has no showSettingName`, section)
   if (!settingName) return true
-  // $FlowIgnore[invalid-computed-prop]
-  const showSetting = sectionCode === 'TAG' ? dashboardSettings[settingName] : dashboardSettings[settingName]
+  // Cast: showSettingName is a dynamic `showTagSection_<tag>` key, so it can only be read through an
+  // indexed type. TDashboardSettings deliberately has no indexer, to keep its keys checked.
+  const showSetting = sectionCode === 'TAG' ? (dashboardSettings: TAnyObject)[settingName] : (dashboardSettings: TAnyObject)[settingName]
   // logDebug('sectionHelpers', `sectionIsVisible ${sectionCode} ${settingName} ${showSetting} returning ${typeof showSetting === 'undefined' || showSetting === true}`)
   return typeof showSetting === 'undefined' || showSetting === true
 }

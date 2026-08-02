@@ -117,8 +117,10 @@ async function validateAndCalculatePeriod(
   if (isRunningFromXCallback) {
     // from periodCodeArg/periodShortCode (arg0)
     // Note: periodShortCode can be week | month | quarter | year | YYYY-MM-DD | all
-    // $FlowIgnore[incompatible-call]
-    [fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = getPeriodStartEndDatesFromPeriodCode(periodShortCode, periodNumber, year, config.excludeToday) // note no await
+    // Cast, not a suppression: periodShortCode is set just above whenever isRunningFromXCallback is true, but Flow still sees 'possibly uninitialized'.
+    // It can't be annotated TPeriodCode outright because the else-branch below reuses the same variable for the calendarTimeframe vocabulary (see TODO).
+    [fromDate, toDate, periodShortCode, periodString, periodAndPartStr] =
+      getPeriodStartEndDatesFromPeriodCode(((periodShortCode: any): TPeriodCode), periodNumber, year, config.excludeToday) // note no await
   } else {
     // or by asking user
     [fromDate, toDate, periodShortCode, periodString, periodAndPartStr, periodNumber] = await getPeriodStartEndDates('Create stats for which period?', config.excludeToday) // note await needed

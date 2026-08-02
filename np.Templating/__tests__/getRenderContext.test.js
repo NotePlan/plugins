@@ -13,8 +13,8 @@ import { CustomConsole } from '@jest/console'
 import { simpleFormatter, DataStore, NotePlan, Editor, CommandBar } from '@mocks/index'
 
 global.NotePlan = new NotePlan()
-// $FlowIgnore[cannot-write]
-globalThis.NotePlan = global.NotePlan
+// `globalThis` is typed by Flow's core libdef and its props are read-only, so the assignment needs a cast
+;(globalThis: any).NotePlan = global.NotePlan
 global.DataStore = DataStore
 global.Editor = Editor
 global.CommandBar = CommandBar
@@ -84,8 +84,7 @@ jest.mock('@helpers/NPEditor', () => ({
 jest.mock(
   'NPTemplating',
   () => {
-    // $FlowIgnore[underconstrained-implicit-instantiation]
-    return jest.requireActual('../lib/NPTemplating').default
+    return jest.requireActual<{ default: any, ... }>('../lib/NPTemplating').default
   },
   { virtual: true },
 )
@@ -222,8 +221,7 @@ describe('getRenderContext', () => {
     })
 
     it('should merge structured userData with methods property', async () => {
-      // $FlowIgnore[underconstrained-implicit-instantiation]
-      const customMethod = jest.fn().mockReturnValue('test result')
+      const customMethod = jest.fn<[], string>().mockReturnValue('test result')
       const userData = {
         methods: {
           calculateTotal: (a: number, b: number) => a + b,
@@ -388,8 +386,7 @@ describe('getRenderContext', () => {
         .join('\n')
       const functionBody = `${contextVars}\nconst moment = params.moment;\n${testCode}`
 
-      // $FlowIgnore[prop-missing]
-      const fn = Function.apply(null, ['params', functionBody])
+      const fn = (Function: any).apply(null, ['params', functionBody])
       const result = fn(context)
 
       expect(result).toBeDefined()
@@ -410,8 +407,7 @@ describe('getRenderContext', () => {
       const contextVars = `const date = params.date; const value = params.value;`
       const functionBody = `${contextVars}\n${testCode}`
 
-      // $FlowIgnore[prop-missing]
-      const fn = Function.apply(null, ['params', functionBody])
+      const fn = (Function: any).apply(null, ['params', functionBody])
       const result = fn(context)
 
       expect(result).toBeDefined()
@@ -424,14 +420,12 @@ describe('getRenderContext', () => {
     it('should handle errors gracefully', async () => {
       // Mock NPTemplating.setup to throw an error
       const originalSetup = NPTemplating.setup
-      // $FlowIgnore[cannot-write]
-      NPTemplating.setup = jest.fn<Array<any>, any>().mockRejectedValue(new Error('Setup failed'))
+      ;(NPTemplating: any).setup = jest.fn<Array<any>, any>().mockRejectedValue(new Error('Setup failed'))
 
       await expect(getRenderContext()).rejects.toThrow('Setup failed')
 
       // Restore original
-      // $FlowIgnore[cannot-write]
-      NPTemplating.setup = originalSetup
+      ;(NPTemplating: any).setup = originalSetup
     })
   })
 })

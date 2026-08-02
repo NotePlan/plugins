@@ -34,7 +34,9 @@ export function validateConfigProperties(config: { [string]: mixed }, validation
   if (propsToValidate.length) {
     propsToValidate.forEach((v) => {
       const isOptional = typeof validations[v] === 'object' && validations[v]?.optional
-      // $FlowIgnore
+      // A validation entry is either a type name/RegExp or a { type, optional } wrapper. Expressing that as a union
+      // still would not let Flow read `.type` after only a `typeof === 'object'` test, so the values stay `mixed`.
+      // $FlowIgnore[incompatible-type]
       const requiredType = isOptional && validations[v]?.type ? validations[v].type : validations[v]
       const configFieldValue = config[v]
 

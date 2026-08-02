@@ -393,15 +393,17 @@ export async function gatherMatchingLines(
     const noteContext =
       n.date == null
         ? `[[${n.title ?? ''}]]`
-        : dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
-        ? // $FlowIgnore(incompatible-call)
+        : // The `n.date == null` test above guards all three branches, but the dateStyle.startsWith() call below
+          // invalidates Flow's property refinement, so `n.date` reads as `Date | void` again. A real fix means hoisting it to a local const.
+          dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
+        ? // $FlowIgnore[incompatible-call]
           ` > ${dt.hyphenatedDate(n.date)} `
         : dateStyle === 'date'
-        ? // $FlowIgnore(incompatible-call)
+        ? // $FlowIgnore[incompatible-call]
           ` (${toLocaleDateTimeString(n.date)})`
         : dateStyle === 'at'
-        ? // $FlowIgnore(incompatible-call)
-              ` @${dt.hyphenatedDate(n.date)} `
+        ? // $FlowIgnore[incompatible-call]
+          ` @${dt.hyphenatedDate(n.date)} `
         : ''
 
     // set up regex for searching, now with word boundaries on either side
@@ -966,9 +968,11 @@ export function getTagDetails(para: TParagraph, asOfDayString?: string = ''): Ov
   for (let i = 0; i < typeNames.length; i++) {
     // const type = typeNames[i]
     const result = typeFuncs[i](para, true, asOfDayString)
-    // $FlowIgnore - flow doesn't know that result is an OverdueDetails object
+    // Passing returnDetails=true always yields OverdueDetails, but the hasOverdue*Tag() functions are declared
+    // `boolean | OverdueDetails` and Flow has no overloads/dependent return types to express that.
+    // $FlowIgnore[prop-missing]
     if ((result && result.isOverdue) || result.overdueLinks?.length || result.notOverdueLinks?.length) {
-      // $FlowIgnore - flow doesn't know that result is an OverdueDetails object
+      // $FlowIgnore[incompatible-return] see above: `result` is an OverdueDetails here, but its declared type still includes boolean
       return result
     }
   }
@@ -1017,8 +1021,10 @@ export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false, 
 export function getOverdueTags(para: TParagraph, asOfDayString?: string = ''): string[] {
   const funcs = [hasOverdueDayTag, hasOverdueWeekTag, hasOverdueMonthTag, hasOverdueQuarterTag, hasOverdueYearTag]
   return funcs.reduce((acc, func) => {
+    // The declared return of the hasOverdue*Tag() functions is `boolean | OverdueDetails`, so `overdueLinks` has an unknown
+    // element type and cannot be spread. Only overloads / dependent return types would fix this properly.
     const tagList = func(para, true, asOfDayString)?.overdueLinks || []
-    // $FlowIgnore - see above
+    // $FlowIgnore[incompatible-type]
     return [...acc, ...tagList]
   }, [])
 }
@@ -1251,6 +1257,8 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
         match = false
       }
     } else {
+      // `field` is a plain string here (the 'content'/'rawContent' branches above refine it to a literal), and TParagraph
+      // is an interface with no index signature. Typing `fields` as $Keys<TParagraph> would still not give Flow a computed-access rule.
       // $FlowIgnore[prop-missing]
       if (typeof paragraph[field] === 'undefined') {
         throw `paragraphMatches: paragraph.${field} is undefined. You must pass in the correct fields to match. 'fields' is set to ${JSP(fields)}, but paragraph=${JSP(
@@ -1260,11 +1268,11 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
       // Check if the field value is truncated and use startsWith accordingly
       if (typeof fieldsObject[field] === 'string' && fieldsObject[field].endsWith('...')) {
         const fieldTruncatedContent = fieldsObject[field].slice(0, -3)
-        // $FlowIgnore
+        // $FlowIgnore[prop-missing] see above
         if (!paragraph[field].startsWith(fieldTruncatedContent)) {
           match = false
         }
-        // $FlowIgnore
+        // $FlowIgnore[prop-missing] see above
       } else if (paragraph[field] !== fieldsObject[field]) {
         match = false
       }

@@ -86,7 +86,9 @@ export const fieldSorter =
         if (aValue === bValue) return 0
         if (aValue == null || aValue === 'NaN') return isDesc ? -dir : dir //null or undefined always come last
         if (bValue == null || bValue === 'NaN') return isDesc ? dir : -dir
-        // $FlowIgnore - flow complains about comparison of non-identical types, but I am trapping for that
+        // `aValue`/`bValue` are string | number | null; the `typeof aValue === typeof bValue` test guarantees they are
+        // comparable at runtime but is not a Flow refinement, and there is no type that expresses 'same type as'.
+        // $FlowIgnore[invalid-compare]
         return typeof aValue === typeof bValue ? (aValue > bValue ? dir : -dir) : 0
       })
       .reduce((p, n) => (p ? p : n), 0)
@@ -204,7 +206,9 @@ export function addPriorityToParagraphs(paras: Array<TParagraph>): Array<any> {
   // Temporarily extend TParagraph with the task's priority
   for (let c = 0; c < paras.length; c++) {
     const thisPriority = getNumericPriorityFromPara(paras[c])
-    // $FlowIgnore[prop-missing] - needed as we're extending TParagraph type
+    // Deliberately monkey-patches an extra field onto TParagraph (see comment above); no real type can describe that,
+    // which is why the return type is Array<any>. The typed alternative is SortableParagraphSubset.
+    // $FlowIgnore[prop-missing]
     paras[c].priority = thisPriority
   }
   return paras

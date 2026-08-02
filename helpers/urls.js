@@ -63,15 +63,17 @@ export function findURLsInText(text: string, removeSubdomain: boolean = false): 
 
       // Process markdown URLs first and replace them with placeholders in the line.
       while ((match = markdownURLPattern.exec(line)) !== null) {
+        // The `!== null` in the while-condition does not survive as a refinement on `match` inside the body
+        // (Flow havocs it because `match` is assigned in the condition), so it stays ?RegExp$matchResult.
         // $FlowIgnore[incompatible-use]
         links.push(processURL(match[2], match[1], i, removeSubdomain))
-        // $FlowIgnore[incompatible-use]
+        // $FlowIgnore[incompatible-use] see above
         line = line.replace(match[0], 'MARKDOWN_LINK_PLACEHOLDER')
       }
 
       // Process bare URLs.
       while ((match = bareURLPattern.exec(line)) !== null) {
-        // $FlowIgnore[incompatible-use]
+        // $FlowIgnore[incompatible-use] see above
         links.push(processURL(match[1], null, i, removeSubdomain))
       }
     }

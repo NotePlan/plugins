@@ -20,23 +20,19 @@ describe('promptTag and promptMention functionality', () => {
 
     // Mock CommandBar methods for all tests
     global.CommandBar = {
-      // $FlowFixMe - Flow doesn't handle Jest mocks well
-      textPrompt: jest.fn().mockImplementation((title, message, defaultValue) => {
+      textPrompt: jest.fn<[string, string, string | void], Promise<string | false>>().mockImplementation((title, message, defaultValue) => {
         return Promise.resolve('Test Response')
       }),
-      // $FlowFixMe - Flow doesn't handle Jest mocks well
-      showOptions: jest.fn().mockImplementation((options, message) => {
+      showOptions: jest.fn<[Array<string>, string], Promise<{ index: number, value: string }>>().mockImplementation((options, message) => {
         return Promise.resolve({
           index: 0,
           value: options[0],
         })
       }),
-      // $FlowFixMe - Flow doesn't handle Jest mocks well
-      prompt: jest.fn().mockImplementation((title, message, options) => {
+      prompt: jest.fn<[string, string, Array<string> | void], Promise<number>>().mockImplementation((title, message, options) => {
         return Promise.resolve(0)
       }),
-      // $FlowFixMe - Flow doesn't handle Jest mocks well
-      showInput: jest.fn().mockImplementation((message, placeholder) => {
+      showInput: jest.fn<[string, string], Promise<string>>().mockImplementation((message, placeholder) => {
         return Promise.resolve('Test Input')
       }),
     }

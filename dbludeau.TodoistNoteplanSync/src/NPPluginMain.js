@@ -46,15 +46,16 @@ const setup: {
   teamAccount: boolean,
   addUnassigned: boolean,
   header: string,
-  newFolder: any,
-  newToken: any,
+  // the following are write-only aliases: each is backed by a setter that normalises the value into one of the fields above
+  newFolder: string,
+  newToken: string,
   // useTeamAccount is not in the object literal below; it is created on first write by the teamAccount setter
-  useTeamAccount?: any,
-  syncDates: any,
-  syncPriorities: any,
-  syncTags: any,
-  syncUnassigned: any,
-  newHeader: any,
+  useTeamAccount?: boolean,
+  syncDates: boolean,
+  syncPriorities: boolean,
+  syncTags: boolean,
+  syncUnassigned: boolean,
+  newHeader: string,
 } = {
   token: '',
   folder: 'Todoist',
@@ -79,7 +80,10 @@ const setup: {
     // remove leading and tailing slashes
     passedFolder = passedFolder.replace(/\/+$/, '')
     passedFolder = passedFolder.replace(/^\/+/, '')
-    // $FlowIgnore[object-this-reference] this setter is only ever reached as `setup.newFolder = x`, so `this` is `setup`
+    // No annotation can express this: Flow bans `this` in object-literal methods outright, and rejects a `this` parameter on a
+    // setter ("A setter cannot have a `this` parameter"). Only rewriting `this` as `setup` (or making this object a class) would
+    // type, and that is a code change, not a type change. This setter is only ever reached as `setup.newFolder = x`, so `this` is `setup`.
+    // $FlowIgnore[object-this-reference]
     this.folder = passedFolder
   },
   /**
@@ -91,7 +95,7 @@ const setup: {
   /**
    * @param {boolean} passedSyncPriorities
    */
-  set syncPriorities(passedSyncPriorities: true) {
+  set syncPriorities(passedSyncPriorities: boolean) {
     setup.addPriorities = passedSyncPriorities
   },
   /**
@@ -104,14 +108,14 @@ const setup: {
    * @param {boolean} passedTeamAccount
    */
   set teamAccount(passedTeamAccount: boolean) {
-    // $FlowIgnore[object-this-reference] this setter is only ever reached as `setup.teamAccount = x`, so `this` is `setup`
+    // $FlowIgnore[object-this-reference] see the note on the newFolder setter above: Flow has no `this` annotation for object-literal setters
     this.useTeamAccount = passedTeamAccount
   },
   /**
    * @param {boolean} passedSyncUnassigned
    */
   set syncUnassigned(passedSyncUnassigned: boolean) {
-    // $FlowIgnore[object-this-reference] this setter is only ever reached as `setup.syncUnassigned = x`, so `this` is `setup`
+    // $FlowIgnore[object-this-reference] see the note on the newFolder setter above: Flow has no `this` annotation for object-literal setters
     this.addUnassigned = passedSyncUnassigned
   },
   /**

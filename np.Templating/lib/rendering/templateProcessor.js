@@ -664,7 +664,11 @@ export async function preProcessCalendar(tag: string = ''): Promise<string> {
       logDebug(pluginJson, `preProcessCalendar: Looking up calendar note for: ${noteName} (original: ${noteNameWithPossibleDashes})`)
       const calendarNote = await DataStore.calendarNoteByDateString(noteName)
       if (typeof calendarNote !== 'undefined') {
-        // $FlowIgnore
+        // KNOWN BUG - `calendarNoteByDateString()` returns `?TNote`, so this guard misses the `null` case and the read
+        // throws a TypeError; and `TNote.content` is `string | void`, so this can also resolve `undefined` out of a
+        // function declared `Promise<string>`. Both need a runtime guard change, not a type change.
+        // $FlowFixMe[incompatible-use]
+        // $FlowFixMe[incompatible-return]
         return calendarNote.content
       } else {
         return `**An error occurred loading note "${noteName}"**`
@@ -1840,8 +1844,8 @@ export async function execute(templateData: string = '', sessionData: any, templ
           result = await templatingEngine.render(executeCodeBlock, processedSessionData)
           processedTemplateData = processedTemplateData.replace(codeBlock, result)
         } else {
-          // $FlowIgnore
-          const fn = Function.apply(null, ['params', executeCodeBlock])
+          // Flow's `Function` libdef has no call signature on its statics, so `Function.apply` cannot be described
+          const fn = (Function: any).apply(null, ['params', executeCodeBlock])
           result = fn(processedSessionData)
 
           if (typeof result === 'object') {

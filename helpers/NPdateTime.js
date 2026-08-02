@@ -321,10 +321,12 @@ export async function getPeriodStartEndDates(
 ): Promise<[Date, Date, TPeriodCode, string, string, number]> {
   let periodShortCode: TPeriodCode
   // If we're passed the period, then use that, otherwise ask user
-  // $FlowFixMe[incompatible-type]
+  // $FlowIgnore[incompatible-type] '' is not a member of TPeriodCode, so Flow rejects the comparison
   if (periodShortCodeArg && periodShortCodeArg !== '') {
     // It may come with surrounding quotes, so remove those
-    // $FlowFixMe[incompatible-type]
+    // trimAnyQuotes() returns plain `string`; a generic <T: string>(s: T): T signature would be unsound for a trim,
+    // so there is no real type that carries TPeriodCode through it.
+    // $FlowIgnore[incompatible-type]
     periodShortCode = trimAnyQuotes(periodShortCodeArg)
   } else {
     // Ask user what date interval to do tag counts for
@@ -610,7 +612,7 @@ export async function getPeriodStartEndDates(
     toDate = toDateMom.toDate()
   }
   logDebug('getPeriodStartEndDates', `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString} / ${periodAndPartStr}`)
-  // $FlowFixMe[incompatible-return]
+  // $FlowIgnore[incompatible-return] see above: `periodShortCode` has widened to string via trimAnyQuotes()/chooseOption()
   return [fromDate, toDate, periodShortCode, periodString, periodAndPartStr, periodNumber]
 }
 
@@ -1515,6 +1517,8 @@ export function getDueDateOrStartOfCalendarDate(p: TParagraph, useISOFormatOutpu
         throw new Error(`No note found for para {${p.content}}`)
       }
       if (p.note.type === 'Calendar') {
+        // `p.note` is null-checked just above, but the `p.note.type === 'Calendar'` read invalidates Flow's refinement
+        // of `p.note.title`, which is ?string. A real fix means hoisting the note to a local const.
         // $FlowIgnore[incompatible-call]
         const dueDate = getFirstDateInPeriod(p.note.title)
         if (dueDate) {

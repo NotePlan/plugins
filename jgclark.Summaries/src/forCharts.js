@@ -113,7 +113,6 @@ export async function generateTaskCompletionStats(
     const dateCounterMap = new Map < string, number> ()
     // Set up a function that sums occurences(in value) of key(date).
     // const addToObj = key => {
-    //   // $FlowIgnore[unsafe-addition]
     //   dateCounterMap.set(key, (dateCounterMap.has(key) ? (dateCounterMap.get(key)) + 1 : 1))
     // }
 
@@ -129,10 +128,10 @@ export async function generateTaskCompletionStats(
     }
 
     // Function that sums occurences(in value) of key(date).
-    // $FlowFixMe[missing-local-annot]
-    const addToObj = key => {
-      // $FlowIgnore[unsafe-addition]
-      dateCounterMap.set(key, (dateCounterMap.has(key) && !isNaN(dateCounterMap.get(key)) ? (dateCounterMap.get(key)) + 1 : 1))
+    const addToObj = (key: string) => {
+      // Map.get() is always `V | void` in Flow, and the has()/isNaN() test above does not refine it, so the real element type (number) can
+      // only be asserted here. Cast rather than a line suppression, so any other error on this line still shows up.
+      dateCounterMap.set(key, (dateCounterMap.has(key) && !isNaN(dateCounterMap.get(key)) ? ((dateCounterMap.get(key): any): number) + 1 : 1))
       // logDebug('', `\tupdated ${key} to ${String(dateCounterMap.get(key))}`)
     }
 
@@ -169,8 +168,8 @@ export async function generateTaskCompletionStats(
     logDebug('generateTaskCompletionStats', `-> ${totalProjectDone} done tasks from all Project notes`)
 
     // Do completed task (not checklist) counts from all Calendar Notes from that period
-    // $FlowIgnore[incompatible-call]
-    const periodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(n.date), fromDateStr, toDateStr))
+    // n.date is `?Date` on a note, but toISODateString() takes a non-maybe Date. Calendar notes always have one, so the real type is asserted here.
+    const periodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(((n.date: any): Date)), fromDateStr, toDateStr))
     if (periodCalendarNotes.length > 0) {
       for (const n of periodCalendarNotes) {
         const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
@@ -197,8 +196,8 @@ export async function generateTaskCompletionStats(
       const earlierFromDateStr = moment(fromDateStr, 'YYYY-MM-DD').subtract(MONTHS_TO_LOOK_BACK_FOR_TASKS, 'months').format('YYYY-MM-DD')
       logDebug('generateTaskCompletionStats', `Looking back ${MONTHS_TO_LOOK_BACK_FOR_TASKS} months for tasks completed on dates later than their daily note`)
       const earlierToDateStr = moment(fromDateStr, 'YYYY-MM-DD').subtract(1, 'days').format('YYYY-MM-DD')
-      // $FlowIgnore[incompatible-call]
-      const beforePeriodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(n.date), earlierFromDateStr, earlierToDateStr))
+      // As above: n.date is `?Date` in the API types, but a calendar note always has one.
+      const beforePeriodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(((n.date: any): Date)), earlierFromDateStr, earlierToDateStr))
       logDebug('generateTaskCompletionStats', `Summarising for ${beforePeriodCalendarNotes.length} calendar notes (looking 6 months before given fromDate)`)
 
       for (const n of beforePeriodCalendarNotes) {

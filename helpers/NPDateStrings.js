@@ -63,29 +63,28 @@ export function getRelativeDatesWithNotes(useISODailyDates: boolean = false): Ar
     }
 
     // Weeks: NP weeks count differently from ISO/moment
-    // $FlowIgnore[incompatible-type]
-    let thisNPWeekInfo: NotePlanWeekInfo = getNPWeekData(new Date())
+    // KNOWN BUG - getNPWeekData() returns NotePlanWeekInfo | null, so `thisNPWeekInfo` is correctly maybe-typed here,
+    // but every `.weekString` read below is unchecked. On a null return this throws and is swallowed by the outer catch.
+    // The fix is a null guard per read (or a non-null-returning variant of getNPWeekData), not a different annotation.
+    let thisNPWeekInfo: ?NotePlanWeekInfo = getNPWeekData(new Date())
+    // $FlowIgnore[incompatible-use]
     thisDateStr = thisNPWeekInfo.weekString
     relativeDates.push({ relName: 'this week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    // $FlowIgnore[incompatible-type]
     thisNPWeekInfo = getNPWeekData(new Date(), -1)
     // $FlowIgnore[incompatible-use]
     thisDateStr = thisNPWeekInfo.weekString
     relativeDates.push({ relName: 'last week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    // $FlowIgnore[incompatible-type]
     thisNPWeekInfo = getNPWeekData(new Date(), 1)
     // $FlowIgnore[incompatible-use]
     thisDateStr = thisNPWeekInfo.weekString
     relativeDates.push({ relName: 'next week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     for (let i = -11; i < -1; i++) {
-      // $FlowIgnore[incompatible-type]
       thisNPWeekInfo = getNPWeekData(new Date(), i)
       // $FlowIgnore[incompatible-use]
       thisDateStr = thisNPWeekInfo.weekString
       relativeDates.push({ relName: `${-i} weeks ago`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     }
     for (let i = 2; i < 11; i++) {
-      // $FlowIgnore[incompatible-type]
       thisNPWeekInfo = getNPWeekData(new Date(), i)
       // $FlowIgnore[incompatible-use]
       thisDateStr = thisNPWeekInfo.weekString
@@ -127,6 +126,8 @@ export function getRelativeDatesWithNotes(useISODailyDates: boolean = false): Ar
     return relativeDates
   } catch (err) {
     logError('NPDateStrings::getRelativeDatesWithNotes', `${err.name}: ${err.message}`)
+    // KNOWN BUG - this returns an array containing an empty object, not an empty array, so callers receive one
+    // bogus RelativeDateWithNote whose relName/dateStr/note are all undefined. Should be `return []`.
     // $FlowIgnore[prop-missing]
     return [{}]
   }
@@ -172,29 +173,28 @@ export function getRelativeDatesUsingNPAPI(useISODailyDates: boolean = false): A
     }
 
     // Weeks: NP weeks count differently from ISO/moment
-    // $FlowIgnore[incompatible-type]
-    let thisNPWeekInfo: NotePlanWeekInfo = getNPWeekData(new Date())
+    // KNOWN BUG - getNPWeekData() returns NotePlanWeekInfo | null, so `thisNPWeekInfo` is correctly maybe-typed here,
+    // but every `.weekString` read below is unchecked. On a null return this throws and is swallowed by the outer catch.
+    // The fix is a null guard per read (or a non-null-returning variant of getNPWeekData), not a different annotation.
+    let thisNPWeekInfo: ?NotePlanWeekInfo = getNPWeekData(new Date())
+    // $FlowIgnore[incompatible-use]
     thisDateStr = thisNPWeekInfo.weekString
     relativeDates.push({ relName: 'this week', dateStr: thisDateStr })
-    // $FlowIgnore[incompatible-type]
     thisNPWeekInfo = getNPWeekData(new Date(), -1)
     // $FlowIgnore[incompatible-use]
     thisDateStr = thisNPWeekInfo.weekString
     relativeDates.push({ relName: 'last week', dateStr: thisDateStr })
-    // $FlowIgnore[incompatible-type]
     thisNPWeekInfo = getNPWeekData(new Date(), 1)
     // $FlowIgnore[incompatible-use]
     thisDateStr = thisNPWeekInfo.weekString
     relativeDates.push({ relName: 'next week', dateStr: thisDateStr })
     for (let i = -11; i < -1; i++) {
-      // $FlowIgnore[incompatible-type]
       thisNPWeekInfo = getNPWeekData(new Date(), i)
       // $FlowIgnore[incompatible-use]
       thisDateStr = thisNPWeekInfo.weekString
       relativeDates.push({ relName: `${-i} weeks ago`, dateStr: thisDateStr })
     }
     for (let i = 2; i < 11; i++) {
-      // $FlowIgnore[incompatible-type]
       thisNPWeekInfo = getNPWeekData(new Date(), i)
       // $FlowIgnore[incompatible-use]
       thisDateStr = thisNPWeekInfo.weekString

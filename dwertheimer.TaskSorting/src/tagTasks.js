@@ -100,7 +100,11 @@ async function copyLineForTags(typ: 'hashtags' | 'mentions'): Promise<void> {
           tagsInQuestion.push((tagsInQuestion.shift(): any))
           const updatedText = appendTagsToText(contentWithoutTheseTags, {
             ...existingTags,
-            //$FlowIgnore
+            // Flow only allows a single literal computed key, and `typ` is 'hashtags' | 'mentions'. Neither a
+            // contextual `Partial<TagsList>` nor a `{ [string]: Array<string> }` annotation helps (the latter then
+            // trips cannot-spread-indexer). The only way to type this for real is to branch on `typ` and write the
+            // key literally, which restructures runtime code.
+            // $FlowIgnore[invalid-computed-prop]
             ...{ [typ]: tagsInQuestion },
           })
           if (updatedText) {

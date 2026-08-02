@@ -151,11 +151,12 @@ export async function getSearchSettings(): Promise<any> {
  * @returns {Array<ParagraphType>}
  */
 export function getParaTypesFromString(paraTypesAsStr: string): Array<ParagraphType> {
+  // Cast, not a suppression: the setting/argument is free text, so the real element type (ParagraphType, a union of string literals)
+  // can only be asserted here. Splitting a string can never produce it without a runtime validation step.
   const paraTypesToInclude: Array<ParagraphType> = (Array.isArray(paraTypesAsStr))
     ? paraTypesAsStr
     : (typeof paraTypesAsStr === 'string')
-      // $FlowFixMe[incompatible-type]
-      ? stringListOrArrayToArray(paraTypesAsStr, ',')
+      ? ((stringListOrArrayToArray(paraTypesAsStr, ','): any): Array<ParagraphType>)
       : []
   logDebug('getParaTypesFromString', `'${paraTypesAsStr ?? '(null)'}' -> para types [${paraTypesToInclude.toString()}]`)
   return paraTypesToInclude
@@ -975,6 +976,12 @@ export async function runExtendedSearch(
   catch (err) {
     logError('runExtendedSearch', err.message)
     // const emptyResultObject = { searchTerm: '', resultsLines: [], resultCount: 0 }
+    // KNOWN BUG - this `return null` is not survivable by the caller. runExtendedSearches() assigns the result to
+    // `const resultObject: resultObjectType` and immediately does `termsResults.push(resultObject)` then `resultObject.resultCount`,
+    // so any error caught here turns into a TypeError on null one line later rather than a handled empty result.
+    // The honest return type is `Promise<?resultObjectType>`; writing that makes Flow demand the null guard that is genuinely missing.
+    // Suppression retained deliberately so the bug is not hidden by a type change: the fix is a code fix (return an empty
+    // resultObjectType here, or guard in runExtendedSearches()), not an annotation.
     // $FlowFixMe[incompatible-return]
     return null // for completeness
   }
@@ -1241,6 +1248,11 @@ export async function makeAnySyncs(input: resultOutputType): Promise<resultOutpu
   }
   catch (err) {
     logError('makeAnySyncs', err.message)
+    // KNOWN BUG - as above. runExtendedSearches() returns this value straight on as `Promise<resultOutputType>`, so on error the null
+    // escapes to saveSearch()/flexiSearch(), which immediately read `resultSet.resultCount` and throw a TypeError.
+    // The honest return type is `Promise<?resultOutputType>`; writing that makes Flow demand the null guard that is genuinely missing.
+    // Suppression retained deliberately so the bug is not hidden by a type change: the fix is a code fix (return `input` unchanged
+    // here, or guard in runExtendedSearches()), not an annotation.
     // $FlowFixMe[incompatible-return]
     return null
   }

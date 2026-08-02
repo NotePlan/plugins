@@ -667,8 +667,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
 export async function redisplayProjectListHTML(): Promise<void> {
   try {
     // Re-load the saved HTML if it's available.
-    // $FlowIgnore[incompatible-type]
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     // Try loading HTML saved copy
@@ -775,9 +774,9 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
 
 /**
  * Finish a project review -- private core logic used by 2 functions.
- * @param (CoreNoteFields) note - The note to finish
+ * @param (TNote) note - The note to finish
  */
-async function finishReviewCoreLogic(note: CoreNoteFields, scrollPos: number = 0): Promise<void> {
+async function finishReviewCoreLogic(note: TNote, scrollPos: number = 0): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
@@ -788,7 +787,6 @@ async function finishReviewCoreLogic(note: CoreNoteFields, scrollPos: number = 0
     // If we're interested in Next Actions, and there are open items in the note, check to see if one is now set.
     // But if the note is marked as sequential, then no need to check.
     const numOpenItems = numberOfOpenItemsInNote(note)
-    // $FlowIgnore[prop-missing]
     const isSequential = config.sequentialTag && isProjectNoteIsMarkedSequential(note, config.sequentialTag)
     const runNextActionCheck = !isSequential && config.nextActionTags.length > 0 && numOpenItems > 0
     const nextActionTagLineIndexes: Array<number> = []
@@ -1070,10 +1068,10 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
 /**
  * Skip a project review, moving it forward to a specified date/interval. 
  * Note: private core logic used by 2 functions.
- * @param (CoreNoteFields) note
+ * @param (TNote | TEditor) note
  * @param (string?) skipIntervalOrDate (optional)
  */
-async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: string = '', scrollPos: number = 0): Promise<void> {
+async function skipReviewCoreLogic(note: TNote | TEditor, skipIntervalOrDate: string = '', scrollPos: number = 0): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (config == null) throw new Error('No config found. Stopping.')
@@ -1245,7 +1243,7 @@ export async function setNewReviewInterval(noteArg?: TNote, scrollPos: number = 
     const config: ?ReviewConfig = await getReviewSettings()
     if (config == null) throw new Error('No config found. Stopping.')
     logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
-    const note: CoreNoteFields = noteArg ? noteArg : Editor
+    const note: TNote | TEditor = noteArg ? noteArg : Editor
     if (!note || note.type !== 'Notes') {
       await showMessage(`The current Editor note doesn't contain a project note.`, 'OK, thanks', 'Set new review interval')
       throw new Error(`Not in a valid project note. Stopping.`)

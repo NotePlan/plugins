@@ -184,7 +184,10 @@ export function paragraphUpdateReceived(data: { rows: Array<any>, field: string 
       clo(row, `paragraphUpdateReceived getting row of ${rows.length} (${row.content})`)
       const para = getParagraphFromStaticObject(row)
       if (para) {
-        // $FlowFixMe
+        // NotePlan's Paragraph is a native class with no indexer, so a computed write cannot be typed. Narrowing
+        // `field` to the values actually sent ('type' | 'content', see react/WebView.jsx) does not help either:
+        // a union computed key then trips invalid-computed-prop instead.
+        // $FlowFixMe[prop-missing]
         para[field] = row[field]
         // const val = { action: 'set', changed: para }
         if (para && para.filename) {

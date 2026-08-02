@@ -14,11 +14,12 @@ import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
  * Entry point for extended search where all the parameters are supplied.
  * @param {string} searchTerms as a string with items separated by spaces, to suit taking from a search box.
  * @param {SearchOptions} searchOptions object for various settings
+ * @returns {Promise<?resultOutputType>} null if the search could not be run
  */
 export async function extendedSearch(
   searchTerms: string,
   searchOptions: TSearchOptions,
-): Promise<resultOutputType> {
+): Promise<?resultOutputType> {
   try {
     // get relevant settings
     const config = await getSearchSettings()
@@ -55,7 +56,6 @@ export async function extendedSearch(
   }
   catch (err) {
     logError(pluginJson, err.message)
-    // $FlowFixMe[incompatible-return]
     return null
   }
 }

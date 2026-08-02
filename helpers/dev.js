@@ -903,6 +903,7 @@ export function logDebug(pluginInfo: any, message: any = '', ...args: Array<any>
 export function timer(startTime: Date): string {
   const timeStart = startTime ?? new Date()
   const timeEnd = new Date()
+  // Date-minus-Date is valid JS but Flow has no type for it, so this cannot be expressed without changing the code.
   // $FlowIgnore[unsafe-arithmetic]
   const difference = timeEnd - timeStart
   const diffText = `${difference.toLocaleString()}ms`
@@ -922,6 +923,7 @@ export function timer(startTime: Date): string {
  * @param {number} warningThreshold - optional duration in milliseconds: if the timer is more than this it will log with added warning symbol.
  */
 export function logTimer(functionName: string, startTime: Date, explanation: string = '', warningThreshold?: number): void {
+  // Date-minus-Date is valid JS but Flow has no type for it, so this cannot be expressed without changing the code.
   // $FlowIgnore[unsafe-arithmetic]
   const difference = new Date() - startTime
   const diffTimeText = `${difference.toLocaleString()}ms`

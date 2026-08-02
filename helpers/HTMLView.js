@@ -505,7 +505,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       let winOptions: HtmlWindowOptions = {}
 
       // First set to the values set in the opts object, using x/y/w/h if available, or if not, then use paddingWidth/paddingHeight to fill the screen other than this padding.
-      winOptions = {
+      winOptions = ({
         x: opts.x ?? (screenWidth - (screenWidth - (opts.paddingWidth ?? 0) * 2)) / 2,
         y: opts.y ?? (screenHeight - (screenHeight - (opts.paddingHeight ?? 0) * 2)) / 2,
         width: opts.width ?? screenWidth - (opts.paddingWidth ?? 0) * 2,
@@ -513,14 +513,14 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         shouldFocus: opts.shouldFocus,
         id: cId, // TODO: don't need both ... but trying to work out which is the current one for the API
         windowId: cId,
-      }
+      }: HtmlWindowOptions)
 
       // Now override with saved x/y/w/h for this window if wanted, and if available
       if (opts.reuseUsersWindowRect && cId) {
         // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
         const storedRect = getStoredWindowRect(cId)
         if (storedRect) {
-          winOptions = {
+          winOptions = ({
             x: storedRect.x,
             y: storedRect.y,
             width: storedRect.width,
@@ -528,7 +528,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
             shouldFocus: opts.shouldFocus,
             id: cId, // TODO: don't need both ... but trying to work out which is the current one for the API
             windowId: cId,
-          }
+          }: HtmlWindowOptions)
           logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
         }
       }
@@ -568,19 +568,12 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       }
       if (useMainWindow) {
         // Split window only available on macOS
-        // $FlowFixMe[prop-missing] - splitView is an optional property in HtmlWindowOptions, and flow doesn't like it
         winOptions.splitView = 'splitView' in opts && NotePlan.environment.platform === 'macOS' ? opts.splitView : false
-        // $FlowFixMe[prop-missing] - as above
         winOptions.icon = 'icon' in opts ? opts.icon : ''
-        // $FlowFixMe[prop-missing] - as above
         winOptions.iconColor = 'iconColor' in opts ? opts.iconColor : ''
-        // $FlowFixMe[prop-missing] - as above
         winOptions.autoTopPadding = 'autoTopPadding' in opts ? opts.autoTopPadding : true
-        // $FlowFixMe[prop-missing] - as above
         winOptions.showReloadButton = 'showReloadButton' in opts ? opts.showReloadButton : false
-        // $FlowFixMe[prop-missing] - as above
         winOptions.reloadPluginID = ("reloadPluginID" in opts) ? opts.reloadPluginID : ''
-        // $FlowFixMe[prop-missing] - as above
         winOptions.reloadCommandName = ("reloadCommandName" in opts) ? opts.reloadCommandName : ''
 
         logDebug('showHTMLV2', `- Showing in main window with options: ${JSON.stringify(winOptions)}`)

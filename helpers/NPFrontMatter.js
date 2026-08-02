@@ -551,7 +551,8 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         logDebug('ensureFrontmatter', `front to add: "${fm}"`)
         note.insertParagraph(fm, 0, 'text')
       }
-      // $FlowIgnore
+      // Deliberate duck-type test for the Editor: CoreNoteFields has no `note` property, and there is no Flow type for 'either shape'.
+      // $FlowIgnore[prop-missing]
       if (note.note) {
         // we must be looking at the Editor (because it has a note property)
         logDebug(
@@ -1008,7 +1009,7 @@ export function normalizeValue(value: mixed): string {
  * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in newAttributes (default: false)
  * @returns {boolean} - Whether the front matter was updated successfully.
  */
-export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
+export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
   try {
     clo(newAttributes, `updateFrontMatterVars: newAttributes = `)
     logDebug('updateFrontMatterVars', `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs before ensureFrontmatter`)
@@ -1085,7 +1086,8 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       // The frontmatterAttributes setter only works with macOS >= 14 and iOS >= 16
       // and only works with the Editor
       const includingMissingAttributes = deleteMissingAttributes ? normalizedNewAttributes : { ...existingAttributes, ...normalizedNewAttributes }
-      // $FlowIgnore
+      // The libdef declares `+frontmatterAttributes` (read-only); NP's docs say the Editor setter is supported on macOS >= 14 / iOS >= 16.
+      // $FlowIgnore[cannot-write]
       note.frontmatterAttributes = includingMissingAttributes
       logDebug('updateFrontMatterVars', `updateFrontMatterVars: writing frontmatterAttributes to EDITOR note using setter`)
       return true

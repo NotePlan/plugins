@@ -71,7 +71,10 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
     includeAllTodos: 'boolean',
   }
   try {
-    // $FlowIgnore
+    // AutoTimeBlockingConfig's typed props are invariant against the `mixed` indexer value of the declared param.
+    // Real fix lives in helpers/config.js: validateConfigProperties() hands back the very object it was given (`return config`),
+    // so it should be `<TConfig: { [string]: mixed }>(config: TConfig, validations: { [string]: mixed }) => TConfig`.
+    // $FlowFixMe[incompatible-call]
     const validatedConfig = validateConfigProperties(config, configTypeCheck)
     if (validatedConfig.checkedItemChecksOriginal && (validatedConfig.todoChar !== '+' || validatedConfig.includeLinks !== 'Pretty Links')) {
       throw new Error(
@@ -83,6 +86,9 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
         `Your AutoTimeBlocking Tag must be different from your NotePlan Preferences 'Timeblock Must Contain' setting. /ATB has to be able to identify the items that were created previously by the plugin so it can delete and re-generate them.`,
       )
     }
+    // Kept bare because two codes fire here (incompatible-indexer and incompatible-return). Same root cause as the
+    // call above: validateConfigProperties() launders AutoTimeBlockingConfig through `{ [string]: mixed }`.
+    // Making that helper generic would type this return with no suppression at all.
     // $FlowIgnore
     return validatedConfig
   } catch (error) {

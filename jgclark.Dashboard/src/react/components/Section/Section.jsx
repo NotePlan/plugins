@@ -561,7 +561,6 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
         style={{ justifySelf: 'end' }}
       >
         <CircularProgressBar
-          // $FlowIgnore[incompatible-type]
           size="0.9rem" // Note: this only works as "Nrem" despite number being expected
           progress={percentComplete}
           backgroundColor="var(--bg-sidebar-color)"

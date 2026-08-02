@@ -37,12 +37,16 @@ type DialogButtonProps = {
   sectionCodesToRefresh?: Array<TSectionCode>,
 }
 
+type EditableInputHandle = { getValue: () => string }
+
 const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Refs
   //----------------------------------------------------------------------
 
-  const inputRef: React$RefObject<?HTMLInputElement> = useRef <? HTMLInputElement > (null)
+  // EditableInput exposes an imperative handle of { getValue(): string } (React.useImperativeHandle in
+  // helpers/react/EditableInput.jsx), not a raw HTMLInputElement. Its RefType isn't exported, so restate it.
+  const inputRef: React$RefObject<?EditableInputHandle> = useRef <? EditableInputHandle > (null)
   const dialogRef: React$RefObject<?HTMLDivElement> = useRef <? HTMLDivElement > (null)
 
   //----------------------------------------------------------------------
@@ -315,8 +319,9 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // Handle the Enter key press (from the editable input box) to trigger the updateItemContent button click
   function handleEnterPress() {
-    // $FlowIgnore[incompatible-call] can't manufacture a MouseEvent, but no details are actually needed, I think.
-    handleButtonClick({}, 'updateItemContent', 'updateItemContent', [])
+    // Cast: this synthetic call has no real event; handleButtonClick only passes it to
+    // extractModifierKeys(), whose declared MouseEvent | KeyboardEvent param can't be widened from here.
+    handleButtonClick(({}: any), 'updateItemContent', 'updateItemContent', [])
   }
 
   // Handle the content change (from the editable input box) to set a flag that the content has changed
@@ -337,7 +342,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     logDebug('DialogForTaskItems/handleButtonClick', `sectionCodesToSend=${String(sectionCodesToSend)}`)
 
     if (contentHasChanged || controlStr === 'updateItemContent') {
-      // $FlowIgnore[prop-missing] Cursor says its getValue() not itemValue(). This change works.
       const updatedContent = inputRef?.current?.getValue() || ''
       logDebug(`DialogForTaskItems/handleButtonClick`, ` - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
       const dataToSend = {
@@ -480,7 +484,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   /** Reposition the task dialog when the embedded calendar opens (taller layout). */
   const repositionCalendarForPicker = (): void => {
-    // $FlowIgnore[incompatible-call] ref current may be optional in Flow; matches Dialog.positionDialog at runtime
     positionDialog(dialogRef)
   }
 
@@ -496,6 +499,9 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         className={`itemControlDialog ${animationClass}`}
         aria-labelledby="Actions Dialog"
         aria-describedby="Actions that can be taken on items"
+        // Flowlib types <dialog>'s ref instance as plain HTMLElement, and React$RefObject is invariant in
+        // its type argument, so no honest annotation of a ?HTMLDivElement ref can satisfy it. The real fix
+        // is a flowlib/react-dom change (a `dialog` intrinsic with HTMLDialogElement), not one here.
         // $FlowIgnore[incompatible-type]
         ref={dialogRef}
       >
@@ -548,7 +554,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             <div id="taskControlLine1" style={{ display: 'inline-flex', alignItems: 'center' }}>
               {/* Note: 'autofocusMe' attribute does not work */}
               <EditableInput
-                // $FlowIgnore - Flow doesn't like the ref
                 ref={inputRef}
                 initialValue={content}
                 className="fullTextInput dialogItemContent"

@@ -134,13 +134,15 @@ function getDoneArchiveEndIndex(note: TNote, doneHeadingLineIndex: number): numb
 /**
  * Extract normalised heading text and desired level for a source heading paragraph.
  * @param {TParagraph} sourceHeading
- * @returns {{ headingTextContent: string, desiredHeadingLevel: number }}
+ * @returns {{ headingTextContent: string, desiredHeadingLevel: 1 | 2 | 3 | 4 | 5 }}
  */
-function getSubheadingMatchDetails(sourceHeading: TParagraph): { headingTextContent: string, desiredHeadingLevel: number } {
-  const desiredHeadingLevel = Math.min(
+function getSubheadingMatchDetails(sourceHeading: TParagraph): { headingTextContent: string, desiredHeadingLevel: 1 | 2 | 3 | 4 | 5 } {
+  // Math.min(..., 5) bounds this to the heading levels NotePlan's insertHeading() accepts, but Flow can't narrow `number` to a literal
+  // union, so the single cast lives here where the bound is established rather than at each insertHeading() call site.
+  const desiredHeadingLevel: 1 | 2 | 3 | 4 | 5 = ((Math.min(
     (sourceHeading.headingLevel ?? 2) + (MAKE_HEADINGS_ONE_DEEPER ? 1 : 0),
     5,
-  )
+  ): any): 1 | 2 | 3 | 4 | 5)
   const headingTextContent = (sourceHeading.rawContent ?? sourceHeading.content ?? '')
     .replace(/^\s*#+\s+/, '')
     .trim()
@@ -203,7 +205,6 @@ function getOrCreateSubheadingInDoneSection(
   const insertionIndex = getDoneArchiveEndIndex(note, doneHeadingLineIndex)
 
   logDebug('moveCompletedToDone', `Creating heading: "${headingTextContent}", level=${desiredHeadingLevel}`)
-  // $FlowFixMe[incompatible-call]
   note.insertHeading(headingTextContent, insertionIndex, desiredHeadingLevel)
 
   // After insertion, re-read the paragraph and verify/fix if needed
@@ -870,7 +871,6 @@ export async function moveCompletedItemsToDoneSectionCommand(): Promise<void> {
     let whenToMoveCompletedToDone: string = config.whenToMoveCompletedToDone
     if (!whenToMoveCompletedToDone || !WHEN_TO_MOVE_CHOICES.includes(whenToMoveCompletedToDone)) {
       // Backward compatibility: map old boolean-only setting if present
-      // $FlowFixMe[prop-missing] - older settings files may still have this key
       const legacyOnlyMoveCompletedWhenWholeSectionComplete = config.onlyMoveCompletedWhenWholeSectionComplete
       if (typeof legacyOnlyMoveCompletedWhenWholeSectionComplete === 'boolean') {
         whenToMoveCompletedToDone = legacyOnlyMoveCompletedWhenWholeSectionComplete

@@ -125,7 +125,6 @@ export function gatherOccurrences(
     let startTime = new Date()
     // make sure this is an array first
     const YesNoListArr = (typeof occToLookFor.GOYesNo === 'string')
-      // $FlowIgnore[incompatible-type]
       ? (occToLookFor.GOYesNo !== "")
         ? occToLookFor.GOYesNo.split(',')
         : []

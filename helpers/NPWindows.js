@@ -799,7 +799,9 @@ export function storeWindowRect(customId: string): void {
 export function getStoredWindowRect(customId: string): Rect | false {
   try {
     const prefName = `WinRect_${customId}`
-    // $FlowFixMe[incompatible-type]
+    // DataStore.preference() is declared as returning `mixed` (prefs are untyped), so there is no way to state
+    // that this particular key holds a Rect. The `if (!windowRect)` below is the only runtime check available.
+    // $FlowIgnore[incompatible-type]
     const windowRect: Rect = DataStore.preference(prefName)
     if (!windowRect) {
       logWarn('getWindowRect', `Couldn't retrieve Rect from saved pref ${prefName}`)
@@ -917,6 +919,8 @@ export function constrainWindowSizeAndPosition<T: { x: number, y: number, width:
     const right = winDetails.x + winDetails.width
     const top = winDetails.y + winDetails.height
     const bottom = winDetails.y
+    // Only used for logging. Adding `title?: string` to the type bound above would be the real fix, but it makes
+    // callers that pass a plain Rect (which has no title at all) fail the bound check.
     // $FlowIgnore[prop-missing]
     const title = winDetails.title ?? 'n/a'
     if (winDetails.x < 0) {

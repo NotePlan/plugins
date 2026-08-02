@@ -527,14 +527,14 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
       // logDebug('general/getTagParamsFromString', `Empty paramString, so returning defaultValue`)
       return defaultValue
     }
-    // $FlowIgnore(incompatible-type) as can produce 'any'
-    const paramObj: {} = await json5.parse(paramString)
+    // json5.parse() is typed as returning `mixed`, and an exact `{}` was the wrong annotation anyway: this is an
+    // arbitrary parsed object keyed by tag-param name. Naming it { [string]: mixed } also makes the lookup below legal.
+    const paramObj: { [string]: mixed } = ((await json5.parse(paramString): any): { [string]: mixed })
     // console.log(typeof paramObj)
     if (typeof paramObj !== 'object') {
       throw new Error('JSON5 parsing did not return an object')
     }
     // clo(paramObj, 'paramObj')
-    // $FlowIgnore(invalid-computed-prop)
     const output = paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
     // logDebug('general/getTagParamsFromString', `--> ${output} type ${typeof output}`)
     return output

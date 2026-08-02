@@ -90,11 +90,14 @@ export async function chooseNoteV2(
   allowNewRegularNoteCreation?: boolean = true,
 ): Promise<?TNote> {
   logDebug('chooseNoteV2', `starting with includeCalendarNotes: ${String(includeCalendarNotes)} and includeFutureCalendarNotes: ${String(includeFutureCalendarNotes)}`)
+  // KNOWN BUG - `regularNotes` is correctly declared $ReadOnlyArray<TNote>, but when includeCalendarNotes is false
+  // `noteList` is still the caller's array and .sort() below mutates it in place. Fix is to copy (e.g. .slice()), not to re-type.
   // $FlowIgnore[incompatible-type]
   let noteList: Array<TNote> = regularNotes
   if (includeCalendarNotes) {
     noteList = noteList.concat(calendarNotesSortedByChanged())
   }
+  // Date arithmetic: `changedDate` really is a Date, and Date-minus-Date is valid JS but Flow has no type for it.
   // $FlowIgnore[unsafe-arithmetic]
   const sortedNoteList = noteList.sort((first, second) => second.changedDate - first.changedDate) // most recent first
 
@@ -123,7 +126,8 @@ export async function chooseNoteV2(
     for (const rd of relativeDates) {
       const matchingNote = sortedNoteList.find((note) => note.title === rd.dateStr)
       if (!matchingNote) {
-        // Make a temporary partial note for this date
+        // Make a temporary partial note for this date. There is no real type for this: it is deliberately a stub
+        // holding only the 3 fields the CommandBar list needs, so it can never satisfy the full CoreNoteFields interface.
         // $FlowIgnore[prop-missing]
         const newNote: TNote = {
           title: rd.dateStr,
@@ -156,7 +160,7 @@ export async function chooseNoteV2(
       alpha: 0.6,
       darkAlpha: 0.6,
     })
-    // $FlowIgnore[incompatible-call] just to keep the indexes matching; won't be used
+    // Another deliberate 2-field stub (see above): no real type can describe it, as TNote requires all of CoreNoteFields.
     // $FlowIgnore[prop-missing]
     sortedNoteList.unshift({ title: '[New note]', type: 'Notes' }) // just keep the indexes matching
   }
@@ -333,6 +337,7 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     console.log(`- type ${note.type}`)
     // If it's a Teamspace note, show some details
     if (note.isTeamspaceNote) {
+      // `.isTeamspaceNote` guarantees these are set, but it is a plain boolean, not a type guard, so Flow still sees ?string.
       // $FlowIgnore[incompatible-type]
       console.log(`- 🧑‍🤝‍🧑 teamspace: ${note.teamspaceTitle} (id ${note.teamspaceID})\n- filename ${note.filename}`)
       console.log(`- resolvedFilename: ${note.resolvedFilename}`)
@@ -560,6 +565,7 @@ export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
     let possDateString = noteIdentifier
     if (new RegExp(dt.RE_OFFSET_DATE).test(possDateString)) {
       // this is a date interval, so -> date string relative to today
+      // The RE_OFFSET_DATE .test() above guarantees a match, but Flow cannot connect the two regexes, so .match() stays ?RegExp$matchResult.
       // $FlowIgnore[incompatible-use]
       const thisOffset = possDateString.match(new RegExp(dt.RE_OFFSET_DATE_CAPTURE))[1]
       possDateString = dt.calcOffsetDateStrUsingCalendarType(thisOffset)
@@ -616,6 +622,7 @@ export function getNoteFilenameFromTitle(inputStr: string): string | null {
   let possDateString = inputStr
   if (new RegExp(dt.RE_OFFSET_DATE).test(possDateString)) {
     // this is a date interval, so -> date string relative to today
+    // The RE_OFFSET_DATE .test() above guarantees a match, but Flow cannot connect the two regexes, so .match() stays ?RegExp$matchResult.
     // $FlowIgnore[incompatible-use]
     const thisOffset = possDateString.match(new RegExp(dt.RE_OFFSET_DATE_CAPTURE))[1]
     possDateString = dt.calcOffsetDateStrUsingCalendarType(thisOffset)
@@ -720,6 +727,8 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
  * This function returns an array of TParagraphs, one for each backlink, undoing the nesting.
  * TEST: is this working for teamspace notes? Initial testing on 20.8.25 by @jgclark implies not.
  */
+// KNOWN BUG - the catch block below falls through without returning, so on error this returns undefined rather than
+// the declared Array<TParagraph>. The honest type would be `Array<TParagraph> | void`; the code should `return []` instead.
 // $FlowFixMe[incompatible-return]
 export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
   try {
@@ -945,6 +954,7 @@ export function highlightParagraphWithContent(content: string): boolean {
 export function highlightBlockWithHeading(content: string): boolean {
   const blockParas = getBlockUnderHeading(Editor, content, true)
   if (blockParas && blockParas.length > 0) {
+    // Range.create requires numbers; TParagraph.contentRange is ?Range, so the optional chains can yield undefined. A real fix needs a null check, not a type.
     // $FlowFixMe[incompatible-call] but still TODO(@dwertheimer): why is 'Range' undefined?
     const contentRange = Range.create(blockParas[0].contentRange?.start, blockParas[blockParas.length - 1].contentRange?.end)
     Editor.highlightByRange(contentRange) // highlight the entire block
@@ -1120,7 +1130,8 @@ export function findNotesMatchingHashtagOrMention(
     )
 
     // const startTime = new Date()
-    let notesInFolder: Array<TNote>
+    // $ReadOnlyArray because one branch assigns `notesToSearch` (itself read-only) unchanged, and nothing below mutates it
+    let notesInFolder: $ReadOnlyArray<TNote>
     // If folder given (not empty) then filter using it
     if (folder && folder !== '') {
       if (includeSubfolders) {
@@ -1132,7 +1143,6 @@ export function findNotesMatchingHashtagOrMention(
       }
     } else {
       // no folder specified, so grab all notes from DataStore
-      // $FlowIgnore[incompatible-type]
       notesInFolder = notesToSearch
     }
     logDebug(
@@ -1150,8 +1160,7 @@ export function findNotesMatchingHashtagOrMention(
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
         return isHashtag
           ? caseInsensitiveArrayIncludes(item, correctedHashtags)
-          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-            caseInsensitiveArrayIncludes(item, n.mentions)
+          : caseInsensitiveArrayIncludes(item, n.mentions)
       })
     } else {
       notesWithItem = notesInFolder.filter((n) => {
@@ -1299,8 +1308,7 @@ export function findNotesMatchingHashtagOrMentionFromList(
         // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         return isHashtag
           ? caseInsensitiveArrayIncludes(item, correctedHashtags)
-          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-            caseInsensitiveArrayIncludes(item, n.mentions)
+          : caseInsensitiveArrayIncludes(item, n.mentions)
       })
     } else {
       projectNotesWithItem = projectNotesInFolder.filter((n) => {
@@ -1308,8 +1316,7 @@ export function findNotesMatchingHashtagOrMentionFromList(
         // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         return isHashtag
           ? caseInsensitiveArrayIncludes(item, correctedHashtags)
-          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-            caseInsensitiveArrayIncludes(item, n.mentions)
+          : caseInsensitiveArrayIncludes(item, n.mentions)
       })
     }
     if (projectNotesWithItem.length > 0) {
@@ -1587,7 +1594,6 @@ export async function getNoteFromParamOrUser(purpose: string, noteTitleArg: stri
       logDebug('getNoteFromParamOrUser', `- Note is of the form of a Calendar note string. Will attempt to create it.`)
 
       // Test to see if we can get this calendar note
-      // $FlowIgnore[incompatible-type] straight away test for null return
       note = getOrMakeCalendarNote(noteTitleArg)
       if (note) {
         logDebug('getNoteFromParamOrUser', `- Found Calendar note '${displayTitle(note)}'`)
@@ -1616,7 +1622,6 @@ export async function getNoteFromParamOrUser(purpose: string, noteTitleArg: stri
     const result = await chooseNoteV2(`Select note for ${purpose}`, notesIn, true, true, false, false)
     if (result != null && typeof result !== 'boolean') {
       note = result
-      // $FlowIgnore[incompatible-call] tested note is not null here
       logDebug('getNoteFromParamOrUser', `- found note '${displayTitle(note)}'`)
     }
   }

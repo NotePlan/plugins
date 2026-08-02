@@ -238,6 +238,12 @@ export async function getOverdueSectionData(
     return section
   } catch (error) {
     logError(pluginJson, JSP(error))
+    // KNOWN BUG - getOverdueSectionData is declared Promise<TSection> but returns null here, and its only
+    // caller (getSomeSectionsData in dataGeneration.js) does `sections.push(await getOverdueSectionData(...))`
+    // with no null guard, unlike the getTaggedSectionData call a few lines above it. So an error in this
+    // function puts a null into Array<TSection> and everything downstream that reads section.sectionCode
+    // throws. Typing the return as Promise<?TSection> is the right declaration but needs that caller fixed
+    // first, so the suppression stays until then.
     // $FlowFixMe[incompatible-return]
     return null
   }
@@ -288,8 +294,10 @@ export async function getRelevantOverdueTasks(
 
     // Remove items that appear in this section twice (which can happen if a task is sync'd), based just on their content
     // Note: this is a quick operation
-    // $FlowFixMe[class-object-subtyping]
-    filteredOverdueParas = removeDuplicates(filteredOverdueParas, ['content'])
+    // Casts: removeDuplicates() in helpers/utils.js is typed Array<{ [string]: any }> instead of generic
+    // <T>, and NotePlan's Paragraph is a class, so neither the argument nor the result can be related to
+    // Array<TParagraph>. Making removeDuplicates generic is the real fix; it lives outside this plugin.
+    filteredOverdueParas = (removeDuplicates((filteredOverdueParas: any), ['content']): any)
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping, ${filteredOverdueParas.length} overdue items`)
 
     const preLimitOverdueCount = filteredOverdueParas.length
@@ -300,7 +308,6 @@ export async function getRelevantOverdueTasks(
       const numDaysToLookBack = dashboardSettings.lookBackDaysForOverdue
       const cutoffDate = moment().subtract(numDaysToLookBack, 'days').format('YYYY-MM-DD')
       logDebug('getRelevantOverdueTasks', `lookBackDaysForOverdue limiting to last ${String(numDaysToLookBack)} days (from ${cutoffDate})`)
-      // $FlowFixMe[incompatible-call]
       filteredOverdueParas = filteredOverdueParas.filter((p) => getDueDateOrStartOfCalendarDate(p, true) > cutoffDate)
       logTimer('getRelevantOverdueTasks', thisStartTime, `After limiting, ${filteredOverdueParas.length} overdue items`)
     }
@@ -316,14 +323,12 @@ export async function getRelevantOverdueTasks(
       //   }
       // })
       // V2
-      // $FlowIgnore[incompatible-call] - Flow has trouble inferring filter predicate type
       filteredOverdueParas = filteredOverdueParas.filter((p): boolean =>
         !yesterdaysParas.some((y) => y.content === p.content)
       )
     }
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping with yesterday -> ${filteredOverdueParas.length}`)
 
-    // $FlowFixMe[class-object-subtyping]
     return { filteredOverdueParas, preLimitOverdueCount }
   } catch (error) {
     logError('getRelevantOverdueTasks', error.message)

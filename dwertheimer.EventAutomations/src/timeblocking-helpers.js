@@ -619,7 +619,10 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: AutoTime
 
 export const addDurationToTasks = (tasks: Array<SortableParagraphSubset>, config: { [key: string]: any }): Array<ParagraphWithDuration> => {
   const dTasks = tasks.map((t) => {
-    // $FlowIgnore - Flow doesn't like spreading interfaces
+    // Interfaces cannot be spread because Flow does not track own-ness of their members. The real fix is to
+    // redeclare SortableParagraphSubset (helpers/sorting.js:7) as an object type rather than an `interface`,
+    // which is outside this plugin.
+    // $FlowIgnore[cannot-spread-interface]
     const copy = { ...t, duration: 0 }
     copy.duration = getDurationFromLine(t.content, config.durationMarker) || config.defaultDuration
     return copy

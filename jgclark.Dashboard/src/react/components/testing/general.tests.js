@@ -89,8 +89,10 @@ export default {
               ?.sectionItems?.find((s, i) => {
                 return s.para?.content === taskContent
               })
-          // $FlowIgnore[incompatible-call] anonFunc returns the found item or undefined; waitFor() only tests it for truthiness
-          await waitFor(anonFunc, 'find overdue section with task we created', 20000)
+          // Cast: anonFunc returns the found item or undefined, but waitFor()'s predicate arm is typed
+          // (elapsed: number) => boolean. Widening it to => mixed is the real fix; waitFor lives in
+          // helpers/testing/testingUtils.js, outside this plugin.
+          await waitFor((anonFunc: any), 'find overdue section with task we created', 20000)
         } catch (error) {
           await pause(error.message)
           throw error

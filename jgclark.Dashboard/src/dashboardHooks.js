@@ -218,7 +218,6 @@ export async function refreshSectionsByCode(sectionCodes: Array<TSectionCode>): 
   let codes: Array<TSectionCode> = sectionCodes
   if (Array.isArray(sectionCodes) && sectionCodes.length > 0 && Array.isArray(sectionCodes[0])) {
     logWarn('refreshSectionsByCode', `sectionCodes was nested array-of-arrays; flattening one level. Callers from invokePluginCommandByName should pass one spread level only after Reviews' outer wrapper.`)
-    // $FlowFixMe[prop-missing] flatten one level of mistaken nesting
     codes = ([]: any).concat(...sectionCodes)
   }
   if (!Array.isArray(codes) || codes.length === 0) {
