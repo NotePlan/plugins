@@ -4,7 +4,7 @@ import pluginJson from '../plugin.json'
 import { chooseOption, chooseHeading, showMessage } from '@helpers/userInput'
 import { getTagParamsFromString } from '@helpers/general'
 import { removeHeadingFromNote, getBlockUnderHeading } from '@helpers/NPParagraph'
-import { sortListBy, getTasksByType, TASK_TYPES, type ParagraphsGroupedByType } from '@helpers/sorting'
+import { sortListBy, getTasksByType, TASK_TYPES, type ParagraphsGroupedByType, type SortableParagraphSubset } from '@helpers/sorting'
 import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { saveEditorIfNecessary } from '@helpers/NPEditor'
@@ -108,7 +108,7 @@ const SORT_ORDERS = [
  * @param {Array<SortableParagraphSubset>} tasks - Array of SortableParagraphSubset objects
  */
 async function deleteExistingTasksFromSortable(note: CoreNoteFields, tasks: Array<SortableParagraphSubset>): Promise<void> {
-  const tasksToDelete = []
+  const tasksToDelete: Array<TParagraph> = []
 
   // Extract paragraph objects from SortableParagraphSubset
   tasks.forEach((task) => {
@@ -505,7 +505,7 @@ export function sortParagraphsByType(
         // Interleaved sorting: prioritize open tasks over checklists within same priority
         const interleavedGroups = getInterleavedTaskGroups()
         for (const group of interleavedGroups) {
-          const combinedTasks = []
+          const combinedTasks: Array<TParagraph> = []
           // Combine all task types in this group
           for (const taskType of group.types) {
             if (taskList[taskType] && taskList[taskType].length) {
@@ -684,7 +684,7 @@ export async function writeOutTasks(
 
       // Group 1: Active tasks (open + checklist) - interleaved by priority
       const activeTypes = ['open', 'checklist']
-      const activeTasks = []
+      const activeTasks: Array<TParagraph> = []
       for (const taskType of activeTypes) {
         if (tasks[taskType] && tasks[taskType].length > 0) {
           activeTasks.push(...tasks[taskType])
@@ -696,7 +696,7 @@ export async function writeOutTasks(
 
       // Group 2: Scheduled tasks (scheduled + checklistScheduled) - interleaved by priority
       const scheduledTypes = ['scheduled', 'checklistScheduled']
-      const scheduledTasks = []
+      const scheduledTasks: Array<TParagraph> = []
       for (const taskType of scheduledTypes) {
         if (tasks[taskType] && tasks[taskType].length > 0) {
           scheduledTasks.push(...tasks[taskType])
@@ -708,7 +708,7 @@ export async function writeOutTasks(
 
       // Group 3: Completed tasks (done + checklistDone) - interleaved by priority
       const completedTypes = ['done', 'checklistDone']
-      const completedTasks = []
+      const completedTasks: Array<TParagraph> = []
       for (const taskType of completedTypes) {
         if (tasks[taskType] && tasks[taskType].length > 0) {
           completedTasks.push(...tasks[taskType])
@@ -720,7 +720,7 @@ export async function writeOutTasks(
 
       // Group 4: Cancelled tasks (cancelled + checklistCancelled) - interleaved by priority
       const cancelledTypes = ['cancelled', 'checklistCancelled']
-      const cancelledTasks = []
+      const cancelledTasks: Array<TParagraph> = []
       for (const taskType of cancelledTypes) {
         if (tasks[taskType] && tasks[taskType].length > 0) {
           cancelledTasks.push(...tasks[taskType])
@@ -743,7 +743,7 @@ export async function writeOutTasks(
       }
     } else {
       // No headings: combine all tasks into one array
-      const allTasks = []
+      const allTasks: Array<TParagraph> = []
 
       // Group 1: Active tasks (open + checklist) - interleaved by priority
       const activeTypes = ['open', 'checklist']

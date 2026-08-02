@@ -43,6 +43,10 @@ export type GroupedTasks = {
   separator: Array<SortableParagraphSubset>, */,
 }
 
+// Note: the indexer is there because callers iterate TASK_TYPES and index in dynamically
+// (`tasks[taskType]`), which an exact object with only named keys rejects. Every value has the
+// same type, so an unrecognised key simply yields undefined — exactly the runtime behaviour.
+// The named keys are kept for documentation and editor completion.
 export type ParagraphsGroupedByType = {
   open?: ?Array<TParagraph>,
   scheduled?: ?Array<TParagraph>,
@@ -52,6 +56,7 @@ export type ParagraphsGroupedByType = {
   checklistDone?: ?Array<TParagraph>,
   checklistCancelled?: ?Array<TParagraph>,
   checklistScheduled?: ?Array<TParagraph>,
+  [string]: ?Array<TParagraph>,
 }
 
 const RE_HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
