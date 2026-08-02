@@ -281,6 +281,40 @@ already does — but it *is* a code edit, so it needs a green light. ~32 sites, 
 
 ---
 
+### 18a. `dwertheimer.JestHelpers` — `this` in a module-level function
+`dwertheimer.JestHelpers/src/NPPluginMain.js:143, 154`
+
+```js
+export async function generateMock(incoming: ?string = ''): Promise<void> {
+  ...
+  if (name && this[name]) createMockOutput(this[name], name)
+```
+
+`this` is `undefined` at module scope in an ES module (and `.flowconfig` sets
+`module.use_strict=true`), so `this[name]` throws `TypeError: Cannot read properties of
+undefined`. The intent looks like "look up a global NotePlan object by name".
+
+**Suggestion:** replace `this[name]` with an explicit map of the objects it's meant to reach
+(`{ DataStore, Editor, Calendar, ... }[name]`), which is also more debuggable.
+
+---
+
+### 18b. `helpers/checkType.js` — deprecated `$ObjMap`
+`helpers/checkType.js:127`
+
+```js
+<Obj: { +[string]: Checker<mixed> }>(checkerObj: Obj): Checker<$ObjMap<Obj, CheckerToValue>>
+```
+
+`$ObjMap` is deprecated in favour of Flow's mapped-type syntax
+(`{ [K in keyof Obj]: CheckerToValue<Obj[K]> }`).
+
+**Suggestion:** mechanical but not risk-free — `checkType.js` is a type-level utility used for
+runtime validation, and the two forms differ subtly around optional and variance markers. Worth
+one careful change with the existing tests as the check, rather than a blind swap.
+
+---
+
 ### 19. `TDashboardSettings` — 68 "required" properties that nothing guarantees
 `jgclark.Dashboard/src/types.js:29-138`
 

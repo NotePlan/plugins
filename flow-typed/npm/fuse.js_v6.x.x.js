@@ -299,7 +299,7 @@ declare module 'fuse.js' {
      */
     useExtendedSearch: boolean;
   }
-  declare export type Fuse$IFuseOptions<T> = $Shape<RequiredIFuseOptions<T>>;
+  declare export type Fuse$IFuseOptions<T> = Partial<RequiredIFuseOptions<T>>;
 
   declare type Fuse$RangeTuple = [number, number];
 

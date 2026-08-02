@@ -1,12 +1,12 @@
 {
-  "generated": "2026-08-02T15:54:46.919Z",
-  "rawTotal": 856,
+  "generated": "2026-08-02T16:17:12.097Z",
+  "rawTotal": 852,
   "byPlugin": {
     "flow-typed": {
-      "sites": 9,
-      "raw": 9,
+      "sites": 7,
+      "raw": 7,
       "test": 0,
-      "src": 9
+      "src": 7
     },
     "KimMachineGun.Raindrop": {
       "sites": 3,
@@ -57,10 +57,10 @@
       "src": 21
     },
     "dwertheimer.TaskSorting": {
-      "sites": 26,
-      "raw": 34,
+      "sites": 25,
+      "raw": 33,
       "test": 0,
-      "src": 26
+      "src": 25
     },
     "dwertheimer.test-plugin-scratch": {
       "sites": 7,
@@ -75,10 +75,10 @@
       "src": 60
     },
     "jgclark.Dashboard": {
-      "sites": 83,
-      "raw": 281,
+      "sites": 82,
+      "raw": 280,
       "test": 5,
-      "src": 78
+      "src": 77
     },
     "jgclark.EventHelpers": {
       "sites": 5,

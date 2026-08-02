@@ -627,7 +627,9 @@ async function deleteExistingTasks(note: CoreNoteFields, tasks: ParagraphsGroupe
         // Also include children if they exist
         // $FlowIgnore[method-unbinding] - these are SortableParagraphSubset entries from getTasksByType(),
         // whose `children` is an array property, not the NotePlan API method of the same name.
+        // $FlowIgnore[method-unbinding]
         if (taskPara.children && taskPara.children.length) {
+          // $FlowIgnore[method-unbinding]
           taskPara.children.forEach((child) => {
             if (child.paragraph) {
               tasksToDelete.push(child.paragraph)
