@@ -1,30 +1,18 @@
 {
-  "generated": "2026-08-02T00:17:37.731Z",
-  "rawTotal": 8254,
+  "generated": "2026-08-02T01:03:05.120Z",
+  "rawTotal": 1650,
   "byPlugin": {
     "flow-typed": {
-      "sites": 13,
-      "raw": 13,
+      "sites": 9,
+      "raw": 9,
       "test": 0,
-      "src": 13
-    },
-    "(flowlib)": {
-      "sites": 12,
-      "raw": 12,
-      "test": 0,
-      "src": 12
+      "src": 9
     },
     "KimMachineGun.Raindrop": {
       "sites": 15,
       "raw": 15,
       "test": 0,
       "src": 15
-    },
-    "__mocks__": {
-      "sites": 3,
-      "raw": 3,
-      "test": 3,
-      "src": 0
     },
     "aaronpoweruser.ReadwiseUnofficial": {
       "sites": 2,
@@ -39,10 +27,10 @@
       "src": 16
     },
     "dwertheimer.EventAutomations": {
-      "sites": 69,
-      "raw": 191,
+      "sites": 51,
+      "raw": 79,
       "test": 1,
-      "src": 68
+      "src": 50
     },
     "dwertheimer.Favorites": {
       "sites": 8,
@@ -51,10 +39,10 @@
       "src": 8
     },
     "dwertheimer.Forms": {
-      "sites": 4,
-      "raw": 5,
+      "sites": 3,
+      "raw": 4,
       "test": 0,
-      "src": 4
+      "src": 3
     },
     "dwertheimer.JestHelpers": {
       "sites": 7,
@@ -69,16 +57,16 @@
       "src": 7
     },
     "dwertheimer.TaskAutomations": {
-      "sites": 97,
-      "raw": 112,
+      "sites": 48,
+      "raw": 53,
       "test": 0,
-      "src": 97
+      "src": 48
     },
     "dwertheimer.TaskSorting": {
-      "sites": 52,
-      "raw": 71,
+      "sites": 34,
+      "raw": 42,
       "test": 0,
-      "src": 52
+      "src": 34
     },
     "dwertheimer.test-plugin-scratch": {
       "sites": 9,
@@ -87,16 +75,16 @@
       "src": 9
     },
     "helpers": {
-      "sites": 99,
-      "raw": 134,
+      "sites": 98,
+      "raw": 135,
       "test": 1,
-      "src": 98
+      "src": 97
     },
     "jgclark.Dashboard": {
-      "sites": 207,
-      "raw": 5550,
-      "test": 57,
-      "src": 150
+      "sites": 172,
+      "raw": 426,
+      "test": 44,
+      "src": 128
     },
     "jgclark.EventHelpers": {
       "sites": 6,
@@ -135,9 +123,9 @@
       "src": 2
     },
     "jgclark.Reviews": {
-      "sites": 50,
-      "raw": 1164,
-      "test": 41,
+      "sites": 19,
+      "raw": 31,
+      "test": 10,
       "src": 9
     },
     "jgclark.SearchExtensions": {
@@ -177,10 +165,10 @@
       "src": 2
     },
     "np.Templating": {
-      "sites": 420,
-      "raw": 634,
-      "test": 360,
-      "src": 60
+      "sites": 411,
+      "raw": 509,
+      "test": 354,
+      "src": 57
     },
     "np.ThemeChooser": {
       "sites": 12,
@@ -189,10 +177,10 @@
       "src": 12
     },
     "np.Tidy": {
-      "sites": 3,
-      "raw": 5,
+      "sites": 2,
+      "raw": 2,
       "test": 0,
-      "src": 3
+      "src": 2
     },
     "np.WeatherLookup": {
       "sites": 11,
