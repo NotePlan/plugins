@@ -198,7 +198,8 @@ export function paragraphUpdateReceived(data: { rows: Array<any>, field: string 
     }
     Object.keys(updatesByNote).forEach((filename) => {
       if (updatesByNote[filename].length) {
-        updatesByNote[filename][0].note.updateParagraphs(updatesByNote[filename])
+        // paragraphs only land in updatesByNote when para.filename was truthy, so .note is non-null here
+        (updatesByNote[filename][0].note: any).updateParagraphs(updatesByNote[filename])
       }
     })
     return updatedStatics

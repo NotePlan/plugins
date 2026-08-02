@@ -198,7 +198,7 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
         }
         const data = await DataStore.loadData(fullPath, false)
         if (data) {
-          const base64Data = `data:image/png;base64,${data.toString('base64')}`
+          const base64Data = `data:image/png;base64,${(data: any).toString('base64')}`
           body = body.replaceAll(imagePath, base64Data)
         }
       } catch (err) {

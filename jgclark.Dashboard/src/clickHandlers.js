@@ -195,6 +195,7 @@ async function clearReminderDueDateAfterCreate(reminderId: string, fallbackListN
   // Plain object update (same pattern as HTML-view Calendar APIs). Do not assign reminder.date = null
   // on the CalendarItem first -- that setter has historically turned null into epoch before update ran.
   // $FlowIgnore[incompatible-call] Calendar.update accepts a reminder-shaped object with date: null (v3.21.2+)
+  // $FlowIgnore[prop-missing] the object literal deliberately omits TCalendarItem fields (attendeeNames etc) that the reminder update path does not use
   await Calendar.update({
     id: reminder.id,
     title: reminder.title,
@@ -326,7 +327,7 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
       const reminderItem: TCalendarItem = CalendarItem.create(
         reminderTitle,
         dueDate,
-        null, // endDate unused for reminders; use null not undefined (avoids bridge arg shift)
+        (null: any), // endDate unused for reminders; use null not undefined (avoids bridge arg shift)
         'reminder',
         isAllDay,
         listTrimmed,

@@ -48,7 +48,8 @@ const setup: {
   header: string,
   newFolder: any,
   newToken: any,
-  useTeamAccount: any,
+  // useTeamAccount is not in the object literal below; it is created on first write by the teamAccount setter
+  useTeamAccount?: any,
   syncDates: any,
   syncPriorities: any,
   syncTags: any,
@@ -75,8 +76,11 @@ const setup: {
    */
   set newFolder(passedFolder: string) {
     // remove leading and tailing slashes
+    // $FlowIgnore[reassign-const] Flow models setter params as const bindings; reassigning a function parameter is legal JS
     passedFolder = passedFolder.replace(/\/+$/, '')
+    // $FlowIgnore[reassign-const] same as above - setter parameter reassignment is fine at runtime
     passedFolder = passedFolder.replace(/^\/+/, '')
+    // $FlowIgnore[object-this-reference] this setter is only ever reached as `setup.newFolder = x`, so `this` is `setup`
     this.folder = passedFolder
   },
   /**
@@ -101,12 +105,14 @@ const setup: {
    * @param {boolean} passedTeamAccount
    */
   set teamAccount(passedTeamAccount: boolean) {
+    // $FlowIgnore[object-this-reference] this setter is only ever reached as `setup.teamAccount = x`, so `this` is `setup`
     this.useTeamAccount = passedTeamAccount
   },
   /**
    * @param {boolean} passedSyncUnassigned
    */
   set syncUnassigned(passedSyncUnassigned: boolean) {
+    // $FlowIgnore[object-this-reference] this setter is only ever reached as `setup.syncUnassigned = x`, so `this` is `setup`
     this.addUnassigned = passedSyncUnassigned
   },
   /**
@@ -348,7 +354,8 @@ async function syncTodayTasks() {
 
     logInfo(pluginJson, `Todays note was found, pulling Today Todoist tasks...`)
     const response = await pullTodoistTasksForToday()
-    const tasks: Array<Object> = JSON.parse(response)
+    // the v1 API returns a paged object ({results: [...]}), not a bare array
+    const tasks: { results: Array<Object> } = JSON.parse(response)
 
     if (tasks.results && note) {
       tasks.results.forEach(async (t: any) => {
@@ -372,7 +379,8 @@ async function syncTodayTasks() {
  */
 async function projectSync(note: TNote, id: string): Promise<void> {
   const task_result = await pullTodoistTasksByProject(id)
-  const tasks: Array<Object> = JSON.parse(task_result)
+  // the v1 API returns a paged object ({results: [...]}), not a bare array
+  const tasks: { results: Array<Object> } = JSON.parse(task_result)
   
   tasks.results.forEach(async (t: any) => { 
     await writeOutTask(note, t)
@@ -576,7 +584,7 @@ async function writeOutTask(note: TNote, task: Object) {
       section = JSON.parse(section)
       if (section) {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
-          logInfo(pluginJson, `1. Task will be added to ${note.title} below ${section.name} (${formatted})`)
+          logInfo(pluginJson, `1. Task will be added to ${(note.title: any)} below ${section.name} (${formatted})`)
           note.addTodoBelowHeadingTitle(formatted, section.name, true, true)
 
           // add to just_written so they do not get duplicated in the Today note when updating all projects and today
@@ -589,7 +597,7 @@ async function writeOutTask(note: TNote, task: Object) {
         // Put it in with no heading
         logWarn(pluginJson, `Section ID ${task.section_id} did not return a section name`)
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
-          logInfo(pluginJson, `2. Task will be added to ${note.title} (${formatted})`)
+          logInfo(pluginJson, `2. Task will be added to ${(note.title: any)} (${formatted})`)
           note.appendTodo(formatted)
 
           // add to just_written so they do not get duplicated in the Today note when updating all projects and today
@@ -603,7 +611,7 @@ async function writeOutTask(note: TNote, task: Object) {
       // if there is a predefined header in settings
       if (setup.header !== '') {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
-          logInfo(pluginJson, `3. Task will be added to ${note.title} below ${setup.header} (${formatted})`)
+          logInfo(pluginJson, `3. Task will be added to ${(note.title: any)} below ${setup.header} (${formatted})`)
           note.addTodoBelowHeadingTitle(formatted, setup.header, true, true)
 
           // add to just_written so they do not get duplicated in the Today note when updating all projects and today
@@ -611,7 +619,7 @@ async function writeOutTask(note: TNote, task: Object) {
         }
       } else {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
-          logInfo(pluginJson, `4. Task will be added to ${note.title} (${formatted})`)
+          logInfo(pluginJson, `4. Task will be added to ${(note.title: any)} (${formatted})`)
           note.appendTodo(formatted)
 
           // add to just_written so they do not get duplicated in the Today note when updating all projects and today
@@ -660,7 +668,8 @@ function postRequestObject() {
  * @return {Object}
  */
 function getExistingNote(project_name: string): Object {
-  let filename = ''
+  // DataStore.newNote() can return null/undefined, so this cannot be a plain string
+  let filename: ?string = ''
   const existing_notes = DataStore.projectNotes.filter((n) => n.filename.startsWith(`${setup.folder}/${project_name}`))
   if (existing_notes.length > 0) {
     logDebug(pluginJson, `Pulling existing note matching project: ${project_name}.  Note found: ${existing_notes[0].filename}`)

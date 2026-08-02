@@ -54,7 +54,7 @@ function validateEditorState(options: {
   requireDailyNote?: boolean,
   requireWeeklyNote?: boolean,
   requireDailyOrWeekly?: boolean,
-}): { isValid: boolean, errorMessage: ?string, note: ?TNote } {
+}): { isValid: true, errorMessage: null, note: TNote } | { isValid: false, errorMessage: string, note: null } {
   const {
     requireEditor = true,
     requireFilename = false,

@@ -72,7 +72,7 @@ function makeProjectListCacheKey(filename: string, tag: string): string {
  * @param {?string} content - Raw file content
  * @returns {?Array<any>} Parsed project rows, or null if unusable
  */
-export function parseAllProjectsListFileContent(content: ?string): ?Array<any> {
+export function parseAllProjectsListFileContent(content: ?string): Array<any> | null {
   if (content == null || content === '') {
     return null
   }

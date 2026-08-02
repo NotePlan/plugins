@@ -905,7 +905,8 @@ export async function runExtendedSearch(
           filename: note?.filename ?? '<error>',
           changedDate: note?.changedDate,
           createdDate: note?.createdDate,
-          title: displayTitle(note),
+          // Note: cast is safe because displayTitle() guards against a null/undefined note internally; its param type should really be ?CoreNoteFields
+          title: displayTitle((note: any)),
           type: p.type,
           content: p.content,
           // modify rawContent slightly by turning ## headings into **headings** to make output nicer

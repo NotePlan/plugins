@@ -417,7 +417,7 @@ function insertTodos(
     const hasFrontmatterTitle = note.frontmatterAttributes && note.frontmatterAttributes.title
 
     logDebug(
-      `\tinsertTodos: hasTraditionalTitle=${hasTraditionalTitle}, hasFrontmatterTitle=${hasFrontmatterTitle}, firstPara.type="${firstPara?.type}", firstPara.headingLevel=${firstPara?.headingLevel}, title="${effectiveTitle}"`,
+      `\tinsertTodos: hasTraditionalTitle=${(hasTraditionalTitle: any)}, hasFrontmatterTitle=${hasFrontmatterTitle}, firstPara.type="${firstPara?.type}", firstPara.headingLevel=${firstPara?.headingLevel}, title="${effectiveTitle}"`,
     )
 
     if (insertAtTopOfNote && shouldInsertAtTop) {
@@ -507,9 +507,10 @@ export function sortParagraphsByType(
   }
   logDebug(`\tInitialized sortedList with keys: ${Object.keys(sortedList).join(', ')}`)
   if (paragraphs?.length) {
-    logDebug(`\tsortParagraphsByType: ${paragraphs.length} total lines in section/note, interleaveTaskTypes: ${interleaveTaskTypes}`)
+    logDebug(`\tsortParagraphsByType: ${paragraphs.length} total lines in section/note, interleaveTaskTypes: ${(interleaveTaskTypes: any)}`)
     if (paragraphs.length) {
-      const taskList = getTasksByType(paragraphs)
+      // GroupedTasks is an exact object with no indexer, but the code below indexes it dynamically with TASK_TYPES / group.types entries
+      const taskList: { [string]: Array<any> } = (getTasksByType(paragraphs): any)
       logDebug(`\tOpen Tasks:${taskList.open.length}, Checklist Tasks:${taskList.checklist.length}`)
 
       if (interleaveTaskTypes) {
@@ -618,8 +619,8 @@ async function deleteExistingTasks(note: CoreNoteFields, tasks: ParagraphsGroupe
   for (const typ of TASK_TYPES) {
     if (tasks[typ] && tasks[typ].length) {
       logDebug(`\tQueuing ${tasks[typ].length} ${typ} tasks for temporary deletion from note (so they can be re-inserted in the correct order)`)
-
-      tasks[typ].forEach((taskPara) => {
+      // $FlowIgnore[incompatible-use] - the `tasks[typ] &&` check above is still valid; the logDebug() call between them invalidates Flow's refinement of the computed property
+      tasks[typ].forEach((taskPara: any) => {
         if (taskPara.paragraph) {
           tasksToDelete.push(taskPara.paragraph)
         }
@@ -831,9 +832,11 @@ export async function writeOutTasks(
           note
             ? await insertTodos(
                 note,
-                tasks[ty],
-                withHeadings ? `### ${headings[ty]}:` : '',
-                drawSeparators ? `${i === tasks[ty].length - 1 ? '---' : ''}` : '',
+                // casts: `tasks[ty]?.length` above proves this is a non-empty array, but the logDebug() call in between invalidates Flow's refinement.
+                // `headings` is an exact object with no indexer, so it needs a cast to be indexed by a runtime string.
+                (tasks[ty]: any),
+                withHeadings ? `### ${(headings: any)[ty]}:` : '',
+                drawSeparators ? `${i === (tasks[ty]: any).length - 1 ? '---' : ''}` : '',
                 subHeadingCategory,
                 title,
                 false, // Use normal tasksToTop behavior
@@ -997,7 +1000,8 @@ export async function sortTasks(
 ) {
   // Cast parameters to proper types
   const withUserInput = getBooleanValue(_withUserInput, true)
-  const sortFields = getArrayValue(_sortFields, SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields, ',')
+  // getArrayValue() is declared as Array<mixed> in/out; arrays are invariant, so the string[] going in and coming back out both need casting
+  const sortFields: Array<string> = (getArrayValue((_sortFields: any), SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields, ','): any)
   const withHeadings = _withHeadings === null ? null : getBooleanValue(_withHeadings, false)
   const subHeadingCategory = _subHeadingCategory === null ? null : getBooleanValue(_subHeadingCategory, false)
   const interleaveTaskTypesParam = getBooleanValue(_interleaveTaskTypes, true)
@@ -1081,7 +1085,8 @@ export async function sortTasks(
   }
 
   const activeParagraphs = noteToUse ? getActiveParagraphs(noteToUse) : []
-  const sortGroups = byHeading && noteToUse?.title ? getTasksByHeading(noteToUse) : { [noteToUse?.title || '']: activeParagraphs }
+  // the annotation + the `string` cast on the computed key are both needed: Flow rejects a computed key whose type it sees as a union
+  const sortGroups: { [string]: $ReadOnlyArray<TParagraph> } = byHeading && noteToUse?.title ? getTasksByHeading((noteToUse: any)) : { [((noteToUse?.title || ''): string)]: activeParagraphs }
   clo(sortGroups, `sortTasks -- sortGroups obj=`)
   logDebug(pluginJson, `sortTasks have sortGroups object. key count=${Object.keys(sortGroups).length}. About to start the display loop`)
 
@@ -1132,7 +1137,7 @@ export async function sortTasksUnderHeading(
   _interleaveTaskTypes: string | boolean = true,
 ): Promise<void> {
   try {
-    logDebug(`sortTasksUnderHeading: starting for heading="${_heading}" sortOrder="${String(_sortOrder)}" with note override? ${_noteOverride ? 'yes' : 'no'}`)
+    logDebug(`sortTasksUnderHeading: starting for heading="${(_heading: any)}" sortOrder="${String(_sortOrder)}" with note override? ${_noteOverride ? 'yes' : 'no'}`)
     logDebug(`sortTasksUnderHeading: About to saveEditorIfNecessary()`)
     await saveEditorIfNecessary()
     logDebug(`sortTasksUnderHeading: Back from saveEditorIfNecessary()`)
@@ -1149,7 +1154,8 @@ export async function sortTasksUnderHeading(
     // Handle sortOrder parameter - use type conversion if provided, otherwise prompt user
     let sortOrder: Array<string> = []
     // Use type conversion to handle string or array input
-    sortOrder = getArrayValue(_sortOrder, null, ',')
+    // casts: getArrayValue() is typed `(string | Array<mixed>, Array<mixed>) => Array<mixed>`; this call passes null for both and wants Array<string> back
+    sortOrder = (getArrayValue((_sortOrder: any), (null: any), ','): any)
     if (!_sortOrder) {
       // If null, prompt the user for sort order
       sortOrder = await getUserSort()

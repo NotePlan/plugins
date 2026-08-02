@@ -59,7 +59,7 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
 export function getDashboardSettingsDefaultsWithSectionsSetToFalse(): TDashboardSettings {
   const dashboardSettingsDefaults = getDashboardSettingsDefaults()
   const sectionList = allSectionDetails.map((s) => s.showSettingName).filter((s) => s !== '' && s !== undefined)
-  const sectionsSetToFalse = sectionList.reduce((acc: TAnyObject, curr: string) => {
+  const sectionsSetToFalse: TAnyObject = sectionList.reduce((acc: TAnyObject, curr: string) => {
     acc[curr] = false
     return acc
   }, {})

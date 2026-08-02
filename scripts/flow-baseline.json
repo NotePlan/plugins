@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T16:23:33.709Z",
-  "rawTotal": 779,
+  "generated": "2026-08-02T19:00:30.392Z",
+  "rawTotal": 288,
   "byPlugin": {
     "flow-typed": {
       "sites": 7,
@@ -14,83 +14,53 @@
       "test": 0,
       "src": 3
     },
-    "dbludeau.TodoistNoteplanSync": {
-      "sites": 15,
-      "raw": 15,
-      "test": 0,
-      "src": 15
-    },
-    "dwertheimer.EventAutomations": {
-      "sites": 30,
-      "raw": 53,
-      "test": 1,
-      "src": 29
-    },
-    "dwertheimer.Favorites": {
-      "sites": 5,
-      "raw": 10,
-      "test": 0,
-      "src": 5
-    },
     "dwertheimer.Forms": {
+      "sites": 1,
+      "raw": 1,
+      "test": 0,
+      "src": 1
+    },
+    "dwertheimer.TaskAutomations": {
       "sites": 3,
-      "raw": 4,
+      "raw": 3,
       "test": 0,
       "src": 3
     },
-    "dwertheimer.JestHelpers": {
-      "sites": 5,
-      "raw": 5,
-      "test": 0,
-      "src": 5
-    },
-    "dwertheimer.MathSolver": {
-      "sites": 4,
-      "raw": 12,
-      "test": 0,
-      "src": 4
-    },
-    "dwertheimer.TaskAutomations": {
-      "sites": 18,
-      "raw": 21,
-      "test": 0,
-      "src": 18
-    },
     "dwertheimer.TaskSorting": {
-      "sites": 25,
-      "raw": 33,
+      "sites": 1,
+      "raw": 2,
       "test": 0,
-      "src": 25
+      "src": 1
     },
     "dwertheimer.test-plugin-scratch": {
-      "sites": 7,
-      "raw": 11,
+      "sites": 3,
+      "raw": 3,
       "test": 0,
-      "src": 7
+      "src": 3
     },
     "helpers": {
-      "sites": 55,
-      "raw": 90,
+      "sites": 44,
+      "raw": 69,
       "test": 0,
-      "src": 55
+      "src": 44
     },
     "jgclark.Dashboard": {
-      "sites": 81,
-      "raw": 257,
+      "sites": 36,
+      "raw": 129,
       "test": 5,
-      "src": 76
+      "src": 31
     },
     "jgclark.EventHelpers": {
-      "sites": 5,
-      "raw": 5,
+      "sites": 3,
+      "raw": 3,
       "test": 0,
-      "src": 5
+      "src": 3
     },
     "jgclark.NoteHelpers": {
-      "sites": 6,
-      "raw": 6,
+      "sites": 3,
+      "raw": 3,
       "test": 0,
-      "src": 6
+      "src": 3
     },
     "jgclark.PeriodicReviews": {
       "sites": 4,
@@ -105,34 +75,22 @@
       "src": 1
     },
     "jgclark.Reviews": {
-      "sites": 11,
-      "raw": 23,
-      "test": 1,
-      "src": 10
-    },
-    "jgclark.SearchExtensions": {
       "sites": 5,
-      "raw": 24,
-      "test": 1,
-      "src": 4
+      "raw": 8,
+      "test": 0,
+      "src": 5
     },
     "jgclark.Summaries": {
-      "sites": 6,
-      "raw": 6,
+      "sites": 5,
+      "raw": 5,
       "test": 0,
-      "src": 6
-    },
-    "np.CallbackURLs": {
-      "sites": 31,
-      "raw": 31,
-      "test": 0,
-      "src": 31
+      "src": 5
     },
     "np.MeetingNotes": {
-      "sites": 3,
-      "raw": 4,
+      "sites": 1,
+      "raw": 1,
       "test": 0,
-      "src": 3
+      "src": 1
     },
     "np.Preview": {
       "sites": 2,
@@ -141,40 +99,28 @@
       "src": 2
     },
     "np.Templating": {
-      "sites": 96,
-      "raw": 100,
-      "test": 54,
-      "src": 42
+      "sites": 16,
+      "raw": 16,
+      "test": 0,
+      "src": 16
     },
     "np.ThemeChooser": {
-      "sites": 4,
-      "raw": 5,
-      "test": 0,
-      "src": 4
-    },
-    "np.Tidy": {
-      "sites": 2,
+      "sites": 1,
       "raw": 2,
       "test": 0,
-      "src": 2
+      "src": 1
     },
-    "np.WeatherLookup": {
-      "sites": 4,
-      "raw": 6,
+    "np.Tidy": {
+      "sites": 1,
+      "raw": 1,
       "test": 0,
-      "src": 4
-    },
-    "np.plugin-test": {
-      "sites": 4,
-      "raw": 4,
-      "test": 0,
-      "src": 4
+      "src": 1
     },
     "shared.AI": {
-      "sites": 31,
-      "raw": 35,
+      "sites": 22,
+      "raw": 25,
       "test": 0,
-      "src": 31
+      "src": 22
     }
   }
 }

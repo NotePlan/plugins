@@ -287,13 +287,13 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
     // Templating syntax in frontmatter attributes will be rendered later when form is submitted
     // Use getFrontmatterAttributes to get parsed but unrendered frontmatter attributes
     // This prevents errors when frontmatter contains templating syntax referencing form fields that don't exist yet
-    let frontmatterAttributes = getFrontmatterAttributes(templateNote) || {}
+    let frontmatterAttributes: { [string]: any } = getFrontmatterAttributes(templateNote) || {}
     
     // If frontmatterAttributes is empty, try parsing from templateData directly (without rendering)
     if (!frontmatterAttributes || Object.keys(frontmatterAttributes).length === 0) {
       // Fallback: parse frontmatter from templateData without rendering
       const fmParts = getSanitizedFmParts(templateData, false)
-      frontmatterAttributes = fmParts.attributes || {}
+      frontmatterAttributes = (fmParts.attributes: any) || {}
     }
 
     // Load TemplateRunner processing variables from codeblock (not frontmatter)

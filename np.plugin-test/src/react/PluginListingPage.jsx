@@ -174,7 +174,8 @@ export type Plugin = {
   updateIsAvailable: boolean,
   installLink?: string,
   documentation?: string,
-  desc?: string,
+  // NB: not optional — this list is built from NotePlan's PluginObject, whose `desc` is a required string
+  desc: string,
   lastUpdateInfo?: string,
   commands: Array<Command>,
 }

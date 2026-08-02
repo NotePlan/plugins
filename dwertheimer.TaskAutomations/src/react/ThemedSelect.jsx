@@ -116,7 +116,8 @@ export type OptionType = { label: string, value: string, id?: number }
  * callback below its parameter types, instead of 21 separate inline annotations.
  * See https://react-select.com/styles
  */
-type StyleFn = (styles: TAnyObject, state?: TAnyObject) => TAnyObject
+// react-select always passes the state object as the 2nd arg; marking it optional made destructuring it an error
+type StyleFn = (styles: TAnyObject, state: TAnyObject) => TAnyObject
 
 /* the dot is the little coloured circle next to the selected value */
 const dot = (color: string = 'transparent') => ({

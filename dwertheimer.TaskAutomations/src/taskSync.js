@@ -66,7 +66,8 @@ function filterTasks(
 }
 
 function sortTasks(filteredTasks: Array<TParagraph>, includeTaskTypes: Array<string>, sortByFields: Array<string>): Array<TParagraph> {
-  const tasksByType = getTasksByType(filteredTasks) //FIXME: need to check getTasksbyType -- numbers are wrong
+  // GroupedTasks has named keys but no indexer, so cast to a dictionary type to allow the dynamic `type` lookups below
+  const tasksByType: { [string]: Array<any> } = (getTasksByType(filteredTasks): any) //FIXME: need to check getTasksbyType -- numbers are wrong
   let consolidatedTasks: Array<any> = []
   // Object.keys(tasksByType).forEach((type) => {
   //   consolidatedTasks = [...consolidatedTasks, ...tasksByType[type]]
@@ -267,8 +268,8 @@ export async function taskSync(...args: Array<string>): Promise<void> {
     logDebug(`includeTaskTypesStr=${includeTaskTypesStr.toString()}`)
     const includeTaskTypes = includeTaskTypesStr?.length ? includeTaskTypesStr.split(',').map((m) => m.trim()) : ['open']
     const sortByFields = sortByFieldsStr?.length ? sortByFieldsStr.split(',').map((m) => m.trim()) : ['-priority', 'content']
-    const inFolders = inFoldersStr?.length ? (inFoldersStr === '*' ? [] : inFoldersStr.split(',').map((m) => m.trim())) : []
-    const notInFolders = notInFoldersStr?.length ? (notInFoldersStr === '*' ? [] : notInFoldersStr.split(',').map((m) => m.trim())) : []
+    const inFolders: Array<string> = inFoldersStr?.length ? (inFoldersStr === '*' ? [] : inFoldersStr.split(',').map((m) => m.trim())) : []
+    const notInFolders: Array<string> = notInFoldersStr?.length ? (notInFoldersStr === '*' ? [] : notInFoldersStr.split(',').map((m) => m.trim())) : []
     const filename = outputFilename?.length
       ? outputFilename !== '*'
         ? /.txt|.md/.test(outputFilename)

@@ -77,7 +77,7 @@ const processFrontmatter = jest.fn<Array<any>, any>().mockImplementation(async (
 })
 
 const processTemplatePrompts = jest.fn<Array<any>, any>().mockImplementation(async (templateData, sessionData) => {
-  const result = ((await processPrompts(templateData, sessionData): any): TProcessPromptsSuccess)
+  const result = ((await processPrompts(templateData, sessionData): any): TProcessPromptsSuccess | false)
   if (result === false) return false
 
   return {
@@ -96,7 +96,7 @@ const tempSaveIgnoredCodeBlocks = jest.fn<Array<any>, any>().mockImplementation(
   let index = 0
 
   while ((match = regex.exec(templateData)) !== null) {
-    const block = match[0]
+    const block = (match: any)[0]
     codeBlocks.push(block)
     result = result.replace(block, `__codeblock:${index}__`)
     index++

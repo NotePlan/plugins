@@ -27,14 +27,16 @@ import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
  */
 function getUrlParams(query: string): { [key: string]: string } {
   const search = /([^&=]+)=?([^&]*)/g
-  let match
+  let match: RegExp$matchResult | null
   const decode = function (s: string) {
     // Regex for replacing addition symbol with a space
     return decodeURIComponent(s.replace(/\+/g, " "))
   }
   const urlParams: { [key: string]: string } = {}
   while ((match = search.exec(query)) !== null) {
+    // $FlowIgnore[incompatible-use] safe: the while condition only enters the body when exec() returned a non-null match, but Flow doesn't refine assignment-in-condition here
     urlParams[decode(match[1])] = decode(match[2])
+    // $FlowIgnore[incompatible-use] safe: same as above
     console.log(`Found param: ${decode(match[1])} / ${decode(match[2])}`)
   }
   clo(urlParams)
@@ -94,7 +96,8 @@ export async function refreshSavedSearch(): Promise<void> {
     logDebug(pluginJson, `Note has a suitable Refresh button line: {${firstLine}}`)
 
     // V2: attempt to reconstruct the parameters to call the plugin's command directly.
-    const firstUrlInLine = firstLine.match(/noteplan:\/\/[^\s\)]*/)[0]
+    // Note: cast is safe because refreshButtonLines was filtered above to lines that contain a `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&` URL
+    const firstUrlInLine = (firstLine.match(/noteplan:\/\/[^\s\)]*/): any)[0]
     logDebug(pluginJson, `firstUrlInLine: {${firstUrlInLine}}`)
     const params = getUrlParams(firstUrlInLine)
     const cmdName = params.command

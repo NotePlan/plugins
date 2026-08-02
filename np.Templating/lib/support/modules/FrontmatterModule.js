@@ -183,7 +183,8 @@ export default class FrontmatterModule {
    * @param {CoreNoteFields} note - The note to get properties from (defaults to Editor.note if not provided)
    * @returns {{ [string]: string }} Object of all frontmatter properties
    */
-  properties(note: CoreNoteFields = Editor?.note): { [string]: string } {
+  // NOTE: the default is cast because `Editor?.note` is nullable; the body already guards with `if (!note)`.
+  properties(note: CoreNoteFields = (Editor?.note: any)): { [string]: string } {
     try {
       // Defensive check: ensure the note object exists
       if (!note) {
@@ -215,7 +216,8 @@ export default class FrontmatterModule {
       return -1
     }
 
-    let title = lines.shift()
+    // `Array.shift()` is typed `string | void`, but `lines.length === 0` is checked just above.
+    let title: any = lines.shift()
     if (!title.startsWith('#')) {
       return -2
     }

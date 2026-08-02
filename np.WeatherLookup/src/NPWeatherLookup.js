@@ -132,7 +132,7 @@ function getConfigErrorText(): string {
  * @param {settings} params
  * @returns
  */
-async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams = null): Promise<{ [string]: any } | null> {
+async function getWeatherForLocation(location: LocationOption, weatherParams: ?WeatherParams = null): Promise<{ [string]: any } | null> {
   const params = weatherParams ? weatherParams : DataStore.settings
   const url = utils.getWeatherURLLatLong(location.lat, location.lon, params.appid, params.units || 'metric')
   logDebug(`weather-utils::getWeatherForLocation`, `url: \n${url}`)
@@ -208,7 +208,7 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
       return
     } else {
       // `incoming` is optional, and getInput() returns a boolean when the user cancels.
-      let location: ?string | boolean = incoming
+      let location: ?string | false = incoming
       do {
         if (location?.length === 0) {
           location = await getInput(`What city do you want to lookup? (do not include state)`, 'OK', 'Weather Lookup')
@@ -227,7 +227,8 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
             location = ''
           }
         } else {
-          logDebug(pluginJson, `insertWeatherByLocation: No location to look for: ${location}`)
+          // cast: in this branch `location` is falsy (''/null/undefined/false) and `false` cannot be string-coerced; logging it as-is is intentional
+          logDebug(pluginJson, `insertWeatherByLocation: No location to look for: ${(location: any)}`)
         }
       } while (location !== false)
     }

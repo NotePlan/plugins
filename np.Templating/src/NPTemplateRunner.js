@@ -1096,7 +1096,9 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
         // This allows combinations like "<%- field1 %> <today>" to work correctly
         if (noteTitle && typeof noteTitle === 'string' && noteTitle.includes('<%')) {
           try {
-            noteTitle = await NPTemplating.render(noteTitle, data)
+            // render() can return null when the user cancels a prompt; that is handled on the next line,
+            // but `noteTitle` was inferred as string from its initializer, so cast.
+            noteTitle = (await NPTemplating.render(noteTitle, data): any)
             if (noteTitle == null) {
               logDebug(pluginJson, `templateRunnerExecute user cancelled while rendering noteTitle`)
               return

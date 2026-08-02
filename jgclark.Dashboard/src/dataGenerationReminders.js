@@ -139,7 +139,9 @@ export async function getRemindersGeneratedData(
         type: 'dropdown-select',
         label: 'Reminder List:',
         key: 'list',
-        options: listTitlesForAdd,
+        // Cast: TSettingItem.options (in helpers/react/DynamicDialog) is Array<TOptionObject>, but
+        // dropdown-select also accepts a plain Array<string>. Arrays are invariant so this can't be widened here.
+        options: (listTitlesForAdd: any),
         noWrapOptions: true,
         value: listTitlesForAdd[0] || '',
       },

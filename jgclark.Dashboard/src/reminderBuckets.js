@@ -41,7 +41,8 @@ export type TReminderBuckets = {
  * @returns {Array<TSectionItem>}
  */
 export function filterSectionItemsWhoseReminderTimeHasBeenReached(reminderItems: Array<TSectionItem>): Array<TSectionItem> {
-  return reminderItems.filter((item) => item.reminder != null && reminderTimeHasBeenReached(item.reminder))
+  // Cast: reminderTimeHasBeenReached() takes an exact `{ time?: string }`, so the wider TReminder is rejected on exactness alone even though only `time` is read.
+  return reminderItems.filter((item) => item.reminder != null && reminderTimeHasBeenReached((item.reminder: any)))
 }
 
 /**
@@ -106,7 +107,8 @@ export function bucketReminderItems(allItems: Array<TSectionItem>): TReminderBuc
     }
     const date = reminder.date
     if (date === todayISO) {
-      if (reminderHasTime(reminder)) {
+      // Cast: reminderHasTime() takes an exact `{ time?: string }`; the wider TReminder is rejected on exactness alone.
+      if (reminderHasTime((reminder: any))) {
         timedTodayItems.push(item)
       } else {
         untimedTodayItems.push(item)

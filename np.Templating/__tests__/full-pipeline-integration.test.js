@@ -68,8 +68,8 @@ const customImportTemplates = async (templateData: string, isFirstCall: boolean 
   const includeRegex = /<%[-\s]*include\(['"]([^'"]+)['"]\)[\s-]*%>/g
   let match
   while ((match = includeRegex.exec(templateData)) !== null) {
-    const fullTag = match[0]
-    const templateName = match[1]
+    const fullTag = (match: any)[0]
+    const templateName = (match: any)[1]
     const content = TEMPLATE_CONTENT[templateName]
 
     if (content) {
@@ -87,8 +87,8 @@ const customImportTemplates = async (templateData: string, isFirstCall: boolean 
   // Process import tags (same as include for our test purposes)
   const importRegex = /<%[-\s]*import\(['"]([^'"]+)['"]\)[\s-]*%>/g
   while ((match = importRegex.exec(templateData)) !== null) {
-    const fullTag = match[0]
-    const templateName = match[1]
+    const fullTag = (match: any)[0]
+    const templateName = (match: any)[1]
     const content = TEMPLATE_CONTENT[templateName]
 
     if (content) {

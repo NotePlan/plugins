@@ -143,7 +143,8 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
   const cleanedLiveSettings = prepareDashboardSettingsForSave(activeDef.dashboardSettings ?? {}, dashboardSettings, { mergeDefaults: true })
   const newDef = {
     ...activeDef,
-    dashboardSettings: cleanDashboardSettingsInAPerspective(cleanedLiveSettings),
+    // Cast: prepareDashboardSettingsForSave() returns the loose indexed TAnyObject shape (dynamic showTagSection_* keys); the callee wants the exact settings type.
+    dashboardSettings: cleanDashboardSettingsInAPerspective((cleanedLiveSettings: any)),
     isModified: false,
   }
   const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
@@ -154,7 +155,8 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
   })
   if (!res) return handlerResult(false, [], { errorMsg: `saveDashboardPluginSettings failed` })
   const savedPerspectives = (await loadDashboardPluginSettings()).perspectiveSettings
-  const cleanedBaseline = cleanDashboardSettingsInAPerspective(cleanedLiveSettings)
+  // Cast: as above -- cleanedLiveSettings is the loose indexed TAnyObject shape.
+  const cleanedBaseline = cleanDashboardSettingsInAPerspective((cleanedLiveSettings: any))
   await setPluginData(
     {
       perspectiveSettings: Array.isArray(savedPerspectives) ? savedPerspectives : revisedDefs,

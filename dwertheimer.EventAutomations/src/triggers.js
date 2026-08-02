@@ -34,7 +34,8 @@ export async function onEditorWillSave(incoming: string | null = null) {
           const todayTodos = getTodaysFilteredTodos(config)
           // clo(todayTodos, `onEditorWillSave ${todayTodos?.length} todayTodos`)
           checkedItems.forEach((item, i) => {
-            const referenceID = item.content.match(/noteplan:\/\/.*(\%5E.*)\)/)?.[1].replace('%5E', '^') || null
+            // `any` rather than `?string` so the (deliberately null-tolerant) template-literal logging below does not trip [incompatible-type]
+            const referenceID: any = item.content.match(/noteplan:\/\/.*(\%5E.*)\)/)?.[1].replace('%5E', '^') || null
             logDebug(pluginJson, `onEditorWillSave: item[${i}] content="${item.content}" blockID="${referenceID}"`)
             const todo = todayTodos.find((f) =>
               referenceID ? f.blockId === referenceID : cleanTimeBlockLine(item.content, config).trim() === cleanTimeBlockLine(f.content, config).trim(),
@@ -47,7 +48,8 @@ export async function onEditorWillSave(incoming: string | null = null) {
               note?.updateParagraph(todo)
               logDebug(pluginJson, `onEditorWillSave: found todo for item[${i}] blockID="${referenceID}" content=${todo.content} in file ${todo.filename || ''} | now updating`)
               if (!isEditor) {
-                DataStore.updateCache(note)
+                // cast: `note` is TEditor | TNote | null here; see checklist note about the unguarded null case
+                DataStore.updateCache((note: any))
               } else {
                 logDebug(pluginJson, `onEditorWillSave: checked off item: "${item.content}" but manual refresh of TimeBlocks will be required`)
                 updatedParasInTodayNote.push(Editor.paragraphs[todo.lineIndex])

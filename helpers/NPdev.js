@@ -22,12 +22,12 @@ export function logAllEnvironmentSettings(): void {
 /**
  * Choose a plugin command to run, and return the XCallbackURL for it
  * @param {boolean} showInstalledOnly - if true, only show installed plugins
- * @param {RegExp} filterCommandRegex - if provided, only show commands that match the regex
+ * @param {?RegExp} filterCommandRegex - if provided, only show commands that match the regex
  * @returns {boolean | { url: string, pluginID: string, command: string, args: Array<string> }} - false if user cancels, otherwise the XCallbackURL for the chosen command
  */
 export async function chooseRunPluginXCallbackURL(
   showInstalledOnly: boolean = true,
-  filterCommandRegex: RegExp = null,
+  filterCommandRegex: ?RegExp = null,
 ): Promise<boolean | { url: string, pluginID: string, command: string, args: Array<string> }> {
   const plugins = showInstalledOnly ? await DataStore.installedPlugins() : await DataStore.listPlugins(true)
 

@@ -655,7 +655,7 @@ describe('searchHelpers.js tests', () => {
         resultQuoteLength: 120,
         dateStyle: 'date',
       }
-      const result = createFormattedResultLines(resultSet, config)
+      const result = createFormattedResultLines(resultSet, (config: any))
       expect(result).toEqual([])
     })
   })

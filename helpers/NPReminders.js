@@ -67,10 +67,12 @@ export function dedupeReminderListTitles(titles: Array<string>): Array<string> {
 
 /**
  * Build titles + color map from Calendar.availableReminderLists() results.
- * @param {Array<any>} lists - reminder list objects from the NotePlan API
+ * @param {$ReadOnlyArray<any>} lists - reminder list objects from the NotePlan API
  * @returns {TReminderListsResult}
  */
-function titlesAndColorsFromReminderListObjects(lists: Array<any>): TReminderListsResult {
+// Note: $ReadOnlyArray because the list is only iterated, and every caller passes the result of
+// Calendar.availableReminderLists(), which the API declares as read-only.
+function titlesAndColorsFromReminderListObjects(lists: $ReadOnlyArray<any>): TReminderListsResult {
   const colorByTitle: { [string]: string } = {}
   const titles: Array<string> = []
   for (const list of lists) {
@@ -326,7 +328,7 @@ export function mapCalendarItemToReminder(
  * @param {{ time?: string }} reminder
  * @returns {boolean}
  */
-export function reminderHasTime(reminder: { time?: string }): boolean {
+export function reminderHasTime(reminder: { time?: string, ... }): boolean {
   return Boolean(reminder.time && reminder.time.trim() !== '')
 }
 
@@ -335,7 +337,7 @@ export function reminderHasTime(reminder: { time?: string }): boolean {
  * @param {{ time?: string }} reminder
  * @returns {boolean}
  */
-export function reminderTimeHasBeenReached(reminder: { time?: string }): boolean {
+export function reminderTimeHasBeenReached(reminder: { time?: string, ... }): boolean {
   if (!reminderHasTime(reminder) || !reminder.time) {
     return false
   }

@@ -240,7 +240,7 @@ export function getNotesWithFrontmatter(noteType: 'Notes' | 'Calendar' | 'All' =
  * @param {boolean} onlyTemplateNotes - whether to include only template notes (default: false). By default, includes all notes that have frontmatter keys.
  * @returns {Array<CoreNoteFields>} - an array of notes that have front matter (template notes are included only if includeTemplateFolders is true and the note has frontmatter keys)
  */
-export function getFrontmatterNotes(includeTemplateFolders: boolean = false, onlyTemplateNotes: boolean = false): Array<CoreNoteFields> {
+export function getFrontmatterNotes(includeTemplateFolders: boolean = false, onlyTemplateNotes: boolean = false): $ReadOnlyArray<CoreNoteFields> {
   const start = new Date()
   const templateFolder = NotePlan.environment.templateFolder || '@Templates'
   const returnedNotes = DataStore.projectNotes.filter((note) => {

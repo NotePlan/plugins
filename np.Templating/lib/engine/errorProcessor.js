@@ -41,7 +41,9 @@ export function cleanErrorMessage(errorMessage: string): string {
  * An error thrown by the EJS renderer. Beyond the standard Error shape it carries the line and
  * column in the template where rendering failed, which is what this module reports on.
  */
-type TTemplateRenderError = Error & { line?: number, column?: number }
+// NOTE: the second half of the intersection is an `interface`, not an object type. Callers pass a plain
+// `Error` (a class instance), and class instances are not subtypes of object types under exact_by_default.
+type TTemplateRenderError = Error & interface { line?: number, column?: number }
 
 export function extractErrorContext(error: TTemplateRenderError, processedTemplateData: string): { contextLines: string, lineInfo: string, adjustedLine: number } {
   let contextLines = ''
@@ -72,7 +74,7 @@ export function extractErrorContext(error: TTemplateRenderError, processedTempla
 
         if (error.column && adjustedLine - 1 < templateLines.length) {
           const errorLineText = templateLines[adjustedLine - 1] || ''
-          const columnMarker = '   ' + ' '.repeat(String(adjustedLine).length + 2) + ' '.repeat(Math.min(error.column, errorLineText.length)) + '^'
+          const columnMarker = '   ' + ' '.repeat(String(adjustedLine).length + 2) + ' '.repeat(Math.min((error.column: any), errorLineText.length)) + '^'
           contextLines += `${columnMarker}\n`
         }
       } catch (e) {

@@ -141,7 +141,8 @@ export function getWantedTagNamesFromSettings(dashboardSettings: TDashboardSetti
 export function removeInvalidTagSections(settingsIn: TDashboardSettingsIn): TAnyObject {
   try {
     const result: TAnyObject = { ...settingsIn }
-    const tagSectionDetails = getTagSectionDetails(result)
+    // Cast: `result` is the same object as `settingsIn`, just re-typed as an indexed copy so the dynamic showTagSection_* keys can be enumerated below.
+    const tagSectionDetails = getTagSectionDetails((result: any))
     const showTagSectionKeysToRemove = Object.keys(result).filter(
       (key) => key.startsWith('showTagSection_') && !tagSectionDetails.some((detail) => detail.showSettingName === key),
     )
@@ -270,13 +271,15 @@ export function prepareDashboardSettingsForSave(
 ): TAnyObject {
   let prepared: TAnyObject = { ...nextSettings }
   if (options?.mergeDefaults === true) {
-    prepared = { ...getDashboardSettingsDefaults(), ...prepared }
+    // Cast: Flow refuses to spread an indexed object after explicit-keyed one (cannot-spread-indexer). Merge order is unchanged.
+    prepared = { ...getDashboardSettingsDefaults(), ...(prepared: any) }
   }
   prepared = normaliseDashboardNumberSettings(prepared)
   prepared.preferredWindowType = normalizePreferredWindowType(prepared.preferredWindowType)
   // $FlowIgnore[incompatible-call] runtime settings object may include dynamic keys before tag cleanup
   prepared = removeInvalidTagSections((prepared: any))
-  prepared = applyDerivedDashboardSettings(priorSettings, prepared)
+  // Cast: applyDerivedDashboardSettings() declares a writable indexer, but only reads priorSettings; $ReadOnly<TAnyObject> is rejected on variance alone.
+  prepared = applyDerivedDashboardSettings((priorSettings: any), prepared)
   return prepared
 }
 
@@ -293,7 +296,8 @@ export function preparePerspectiveSettingsForSave(priorDefs: TPerspectiveSetting
     const nextDashboardSettings = prepareDashboardSettingsForSave(priorDashboardSettings, persp.dashboardSettings ?? {}, { mergeDefaults: false })
     return {
       ...persp,
-      dashboardSettings: nextDashboardSettings,
+      // Cast: prepareDashboardSettingsForSave() returns the loose indexed TAnyObject shape (dynamic showTagSection_* keys); TPerspectiveDef.dashboardSettings is the exact type.
+      dashboardSettings: (nextDashboardSettings: any),
     }
   })
 }

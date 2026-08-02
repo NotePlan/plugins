@@ -241,7 +241,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {milliseconds|false} omitAfter - whether to omit the rows from view afterwards (false = don't omit, a number = omit after that many milliseconds)
    */
   const highlightAndSend = React.useCallback(
-    (rowIDs: Array<RowID>, action: string, objectToSend: TAnyObject, omitAfter?: ?number = null) => {
+    (rowIDs: Array<RowID>, action: string, objectToSend: TAnyObject, omitAfter?: number | boolean | null = null) => {
       logDebug(`Webview: highlightAndSend rowIds:${rowIDs.toString()} action:${action} omitAfter:${String(omitAfter)} objectToSend=${JSON.stringify(objectToSend)}`)
       rowIDs.forEach((rowID) => highlightRow(rowID, shouldHideAfter(objectToSend.choice))) // highlight the rows immediately
       // do now
@@ -567,7 +567,8 @@ export function WebView({ data, dispatch }: Props): Node {
       justSelectedRows.current = true
       return
     }
-    logDebug(`Webview: onSelectionCheck selectedCount=${selectedCount} selectedRows=`, selectedRows)
+    // Array<TableRow> is not an Array<TAnyObject> (arrays are invariant), so cast for the log detail param
+    logDebug(`Webview: onSelectionCheck selectedCount=${selectedCount} selectedRows=`, (selectedRows: any))
     updateSelectedItems(selectedRows)
   }, [])
 

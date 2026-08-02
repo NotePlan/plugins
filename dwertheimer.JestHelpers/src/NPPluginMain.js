@@ -140,7 +140,7 @@ export function createMockClass(object: any, name: string): void {
   console.log(getMockClassText(name, classProps, classMethods))
 }
 
-export async function generateMock(incoming: ?string = ''): Promise<void> {
+export async function generateMock(this: any, incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
     // MUST BE A CLASS YOU ARE SENDING, NOT AN ARRAY!!!
@@ -192,18 +192,19 @@ export function getNotePlan(): any {
  * outputEditorJson
  * Plugin entrypoint for "/Output Editor Doc as JSON"
  */
-export function outputEditorJson(): void {
+export function outputEditorJson(): any {
   try {
     const e = Editor
     const nObj = {
       title: e.title,
       filename: e.filename,
       type: e.type,
-      paragraphs: [],
+      paragraphs: ([]: Array<Object>),
       frontmatterAttributes: e.frontmatterAttributes,
       frontmatterTypes: e.frontmatterTypes,
-      linkedItems: e.linkedItems,
-      datedTodos: e.datedTodos,
+      // `linkedItems`/`datedTodos` exist on the live Editor object but are not declared on TEditor in flow-typed/Noteplan.js (centrally owned), so cast to any to read them
+      linkedItems: (e: any).linkedItems,
+      datedTodos: (e: any).datedTodos,
     }
     nObj.paragraphs = e.paragraphs.map((p) => ({
       content: p.content,

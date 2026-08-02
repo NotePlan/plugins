@@ -22,7 +22,8 @@ export function formatSubtitle(subject: string, prevSubject?: string = '', fullH
   let subtitle = ''
   let newFullHistoryLink = ''
   if (prevSubject) {
-    if (useFullHistory == true || useFullHistory == 'true') {
+    // useFullHistory is declared boolean, but this function is reachable from x-callback args where it arrives as the string 'true' - cast documents that
+    if (useFullHistory == true || (useFullHistory: any) == 'true') {
       if (fullHistory.includes(prevSubject)) {
         const prettyPrev = createPrettyOpenNoteLink(prevSubject, Editor.filename, true, prevSubject)
         newFullHistoryLink = fullHistory.replace(prevSubject, prettyPrev)
@@ -56,7 +57,7 @@ export function formatSubtitle(subject: string, prevSubject?: string = '', fullH
  * @param {string} subtitle - The readable text that indicates the core elements of the search.
  * @param {string} fullHistoryText - The entire search query from the first to the current search request. Pure text only.
  */
-export async function formatKeyTermsForSummary(keyTerms: [string], subject: string, remixText?: string = '', subtitle: string = '', fullHistoryText: string): Promise<string> {
+export async function formatKeyTermsForSummary(keyTerms: Array<string>, subject: string, remixText?: string = '', subtitle: string = '', fullHistoryText: string): Promise<string> {
   // logDebug(pluginJson, `\n\nformatBulletSummary\nSubject: ${subject}\nResponse: ${summary}\nLink: ${link})}`)
   let keyString = '#### Go Deeper?\n'
   const jsonData = DataStore.loadJSON(getDataFileName())
@@ -65,7 +66,8 @@ export async function formatKeyTermsForSummary(keyTerms: [string], subject: stri
   for (const keyTerm of keyTerms) {
     if (jsonData['clickedLinks'].includes(keyTerm)) {
     } else {
-      prettyKeyTerm = createPrettyRunPluginLink(`${capitalizeFirstLetter(keyTerm.trim())}`, 'shared.AI', 'Bullets AI', [
+      // arg arrays hold booleans; createRunPluginCallbackUrl runs each through encodeURIComponent, so they stringify safely. Cast rather than change the emitted values.
+      prettyKeyTerm = createPrettyRunPluginLink(`${capitalizeFirstLetter(keyTerm.trim())}`, 'shared.AI', 'Bullets AI', ([
         capitalizeFirstLetter(keyTerm.trim()),
         `${subject}`,
         jsonData['initialSubject'],
@@ -73,9 +75,9 @@ export async function formatKeyTermsForSummary(keyTerms: [string], subject: stri
         subtitle,
         false,
         fullHistoryText,
-      ])
+      ]: any))
 
-      const prettyPlus = createPrettyRunPluginLink(`╠`, 'shared.AI', 'Bullets AI', [
+      const prettyPlus = createPrettyRunPluginLink(`╠`, 'shared.AI', 'Bullets AI', ([
         keyTerm.trim(),
         remixText ? remixText : subject,
         jsonData['initialSubject'],
@@ -83,7 +85,7 @@ export async function formatKeyTermsForSummary(keyTerms: [string], subject: stri
         subtitle,
         true,
         fullHistoryText,
-      ])
+      ]: any))
       keyString += `\t- ${prettyPlus}${prettyKeyTerm}\n`
     }
   }
@@ -99,7 +101,7 @@ export async function formatKeyTermsForSummary(keyTerms: [string], subject: stri
  * @param {string} subtitle - the subtitle text the adds context to the pure subject search
  * @param {string} fullHistoryText - the entirety of the previous search chain in context
  */
-export async function formatBulletSummary(subject: string, summary: string, keyTerms: string, remixText?: string = '', subtitle: string, fullHistoryText: string): Promise<string> {
+export async function formatBulletSummary(subject: string, summary: string, keyTerms: Array<string>, remixText?: string = '', subtitle: string, fullHistoryText: string): Promise<string> {
   // logDebug(pluginJson, `\n\nformatBulletSummary\nSubject: ${subject}\nResponse: ${summary}\nLink: ${link})}`)
 
   // let title = subject.replace('- ', '')
@@ -109,7 +111,8 @@ export async function formatBulletSummary(subject: string, summary: string, keyT
   const removeParagraphText = createPrettyRunPluginLink('**✖**', 'shared.AI', 'Scroll to Entry', [subject, String(true)])
   const exploreText = createPrettyRunPluginLink('Explore', 'shared.AI', 'Explore - OpenAI', [subject])
 
-  const remixPrompt = createPrettyRunPluginLink(`Remix`, 'shared.AI', 'Bullets AI', ['', subject, jsonData['initialSubject'], true])
+  // final arg is a boolean; createRunPluginCallbackUrl encodeURIComponent()s each arg, so it stringifies safely. Cast rather than change the emitted value.
+  const remixPrompt = createPrettyRunPluginLink(`Remix`, 'shared.AI', 'Bullets AI', (['', subject, jsonData['initialSubject'], true]: any))
   // let output = `## ${title}${(subject != subtitle) ? `\n#### ${subtitle}` : ''}\n#### ${remixPrompt}\n${summary}\n${keyTermsOutput}`
   let output = `## ${capitalizeFirstLetter(title)}${subject != subtitle ? `\n#### ${subtitle}` : ''}\n${exploreText}\t${removeParagraphText}\n${summary}\n${keyTermsOutput}`
   return output

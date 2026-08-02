@@ -186,6 +186,63 @@ it breaks.
 
 ---
 
+### 11a. `helpers/dev.js` — a branch that can never run, containing a call that would throw
+`helpers/dev.js:432-434`
+
+```js
+if (topLevel === {}) {                      // always false: object identity vs a fresh literal
+  const keycheck = fields ? ` for fields: [${fields.join(', ')}] - ...` : ''
+```
+
+Two problems stacked. `topLevel === {}` compares against a newly-allocated object, so it is never
+true and the "no data" message never prints. And `fields` is typed `?Array<string> | string`, so
+if the branch *did* run with a string it would throw on `.join`.
+
+**Suggestion:** `Object.keys(topLevel).length === 0` for the test, and normalise `fields` to an
+array at the top of `clof()` (it is already used both ways).
+
+---
+
+### 11b. `helpers/parentsAndChildren.js` — spreading a possibly-void value
+`helpers/parentsAndChildren.js:263`
+
+```js
+.flatMap((p) => [p, ...p.children()])
+```
+
+`TParagraph.children()` is declared `$ReadOnlyArray<TParagraph> | void` (`flow-typed/Noteplan.js:1689`).
+Spreading `undefined` throws.
+
+**Suggestion:** `...(p.children() ?? [])`.
+
+---
+
+### 11c. `helpers/calendar.js` — nullable event dates
+`helpers/calendar.js:38, 56, 59, 62`
+
+`keepTodayPortionOnly()` passes `event.date` and `event.endDate` straight into date-fns
+(`differenceInCalendarDays`, `startOfDay`, `endOfDay`), but both are nullable on a calendar item.
+An all-day or malformed event would throw.
+
+**Suggestion:** filter out entries without a date at the top of the function — which is probably
+the intent, since the doc comment says the input "was previously filtered".
+
+---
+
+### 11d. `jgclark.Reviews/src/projects.js` — now-dead cancel guard
+`jgclark.Reviews/src/projects.js:249`
+
+```js
+const finalProgressComment = (finalCommentRaw && finalCommentRaw !== true) ? ... : ''
+```
+
+`getInputTrimmed()` was narrowed to `Promise<string | false>` during this cleanup (it can only
+ever return those — see `helpers/userInput.js:199`), so `!== true` is now provably always true.
+
+**Suggestion:** drop the `&& finalCommentRaw !== true` clause.
+
+---
+
 ### 12. `jgclark.Summaries` — vacuous guards
 `jgclark.Summaries/src/TMOccurrences.js:320, 321, 323`
 

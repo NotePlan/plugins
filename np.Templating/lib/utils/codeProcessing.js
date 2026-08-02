@@ -83,11 +83,11 @@ export function protectTemplateLiterals(code: string): { protectedCode: string, 
     const placeholder = `__TEMPLATE_LITERAL_${index}__`
     literalMap.push({
       placeholder,
-      original: match[0],
+      original: (match: any)[0],
     })
 
     // Replace the template literal with a placeholder
-    protectedCode = protectedCode.replace(match[0], placeholder)
+    protectedCode = protectedCode.replace((match: any)[0], placeholder)
     index++
   }
 

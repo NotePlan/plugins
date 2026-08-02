@@ -341,7 +341,8 @@ function deletePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, name:
 }
 
 /** Keys omitted when comparing live dashboard settings to a saved perspective def. */
-const PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT: Array<string> = ['lastModified', 'lastChange', 'usePerspectives']
+// Typed as compareObjects()'s `fieldsToIgnore` param type (Array<string | RegExp>) rather than Array<string>: arrays are invariant, so Array<string> is rejected at every call site.
+const PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT: Array<string | RegExp> = ['lastModified', 'lastChange', 'usePerspectives']
 
 /**
  * Diff between a named perspective's saved def and live dashboard settings (null if equivalent).
@@ -433,7 +434,8 @@ export function isNamedPerspectiveModified(
   if (!perspectiveDef || perspectiveDef.name === '-') return false
   if (perspectiveDef.isModified) return true
   const hasBaseline = Boolean(dashboardSettingsBaseline && Object.keys(dashboardSettingsBaseline).length > 0)
-  const differsFromBaseline = hasBaseline && liveDashboardDiffersFromBaseline(dashboardSettingsBaseline, liveDashboardSettings)
+  // Cast: `hasBaseline` already proves dashboardSettingsBaseline is set, but Flow does not refine a maybe-type through a separate Boolean() variable.
+  const differsFromBaseline = hasBaseline && liveDashboardDiffersFromBaseline((dashboardSettingsBaseline: any), liveDashboardSettings)
   const differsFromDef = perspectiveDefDiffersFromLiveDashboard(perspectiveDef, liveDashboardSettings)
   if (options?.forSave) {
     return differsFromBaseline || differsFromDef
@@ -606,7 +608,8 @@ export function mergeDashboardSettingsForPerspectiveDef(
     ...prevWithoutTagSections,
     ...perspectiveOnly,
   }
-  newDashboardSettings = removeInvalidTagSections(newDashboardSettings)
+  // Cast: removeInvalidTagSections() returns the loose indexed TAnyObject shape (dynamic showTagSection_* keys); it is still a full settings object.
+  newDashboardSettings = (removeInvalidTagSections(newDashboardSettings): any)
   if (lastChange) {
     newDashboardSettings.lastChange = lastChange
   }
@@ -911,7 +914,9 @@ export function setPerspectivesIfJSONChanged(
   logMessage: string,
 ): TAnyObject {
   logDebug('setPerspectivesIfJSONChanged', `🥷 starting reason "${logMessage}"`)
-  const settingsToSave = { ...dashboardSettings, ...updatedSettings }
+  // Annotated TAnyObject (the declared return type) because the JSON-editor path below reads and
+  // deletes a `perspectiveSettings` key, which is not part of the exact TDashboardSettings shape.
+  const settingsToSave: TAnyObject = { ...dashboardSettings, ...updatedSettings }
   if (settingsToSave.perspectiveSettings) {
     // this should only be true if we are coming from the settings panel with the JSON editor
     // TODO(dwertheimer): I don't understand this log comment

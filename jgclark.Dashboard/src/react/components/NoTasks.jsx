@@ -43,6 +43,15 @@ const NoTasks = (): Node => {
 // Following code also uses Babel.
 //--------------------------------------------------------------------------
 
+// The confetti code below is legacy/unused (see header note) and expects these to be supplied as
+// page-level globals by the CDN scripts listed above (GSAP's TweenLite/Power4, lodash's `_` and
+// `random`). They are never imported here, so declare them for Flow only. `declare var` is
+// Flow-only syntax and is stripped by Babel, so this emits no JS.
+declare var TweenLite: any
+declare var Power4: any
+declare var _: any
+declare var random: any
+
 // constants
 const DECAY = 4     // confetti decay in seconds
 const SPREAD = 60   // degrees to spread from the angle of the cannon

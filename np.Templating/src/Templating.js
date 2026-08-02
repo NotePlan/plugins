@@ -330,7 +330,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
  */
 export async function templateNew(templateTitle: string = '', _folder?: string, newNoteTitle?: string, _args?: Object | string): Promise<string | null> {
   try {
-    logDebug(pluginJson, `templateNew: STARTING - templateTitle:"${templateTitle}", folder:"${_folder}", newNoteTitle:"${newNoteTitle}" args:${JSON.stringify(_args)}`)
+    logDebug(pluginJson, `templateNew: STARTING - templateTitle:"${templateTitle}", folder:"${(_folder: any)}", newNoteTitle:"${(newNoteTitle: any)}" args:${(JSON.stringify(_args): any)}`)
     let args = _args
     if (typeof _args === 'string') {
       args = JSON.parse(_args)
@@ -401,13 +401,13 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     }
 
     // Use the rendered frontmatter attributes first, then fall back to inline title detection
-    const renderedNewNoteTitle = frontmatterAttributes.newNoteTitle
+    const renderedNewNoteTitle: any = frontmatterAttributes.newNoteTitle
     logDebug(pluginJson, `templateNew: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`)
-    logDebug(pluginJson, `templateNew: newNoteTitle parameter: "${newNoteTitle}"`)
+    logDebug(pluginJson, `templateNew: newNoteTitle parameter: "${(newNoteTitle: any)}"`)
 
     // Check if the template requires a noteTitle by looking for the variable in the template
     const templateRequiresNoteTitle = frontmatterBody.includes('<%- noteTitle %>') || frontmatterBody.includes('<%= noteTitle %>')
-    logDebug(pluginJson, `templateNew: templateRequiresNoteTitle: ${templateRequiresNoteTitle}`)
+    logDebug(pluginJson, `templateNew: templateRequiresNoteTitle: ${(templateRequiresNoteTitle: any)}`)
 
     // Get the note title - either from parameters, frontmatter, or ask the user
     let noteTitle = newNoteTitle || renderedNewNoteTitle
@@ -438,7 +438,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
 
     // Use the final title - prefer the rendered title if it's different from what we provided
     const finalNoteTitle = renderedTemplateNoteTitle || noteTitle || (await CommandBar.textPrompt('Template', 'Enter New Note Title', ''))
-    logDebug(pluginJson, `templateNew: final noteTitle: "${finalNoteTitle}"`)
+    logDebug(pluginJson, `templateNew: final noteTitle: "${(finalNoteTitle: any)}"`)
 
     if (typeof finalNoteTitle === 'boolean' || finalNoteTitle.length === 0) {
       return null // user did not provide note title (Cancel) abort
@@ -1166,7 +1166,9 @@ export async function getRenderContext(userData: any = {}): Promise<Object> {
 }
 
 export async function templateFileByTitle(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = ''): Promise<string | void> {
-  return await templateRunnerExecute(selectedTemplate, openInEditor, args)
+  // templateRunnerExecute is declared `Promise<string | void | null>`; callers of templateFileByTitle treat
+  // the null and undefined cases identically, so narrow via a cast rather than widening this public signature.
+  return ((await templateRunnerExecute(selectedTemplate, openInEditor, args): any): string | void)
 }
 
 /**

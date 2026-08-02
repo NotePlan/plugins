@@ -116,9 +116,10 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
   // $FlowFixMe
   const timeFormatToUse = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.timeFormat
 
-  // $FlowFixMe - timestampFormat seems to be derived from date.timeStyle or defaults to 'now' format.
+  // timestampFormat seems to be derived from date.timeStyle or defaults to 'now' format.
   // This specific migration for 'timestampFormat' seems to be mapping a legacy 'timeStyle' to it,
   // or defaulting to the 'now' format from default settings if not found.
+  // $FlowFixMe[prop-missing] - `date` is a legacy config shape, same as the suppressed reads above
   const timestampFormat = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.defaultFormats.now
 
   // Construct the configuration string using current and potentially migrated values.

@@ -239,7 +239,7 @@ export async function testHeatMapGeneration3(): Promise<void> {
     // Get string for heatmap column title: week number, or year number if week 1
     const weekTitle = (weekNum !== 1) ? mom.format('[W]WW') : mom.format('YYYY') // with this library the value needs to be identical all week
     const dayAbbrev = mom.format('ddd') // day of week (0-6) is 'd'
-    const dataPointObj = { x: weekTitle, y: dayAbbrev, heat: count, isoDate: isoDate }
+    const dataPointObj: { x: string, y: string, heat: number, isoDate: string | null } = { x: weekTitle, y: dayAbbrev, heat: count, isoDate: isoDate }
     if (withinDateRange(getAPIDateStrFromDisplayDateStr(isoDate), getAPIDateStrFromDisplayDateStr(fromDateStr), getAPIDateStrFromDisplayDateStr(toDateStr))) {
       // this test ignores any blanks on the front (though they will be 0 anyway)
       total += item[1] // the count

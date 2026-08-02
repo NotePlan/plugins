@@ -33,6 +33,7 @@ describe('Unquoted Parameter Tests', () => {
     const template = `<% const category = promptKey(category) -%>\nResult: <%- category %>`
 
     // Process the template
+    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
     const { sessionTemplateData, sessionData } = ((await processPrompts(template, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
 
     // Log diagnostic information
@@ -62,6 +63,7 @@ describe('Unquoted Parameter Tests', () => {
     const template = `<% const result = promptKey(existingVar) -%>\nResult: <%- result %>`
 
     // Process the template
+    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
     const { sessionTemplateData, sessionData } = ((await processPrompts(template, initialSessionData, '<%', '%>', getTags): any): TProcessPromptsSuccess)
 
     // Log diagnostic information

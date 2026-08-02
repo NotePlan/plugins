@@ -104,7 +104,8 @@ export async function bulletsAI(
         // logDebug(pluginJson, `\n----\n-----bulletsAI-----\nFollowed Link\nLink: ${promptIn}\nPrevious Subject: ${prevSubjectIn}\n----\n\n${typeof useFullHistory}`)
         initializeData()
         updateClickedLinksJsonData(promptIn)
-        promptMain = await generateSubjectSummaryPrompt(useFullHistory == 'true' ? fullHistoryText : promptIn, useFullHistory == 'true' ? '' : prevSubjectIn)
+        // useFullHistory is declared boolean, but this is a plugin entry point reachable from x-callback args, where it arrives as the string 'true' - casts document that
+        promptMain = await generateSubjectSummaryPrompt((useFullHistory: any) == 'true' ? fullHistoryText : promptIn, (useFullHistory: any) == 'true' ? '' : prevSubjectIn)
         promptList = await generateKeyTermsPrompt(promptIn, prevSubjectIn)
         break
 
@@ -117,7 +118,7 @@ export async function bulletsAI(
         break
     }
     const { newFullHistoryText, formattedSubtitle } = formatSubtitle(promptIn, prevSubjectIn ? prevSubjectIn : '', fullHistory, useFullHistory, fullHistoryText)
-    if (useFullHistory == 'true') {
+    if ((useFullHistory: any) == 'true') {
       promptMain = await generateSubjectSummaryPrompt(newFullHistoryText)
     }
     const { reqBody, reqListBody } = await generateReqBodies(useFullHistory == true ? newFullHistoryText : promptMain, promptList, chosenModel)

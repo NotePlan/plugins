@@ -349,7 +349,7 @@ function getObjectDiff(obj1: any, obj2: any): DiffObject | null {
  * @returns {Array|null} - An array representing the differences or null if no differences.
  */
 function getArrayDiff(arr1: Array<any>, arr2: Array<any>): DiffArray | null {
-  const diff = []
+  const diff: DiffArray = []
 
   const maxLength = Math.max(arr1.length, arr2.length)
 
@@ -534,7 +534,8 @@ export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string =
 
   // Handle Date
   if (value instanceof Date) {
-    return new Date(value.getTime())
+    // Cast: the copy is the same type as the input, but Flow cannot see that through T.
+    return ((new Date(value.getTime()): any): T)
   }
 
   // Handle Array
@@ -738,7 +739,9 @@ function getPluginSettingsForLogging(): any {
  */
 export const shouldOutputForLogLevel = (logType: string): boolean => {
   // Default DEBUG so early logs are not dropped while DataStore.settings is still unresolved or _logLevel is unset.
-  let userLogLevel = 0
+  // Note: `number | string` because _logLevel can be either ('DEBUG' or an index) — the branch
+  // below already handles both.
+  let userLogLevel: number | string = 0
   const thisMessageLevel = LOG_LEVELS.indexOf(logType.toUpperCase())
   const pluginSettings = getPluginSettingsForLogging()
   // Note: Performing a null change against a value that is `undefined` will be true

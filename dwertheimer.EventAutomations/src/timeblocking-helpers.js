@@ -97,7 +97,7 @@ export function cleanTimeBlockLine(line: string, config: { [key: string]: any })
   let clean = cleanText(line, cleanerRegexes)
   clean = removeDurationParameter(clean, durationMarker)
   clean = removeDateTagsAndToday(clean, true)
-  clean = clean.replace(DataStore?.preference('timeblockTextMustContainString') || '', '')
+  clean = clean.replace((DataStore?.preference('timeblockTextMustContainString'): any) || '', '')
   return clean
   // cleanString = removeDateTagsAndToday(cleanString)
 }
@@ -255,7 +255,7 @@ export function createOpenBlockObject(block: BlockData, config: { [key: string]:
     logError(`${error.message} for block:${JSP(block)} and config:${JSP(config)}`)
     return null
   }
-  endTime = endTime ? (includeLastSlotTime ? addMinutes(endTime, config.intervalMins) : endTime) : null
+  endTime = endTime ? (includeLastSlotTime ? addMinutes(endTime, config.intervalMins) : endTime) : (null: any)
   endTime = endTime && endTime <= endOfDay(startTime) ? endTime : endOfDay(startTime) // deal with edge case where end time is in the next day
   if (!startTime || !endTime) return null
   return {
@@ -433,8 +433,8 @@ export function ORIGINALprocessByTimeBlockTag(sortedTaskList: Array<ParagraphWit
   const { blockList, timeMap } = tmb
   let newBlockList = blockList
   let unprocessedTasks = [...sortedTaskList]
-  const results = []
-  let noTimeForTasks: { [string]: Array<any> } = {}
+  const results: Array<any> = []
+  let noTimeForTasks: { [string]: Array<any> } | null = {}
   const { matched: timeframeMatches, unmatched: regularTasks } = splitItemsByTags(sortedTaskList, config.timeframes || {})
   const namedBlocks = getNamedTimeBlocks(newBlockList ?? [])
   clo(blockList, `processByTimeBlockTag: blockList`)
@@ -458,7 +458,8 @@ export function ORIGINALprocessByTimeBlockTag(sortedTaskList: Array<ParagraphWit
       // $FlowIgnore
       logDebug(pluginJson, `Calling matchTasksToSlots for item[${i}]: ${task.content} duration:${task.duration}`)
       // const filteredTimeMap = timeMap.filter((t) => t.start >= block.start && t.start <= block.end)
-      const filteredTimeMap = timeMap.filter((t) => typeof t.busy === 'string' && t.busy.includes(blockTitle) && t.busy.includes(config.timeblockTextMustContainString))
+      // second `t.busy` cast: the first `.includes()` call invalidates Flow's `typeof t.busy === 'string'` refinement on the property
+      const filteredTimeMap = timeMap.filter((t) => typeof t.busy === 'string' && t.busy.includes(blockTitle) && (t.busy: any).includes(config.timeblockTextMustContainString))
       // Acting as if all blocks are just this named block
       const newTimeBlockWithMap = matchTasksToSlots([task], { blockList: [block], timeMap: filteredTimeMap }, config)
       unprocessedTasks = unprocessedTasks.filter((t) => t !== task) // remove the task from the list
@@ -466,7 +467,7 @@ export function ORIGINALprocessByTimeBlockTag(sortedTaskList: Array<ParagraphWit
       if (foundTimeForTask) {
         results.push(newTimeBlockWithMap)
       } else {
-        if (!noTimeForTasks) noTimeForTasks = {}
+        if (!noTimeForTasks) noTimeForTasks = ({}: { [string]: Array<any> })
         if (!noTimeForTasks[blockTitle]) noTimeForTasks[blockTitle] = []
         noTimeForTasks[blockTitle].push(task)
       }
@@ -516,7 +517,8 @@ export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, 
   let newMap = filterTimeMapToOpenSlots(timeMap, config)
   let newBlockList = findTimeBlocks(newMap, config)
   const { durationMarker } = config
-  let timeBlockTextList: Array<string> = []
+  // `void` is possible because this is re-assigned by destructuring a TimeBlocksWithMap, where timeBlockTextList is optional
+  let timeBlockTextList: Array<string> | void = []
   const noTimeForTasks: { [string]: Array<any> } = {}
 
   clof(sortedTaskList, `matchTasksToSlots: sortedTaskList`, null, true)
@@ -663,7 +665,7 @@ export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<So
         // clo(blocksAvailable, `getTimeBlockTimesForEvents blocksAvailable`)
         // clo(timeMap, `getTimeBlockTimesForEvents timeMap`)
         // clo(sortedTaskList, `getTimeBlockTimesForEvents sortedTaskList`)
-        newInfo = processByTimeBlockTag(sortedTaskList, { blockList: blocksAvailable, timeMap: availableTimes }, config)
+        newInfo = processByTimeBlockTag(sortedTaskList, { blockList: blocksAvailable, timeMap: availableTimes }, (config: any))
         break
       }
       case 'MANUAL_ORDERING': {
@@ -876,12 +878,16 @@ export function processTasksByTimeBlockTag(sortedTaskList: Array<ParagraphWithDu
   const keys = Object.keys(matched)
   if (keys.length) {
     logDebug(`"STARTING TIMEFRAME PROCESSING": ${keys.length} timeframes matched in tasks`)
-    let newTimeMapWithBlocks = { timeBlockTextList: [], timeMap: [], blockList: [] }
+    let newTimeMapWithBlocks: TimeBlocksWithMap = { timeBlockTextList: [], timeMap: [], blockList: [] }
     // process tasks by timeframe key
     keys.forEach((key) => {
       const tasksMatchingThisTimeframe = matched[key]
-      const [start, end] = config.timeframes[key]
-      let timeMapCopy = deepCopy(timeMap) // timeMap.slice()
+      // KNOWN BUG - see Flow_Human_Review.md item 8. `timeframes` is optional on
+      // AutoTimeBlockingConfig, so this throws in the BY_TIMEBLOCK_TAG path when a user has not
+      // configured any. The cast keeps Flow quiet; it does not make the access safe.
+      const [start, end] = (config.timeframes: any)[key]
+      // `any` because deepCopy() is declared to return `T | { [key: string]: any }`, which is not indexable by number
+      let timeMapCopy: any = deepCopy(timeMap) // timeMap.slice()
       // process one task in the timeframe at a time
       const sortedTasksMatchingTimeframe = sortListBy(tasksMatchingThisTimeframe, ['-priority', '-duration'])
       sortedTasksMatchingTimeframe.forEach((task) => {
@@ -906,7 +912,10 @@ export function processTasksByTimeBlockTag(sortedTaskList: Array<ParagraphWithDu
         // function: updateMasterTimeMapWithTimeMapChanges
         openTimesForTimeframe.forEach((t, i) => {
           if (!timeMapAfterTimeframePlacement.find((nt) => nt.start === t.start)) {
-            ;(timeMap.find((tm) => tm.start === t.start) ?? {}).busy = true
+            // KNOWN BUG - see Flow_Human_Review.md item 7. When find() misses, this writes to a
+            // throwaway object and the slot is never marked busy. The cast keeps Flow quiet; it
+            // does not fix the discarded write.
+            ;(timeMap.find((tm) => tm.start === t.start) ?? ({}: any)).busy = true
           }
         })
         // save no time for tasks
@@ -917,7 +926,8 @@ export function processTasksByTimeBlockTag(sortedTaskList: Array<ParagraphWithDu
           })
         }
         // save timeblocktextlist
-        if (timeBlockTextListAfterPlacement.length) {
+        // cast: timeBlockTextList is optional on TimeBlocksWithMap, but every producer of it always sets it
+        if ((timeBlockTextListAfterPlacement: any).length) {
           timeBlockTextList = timeBlockTextList.concat(timeBlockTextListAfterPlacement)
         }
         //FIXME: I am here -- need to fix the circular dependency oy vey

@@ -33,6 +33,7 @@ Category: <%- category %>
 `
 
     // Process the template
+    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
     const { sessionTemplateData, sessionData } = ((await processPrompts(template, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
 
     // Check the actual values in sessionData
@@ -59,6 +60,7 @@ Category: <%- category %>
 `
 
     // Process the template
+    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
     const { sessionTemplateData, sessionData } = ((await processPrompts(template, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
 
     // Verify the session data contains our variable
@@ -81,6 +83,7 @@ Category: <%- category %>
 `
 
     // Process the template
+    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
     const { sessionTemplateData, sessionData } = ((await processPrompts(template, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
 
     // Verify the session data contains our variable

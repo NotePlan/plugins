@@ -266,7 +266,9 @@ export async function getOpenAIKey(): Promise<string | null> {
  * Returns object of the request and the response (so it can be used and saved for caching)
  * @returns {Promise<{request: ChatObject, response: ChatResponse | null}} API result JSON response or null
  */
-export async function makeOneShotChatRequest(SYSTEM_MESSAGE: string, userPrompt: string, model?: string): Promise<{ request: ChatObject, response: ChatResponse | null }> {
+// newChatObject() returns ChatObject | null (it returns null when no model is configured),
+// so the declared request type has to admit it.
+export async function makeOneShotChatRequest(SYSTEM_MESSAGE: string, userPrompt: string, model?: string): Promise<{ request: ChatObject | null, response: ChatResponse | null }> {
   const request = newChatObject(SYSTEM_MESSAGE, userPrompt, model)
   // clo(request, `makeOneShotChatObject: request=`)
   const response = await makeRequest(CHAT_COMPONENT, 'POST', request)

@@ -121,6 +121,8 @@ export type TDashboardSettings = {
   showQuarterSection: boolean,
   showYearSection: boolean,
   showSavedSearchSection: boolean, // Note: the SEARCH Section doesn't need a setting. This is for future use for SAVEDSEARCH section(s).
+  showSearchSection?: boolean, // always forced true when settings are assembled (see getDashboardSettingsDefaults() / dashboardHelpers); optional here because older stored settings won't have it
+
   showTimeBlockSection: boolean,
   showTodaySection: boolean,
   showTomorrowSection: boolean,
@@ -418,6 +420,7 @@ export type MessageDataObject = {
   logMessage?: string,
   userInputObj?: TAnyObject,
   perspectiveName?: string,
+  switchToPerspectiveName?: string /* only used when actionType = 'savePerspectiveAndSwitchToPerspective': the perspective to switch to after saving */,
   stringToEvaluate?: string,
 }
 

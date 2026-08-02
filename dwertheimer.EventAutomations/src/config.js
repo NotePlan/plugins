@@ -124,4 +124,5 @@ export type AutoTimeBlockingConfig = {
   timeblockTextMustContainString: string,
   includeAllTodos: boolean,
   dateFormat?: string,
+  _logLevel?: string /* every plugin's DataStore.settings carries this; the type is exact, so it has to be declared */,
 }

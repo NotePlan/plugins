@@ -950,7 +950,7 @@ function FavoritesViewComponent({
         onSave={handleAddCommandDialogSave}
         onCancel={handleAddCommandDialogCancel}
         isModal={true}
-        handleButtonClick={handleAddCommandButtonClick}
+        handleButtonClick={(handleAddCommandButtonClick: any)}
       />
     </div>
   )

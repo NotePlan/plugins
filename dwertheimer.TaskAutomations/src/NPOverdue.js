@@ -390,7 +390,8 @@ export async function getNotesToReviewForOpenTasks(
     const { value, keyModifiers } = history
 
     const noteTypes = keyModifiers.indexOf('opt') > -1 ? 'both' : 'Calendar'
-    const notesWithOpenTasks = await getNotesWithOpenTasks(noteTypes, value, {
+    // chooseOptionWithModifiers() declares its `value` as string, but the OPTIONS above carry {num, unit} objects
+    const notesWithOpenTasks = await getNotesWithOpenTasks(noteTypes, (value: any), {
       searchForgottenTasksOldestToNewest,
       overdueFoldersToIgnore: forgottenFoldersToIgnore,
       ignoreScheduledInForgottenReview,

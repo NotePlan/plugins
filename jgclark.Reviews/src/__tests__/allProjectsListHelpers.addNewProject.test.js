@@ -23,7 +23,7 @@ import { Project } from '../projectClass'
 
 const preferenceValues: { [string]: any } = {}
 
-function makeConfig(overrides: { [string]: any } = {}): any {
+function makeConfig(overrides: any = {}): any {
   return {
     projectTypeTags: ['#project'],
     foldersToInclude: [],

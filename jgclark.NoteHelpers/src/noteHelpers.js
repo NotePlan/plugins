@@ -209,7 +209,8 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
         logDebug('addTriggerToNote', `- result of updateFrontMatterVars = ${String(res)}`)
       } else {
         logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" doesn't already have frontmatter`)
-        await convertNoteToFrontmatter(Editor.note, `triggers: ${triggerStringArg}`)
+        // Note: cast is safe because line 160 above throws if `Editor.note` is null; Flow just loses that refinement across the intervening calls
+        await convertNoteToFrontmatter((Editor.note: any), `triggers: ${triggerStringArg}`)
       }
       return
     } else {
@@ -373,6 +374,7 @@ export async function addItemToFrontmatter(note: ?TNote, key: ?string, value: ?s
     } else {
       thisValue = value
     }
+    // $FlowIgnore[invalid-computed-prop] safe: `thisKey` is a plain runtime string; Flow only allows literal computed keys in object literals
     const res = updateFrontMatterVars(thisNote, { [thisKey]: thisValue })
     if (res) {
       logDebug('note/addItemToFrontmatter', `addItemToFrontmatter(${thisKey}: ${thisValue}) returned ${String(res)}.`)

@@ -942,12 +942,13 @@ describe('NPTemplateRunner', () => {
         headingLevel: 2,
         note: mockNote, // Add the note property so removeParagraph can be called
       })
-      mockNote.paragraphs = [
+      // cast: these are partial TParagraph stubs (the 'text' one omits headingLevel), which is all this test needs
+      mockNote.paragraphs = ([
         { lineIndex: 0, type: 'title', content: '# Test Note', rawContent: '# Test Note', headingLevel: 1 },
         { lineIndex: 1, type: 'title', content: 'Test Heading', rawContent: '## Test Heading', headingLevel: 2 },
         { lineIndex: 2, type: 'text', content: 'Old heading content', rawContent: 'Old heading content' },
         { lineIndex: 3, type: 'title', content: 'Next Heading', rawContent: '## Next Heading', headingLevel: 2 },
-      ]
+      ]: any)
 
       // Ensure the mock function exists
       if (!NPParagraph.replaceContentUnderHeading) {

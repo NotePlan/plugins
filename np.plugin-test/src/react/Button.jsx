@@ -5,6 +5,7 @@ import React from 'react'
 type Props = {
   index?: number,
   onClick: Function,
+  onChange?: Function,
   className?: string,
   children?: any,
 }

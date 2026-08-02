@@ -176,12 +176,12 @@ export async function newMeetingNoteFromID(eventID: string, template?: string): 
  * Selects an event and a template.
  * @param {TCalendarItem} _selectedEvent
  * @param {string} _templateFilename
- * @returns {Promise<{selectedEvent: TCalendarItem, templateFilename: string}>}
+ * @returns {Promise<{selectedEvent: ?TCalendarItem, templateFilename: ?string}>} either may be null/undefined if the user cancelled
  */
 async function selectEventAndTemplate(
   _selectedEvent?: TCalendarItem | null = null,
   _templateFilename?: string,
-): Promise<{ selectedEvent: TCalendarItem | null, templateFilename: string }> {
+): Promise<{ selectedEvent: ?TCalendarItem, templateFilename: ?string }> {
   const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
   const templateFilename = await chooseTemplateIfNeededFromTemplateTitle(_templateFilename, true)
   return { selectedEvent, templateFilename }
@@ -189,12 +189,13 @@ async function selectEventAndTemplate(
 
 /**
  * Pre-renders and renders the template for a selected event.
- * @param {TCalendarItem} selectedEvent
- * @param {string} templateFilename
+ * @param {?TCalendarItem} selectedEvent - may be null/undefined; the body already guards for that
+ * @param {?string} templateFilename - may be null/undefined; the body already guards for that
  * @returns {Promise<{result: string, attrs: any}>}
  */
-async function renderTemplateForEvent(selectedEvent: TCalendarItem, templateFilename: string): Object {
-  logDebug(pluginJson, `${timer(scriptLoad)} - renderTemplateForEvent: templateFilename: "${templateFilename}"; selectedEvent.title: "${selectedEvent?.title}"`)
+async function renderTemplateForEvent(selectedEvent: ?TCalendarItem, templateFilename: ?string): Object {
+  // casts: both may legitimately be null/undefined here and are only being logged
+  logDebug(pluginJson, `${timer(scriptLoad)} - renderTemplateForEvent: templateFilename: "${(templateFilename: any)}"; selectedEvent.title: "${(selectedEvent?.title: any)}"`)
   let templateVariables, templateContent
   if (selectedEvent) {
     templateVariables = generateEventData(selectedEvent)
@@ -311,7 +312,7 @@ async function handleExistingNotes(_noteTitle: string, renderedContent: string, 
  * @param {boolean} forceNewNote - ignore the "note exists" commandbar and force new note creation
  * @returns {Promise<void>}
  */
-async function createNoteAndLinkEvent(selectedEvent: TCalendarItem | null, renderedContent: string, attrs: Object, forceNewNote: boolean = false): Promise<void> {
+async function createNoteAndLinkEvent(selectedEvent: ?TCalendarItem, renderedContent: string, attrs: Object, forceNewNote: boolean = false): Promise<void> {
   const folder: string = attrs?.folder || ''
   const append: string = attrs?.append || ''
   const prepend: string = attrs?.prepend || ''

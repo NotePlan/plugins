@@ -150,10 +150,14 @@ async function askOpenType(): Promise<'subWindow' | 'splitView' | 'reuseSplitVie
     { label: 'Open in Floating Window', value: 'subWindow' },
     { label: 'Open in Split View', value: 'splitView' },
   ]
-  const choice = await chooseOption('How should the note open?', opts, opts[0].value)
+  // KNOWN BUG - see Flow_Human_Review.md item 6. The nine `=== false` cancel checks in this
+  // file are dead: chooseOption() never returns false, so cancelling a step silently proceeds
+  // with the default. The `| false` in these annotations records the author's intent so the
+  // checks type-check; it does not make cancellation work.
+  const choice: '__none__' | 'subWindow' | 'splitView' | false = await chooseOption('How should the note open?', opts, opts[0].value)
   if (choice === false) return false
   if (choice === '__none__') return null
-  const reuse = await chooseOption(
+  const reuse: 'yes' | 'no' | false = await chooseOption(
     'Reuse the window/split if it is already open?',
     [
       { label: 'Yes (open there, reuse if already open)', value: 'yes' },
@@ -179,7 +183,7 @@ async function askTimeframe(): Promise<'week' | 'month' | 'quarter' | 'year' | n
     { label: 'Quarter view', value: 'quarter' },
     { label: 'Year view', value: 'year' },
   ]
-  const choice = await chooseOption('Which calendar view?', opts, opts[0].value)
+  const choice: '__none__' | 'week' | 'month' | 'quarter' | 'year' | false = await chooseOption('Which calendar view?', opts, opts[0].value)
   if (choice === false) return false
   return choice === '__none__' ? null : choice
 }
@@ -189,7 +193,7 @@ async function askTimeframe(): Promise<'week' | 'month' | 'quarter' | 'year' | n
  * @returns {Promise<{ start: number, length: number } | null | false>} highlight or null to skip, false if cancelled
  */
 async function askHighlight(): Promise<{ start: number, length: number } | null | false> {
-  const wantHighlight = await chooseOption(
+  const wantHighlight: 'yes' | 'no' | false = await chooseOption(
     'Jump cursor / select text after opening?',
     [
       { label: 'No', value: 'no' },
@@ -217,7 +221,7 @@ async function askWhatKind(): Promise<string | false> {
     { label: 'Open a Folder', value: 'folder' },
   ]
   // Reassigned from getInput() below, which returns false when the user cancels.
-  let choice: string | boolean = await chooseOption('What kind of note do you want to use/open?', opts, opts[0].value)
+  let choice: string | false = await chooseOption('What kind of note do you want to use/open?', opts, opts[0].value)
   if (choice === 'date') {
     const opts = [
       { label: 'Enter a specific date', value: 'nameDate' },
@@ -247,9 +251,9 @@ async function getAddTextAdditions(): Promise<{ text: string, mode: string, open
     { label: 'Prepend text to the top of the note', value: 'prepend' },
     { label: 'Append text to the end of the note', value: 'append' },
   ]
-  const mode = await chooseOption('How would you like to add the text?', opts, opts[0].value)
+  const mode: 'prepend' | 'append' | false = await chooseOption('How would you like to add the text?', opts, opts[0].value)
   if (mode === false) return false
-  const openNote = await chooseOption(
+  const openNote: 'yes' | 'no' | false = await chooseOption(
     'Open the note after adding the text?',
     [
       { label: 'Yes', value: 'yes' },
@@ -261,7 +265,8 @@ async function getAddTextAdditions(): Promise<{ text: string, mode: string, open
 }
 
 export async function addNote(): Promise<string> {
-  const vars = {}
+  // indexed object: keys are added, read by computed key and deleted in the loops below. `| false` because getInput() returns false on cancel.
+  const vars: { [string]: string | false } = {}
   vars.noteTitle = await getInput(`What's the title?\n(optional - click OK to leave blank)`, `OK`, `Title of Note`, '')
   if (vars.noteTitle === false) return ''
   vars.folder = await chooseFolder(`What folder?`)
@@ -290,7 +295,8 @@ export async function addNote(): Promise<string> {
   }
   let params = ''
   for (const key in vars) {
-    params += `${params.length ? '&' : '?'}${key}=${encodeURIComponent(vars[key])}`
+    // every `false` value has already caused an early `return ''` above, so the surviving values are all strings
+    params += `${params.length ? '&' : '?'}${key}=${encodeURIComponent((vars[key]: any))}`
   }
   return `noteplan://x-callback-url/addNote${params}`
 }
@@ -326,7 +332,7 @@ export async function installPlugin(): Promise<string> {
  * @returns {Promise<string>} the URL
  */
 export async function toggleSidebar(): Promise<string> {
-  const forceCollapse = await chooseOption(
+  const forceCollapse: 'yes' | 'no' | false = await chooseOption(
     'Force sidebar to collapse/hide?',
     [
       { label: 'No (default)', value: 'no' },
@@ -335,7 +341,7 @@ export async function toggleSidebar(): Promise<string> {
     'no',
   )
   if (forceCollapse === false) return ''
-  const forceOpen = await chooseOption(
+  const forceOpen: 'yes' | 'no' | false = await chooseOption(
     'Force sidebar to show/open?',
     [
       { label: 'No (default)', value: 'no' },
@@ -344,7 +350,7 @@ export async function toggleSidebar(): Promise<string> {
     'no',
   )
   if (forceOpen === false) return ''
-  const animated = await chooseOption(
+  const animated: 'yes' | 'no' | false = await chooseOption(
     'Animate the toggle? (Mac only)',
     [
       { label: 'Yes (default)', value: 'yes' },
@@ -353,7 +359,7 @@ export async function toggleSidebar(): Promise<string> {
     'yes',
   )
   if (animated === false) return ''
-  const params = {}
+  const params: { [string]: string } = {}
   if (forceCollapse === 'yes') params.forceCollapse = 'yes'
   if (forceOpen === 'yes') params.forceOpen = 'yes'
   if (animated === 'no') params.animated = 'no'
@@ -546,7 +552,8 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
       case 'runTemplating':
         runplugin = await chooseRunPluginXCallbackURL(true, /Templating/)
         if (runplugin) {
-          url = runplugin.url || ''
+          // chooseRunPluginXCallbackURL is declared to return `boolean | {url, ...}`, but it only ever returns false or the object, so the truthy branch has a url
+          url = (runplugin: any).url || ''
         } else {
           return
         }
@@ -560,7 +567,8 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
       case 'runPlugin':
         runplugin = await chooseRunPluginXCallbackURL()
         if (runplugin) {
-          url = runplugin.url || ''
+          // chooseRunPluginXCallbackURL is declared to return `boolean | {url, ...}`, but it only ever returns false or the object, so the truthy branch has a url
+          url = (runplugin: any).url || ''
         } else {
           return
         }

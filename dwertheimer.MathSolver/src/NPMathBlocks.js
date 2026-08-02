@@ -33,7 +33,7 @@ import columnify from 'columnify'
 import pluginJson from '../plugin.json'
 import { chooseOption, showMessage } from '../../helpers/userInput'
 import type { CodeBlock } from '../../helpers/codeBlocks'
-import { type LineInfo, parse, isLineType, checkIfUnit } from './support/solver'
+import { type LineInfo, type CurrentData, parse, isLineType, checkIfUnit } from './support/solver'
 import { getParagraphContainingPosition, getSelectedParagraphLineIndex } from '@helpers/NPParagraph'
 import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 import { createRunPluginCallbackUrl, formatWithFields, getRandomUUID } from '@helpers/general'
@@ -79,7 +79,7 @@ export function formatOutput(results: Array<LineInfo>, formatTemplate: string = 
     const isNotCalc = (String(line.lineValue) === line.expression && !isPctOf) || (Number(line.lineValue) === Number(line.expression) && !Number(line.expression) !== 0)
     const isNumericalAssignment = line.typeOfResult === 'A' && !/(\+|\-|\*|\/)+/.test(line.originalText)
     const isUndefined = line.lineValue === undefined
-    let val = line.lineValue
+    let val: any = line.lineValue
     if (!isUndefined) {
       // logDebug(pluginJson, `checking line.lineValue: ${String(line?.lineValue)}`)
       if (checkIfUnit(line.lineValue)) {
@@ -307,7 +307,7 @@ export async function calculateBlocks(buttonClickedIndex: number | null = null, 
         const block = codeBlocks[b]
         // removeAnnotations(Editor, block) //FIXME: MAYBE put this back, especially for non-columnar output
         // clo(block,`calculateEditorMathBlocks block=`)
-        let currentData = { info: [], variables: { ...presetValues, ...vars }, relations: [], expressions: [], rows: 0, precision }
+        let currentData: CurrentData = { info: [], variables: { ...presetValues, ...vars }, relations: [], expressions: [], rows: 0, precision }
         block.code.split('\n').forEach((line, i) => {
           currentData.rows = i + 1
           currentData = parse(line, i, currentData)

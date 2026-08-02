@@ -20,7 +20,7 @@ jest.mock('../lib/core', () => ({
     const regex = /<%.*?%>/g
     let match
     while ((match = regex.exec(templateData)) !== null) {
-      tags.push(match[0])
+      tags.push((match: any)[0])
     }
     return Promise.resolve(tags)
   }),

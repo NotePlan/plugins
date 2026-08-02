@@ -429,7 +429,7 @@ describe('getRenderContext', () => {
       // Mock NPTemplating.setup to throw an error
       // $FlowIgnore[cannot-write]
       const originalSetup = NPTemplating.setup
-      // $FlowIgnore[cannot-write,underconstrained-implicit-instantiation]
+      // $FlowIgnore[cannot-write]
       NPTemplating.setup = jest.fn<Array<any>, any>().mockRejectedValue(new Error('Setup failed'))
 
       await expect(getRenderContext()).rejects.toThrow('Setup failed')

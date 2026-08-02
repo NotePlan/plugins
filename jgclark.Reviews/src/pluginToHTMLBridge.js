@@ -396,7 +396,8 @@ export async function bridgeClickProjectListItem(data: MessageDataObject | any) 
       case 'windowResized': {
         logDebug('bCPLI / windowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
         const thisWin = getWindowFromCustomId(windowCustomId)
-        const rect = getLiveWindowRectFromWin(thisWin)
+        // Note: cast is safe because getLiveWindowRectFromWin() guards `if (win)` and returns false for a falsy window; its param is mis-typed as DOM `Window`
+        const rect = getLiveWindowRectFromWin((thisWin: any))
         if (rect) {
           // logDebug('bCPLI / windowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
           storeWindowRect(windowCustomId)

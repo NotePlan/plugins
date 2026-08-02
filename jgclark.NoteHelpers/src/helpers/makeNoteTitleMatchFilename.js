@@ -20,7 +20,8 @@ export async function makeNoteTitleMatchFilename(note: Note, shouldPromptBeforeR
   const currentTitle = note.paragraphs[0]?.content ?? ''
 
   const currentFullPath = note.filename
-  const currentFilename = currentFullPath.split('/').pop()
+  // Note: cast is safe because String.split() always returns at least one element, so .pop() cannot be undefined here
+  const currentFilename: string = (currentFullPath.split('/').pop(): any)
   const newTitle = currentFilename.replace(`.${defaultFileExtension}`, '')
 
   if (newTitle === currentTitle) {

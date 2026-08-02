@@ -9,6 +9,7 @@
 
 // @flow
 import path from 'path'
+// $FlowIgnore[cannot-resolve-module] - `fs/promises` is a node builtin; flow-typed has no libdef for the subpath form
 import fs from 'fs/promises'
 import { existsSync } from 'fs'
 import TemplatingEngine from '../lib/TemplatingEngine'
@@ -57,12 +58,12 @@ describe('preProcessTags Function Tests', () => {
   })
 
   test('should handle null input gracefully', async () => {
-    const { newTemplateData } = await preProcessTags(null)
+    const { newTemplateData } = await preProcessTags((null: any))
     expect(newTemplateData).toEqual('')
   })
 
   test('should handle undefined input gracefully', async () => {
-    const { newTemplateData } = await preProcessTags(undefined)
+    const { newTemplateData } = await preProcessTags((undefined: any))
     expect(newTemplateData).toEqual('')
   })
 

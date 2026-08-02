@@ -53,5 +53,6 @@ const mockResponses: Array<FetchMockResponse> = [
 const fm = new FetchMock(mockResponses) // add one object to array for each mock response
 fetch = async (url: string, opts?: any) => {
   logDebug(`fetchOverrides.js`, `FetchMock faking response from: "${url}" (turn on/off in index.js)`)
-  return await fm.fetch(url, opts)
+  // opts is an optional param, so its type includes void, which FetchOptions does not accept
+  return await fm.fetch(url, (opts: any))
 } //override the global fetch

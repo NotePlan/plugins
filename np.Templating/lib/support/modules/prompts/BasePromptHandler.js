@@ -713,7 +713,7 @@ export default class BasePromptHandler {
             }
           }
 
-          logDebug(pluginJson, `BasePromptHandler.getPromptParameters: final result with promptMessage="${result.promptMessage}", options="${result.options}"`)
+          logDebug(pluginJson, `BasePromptHandler.getPromptParameters: final result with promptMessage="${result.promptMessage}", options="${(result.options: any)}"`)
 
           // Preserve quotes in promptMessage if it begins with a quote
           if (result.promptMessage.startsWith('"') && !result.promptMessage.endsWith('"')) {
