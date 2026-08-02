@@ -2,7 +2,7 @@
 
 import NPTemplating from '../lib/NPTemplating'
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
-import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
+import type { TProcessPromptsResult } from '../lib/support/modules/prompts/PromptRegistry'
 import { getTags } from '../lib/core'
 import StandardPromptHandler from '../lib/support/modules/prompts/StandardPromptHandler'
 import BasePromptHandler from '../lib/support/modules/prompts/BasePromptHandler'
@@ -80,7 +80,7 @@ describe('StandardPromptHandler', () => {
       const templateData = "<%- prompt('testVar', 'Enter test value:') %>"
       const userData = {}
 
-      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
       expect(result).not.toBe(false)
       if (result !== false) {
@@ -94,7 +94,7 @@ describe('StandardPromptHandler', () => {
       const templateData = "<%- prompt('testVar', 'Enter test value:', 'default value') %>"
       const userData = {}
 
-      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
       expect(result).not.toBe(false)
       if (result !== false) {
@@ -108,7 +108,7 @@ describe('StandardPromptHandler', () => {
       const templateData = "<%- prompt('testVar', 'Choose an option:', ['option1', 'option2', 'option3']) %>"
       const userData = {}
 
-      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
       expect(result).not.toBe(false)
       if (result !== false) {
@@ -122,20 +122,20 @@ describe('StandardPromptHandler', () => {
   describe('Cancelled prompts', () => {
     test('Should handle basic text prompt cancellation', async () => {
       const template = '<%- prompt("testVar", "This prompt will be cancelled") %>'
-      const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+      const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
       expect(result).toBe(false)
     })
 
     test('Should handle prompt with default value cancellation', async () => {
       const template = '<%- prompt("testVar", "This prompt will be cancelled", "default") %>'
-      const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+      const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
       expect(result).toBe(false)
     })
 
     // skipping this test because in practice, hittins escape stops the plugin in NP so it will never return
     test.skip('Should handle prompt with options cancellation', async () => {
       const template = '<%- prompt("testVar", "This prompt will be cancelled", ["option1", "option2"]) %>'
-      const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+      const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
       expect(result).toBe(false)
     })
   })
@@ -179,7 +179,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('greeting', 'Hello, world!', 'Default, with comma') %>"
     const userData = {}
 
-    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -193,7 +193,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('greeting', \"Hello 'world'!\", \"Default 'value'\") %>"
     const userData = {}
 
-    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -207,7 +207,7 @@ describe('StandardPromptHandler', () => {
     const templateData = '<%- prompt("greeting", "Hello \\"world\\"!", "Default \\"value\\"") %>'
     const userData = {}
 
-    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -224,7 +224,7 @@ describe('StandardPromptHandler', () => {
     `
     const userData = {}
 
-    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -239,7 +239,7 @@ describe('StandardPromptHandler', () => {
     const templateData = '<%- existingVar %>'
     const userData = { existingVar: 'Already Exists' }
 
-    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -253,7 +253,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('include_this?', 'Include this item?') %>"
     const userData = {}
 
-    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -266,7 +266,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('project name', 'Enter project name:') %>"
     const userData = {}
 
-    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -279,7 +279,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('emptyDefault', 'Enter value:', '') %>"
     const userData = {}
 
-    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -291,19 +291,19 @@ describe('StandardPromptHandler', () => {
 
   test('Should handle basic text prompt', async () => {
     const template = '<%- prompt("testVar", "Enter a value:") %>'
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).toBe(false)
   })
 
   test('Should handle prompt with default value', async () => {
     const template = '<%- prompt("testVar", "Enter a value:", "default") %>'
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).toBe(false)
   })
 
   test('Should handle prompt with options', async () => {
     const template = '<%- prompt("testVar", "Choose an option:", ["option1", "option2"]) %>'
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).not.toBe(false)
     if (result !== false) {
       expect(result.sessionData.testVar).toBe('Test Response')
@@ -314,7 +314,7 @@ describe('StandardPromptHandler', () => {
 
   test('Should gracefully handle user cancelling the prompt', async () => {
     const template = '<%- prompt("cancelledVar", "This prompt will be cancelled") %>'
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).toBe(false)
   })
 
@@ -326,7 +326,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('errorVar', 'This will error:') %>"
     const userData = {}
 
-    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
     // Should handle the error gracefully
     expect(result).not.toBe(false)
@@ -340,7 +340,7 @@ describe('StandardPromptHandler', () => {
     const templateData = "<%- prompt('complex', 'Text with symbols: @#$%^&*_+{}[]|\\:;\"<>,.?/~`', 'Default with symbols: !@#$%^&*') %>"
     const userData = {}
 
-    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -361,7 +361,7 @@ describe('StandardPromptHandler', () => {
     `
     const userData = {}
 
-    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result !== false) {
@@ -392,7 +392,7 @@ describe('StandardPromptHandler', () => {
     `
     const userData = {}
 
-    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result !== false) {

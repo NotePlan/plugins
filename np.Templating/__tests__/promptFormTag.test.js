@@ -5,7 +5,7 @@
 
 import { extractPromptFormObjectSource } from '../lib/support/modules/prompts/PromptFormHandler'
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
-import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
+import type { TProcessPromptsResult } from '../lib/support/modules/prompts/PromptRegistry'
 import '../lib/support/modules/prompts'
 
 /* global describe, test, expect, jest, beforeEach */
@@ -58,7 +58,7 @@ describe('promptForm tag', () => {
       '] })'
 
     const template = `<%- ${formCall} %>\nName: <%- docName %>`
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result === false) return
@@ -77,14 +77,14 @@ describe('promptForm tag', () => {
   test('cancelling promptForm returns false', async () => {
     global.CommandBar.showForm.mockResolvedValue({ submitted: false, values: {} })
     const template = `<%- promptForm({ fields: [{ type: 'string', key: 'x', title: 'X' }] }) %>`
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).toBe(false)
   })
 
   test('parse error yields HTML error comment in template', async () => {
     global.CommandBar.showForm.mockResolvedValue({ submitted: true, values: {} })
     const template = '<%- promptForm(not an object) %>'
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).not.toBe(false)
     if (result === false) return
     expect(result.sessionTemplateData).toMatch(/Error: promptForm/)
@@ -96,7 +96,7 @@ describe('promptForm tag', () => {
     global.CommandBar.textPrompt.mockResolvedValue('solo')
 
     const template = `<%- promptForm({ fields: [{ type: 'string', key: 'only', title: 'One' }] }) %>`
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result === false) return

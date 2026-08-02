@@ -340,7 +340,9 @@ describe('Prompt Integration Tests', () => {
     global.CommandBar.textPrompt.mockClear()
 
     const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
-    if (result === false) return
+    // Cast: `result` is already narrowed to the success shape by the binding above, so this
+    // guard is redundant — kept because it documents the contract processPrompts() has.
+    if ((result: any) === false) return
 
     // Replace any quoted text placeholders in the session data
     const cleanedSessionData = replaceQuotedTextPlaceholders(result.sessionData)

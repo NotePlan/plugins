@@ -18,6 +18,7 @@ import {
 } from '../lib/rendering/templateProcessor'
 import FrontmatterModule from '../lib/support/modules/FrontmatterModule'
 import { processPrompts } from '../lib/support/modules/prompts'
+import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts'
 import TemplatingEngine from '../lib/TemplatingEngine'
 import { DataStore } from '@mocks/index'
 
@@ -76,7 +77,7 @@ const processFrontmatter = jest.fn<Array<any>, any>().mockImplementation(async (
 })
 
 const processTemplatePrompts = jest.fn<Array<any>, any>().mockImplementation(async (templateData, sessionData) => {
-  const result = await processPrompts(templateData, sessionData)
+  const result = ((await processPrompts(templateData, sessionData): any): TProcessPromptsSuccess)
   if (result === false) return false
 
   return {
@@ -173,7 +174,7 @@ jest.mock('../lib/rendering/templateProcessor', () => {
     }
   }
 
-  const original = jest.requireActual('../lib/rendering/templateProcessor')
+  const original = jest.requireActual<any>('../lib/rendering/templateProcessor')
   return {
     ...original,
     render: jest.fn<Array<any>, any>().mockImplementation(async (template, userData) => {

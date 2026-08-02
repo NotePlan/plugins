@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T03:13:41.354Z",
-  "rawTotal": 1153,
+  "generated": "2026-08-02T03:21:11.128Z",
+  "rawTotal": 1099,
   "byPlugin": {
     "flow-typed": {
       "sites": 9,
@@ -123,9 +123,9 @@
       "src": 1
     },
     "jgclark.Reviews": {
-      "sites": 17,
-      "raw": 29,
-      "test": 8,
+      "sites": 16,
+      "raw": 28,
+      "test": 7,
       "src": 9
     },
     "jgclark.SearchExtensions": {
@@ -159,9 +159,9 @@
       "src": 2
     },
     "np.Templating": {
-      "sites": 170,
-      "raw": 186,
-      "test": 116,
+      "sites": 117,
+      "raw": 133,
+      "test": 63,
       "src": 54
     },
     "np.ThemeChooser": {

@@ -4,7 +4,7 @@
  */
 
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
-import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
+import type { TProcessPromptsResult } from '../lib/support/modules/prompts/PromptRegistry'
 import '../lib/support/modules/prompts'
 
 /* global describe, test, expect, jest, beforeEach */
@@ -41,7 +41,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     const template =
       "<%- prompt('firstName', 'First name?') %>\n" + "<%- prompt('lastName', 'Last name?') %>\n" + 'Hello'
 
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result === false) return
@@ -62,7 +62,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     const template =
       "<%- prompt('firstName', 'First name?') %>\n" + "<%- prompt('lastName', 'Last name?') %>\n" + 'Hello'
 
-    const result = ((await processPrompts(template, { onePromptAtATime: true }): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, { onePromptAtATime: true }): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result === false) return
@@ -76,7 +76,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     global.CommandBar.textPrompt.mockResolvedValueOnce('A').mockResolvedValueOnce('B')
 
     const template = "<%- prompt('x', 'X?') %>\n<%- prompt('y', 'Y?') %>"
-    const result = ((await processPrompts(template, { data: { onePromptAtATime: true } }): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, { data: { onePromptAtATime: true } }): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result === false) return
@@ -89,7 +89,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     global.CommandBar.textPrompt.mockResolvedValueOnce('p').mockResolvedValueOnce('q')
 
     const template = "<%- prompt('a', 'A?') %>\n<%- prompt('b', 'B?') %>"
-    const result = ((await processPrompts(template, { batchPrompts: false }): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, { batchPrompts: false }): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result === false) return
@@ -105,7 +105,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     const template =
       "<%- prompt('choices', 'Pick', ['North','South']) %>\n" + "<%- prompt('city', 'City?', choices) %>"
 
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
 
     expect(result).not.toBe(false)
     if (result === false) return
@@ -125,7 +125,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     const template =
       "<%- prompt('Abstände Review?',['1w','2w']) %>" + "<%- prompt('Priority prompt?',['A','B']) %>"
 
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).not.toBe(false)
     if (result === false) return
     expect(global.CommandBar.showForm).toHaveBeenCalledTimes(1)
@@ -144,7 +144,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
 
     const template =
       "<%- prompt('pick', 'Pick one?', ['A','B']) %>" + "<%- prompt('Rhythm?', ['1w','2w']) %>"
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).not.toBe(false)
     if (result === false) return
     const formArg = global.CommandBar.showForm.mock.calls[0][0]
@@ -160,7 +160,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     })
 
     const template = '<%- prompt("Double quoted?", ["a","b"]) %>' + "<%- prompt('pick', 'Second?', ['B','C']) %>"
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).not.toBe(false)
     if (result === false) return
     const formArg = global.CommandBar.showForm.mock.calls[0][0]
@@ -175,7 +175,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     })
 
     const template = "<% prompt('Q?', ['a','b']) %><% prompt('Y?', ['c','d']) %>"
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).not.toBe(false)
     if (result === false) return
     const formArg = global.CommandBar.showForm.mock.calls[0][0]
@@ -191,7 +191,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
 
     const template =
       `<%- prompt("What's the priority?", ['a','b']) %>` + "<%- prompt('Other?', ['c','d']) %>"
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).not.toBe(false)
     if (result === false) return
     const formArg = global.CommandBar.showForm.mock.calls[0][0]
@@ -208,7 +208,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
 
     const template =
       "<%- prompt('One, two, three?', ['a','b']) %>" + "<%- prompt('Z?', ['x','y']) %>"
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).not.toBe(false)
     if (result === false) return
     const formArg = global.CommandBar.showForm.mock.calls[0][0]
@@ -225,7 +225,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     const template =
       "<%- prompt('x', 'X?') %>\n" + '<%# not-a-prompt %>' + "\n<%- prompt('y', 'Y?') %>"
 
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).not.toBe(false)
     expect(global.CommandBar.showForm).not.toHaveBeenCalled()
   })
@@ -237,7 +237,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     })
 
     const template = "<%- prompt('a', 'A?') %>\n<%- prompt('b', 'B?') %>"
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).toBe(false)
   })
 
@@ -249,7 +249,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
 
     const template =
       "<%- prompt('a', 'A?') %>\n" + "<%- promptDate('startDate', 'Start date', ['', false]) %>"
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).not.toBe(false)
     if (result === false) return
     const formArg = global.CommandBar.showForm.mock.calls[0][0]
@@ -271,7 +271,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     const template =
       "<%- prompt('title', 'Title?') %>\n" +
       "<%- promptDate('when', 'When?', '{ dateFormat: \"MM/dd/yyyy\" }') %>"
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).not.toBe(false)
     if (result === false) return
     const formArg = global.CommandBar.showForm.mock.calls[0][0]
@@ -287,7 +287,7 @@ describe('prompt form batch (CommandBar.showForm)', () => {
     })
 
     const template = "<%- prompt('title', 'Title?') %>\n<%- promptDate('when', ['2026-04-01', false]) %>"
-    const result = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
+    const result = ((await processPrompts(template, {}): any): TProcessPromptsResult)
     expect(result).not.toBe(false)
     if (result === false) return
     expect(global.CommandBar.showForm).toHaveBeenCalledTimes(1)

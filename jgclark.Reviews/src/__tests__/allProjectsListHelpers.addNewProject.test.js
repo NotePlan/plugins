@@ -5,7 +5,7 @@
 const reviewSettingsHolder: { config: any } = { config: null }
 
 jest.mock('../reviewHelpers', () => {
-  const actual = jest.requireActual('../reviewHelpers')
+  const actual = jest.requireActual<any>('../reviewHelpers')
   return {
     ...actual,
     updateRichProjectListIfOpen: jest.fn(() => Promise.resolve()),
