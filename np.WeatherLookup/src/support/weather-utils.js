@@ -30,7 +30,7 @@ export const getCurrentConditions = (currentWeather: { [string]: any }): any => 
 }
 
 export const extractDailyForecastData = (weather: { [string]: any }): Array<any> => {
-  let dailyForecast = []
+  let dailyForecast: Array<any> = []
   if (weather && weather.daily?.length > 0) {
     dailyForecast = weather.daily.map((dy) => {
       const { sunrise, sunset, temp, uvi, humidity, feels_like } = dy

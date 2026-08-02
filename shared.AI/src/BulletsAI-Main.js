@@ -204,7 +204,7 @@ async function parseResponse(request: Object | null, listRequest: Object | null,
   }
 }
 
-async function generateReqBodies(promptMain, promptList, chosenModel) {
+async function generateReqBodies(promptMain: any, promptList: any, chosenModel: any) {
   const { max_tokens } = DataStore.settings
 
   const reqBody: CompletionsRequest = { prompt: promptMain, model: chosenModel, max_tokens: max_tokens }

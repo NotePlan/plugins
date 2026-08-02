@@ -55,7 +55,7 @@ async function searchInRaindrop(cb: (raindrop: Raindrop) => Promise<void>): Prom
             return
         }
 
-        let raindrops = []
+        let raindrops: Array<any> = []
         for (let i = 0; ; i++) {
             const raw = await requestToRaindrop('GET', `https://api.raindrop.io/rest/v1/raindrops/0?search=${encodeURIComponent(search)}&page=${encodeURIComponent(i)}&perPage=50`)
 

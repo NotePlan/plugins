@@ -193,7 +193,7 @@ async function selectEventAndTemplate(
  * @param {string} templateFilename
  * @returns {Promise<{result: string, attrs: any}>}
  */
-async function renderTemplateForEvent(selectedEvent, templateFilename): Object {
+async function renderTemplateForEvent(selectedEvent: TCalendarItem, templateFilename: string): Object {
   logDebug(pluginJson, `${timer(scriptLoad)} - renderTemplateForEvent: templateFilename: "${templateFilename}"; selectedEvent.title: "${selectedEvent?.title}"`)
   let templateVariables, templateContent
   if (selectedEvent) {

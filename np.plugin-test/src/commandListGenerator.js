@@ -74,7 +74,7 @@ export async function getFilteredPluginData(showInstalledOnly: boolean): Promise
     plugin.installLink = createRunPluginCallbackUrl(pluginJson['plugin.id'], 'Install Plugin and Re-Generate Plugin Listing Page', ['false'])
     plugin.documentation = plugin.repoUrl || ''
     const commands =
-      plugin?.commands?.reduce((acc, c) => {
+      plugin?.commands?.reduce((acc: Array<any>, c: any) => {
         !c.isHidden ? acc.push(copyObject(c)) : null
         return acc
       }, []) || []

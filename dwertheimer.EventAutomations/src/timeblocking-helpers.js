@@ -374,7 +374,7 @@ export function namedTagExistsInLine(blockName: string, line: string): boolean {
  * @param {*} propToLookAt - if you only want to look at one key in each top level object
  * @returns a single object with the same keys and the values combined into arrays
  */
-function reduceArrayOfObjectsToSingleObject(arr: Array<{ [key: string]: any }>, propToLookAt? = null): { [key: string]: any } {
+function reduceArrayOfObjectsToSingleObject(arr: Array<{ [key: string]: any }>, propToLookAt?: ?string = null): { [key: string]: any } {
   return arr.reduce((acc, obj) => {
     const o = propToLookAt ? obj[propToLookAt] : obj
     Object.keys(o).forEach((key) => {
@@ -475,7 +475,7 @@ export function ORIGINALprocessByTimeBlockTag(sortedTaskList: Array<ParagraphWit
   })
   //stop
   // ["IGNORE_THEM","OUTPUT_FOR_INFO (but don't schedule them)", "SCHEDULE_ELSEWHERE_LAST", "SCHEDULE_ELSEWHERE_FIRST"]
-  const noTimeTasks = Object.values(noTimeForTasks || {}).reduce((acc, val) => acc.concat(val), [])
+  const noTimeTasks = Object.values(noTimeForTasks || {}).reduce((acc: Array<any>, val: any) => acc.concat(val), [])
   switch (config.orphanTagggedTasks) {
     case 'IGNORE_THEM':
       noTimeForTasks = null
@@ -500,7 +500,7 @@ export function ORIGINALprocessByTimeBlockTag(sortedTaskList: Array<ParagraphWit
     noTimeForTasks: reduceArrayOfObjectsToSingleObject(results, 'noTimeForTasks'),
     timeMap,
     blockList: newBlockList,
-    timeBlockTextList: results.reduce((acc, currentValue) => acc.concat(currentValue.timeBlockTextList), []).sort(),
+    timeBlockTextList: results.reduce((acc: Array<string>, currentValue) => acc.concat(currentValue.timeBlockTextList), []).sort(),
   }
 }
 
@@ -516,7 +516,7 @@ export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, 
   let newMap = filterTimeMapToOpenSlots(timeMap, config)
   let newBlockList = findTimeBlocks(newMap, config)
   const { durationMarker } = config
-  let timeBlockTextList = []
+  let timeBlockTextList: Array<string> = []
   const noTimeForTasks = {}
 
   clof(sortedTaskList, `matchTasksToSlots: sortedTaskList`, null, true)

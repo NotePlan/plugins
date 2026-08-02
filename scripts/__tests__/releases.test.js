@@ -13,14 +13,14 @@ describe('Releases Script Utility Functions', () => {
   /**
    * Extract plugin name from tag (removes version suffix like -v1.0.0)
    */
-  function extractPluginNameFromTag(tagName) {
+  function extractPluginNameFromTag(tagName: string) {
     return tagName.replace(/-v\d+(\.\d+)*(\.\d+)*(?:-[a-zA-Z0-9.-]+)?$/, '')
   }
 
   /**
    * Extract version from tag
    */
-  function extractVersionFromTag(tagName) {
+  function extractVersionFromTag(tagName: string) {
     const match = tagName.match(/-v(\d+(?:\.\d+)*(?:\.\d+)*(?:-[a-zA-Z0-9.-]+)?)$/)
     return match ? match[1] : null
   }
@@ -28,14 +28,14 @@ describe('Releases Script Utility Functions', () => {
   /**
    * Check if a releaseStatus indicates a pre-release
    */
-  function isPreReleaseStatus(releaseStatus) {
+  function isPreReleaseStatus(releaseStatus: ?string) {
     return releaseStatus !== undefined && releaseStatus !== '' && releaseStatus !== 'full'
   }
 
   /**
    * Generate release tag name from plugin name and version
    */
-  function getReleaseTagName(pluginName, version, releaseStatus) {
+  function getReleaseTagName(pluginName: string, version: string, releaseStatus?: ?string) {
     let tagVersion = version
     if (isPreReleaseStatus(releaseStatus)) {
       tagVersion = `${version}-${releaseStatus}`
@@ -46,7 +46,7 @@ describe('Releases Script Utility Functions', () => {
   /**
    * Get a field value from plugin data
    */
-  function getPluginDataField(pluginData, field) {
+  function getPluginDataField(pluginData: any, field: string) {
     if (!pluginData || typeof pluginData !== 'object') {
       console.log(`Could not find value for "${field}" in plugin.json`)
       process.exit(0)
@@ -64,10 +64,10 @@ describe('Releases Script Utility Functions', () => {
   /**
    * Calculate relative time string (e.g., "3+ years ago", "2 months ago")
    */
-  function getRelativeTime(publishedAt) {
+  function getRelativeTime(publishedAt: string) {
     const now = new Date()
     const published = new Date(publishedAt)
-    const diffInMs = now - published
+    const diffInMs = Number(now) - Number(published)
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24))
     const diffInMonths = Math.floor(diffInDays / 30)
     const diffInYears = Math.floor(diffInDays / 365)
@@ -89,21 +89,21 @@ describe('Releases Script Utility Functions', () => {
   /**
    * Check if a version is a pre-release version (alpha, beta, rc, etc.)
    */
-  function isPreRelease(version) {
+  function isPreRelease(version: string) {
     return /-(alpha|beta|rc|pre|dev|snapshot)/i.test(version)
   }
 
   /**
    * Get the base version from a pre-release version (removes pre-release identifier)
    */
-  function getBaseVersion(version) {
+  function getBaseVersion(version: string) {
     return version.replace(/-.*$/, '')
   }
 
   /**
    * Check if a pre-release version has an obsolete stable counterpart
    */
-  function isPreReleaseObsolete(preReleaseVersion, allReleases, monthsThreshold = 3) {
+  function isPreReleaseObsolete(preReleaseVersion: string, allReleases: Array<any>, monthsThreshold: number = 3) {
     const baseVersion = getBaseVersion(preReleaseVersion)
     const now = new Date()
     const thresholdDate = new Date(now.getTime() - monthsThreshold * 30 * 24 * 60 * 60 * 1000)
@@ -123,7 +123,7 @@ describe('Releases Script Utility Functions', () => {
   /**
    * Compare two version strings for sorting (semantic versioning)
    */
-  function compareVersions(a, b) {
+  function compareVersions(a: string, b: string) {
     // Remove pre-release identifiers for comparison
     const cleanA = a.replace(/-.*$/, '')
     const cleanB = b.replace(/-.*$/, '')
@@ -155,7 +155,7 @@ describe('Releases Script Utility Functions', () => {
   /**
    * Identify releases that should be pruned based on heuristics
    */
-  function identifyReleasesToPrune(releases) {
+  function identifyReleasesToPrune(releases: Array<any>) {
     if (releases.length <= 3) {
       return [] // Keep at least 3 releases minimum
     }
@@ -207,7 +207,7 @@ describe('Releases Script Utility Functions', () => {
   /**
    * Generate prune commands for identified releases
    */
-  function generatePruneCommands(releasesToPrune) {
+  function generatePruneCommands(releasesToPrune: Array<any>) {
     if (releasesToPrune.length === 0) {
       return 'No releases recommended for pruning.'
     }
@@ -224,7 +224,7 @@ describe('Releases Script Utility Functions', () => {
   /**
    * Ensure the version being released is new and not a duplicate
    */
-  function ensureVersionIsNew(existingReleases, versionedTagName) {
+  function ensureVersionIsNew(existingReleases: ?Array<any>, versionedTagName: ?string) {
     if (existingReleases && existingReleases.length > 0 && versionedTagName) {
       const duplicateRelease = existingReleases.find((release) => release.tag === versionedTagName)
       if (duplicateRelease) {
@@ -496,7 +496,7 @@ describe('Releases Script Utility Functions', () => {
   })
 
   describe('isPreReleaseObsolete', () => {
-    const createRelease = (version, publishedAt) => ({
+    const createRelease = (version: string, publishedAt: string) => ({
       name: 'test.plugin',
       tag: `test.plugin-v${version}`,
       version,
@@ -584,7 +584,7 @@ describe('Releases Script Utility Functions', () => {
   })
 
   describe('identifyReleasesToPrune', () => {
-    const createRelease = (version, publishedAt) => ({
+    const createRelease = (version: string, publishedAt: string) => ({
       name: 'test.plugin',
       tag: `test.plugin-v${version}`,
       version,

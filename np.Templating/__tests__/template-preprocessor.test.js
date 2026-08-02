@@ -26,7 +26,7 @@ declare var test: any
 declare var expect: any
 
 // Helper to load test fixtures
-const factory = async (factoryName = '') => {
+const factory = async (factoryName: string = '') => {
   const factoryFilename = path.join(__dirname, 'factories', factoryName)
   if (existsSync(factoryFilename)) {
     return await fs.readFile(factoryFilename, 'utf-8')

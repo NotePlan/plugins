@@ -31,7 +31,7 @@ const formatData = (obj: any) => {
 }
 
 // Utilities
-const isJson = (str) => {
+const isJson = (str: string) => {
   try {
     JSON.parse(str)
   } catch (e) {
@@ -40,7 +40,7 @@ const isJson = (str) => {
   return true
 }
 
-const isURL = (str) => {
+const isURL = (str: string) => {
   return str.indexOf('http') >= 0
 }
 

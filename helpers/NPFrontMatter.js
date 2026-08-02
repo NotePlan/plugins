@@ -1890,7 +1890,7 @@ export function detectInlineTitle(bodyContent: string): { hasInlineTitle: boolea
   // Check if body content starts with output frontmatter (--- or --)
   // Output frontmatter is ONLY valid if it starts at the beginning of body content
   const firstLine = lines[0]?.trim() || ''
-  let frontmatterBlocks = []
+  let frontmatterBlocks: Array<any> = []
 
   if (firstLine === '---' || firstLine === '--') {
     // Find the output frontmatter block ONLY at the start

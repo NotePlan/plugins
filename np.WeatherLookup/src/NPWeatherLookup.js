@@ -30,7 +30,7 @@ type LocationOption = {
   value?: string,
 }
 
-function UTCToLocalTimeString(d, format, timeOffset) {
+function UTCToLocalTimeString(d: Date, format: string, timeOffset: number) {
   let timeOffsetInHours = timeOffset / 60 / 60
   if (timeOffsetInHours == null) {
     timeOffsetInHours = (new Date().getTimezoneOffset() / 60) * -1
@@ -257,7 +257,7 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
         location = { lat: settings.lat, lon: settings.lon, label: settings.locationName }
       }
       let text = ''
-      let dfd = []
+      let dfd: Array<any> = []
       let locTime = ''
       if (location.lat && location.lon && location.label) {
         logDebug(pluginJson, `weatherByLatLong: have lat/lon for ${location.label}`)

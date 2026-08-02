@@ -340,7 +340,7 @@ export function getOverdueTasks(noteFolder?: string | false = false): Array<TPar
     overdueOnly: true,
   }
   const notesToReview = getNotesAndTasksToReview(options)
-  const flatParaList = notesToReview.reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
+  const flatParaList = notesToReview.reduce((acc: Array<any>, noteTasks: any) => [...acc, ...noteTasks], [])
   logDebug(pluginJson, `getOverdueTasks took ${timer(start)}`)
   return flatParaList
 }
@@ -463,7 +463,7 @@ export async function getTodayReferencedTasks(weeklyNote: boolean = false): Prom
 
 export async function getDataForReactView(testData?: boolean = false, noteFolder?: string | false = false): any {
   const startTime = new Date()
-  let staticParasToReview = []
+  let staticParasToReview: Array<any> = []
 
   const {
     askToReviewWeeklyTasks,
@@ -502,9 +502,9 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
       .filter(Boolean)
     start = new Date()
     // clo(notesWithOpenTasks, `processOverdueReact: notesWithOpenTasks length=${notesWithOpenTasks.length}`)
-    const openTasksinRecentNotes = openTasksNotOverdue.reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
+    const openTasksinRecentNotes = openTasksNotOverdue.reduce((acc: Array<any>, noteTasks: any) => [...acc, ...noteTasks], [])
     const forgottenTasks = getStaticTaskList(openTasksinRecentNotes, 'LeftOpen')
-    const todayTaskParas = ((await getTodayReferencedTasks()) || []).reduce((acc, noteTasks) => [...acc, ...noteTasks], []).filter((t) => t.content !== '')
+    const todayTaskParas = ((await getTodayReferencedTasks()) || []).reduce((acc: Array<any>, noteTasks: any) => [...acc, ...noteTasks], []).filter((t) => t.content !== '')
     logDebug(`>>> getDataForReactView todayReferenced took: ${timer(start)}`)
     start = new Date()
     // clo(todayTaskParas, `processOverdueReact: todayTaskParas length=${todayTaskParas.length}`)

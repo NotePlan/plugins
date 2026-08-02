@@ -251,7 +251,7 @@ class ConfettiCannon {
     }
   }
 
-  tweenConfettiParticle(id) {
+  tweenConfettiParticle(id: number) {
     const minAngle = this.confettiSprites[id].angle - SPREAD / 2
     const maxAngle = this.confettiSprites[id].angle + SPREAD / 2
 
@@ -282,7 +282,7 @@ class ConfettiCannon {
     })
   }
 
-  updateConfettiParticle(id) {
+  updateConfettiParticle(id: number) {
     const sprite = this.confettiSprites[id]
 
     const tiltAngle = 0.0005 * sprite.d

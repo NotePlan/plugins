@@ -66,7 +66,7 @@ export const SEE_TASK_AGAIN = 0
  * @param {TParagraph} origPara
  * @returns {void}
  */
-function updateParagraph(origPara): void {
+function updateParagraph(origPara: TParagraph): void {
   if (!origPara?.note) {
     logError(pluginJson, `NPTaskAndProcess::updateParagraph: note is null`)
     return
@@ -484,7 +484,7 @@ async function reviewOverdueTasksInNote(paragraphsToConsider: Array<TParagraph>,
  */
 function dedupeSyncedLines(notesWithTasks: Array<Array<TParagraph>>): Array<Array<TParagraph>> {
   logDebug(pluginJson, `dedupeSyncedLines  notesWithTasks ${notesWithTasks.length}`)
-  const flatTasks = notesWithTasks.reduce((acc, n) => acc.concat(n), []) //flatten the array
+  const flatTasks = notesWithTasks.reduce((acc: Array<any>, n: any) => acc.concat(n), []) //flatten the array
   // clo(flatTasks, `dedupeSyncedLines  flatTasks`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length BEFORE deduping ${flatTasks.length}`)
   const noDupes = eliminateDuplicateParagraphs(flatTasks, 'most-recent', true)
@@ -527,7 +527,7 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
   const { foldersToIgnore = [], overdueAsOf, /* openOnly = true, datePlusOnly = true, replaceDate = true, */ noteTaskList = null, noteFolder = false } = options
   // if (replaceDate) logDebug('getNotesAndTasksToReview: replaceDate is legacy and no longer supported. David u need to fix this')
   logDebug(`NPNote::getNotesAndTasksToReview`, `noteTaskList.length: ${noteTaskList?.length || 'undefined'} Looking in: ${noteFolder || 'all notes'}`)
-  let notesWithDates = []
+  let notesWithDates: Array<any> = []
   if (!noteTaskList) {
     logDebug(`NPNote::getNotesAndTasksToReview`, `no noteTaskList, so searching for notes`)
     if (noteFolder) {
@@ -706,7 +706,7 @@ export function getOpenTasksByNote(notes: Array<TNote>, sortOrder: string | Arra
     if (openTasksInThisNote.length) notesWithOpenTasks.push(openTasksInThisNote)
   }
   if (sortOrder) {
-    const mapForSorting = notesWithOpenTasks.reduce((acc, n, i) => {
+    const mapForSorting = notesWithOpenTasks.reduce((acc: Array<any>, n: any, i: number) => {
       acc?.push({ filename: n[0].filename, changedDate: n[0].note?.changedDate, index: i, noteWithTasks: n })
       return acc
     }, [])

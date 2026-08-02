@@ -538,7 +538,7 @@ export async function getPluginList(showInstalledOnly: boolean = false, installe
     // const localOnlyPlugins = installedPlugins.filter((p) => !githubReleasedPlugins.find((q) => q.id === p.id))
     // localOnlyPlugins.forEach((p) => logDebug(`generatePluginCommandList localOnlyPlugins`, `${p.id}`))
     const allLocalAndReleasedPlugins = [...installedPlugins, ...githubReleasedPlugins]
-    let allLatestPlugins = allLocalAndReleasedPlugins.reduce((acc, p) => {
+    let allLatestPlugins = allLocalAndReleasedPlugins.reduce((acc: Array<any>, p: any) => {
       const pluginsWithThisID = allLocalAndReleasedPlugins.filter((f) => f.id === p.id)
       if (pluginsWithThisID.length > 1) clo(pluginsWithThisID, `generatePluginCommandList pluginsWithThisID.length dupes ${p.id}: ${pluginsWithThisID.length}`)
       let latest = pluginsWithThisID[0]

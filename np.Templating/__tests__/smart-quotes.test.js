@@ -130,7 +130,7 @@ describe('replaceSmartQuotes', () => {
 // Test for imported templates with smart quotes
 describe('importTemplates with smart quotes', () => {
   // Mock the importTemplates function to test smart quote replacement
-  const mockImportTemplates = async (templateData) => {
+  const mockImportTemplates = async (templateData: string) => {
     // Simulate the importTemplates function behavior
     let newTemplateData = templateData
     const importRegex = /<%[-\s]*import\(['"]([^'"]+)['"]\)[\s-]*%>/g

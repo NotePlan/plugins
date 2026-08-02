@@ -141,7 +141,7 @@ jest.mock('../lib/support/modules/FrontmatterModule', () => {
 // Mock the render function
 jest.mock('../lib/rendering/templateProcessor', () => {
   // Define mock functions inside the factory to avoid out-of-scope references
-  const mockValidateTemplateStructure = (templateData) => {
+  const mockValidateTemplateStructure = (templateData: string) => {
     if (templateData.includes('<%') && !templateData.includes('%>')) {
       return 'Template has unclosed tag'
     }
@@ -151,7 +151,7 @@ jest.mock('../lib/rendering/templateProcessor', () => {
     return null
   }
 
-  const mockNormalizeTemplateData = (templateData) => {
+  const mockNormalizeTemplateData = (templateData: string) => {
     if (templateData === null || templateData === undefined) return ''
 
     let result = templateData.toString().replace(/[""]/g, '"').replace(/['']/g, "'")
@@ -163,7 +163,7 @@ jest.mock('../lib/rendering/templateProcessor', () => {
     return result
   }
 
-  const mockLoadGlobalHelpers = (sessionData) => {
+  const mockLoadGlobalHelpers = (sessionData: any) => {
     return {
       ...sessionData,
       methods: {

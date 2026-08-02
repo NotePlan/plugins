@@ -89,7 +89,7 @@ export function JSP(obj: any, space: string | number = 2): string {
         if (Array.isArray(obj[propName])) {
           try {
             if (PARAM_BLACKLIST.indexOf(propName) === -1) {
-              acc[propName] = obj[propName].map((x) => {
+              acc[propName] = obj[propName].map((x: any) => {
                 if (typeof x === 'object' && !(x instanceof Date)) {
                   return JSP(x, '')
                 } else {

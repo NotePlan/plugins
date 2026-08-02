@@ -147,7 +147,7 @@ export function removeTextPlusColon(strToBeParsed: string): string {
   return isTotal ? strToBeParsed : strToBeParsed.replace(/^.*:/gm, '').trim()
 }
 
-function removeTextFromStr(strToBeParsed, variables) {
+function removeTextFromStr(strToBeParsed: string, variables: any) {
   // remove all characters but not the substrings of variables, function names and units of measure
   const varConcatenated = Object.keys(variables).concat(functionNames).concat(currencies).concat(specialOperator).join('|')
   const re = varConcatenated ? `\\b(?!${varConcatenated})\\b([a-zA-Z:])+` : '[a-zA-Z:]+'

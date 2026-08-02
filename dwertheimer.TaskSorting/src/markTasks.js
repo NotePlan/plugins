@@ -4,7 +4,7 @@ import { logDebug } from '@helpers/dev'
 
 type Direction = 'open' | 'done' | null
 
-function setTasks(dir) {
+function setTasks(dir: string) {
   const paragraphs = Editor.paragraphs
   logDebug(`setTasks: ${String(paragraphs.length || 'zero')} paragraphs`)
   logDebug(`setTasks; setting to: ${dir || 'null'}`)

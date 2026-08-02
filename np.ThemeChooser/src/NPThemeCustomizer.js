@@ -36,7 +36,7 @@ export async function saveTheme(themeObj: any, filename: string, showMessageAfte
  * @param {string} pluginCommandToCall
  * @param {Array<string>} args
  */
-async function saveChangedTheme(theme: any, filename, pluginIDToCall: string | null = null, pluginCommandToCall: string | null = null, args: Array<string> = []): Promise<void> {
+async function saveChangedTheme(theme: any, filename: string, pluginIDToCall: string | null = null, pluginCommandToCall: string | null = null, args: Array<string> = []): Promise<void> {
   logDebug(pluginJson, `saveChangedTheme saving changed theme ${filename} ${theme.name}`)
   await saveTheme(theme, filename, false)
   logDebug(
@@ -334,7 +334,7 @@ export async function createThemeSamples(idToScrollTo: string = '', autoRefreshR
     const [, localAdditionalStyles] = getPropDifferences(masterTheme.styles, currentStyles)
     // const styleDiffs = localAdditionalStyles.length > 0 ? localAdditionalStyles.map((s) => currentStyles[s]) : []
     // clo(localAdditionalStyles, `NPStyleChooser::createThemeSamples localAdditionalStyles=`)
-    let customs = []
+    let customs: Array<any> = []
     const styleDiff = localAdditionalStyles.reduce((acc, s) => {
       acc[s] = currentStyles[s]
       return acc

@@ -55,7 +55,7 @@ const pipelineStates = {
  * @param {boolean} isFirstCall - Whether this is the first/top-level call
  * @returns {Promise<string>} The processed template with includes resolved
  */
-const customImportTemplates = async (templateData, isFirstCall = true) => {
+const customImportTemplates = async (templateData: string, isFirstCall: boolean = true) => {
   let newTemplateData = templateData
 
   // Only set the initial template on the first call, not in recursive calls
@@ -117,7 +117,7 @@ const customImportTemplates = async (templateData, isFirstCall = true) => {
  * @param {Object} userData - User data for variable interpolation
  * @returns {Promise<string>} The rendered template
  */
-const customRender = async (templateData, userData = {}) => {
+const customRender = async (templateData: string, userData: any = {}) => {
   // Process the imports
   const result = await customImportTemplates(templateData)
 

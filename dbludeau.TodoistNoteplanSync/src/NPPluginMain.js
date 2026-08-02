@@ -351,7 +351,7 @@ async function syncTodayTasks() {
     const tasks: Array<Object> = JSON.parse(response)
 
     if (tasks.results && note) {
-      tasks.results.forEach(async (t) => {
+      tasks.results.forEach(async (t: any) => {
         await writeOutTask(note, t)
       })
 
@@ -374,7 +374,7 @@ async function projectSync(note: TNote, id: string): Promise<void> {
   const task_result = await pullTodoistTasksByProject(id)
   const tasks: Array<Object> = JSON.parse(task_result)
   
-  tasks.results.forEach(async (t) => { 
+  tasks.results.forEach(async (t: any) => { 
     await writeOutTask(note, t)
   })
 }

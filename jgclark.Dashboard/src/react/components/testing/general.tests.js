@@ -20,7 +20,7 @@ type TestGroup = {
 
 // helper functions for repeated use in tests
 
-const sendDashboardSettingsToPlugin = (sendActionToPlugin, newDashboardSettings, message: string) => {
+const sendDashboardSettingsToPlugin = (sendActionToPlugin: Function, newDashboardSettings: TAnyObject, message: string) => {
   const mbo = {
     actionType: `dashboardSettingsChanged`,
     settings: newDashboardSettings,

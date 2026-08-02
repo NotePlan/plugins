@@ -20,7 +20,7 @@ const TEMPLATE_CONTENT = {
 }
 
 // Create a simplified version of importTemplates for testing
-const importTemplates = async (templateData) => {
+const importTemplates = async (templateData: string) => {
   let newTemplateData = templateData
 
   // Process include tags
