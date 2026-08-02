@@ -20,34 +20,37 @@ Commands for sorting tasks in a note
 - Marking all tasks complete (or incomplete)
 - Copying tags/mentions from previous lines when doing multiple task entry
 
-## Understanding Task Type Grouping (Interleaving)
+## Understanding Task Type Grouping (Combining `*` and `+`)
 
-When sorting tasks, the plugin can handle task types in two ways:
+When sorting, two independent choices control the output:
 
-### Combined Mode (Recommended - Default)
-Groups related task types together and sorts them as one unit:
-- **Open Tasks**: `* open` tasks + `+ checklist` items (sorted together by priority)
-- **Scheduled Tasks**: `* [>] scheduled` + `+ [>] scheduled checklist` items
-- **Completed Tasks**: `* [x] done` + `+ [x] completed checklist` items  
-- **Cancelled Tasks**: `* [-] cancelled` + `+ [-] cancelled checklist` items
+1. **Combine related types?** (`interleaveTaskTypes`, x-callback **`arg4`**, plugin pref **"Combine Related Task Types?"**)
+   - **`true` (default, recommended):** Pairs related `*` and `+` types into **4 logical groups** for output.
+   - **`false` (traditional):** Keeps all **8 task types** in separate sections.
 
-**Result**: 4 logical groups that make more sense for daily use
+2. **Add type headings?** (`withHeadings`, x-callback **`arg2`**, interactive `/ts` prompt)
+   - **`true`:** Inserts `### Open Tasks:` (etc.) headings.
+   - **`false`:** No type headings; tasks are re-inserted as a sorted block.
 
-**Example output:**
-```text
-### Open Tasks:
-* !!! high priority open task
-+ !! medium priority checklist item
-* ! low priority open task
-+ another checklist item
+The combine and headings settings interact. **Sort order within a section is not always the same** depending on whether headings are on.
 
-### Completed Tasks:
-* [x] completed task @done(2025-11-06)
-+ [x] completed checklist @done(2025-11-06)
-```
+### Combined mode (`arg4=true`) - 4 logical groups
 
-### Separated Mode (Traditional)
-Keeps all 8 task types completely separate:
+Related types share one output group (and one heading when headings are on):
+
+| Output group / heading | Includes |
+|---|---|
+| **Open Tasks** | `*` open + `+` checklist |
+| **Scheduled Tasks** | `* [>]` scheduled + `+ [>]` scheduled checklist |
+| **Completed Tasks** | `* [x]` done + `+ [x]` completed checklist |
+| **Cancelled Tasks** | `* [-]` cancelled + `+ [-]` cancelled checklist |
+
+Checklist-only headings (**Checklist Items**, etc.) are **not** used in combined mode.
+
+### Traditional mode (`arg4=false`) - 8 separate groups
+
+Each task type gets its own section (and its own heading when headings are on):
+
 1. Open tasks (`*`)
 2. Checklist items (`+`)
 3. Scheduled tasks (`* [>]`)
@@ -57,13 +60,65 @@ Keeps all 8 task types completely separate:
 7. Cancelled tasks (`* [-]`)
 8. Cancelled checklists (`+ [-]`)
 
-**Result**: 8 separate sections (can be verbose for notes with mixed task types)
+### How order is determined (the important part)
 
-### How to Control Task Grouping
-- **Interactive (`/ts`)**: Will prompt you to choose each time
-- **Quick Commands (`/tsd`, `/tsm`, `/tst`, `/tsc`)**: Set in Plugin Preferences → "Combine Related Task Types?"
-- **Via x-callback URL** (command **Sort tasks on the page** only): use `arg4` — `true` to combine related task types, `false` for eight separate groups (see [X-callback URL examples](#x-callback-url-examples))
-- **Default**: Combined mode (interleaving enabled)
+Sorting happens in **`sortParagraphsByType`**. Writing happens in **`writeOutTasks`**. Combined mode affects both, but **whether headings are on changes the sort step**.
+
+#### Combined + **no** type headings (`arg4=true`, `arg2=false`)
+
+- **Sort:** Related types are **merged and sorted together** in one pass (e.g. `*` and `+` open items sorted by your sort fields as a single list).
+- **Write:** Tasks are re-inserted **without** `###` headings (one combined block per note section, or per user heading when `arg5=true`).
+- **Order:** True cross-type sort by priority (and your other sort fields). A `+` item can appear between `*` items when priority dictates it.
+
+#### Combined + **with** type headings (`arg4=true`, `arg2=true`) - common interactive choice
+
+- **Sort:** Each of the 8 types is sorted **separately** within the section (`interleaveForSorting=false` when headings are on).
+- **Write:** Related types are **concatenated** under one heading (all `*` open tasks, then all `+` checklist items, each subgroup already sorted).
+- **Order:** **Not** priority-interleaved across `*` and `+`. All open tasks come first, then all checklist items, even if a checklist has higher priority than an open task below it.
+
+**Example** (sort `-priority,content`, headings on, combined on) - what the plugin actually does:
+
+```text
+### Open Tasks:
+* !!! High priority work task
+* !! Completed work task
+* ! Low priority work task
+* nothing
++ !!! foo box
+
+### Completed Tasks:
+* [x] completed task
+```
+
+The `+ !!!` checklist appears **after** all `*` open tasks, not between them by priority.
+
+#### Traditional + headings (`arg4=false`, `arg2=true`)
+
+- **Sort:** Each type sorted separately.
+- **Write:** Up to 8 separate `###` sections (Open Tasks, Checklist Items, Scheduled Tasks, ...).
+- **Order:** Types never mixed; checklists only under checklist headings.
+
+#### Traditional + no headings (`arg4=false`, `arg2=false`)
+
+- **Sort:** Each type sorted separately.
+- **Write:** Types written in default output order (with checklist types following their `*` counterpart), still without `###` headings.
+
+### Verified behavior (live run, `sortTasks`, headings on, combined on)
+
+On a multi-section test note (`-priority,content`, `printHeadings=true`, `interleaveTaskTypes=true`):
+
+- Log showed `interleaveForSorting=false` for every section (expected when headings are on).
+- **Work Section:** 4 open + 1 checklist deleted, then **one** insert under `### Open Tasks:` with 5 lines (4 `*` then 1 `+`).
+- **Personal Section** and **Mixed Section:** open tasks only, each under `### Open Tasks:`.
+- No errors; run ended with `Finished sortTasks()!`.
+
+### How to control task grouping
+
+- **Interactive (`/ts`):** Prompts for combine vs separate and for headings.
+- **Quick commands (`/tsd`, `/tsm`, `/tst`, `/tsc`):** Plugin Preferences → **"Combine Related Task Types?"**
+- **X-callback** (**Sort tasks on the page**): **`arg4`** - `true` = combined, `false` = eight separate groups.
+- **Sort under heading (`/tsh`):** **`arg3`** - same combine flag for that heading only.
+- **Default:** Combined mode on.
 
 ## Customization Options
 
@@ -123,12 +178,13 @@ noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sor
 noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sort%20tasks%20on%20the%20page&arg0=false&arg1=-priority,content&arg2=false&arg3=false&arg4=true&arg5=true
 ```
 
-**New Feature: Task Type Interleaving (Default Behavior)**
-- **By default**, tasks are interleaved: compatible task types are combined and sorted together by priority
-- Within each priority level, open tasks appear before checklists
-- This allows tasks to be sorted by priority first, then by type (open before checklist)
+**Combine + headings (`arg4=true`, `arg2=true`):** Four `###` groups; within each group, all `*` tasks then all `+` tasks (each subgroup sorted). See [How order is determined](#how-order-is-determined-the-important-part).
 
-**Sorting behavior (same ideas as `arg5` and `arg4` above):**
+**Combine + no headings (`arg4=true`, `arg2=false`):** Related types sorted together in one pass; output has no `###` type headings.
+
+**Traditional (`arg4=false`):** Eight separate type groups; use checklist-specific headings when `arg2=true`.
+
+**Sorting scope (`arg5`):**
 - **`arg5` true** (typical): Sort within each heading. Tasks stay under the heading they were under, but order changes inside that section.
 - **`arg5` false**: One sort for the whole note; open tasks can move to the very top of the note.
 - **Traditional eight-way grouping**: set **`arg4` false** (separate open vs checklist sections, etc.).
