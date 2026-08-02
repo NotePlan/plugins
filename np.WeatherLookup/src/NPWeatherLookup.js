@@ -165,7 +165,7 @@ export async function insertWeatherCallbackURL(xcallbackWeatherLocation: string 
       Editor.insertTextAtCursor(getConfigErrorText())
       return ''
     } else {
-      let locationString = xcallbackWeatherLocation
+      let locationString: string | false = xcallbackWeatherLocation
       if (!locationString?.length) locationString = await CommandBar.textPrompt('Weather Lookup', 'Enter a location name to lookup weather for:', '')
       if (locationString && locationString?.length) {
         logDebug(pluginJson, `insertWeatherCallbackURL: locationString: ${String(locationString)}`)
@@ -207,7 +207,8 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
       Editor.insertTextAtCursor(getConfigErrorText())
       return
     } else {
-      let location = incoming
+      // `incoming` is optional, and getInput() returns a boolean when the user cancels.
+      let location: ?string | boolean = incoming
       do {
         if (location?.length === 0) {
           location = await getInput(`What city do you want to lookup? (do not include state)`, 'OK', 'Weather Lookup')

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-02T03:59:53.471Z",
+  "generated": "2026-08-02T04:02:27.366Z",
   "rawTotal": 878,
   "byPlugin": {
     "flow-typed": {
@@ -159,10 +159,10 @@
       "src": 2
     },
     "np.WeatherLookup": {
-      "sites": 7,
+      "sites": 4,
       "raw": 8,
       "test": 0,
-      "src": 7
+      "src": 4
     },
     "np.plugin-test": {
       "sites": 4,
