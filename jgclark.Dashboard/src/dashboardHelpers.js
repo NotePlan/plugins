@@ -910,7 +910,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
  * @returns {Array<TParagraph>}
  */
 function getChildrenFromPara(para: TParagraph): Array<TParagraph> {
-  if (typeof para.children === 'function' && para.children != null) {
+  if (typeof (para: any).children === 'function' && para.children != null) {
     return para.children() ?? []
   }
   return []

@@ -34,6 +34,6 @@ reviewed: 2026-04-01
 
     expect(editor.frontmatterAttributes.nextReview).toBeUndefined()
     expect(note.frontmatterAttributes.nextReview).toBeUndefined()
-    expect(Object.prototype.hasOwnProperty.call(note.frontmatterAttributes, 'reviewed')).toBe(true)
+    expect((Object.prototype.hasOwnProperty: any).call(note.frontmatterAttributes, 'reviewed')).toBe(true)
   })
 })

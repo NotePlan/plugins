@@ -150,7 +150,7 @@ export async function replaceHeadingSectionWithContent(note: CoreNoteFields, ren
   }
   note.insertParagraph(renderedTemplate, headingIndex, 'text')
   // $FlowIgnore[prop-missing] -- note.note only exists when the target is Editor
-  if (note.note && typeof Editor !== 'undefined' && typeof Editor.save === 'function') {
+  if (note.note && typeof Editor !== 'undefined' && typeof (Editor: any).save === 'function') {
     try {
       await Editor.save()
     } catch (error) {

@@ -347,17 +347,20 @@ describe('Releases Script Utility Functions', () => {
     }
 
     // Mock process.exit to prevent actual exit during tests
-    const originalExit = process.exit
+    // Cast: process.exit is declared read-only and as a method, so Flow rejects both the
+    // assignment and reading it without calling it. Swapping it out is the point of the test.
+    const proc: any = process
+    const originalExit = proc.exit
     beforeAll(() => {
-      process.exit = jest.fn()
+      proc.exit = jest.fn<Array<any>, any>()
     })
 
     beforeEach(() => {
-      process.exit.mockClear()
+      proc.exit.mockClear()
     })
 
     afterAll(() => {
-      process.exit = originalExit
+      proc.exit = originalExit
     })
 
     test('should return field value when field exists', () => {

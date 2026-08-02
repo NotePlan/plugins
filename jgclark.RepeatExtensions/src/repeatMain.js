@@ -84,7 +84,7 @@ export function focusEditorForFilename(filename: string): typeof Editor | false 
   }
 
   logDebug('focusEditorForFilename', `Focusing Editor for '${filename}' (global Editor was '${Editor.filename}')`)
-  if (typeof editorWin.focus === 'function') {
+  if (typeof (editorWin: any).focus === 'function') {
     editorWin.focus()
   }
 

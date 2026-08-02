@@ -147,7 +147,7 @@ function scrollToHeadingElement(element: HTMLElement, headingId: string): void {
         // Try scrollTop assignment first (more reliable in Safari)
         scrollContainer.scrollTop = elementTop
         // Also try scrollTo for smooth scrolling if supported
-        if (typeof scrollContainer.scrollTo === 'function') {
+        if (typeof (scrollContainer: any).scrollTo === 'function') {
           try {
             scrollContainer.scrollTo({ top: elementTop, behavior: 'smooth' })
           } catch (e) {

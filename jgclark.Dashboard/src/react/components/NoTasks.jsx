@@ -99,19 +99,23 @@ class ConfettiCannon {
     this.pointer = {}
 
     // bind methods
-    this.render = this.render.bind(this)
-    this.handleMousedown = this.handleMousedown.bind(this)
-    this.handleMouseup = this.handleMouseup.bind(this)
-    this.handleMousemove = this.handleMousemove.bind(this)
-    this.handleTouchstart = this.handleTouchstart.bind(this)
-    this.handleTouchmove = this.handleTouchmove.bind(this)
-    this.setCanvasSize = this.setCanvasSize.bind(this)
+    // Note: cast because Flow treats class methods as non-writable and complains about reading
+    // one without calling it (method-unbinding). This constructor-binding pattern is standard
+    // for React class components; the casts compile away.
+    const self: any = this
+    self.render = self.render.bind(this)
+    self.handleMousedown = self.handleMousedown.bind(this)
+    self.handleMouseup = self.handleMouseup.bind(this)
+    self.handleMousemove = self.handleMousemove.bind(this)
+    self.handleTouchstart = self.handleTouchstart.bind(this)
+    self.handleTouchmove = self.handleTouchmove.bind(this)
+    self.setCanvasSize = self.setCanvasSize.bind(this)
 
     this.setupListeners()
     this.setCanvasSize()
 
     // fire off for a demo
-    this.timer = setTimeout(this.handleMouseup, 1000)
+    this.timer = setTimeout(self.handleMouseup, 1000)
   }
 
   setupListeners() {
