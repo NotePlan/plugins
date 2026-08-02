@@ -78,7 +78,7 @@ export function isDashboardGlobalOnlySettingsDiff(diffKeys: Array<string>): bool
  * @param {boolean} deleteAllShowTagSections - also clean out showTag_* settings
  * @returns {Partial<TDashboardSettings>}
  */
-export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashboardSettings>, deleteAllShowTagSections?: boolean): Partial<TDashboardSettings> {
+export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardSettingsIn, deleteAllShowTagSections?: boolean): Partial<TDashboardSettings> {
   const patternsToRemove = buildDashboardGlobalSettingPatterns(deleteAllShowTagSections)
 
   function shouldRemoveKey(key: string): boolean {
@@ -91,8 +91,7 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashbo
     }
 
     // Filter out any showTagSection_ keys that are not used in the current perspective (i.e. not in tagsToShow)
-    // $FlowIgnore[incompatible-call] - settingsIn is Partial<TDashboardSettings> but removeInvalidTagSections accepts TDashboardSettings; this is safe as it creates a copy
-    const perspSettingsWithoutIrrelevantTags: TAnyObject = removeInvalidTagSections(settingsIn) // OK
+    const perspSettingsWithoutIrrelevantTags: TAnyObject = removeInvalidTagSections(settingsIn)
 
     // Note: this is a dynamic-key copy, so both sides must be indexed types. Typing the
     // accumulator as `Partial<TDashboardSettings>` (exact, no indexer) forced Flow to check every
@@ -134,12 +133,14 @@ export function getWantedTagNamesFromSettings(dashboardSettings: TDashboardSetti
  * Remove tag sections from the dashboard settings that are not relevant to the current perspective
  * (e.g. leaving only the tags included in dashboardSettings.tagsToShow)
  * Related: {@link removeStaleTagSections} cleans the same tag drift in `pluginData.sections` (TAG rows), not settings keys.
- * @param {TDashboardSettings} settingsIn
- * @returns {TDashboardSettings} - settings without irrelevant tag sections
+ * Note: `showTagSection_*` keys are dynamic, so this works on an indexed copy rather than the
+ * exact TDashboardSettings shape. The input is only spread; the returned object is a fresh copy.
+ * @param {TDashboardSettingsIn} settingsIn
+ * @returns {TAnyObject} - settings without irrelevant tag sections
  */
-export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashboardSettings {
+export function removeInvalidTagSections(settingsIn: TDashboardSettingsIn): TAnyObject {
   try {
-    const result = { ...settingsIn }
+    const result: TAnyObject = { ...settingsIn }
     const tagSectionDetails = getTagSectionDetails(result)
     const showTagSectionKeysToRemove = Object.keys(result).filter(
       (key) => key.startsWith('showTagSection_') && !tagSectionDetails.some((detail) => detail.showSettingName === key),
@@ -147,14 +148,13 @@ export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashb
 
     showTagSectionKeysToRemove.forEach((key) => {
       if (result[key] !== undefined && typeof result[key] === 'boolean') {
-        // $FlowIgnore[incompatible-type]
         delete result[key]
       }
     })
     return result
   } catch (error) {
     logError('removeInvalidTagSections', `Error: ${error.message}. Returning original settings.`)
-    return settingsIn
+    return { ...settingsIn }
   }
 }
 
@@ -255,15 +255,17 @@ export function syncTagSectionsWithSettings(sections: Array<TSection>, dashboard
 
 /**
  * Normalize and apply derived-setting rules before persisting dashboard settings.
- * Accepts `TAnyObject` so x-callback and bridge save paths can mutate settings by dynamic key.
- * @param {TAnyObject} priorSettings - settings before this change
- * @param {TAnyObject} nextSettings - candidate settings after user edit
+ * Accepts an indexed read-only object so x-callback and bridge save paths can pass settings with
+ * dynamic keys, and so read-only settings (TDashboardSettingsIn) are accepted too. Both inputs
+ * are only read/spread here; the returned object is a fresh, writable copy.
+ * @param {$ReadOnly<TAnyObject>} priorSettings - settings before this change
+ * @param {$ReadOnly<TAnyObject>} nextSettings - candidate settings after user edit
  * @param {{ mergeDefaults?: boolean }} [options]
  * @returns {TAnyObject}
  */
 export function prepareDashboardSettingsForSave(
-  priorSettings: TAnyObject,
-  nextSettings: TAnyObject,
+  priorSettings: $ReadOnly<TAnyObject>,
+  nextSettings: $ReadOnly<TAnyObject>,
   options?: { mergeDefaults?: boolean },
 ): TAnyObject {
   let prepared: TAnyObject = { ...nextSettings }

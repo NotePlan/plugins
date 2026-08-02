@@ -171,7 +171,11 @@ export const ALLOWED_ROOT_KEYS: Set<string> = new Set([
 // Type for a perspective definition; this includes (most) TDashboardSettings
 export type TPerspectiveDef = {
   name: string,
-  dashboardSettings: Partial<TDashboardSettings>,
+  // TDashboardSettingsIn rather than Partial<TDashboardSettings> so that a fully-populated
+  // settings object can be stored here. Properties are invariant, so `Partial<T>` rejected a
+  // complete `T` — one error per required property, per assignment site. The field itself is
+  // still writable; only its contents are read-only.
+  dashboardSettings: TDashboardSettingsIn,
   isModified: boolean,
   isActive: boolean,
   lastModified?: number,
@@ -502,7 +506,7 @@ export type TPluginData = {
     perspectiveSettings?: boolean,
   },
   /** Live dashboard snapshot after switch/save; used for `*` when `isModified` is false (merge carryover ≠ raw def). */
-  dashboardSettingsBaseline?: Partial<TDashboardSettings>,
+  dashboardSettingsBaseline?: TDashboardSettingsIn,
   demoMode: boolean /* use fake content for demo/test purposes */,
   totalDoneCount?: number,
   startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands */,

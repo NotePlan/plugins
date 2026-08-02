@@ -681,7 +681,7 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
       return false
     }
     activeDef.isModified = false
-    const dSet: Partial<TDashboardSettings> = await getDashboardSettings()
+    const dSet: TDashboardSettingsIn = await getDashboardSettings()
     activeDef.dashboardSettings = dSet
     const newDefs = replacePerspectiveDef(allDefs, activeDef)
     logDebug('updateCurrentPerspectiveDef', `Will update def '${activeDef.name}'`)
@@ -898,18 +898,18 @@ export const endsWithStar = (input: string): boolean => /\*$/.test(input)
 /**
  * Set (in React) perspectiveSettings if it has changed via the JSON editor in the Dashboard Settings panel
  * Return the updated settings object without the perspectiveSettings to be saved as dashboardSettings
- * @param {TDashboardSettings} updatedSettings
- * @param {TDashboardSettings} dashboardSettings
+ * @param {TDashboardSettingsIn} updatedSettings - only spread, never mutated
+ * @param {TDashboardSettingsIn} dashboardSettings - only spread, never mutated
  * @param {Function} sendActionToPlugin
  * @param {string} logMessage
- * @returns {TDashboardSettings}
+ * @returns {TAnyObject} the merged settings, minus perspectiveSettings
  */
 export function setPerspectivesIfJSONChanged(
-  updatedSettings: Partial<TDashboardSettings>,
-  dashboardSettings: TDashboardSettings,
+  updatedSettings: TDashboardSettingsIn,
+  dashboardSettings: TDashboardSettingsIn,
   sendActionToPlugin: Function,
   logMessage: string,
-): TDashboardSettings {
+): TAnyObject {
   logDebug('setPerspectivesIfJSONChanged', `🥷 starting reason "${logMessage}"`)
   const settingsToSave = { ...dashboardSettings, ...updatedSettings }
   if (settingsToSave.perspectiveSettings) {

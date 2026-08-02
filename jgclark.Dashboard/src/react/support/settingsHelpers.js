@@ -18,7 +18,10 @@ function getSettingsObjectFromArray(items: Array<TSettingItem>): { [key: string]
   }, {})
 }
 
-const dSettings = {}
+// Empty on purpose: these two builders are called only to harvest each item's `default`, so no
+// actual settings values are needed. Cast because a bare `{}` is otherwise checked against every
+// required TDashboardSettings property, one error each.
+const dSettings: any = {}
 const dSettingsItems = createDashboardSettingsItems(dSettings)
 const settingsDefaults: any = getSettingsObjectFromArray(dSettingsItems)
 const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)

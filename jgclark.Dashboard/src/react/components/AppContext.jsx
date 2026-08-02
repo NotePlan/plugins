@@ -46,15 +46,19 @@ type Props = {
  ****************************************************************************************************************************/
 
 // Default context value with initial reactSettings and functions.
+// Note: `pluginData` and `dashboardSettings` are deliberately empty placeholders — React replaces
+// this whole object with the provider's value on the first render. They are cast rather than
+// filled in because a bare `{}` is checked against every required property of TPluginData /
+// TDashboardSettings, one error each (136 from these two lines).
 const defaultContextValue: AppContextType = {
   sendActionToPlugin: () => {},
   sendToPlugin: () => {},
   dispatch: () => {},
-  pluginData: {}, // TEST: removal of settings in here
+  pluginData: ({}: any), // TEST: removal of settings in here
   reactSettings: {}, // Initial empty reactSettings local
   setReactSettings: () => {},
   updatePluginData: () => {}, // Placeholder function, actual implementation below.
-  dashboardSettings: {},
+  dashboardSettings: ({}: any),
   dispatchDashboardSettings: () => {},
   perspectiveSettings: [],
   dispatchPerspectiveSettings: () => {},

@@ -150,13 +150,17 @@ const SettingsDialog = ({
     if (onSaveChanges) {
       // Because the settings dialog has the JSON editor for perspectives, which are not technically dashboard settings,
       // we need to make sure it gets updated
-      let newSettings: TDashboardSettings = { ...updatedSettings }
-      
+      // Note: this is a dynamic key/value bag built from the `items` array, not a populated
+      // TDashboardSettings — `onSaveChanges` takes `{ [key: string]: any }` for that reason.
+      // Typing it as the exact TDashboardSettings made Flow check the indexed literal against
+      // all ~85 named properties (92 errors from one line).
+      let newSettings: TAnyObject = { ...updatedSettings }
+
       // Include section order change if it exists
       if (sectionOrderChange) {
         newSettings.customSectionDisplayOrder = sectionOrderChange
       }
-      
+
       if (updatedSettings?.perspectiveSettings) {
         newSettings = setPerspectivesIfJSONChanged(newSettings, dashboardSettings, sendActionToPlugin, `Dashboard Settings updated`)
       }
