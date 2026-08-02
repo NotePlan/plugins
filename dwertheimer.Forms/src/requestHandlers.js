@@ -696,7 +696,7 @@ export async function getNoteContentAsHTMLHandler(params: { noteIdentifier: stri
     }
 
     // Get the note content as HTML
-    const html = await getNoteContentAsHTML(((note.content: any): string), note)
+    const html = await getNoteContentAsHTML(note.content ?? '', note)
 
     const totalElapsed: number = Date.now() - startTime
     logDebug(pluginJson, `[DIAG] getNoteContentAsHTML COMPLETE: totalElapsed=${totalElapsed}ms`)

@@ -156,7 +156,7 @@ describe('PromptRegistry Pattern Generation', () => {
     global.processPromptTag = mockProcessPromptTag
 
     const tag = '<%- standard(test) %>'
-    const result = await mockProcessPromptTag(tag, {}, '<%', '%>')
+    const result = await mockProcessPromptTag(tag, {})
     expect(result).toBe('processed value') // Should process the tag and return the processed value
 
     // Restore the original function
@@ -346,12 +346,14 @@ describe('PromptRegistry Variable Assignment', () => {
     registerPromptType(mockPromptMention)
 
     // Mock the processPrompts function for our tests
-    jest.spyOn(PromptRegistry, 'processPrompts').mockImplementation(async (templateData, initialSessionData, tagStart, tagEnd, getTags) => {
+    jest.spyOn(PromptRegistry, 'processPrompts').mockImplementation(async (templateData, initialSessionData = {}) => {
       const sessionData = { ...initialSessionData }
       let sessionTemplateData = templateData
+      const tagStart = '<%'
+      const tagEnd = '%>'
 
       // Extract all tags from the template
-      const tags = await getTags(templateData, tagStart, tagEnd)
+      const tags = await getTags(templateData)
 
       for (const tag of tags) {
         const content = tag.substring(tagStart.length, tag.length - tagEnd.length).trim()
@@ -404,9 +406,7 @@ describe('PromptRegistry Variable Assignment', () => {
       // Explicitly run mockGetTags to see what it returns
       const tags = mockGetTags(templateData, '<%', '%>')
       // console.log('Tags found:', tags)
-
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const result = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const result = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
       // console.log('After process:', result)
 
       expect(result.sessionData).toHaveProperty('tagVariable')
@@ -416,8 +416,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle let variable assignment', async () => {
       const templateData = '<% let tagVariable = promptTag("foo") %>'
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
 
       expect(sessionData.tagVariable).toBe(mockPromptTagResponse)
       expect(sessionTemplateData).toBe('<%- tagVariable %>')
@@ -425,8 +424,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle var variable assignment', async () => {
       const templateData = '<% var tagVariable = promptTag("foo") %>'
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
 
       expect(sessionData.tagVariable).toBe(mockPromptTagResponse)
       expect(sessionTemplateData).toBe('<%- tagVariable %>')
@@ -434,8 +432,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle await with variable assignment', async () => {
       const templateData = '<% const tagVariable = await promptTag("foo") %>'
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
 
       expect(sessionData.tagVariable).toBe(mockPromptTagResponse)
       expect(sessionTemplateData).toBe('<%- tagVariable %>')
@@ -445,8 +442,7 @@ describe('PromptRegistry Variable Assignment', () => {
   describe('Variable assignment with promptKey', () => {
     test('should handle const variable assignment', async () => {
       const templateData = '<% const keyVariable = promptKey("foo") %>'
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
 
       expect(sessionData.keyVariable).toBe(mockPromptKeyResponse)
       expect(sessionTemplateData).toBe('<%- keyVariable %>')
@@ -454,8 +450,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle let variable assignment', async () => {
       const templateData = '<% let keyVariable = promptKey("foo") %>'
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
 
       expect(sessionData.keyVariable).toBe(mockPromptKeyResponse)
       expect(sessionTemplateData).toBe('<%- keyVariable %>')
@@ -463,8 +458,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle var variable assignment', async () => {
       const templateData = '<% var keyVariable = promptKey("foo") %>'
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
 
       expect(sessionData.keyVariable).toBe(mockPromptKeyResponse)
       expect(sessionTemplateData).toBe('<%- keyVariable %>')
@@ -472,8 +466,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle await with variable assignment', async () => {
       const templateData = '<% const keyVariable = await promptKey("foo") %>'
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
 
       expect(sessionData.keyVariable).toBe(mockPromptKeyResponse)
       expect(sessionTemplateData).toBe('<%- keyVariable %>')
@@ -483,8 +476,7 @@ describe('PromptRegistry Variable Assignment', () => {
   describe('Variable assignment with promptMention', () => {
     test('should handle const variable assignment', async () => {
       const templateData = '<% const mentionVariable = promptMention("foo") %>'
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
 
       expect(sessionData.mentionVariable).toBe(mockPromptMentionResponse)
       expect(sessionTemplateData).toBe('<%- mentionVariable %>')
@@ -492,8 +484,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle let variable assignment', async () => {
       const templateData = '<% let mentionVariable = promptMention("foo") %>'
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
 
       expect(sessionData.mentionVariable).toBe(mockPromptMentionResponse)
       expect(sessionTemplateData).toBe('<%- mentionVariable %>')
@@ -501,8 +492,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle var variable assignment', async () => {
       const templateData = '<% var mentionVariable = promptMention("foo") %>'
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
 
       expect(sessionData.mentionVariable).toBe(mockPromptMentionResponse)
       expect(sessionTemplateData).toBe('<%- mentionVariable %>')
@@ -510,8 +500,7 @@ describe('PromptRegistry Variable Assignment', () => {
 
     test('should handle await with variable assignment', async () => {
       const templateData = '<% const mentionVariable = await promptMention("foo") %>'
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
 
       expect(sessionData.mentionVariable).toBe(mockPromptMentionResponse)
       expect(sessionTemplateData).toBe('<%- mentionVariable %>')
@@ -527,9 +516,7 @@ describe('PromptRegistry Variable Assignment', () => {
       Some text in between
       <% const finalVar = await promptTag("final") %>
       `
-
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+      const { sessionTemplateData, sessionData } = ((await processPrompts(templateData, {}): any): TProcessPromptsSuccess)
 
       expect(sessionData.tagVar).toBe(mockPromptTagResponse)
       expect(sessionData.keyVar).toBe(mockPromptKeyResponse)
@@ -555,8 +542,7 @@ describe('PromptRegistry Variable Assignment', () => {
     `
 
     // Process the template with the problematic sessionData
-    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-    const { sessionTemplateData, sessionData } = ((await processPrompts(template, initialSessionData, '<%', '%>', getTags): any): TProcessPromptsSuccess)
+    const { sessionTemplateData, sessionData } = ((await processPrompts(template, initialSessionData): any): TProcessPromptsSuccess)
 
     // This should fail because it should not preserve "await promptKey(category)"
     expect(sessionData.category).not.toBe('await promptKey(category)')

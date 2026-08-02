@@ -20,6 +20,16 @@ import { log, logError, clo, JSP, getFilteredProps } from '@helpers/dev'
 // import { createRunPluginCallbackUrl } from '@helpers/general'
 import { getInput } from '@helpers/userInput'
 
+/** NotePlan globals that generateMock can scaffold Jest mocks from (keyed by user-facing name). */
+const NOTEPLAN_GLOBALS: { [string]: any } = {
+  Calendar,
+  Clipboard,
+  CommandBar,
+  DataStore,
+  Editor,
+  NotePlan,
+}
+
 /**
  * A convenience function for creating Jest __mocks__ stubs for a NP API function
  * Outputs result to console where it can be pasted into a __mocks__ file and edited
@@ -140,7 +150,7 @@ export function createMockClass(object: any, name: string): void {
   console.log(getMockClassText(name, classProps, classMethods))
 }
 
-export async function generateMock(this: any, incoming: ?string = ''): Promise<void> {
+export async function generateMock(incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
     // MUST BE A CLASS YOU ARE SENDING, NOT AN ARRAY!!!
@@ -150,8 +160,9 @@ export async function generateMock(this: any, incoming: ?string = ''): Promise<v
     // createMockClass(pl[0].commands[0], 'PluginCommandObjectMock')
 
     const name = await getInput('What is the name of the mock?')
+    const object = name ? NOTEPLAN_GLOBALS[name] : null
 
-    if (name && this[name]) createMockOutput(this[name], name)
+    if (object) createMockOutput(object, name)
     else console.log(`No object for ${name || ''}`)
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -192,7 +203,7 @@ export function getNotePlan(): any {
  * outputEditorJson
  * Plugin entrypoint for "/Output Editor Doc as JSON"
  */
-export function outputEditorJson(): any {
+export function outputEditorJson(): void {
   try {
     const e = Editor
     const nObj = {
@@ -223,7 +234,6 @@ export function outputEditorJson(): any {
     console.log(`--- /Editor ---`)
     console.log(`--- For debugging paras ---`)
     nObj.paragraphs.forEach((p) => console.log(`[${p.lineIndex}]: type=${p.type} content="${p.content}" heading:"${p.heading}"`))
-    return {}
   } catch (error) {
     logError(pluginJson, JSON.stringify(error))
   }

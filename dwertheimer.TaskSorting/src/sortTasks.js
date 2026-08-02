@@ -8,7 +8,17 @@ import { sortListBy, getTasksByType, TASK_TYPES, type ParagraphsGroupedByType, t
 import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { saveEditorIfNecessary } from '@helpers/NPEditor'
-import { getBooleanValue, getArrayValue } from '@helpers/dataManipulation'
+import { getBooleanValue, getStringArrayValue } from '@helpers/dataManipulation'
+
+/**
+ * Normalize a sort-field token to a string and strip a leading '-' prefix.
+ * @param {mixed} sortField
+ * @returns {string}
+ */
+function normalizeSortFieldKey(sortField: mixed): string {
+  const field = typeof sortField === 'string' ? sortField : String(sortField ?? '')
+  return field.startsWith('-') ? field.substring(1) : field
+}
 
 const DEFAULT_HEADINGS = {
   open: 'Open Tasks',
@@ -136,29 +146,10 @@ async function deleteParagraphsFromNote(note: CoreNoteFields, tasksToDelete: Arr
 
   logDebug(pluginJson, `${functionName}: Deleting ${sortedTasks.length} tasks from note`)
 
-  // Set Editor flags to avoid UI updates during bulk deletion
-  // Note: @jgclark checked in April 2026 and can't find any evidence this exists in the API, hence
-  // the guard. Suppressed rather than deleted so it still works if/when NotePlan adds it.
-  // $FlowIgnore[prop-missing] - not in flow-typed/Noteplan.js; the guard makes this safe
-  if (Editor.beginEdits) {
-    // $FlowIgnore[not-a-function]
-    Editor.beginEdits()
-  }
-
-  try {
-    // Delete each task
-    for (const task of sortedTasks) {
-      // Note: next line added by @jgclark to avoid UI warnings about deleting lines with @repeat(...) tags
-      Editor.skipNextRepeatDeletionCheck = true
-      note.removeParagraph(task)
-    }
-  } finally {
-    // Always end edits, even if there was an error -- though see above.
-    // $FlowIgnore[prop-missing] - see the beginEdits note above
-    if (Editor.endEdits) {
-      // $FlowIgnore[not-a-function]
-      Editor.endEdits()
-    }
+  for (const task of sortedTasks) {
+    // Note: next line added by @jgclark to avoid UI warnings about deleting lines with @repeat(...) tags
+    Editor.skipNextRepeatDeletionCheck = true
+    note.removeParagraph(task)
   }
 }
 
@@ -167,14 +158,15 @@ async function deleteParagraphsFromNote(note: CoreNoteFields, tasksToDelete: Arr
  * @param {string} separator The line that goes beneath the tasks. Should have a \n at the end.
  */
 export async function openTasksToTop(
-  _heading: string = '## Open Tasks:',
+  _heading: ?string = '## Open Tasks:',
   _separator: string = '---',
   includeChecklists: boolean = false,
   includeContextAndChildContext: boolean = false,
   noteOverride: TNote | null = null,
 ) {
   await saveEditorIfNecessary()
-  const heading = _heading ? `${_heading}\n` : ''
+  const headingText = _heading ?? ''
+  const heading = headingText ? `${headingText}\n` : ''
   const separator = _separator ? `${_separator}\n` : ''
   logDebug(`openTasksToTop(): Bringing open tasks to top with params: heading="${heading}", separator="${separator}", includeChecklists="${String(includeChecklists)}"`)
   const noteToUse = noteOverride || Editor.note
@@ -326,7 +318,7 @@ function insertTodos(
   forceTasksToTop: boolean = false,
   insertAtTopOfNote: boolean = false,
 ) {
-  const title = theTitle === ROOT ? '' : theTitle // root level tasks in Calendar note have no heading
+  const title = (theTitle ?? '') === ROOT ? '' : (theTitle ?? '') // root level tasks in Calendar note have no heading
   const { tasksToTop } = DataStore.settings
   // Use forceTasksToTop if provided, otherwise use the setting
   const shouldInsertAtTop = forceTasksToTop || tasksToTop
@@ -417,7 +409,7 @@ function insertTodos(
     const hasFrontmatterTitle = note.frontmatterAttributes && note.frontmatterAttributes.title
 
     logDebug(
-      `\tinsertTodos: hasTraditionalTitle=${(hasTraditionalTitle: any)}, hasFrontmatterTitle=${hasFrontmatterTitle}, firstPara.type="${firstPara?.type}", firstPara.headingLevel=${firstPara?.headingLevel}, title="${effectiveTitle}"`,
+      `\tinsertTodos: hasTraditionalTitle=${String(hasTraditionalTitle)}, hasFrontmatterTitle=${String(!!hasFrontmatterTitle)}, firstPara.type="${firstPara?.type}", firstPara.headingLevel=${firstPara?.headingLevel}, title="${effectiveTitle}"`,
     )
 
     if (insertAtTopOfNote && shouldInsertAtTop) {
@@ -507,7 +499,7 @@ export function sortParagraphsByType(
   }
   logDebug(`\tInitialized sortedList with keys: ${Object.keys(sortedList).join(', ')}`)
   if (paragraphs?.length) {
-    logDebug(`\tsortParagraphsByType: ${paragraphs.length} total lines in section/note, interleaveTaskTypes: ${(interleaveTaskTypes: any)}`)
+    logDebug(`\tsortParagraphsByType: ${paragraphs.length} total lines in section/note, interleaveTaskTypes: ${String(interleaveTaskTypes)}`)
     if (paragraphs.length) {
       // GroupedTasks is an exact object with no indexer, but the code below indexes it dynamically with TASK_TYPES / group.types entries
       const taskList: { [string]: Array<any> } = (getTasksByType(paragraphs): any)
@@ -1000,8 +992,7 @@ export async function sortTasks(
 ) {
   // Cast parameters to proper types
   const withUserInput = getBooleanValue(_withUserInput, true)
-  // getArrayValue() is declared as Array<mixed> in/out; arrays are invariant, so the string[] going in and coming back out both need casting
-  const sortFields: Array<string> = (getArrayValue((_sortFields: any), SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields, ','): any)
+  const sortFields: Array<string> = getStringArrayValue(_sortFields, SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields, ',')
   const withHeadings = _withHeadings === null ? null : getBooleanValue(_withHeadings, false)
   const subHeadingCategory = _subHeadingCategory === null ? null : getBooleanValue(_subHeadingCategory, false)
   const interleaveTaskTypesParam = getBooleanValue(_interleaveTaskTypes, true)
@@ -1039,7 +1030,7 @@ export async function sortTasks(
   let printSubHeadings = true //by default in case you're not sorting
   let sortField1 = ''
   if (sortOrder.length) {
-    sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
+    sortField1 = normalizeSortFieldKey(sortOrder[0])
     printSubHeadings =
       includeSubHeading === false ? false : ['hashtags', 'mentions'].indexOf(sortField1) !== -1 ? (subHeadingCategory === null ? await wantSubHeadings() : true) : false
     logDebug(`\tsubHeadingCategory=${String(subHeadingCategory)} printSubHeadings=${String(printSubHeadings)}  cat=${printSubHeadings ? sortField1 : 'none'}`)
@@ -1138,7 +1129,7 @@ export async function sortTasksUnderHeading(
   _interleaveTaskTypes: string | boolean = true,
 ): Promise<void> {
   try {
-    logDebug(`sortTasksUnderHeading: starting for heading="${(_heading: any)}" sortOrder="${String(_sortOrder)}" with note override? ${_noteOverride ? 'yes' : 'no'}`)
+    logDebug(`sortTasksUnderHeading: starting for heading="${_heading ?? ''}" sortOrder="${String(_sortOrder)}" with note override? ${_noteOverride ? 'yes' : 'no'}`)
     logDebug(`sortTasksUnderHeading: About to saveEditorIfNecessary()`)
     await saveEditorIfNecessary()
     logDebug(`sortTasksUnderHeading: Back from saveEditorIfNecessary()`)
@@ -1149,14 +1140,11 @@ export async function sortTasksUnderHeading(
       return
     }
 
-    // Handle heading parameter - prompt user if null
-    const heading = _heading || (await chooseHeading(noteToUse, false, false, false))
+    // Handle heading parameter - prompt user if null/empty
+    const heading = (_heading ?? '') || (await chooseHeading(noteToUse, false, false, false))
 
     // Handle sortOrder parameter - use type conversion if provided, otherwise prompt user
-    let sortOrder: Array<string> = []
-    // Use type conversion to handle string or array input
-    // casts: getArrayValue() is typed `(string | Array<mixed>, Array<mixed>) => Array<mixed>`; this call passes null for both and wants Array<string> back
-    sortOrder = (getArrayValue((_sortOrder: any), (null: any), ','): any)
+    let sortOrder: Array<string> = getStringArrayValue(_sortOrder, [], ',')
     if (!_sortOrder) {
       // If null, prompt the user for sort order
       sortOrder = await getUserSort()

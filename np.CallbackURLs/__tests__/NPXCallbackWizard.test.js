@@ -1,7 +1,7 @@
 /* global describe, test, expect, jest, beforeEach */
 /**
  * Tests for np.CallbackURLs wizard functions: selectTag, installPlugin, toggleSidebar
- * Mocks userInput (getInput, chooseOption) to test URL output
+ * Mocks userInput (getInput, chooseOptionWithModifiers) to test URL output
  */
 import { DataStore, Editor, CommandBar, NotePlan } from '@mocks/index'
 
@@ -11,11 +11,20 @@ global.CommandBar = CommandBar
 global.NotePlan = NotePlan
 
 const mockGetInput = jest.fn()
-const mockChooseOption = jest.fn()
+const mockChooseOptionWithModifiers = jest.fn()
+
+/** @param {string | false} value */
+function mockWizardChoice(value) {
+  if (value === false) {
+    mockChooseOptionWithModifiers.mockResolvedValueOnce({ index: -1, keyModifiers: [] })
+  } else {
+    mockChooseOptionWithModifiers.mockResolvedValueOnce({ value, label: String(value), index: 0, keyModifiers: [] })
+  }
+}
 
 jest.mock('@helpers/userInput', () => ({
   getInput: (...args) => mockGetInput(...args),
-  chooseOption: (...args) => mockChooseOption(...args),
+  chooseOptionWithModifiers: (...args) => mockChooseOptionWithModifiers(...args),
   showMessage: jest.fn(),
   showMessageYesNo: jest.fn(),
   chooseFolder: jest.fn(),
@@ -102,26 +111,32 @@ describe('np.CallbackURLs NPXCallbackWizard', () => {
   describe('toggleSidebar', () => {
     test('should return toggleSidebar URL with no params when all defaults', async () => {
       const { toggleSidebar } = require('../src/NPXCallbackWizard')
-      mockChooseOption.mockResolvedValueOnce('no').mockResolvedValueOnce('no').mockResolvedValueOnce('yes')
+      mockWizardChoice('no')
+      mockWizardChoice('no')
+      mockWizardChoice('yes')
       const url = await toggleSidebar()
       expect(url).toEqual('noteplan://x-callback-url/toggleSidebar')
     })
     test('should return toggleSidebar URL with forceCollapse=yes', async () => {
       const { toggleSidebar } = require('../src/NPXCallbackWizard')
-      mockChooseOption.mockResolvedValueOnce('yes').mockResolvedValueOnce('no').mockResolvedValueOnce('yes')
+      mockWizardChoice('yes')
+      mockWizardChoice('no')
+      mockWizardChoice('yes')
       const url = await toggleSidebar()
       expect(url).toContain('toggleSidebar')
       expect(url).toContain('forceCollapse=yes')
     })
     test('should return toggleSidebar URL with forceOpen=yes', async () => {
       const { toggleSidebar } = require('../src/NPXCallbackWizard')
-      mockChooseOption.mockResolvedValueOnce('no').mockResolvedValueOnce('yes').mockResolvedValueOnce('yes')
+      mockWizardChoice('no')
+      mockWizardChoice('yes')
+      mockWizardChoice('yes')
       const url = await toggleSidebar()
       expect(url).toContain('forceOpen=yes')
     })
     test('should return empty string when user cancels first prompt', async () => {
       const { toggleSidebar } = require('../src/NPXCallbackWizard')
-      mockChooseOption.mockResolvedValue(false)
+      mockWizardChoice(false)
       const url = await toggleSidebar()
       expect(url).toEqual('')
     })

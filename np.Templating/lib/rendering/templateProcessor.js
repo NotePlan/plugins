@@ -919,17 +919,16 @@ export async function preProcessTags(_templateData: string, sessionData?: {} = {
  * @returns {Promise<{frontmatterBody: string, frontmatterAttributes: Object}>} Processed frontmatter body and attributes
  */
 export async function processFrontmatterTags(_templateData: string = '', userData: any = {}): Promise<any> {
-  // Ensure _templateData is a string
-  if (typeof _templateData !== 'string') {
-    logDebug(pluginJson, `processFrontmatterTags: _templateData is not a string: ${typeof _templateData} - ${String(_templateData).substring(0, 100)}`)
-    // $FlowIgnore[reassign-const] safe: .flowconfig sets experimental.const_params, so Flow treats the param as const. This is a deliberate defensive coercion for untyped (JS/NotePlan API) callers; the write is local to this function.
-    _templateData = String(_templateData)
+  let templateData = _templateData
+  // Ensure templateData is a string
+  if (typeof templateData !== 'string') {
+    logDebug(pluginJson, `processFrontmatterTags: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    templateData = String(templateData)
   }
 
   // Log the initial state
-  logProgress('FRONTMATTER PROCESSING START', _templateData, userData)
+  logProgress('FRONTMATTER PROCESSING START', templateData, userData)
 
-  let templateData = _templateData
   const sectionData = { ...userData }
 
   // Step 1: Check if template has frontmatter and add if missing
@@ -988,11 +987,11 @@ export async function processFrontmatterTags(_templateData: string = '', userDat
  * @param {Object} [sessionData={}] - Session data for template string evaluation
  * @returns {Promise<string>} A promise that resolves to the processed template with imports resolved
  */
-export async function importTemplates(templateData: string = '', sessionData: Object = {}): Promise<string> {
+export async function importTemplates(_templateData: string = '', sessionData: Object = {}): Promise<string> {
+  let templateData = _templateData
   // Ensure templateData is a string
   if (typeof templateData !== 'string') {
     logDebug(pluginJson, `importTemplates: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
-    // $FlowIgnore[reassign-const] safe: const_params makes Flow treat the param as const; this defensive coercion for untyped callers is a local write only
     templateData = String(templateData)
   }
 
@@ -1152,15 +1151,15 @@ function validateTemplateStructure(templateData: string): string | null {
  * @param {string} templateData - The template data to normalize
  * @returns {string} Normalized template data
  */
-function normalizeTemplateData(templateData: string): string {
-  if (!templateData) {
+function normalizeTemplateData(_templateData: string): string {
+  if (!_templateData) {
     return ''
   }
 
+  let templateData = _templateData
   // Ensure templateData is a string
   if (typeof templateData !== 'string') {
     logDebug(pluginJson, `normalizeTemplateData: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
-    // $FlowIgnore[reassign-const] safe: const_params makes Flow treat the param as const; this defensive coercion for untyped callers is a local write only
     templateData = String(templateData)
   }
 
@@ -1319,15 +1318,15 @@ function detectFrontmatterErrors(sessionData: any, originalTemplateData: string)
  * @returns {Promise<{templateData: string | null, sessionData: Object}>} Updated template and session; **templateData is null** if the user cancelled a frontmatter prompt
  */
 async function processFrontmatter(
-  templateData: string,
+  _templateData: string,
   sessionData: Object,
   userOptions: Object,
   templatingEngine: TemplatingEngine,
 ): Promise<{ templateData: string | null, sessionData: Object }> {
+  let templateData = _templateData
   // Ensure templateData is a string
   if (typeof templateData !== 'string') {
     logDebug(pluginJson, `processFrontmatter: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
-    // $FlowIgnore[reassign-const] safe: const_params makes Flow treat the param as const; this defensive coercion for untyped callers is a local write only
     templateData = String(templateData)
   }
 
@@ -1391,11 +1390,11 @@ async function processFrontmatter(
  * @param {Object} sessionData - Current session data
  * @returns {Promise<{templateData: string, sessionData: Object}|false>} Updated template and session data, or false if canceled
  */
-async function processTemplatePrompts(templateData: string, sessionData: Object): Promise<{ templateData: string, sessionData: Object } | false> {
+async function processTemplatePrompts(_templateData: string, sessionData: Object): Promise<{ templateData: string, sessionData: Object } | false> {
+  let templateData = _templateData
   // Ensure templateData is a string
   if (typeof templateData !== 'string') {
     logDebug(pluginJson, `processTemplatePrompts: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
-    // $FlowIgnore[reassign-const] safe: const_params makes Flow treat the param as const; this defensive coercion for untyped callers is a local write only
     templateData = String(templateData)
   }
 

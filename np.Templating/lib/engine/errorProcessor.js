@@ -131,31 +131,24 @@ export function buildBasicErrorMessage(errorMessage: string, lineInfo: string, c
  * @returns {string} Error message with previous phase errors appended
  */
 export function appendPreviousPhaseErrorsToError(
-  result: string,
+  _result: string,
   previousPhaseErrors: Array<{ phase: string, error: string, context: string }>,
   sectionTitle: string = 'Errors from previous rendering phases:',
 ): string {
+  let result = _result
   if (previousPhaseErrors && previousPhaseErrors.length > 0) {
-    // $FlowIgnore[reassign-const] safe: .flowconfig sets experimental.const_params, so Flow treats every param as const. `result` is a local string accumulator that is returned below; reassigning it is legal JS and is not visible to the caller.
     result += `\n**${sectionTitle}**\n`
     previousPhaseErrors.forEach((err) => {
       if (sectionTitle.includes('Additional Issues')) {
-        // $FlowIgnore[reassign-const] safe: same const_params accumulator as above
         result += `### ${err.phase}:\n`
-        // $FlowIgnore[reassign-const] safe: same const_params accumulator as above
         result += `**Error:** ${err.error}\n`
-        // $FlowIgnore[reassign-const] safe: same const_params accumulator as above
         result += `**Context:** ${err.context}\n\n`
       } else {
-        // $FlowIgnore[reassign-const] safe: same const_params accumulator as above
         result += `### ${err.phase}:\n`
-        // $FlowIgnore[reassign-const] safe: same const_params accumulator as above
         result += `Error: ${err.error}\n`
-        // $FlowIgnore[reassign-const] safe: same const_params accumulator as above
         result += `Context: ${err.context}\n\n`
       }
     })
-    // $FlowIgnore[reassign-const] safe: same const_params accumulator as above
     result += '---\n'
   }
   return result

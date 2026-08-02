@@ -39,6 +39,7 @@ import type { Option } from './DropdownSelect.jsx'
 import { Button, ButtonGroup } from './ButtonComponents.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms.js'
+import { type TDynamicDialogHandleButtonClick, resolveDynamicDialogButtonClick } from './dynamicDialogButtonClick.js'
 
 //--------------------------------------------------------------------------
 // Memoized chooser wrappers (per html-react-rules: handlers passed to children must be useCallback)
@@ -77,7 +78,7 @@ type RenderItemProps = {
   indent?: boolean,
   className?: string,
   disabled?: boolean, // Add disabled prop
-  handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
+  handleButtonClick?: TDynamicDialogHandleButtonClick,
   visible?: boolean, // Add visible prop
   buttonText?: string, // Add buttonText prop
   folders?: Array<string>, // For folder-chooser
@@ -557,7 +558,10 @@ export function renderItem({
             disabled={disabled}
             onClick={(value) => {
               if (item.key) {
-                handleButtonClick(item.key, value)
+                const key = item.key
+                void (async () => {
+                  await resolveDynamicDialogButtonClick(handleButtonClick, key, value)
+                })()
               } else {
                 console.error('Button item is missing a key')
               }
@@ -603,8 +607,12 @@ export function renderItem({
               onClick={(value) => {
                 if (item.key) {
                   const key = item.key
-                  handleButtonClick(key, value)
-                  handleFieldChange(key, value)
+                  void (async () => {
+                    const shouldContinue = await resolveDynamicDialogButtonClick(handleButtonClick, key, value)
+                    if (shouldContinue) {
+                      handleFieldChange(key, value)
+                    }
+                  })()
                 } else {
                   console.error('Button group item is missing a key')
                 }
@@ -792,6 +800,7 @@ export function renderItem({
             `note-chooser: handleNoteChange called with noteTitle="${noteTitle}", noteFilename="${noteFilename}", item.key="${item.key || 'undefined'}"`,
           )
           if (item.key) {
+            const key = item.key
             // For multi-select mode, noteTitle contains the formatted string and noteFilename is empty
             // For single-select mode, use noteOutputFormat (with backwards compatibility for singleSelectOutputFormat)
             const itemAny = (item: any)
@@ -816,11 +825,8 @@ export function renderItem({
               outputFormat = outputFormat || 'title' // Final default
               valueToStore = outputFormat === 'filename' ? noteFilename : noteTitle
             }
-            logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${item.key}", value="${valueToStore}"`)
-            // NB: unlike the other handleFieldChange calls in this file, this one is NOT inside an
-            // `if (item.key)` guard, so item.key really can be undefined here (TSettingItem.key is
-            // optional - separator items have none). Left erroring deliberately.
-            handleFieldChange(item.key, valueToStore)
+            logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${key}", value="${valueToStore}"`)
+            handleFieldChange(key, valueToStore)
           } else {
             logError('dialogElementRenderer', `note-chooser: handleNoteChange called but item.key is undefined`)
           }
@@ -908,11 +914,10 @@ export function renderItem({
             'dialogElementRenderer',
             `heading-chooser: sourceNoteKey="${String(sourceNoteKey)}", noteValue="${String(noteValue || '')}", noteFilename="${String(
               noteFilename || 'null',
-            )}", hasRequestFromPlugin=${(!!requestFromPlugin: any)}`,
+            )}", hasRequestFromPlugin=${String(!!requestFromPlugin)}`,
           )
         } else {
-          // $FlowIgnore[incompatible-type] - Flow disallows implicit boolean-to-string coercion in a template literal; this is a debug log only, and a cast here would push the line past 180 chars
-          logDebug('dialogElementRenderer', `heading-chooser: sourceNoteKey="${String(sourceNoteKey || 'undefined')}", updatedSettings=${!!updatedSettings}, noteFilename=null`)
+          logDebug('dialogElementRenderer', `heading-chooser: sourceNoteKey="${String(sourceNoteKey || 'undefined')}", updatedSettings=${String(!!updatedSettings)}, noteFilename=null`)
         }
 
         const handleHeadingChange = (heading: string) => {

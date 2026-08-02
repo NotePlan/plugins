@@ -2,7 +2,6 @@
 
 const pluginJson = '@helpers/openAI.js'
 import { log, logError, logWarn, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { getSettings } from '@helpers/NPConfiguration'
 import { getInput, showMessage } from '@helpers/userInput'
 
 // @flow
@@ -238,18 +237,10 @@ export async function getOpenAIKey(): Promise<string | null> {
 
     if (!key) {
       logDebug(pluginJson, `No OpenAI key in this plugin's settings`)
-      // next check AI plugin
-      const settings = await getSettings('shared.AI', null)
-      if (settings) {
-        key = settings.apiKey
-      }
+      // ask user
+      key = await getInput('OpenAI API Key', 'OK', 'Enter Key', '')
       if (!key) {
-        logDebug(pluginJson, `No OpenAI key in shared.AI plugin`)
-        // finally, ask user
-        key = await getInput('OpenAI API Key', 'OK', 'Enter Key', '')
-      }
-      if (!key) {
-        logError(pluginJson, `Tried 3x to get API Key but was set to null`)
+        logError(pluginJson, `Tried to get API Key but was set to null`)
       }
     }
   }

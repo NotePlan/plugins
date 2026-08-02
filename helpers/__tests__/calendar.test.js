@@ -116,6 +116,13 @@ describe(`${PLUGIN_NAME}`, () => {
         ]
         expect(ch.keepTodayPortionOnly(sentEvents, new Date(`2021-01-02 08:00`))).toEqual(expectedReturn)
       })
+      test('should drop items with no date', () => {
+        const events = [
+          { date: new Date(`2021-01-01 08:00`), endDate: new Date(`2021-01-01 23:59`), title: 'timed', isAllDay: false },
+          { date: null, endDate: null, title: 'dateless reminder', isAllDay: false },
+        ]
+        expect(ch.keepTodayPortionOnly(events)).toEqual([events[0]])
+      })
     })
 
     describe('getTimedEntries', () => {

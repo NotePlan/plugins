@@ -304,18 +304,15 @@ export async function testHeatMapGeneration3(): Promise<void> {
     });
 </script>
 `
-  showHTMLV2(title,
-    body,
-    {
-      windowTitle: title,
-      width: 600,
-      height: 260,
-      generalCSSIn: '', // i.e. generate from theme
-      specificCSS: heatmapCSS,
-      preBodyScript: preScript,
-      postBodyScript: '',
-    }
-  )
+  showHTMLV2(body, {
+    windowTitle: title,
+    width: 600,
+    height: 260,
+    generalCSSIn: '', // i.e. generate from theme
+    specificCSS: heatmapCSS,
+    preBodyScript: preScript,
+    postBodyScript: '',
+  })
 
   logDebug('generateTaskCompletionStats', `Shown window ${title}`)
 }

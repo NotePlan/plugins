@@ -74,11 +74,10 @@ const setup: {
   /**
    * @param {string} passedFolder
    */
-  set newFolder(passedFolder: string) {
+  set newFolder(_passedFolder: string) {
+    let passedFolder = _passedFolder
     // remove leading and tailing slashes
-    // $FlowIgnore[reassign-const] Flow models setter params as const bindings; reassigning a function parameter is legal JS
     passedFolder = passedFolder.replace(/\/+$/, '')
-    // $FlowIgnore[reassign-const] same as above - setter parameter reassignment is fine at runtime
     passedFolder = passedFolder.replace(/^\/+/, '')
     // $FlowIgnore[object-this-reference] this setter is only ever reached as `setup.newFolder = x`, so `this` is `setup`
     this.folder = passedFolder

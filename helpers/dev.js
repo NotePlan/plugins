@@ -415,8 +415,9 @@ export function getDiff(data1: any, data2: any): ?(DiffObject | DiffArray | { be
  * @example clof({ foo: { bar: [{ willPrint: 1, ignored:2 }] } }, 'Goes deep as long as it finds a matching field', ['foo', 'bar', 'willPrint'], false)
  */
 export function clof(obj: any, preamble: string = '', fields: ?Array<string> | string = null, compactMode: ?boolean = false): void {
+  const fieldList: ?Array<string> = fields == null ? null : typeof fields === 'string' ? [fields] : fields
   const topLevelIsArray = Array.isArray(obj)
-  const copy = deepCopy(obj, fields?.length ? fields : null, true)
+  const copy = deepCopy(obj, fieldList?.length ? fieldList : null, true)
   const topLevel = topLevelIsArray ? Object.keys(copy).map((k) => copy[k]) : copy
   if (Array.isArray(topLevel)) {
     if (topLevel.length === 0) {
@@ -429,10 +430,8 @@ export function clof(obj: any, preamble: string = '', fields: ?Array<string> | s
     })
     logDebug(`${preamble}: ^^^`)
   } else {
-    if (topLevel === {}) {
-      // KNOWN BUG - two problems on the next line, neither fixable type-only: (a) `topLevel === {}` above is always false (object identity vs a fresh literal),
-      // so this whole branch is dead; (b) `fields` is `?Array<string> | string`, so if a caller passes the string form, `fields.join` would throw. The cast is type-only.
-      const keycheck = fields ? ` for fields: [${(fields: any).join(', ')}] - all other properties are pruned` : ''
+    if (Object.keys(topLevel).length === 0) {
+      const keycheck = fieldList?.length ? ` for fields: [${fieldList.join(', ')}] - all other properties are pruned` : ''
       logDebug(`${preamble}: {} (no data${keycheck})`)
     } else {
       logDebug(`${preamble}:\n`, compactMode ? JSON.stringify(topLevel) : JSON.stringify(topLevel, null, 2))

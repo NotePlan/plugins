@@ -323,11 +323,6 @@ export default class NoteModule {
   }
 
   /**
-   * NOTE: LEAVING THE FOLLOWING FUNCTIONS FOR FUTURE CONSIDERATION.
-   * NEED TO FIGURE OUT HOW TO RELIABLY EDIT A NOTE'S CONTENTS
-   */
-
-  /**
    * Remove paragraphs in a section (under a title/heading) of the current note.
    * BEWARE: This is a dangerous function. It removes all paragraphs in the section of the active note, given:
    * and can remove more than you expect if you don't have a title of equal or lower headingLevel beneath it.
@@ -337,14 +332,9 @@ export default class NoteModule {
    * @param {string} headingOfSectionToRemove
    * @return {void}
    */
-  removeSection(headingOfSectionToRemove: string): any {
-    return 'Not implemented yet'
-    // The two lines below are the intended implementation, deliberately parked behind the early return
-    // (see the "LEAVING THE FOLLOWING FUNCTIONS FOR FUTURE CONSIDERATION" note above).
-    // $FlowIgnore[unreachable-code] - intentionally parked implementation
+  removeSection(headingOfSectionToRemove: string): ?number {
     const note = this.getCurrentNote()
-    // $FlowIgnore[unreachable-code] - intentionally parked implementation
-    note ? removeSection(note, headingOfSectionToRemove) : null
+    return note ? removeSection(note, headingOfSectionToRemove) : null
   }
 
   /**
@@ -355,14 +345,11 @@ export default class NoteModule {
    * @param {boolean} includeFromStartOfSection
    * @param {number} headingLevel of the heading to insert where necessary (1-5, default 2)
    */
-  async replaceContentUnderHeading(heading: string, newContentText: string, includeFromStartOfSection: boolean = false, headingLevel: number = 2): Promise<any> {
-    return 'Not implemented yet'
-    // The two lines below are the intended implementation, deliberately parked behind the early return
-    // (see the "LEAVING THE FOLLOWING FUNCTIONS FOR FUTURE CONSIDERATION" note above).
-    // $FlowIgnore[unreachable-code] - intentionally parked implementation
+  async replaceContentUnderHeading(heading: string, newContentText: string, includeFromStartOfSection: boolean = false, headingLevel: number = 2): Promise<void> {
     const note = this.getCurrentNote()
-    // $FlowIgnore[unreachable-code] - intentionally parked implementation
-    note ? await replaceContentUnderHeading(note, heading, newContentText, includeFromStartOfSection, headingLevel) : null
+    if (note) {
+      await replaceContentUnderHeading(note, heading, newContentText, includeFromStartOfSection, headingLevel)
+    }
   }
 }
 

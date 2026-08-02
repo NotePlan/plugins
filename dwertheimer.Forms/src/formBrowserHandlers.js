@@ -389,8 +389,7 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
     // Determine note title based on processing method for success dialog
     let noteTitle = ''
     if (processingMethod === 'create-new') {
-      // KNOWN BUG - newNoteTitle is only added to submitDataWithFormContext (line ~338), not to submitData, so this is always '' for create-new. Should read submitDataWithFormContext.newNoteTitle.
-      noteTitle = (submitData: any).newNoteTitle || ''
+      noteTitle = submitDataWithFormContext.newNoteTitle || ''
     } else if (processingMethod === 'write-existing') {
       noteTitle = submitData.getNoteTitled || ''
     }

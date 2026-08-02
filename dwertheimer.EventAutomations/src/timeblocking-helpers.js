@@ -880,12 +880,16 @@ export function processTasksByTimeBlockTag(sortedTaskList: Array<ParagraphWithDu
     logDebug(`"STARTING TIMEFRAME PROCESSING": ${keys.length} timeframes matched in tasks`)
     let newTimeMapWithBlocks: TimeBlocksWithMap = { timeBlockTextList: [], timeMap: [], blockList: [] }
     // process tasks by timeframe key
+    const timeframes = config.timeframes || {}
     keys.forEach((key) => {
       const tasksMatchingThisTimeframe = matched[key]
-      // KNOWN BUG - see Flow_Human_Review.md item 8. `timeframes` is optional on
-      // AutoTimeBlockingConfig, so this throws in the BY_TIMEBLOCK_TAG path when a user has not
-      // configured any. The cast keeps Flow quiet; it does not make the access safe.
-      const [start, end] = (config.timeframes: any)[key]
+      const timeframe = timeframes[key]
+      if (!timeframe) {
+        logWarn(pluginJson, `processTasksByTimeBlockTag: no timeframe config for key "${key}", skipping ${tasksMatchingThisTimeframe.length} task(s)`)
+        unprocessedTasks = unprocessedTasks.concat(tasksMatchingThisTimeframe)
+        return
+      }
+      const [start, end] = timeframe
       // `any` because deepCopy() is declared to return `T | { [key: string]: any }`, which is not indexable by number
       let timeMapCopy: any = deepCopy(timeMap) // timeMap.slice()
       // process one task in the timeframe at a time
@@ -910,12 +914,10 @@ export function processTasksByTimeBlockTag(sortedTaskList: Array<ParagraphWithDu
         // update the master timeMap with the changes that were made
         // timemap slots that were used will be missing in the result, so we will just mark them as busy in the master timeMap
         // function: updateMasterTimeMapWithTimeMapChanges
-        openTimesForTimeframe.forEach((t, i) => {
+        openTimesForTimeframe.forEach((t) => {
           if (!timeMapAfterTimeframePlacement.find((nt) => nt.start === t.start)) {
-            // KNOWN BUG - see Flow_Human_Review.md item 7. When find() misses, this writes to a
-            // throwaway object and the slot is never marked busy. The cast keeps Flow quiet; it
-            // does not fix the discarded write.
-            ;(timeMap.find((tm) => tm.start === t.start) ?? ({}: any)).busy = true
+            const slot = timeMap.find((tm) => tm.start === t.start)
+            if (slot) slot.busy = true
           }
         })
         // save no time for tasks

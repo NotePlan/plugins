@@ -47,7 +47,7 @@ export function chooseColor(defaultValue?: string): void {
 
   const isColor = /^#(?:[0-9a-fA-F]{3}){1,2}$/.test(selectedColor) //TODO: do validation on the input color at some point
 
-  // NB: `${(isDesktop: any)}` below is a cast only — the boolean is deliberately interpolated into the generated JS source
+  // NB: `${String(isDesktop)}` below interpolates the boolean into generated JS source as true/false
   const setColor = JSON.stringify(
     `
       (async function() {
@@ -61,7 +61,7 @@ export function chooseColor(defaultValue?: string): void {
         console.log('Closing window');
         const win = NotePlan.htmlWindows.find(w=>w.customId === "${windowCustomId}");
         if (win) {
-          ${(isDesktop: any)} ? win.close() : null;
+          ${String(isDesktop)} ? win.close() : null;
         } else {
           console.log('Window not found');
         }

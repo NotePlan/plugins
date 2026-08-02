@@ -267,8 +267,9 @@ function getNoteTitle(_noteTitle: string, renderedTemplateContent: string, attri
  * @param {boolean} forceNewNote - skip "note already exists" check and create new note
  * @returns {Promise<string>} The note title.
  */
-async function handleExistingNotes(_noteTitle: string, renderedContent: string, folder: string, forceNewNote: boolean = false): Promise<string> {
+async function handleExistingNotes(_noteTitle: string, renderedContent: string, _folder: string, forceNewNote: boolean = false): Promise<string> {
   let noteTitle = _noteTitle
+  let folder = _folder
   const existingNotes = await DataStore.projectNoteByTitle(noteTitle, false, false)
   const noteContent = titleExistsInNote(renderedContent) ? renderedContent : `# ${noteTitle}\n${renderedContent}`
   logDebug(pluginJson, `handleExistingNotes: Found ${String(existingNotes?.length)} existing notes with title ${noteTitle}`)
@@ -297,7 +298,6 @@ async function handleExistingNotes(_noteTitle: string, renderedContent: string, 
   } else {
     logDebug(pluginJson, `handleExistingNotes: creating note with content:"${noteContent}"`)
     if (/choose|select/i.test(folder)) {
-      // $FlowIgnore[reassign-const] reassigning a parameter is legal JS; this only errors because .flowconfig sets experimental.const_params=true
       folder = await chooseFolder('Choose a folder to create note in', false, true)
     }
     noteTitle = (await newNoteWithFolder(noteContent, folder)) ?? '<error>'

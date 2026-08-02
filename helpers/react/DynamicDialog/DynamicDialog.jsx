@@ -26,6 +26,10 @@ import './DynamicDialog.css' // Import the CSS file
 import Modal from '@helpers/react/Modal'
 import { logWarn, timer, logDebug, logError } from '@helpers/react/reactDev.js'
 import { type NoteOption } from './NoteChooser.jsx'
+import { type TDynamicDialogHandleButtonClick } from './dynamicDialogButtonClick.js'
+
+export type { TDynamicDialogButtonClickResult, TDynamicDialogHandleButtonClick } from './dynamicDialogButtonClick.js'
+export { resolveDynamicDialogButtonClick } from './dynamicDialogButtonClick.js'
 
 //--------------------------------------------------------------------------
 // Configuration Constants
@@ -243,7 +247,7 @@ export type TDynamicDialogProps = {
   items?: Array<TSettingItem>, // generally required, but can be empty (e.g. for PerspectivesTable)
   onSave?: (updatedSettings: { [key: string]: any }, windowId?: string) => void | Promise<void>, // Updated to accept optional windowId and async handlers
   onCancel?: () => void,
-  handleButtonClick?: (key: string, value: any) => void | boolean, // Add handleButtonClick prop (return false to prevent closing)
+  handleButtonClick?: TDynamicDialogHandleButtonClick, // return false (sync or async) to prevent default close behavior in showDialog()
   className?: string,
   labelPosition?: 'left' | 'right',
   allowEmptySubmit?: boolean,

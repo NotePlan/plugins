@@ -14,12 +14,31 @@ import pluginJson from '../plugin.json'
 import { getXcallbackForTemplate } from './NPTemplateRunner'
 import { openFolderView } from './NPOpenFolders'
 import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
-import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput, getInputTrimmed } from '@helpers/userInput'
+import { chooseOptionWithModifiers, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput, getInputTrimmed, type Option } from '@helpers/userInput'
 import { getSelectedParagraph } from '@helpers/NPParagraph'
 
 // import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 
 // https://help.noteplan.co/article/49-x-callback-url-scheme#addnote
+
+/**
+ * Prompt for one of several options; return false if the user cancelled (ESC).
+ * Uses chooseOptionWithModifiers so cancellation is detectable (chooseOption silently falls back to the default).
+ * @param {string} message
+ * @param {$ReadOnlyArray<Option<T>>} options
+ * @returns {Promise<T | false>}
+ */
+async function chooseWizardOption<T>(message: string, options: $ReadOnlyArray<Option<T>>): Promise<T | false> {
+  try {
+    const pick = await chooseOptionWithModifiers(message, options, false)
+    if (!pick || pick.index == null || pick.index < 0) return false
+    if (pick.value === undefined && pick.label === undefined) return false
+    return (pick.value: any)
+  } catch (error) {
+    logDebug(pluginJson, `chooseWizardOption cancelled: ${(error: any).message || String(error)}`)
+    return false
+  }
+}
 
 /**
  * Create a callback URL for openNote or addText (they are very similar)
@@ -112,7 +131,8 @@ export async function getFilter(): Promise<string | false> {
   if (filters.length) {
     const opts = filters.map((f) => ({ label: f, value: f }))
     opts.push({ label: 'None of these; I need to make a new one', value: '__new__' })
-    const chosen = await chooseOption('Choose a filter', opts, opts[0].value)
+    const chosen = await chooseWizardOption('Choose a filter', opts)
+    if (chosen === false) return false
     if (chosen === '__new__') {
       NotePlan.openURL(`noteplan://x-callback-url/search?filter=__new__`)
       return false
@@ -150,20 +170,15 @@ async function askOpenType(): Promise<'subWindow' | 'splitView' | 'reuseSplitVie
     { label: 'Open in Floating Window', value: 'subWindow' },
     { label: 'Open in Split View', value: 'splitView' },
   ]
-  // KNOWN BUG - see Flow_Human_Review.md item 6. The nine `=== false` cancel checks in this
-  // file are dead: chooseOption() never returns false, so cancelling a step silently proceeds
-  // with the default. The `| false` in these annotations records the author's intent so the
-  // checks type-check; it does not make cancellation work.
-  const choice: '__none__' | 'subWindow' | 'splitView' | false = await chooseOption('How should the note open?', opts, opts[0].value)
+  const choice = await chooseWizardOption('How should the note open?', opts)
   if (choice === false) return false
   if (choice === '__none__') return null
-  const reuse: 'yes' | 'no' | false = await chooseOption(
+  const reuse = await chooseWizardOption(
     'Reuse the window/split if it is already open?',
     [
       { label: 'Yes (open there, reuse if already open)', value: 'yes' },
       { label: 'No (always open a new window/split)', value: 'no' },
     ],
-    'no',
   )
   if (reuse === false) return false
   if (choice === 'subWindow') return reuse === 'yes' ? 'useExistingSubWindow' : 'subWindow'
@@ -183,7 +198,7 @@ async function askTimeframe(): Promise<'week' | 'month' | 'quarter' | 'year' | n
     { label: 'Quarter view', value: 'quarter' },
     { label: 'Year view', value: 'year' },
   ]
-  const choice: '__none__' | 'week' | 'month' | 'quarter' | 'year' | false = await chooseOption('Which calendar view?', opts, opts[0].value)
+  const choice = await chooseWizardOption('Which calendar view?', opts)
   if (choice === false) return false
   return choice === '__none__' ? null : choice
 }
@@ -193,13 +208,12 @@ async function askTimeframe(): Promise<'week' | 'month' | 'quarter' | 'year' | n
  * @returns {Promise<{ start: number, length: number } | null | false>} highlight or null to skip, false if cancelled
  */
 async function askHighlight(): Promise<{ start: number, length: number } | null | false> {
-  const wantHighlight: 'yes' | 'no' | false = await chooseOption(
+  const wantHighlight = await chooseWizardOption(
     'Jump cursor / select text after opening?',
     [
       { label: 'No', value: 'no' },
       { label: 'Yes (enter position)', value: 'yes' },
     ],
-    'no',
   )
   if (wantHighlight === false) return false
   if (wantHighlight !== 'yes') return null
@@ -220,8 +234,8 @@ async function askWhatKind(): Promise<string | false> {
     { label: 'Open/use a Project Note (by title)', value: '' },
     { label: 'Open a Folder', value: 'folder' },
   ]
-  // Reassigned from getInput() below, which returns false when the user cancels.
-  let choice: string | false = await chooseOption('What kind of note do you want to use/open?', opts, opts[0].value)
+  let choice: string | false = await chooseWizardOption('What kind of note do you want to use/open?', opts)
+  if (choice === false) return false
   if (choice === 'date') {
     const opts = [
       { label: 'Enter a specific date', value: 'nameDate' },
@@ -229,7 +243,8 @@ async function askWhatKind(): Promise<string | false> {
       { label: "tomorrow (always tomorrow's date)", value: 'tomorrow' },
       { label: 'yesterday (always yesterday)', value: 'yesterday' },
     ]
-    choice = await chooseOption('What date?', opts, opts[0].value)
+    choice = await chooseWizardOption('What date?', opts)
+    if (choice === false) return false
     if (choice === 'nameDate') {
       choice = await getInput('Enter a date in YYYYMMDD format (no dashes)')
       if (!choice || choice === '' || /^\d{8}$/.test(choice) === false) {
@@ -251,15 +266,14 @@ async function getAddTextAdditions(): Promise<{ text: string, mode: string, open
     { label: 'Prepend text to the top of the note', value: 'prepend' },
     { label: 'Append text to the end of the note', value: 'append' },
   ]
-  const mode: 'prepend' | 'append' | false = await chooseOption('How would you like to add the text?', opts, opts[0].value)
+  const mode = await chooseWizardOption('How would you like to add the text?', opts)
   if (mode === false) return false
-  const openNote: 'yes' | 'no' | false = await chooseOption(
+  const openNote = await chooseWizardOption(
     'Open the note after adding the text?',
     [
       { label: 'Yes', value: 'yes' },
       { label: 'No', value: 'no' },
     ],
-    'yes',
   )
   return openNote === false ? false : { text: text ? text : '', mode, openNote }
 }
@@ -332,31 +346,28 @@ export async function installPlugin(): Promise<string> {
  * @returns {Promise<string>} the URL
  */
 export async function toggleSidebar(): Promise<string> {
-  const forceCollapse: 'yes' | 'no' | false = await chooseOption(
+  const forceCollapse = await chooseWizardOption(
     'Force sidebar to collapse/hide?',
     [
       { label: 'No (default)', value: 'no' },
       { label: 'Yes', value: 'yes' },
     ],
-    'no',
   )
   if (forceCollapse === false) return ''
-  const forceOpen: 'yes' | 'no' | false = await chooseOption(
+  const forceOpen = await chooseWizardOption(
     'Force sidebar to show/open?',
     [
       { label: 'No (default)', value: 'no' },
       { label: 'Yes', value: 'yes' },
     ],
-    'no',
   )
   if (forceOpen === false) return ''
-  const animated: 'yes' | 'no' | false = await chooseOption(
+  const animated = await chooseWizardOption(
     'Animate the toggle? (Mac only)',
     [
       { label: 'Yes (default)', value: 'yes' },
       { label: 'No (instant)', value: 'no' },
     ],
-    'yes',
   )
   if (animated === false) return ''
   const params: { [string]: string } = {}
@@ -514,10 +525,13 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
         { label: 'RUN a Mac/iOS Shortcut', value: 'runShortcut' },
         { label: 'DELETE a note by title', value: 'deleteNote' },
       ]
-      commandType = await chooseOption(`Select a link type to create`, options, '')
+      commandType = await chooseWizardOption(`Select a link type to create`, options)
+      if (commandType === false) {
+        canceled = true
+      }
     }
     let runplugin
-    switch (commandType) {
+    if (!canceled && typeof commandType === 'string') switch (commandType) {
       case '':
         log(pluginJson, 'No option selected')
         canceled = true
@@ -607,21 +621,25 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
       if (commandType === 'runPlugin') {
         op.push({ label: 'Templating <% runPlugin %> command', value: 'template' })
       }
-      const urlType = await chooseOption(`What type of URL do you want?`, op, 'raw')
-      if (urlType === 'pretty') {
-        const linkText = await getInput('Enter short text to use for the link', 'OK', 'Link Text', 'Text')
-        if (linkText) {
-          url = `[${linkText}](${url})`
-        }
-      } else if (urlType === 'template' && runplugin && typeof runplugin !== 'boolean') {
-        //  static invokePluginCommandByName(command: string, pluginID: string, arguments ?: $ReadOnlyArray < mixed >): Promise < any >;
-        // { pluginID, command, args, url: createRunPluginCallbackUrl(pluginID, command, args) }
+      const urlType = await chooseWizardOption(`What type of URL do you want?`, op)
+      if (urlType === false) {
+        canceled = true
+      } else {
+        if (urlType === 'pretty') {
+          const linkText = await getInput('Enter short text to use for the link', 'OK', 'Link Text', 'Text')
+          if (linkText) {
+            url = `[${linkText}](${url})`
+          }
+        } else if (urlType === 'template' && runplugin && typeof runplugin !== 'boolean') {
+          //  static invokePluginCommandByName(command: string, pluginID: string, arguments ?: $ReadOnlyArray < mixed >): Promise < any >;
+          // { pluginID, command, args, url: createRunPluginCallbackUrl(pluginID, command, args) }
 
-        url = `<% await DataStore.invokePluginCommandByName("${runplugin.command}","${runplugin.pluginID}",${JSON.stringify(runplugin.args)})  -%>`
+          url = `<% await DataStore.invokePluginCommandByName("${runplugin.command}","${runplugin.pluginID}",${JSON.stringify(runplugin.args)})  -%>`
+        }
+        // Editor.insertTextAtCursor(url)
+        Clipboard.string = url
+        await showMessage(`Link copied to clipboard`)
       }
-      // Editor.insertTextAtCursor(url)
-      Clipboard.string = url
-      await showMessage(`Link copied to clipboard`)
     }
   } catch (error) {
     logError(pluginJson, JSP(error))

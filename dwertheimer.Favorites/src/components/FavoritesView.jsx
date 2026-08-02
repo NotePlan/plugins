@@ -10,8 +10,7 @@ import { FilterableList } from '@helpers/react/FilterableList'
 import { type ListItemAction } from '@helpers/react/List'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { defaultNoteIconDetails } from '@helpers/NPnote.js'
-import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog'
-import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
+import DynamicDialog, { type TSettingItem, type TDynamicDialogHandleButtonClick } from '@helpers/react/DynamicDialog/DynamicDialog'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
 import { waitForCondition } from '@helpers/promisePolyfill'
 import { pluginEnvelopeFromResponsePayload, unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
@@ -342,8 +341,8 @@ function FavoritesViewComponent({
     setAddCommandDialogData({})
   }, [])
 
-  const handleAddCommandButtonClick = useCallback(
-    async (key: string, value: string) => {
+  const handleAddCommandButtonClick: TDynamicDialogHandleButtonClick = useCallback(
+    async (key: string, _value: string) => {
       if (key === 'getCallbackURL') {
         try {
           const envelope = await requestFromPlugin('getCallbackURL', {})
@@ -950,7 +949,7 @@ function FavoritesViewComponent({
         onSave={handleAddCommandDialogSave}
         onCancel={handleAddCommandDialogCancel}
         isModal={true}
-        handleButtonClick={(handleAddCommandButtonClick: any)}
+        handleButtonClick={handleAddCommandButtonClick}
       />
     </div>
   )

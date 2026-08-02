@@ -77,9 +77,7 @@ describe('Variable Assignment in Prompt Tags', () => {
     test('should process promptTag with const variable assignment', async () => {
       const sessionData: any = {}
       const tag = "<% const myTag = promptTag('Select a tag:') %>"
-
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const result = await PromptRegistry.processPromptTag(tag, sessionData, '<%', '%>')
+      const result = await PromptRegistry.processPromptTag(tag, sessionData)
       expect(result).toBe('')
       expect(sessionData.myTag).toBe('#ChosenOption')
 
@@ -90,9 +88,7 @@ describe('Variable Assignment in Prompt Tags', () => {
     test('should process promptKey with let variable assignment', async () => {
       const sessionData: any = {}
       const tag = "<% let myTag = promptTag('Select a tag:') %>"
-
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const result = await PromptRegistry.processPromptTag(tag, sessionData, '<%', '%>')
+      const result = await PromptRegistry.processPromptTag(tag, sessionData)
       expect(result).toBe('')
       expect(sessionData.myTag).toBe('#ChosenOption')
 
@@ -103,9 +99,7 @@ describe('Variable Assignment in Prompt Tags', () => {
     test('should process promptMention with var variable assignment', async () => {
       const sessionData: any = {}
       const tag = "<% var myTag = promptTag('Select a tag:') %>"
-
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const result = await PromptRegistry.processPromptTag(tag, sessionData, '<%', '%>')
+      const result = await PromptRegistry.processPromptTag(tag, sessionData)
       expect(result).toBe('')
       expect(sessionData.myTag).toBe('#ChosenOption')
 
@@ -116,9 +110,7 @@ describe('Variable Assignment in Prompt Tags', () => {
     test('should process await with variable assignment', async () => {
       const sessionData: any = {}
       const tag = "<% const myTag = await promptTag('Select a tag:') %>"
-
-      // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-      const result = await PromptRegistry.processPromptTag(tag, sessionData, '<%', '%>')
+      const result = await PromptRegistry.processPromptTag(tag, sessionData)
       expect(result).toBe('')
       expect(sessionData.myTag).toBe('#ChosenOption')
 

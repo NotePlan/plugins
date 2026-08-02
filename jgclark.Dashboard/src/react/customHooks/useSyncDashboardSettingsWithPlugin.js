@@ -80,7 +80,7 @@ export const useSyncDashboardSettingsWithPlugin = (
     const dashboardSettingsChanged = dashboardSettings && diff !== null
     const realDiff = getDiff(lastDashboardSettingsRef.current, dashboardSettings)
     if (dashboardSettingsChanged) {
-      logDebug(`useSyncDashboardSettingsWithPlugin dashboardSettings in REACT changed BB dashboardSettingsChanged: ${String(dashboardSettingsChanged)} pluginData.perspectiveChanging:${String(pluginData.perspectiveChanging)} /  realDiff:${(realDiff: any)}`)
+      logDebug(`useSyncDashboardSettingsWithPlugin dashboardSettings in REACT changed BB dashboardSettingsChanged: ${String(dashboardSettingsChanged)} pluginData.perspectiveChanging:${String(pluginData.perspectiveChanging)} /  realDiff:${String(realDiff)}`)
       if (pluginData?.perspectiveChanging) {
         logDebug(`useSyncDashboardSettingsWithPlugin`, `NOT SENDING because perspectiveChanging=${String(pluginData.perspectiveChanging)}`,)
       } else if (pluginData?.pushFromServer?.dashboardSettings) {

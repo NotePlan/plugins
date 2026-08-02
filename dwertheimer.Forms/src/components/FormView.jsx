@@ -976,7 +976,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       // Log what changed
       const hasError = pluginData?.formSubmissionError || pluginData?.aiAnalysisResult
       if (hasError) {
-        logDebug('FormView', `[FRONT-END] SET_DATA contains error: formSubmissionError=${!!pluginData?.formSubmissionError}, aiAnalysisResult=${!!pluginData?.aiAnalysisResult}`)
+        logDebug('FormView', `[FRONT-END] SET_DATA contains error: formSubmissionError=${String(!!pluginData?.formSubmissionError)}, aiAnalysisResult=${String(!!pluginData?.aiAnalysisResult)}`)
       }
     }
 

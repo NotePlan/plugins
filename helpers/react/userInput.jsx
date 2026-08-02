@@ -2,10 +2,11 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import DynamicDialog, { type TDynamicDialogProps, type TSettingItem } from './DynamicDialog/DynamicDialog'
+import { resolveDynamicDialogButtonClick } from './DynamicDialog/dynamicDialogButtonClick.js'
 import { logDebug, logError } from './reactDev'
 
 // Re-export types for convenience
-export type { TDynamicDialogProps, TSettingItem } from './DynamicDialog/DynamicDialog'
+export type { TDynamicDialogProps, TSettingItem, TDynamicDialogHandleButtonClick, TDynamicDialogButtonClickResult } from './DynamicDialog/DynamicDialog'
 
 /**
  * Shows a React modal dialog and returns the user input or null if canceled.
@@ -55,14 +56,11 @@ export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject
       resolve(userInputObj)
     }
 
-    const handleButtonClick = (key: string, value: string) => {
+    const handleButtonClick = async (key: string, value: string) => {
       logDebug('showDialog', 'handleButtonClick', key, value)
-      if (dialogProps.handleButtonClick) {
-        const result = dialogProps.handleButtonClick(key, value)
-        // If handleButtonClick returns false, don't close the dialog
-        if (result === false) {
-          return
-        }
+      const shouldClose = await resolveDynamicDialogButtonClick(dialogProps.handleButtonClick, key, value)
+      if (!shouldClose) {
+        return
       }
       handleClose()
     }

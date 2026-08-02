@@ -59,9 +59,9 @@ describe('Await Variable Assignment Bug Test', () => {
     // Create a tag with await
     const tag = `<% const ${varName} = await ${name}(${param}) -%>`
 
+    
     // Process the tag
-    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-    const result = await processPromptTag(tag, sessionData, '<%', '%>')
+    const result = await processPromptTag(tag, sessionData)
 
     // console.log(`[AFTER] Test 1 - ${name}: sessionData[${varName}] = "${sessionData[varName]}"`)
     // console.log(`[AFTER] Test 1 - ${name}: result = "${result}"`)
@@ -86,9 +86,9 @@ describe('Await Variable Assignment Bug Test', () => {
     // Use the declaration type in the tag
     const tag = `<% ${declType} category = await promptKey('category') -%>`
 
+    
     // Process the tag
-    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-    await processPromptTag(tag, sessionData, '<%', '%>')
+    await processPromptTag(tag, sessionData)
 
     // Should not contain the function call text
     expect(sessionData.category).not.toBe('await promptKey(category)')
@@ -107,10 +107,8 @@ describe('Await Variable Assignment Bug Test', () => {
     const tagWithoutAwait = `<% const ${varName} = ${name}(${param}) -%>`
 
     // console.log(`[BEFORE] Test 3 - ${name}: Processing tags...`)
-    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-    await processPromptTag(tagWithAwait, sessionWithAwait, '<%', '%>')
-    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-    await processPromptTag(tagWithoutAwait, sessionWithoutAwait, '<%', '%>')
+    await processPromptTag(tagWithAwait, sessionWithAwait)
+    await processPromptTag(tagWithoutAwait, sessionWithoutAwait)
 
     // console.log(`[AFTER] Test 3 - ${name}: sessionWithAwait[${varName}] = "${sessionWithAwait[varName]}"`)
     // console.log(`[AFTER] Test 3 - ${name}: sessionWithoutAwait[${varName}] = "${sessionWithoutAwait[varName]}"`)
@@ -149,11 +147,8 @@ describe('Await Variable Assignment Bug Test', () => {
     // Process tags that try to use these variables
     const tagWithAwait = `<% const ${varName}1 = ${name}(${param}) -%>`
     const tagWithoutAwait = `<% const ${varName}2 = await ${name}(${param}) -%>`
-
-    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-    await processPromptTag(tagWithAwait, sessionWithAwait, '<%', '%>')
-    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-    await processPromptTag(tagWithoutAwait, sessionWithoutAwait, '<%', '%>')
+    await processPromptTag(tagWithAwait, sessionWithAwait)
+    await processPromptTag(tagWithoutAwait, sessionWithoutAwait)
 
     // console.log(`[AFTER] Test 4 - ${name}: sessionWithAwait[${varName}1] = "${sessionWithAwait[`${varName}1`]}"`)
     // console.log(`[AFTER] Test 4 - ${name}: sessionWithoutAwait[${varName}2] = "${sessionWithoutAwait[`${varName}2`]}"`)
@@ -177,13 +172,11 @@ describe('Await Variable Assignment Bug Test', () => {
       date: 'await promptDate(date)',
     }
 
+    
     // Process multiple tags
-    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-    await processPromptTag("<% const category = promptKey('category') -%>", sessionData, '<%', '%>')
-    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-    await processPromptTag("<% let name = await prompt('name', 'Enter name:') -%>", sessionData, '<%', '%>')
-    // $FlowIgnore[extra-arg] - stale call: the trailing delimiter/getTags args are left over from an older signature and are ignored at runtime. TODO: drop them.
-    await processPromptTag("<% var date = promptDate('date', 'Choose date:') -%>", sessionData, '<%', '%>')
+    await processPromptTag("<% const category = promptKey('category') -%>", sessionData)
+    await processPromptTag("<% let name = await prompt('name', 'Enter name:') -%>", sessionData)
+    await processPromptTag("<% var date = promptDate('date', 'Choose date:') -%>", sessionData)
 
     // None should retain function call text
     expect(sessionData.category).not.toMatch(/promptKey/)

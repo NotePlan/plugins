@@ -34,11 +34,11 @@ export function getTimedEntries(input: Array<TCalendarItem>): Array<TCalendarIte
  * @returns {Array<TCalendarItem>} the same array of items but with the start and end times adjusted to the day of interest
  */
 export function keepTodayPortionOnly(input: Array<TCalendarItem>, whatDate: Date = new Date()): Array<TCalendarItem> {
-  return input.map((event) => {
-    // KNOWN BUG - `TCalendarItem.date` is `Date | null` (from NP v3.21.2 reminders may have no due date), but this function never guards against null.
-    // The casts below are type-only; if a dateless item is ever passed in, differenceInCalendarDays(null, ...) yields NaN and startOfDay(null)/endOfDay(null)
-    // yield Invalid Date, so the returned copy is silently garbage rather than throwing. Needs a real null guard (see LEFT report).
-    const diff = !event.endDate ? 0 : differenceInCalendarDays((event.date: any), event.endDate)
+  return input
+    .filter((event) => event.date != null)
+    .map((event) => {
+    const eventDate = (event.date: Date)
+    const diff = !event.endDate ? 0 : differenceInCalendarDays(eventDate, event.endDate)
     if (diff === 0) {
       return event
     } else {
@@ -56,13 +56,13 @@ export function keepTodayPortionOnly(input: Array<TCalendarItem>, whatDate: Date
         url: event.url,
         availability: event.availability,
       }
-      const todayWasStart = differenceInCalendarDays((event.date: any), whatDate) === 0
+      const todayWasStart = differenceInCalendarDays(eventDate, whatDate) === 0
       const todayWasEnd = !event.endDate ? true : differenceInCalendarDays(event.endDate, whatDate) === 0
       if (todayWasStart) {
-        eventCopy.endDate = endOfDay((event.date: any))
+        eventCopy.endDate = endOfDay(eventDate)
       }
       if (todayWasEnd) {
-        eventCopy.date = startOfDay(((event.endDate || event.date): any))
+        eventCopy.date = startOfDay((event.endDate || eventDate))
       }
       if (!todayWasStart && !todayWasEnd) {
         eventCopy.date = startOfDay(whatDate)

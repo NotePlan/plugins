@@ -316,6 +316,21 @@ export function getArrayValue(input: string | Array<mixed>, defaultValue: Array<
 }
 
 /**
+ * Like getArrayValue(), but always returns Array<string>. Non-string elements are coerced with String().
+ * @param {?string | Array<mixed>} input - The input to convert
+ * @param {Array<string>} defaultValue - Default value if conversion fails or input is null/undefined
+ * @param {string} separator - Separator to use for string splitting (default: ',')
+ * @returns {Array<string>} The array value with string elements
+ */
+export function getStringArrayValue(input: ?(string | Array<mixed>), defaultValue: Array<string> = [], separator: string = ','): Array<string> {
+  if (input == null) {
+    return defaultValue
+  }
+  const raw = getArrayValue(input, defaultValue, separator)
+  return raw.map((item) => (typeof item === 'string' ? item : String(item ?? '')))
+}
+
+/**
  * For parameter casting: Convert input to object value. Returns the input as-is if it's already an object, otherwise attempts JSON.parse on string input.
  * @param {string|Object} input - The input to convert
  * @param {Object} defaultValue - Default value if conversion fails

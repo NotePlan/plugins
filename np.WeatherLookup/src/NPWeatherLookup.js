@@ -227,8 +227,7 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
             location = ''
           }
         } else {
-          // cast: in this branch `location` is falsy (''/null/undefined/false) and `false` cannot be string-coerced; logging it as-is is intentional
-          logDebug(pluginJson, `insertWeatherByLocation: No location to look for: ${(location: any)}`)
+          logDebug(pluginJson, `insertWeatherByLocation: No location to look for: ${String(location)}`)
         }
       } while (location !== false)
     }

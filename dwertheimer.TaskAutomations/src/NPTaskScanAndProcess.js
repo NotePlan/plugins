@@ -101,7 +101,7 @@ export async function processCmdKey(para: TParagraph, userChoice: RescheduleUser
     }
   } else {
     // non-date commands
-    logDebug(pluginJson, `processCmdKey(): not a >date command [${keyModifiers.toString()}] + userChoice=${userChoice}. Ignoring CMD press`)
+    logDebug(pluginJson, `processCmdKey(): not a >date command [CMD] + userChoice=${userChoice}. Ignoring CMD press`)
   }
   return false
 }

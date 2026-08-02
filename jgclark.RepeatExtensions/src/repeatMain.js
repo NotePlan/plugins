@@ -65,7 +65,7 @@ export function logTaskSortSkippedNoSectionHeading(filename: string): void {
 }
 
 /**
- * Make global Editor the window for filename. Task Sorting uses global Editor (saveEditorIfNecessary, beginEdits, etc.), not a separate TEditor reference.
+ * Make global Editor the window for filename. Task Sorting uses global Editor (saveEditorIfNecessary, etc.), not a separate TEditor reference.
  * @param {string} filename - note filename
  * @returns {typeof Editor | false} global Editor when it matches filename, else false
  */
