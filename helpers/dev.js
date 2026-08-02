@@ -614,6 +614,21 @@ const _message = (message: any): string => {
   return logMessage
 }
 
+/**
+ * Fold any trailing log arguments into the message string.
+ * The log* functions used to accept only (pluginInfo, message), so a call like
+ * `logDebug('Foo', 'bar:', someObject)` silently dropped `someObject`. They now take a rest
+ * param and append it here, matching what helpers/react/reactDev.js has always done.
+ * @author @dwertheimer
+ * @param {any} message the original second argument
+ * @param {Array<any>} args any further arguments the caller supplied
+ * @returns {any} the message unchanged when there are no extra args, else a combined string
+ */
+const _withExtraArgs = (message: any, args: Array<any>): any => {
+  if (!args || args.length === 0) return message
+  return [_message(message), ...args.map(_message)].filter((part) => part !== '').join(' ')
+}
+
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
 export const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN 🥺', '❗️ ERROR ❗️', 'none']
 
@@ -829,12 +844,12 @@ export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): 
  * @param {any} message
  * @returns {string}
  */
-export function logError(pluginInfo: any, error?: any): string {
+export function logError(pluginInfo: any, error?: any, ...args: Array<any>): string {
   if (typeof error === 'object' && error != null) {
     const msg = `${error.filename ?? '<unknown file>'} ${error.lineNumber ?? '<unkonwn line>'}: ${error.message}`
-    return log(pluginInfo, msg, 'ERROR')
+    return log(pluginInfo, _withExtraArgs(msg, args), 'ERROR')
   }
-  return log(pluginInfo, error, 'ERROR')
+  return log(pluginInfo, _withExtraArgs(error, args), 'ERROR')
 }
 
 /**
@@ -844,8 +859,8 @@ export function logError(pluginInfo: any, error?: any): string {
  * @param {any} message
  * @returns {string}
  */
-export function logWarn(pluginInfo: any, message: any = ''): string {
-  return log(pluginInfo, message, 'WARN')
+export function logWarn(pluginInfo: any, message: any = '', ...args: Array<any>): string {
+  return log(pluginInfo, _withExtraArgs(message, args), 'WARN')
 }
 
 /**
@@ -855,8 +870,8 @@ export function logWarn(pluginInfo: any, message: any = ''): string {
  * @param {any} message
  * @returns {string}
  */
-export function logInfo(pluginInfo: any, message: any = ''): string {
-  return log(pluginInfo, message, 'INFO')
+export function logInfo(pluginInfo: any, message: any = '', ...args: Array<any>): string {
+  return log(pluginInfo, _withExtraArgs(message, args), 'INFO')
 }
 
 /**
@@ -867,8 +882,8 @@ export function logInfo(pluginInfo: any, message: any = ''): string {
  * @param {any} message
  * @returns {string}
  */
-export function logDebug(pluginInfo: any, message: any = ''): string {
-  return log(pluginInfo, message, 'DEBUG')
+export function logDebug(pluginInfo: any, message: any = '', ...args: Array<any>): string {
+  return log(pluginInfo, _withExtraArgs(message, args), 'DEBUG')
 }
 
 /**
