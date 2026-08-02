@@ -173,7 +173,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
         if (!isTBSectionVisibleInSettings(dashboardSettings)) return
       } else {
         // $FlowIgnore[invalid-computed-prop]
-        if (dashboardSettings[section.showSettingName] === false) return
+        if ((dashboardSettings: TAnyObject)[section.showSettingName] === false) return
       }
     }
 
@@ -423,7 +423,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
     !items.length ||
     (section.sectionCode === 'TB'
       ? !isTBSectionVisibleInSettings(dashboardSettings)
-      : Boolean(dashboardSettings && dashboardSettings[section.showSettingName] === false)) // note this can be updated later
+      : Boolean(dashboardSettings && (dashboardSettings: TAnyObject)[section.showSettingName] === false)) // note this can be updated later
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
   // Count only actionable rows; filter / lookback / congrats messages must not inflate description or IP counts
   const numItemsToShow = itemsToShow.filter((item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType)).length

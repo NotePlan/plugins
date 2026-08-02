@@ -434,7 +434,7 @@ export function ORIGINALprocessByTimeBlockTag(sortedTaskList: Array<ParagraphWit
   let newBlockList = blockList
   let unprocessedTasks = [...sortedTaskList]
   const results = []
-  let noTimeForTasks = {}
+  let noTimeForTasks: { [string]: Array<any> } = {}
   const { matched: timeframeMatches, unmatched: regularTasks } = splitItemsByTags(sortedTaskList, config.timeframes || {})
   const namedBlocks = getNamedTimeBlocks(newBlockList ?? [])
   clo(blockList, `processByTimeBlockTag: blockList`)
@@ -517,7 +517,7 @@ export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, 
   let newBlockList = findTimeBlocks(newMap, config)
   const { durationMarker } = config
   let timeBlockTextList: Array<string> = []
-  const noTimeForTasks = {}
+  const noTimeForTasks: { [string]: Array<any> } = {}
 
   clof(sortedTaskList, `matchTasksToSlots: sortedTaskList`, null, true)
 
@@ -788,7 +788,7 @@ export function processTasksForNamedTimeBlock(
   config: AutoTimeBlockingConfig,
 ): Object {
   const results = []
-  const noTimeForTasks = {}
+  const noTimeForTasks: { [string]: Array<any> } = {}
   const blockTitle = (block.title || '').replace(config.timeblockTextMustContainString, '').replace(/ {2,}/g, ' ').trim()
   let unprocessedTasks = incomingUnprocessedTasks
   const tasksMatchingThisNamedTimeblock = unprocessedTasks.filter((task) => block.title && namedTagExistsInLine(blockTitle, task.content))
@@ -863,7 +863,7 @@ export function processTasksByTimeBlockTag(sortedTaskList: Array<ParagraphWithDu
   let newBlockList = [...(blockList || [])]
   let results = []
   let timeBlockTextList: any = []
-  const noTimeForTasks = {}
+  const noTimeForTasks: { [string]: Array<any> } = {}
 
   // MOVE THIS TO ITS OWN FUNCTION
   // Split tasks into matched and unmatched based on tags

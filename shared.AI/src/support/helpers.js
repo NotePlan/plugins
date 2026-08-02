@@ -8,7 +8,7 @@ import { chooseOption } from '@helpers/userInput'
 import { getInput } from '../../../helpers/userInput'
 import { makeRequest } from './networking'
 
-export const modelOptions = {
+export const modelOptions: { [string]: number } = {
   'text-davinci-003': 0.02,
   'text-curie-001': 0.002,
   'text-babbage-001': 0.0005,

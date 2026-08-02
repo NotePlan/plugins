@@ -61,8 +61,8 @@ export const handleSwitchChange = (
       logDebug('handleSwitchChange', `isSection: ${String(isSection)}, isChecked: ${isChecked}`)
 
       // This saves the change in local context, and then it will be picked up and sent to plugin
-      if (dispatchDashboardSettings && dashboardSettings && dashboardSettings[key] !== isChecked) {
-        logDebug('handleSwitchChange', `Updating dashboardSettings["${key}"]. Previous value: ${dashboardSettings[key]}. New value: ${isChecked}`, dashboardSettings)
+      if (dispatchDashboardSettings && dashboardSettings && (dashboardSettings: TAnyObject)[key] !== isChecked) {
+        logDebug('handleSwitchChange', `Updating dashboardSettings["${key}"]. Previous value: ${(dashboardSettings: TAnyObject)[key]}. New value: ${isChecked}`, dashboardSettings)
         // was previously: dispatchDashboardSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `Dropdown value changed: ${key}=${isChecked}` }))
         const settingsToSave = { ...dashboardSettings, [key]: isChecked }
         logDebug('handleSwitchChange', `Calling UPDATE_DASHBOARD_SETTINGS settingsToSave=`, settingsToSave)
@@ -81,7 +81,7 @@ export const handleSwitchChange = (
           logDebug('handleSwitchChange', `${key} turned on (section ${sectionCode || '<not set>'}); section refresh deferred to settings-save bridge path`)
         }
       } else {
-        logDebug('handleSwitchChange', `No changes detected for key: ${key}. Current value: ${dashboardSettings[key]}, new value: ${isChecked}`)
+        logDebug('handleSwitchChange', `No changes detected for key: ${key}. Current value: ${(dashboardSettings: TAnyObject)[key]}, new value: ${isChecked}`)
       }
     }
 }

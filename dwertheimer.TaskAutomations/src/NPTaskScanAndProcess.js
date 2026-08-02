@@ -236,7 +236,7 @@ export async function handleEditAction(origPara: TParagraph): Promise<number> {
 // @returns {number} incrementor to move to next task. CONTINUE to go to next one, CANCEL to cancel, 0 to see this task again
  */
 export async function handleTypeAction(origPara: TParagraph, userChoice: string): Promise<number> {
-  const tMap = {
+  const tMap: { [string]: any } = {
     __done__: 'done',
     __canceled__: 'cancelled',
     __list__: 'list',
@@ -282,7 +282,7 @@ export function handleRemoveAction(origPara: TParagraph): number {
 
 // change the priority
 export function handlePriorityAction(origPara: TParagraph, userChoice: string): number {
-  const priorityMap = {
+  const priorityMap: { [string]: string } = {
     __p0__: '',
     __p1__: '!',
     __p2__: '!!',

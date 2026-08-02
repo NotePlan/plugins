@@ -24,7 +24,7 @@ import { DataStore } from '@mocks/index'
 /* global describe, beforeEach, test, expect, jest */
 
 // Define template content for tests
-const TEMPLATE_CONTENT = {
+const TEMPLATE_CONTENT: { [string]: string } = {
   header: '# Included Header\n\nThis is the included header content.',
   footer: '## Included Footer\n\nThis is the included footer content.',
   nested: "Nested template with its own include: <%- include('header') %>",

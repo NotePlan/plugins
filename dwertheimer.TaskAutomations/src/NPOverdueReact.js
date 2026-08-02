@@ -176,7 +176,7 @@ export async function finalizeChanges(result: any): Promise<TParagraph | null> {
  */
 export function paragraphUpdateReceived(data: { rows: Array<any>, field: string }): Array<any> {
   const { rows, field } = data
-  const updatesByNote = {}
+  const updatesByNote: { [string]: Array<TParagraph> } = {}
   const updatedStatics = []
   if (rows?.length && field) {
     const sortedRows = sortListBy(rows, ['filename', '-lineIndex'])
@@ -236,7 +236,7 @@ export async function dropdownChangeReceived(data: { rows: Array<any>, choice: s
   if (rows?.length && choice) {
     const updatedStatics = []
     const sortedRows = sortListBy(rows, ['filename', '-lineIndex'])
-    const updatesByNote = {}
+    const updatesByNote: { [string]: Array<TParagraph> } = {}
     for (const row of sortedRows) {
       clo(row, `dropdownChangeReceived getting row of potentials:${sortedRows.length}, staticObject is:`)
       // const note = DataStore.noteByFilename(row.filename, row.noteType || 'Notes')

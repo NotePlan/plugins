@@ -27,7 +27,7 @@ export const createFilterDropdownItems = (dashboardSettings: TDashboardSettings)
       description: `Show or hide items in section ${s.sectionName}`,
       key: s.showSettingName,
       type: 'switch',
-      checked: (typeof dashboardSettings !== undefined && dashboardSettings[s.showSettingName]) ?? true,
+      checked: (typeof dashboardSettings !== undefined && (dashboardSettings: TAnyObject)[s.showSettingName]) ?? true,
     })
   }
 
@@ -36,7 +36,7 @@ export const createFilterDropdownItems = (dashboardSettings: TDashboardSettings)
     description: s.description,
     key: s.key,
     type: 'switch',
-    checked: Boolean((typeof dashboardSettings !== undefined && dashboardSettings[s.key]) ?? s.default),
+    checked: Boolean((typeof dashboardSettings !== undefined && (dashboardSettings: TAnyObject)[s.key]) ?? s.default),
   }))
 
   return [sectionDropbownItems, nonSectionDropbownItems]

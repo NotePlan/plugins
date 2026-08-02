@@ -154,7 +154,7 @@ export async function updateSettingType_json(setting: any, currentValue: any): P
 /**
  * all types
  */
-const getNewValue = {
+const getNewValue: { [string]: Function } = {
   updateSettingType_string,
   updateSettingType__string_,
   updateSettingType_number,

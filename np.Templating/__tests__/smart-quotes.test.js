@@ -141,7 +141,7 @@ describe('importTemplates with smart quotes', () => {
       const templateName = match[1]
 
       // Mock template content with smart quotes
-      const mockTemplateContent = {
+      const mockTemplateContent: { [string]: string } = {
         'weather-template': `const ampm = hours >= 12 ? \u2018PM\u2019 : \u2018AM\u2019;
 const minutesStr = minutes < 10 ? \u20180\u2019 + minutes : minutes;`,
       }

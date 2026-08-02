@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T03:21:11.128Z",
-  "rawTotal": 1099,
+  "generated": "2026-08-02T03:25:47.467Z",
+  "rawTotal": 1061,
   "byPlugin": {
     "flow-typed": {
       "sites": 9,
@@ -27,10 +27,10 @@
       "src": 15
     },
     "dwertheimer.EventAutomations": {
-      "sites": 45,
-      "raw": 72,
+      "sites": 34,
+      "raw": 58,
       "test": 1,
-      "src": 44
+      "src": 33
     },
     "dwertheimer.Favorites": {
       "sites": 7,
@@ -57,10 +57,10 @@
       "src": 6
     },
     "dwertheimer.TaskAutomations": {
-      "sites": 30,
-      "raw": 33,
+      "sites": 21,
+      "raw": 24,
       "test": 0,
-      "src": 30
+      "src": 21
     },
     "dwertheimer.TaskSorting": {
       "sites": 27,
@@ -75,16 +75,16 @@
       "src": 7
     },
     "helpers": {
-      "sites": 92,
-      "raw": 129,
+      "sites": 90,
+      "raw": 127,
       "test": 1,
-      "src": 91
+      "src": 89
     },
     "jgclark.Dashboard": {
-      "sites": 131,
-      "raw": 362,
+      "sites": 126,
+      "raw": 356,
       "test": 26,
-      "src": 105
+      "src": 100
     },
     "jgclark.EventHelpers": {
       "sites": 6,
@@ -159,9 +159,9 @@
       "src": 2
     },
     "np.Templating": {
-      "sites": 117,
-      "raw": 133,
-      "test": 63,
+      "sites": 112,
+      "raw": 128,
+      "test": 58,
       "src": 54
     },
     "np.ThemeChooser": {
@@ -201,10 +201,10 @@
       "src": 0
     },
     "shared.AI": {
-      "sites": 49,
-      "raw": 60,
+      "sites": 47,
+      "raw": 58,
       "test": 0,
-      "src": 49
+      "src": 47
     }
   }
 }
