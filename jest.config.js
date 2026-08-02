@@ -14,7 +14,12 @@ module.exports = {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '^json-edit-react$': '<rootDir>/node_modules/json-edit-react/build/index.cjs.js',
   },
-  testPathIgnorePatterns: ['<rootDir>/src/templates/np.plugin.starter', '<rootDir>/.history/'],
+  testPathIgnorePatterns: [
+    '<rootDir>/src/templates/np.plugin.starter',
+    '<rootDir>/.history/',
+    // Hits a third-party endpoint we don't control; too flaky for CI but useful to run locally.
+    ...(process.env.CI ? ['<rootDir>/np.Templating/__tests__/web-api-tests.test.js'] : []),
+  ],
   testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
   testEnvironment: 'jsdom',
   transform: {
