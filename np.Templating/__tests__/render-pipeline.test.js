@@ -306,7 +306,7 @@ describe('Render Pipeline Functions', () => {
       mockIsFrontmatterTemplate = jest.fn<Array<any>, any>().mockReturnValue(true)
 
       // Update the FrontmatterModule mock
-      FrontmatterModule.mockImplementation(() => ({
+      ;(FrontmatterModule: any).mockImplementation(() => ({
         isFrontmatterTemplate: mockIsFrontmatterTemplate,
         parse: jest.fn<Array<any>, any>().mockReturnValue({
           attributes: { title: 'Test Template', type: 'test' },
@@ -351,7 +351,7 @@ describe('Render Pipeline Functions', () => {
   describe('processTemplatePrompts', () => {
     test('should return false if prompt processing is cancelled', async () => {
       // Setup mock to simulate cancellation
-      processPrompts.mockResolvedValueOnce(false)
+      ;(processPrompts: any).mockResolvedValueOnce(false)
 
       const result = await processTemplatePrompts('template with prompts', {})
 
@@ -360,7 +360,7 @@ describe('Render Pipeline Functions', () => {
 
     test('should return updated template and session data', async () => {
       // Setup mock to return processed data
-      processPrompts.mockResolvedValueOnce({
+      ;(processPrompts: any).mockResolvedValueOnce({
         sessionTemplateData: 'processed template',
         sessionData: { promptResult: 'value' },
       })
@@ -418,7 +418,7 @@ describe('Render Pipeline Functions', () => {
     // This tests the full render pipeline integration
     test('should process a template through the complete pipeline', async () => {
       // Mock dependencies
-      processPrompts.mockResolvedValue({
+      ;(processPrompts: any).mockResolvedValue({
         sessionTemplateData: 'template with processed prompts',
         sessionData: { promptResult: 'value' },
       })

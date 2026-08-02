@@ -59,7 +59,7 @@ describe('PromptDateHandler', () => {
 
   test('Should handle quoted parameters properly', async () => {
     // Using the mocked datePicker from @helpers/userInput
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = "<%- promptDate('selectedDate', 'Select a date with, comma:') %>"
     const userData = {}
@@ -75,7 +75,7 @@ describe('PromptDateHandler', () => {
 
   test('Should handle single quotes in parameters', async () => {
     // Using the mocked datePicker from @helpers/userInput
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = "<%- promptDate('selectedDate', \"Select a date with 'quotes':\") %>"
     const userData = {}
@@ -91,7 +91,7 @@ describe('PromptDateHandler', () => {
 
   test('Should handle double quotes in parameters', async () => {
     // Using the mocked datePicker from @helpers/userInput
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = "<%- promptDate('selectedDate', 'Select a date with \"quotes\":') %>"
     const userData = {}
@@ -106,7 +106,7 @@ describe('PromptDateHandler', () => {
   })
 
   test('Should handle multiple promptDate calls', async () => {
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = `
       <%- promptDate('firstDate', 'Select first date:') %>
@@ -122,7 +122,7 @@ describe('PromptDateHandler', () => {
   })
 
   test('Should reuse existing values in session data without prompting again', async () => {
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = "<%- promptDate('existingDate', 'Select a date:') %>"
     // Provide an existing value in the session data
@@ -137,7 +137,7 @@ describe('PromptDateHandler', () => {
   })
 
   test('Should handle complex date formatting options', async () => {
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     // Test with more complex options
     // question, defaultValue, canBeEmpty
@@ -152,7 +152,7 @@ describe('PromptDateHandler', () => {
   })
 
   test('Should handle variable names with question marks', async () => {
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = "<%- promptDate('dueDate?', 'Select due date:') %>"
     const userData = {}
@@ -167,7 +167,7 @@ describe('PromptDateHandler', () => {
   test('Should handle variable names with spaces', async () => {
     const templateData = "<%- promptDate('due date', 'When is this due?') %>"
     const userData = {}
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
     const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Spaces should be converted to underscores
@@ -176,10 +176,10 @@ describe('PromptDateHandler', () => {
   })
 
   test('Should gracefully handle errors', async () => {
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     // Make datePicker throw an error for this test
-    datePicker.mockRejectedValueOnce(new Error('Test error'))
+    ;(datePicker: any).mockRejectedValueOnce(new Error('Test error'))
 
     const templateData = "<%- promptDate('errorDate', 'This will cause an error:') %>"
     const userData = {}
@@ -192,7 +192,7 @@ describe('PromptDateHandler', () => {
   })
 
   test('Should handle default value correctly', async () => {
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = "<%- promptDate('startDate2', 'Enter start date:', '2024-01-01') %>"
     const userData = {}

@@ -19,7 +19,7 @@ describe('promptForm tag', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    usersVersionHas.mockImplementation((feature) => feature === 'commandBarForms')
+    ;(usersVersionHas: any).mockImplementation((feature) => feature === 'commandBarForms')
     global.DataStore = {
       settings: { _logLevel: 'none' },
       projectNotes: [],
@@ -92,7 +92,7 @@ describe('promptForm tag', () => {
   })
 
   test('falls back to textPrompt when commandBarForms gate is off', async () => {
-    usersVersionHas.mockImplementation(() => false)
+    ;(usersVersionHas: any).mockImplementation(() => false)
     global.CommandBar.textPrompt.mockResolvedValue('solo')
 
     const template = `<%- promptForm({ fields: [{ type: 'string', key: 'only', title: 'One' }] }) %>`

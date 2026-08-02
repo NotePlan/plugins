@@ -273,13 +273,13 @@ describe('Prompt Integration Tests', () => {
     global.CommandBar.textPrompt.mockImplementationOnce(() => Promise.resolve('Task Manager App'))
 
     // For date prompts - override the default implementation for these specific cases
-    datePicker
+    ;(datePicker: any)
       .mockImplementationOnce(() => Promise.resolve('2023-03-01')) // For start date
       .mockImplementationOnce(() => Promise.resolve('2023-04-15')) // For deadline
     // After these two calls, it will fall back to the default implementation ('2023-01-15')
 
     // For date interval (available times)
-    askDateInterval.mockImplementationOnce(() => Promise.resolve('5d'))
+    ;(askDateInterval: any).mockImplementationOnce(() => Promise.resolve('5d'))
 
     // For option selection (isUrgent)
     global.CommandBar.showOptions.mockImplementation(() => Promise.resolve('Yes'))
