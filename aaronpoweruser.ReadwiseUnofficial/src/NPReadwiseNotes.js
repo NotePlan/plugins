@@ -80,7 +80,9 @@ function appendHighlightToNote(outputNote: TNote, highlight: any, category: stri
       if (tag.name !== null && tag.name !== '' && tag.name.toLowerCase().startsWith('h') && tag.name.length === 2) {
         const headingLevel = parseInt(tag.name.substring(1)) + 1
         if (headingLevel <= 8) {
-          outputNote.insertHeading(removeNewlines(highlight.text), findEndOfActivePartOfNote(outputNote) + 1, headingLevel)
+          // Cast: insertHeading takes the literal union 1..8, and the enclosing guard already
+          // bounds headingLevel to <= 8 (it comes from an h1-h9 tag name, so it is >= 2).
+          outputNote.insertHeading(removeNewlines(highlight.text), findEndOfActivePartOfNote(outputNote) + 1, (headingLevel: any))
         }
       }
     }

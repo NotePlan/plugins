@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T03:34:05.759Z",
-  "rawTotal": 1002,
+  "generated": "2026-08-02T03:43:43.449Z",
+  "rawTotal": 989,
   "byPlugin": {
     "flow-typed": {
       "sites": 9,
@@ -13,12 +13,6 @@
       "raw": 14,
       "test": 0,
       "src": 14
-    },
-    "aaronpoweruser.ReadwiseUnofficial": {
-      "sites": 2,
-      "raw": 2,
-      "test": 0,
-      "src": 2
     },
     "dbludeau.TodoistNoteplanSync": {
       "sites": 15,
@@ -97,12 +91,6 @@
       "raw": 5,
       "test": 0,
       "src": 5
-    },
-    "jgclark.MOCs": {
-      "sites": 3,
-      "raw": 4,
-      "test": 0,
-      "src": 3
     },
     "jgclark.NoteHelpers": {
       "sites": 6,
@@ -187,18 +175,6 @@
       "raw": 9,
       "test": 0,
       "src": 9
-    },
-    "np.statistics": {
-      "sites": 2,
-      "raw": 3,
-      "test": 0,
-      "src": 2
-    },
-    "scripts": {
-      "sites": 3,
-      "raw": 4,
-      "test": 3,
-      "src": 0
     },
     "shared.AI": {
       "sites": 36,

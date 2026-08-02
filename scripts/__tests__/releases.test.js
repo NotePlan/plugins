@@ -38,7 +38,7 @@ describe('Releases Script Utility Functions', () => {
   function getReleaseTagName(pluginName: string, version: string, releaseStatus?: ?string) {
     let tagVersion = version
     if (isPreReleaseStatus(releaseStatus)) {
-      tagVersion = `${version}-${releaseStatus}`
+      tagVersion = `${version}-${String(releaseStatus)}`
     }
     return `${pluginName}-v${tagVersion}`
   }
@@ -371,27 +371,27 @@ describe('Releases Script Utility Functions', () => {
 
     test('should call process.exit for non-existent fields', () => {
       getPluginDataField(mockPluginData, 'plugin.nonexistent')
-      expect(process.exit).toHaveBeenCalledWith(0)
+      expect(proc.exit).toHaveBeenCalledWith(0)
     })
 
     test('should handle empty plugin data', () => {
       // Test with empty object
       getPluginDataField({}, 'plugin.name')
-      expect(process.exit).toHaveBeenCalledWith(0)
+      expect(proc.exit).toHaveBeenCalledWith(0)
 
       // Reset the mock for next calls
-      process.exit.mockClear()
+      proc.exit.mockClear()
 
       // Test with null
       getPluginDataField(null, 'plugin.name')
-      expect(process.exit).toHaveBeenCalledWith(0)
+      expect(proc.exit).toHaveBeenCalledWith(0)
 
       // Reset the mock for next calls
-      process.exit.mockClear()
+      proc.exit.mockClear()
 
       // Test with undefined
       getPluginDataField(undefined, 'plugin.name')
-      expect(process.exit).toHaveBeenCalledWith(0)
+      expect(proc.exit).toHaveBeenCalledWith(0)
     })
 
     test('should handle falsy values correctly', () => {
@@ -403,16 +403,16 @@ describe('Releases Script Utility Functions', () => {
       }
 
       getPluginDataField(dataWithFalsyValues, 'plugin.name') // Empty string
-      expect(process.exit).toHaveBeenCalledWith(0)
+      expect(proc.exit).toHaveBeenCalledWith(0)
 
       getPluginDataField(dataWithFalsyValues, 'plugin.version') // 0
-      expect(process.exit).toHaveBeenCalledWith(0)
+      expect(proc.exit).toHaveBeenCalledWith(0)
 
       getPluginDataField(dataWithFalsyValues, 'plugin.enabled') // false
-      expect(process.exit).toHaveBeenCalledWith(0)
+      expect(proc.exit).toHaveBeenCalledWith(0)
 
       getPluginDataField(dataWithFalsyValues, 'plugin.null') // null
-      expect(process.exit).toHaveBeenCalledWith(0)
+      expect(proc.exit).toHaveBeenCalledWith(0)
     })
   })
 

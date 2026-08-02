@@ -22,7 +22,7 @@ export async function showNoteCount(): Promise<void> {
     const updatedLastMonth = projNotes.filter((n) => Calendar.unitsAgoFromNow(n.changedDate, 'month') < 1)
     const updatedLastQuarter = projNotes.filter((n) => Calendar.unitsAgoFromNow(n.changedDate, 'month') < 3)
     const allDailyCalendarNotes = DataStore.calendarNotes.filter((n) => isDailyNote(n))
-    const allDailyCalendarNotesSorted = allDailyCalendarNotes.sort((a, b) => a.createdDate - b.createdDate)
+    const allDailyCalendarNotesSorted = allDailyCalendarNotes.sort((a, b) => Number(a.createdDate) - Number(b.createdDate))
     const firstDailyCalendarNote = allDailyCalendarNotesSorted[0]
     const daysSinceFirstDailyCalendarNote = moment().diff(moment(firstDailyCalendarNote.createdDate), 'days')
 
