@@ -37,7 +37,13 @@ export function cleanErrorMessage(errorMessage: string): string {
  * @param {string} processedTemplateData - The processed template data
  * @returns {{contextLines: string, lineInfo: string, adjustedLine: number}} Error context information
  */
-export function extractErrorContext(error: Error, processedTemplateData: string): { contextLines: string, lineInfo: string, adjustedLine: number } {
+/**
+ * An error thrown by the EJS renderer. Beyond the standard Error shape it carries the line and
+ * column in the template where rendering failed, which is what this module reports on.
+ */
+type TTemplateRenderError = Error & { line?: number, column?: number }
+
+export function extractErrorContext(error: TTemplateRenderError, processedTemplateData: string): { contextLines: string, lineInfo: string, adjustedLine: number } {
   let contextLines = ''
   let lineInfo = ''
   let adjustedLine = -1
@@ -45,7 +51,7 @@ export function extractErrorContext(error: Error, processedTemplateData: string)
   // Extract line and column for better error context
   if (error?.line) {
     // Adjust the line number offset - EJS adds boilerplate code at the top
-    adjustedLine = error.line - 7 // Assuming 7 lines of boilerplate
+    adjustedLine = Number(error.line) - 7 // Assuming 7 lines of boilerplate
     lineInfo = `Line: ${adjustedLine}`
 
     if (error?.column) {

@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T03:54:57.089Z",
-  "rawTotal": 938,
+  "generated": "2026-08-02T03:57:44.879Z",
+  "rawTotal": 916,
   "byPlugin": {
     "flow-typed": {
       "sites": 9,
@@ -141,10 +141,10 @@
       "src": 2
     },
     "np.Templating": {
-      "sites": 111,
-      "raw": 127,
+      "sites": 101,
+      "raw": 105,
       "test": 58,
-      "src": 53
+      "src": 43
     },
     "np.ThemeChooser": {
       "sites": 5,

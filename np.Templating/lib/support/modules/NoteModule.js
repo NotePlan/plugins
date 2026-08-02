@@ -143,7 +143,7 @@ export default class NoteModule {
   paragraphs(): Array<{ key: string, value: string | boolean | Array<any> }> {
     let paragraphs = this.getCurrentNote()?.paragraphs
 
-    let result = []
+    let result: Array<{ key: string, value: string | boolean | Array<any> }> = []
 
     if (paragraphs == null) {
       return result
@@ -215,7 +215,7 @@ export default class NoteModule {
   backlinks(): Array<{ key: string, value: string | boolean | Array<any> }> {
     let backlinks = this.getCurrentNote()?.backlinks
 
-    let result = []
+    let result: Array<{ key: string, value: string | boolean | Array<any> }> = []
     if (backlinks == null) {
       return result
     }
@@ -235,7 +235,7 @@ export default class NoteModule {
   linkedItems(): Array<{ key: string, value: string | boolean | Array<any> }> {
     let linkedItems = this.getCurrentNote()?.linkedItems
 
-    let result = []
+    let result: Array<{ key: string, value: string | boolean | Array<any> }> = []
     if (linkedItems == null) {
       return result
     }
@@ -255,7 +255,7 @@ export default class NoteModule {
   datedTodos(): Array<{ key: string, value: string | boolean | Array<any> }> {
     let datedTodos = this.getCurrentNote()?.datedTodos
 
-    let result = []
+    let result: Array<{ key: string, value: string | boolean | Array<any> }> = []
     if (datedTodos == null) {
       return result
     }
