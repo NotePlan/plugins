@@ -25,7 +25,9 @@ import { chooseNoteV2 } from '@helpers/NPnote'
 import { backupSettings } from '@helpers/NPConfiguration'
 import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 
-export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
+// `type` marks non-perspective rows the dropdown renders specially (e.g. the '_separator_' option);
+// `isDefault` is set by DynamicDialog's dropdown-select. Both are optional so plain name options still fit.
+export type TPerspectiveOptionObject = { isModified?: boolean, isDefault?: boolean, label: string, value: string, type?: string }
 
 // Re-export for existing importers (PerspectiveSelector, perspectiveClickHandlers, etc.)
 export { cleanDashboardSettingsInAPerspective, removeInvalidTagSections } from './dashboardSettingsClean'

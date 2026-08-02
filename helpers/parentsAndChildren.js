@@ -260,7 +260,8 @@ export const getOpenTasksAndChildren = (paragraphs: Array<TParagraph>): Array<TP
   ...new Map(
     paragraphs
       .filter((p) => p.type === 'open') // Filter paragraphs with type "open"
-      .flatMap((p) => [p, ...p.children()]) // Flatten the array of paragraphs and their children
+      // cast: the API typedef declares `children(): $ReadOnlyArray<TParagraph> | void`, but NotePlan always returns an array here (see line 77 / 223, which rely on the same)
+      .flatMap((p) => [p, ...(p.children(): any)]) // Flatten the array of paragraphs and their children
       .map((p) => [p.lineIndex, p]), // Map each paragraph to a [lineIndex, paragraph] pair
   ).values(),
 ] // Extract the values (unique paragraphs) from the Map and spread into an array

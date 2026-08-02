@@ -1,66 +1,24 @@
 {
-  "generated": "2026-08-02T19:00:30.392Z",
-  "rawTotal": 288,
+  "generated": "2026-08-02T19:19:33.562Z",
+  "rawTotal": 18,
   "byPlugin": {
-    "flow-typed": {
-      "sites": 7,
-      "raw": 7,
-      "test": 0,
-      "src": 7
-    },
-    "KimMachineGun.Raindrop": {
-      "sites": 3,
-      "raw": 3,
-      "test": 0,
-      "src": 3
-    },
-    "dwertheimer.Forms": {
+    "dwertheimer.TaskAutomations": {
       "sites": 1,
       "raw": 1,
       "test": 0,
       "src": 1
     },
-    "dwertheimer.TaskAutomations": {
-      "sites": 3,
-      "raw": 3,
-      "test": 0,
-      "src": 3
-    },
-    "dwertheimer.TaskSorting": {
-      "sites": 1,
+    "dwertheimer.test-plugin-scratch": {
+      "sites": 2,
       "raw": 2,
       "test": 0,
-      "src": 1
-    },
-    "dwertheimer.test-plugin-scratch": {
-      "sites": 3,
-      "raw": 3,
-      "test": 0,
-      "src": 3
+      "src": 2
     },
     "helpers": {
-      "sites": 44,
-      "raw": 69,
+      "sites": 4,
+      "raw": 4,
       "test": 0,
-      "src": 44
-    },
-    "jgclark.Dashboard": {
-      "sites": 36,
-      "raw": 129,
-      "test": 5,
-      "src": 31
-    },
-    "jgclark.EventHelpers": {
-      "sites": 3,
-      "raw": 3,
-      "test": 0,
-      "src": 3
-    },
-    "jgclark.NoteHelpers": {
-      "sites": 3,
-      "raw": 3,
-      "test": 0,
-      "src": 3
+      "src": 4
     },
     "jgclark.PeriodicReviews": {
       "sites": 4,
@@ -68,29 +26,11 @@
       "test": 0,
       "src": 4
     },
-    "jgclark.RepeatExtensions": {
-      "sites": 1,
-      "raw": 1,
-      "test": 0,
-      "src": 1
-    },
-    "jgclark.Reviews": {
-      "sites": 5,
-      "raw": 8,
-      "test": 0,
-      "src": 5
-    },
     "jgclark.Summaries": {
-      "sites": 5,
-      "raw": 5,
+      "sites": 2,
+      "raw": 2,
       "test": 0,
-      "src": 5
-    },
-    "np.MeetingNotes": {
-      "sites": 1,
-      "raw": 1,
-      "test": 0,
-      "src": 1
+      "src": 2
     },
     "np.Preview": {
       "sites": 2,
@@ -98,29 +38,11 @@
       "test": 0,
       "src": 2
     },
-    "np.Templating": {
-      "sites": 16,
-      "raw": 16,
-      "test": 0,
-      "src": 16
-    },
-    "np.ThemeChooser": {
-      "sites": 1,
-      "raw": 2,
-      "test": 0,
-      "src": 1
-    },
-    "np.Tidy": {
-      "sites": 1,
-      "raw": 1,
-      "test": 0,
-      "src": 1
-    },
     "shared.AI": {
-      "sites": 22,
-      "raw": 25,
+      "sites": 3,
+      "raw": 3,
       "test": 0,
-      "src": 22
+      "src": 3
     }
   }
 }

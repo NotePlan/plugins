@@ -79,7 +79,8 @@ const SettingsDialog = ({
   })
 
   // Add a new state to track the controlling settings' states
-  const [controllingSettingsState, setControllingSettingsState] = useState({})
+  // Explicit type argument: keys are TSettingItem.dependsOnKey values, which are dynamic, so the state has to be an indexed object rather than the empty object literal Flow would otherwise infer.
+  const [controllingSettingsState, setControllingSettingsState] = useState<TAnyObject>({})
   
   // Track section order changes separately (will be merged into updatedSettings on save)
   const [sectionOrderChange, setSectionOrderChange] = useState<?Array<TSectionCode>>(null)
@@ -162,6 +163,7 @@ const SettingsDialog = ({
       }
 
       if (updatedSettings?.perspectiveSettings) {
+        // $FlowIgnore[incompatible-indexer] newSettings is the loose indexed TAnyObject copy of the settings; the callee only reads/spreads it
         newSettings = setPerspectivesIfJSONChanged(newSettings, dashboardSettings, sendActionToPlugin, `Dashboard Settings updated`)
       }
       onSaveChanges(newSettings)
@@ -213,9 +215,17 @@ const SettingsDialog = ({
       setTimeout(() => {
         const targetElement = reactSettings?.settingsDialog?.scrollTarget ? document.querySelector(`[data-settings-key="${reactSettings?.settingsDialog.scrollTarget}"]`) : null
         if (targetElement) {
+          // Both suppressions are safe: the enclosing `if (reactSettings?.settingsDialog?.scrollTarget)` already
+          // proves settingsDialog and scrollTarget are set, and the value is only interpolated into a log line.
+          // $FlowIgnore[incompatible-use]
+          // $FlowIgnore[incompatible-type]
           logDebug('SettingsDialog/useEffect', `Scrolling to element [${reactSettings?.settingsDialog.scrollTarget}]`)
           targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
         } else {
+          // Both suppressions are safe: the enclosing `if (reactSettings?.settingsDialog?.scrollTarget)` already
+          // proves settingsDialog and scrollTarget are set, and the value is only interpolated into a log line.
+          // $FlowIgnore[incompatible-use]
+          // $FlowIgnore[incompatible-type]
           logDebug('SettingsDialog/useEffect', `No target element found for scrollTarget=${reactSettings?.settingsDialog.scrollTarget}`)
           return
         }
@@ -245,12 +255,14 @@ const SettingsDialog = ({
 
   // Add a useEffect to update the controlling settings' states
   useEffect(() => {
-    const newControllingSettingsState = {}
+    // TAnyObject: the keys are dynamic dependsOnKey values, not a fixed literal shape.
+    const newControllingSettingsState: TAnyObject = {}
     items.forEach((item) => {
       if (item.dependsOnKey) {
         const thatKey = items.find((f) => f.key === item.dependsOnKey)
         if (thatKey) {
-          newControllingSettingsState[item.dependsOnKey] = updatedSettings[thatKey.key] ?? false
+          // Casts: TSettingItem.dependsOnKey / .key are optional in the shared type; both are non-null here (dependsOnKey is guarded above, thatKey was found by matching key).
+          newControllingSettingsState[((item.dependsOnKey: any): string)] = updatedSettings[((thatKey.key: any): string)] ?? false
         }
       }
     })

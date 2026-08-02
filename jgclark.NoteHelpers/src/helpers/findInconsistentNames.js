@@ -28,7 +28,10 @@ export async function findInconsistentNames(
   const settings = await getSettings()
   const foldersToIgnoreSetting = settings.foldersToIgnore ?? ''
   const foldersToIgnore = foldersToIgnoreSetting.split(',').map((folder) => folder.trim())
-  const filesToCheck = getRegularNotesInFolder(folder, foldersToIgnore, true)
+  // KNOWN BUG - these two arguments are in the wrong order. helpers/folders.js declares getRegularNotesInFolder(forFolder, ignoreSpecialFolders: boolean, foldersToIgnore: Array<string>)
+  // (its JSDoc claims the opposite order, which is what this call follows). At runtime the array is used as `ignoreSpecialFolders` (always truthy) and `true` is used as
+  // `foldersToIgnore`, so `true.length > 0` is false and the user's 'foldersToIgnore' setting is silently ignored. Casts keep the emitted JS unchanged; see LEFT report.
+  const filesToCheck = getRegularNotesInFolder(folder, (foldersToIgnore: any), (true: any))
   logDebug('findInconsistentNames', `Will check ${filesToCheck.length} notes in folder '${folder}' and its sub-folders, ignoring [${foldersToIgnore.join(', ')}] folders`)
 
   const inconsistentFiles = filesToCheck

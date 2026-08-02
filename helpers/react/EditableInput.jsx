@@ -95,7 +95,8 @@ const EditableInputBox: React$AbstractComponent<Props, RefType> = React.forwardR
 
   const handleFocus = () => {
     if (divRef.current && divRef.current.querySelector('.placeholder')) {
-      divRef.current.innerHTML = ''
+      // Cast: the `querySelector()` call in the guard invalidates Flow's null-refinement of divRef.current; it is still non-null here
+      (divRef.current: any).innerHTML = ''
     }
   }
 

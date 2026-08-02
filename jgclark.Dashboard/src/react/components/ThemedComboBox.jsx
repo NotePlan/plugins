@@ -38,7 +38,7 @@ const ThemedComboBox = ({ label, description = '', options, value, onChange, onS
   // Handlers
   //----------------------------------------------------------------------
 
-  const handleChange = (inputValue: string, { action }: string) => {
+  const handleChange = (inputValue: string, { action }: { action: string }) => {
     logDebug('ComboBox.handleChange', inputValue, action)
     onChange && onChange(value)
     // if (action === 'input-change') return inputValue
@@ -107,7 +107,7 @@ const ThemedComboBox = ({ label, description = '', options, value, onChange, onS
           options={optionsWithID}
           onSelect={onSelect}
           onChange={handleChange}
-          defaultValue={options[0]} /* FIXME: (@jgclark): this doesn't match the types and may not be set */
+          defaultValue={(options[0]: any)} /* FIXME: (@jgclark): this doesn't match the types and may not be set */
         // selectionOption={onInputChange}
         // isDisabled={false}
         // isLoading={false}

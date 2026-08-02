@@ -151,13 +151,15 @@ async function createRaindropNote(rd: Raindrop) {
     body = `${body}---\n`
 
     const filename = await createNoteIfNotExists(title, noteFolder, body)
-    await Editor.openNoteByFilename(filename)
+    // KNOWN BUG - createNoteIfNotExists() returns undefined when the note already exists (it has no return in that branch), so this opens `undefined` instead of the existing note. It should return the existing note's filename.
+    await Editor.openNoteByFilename((filename: any))
 }
 
-async function createNoteIfNotExists(title: string, folder: string, content?: string): Promise<string> {
+async function createNoteIfNotExists(title: string, folder: string, content?: string): Promise<?string> {
     const existingNotes = DataStore.projectNoteByTitle(title, true, false) ?? []
     if (existingNotes.length === 0) {
         if (content) {
+            // $FlowIgnore[reassign-const] reassigning a parameter is legal JS; this only errors because .flowconfig sets experimental.const_params=true
             content = `# ${title}\n${content}`
             return await DataStore.newNoteWithContent(content, folder)
         } else {

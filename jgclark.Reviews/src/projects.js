@@ -246,7 +246,9 @@ async function promptProjectCloseoutInputs(actionType: 'completed' | 'cancelled'
     'OK',
     `${actionWord} Project`,
   )
-  const finalProgressComment = (finalCommentRaw && finalCommentRaw !== true)
+  // KNOWN BUG - dead guard: `getInputTrimmed()` returns `string | false`, so `!== true` can never be false and the test is redundant (the preceding
+  // truthiness check already rules out `false` and ''). Harmless today, but it hides the intent. Cast is type-only; see LEFT report.
+  const finalProgressComment = (finalCommentRaw && (finalCommentRaw: any) !== true)
     ? String(finalCommentRaw).trim()
     : ''
 

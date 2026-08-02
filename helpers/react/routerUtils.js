@@ -161,7 +161,8 @@ export async function handleRequestResponse({
     const dataType = dataToSend != null ? typeof dataToSend : 'null'
     const isDataArray = Array.isArray(dataToSend)
     const dataLength = isDataArray
-      ? dataToSend.length
+      ? // Cast: `isDataArray` is Array.isArray(dataToSend), but Flow does not carry a refinement through a const boolean
+        (dataToSend: any).length
       : dataToSend != null && typeof dataToSend === 'object'
         ? Object.keys(dataToSend).length
         : 'N/A'

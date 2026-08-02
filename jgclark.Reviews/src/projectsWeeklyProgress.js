@@ -147,7 +147,10 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
   try {
     logDebug(pluginJson, `generateProjectsWeeklyProgressLines: starting`)
     const startTime = new Date()
-    const config: ReviewConfig = await getReviewSettings()
+    // KNOWN BUG - unguarded null: `getReviewSettings()` returns `ReviewConfig | null`, but there is no null check, so the next line throws a
+    // TypeError when settings can't be loaded (only reported via the generic catch below, not as a useful message). Other callers in this plugin
+    // do `if (!config) throw new Error(...)` first. The cast is type-only; see LEFT report.
+    const config: ReviewConfig = ((await getReviewSettings(): any): ReviewConfig)
     const foldersToExclude = config.foldersToIgnore ?? []
 
     // 1. Week range (last 12 weeks, including current)

@@ -122,7 +122,8 @@ export function showConfirmationDialog({
     const defaultOptions = ['No', 'Yes']
     const initialOptions = options || defaultOptions
     const defaultOption = initialOptions[initialOptions.length - 1] // default option is the last one
-    const finalOptions = initialOptions.map((option) => ({
+    // Annotated with TSettingItem's own option element type: Array<> is invariant, so an inferred Array<{label,value,isDefault}> cannot be assigned to it
+    const finalOptions: Array<string | { label: string, value: string, isDefault?: boolean }> = initialOptions.map((option) => ({
       label: option,
       value: option,
       isDefault: option === defaultOption,

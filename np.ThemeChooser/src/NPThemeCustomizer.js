@@ -362,12 +362,14 @@ export async function createThemeSamples(idToScrollTo: string = '', autoRefreshR
     // Editor.insertTextAtCursor(outputArray.join('\n')) //TODO: open document
     logDebug(pluginJson, `createThemeSamples about to open file by filename`)
     const filepath = `@Theme/Customize Themes.md`
-    let note,
+    // note is only ever read for truthiness below; it gets a TEditor, an un-awaited Promise from the @helpers/NPnote openNoteByFilename(), or the TNote|void from Editor.openNoteByFilename()
+    let note: TEditor | TNote | Promise<TNote | void> | void,
       contentWritten = false
     if (Editor?.note?.filename === filepath) {
       // Don't reload the file if we are already in it
       note = Editor
     } else {
+      // KNOWN BUG - this call is missing `await`, so `note` is a Promise and is therefore always truthy: contentWritten is always set true and the whole `else` fallback below (lines ~376-390) is dead code even when the open fails.
       note = openNoteByFilename(filepath, { createIfNeeded: true, content: `${frontmatter}${content}` })
       if (note) {
         contentWritten = true

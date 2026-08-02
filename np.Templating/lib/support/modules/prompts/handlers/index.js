@@ -31,6 +31,8 @@ export const promptDate = (message: string, defaultValue: string): Promise<any> 
  * @returns {Promise<any>} A promise that resolves to the selected date interval
  */
 export const promptDateInterval = (message: string, defaultValue: string): Promise<any> => {
+  // KNOWN BUG - PromptDateIntervalHandler.promptDateInterval's signature is (message, defaultValue), not (tag, message, defaultValue) like PromptDateHandler.promptDate. So this passes '' as the prompt message and the caller's `message` as the default value; the user sees an empty prompt and `defaultValue` is dropped. Fix: call PromptDateIntervalHandler.promptDateInterval(message, defaultValue).
+  // $FlowIgnore[extra-arg] suppression is type-only; the underlying defect is described in the KNOWN BUG note above
   return PromptDateIntervalHandler.promptDateInterval('', message, defaultValue)
 }
 

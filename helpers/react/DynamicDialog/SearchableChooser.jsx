@@ -146,7 +146,7 @@ export function SearchableChooser({
   
   // Log isOpen state changes for debugging
   useEffect(() => {
-    logDebug('SearchableChooser', `[${classNamePrefix}] isOpen state changed to: ${isOpen}`)
+    logDebug('SearchableChooser', `[${classNamePrefix}] isOpen state changed to: ${(isOpen: any)}`)
   }, [isOpen, classNamePrefix])
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [filteredItems, setFilteredItems] = useState<Array<any>>(items)
@@ -369,7 +369,7 @@ export function SearchableChooser({
       // If another chooser got focus and it's not this one, close this dropdown
       // Flow doesn't know about CustomEvent, so we need to access detail via any
       const customEvent: any = event
-      logDebug('SearchableChooser', `[${classNamePrefix}] Received searchableChooserFocus event, detail=${JSON.stringify(customEvent.detail)}, isOpen=${isOpen}`)
+      logDebug('SearchableChooser', `[${classNamePrefix}] Received searchableChooserFocus event, detail=${JSON.stringify(customEvent.detail)}, isOpen=${(isOpen: any)}`)
       if (customEvent.detail && customEvent.detail.classNamePrefix !== classNamePrefix) {
         logDebug('SearchableChooser', `[${classNamePrefix}] Closing dropdown: another chooser (${customEvent.detail.classNamePrefix}) got focus`)
         setIsOpen(false)
@@ -427,7 +427,7 @@ export function SearchableChooser({
   }
 
   const handleInputFocus = () => {
-    logDebug('SearchableChooser', `[${classNamePrefix}] handleInputFocus called, suppressOpenOnFocusRef=${suppressOpenOnFocusRef.current}, isOpen=${isOpen}, isLoading=${isLoading}, items.length=${items.length}`)
+    logDebug('SearchableChooser', `[${classNamePrefix}] handleInputFocus called, suppressOpenOnFocusRef=${(suppressOpenOnFocusRef.current: any)}, isOpen=${(isOpen: any)}, isLoading=${(isLoading: any)}, items.length=${items.length}`)
     if (suppressOpenOnFocusRef.current) {
       logDebug('SearchableChooser', `[${classNamePrefix}] Suppressing open on focus`)
       suppressOpenOnFocusRef.current = false
@@ -454,19 +454,19 @@ export function SearchableChooser({
         setDropdownPosition(position)
       }
     } else {
-      logDebug('SearchableChooser', `[${classNamePrefix}] Not opening dropdown: isLoading=${isLoading}, items.length=${items.length}`)
+      logDebug('SearchableChooser', `[${classNamePrefix}] Not opening dropdown: isLoading=${(isLoading: any)}, items.length=${items.length}`)
     }
     // If loading or no items, the dropdown will auto-open when items finish loading
     // (handled by useEffect below)
   }
 
   const handleInputBlur = (e: SyntheticFocusEvent<HTMLInputElement>) => {
-    logDebug('SearchableChooser', `[${classNamePrefix}] handleInputBlur called, isOpen=${isOpen}`)
+    logDebug('SearchableChooser', `[${classNamePrefix}] handleInputBlur called, isOpen=${(isOpen: any)}`)
     // Don't close if clicking on the dropdown itself
     // Use setTimeout to check if the new focus target is within our container
     setTimeout(() => {
       const relatedTarget = e.relatedTarget || document.activeElement
-      logDebug('SearchableChooser', `[${classNamePrefix}] Blur timeout: relatedTarget=${relatedTarget?.tagName || 'null'}, activeElement=${document.activeElement?.tagName || 'null'}`)
+      logDebug('SearchableChooser', `[${classNamePrefix}] Blur timeout: relatedTarget=${(relatedTarget: any)?.tagName || 'null'}, activeElement=${document.activeElement?.tagName || 'null'}`)
       if (containerRef.current && relatedTarget instanceof HTMLElement) {
         // If the new focus is within our container or dropdown, don't close
         if (containerRef.current.contains(relatedTarget) || (dropdownRef.current && dropdownRef.current.contains(relatedTarget))) {
@@ -556,7 +556,7 @@ export function SearchableChooser({
     }
 
     if (e.key === 'Enter') {
-      logDebug('SearchableChooser', `[${classNamePrefix}] Enter key pressed, isOpen=${isOpen}, hoveredIndex=${hoveredIndex}, filteredItems.length=${filteredItems.length}`)
+      logDebug('SearchableChooser', `[${classNamePrefix}] Enter key pressed, isOpen=${(isOpen: any)}, hoveredIndex=${(hoveredIndex: any)}, filteredItems.length=${filteredItems.length}`)
       e.preventDefault() // Prevent form submission
       e.stopPropagation() // Stop event from bubbling to DynamicDialog
 
@@ -619,7 +619,7 @@ export function SearchableChooser({
   }
 
   const handleItemSelect = (item: any, event?: SyntheticMouseEvent<HTMLDivElement>) => {
-    logDebug('SearchableChooser', `[${classNamePrefix}] handleItemSelect called, isOpen=${isOpen}, item=${getOptionText ? getOptionText(item) : JSON.stringify(item)}`)
+    logDebug('SearchableChooser', `[${classNamePrefix}] handleItemSelect called, isOpen=${(isOpen: any)}, item=${getOptionText ? getOptionText(item) : JSON.stringify(item)}`)
     // Check if Option/Alt key is pressed
     if (event && (event.altKey || event.metaKey) && onOptionClick) {
       event.preventDefault()
@@ -639,7 +639,7 @@ export function SearchableChooser({
     // Don't refocus the input after selection - let it blur naturally
     // This prevents the dropdown from reopening
     // The suppress flag will be cleared by the auto-open useEffect after a delay
-    logDebug('SearchableChooser', `[${classNamePrefix}] Dropdown should now be closed, suppressOpenOnFocusRef=${suppressOpenOnFocusRef.current}`)
+    logDebug('SearchableChooser', `[${classNamePrefix}] Dropdown should now be closed, suppressOpenOnFocusRef=${(suppressOpenOnFocusRef.current: any)}`)
   }
 
   // When displaying the selected value, try to find the item by value and use its display label
@@ -772,7 +772,7 @@ export function SearchableChooser({
       }
       // Check if input is currently focused
       const isFocused = document.activeElement === inputRef.current
-      logDebug('SearchableChooser', `[${classNamePrefix}] Items finished loading: isLoading=${isLoading}, items.length=${items.length}, isOpen=${isOpen}, isFocused=${isFocused}`)
+      logDebug('SearchableChooser', `[${classNamePrefix}] Items finished loading: isLoading=${(isLoading: any)}, items.length=${items.length}, isOpen=${(isOpen: any)}, isFocused=${(isFocused: any)}`)
       if (isFocused) {
         // Input is focused and items are now loaded - open the dropdown
         logDebug('SearchableChooser', `[${classNamePrefix}] Auto-opening dropdown: input is focused and items are loaded`)
@@ -976,7 +976,8 @@ export function SearchableChooser({
                         )
                         if (isTeamspacePattern && pathParts.length > 2) {
                           // Keep teamspace name + final folder
-                          optionShortDesc = `${secondToLast} / ${finalPart}`
+                          // Cast: `isTeamspacePattern` already implies secondToLast is a non-empty string, but Flow does not refine through a const boolean
+                          optionShortDesc = `${(secondToLast: any)} / ${finalPart}`
                         } else {
                           // Just use final folder
                           optionShortDesc = finalPart

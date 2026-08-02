@@ -47,16 +47,22 @@ export function calculateCost(model: string, total_tokens: number): number {
 export function generateREADMECommands() {
   logDebug(pluginJson, `generateREADMECommands(): starting generation.`)
   let output = ''
-  const commands = pluginJson['plugin.commands']
+  // KNOWN BUG - the module-level `pluginJson` here is the string `shared.AI/helpers` (line 3), not the parsed plugin.json
+  // KNOWN BUG - object. This lookup is therefore always undefined,
+  // KNOWN BUG - Array.isArray() below is always false, and the whole body of this function is unreachable at runtime.
+  const commands = (pluginJson: any)['plugin.commands']
   logDebug(pluginJson, `generateREADMECommands(): found commands.`)
   clo(commands, 'COMMANDS')
   if (Array.isArray(commands)) {
     logDebug(pluginJson, `generateREADMECommands(): found array.`)
+    // KNOWN BUG - `output` is declared as a string (`let output = ''`), so both .push() calls in this block would throw a TypeError if this branch were ever reached.
+    // $FlowIgnore[prop-missing] - suppression only. The real fix (make `output` an array, or use `output +=`) is a code change, not a type change.
     output.push(`### Commands`)
     commands.forEach((command: any) => {
       const linkText = `try it`
-      const rpu = createPrettyRunPluginLink(linkText, pluginJson['plugin.id'], command.name)
+      const rpu = createPrettyRunPluginLink(linkText, (pluginJson: any)['plugin.id'], command.name)
       const aliases = commmand.aliases && command.aliases.length ? `\r\t*Aliases:${command.aliases.toString()}*` : ''
+      // $FlowIgnore[prop-missing] - suppression only; see the KNOWN BUG about `output` being a string above.
       output.push(`- /${command.name} ${rpu}${aliases}\r\t*${command.description}*`)
     })
     logDebug(pluginJson, `generateREADMECommands(): finished generation.`)
@@ -116,7 +122,9 @@ export function removeEntry(heading: string) {
   if (paraBeforeDelete) {
     // logDebug(pluginJson, `removeEntry heading in document: "${paraBeforeDelete.content}" lineIndex:${paraBeforeDelete.lineIndex}`)
     const contentRange = paraBeforeDelete.contentRange
-    const characterBeforeParagraph = contentRange.start - 1 // back up one character
+    // KNOWN BUG - contentRange is optional (undefined when the paragraph is not rendered). scrollToEntry() below guards
+    // KNOWN BUG - the identical read with `contentRange?.start || 1`; this one does not.
+    const characterBeforeParagraph = (contentRange: any).start - 1 // back up one character
     removeContentUnderHeading(Editor, heading, false, false) // delete the paragraph
     // logDebug(pluginJson, `removeEntry removed para: ${heading}`)
     Editor.highlightByIndex(characterBeforeParagraph, 0) // scroll to where it was

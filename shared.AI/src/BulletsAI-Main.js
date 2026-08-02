@@ -55,7 +55,8 @@ export async function createResearchDigSite(promptIn?: string | null = null) {
 
 export async function createOuterLink() {
   const settings = DataStore.settings
-  const linkTitle = Editor.selectedText
+  // KNOWN BUG - Editor.selectedText is ?string. With no selection this is undefined, and the link + title below are silently built out of the word "undefined".
+  const linkTitle = ((Editor.selectedText: any): string)
   const link = `${settings['researchDirectory']}%2F${encodeURI(linkTitle)}.${DataStore.defaultFileExtension || '.txt'}`
   const outerLink = createPrettyOpenNoteLink(linkTitle, link, true, capitalizeFirstLetter(linkTitle))
   Editor.replaceSelectionWithText(outerLink)
@@ -122,11 +123,15 @@ export async function bulletsAI(
       promptMain = await generateSubjectSummaryPrompt(newFullHistoryText)
     }
     const { reqBody, reqListBody } = await generateReqBodies(useFullHistory == true ? newFullHistoryText : promptMain, promptList, chosenModel)
+    // KNOWN BUG - generateRequests() only declares 2 params, so the 3rd argument (chosenModel) is silently discarded.
+    // KNOWN BUG - Harmless today because reqBody.model already carries the model, but the call is wrong.
+    // $FlowIgnore[extra-arg] - suppression only; erasing it cannot change the emitted call. See KNOWN BUG above.
     const { request, listRequest } = await generateRequests(reqBody, reqListBody, chosenModel)
     const summary = await parseResponse(request, listRequest, promptIn, '', formattedSubtitle, newFullHistoryText)
 
     updateBulletLinks()
-    Editor.appendParagraph(summary, 'text')
+    // KNOWN BUG - parseResponse() returns undefined when `request` is falsy (no `return` on that path), so this appends `undefined` to the note instead of skipping the append.
+    Editor.appendParagraph(((summary: any): string), 'text')
     formatTableOfContents()
     scrollToEntry(promptIn, false)
   } catch (error) {
@@ -178,8 +183,9 @@ async function parseResponse(request: Object | null, listRequest: Object | null,
   let summary = ''
   if (request) {
     const responseText = request.choices[0].text.trim()
-    const keyTermsList = listRequest.choices[0].text.split(',')
-    const totalTokensUsed = request.usage.total_tokens + listRequest.usage.total_tokens
+    // KNOWN BUG - the `if (request)` guard above never checks `listRequest`, which makeRequest() can return as null; these three lines then throw on a null dereference.
+    const keyTermsList = (listRequest: any).choices[0].text.split(',')
+    const totalTokensUsed = request.usage.total_tokens + (listRequest: any).usage.total_tokens
     const keyTerms = []
     logDebug(pluginJson, `\n\n\nTotal Tokens Used=${totalTokensUsed}\n\n\n`)
     const jsonData = loadDataFile()
@@ -198,7 +204,8 @@ async function parseResponse(request: Object | null, listRequest: Object | null,
     saveDataFile(jsonData)
     // clo(subtitle, 'subtitle')
 
-    const totalTokens = request.usage.total_tokens + listRequest.usage.total_tokens
+    // KNOWN BUG - same unguarded `listRequest` null dereference as above; `totalTokens` is also computed and then never used.
+    const totalTokens = request.usage.total_tokens + (listRequest: any).usage.total_tokens
     summary = await formatBulletSummary(subject, responseText, keyTermsList, remixText, subtitle, fullHistoryText)
     // clo(summary, 'summary after now writing')
     return summary
@@ -277,11 +284,13 @@ export async function moveNoteToResearchCollection() {
     // logDebug(pluginJson, researchFolders)
     const newPath = await chooseFolder('Move to which directory?', false, true, researchDirectory)
 
+    // KNOWN BUG - `currentNote` is ?TNote and its `title` is ?string, but both calls below dereference both.
+    // KNOWN BUG - The `if (currentNote)` null guard only starts on the next line, i.e. after the crash would already have happened.
     if (!researchFolders.includes(newPath)) {
       logDebug(pluginJson, 'Directory does not yet exist.')
-      await updateResearchCollectionTableOfContents(newPath, currentNote.title, currentNote, newPath, false)
+      await updateResearchCollectionTableOfContents(newPath, (currentNote: any).title, (currentNote: any), newPath, false)
     } else {
-      await updateResearchCollectionTableOfContents(newPath, currentNote.title, currentNote, newPath)
+      await updateResearchCollectionTableOfContents(newPath, (currentNote: any).title, (currentNote: any), newPath)
     }
     if (currentNote) {
       // const newFilename = await currentNote.rename(newLocation) // after this move, the note is not active anymore
@@ -312,10 +321,13 @@ export async function updateResearchCollectionTableOfContents(newPath: string, o
   const subtitleLinks = noteToAdd.paragraphs.filter((p) => p.type == 'heading' && p.content.includes('[') && !p.content.includes('Table of Contents'))
   const tocFileName = `${newPath}/Table of Contents.${DataStore.defaultFileExtension || '.txt'}`
   await Editor.openNoteByFilename(tocFileName, false, 0, 0, false, true)
-  if (!Editor.content.includes('Table of Contents')) {
+  // KNOWN BUG - Editor.content is ?string and is undefined whenever openNoteByFilename() above failed to open/create
+  // KNOWN BUG - the note, so this line throws instead of reporting the failure.
+  if (!(Editor.content: any).includes('Table of Contents')) {
     Editor.insertTextAtCharacterIndex(`- Table of Contents`, 2)
   }
-  Editor.appendParagraph(`### ${originalNoteTitle}`, 'heading')
+  // KNOWN BUG - 'heading' is not a member of ParagraphType; the NotePlan type for a heading line is 'title'. This paragraph is very likely not being created as a heading at all.
+  Editor.appendParagraph(`### ${originalNoteTitle}`, ('heading': any))
   for (const para of noteTableOfContents) {
     if (!para.content.includes('---') && para.content != '') {
       const newLink = await updatePrettyLink(para.content, formattedOriginalNoteTitle, newPath)

@@ -36,7 +36,10 @@ export const createFilterDropdownItems = (dashboardSettings: TDashboardSettings)
     description: s.description,
     key: s.key,
     type: 'switch',
-    checked: Boolean((typeof dashboardSettings !== undefined && (dashboardSettings: TAnyObject)[s.key]) ?? s.default),
+    // KNOWN BUG - `typeof dashboardSettings !== undefined` compares a string to `undefined`, so it is always true; the intended guard was
+    // `typeof dashboardSettings !== 'undefined'` (or just `dashboardSettings != null`). Same mistake on line 30 above. Left as-is: fixing it changes emitted JS.
+    // Cast on `s.key`: TSettingItem.key is optional (?string) so it cannot index TAnyObject directly.
+    checked: Boolean((typeof dashboardSettings !== undefined && (dashboardSettings: TAnyObject)[(s.key: any)]) ?? s.default),
   }))
 
   return [sectionDropbownItems, nonSectionDropbownItems]

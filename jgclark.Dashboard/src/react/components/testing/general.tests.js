@@ -89,6 +89,7 @@ export default {
               ?.sectionItems?.find((s, i) => {
                 return s.para?.content === taskContent
               })
+          // $FlowIgnore[incompatible-call] anonFunc returns the found item or undefined; waitFor() only tests it for truthiness
           await waitFor(anonFunc, 'find overdue section with task we created', 20000)
         } catch (error) {
           await pause(error.message)

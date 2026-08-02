@@ -250,7 +250,8 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
         showNote: false,
         replaceDate,
         noteFolder: false,
-        noteTaskList: overdues,
+        // noteTaskList is declared Array<Array<TParagraph>>, but a flat single-note list is fine here: dedupeSyncedLines() flattens with concat() and createArrayOfNotesAndTasks() re-groups by note
+        noteTaskList: (overdues: any),
         overdueOnly: true,
       }
       // $FlowIgnore
@@ -386,7 +387,8 @@ export async function getNotesToReviewForOpenTasks(
     ]
     // const DEFAULT_OPTION: Option1 = { unit: 'day', num: 0 }
     const history = await chooseOptionWithModifiers('Review Calendar Note Tasks From the Last...', OPTIONS)
-    if (!history || history.num === -1) return false
+    // KNOWN BUG - chooseOptionWithModifiers() resolves to {label, value, index, keyModifiers}; `num` lives on history.value, so history.num is always undefined and this cancel/opt-click check never fires. Should be `history.value.num === -1`.
+    if (!history || (history: any).num === -1) return false
     const { value, keyModifiers } = history
 
     const noteTypes = keyModifiers.indexOf('opt') > -1 ? 'both' : 'Calendar'

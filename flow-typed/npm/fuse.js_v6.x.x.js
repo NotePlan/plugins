@@ -147,12 +147,15 @@ declare module 'fuse.js' {
     ...
   };
 
+  // NOTE: the properties of Fuse$FuseSortFunctionMatch are spelled out rather than spread in.
+  // Fuse$FuseSortFunctionMatch is inexact, and Flow cannot spread an inexact object type
+  // (cannot-spread-inexact) because it does not know which extra props would arrive.
   declare export type Fuse$FuseSortFunctionMatchList = {
-    ...Fuse$FuseSortFunctionMatch,
-    ...{
-      idx: number,
-      ...
-    },
+    score: number,
+    key: string,
+    value: string,
+    indices: $ReadOnlyArray<number>[],
+    idx: number,
     ...
   };
 
@@ -175,12 +178,12 @@ declare module 'fuse.js' {
     ...
   };
 
+  // NOTE: Fuse$RecordEntryObject's properties are spelled out rather than spread in, for the same
+  // cannot-spread-inexact reason as Fuse$FuseSortFunctionMatchList above.
   declare type Fuse$RecordEntryArrayItem = $ReadOnlyArray<{
-    ...Fuse$RecordEntryObject,
-    ...{
-      i: number,
-      ...
-    },
+    v: string,
+    n: number,
+    i: number,
     ...
   }>;
 

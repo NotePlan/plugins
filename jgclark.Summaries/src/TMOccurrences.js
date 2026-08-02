@@ -317,10 +317,12 @@ export class TMOccurrences {
     let output = ''
     // logDebug('TMOcc:getStats', `starting for ${this.term} type=${this.type} style=${style} `)
     // Format count, total, and average with proper null/NaN handling
-    const countStr = (!isNaN(this.count) && this.count !== '') ? this.count.toLocaleString() : `none`
-    const totalStr = (!isNaN(this.total) && this.total !== '' && this.total > 0) ? `total ${this.total.toLocaleString()}` : 'total 0'
+    // KNOWN BUG - dead guards: `this.count` and `this.total` are declared (and always assigned) as `number`, so `!== ''` can never be false and adds nothing.
+    // If the intent was to catch an unset value, the class fields would need to be `?number` and the guards written as `!= null`. Casts are type-only; see LEFT report.
+    const countStr = (!isNaN(this.count) && (this.count: any) !== '') ? this.count.toLocaleString() : `none`
+    const totalStr = (!isNaN(this.total) && (this.total: any) !== '' && this.total > 0) ? `total ${this.total.toLocaleString()}` : 'total 0'
     // This is the average per item, not the average per day. In general I feel this is more useful for numeric amounts
-    const itemAvgStr = (!isNaN(this.total) && this.total !== '' && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 }) : ''
+    const itemAvgStr = (!isNaN(this.total) && (this.total: any) !== '' && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 }) : ''
 
     switch (style) {
       case 'CSV': {

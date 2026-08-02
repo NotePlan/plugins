@@ -300,9 +300,9 @@ export function renderItem({
             <ThemedSelect
               disabled={disabled}
               key={`cmb${index}`}
-              options={item.options ? item.options.map((option) => (typeof option === 'string' ? { label: option, value: option } : option)) : []} // Normalize options to ensure they are in { label, value } format
+              options={item.options ? item.options.map((option: any) => (typeof option === 'string' ? { label: option, value: option } : option)) : []} // Normalize options to ensure they are in { label, value } format ((option: any) because TSettingItem's option type and ThemedSelect's OptionType are different exact object types and Array<> is invariant)
               value={item.value || item.default || undefined} // Ensure value is not undefined
-              onChange={(selectedOption) => {
+              onChange={(selectedOption: any) => {
                 const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
                 item.key && handleFieldChange(item.key, value)
                 item.key && handleComboChange(item.key, value) // Pass the selected option
@@ -908,9 +908,10 @@ export function renderItem({
             'dialogElementRenderer',
             `heading-chooser: sourceNoteKey="${String(sourceNoteKey)}", noteValue="${String(noteValue || '')}", noteFilename="${String(
               noteFilename || 'null',
-            )}", hasRequestFromPlugin=${!!requestFromPlugin}`,
+            )}", hasRequestFromPlugin=${(!!requestFromPlugin: any)}`,
           )
         } else {
+          // $FlowIgnore[incompatible-type] - Flow disallows implicit boolean-to-string coercion in a template literal; this is a debug log only, and a cast here would push the line past 180 chars
           logDebug('dialogElementRenderer', `heading-chooser: sourceNoteKey="${String(sourceNoteKey || 'undefined')}", updatedSettings=${!!updatedSettings}, noteFilename=null`)
         }
 

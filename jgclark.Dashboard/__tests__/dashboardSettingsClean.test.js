@@ -25,7 +25,8 @@ describe('getWantedTagNamesFromSettings', () => {
 })
 
 describe('removeStaleTagSections', () => {
-  const baseSettings = {
+  // `any`: the showTagSection_* keys are dynamic and so are not declared on TDashboardSettings.
+  const baseSettings: any = {
     tagsToShow: '@friend',
     showTagSection_friend: true,
   }
@@ -51,7 +52,8 @@ describe('removeStaleTagSections', () => {
   })
 
   it('removes all TAG sections when tagsToShow is empty', () => {
-    const sections = [{ ID: 'TAG_0', sectionCode: 'TAG', name: '@friend', sectionItems: [] }]
+    // Partial TSection fixture - these functions only read ID, sectionCode and name.
+    const sections: Array<any> = [{ ID: 'TAG_0', sectionCode: 'TAG', name: '@friend', sectionItems: [] }]
     const result = removeStaleTagSections(sections, { tagsToShow: '' })
     expect(result).toEqual([])
   })
@@ -59,7 +61,8 @@ describe('removeStaleTagSections', () => {
 
 describe('syncTagSectionsWithSettings', () => {
   it('removes disabled TAG sections and dedupes TAG names', () => {
-    const settings = {
+    // `any`: the showTagSection_* keys are dynamic and so are not declared on TDashboardSettings.
+    const settings: any = {
       tagsToShow: '@dbw, @jgc',
       'showTagSection_@dbw': true,
       'showTagSection_@jgc': false,

@@ -12,6 +12,8 @@
 import React, { createContext, useContext, useEffect, useReducer, useRef, useMemo, type Node } from 'react'
 // import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import type { TDashboardSettings, TReactSettings, TPluginData, TPerspectiveSettings } from '../../types'
+import type { TDashboardSettingsAction } from '../reducers/dashboardSettingsReducer'
+import type { TPerspectiveSettingsAction } from '../reducers/perspectiveSettingsReducer'
 import { dashboardSettingsReducer } from '../reducers/dashboardSettingsReducer'
 import { perspectiveSettingsReducer } from '../reducers/perspectiveSettingsReducer'
 import { useSyncDashboardSettingsWithPlugin } from '../customHooks/useSyncDashboardSettingsWithPlugin'
@@ -32,9 +34,11 @@ export type AppContextType = {
   setReactSettings: (any) => void,
   updatePluginData: (newData: TPluginData, messageForLog?: string) => void,
   dashboardSettings: TDashboardSettings,
-  dispatchDashboardSettings: (action: { type: string, payload?: any, reason?: string }) => void,
+  // These are the raw useReducer() dispatchers, so they must be typed with the reducers' own action types:
+  // an { type: string, payload?: any } shape is contravariantly incompatible (it would let a caller omit `payload`).
+  dispatchDashboardSettings: (action: TDashboardSettingsAction) => void,
   perspectiveSettings: TPerspectiveSettings,
-  dispatchPerspectiveSettings: (action: { type: string, payload?: any, reason?: string }) => void,
+  dispatchPerspectiveSettings: (action: TPerspectiveSettingsAction) => void,
 }
 
 type Props = {

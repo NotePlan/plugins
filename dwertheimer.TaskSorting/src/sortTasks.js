@@ -1086,7 +1086,8 @@ export async function sortTasks(
 
   const activeParagraphs = noteToUse ? getActiveParagraphs(noteToUse) : []
   // the annotation + the `string` cast on the computed key are both needed: Flow rejects a computed key whose type it sees as a union
-  const sortGroups: { [string]: $ReadOnlyArray<TParagraph> } = byHeading && noteToUse?.title ? getTasksByHeading((noteToUse: any)) : { [((noteToUse?.title || ''): string)]: activeParagraphs }
+  const sortGroups: { [string]: $ReadOnlyArray<TParagraph> } =
+    byHeading && noteToUse?.title ? getTasksByHeading((noteToUse: any)) : { [((noteToUse?.title || ''): string)]: activeParagraphs }
   clo(sortGroups, `sortTasks -- sortGroups obj=`)
   logDebug(pluginJson, `sortTasks have sortGroups object. key count=${Object.keys(sortGroups).length}. About to start the display loop`)
 

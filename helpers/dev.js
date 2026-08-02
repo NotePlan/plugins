@@ -430,7 +430,9 @@ export function clof(obj: any, preamble: string = '', fields: ?Array<string> | s
     logDebug(`${preamble}: ^^^`)
   } else {
     if (topLevel === {}) {
-      const keycheck = fields ? ` for fields: [${fields.join(', ')}] - all other properties are pruned` : ''
+      // KNOWN BUG - two problems on the next line, neither fixable type-only: (a) `topLevel === {}` above is always false (object identity vs a fresh literal),
+      // so this whole branch is dead; (b) `fields` is `?Array<string> | string`, so if a caller passes the string form, `fields.join` would throw. The cast is type-only.
+      const keycheck = fields ? ` for fields: [${(fields: any).join(', ')}] - all other properties are pruned` : ''
       logDebug(`${preamble}: {} (no data${keycheck})`)
     } else {
       logDebug(`${preamble}:\n`, compactMode ? JSON.stringify(topLevel) : JSON.stringify(topLevel, null, 2))

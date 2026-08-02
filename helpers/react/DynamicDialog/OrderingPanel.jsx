@@ -165,7 +165,7 @@ const OrderingPanel = ({
     return [...allSectionsForOrdering]
   })
 
-  const [draggedIndex, setDraggedIndex] = useState<?number>(null)
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<?number>(null)
 
   //----------------------------------------------------------------------

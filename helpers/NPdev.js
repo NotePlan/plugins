@@ -50,7 +50,8 @@ export async function chooseRunPluginXCallbackURL(
     }
   })
   commandMap = commandMap.sort((a, b) => a.label.localeCompare(b.label))
-  const chosenID = await chooseOption('Which command?', commandMap, '__NONE__')
+  // cast: commandMap entries carry extra keys (name/description/command/plugin) used below, and Option<T> is an exact object type
+  const chosenID = await chooseOption('Which command?', (commandMap: any), '__NONE__')
   logDebug(`NPdev::chooseRunPluginXCallbackURL`, `chosen: ${chosenID}`)
   const chosenCommand = commandMap.find((command) => command.value === chosenID)
   const command = chosenCommand?.command?.name

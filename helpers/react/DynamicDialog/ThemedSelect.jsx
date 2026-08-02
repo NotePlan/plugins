@@ -30,7 +30,7 @@ export type Props = {
   id?: string,
   compactDisplay?: boolean,
   disabled?: boolean,
-  inputRef?: { current: null | HTMLInputElement },
+  inputRef?: ?{ current: null | HTMLInputElement }, // callers (e.g. dialogElementRenderer) pass a maybe-typed ref through
   label?: string,
   noWrapOptions?: boolean,
   focus?: boolean,

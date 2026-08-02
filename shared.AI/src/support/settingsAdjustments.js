@@ -47,6 +47,9 @@ export async function setOpenAIAPIKey(useClipboard: boolean = false) {
     newAPIKey = await CommandBar.showInput(`Key: ${Clipboard.string}`, 'Set API Key')
   } else {
     logDebug(pluginJson, 'Not trying to use the clipboard to fill the API Key.')
+    // KNOWN BUG - CommandBar.showInput(placeholder, submitText) needs both arguments; this call omits submitText, so the
+    // KNOWN BUG - submit button ends up with no label on this branch (the branch above passes 'Set API Key').
+    // $FlowIgnore[incompatible-call] - suppression only; supplying the missing argument is a code change.
     newAPIKey = await CommandBar.showInput(`${apiKey ? `Current Key: ${apiKey}` : 'No API Key Set'}`)
   }
   // const newAPIKey2 = await CommandBar.showInput(`${(apiKey) ? `Current Key: ${apiKey} : ${(useClipboard) ? Editor.clipboard` : 'No API Key Set'`, `${(apiKey) ? 'Overwrite Existing API Key' : 'Set API Key'}`)

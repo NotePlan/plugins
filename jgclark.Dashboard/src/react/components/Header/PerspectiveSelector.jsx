@@ -10,7 +10,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useReducer, useEffect, useCallback } from 'react'
-import type { TDashboardSettings, TPerspectiveDef } from '../../../types.js'
+import type { TDashboardSettings, TDashboardSettingsIn, TPerspectiveDef } from '../../../types.js'
 import { PERSPECTIVE_ACTIONS } from '../../reducers/actionTypes'
 import { cleanDashboardSettingsInAPerspective, endsWithStar } from '../../../perspectiveHelpers'
 import {
@@ -57,7 +57,7 @@ const saveAsOption = [{ label: 'Save Perspective As...', value: 'Add New Perspec
 const formatNameWithStarIfModified = (
   item: TPerspectiveDef,
   liveDashboardSettings: TDashboardSettings,
-  dashboardSettingsBaseline?: Partial<TDashboardSettings>,
+  dashboardSettingsBaseline?: TDashboardSettingsIn, // matches TPluginData.dashboardSettingsBaseline and isNamedPerspectiveModified()'s own param
 ): string => {
   return isNamedPerspectiveModified(item, liveDashboardSettings, dashboardSettingsBaseline) ? `${item.name}*` : item.name
 }
@@ -225,7 +225,8 @@ const PerspectiveSelector = (): React$Node => {
 
       if (selectedOption.value === 'Add New Perspective') {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `addNewPersp user selected "${selectedOption.value}".`)
-        const formFields = [{ type: 'input', label: 'Name:', key: 'newName', focus: true, debounceOnChange: false }]
+        // Array<any>: DynamicDialog reads `debounceOnChange` off form fields, but it is not declared on TSettingItem (in helpers/react/DynamicDialog).
+        const formFields: Array<any> = [{ type: 'input', label: 'Name:', key: 'newName', focus: true, debounceOnChange: false }]
         const userInputObj = await showDialog({ items: formFields, title: `Save as New Perspective`, submitOnEnter: true })
         const newPerspectiveName = (userInputObj?.newName ?? '').trim()
         if (newPerspectiveName) {
@@ -298,7 +299,8 @@ const PerspectiveSelector = (): React$Node => {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `renamePerspective "${selectedOption.value}".`)
         const perspToRename = getActivePerspectiveDef(perspectiveSettings)
         const origPerspectiveName = perspToRename?.name && perspToRename.name !== '-' ? perspToRename.name : activePerspectiveName
-        const formFields = [
+        // Array<any>: as above -- `debounceOnChange` is not declared on TSettingItem.
+        const formFields: Array<any> = [
           { type: 'input', label: 'New Name:', key: 'newName', focus: true, value: origPerspectiveName, debounceOnChange: false },
         ]
         const userInputObj = await showDialog({ items: formFields, title: `Rename Perspective "${origPerspectiveName}"`, submitOnEnter: true })
@@ -326,7 +328,8 @@ const PerspectiveSelector = (): React$Node => {
 
       if (selectedOption.value === 'Copy Perspective') {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `copySettings "${selectedOption.value}".`)
-        const formFields = [
+        // Array<any>: TSettingItem.options is Array<string | {label, value, isDefault?}> and arrays are invariant, so Array<TPerspectiveOptionObject> cannot be passed.
+        const formFields: Array<any> = [
           {
             type: 'dropdown-select',
             label: 'Copy to:',
@@ -477,7 +480,7 @@ const PerspectiveSelector = (): React$Node => {
       styles={customStyles}
       options={perspectiveNameOptions.map((option) => (option.value === 'separator' ? { ...option, label: '', component: <div style={customStyles.separator}></div> } : option))}
       controlledValue={selectedValue}
-      onChange={handlePerspectiveChange}
+      onChange={(handlePerspectiveChange: any)}
       compactDisplay={true}
       label={'Persp'}
       noWrapOptions={false}

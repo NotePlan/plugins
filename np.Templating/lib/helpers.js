@@ -97,6 +97,8 @@ export function debug(debugInfo: any, preamble: string = '', logInfo: string = '
       clo(debugInfo, preamble, 4)
     }
     log(pluginJson, premambe, 'DEBUG')
+    // KNOWN BUG - `logDebug` is never imported in this file (line 10 imports only `log` and `clo` from '@helpers/dev'), so any call to debug() throws "ReferenceError: logDebug is not defined". Currently latent because nothing imports debug(). Fix: add `logDebug` to the '@helpers/dev' import.
+    // $FlowIgnore[cannot-resolve-name] suppression is type-only; the underlying defect is described in the KNOWN BUG note above
     logDebug('') // add a little visual space
   }
 }

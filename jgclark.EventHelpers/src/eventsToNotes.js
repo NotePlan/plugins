@@ -248,7 +248,9 @@ function processEvent(
   )
   return {
     cal: withCalendarName ? calendarNameWithMapping(event.calendar, calendarNameMappings) : '',
-    start: event.date,
+    // Note: `TCalendarItem.date` is `Date | null` only because reminders (from v3.21.2) may have no due date. This function is only ever
+    // called with calendar *events*, which always have a date, so the cast is safe. Consumers here call `.start.getTime()` for sorting.
+    start: (event.date: any),
     text: eventStr,
   }
 }
@@ -621,8 +623,10 @@ export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<
     outputObject.set('ATTENDEENAMES', attendeeNamesToUse)
     outputObject.set('EVENTLINK', item.calendarItemLink ? item.calendarItemLink : '')
     outputObject.set('LOCATION', item.location ? item.location : '')
-    outputObject.set('DATE', toLocaleDateString(item.date, config.locale))
-    outputObject.set('START', !item.isAllDay ? toLocaleTime(item.date, config.locale, config.timeOptions) : '')
+    // Note: `TCalendarItem.date` is `Date | null` only because reminders (from v3.21.2) may have no due date; this function is only called
+    // with calendar *events*, which always have a date, so these casts are safe. (A null date would throw and be caught by the catch below.)
+    outputObject.set('DATE', toLocaleDateString((item.date: any), config.locale))
+    outputObject.set('START', !item.isAllDay ? toLocaleTime((item.date: any), config.locale, config.timeOptions) : '')
     outputObject.set('END', item.endDate != null && !item.isAllDay ? toLocaleTime(item.endDate, config.locale, config.timeOptions) : '') // must be processed after 'ATTENDEE*'
     outputObject.set('URL', item.url)
     outputObject.set('ID', item.id || '')

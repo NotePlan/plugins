@@ -105,6 +105,8 @@ either. Each is one character or one missing import away from working.
 | `shared.AI/src/support/helpers.js:66` | `fs.writeFile(commandsPath, output)` — Node's `fs` isn't imported and isn't available in NotePlan's JS runtime anyway. | This function (`generateREADMECommands`) looks like it was written for a build script, not the plugin. Move it to `scripts/`, or use `DataStore.saveData`. `availablePreferences` at `:108` is undeclared for the same reason. |
 | `np.Templating/lib/helpers.js:100` | `logDebug('')` — the file imports `{ log, clo }` from `@helpers/dev` but not `logDebug`. | Add it to the import, or drop the line (it only prints a blank line). |
 | `dwertheimer.TaskAutomations/src/NPTaskScanAndProcess.js:104` | `keyModifiers.toString()` inside a `logDebug` — `keyModifiers` is never declared in that scope. Throws whenever the non-date branch is reached. | Check whether it should come from the function's parameters; otherwise remove it from the message. |
+| `dwertheimer.test-plugin-scratch/src/testPluginScratch.js:49, :63` | `addTrigger(...)` and `ensureFrontmatter(...)` are called inside `logDebug` template literals but neither is imported. Both exist in `@helpers/NPFrontMatter`. | Add the import. This is a scratch plugin, so deleting the two lines is equally fine. |
+| `helpers/react/testSimpleDialog.js:7` | `import ... from '@helpers/NPNotePlan'` — no such module. The likely intent is `@helpers/NPnote` (lower-case n) or `@helpers/NPnote`/`NPParagraph`. | Repoint the import to whichever module actually holds the symbols it uses. |
 
 ---
 
@@ -411,18 +413,6 @@ doesn't actually want that rule. Worth deciding once rather than 17 times.
 
 ---
 
-### 18. Template-literal coercion of booleans/Dates (~32 sites)
-Spread across `dwertheimer.JestHelpers`, `np.ThemeChooser`, `helpers/react/DynamicDialog`,
-`dwertheimer.TaskSorting`, `dwertheimer.test-plugin-scratch` and others.
-
-Flow rejects `${someBoolean}` and `${someDate}` in template literals (`incompatible-type:
-should not be coerced`), even though JS handles both. Fixing means wrapping in `String(...)`.
-
-**Suggestion:** low risk and mechanical — `String(x)` is exactly what the template literal
-already does — but it *is* a code edit, so it needs a green light. ~32 sites, one sweep.
-
----
-
 ### 17a. Babel can't parse optional tuple elements
 `np.plugin-test/src/react/WebView.jsx:166`
 
@@ -446,6 +436,18 @@ worked around with `(e: any)` casts.
 **Suggestion:** confirm with @EduardMe that Editor exposes them, then add both to `TEditor` (or
 move them to `CoreNoteFields`) and drop the casts. This was deliberately not done blind — the
 same question was raised for `datedTodos` earlier in the sweep and left open.
+
+---
+
+### 18. Template-literal coercion of booleans/Dates (~32 sites)
+Spread across `dwertheimer.JestHelpers`, `np.ThemeChooser`, `helpers/react/DynamicDialog`,
+`dwertheimer.TaskSorting`, `dwertheimer.test-plugin-scratch` and others.
+
+Flow rejects `${someBoolean}` and `${someDate}` in template literals (`incompatible-type:
+should not be coerced`), even though JS handles both. Fixing means wrapping in `String(...)`.
+
+**Suggestion:** low risk and mechanical — `String(x)` is exactly what the template literal
+already does — but it *is* a code edit, so it needs a green light. ~32 sites, one sweep.
 
 ---
 
@@ -477,9 +479,22 @@ undefined`. The intent looks like "look up a global NotePlan object by name".
 `$ObjMap` is deprecated in favour of Flow's mapped-type syntax
 (`{ [K in keyof Obj]: CheckerToValue<Obj[K]> }`).
 
-**Suggestion:** mechanical but not risk-free — `checkType.js` is a type-level utility used for
-runtime validation, and the two forms differ subtly around optional and variance markers. Worth
-one careful change with the existing tests as the check, rather than a blind swap.
+**Suggestion:** ⚠️ **This was attempted during the sweep and had to be reverted — do not retry
+until Babel is upgraded.** The replacement
+
+```js
+type CheckersToValues<Obj: { +[string]: Checker<mixed> }> =
+  { [K in keyof Obj]: Obj[K] extends Checker<infer T> ? T : empty }
+```
+
+type-checks under Flow 0.245, but **@babel/preset-flow 7.25.9 cannot parse mapped-type syntax**.
+The file then fails to transform, which breaks the rollup build *and* jest — 19 test suites went
+red. `scripts/flow-emit-audit.js` catches this (it reports the file as a Babel parse failure),
+which is how it was found.
+
+Same root cause as item 17a. Both are blocked on upgrading `@babel/preset-flow`; that upgrade
+would unlock this one, optional tuple elements, and probably others. Worth doing as one piece of
+work rather than three.
 
 ---
 

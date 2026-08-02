@@ -147,7 +147,10 @@ async function runTaskSorterAfterRepeatsImpl(
       const cacheNote =
         typeof Editor !== 'undefined' && Editor != null && Editor.filename === noteToUse.filename && Editor.note != null
           ? Editor.note
-          : noteToUse.note
+          // `CoreNoteFields` has no `.note` (only TEditor does), hence the cast. Note: this fallback can only ever evaluate to null/undefined —
+          // it is reached only when Editor.note == null, and if noteToUse is a plain TNote it has no `.note` at all — so the `cacheNote != null`
+          // guard below then skips the cache update. Type-only cast; see LEFT report.
+          : (noteToUse: any).note
       if (cacheNote != null) {
         // $FlowIgnore[incompatible-call]
         DataStore.updateCache(cacheNote, false)

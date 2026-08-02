@@ -922,6 +922,7 @@ export async function processFrontmatterTags(_templateData: string = '', userDat
   // Ensure _templateData is a string
   if (typeof _templateData !== 'string') {
     logDebug(pluginJson, `processFrontmatterTags: _templateData is not a string: ${typeof _templateData} - ${String(_templateData).substring(0, 100)}`)
+    // $FlowIgnore[reassign-const] safe: .flowconfig sets experimental.const_params, so Flow treats the param as const. This is a deliberate defensive coercion for untyped (JS/NotePlan API) callers; the write is local to this function.
     _templateData = String(_templateData)
   }
 
@@ -991,6 +992,7 @@ export async function importTemplates(templateData: string = '', sessionData: Ob
   // Ensure templateData is a string
   if (typeof templateData !== 'string') {
     logDebug(pluginJson, `importTemplates: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    // $FlowIgnore[reassign-const] safe: const_params makes Flow treat the param as const; this defensive coercion for untyped callers is a local write only
     templateData = String(templateData)
   }
 
@@ -1158,6 +1160,7 @@ function normalizeTemplateData(templateData: string): string {
   // Ensure templateData is a string
   if (typeof templateData !== 'string') {
     logDebug(pluginJson, `normalizeTemplateData: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    // $FlowIgnore[reassign-const] safe: const_params makes Flow treat the param as const; this defensive coercion for untyped callers is a local write only
     templateData = String(templateData)
   }
 
@@ -1324,6 +1327,7 @@ async function processFrontmatter(
   // Ensure templateData is a string
   if (typeof templateData !== 'string') {
     logDebug(pluginJson, `processFrontmatter: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    // $FlowIgnore[reassign-const] safe: const_params makes Flow treat the param as const; this defensive coercion for untyped callers is a local write only
     templateData = String(templateData)
   }
 
@@ -1391,6 +1395,7 @@ async function processTemplatePrompts(templateData: string, sessionData: Object)
   // Ensure templateData is a string
   if (typeof templateData !== 'string') {
     logDebug(pluginJson, `processTemplatePrompts: templateData is not a string: ${typeof templateData} - ${String(templateData).substring(0, 100)}`)
+    // $FlowIgnore[reassign-const] safe: const_params makes Flow treat the param as const; this defensive coercion for untyped callers is a local write only
     templateData = String(templateData)
   }
 

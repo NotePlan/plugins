@@ -136,9 +136,11 @@ function scrollToHeadingElement(element: HTMLElement, headingId: string): void {
     // Safari sometimes needs the DOM to settle before scrolling
     requestAnimationFrame(() => {
       // Calculate the position of the element relative to the scroll container
-      const containerRect = scrollContainer.getBoundingClientRect()
+      // Casts: `scrollContainer` is non-null here (guarded on the line above the rAF callback) but Flow drops the
+      // refinement inside the closure because the binding is a `let`. It is never reassigned after the loop above.
+      const containerRect = (scrollContainer: any).getBoundingClientRect()
       const elementRect = element.getBoundingClientRect()
-      const scrollTop = scrollContainer.scrollTop
+      const scrollTop = (scrollContainer: any).scrollTop
       const elementTop = elementRect.top - containerRect.top + scrollTop
 
       // Scroll the container to show the element at the top

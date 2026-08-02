@@ -927,12 +927,12 @@ export async function chooseHeadingV2(
 /**
  * Used as part of chooseHeading (above) and Dashboard, to handle special instructions -- inserting a new heading, or inserting at top or bottom of the note.
  * If there are no special instructions, it just returns the heading as is.
- * @param {TNote} note
+ * @param {CoreNoteFields} note
  * @param {string} chosenHeading - The text of the new heading to add, or 5 possible special instruction strings.
  * @param {number?} headingLevel - The level of the heading to add (1-5) where requested. If not given, will default to 2.
  * @returns {string} headingToReturn - The heading to return, or one of the special instruction strings <<top of note>>, <<bottom of note>>. Or empty string if user cancelled operation.
  */
-export async function processChosenHeading(note: TNote, chosenHeading: string, headingLevel: number = 2): Promise<string> {
+export async function processChosenHeading(note: CoreNoteFields, chosenHeading: string, headingLevel: number = 2): Promise<string> {
   try {
     if (chosenHeading === '') {
       throw new Error('No heading passed to processChosenHeading(). Stopping.')

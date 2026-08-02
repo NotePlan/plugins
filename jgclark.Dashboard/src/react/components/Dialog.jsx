@@ -149,7 +149,7 @@ function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight:
   const fudgeFactor = 12 // small border (in pixels) to take account of scrollbars etc. round Left, Right, Bottom sides
   // Get possible NP Editor header height from CSS variable, with fallback to 0
   const root = document.documentElement
-  const headerHeight = parseInt(getComputedStyle(root).getPropertyValue('--noteplan-header-height') || '0', 10)
+  const headerHeight = parseInt(getComputedStyle((root: any)).getPropertyValue('--noteplan-header-height') || '0', 10)
   const fudgeFactorTop = 40 + headerHeight // border (in pixels) to take account of NP Editor header bar (if shown)
   const fudgeFactorBottom = 40 // allow more bottom space, as the dialog may be taller than expected
 

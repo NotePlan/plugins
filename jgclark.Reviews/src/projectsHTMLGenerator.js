@@ -715,7 +715,10 @@ export function buildEmptyProjectListHelpHtml(config: ReviewConfig, projectsBefo
   const filterHint = projectsBeforeDisplayFilters > 0
     ? `<p class="empty-help-filters">There ${projectsBeforeDisplayFilters === 1 ? 'is' : 'are'} <b>${String(projectsBeforeDisplayFilters)}</b> matching project${projectsBeforeDisplayFilters === 1 ? '' : 's'} in your list, but current <b>Filter + Order…</b> settings are hiding ${projectsBeforeDisplayFilters === 1 ? 'it' : 'them'}. Try turning on finished/paused projects, or turning off "ready for review only".</p>`
     : ''
-  const frontmatterKey = displayEscapedSettingNameOrValue(config.frontmatterKey ?? 'project:')
+  // KNOWN BUG - `ReviewConfig` has no `frontmatterKey`; the setting is called `projectMetadataFrontmatterKey` (see plugin.json and the rest of this plugin).
+  // So this is always undefined and the help panel always tells the user the key is 'project:', even when they have configured a different key.
+  // Renaming the property would change the emitted JS, so it is only cast here; see LEFT report.
+  const frontmatterKey = displayEscapedSettingNameOrValue((config: any).frontmatterKey ?? 'project:')
   const folderSentence = buildFolderScopeHelpSentence(config)
   const settingsGearButton = makePluginCommandButton(
     `<i class="fa-solid fa-gear"></i>`,

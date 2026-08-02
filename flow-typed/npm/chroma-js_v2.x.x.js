@@ -203,11 +203,11 @@ declare module 'chroma-js' {
       * colors in Lab space. The input range of the function is [0..1].
       * You can convert it to a scale instance by calling <code>chroma.bezier(...).scale()</code>
       */
-    static bezier(colors: string[]): {| (t: number): Color, scale(): Scale |};
+    static bezier(colors: string[]): {| (t: number): Color, scale(): Scale<> |};
 
-    static scale(name: string | Color): Scale;
+    static scale(name: string | Color): Scale<>;
 
-    static scale(colors?: Array<string | Color>): Scale;
+    static scale(colors?: Array<string | Color>): Scale<>;
 
     static cubehelix(): Cubehelix;
   }
@@ -403,8 +403,11 @@ declare module 'chroma-js' {
     _rgb: {| _unclipped: [number, number, number, number] |};
   }
 
-  declare export class Scale {
-    (null | void | number): Color;
+  // NOTE: `Scale` is used with a type argument by the `out()` overloads below (Scale<string>,
+  // Scale<[number, number, number]>, ...), so it must be declared polymorphic. The default
+  // `T = Color` keeps every bare `Scale` in this libdef meaning what it meant before.
+  declare export class Scale<T = Color> {
+    (null | void | number): T;
 
     (colors?: Array<string | Color>): this;
 
@@ -443,7 +446,7 @@ declare module 'chroma-js' {
     /**
       * Set out format for scale() call. Passing null will result in a scale which outputs colors.
       */
-    out(format: null): Scale;
+    out(format: null): Scale<>;
     out<K: 'rgb' |'hsl' | 'hsv' | 'hsi' | 'lab' |'lch' | 'hcl'>(format: K): Scale<[number, number, number]>;
     out<K: 'rgba' | 'cmyk' | 'gl'>(format: K): Scale<[number, number, number, number]>;
     out(format: 'hex'): Scale<string>;
@@ -475,6 +478,6 @@ declare module 'chroma-js' {
     /**
       * You can call cubehelix.scale() to use the cube-helix through the chroma.scale interface.
       */
-    scale(): Scale;
+    scale(): Scale<>;
   }
 }

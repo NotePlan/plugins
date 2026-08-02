@@ -101,10 +101,10 @@ function getSettableDashboardSettingDefs(): Array<TSettingItem> {
 /**
  * Whether a key can be set via setSetting(s), including dynamic showTagSection_* keys.
  * @param {string} key
- * @param {Array<string>} allKeys
+ * @param {$ReadOnlyArray<?string>} allKeys - keys of the setting defs; TSettingItem.key is optional, so entries may be undefined
  * @returns {boolean}
  */
-function isSettableDashboardSettingKey(key: string, allKeys: Array<string>): boolean {
+function isSettableDashboardSettingKey(key: string, allKeys: $ReadOnlyArray<?string>): boolean {
   return allKeys.includes(key) || Boolean(key && key.startsWith('showTagSection_'))
 }
 
