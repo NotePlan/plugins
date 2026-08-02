@@ -26,8 +26,10 @@ describe.skip('DropdownMenu Component', () => {
   let mockHandleSaveInput
 
   const defaultProps = {
-    sectionItems: [],
-    otherItems: [],
+    // Annotated: DropdownMenu takes Array<TSettingItem> for both, and a bare [] has an
+    // unknown element type that no TSettingItem can satisfy (18 errors from these two lines).
+    sectionItems: ([]: Array<TSettingItem>),
+    otherItems: ([]: Array<TSettingItem>),
     handleSwitchChange: jest.fn<Array<any>, any>(),
     handleInputChange: jest.fn<Array<any>, any>(),
     handleComboChange: jest.fn<Array<any>, any>(),

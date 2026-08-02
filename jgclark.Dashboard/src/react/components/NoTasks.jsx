@@ -70,14 +70,15 @@ class ConfettiCannon {
   vector: Array<{ x: number, y: number }>
   pointer: { x: number, y: number }
   confettiSpriteIds: Array<number>
-  confettiSprites: Record<number,
-    { x: number, y: number, r: number, d: number, angle: number, tilt: number, tiltAngle: number, tiltAngleIncremental: number, color: string }
-  >
+  // Note: was Record<number, ...>, but Flow's Record requires string keys. Also adds
+  // `velocity`, which addConfettiParticles() sets and tweenConfettiParticle() reads.
+  confettiSprites: { [number]: { x: number, y: number, r: number, d: number, angle: number, velocity: number, tilt: number, tiltAngle: number, tiltAngleIncremental: number, color: string } }
   timer: TimeoutID
 
   constructor() {
     // setup a canvas
-    this.canvas = document.getElementById('canvas')
+    // Cast: getElementById is typed as HTMLElement | null; this canvas is created by the JSX below.
+    this.canvas = ((document.getElementById('canvas'): any): HTMLCanvasElement)
     this.dpr = window.devicePixelRatio || 1
     this.ctx = this.canvas.getContext('2d')
     this.ctx.scale(this.dpr, this.dpr)
@@ -96,7 +97,7 @@ class ConfettiCannon {
       y: window.innerHeight * 2,
     }]
 
-    this.pointer = {}
+    this.pointer = { x: 0, y: 0 }
 
     // bind methods
     // Note: cast because Flow treats class methods as non-writable and complains about reading
