@@ -183,7 +183,9 @@ export function rangeToString(r: TRange): string {
  * @param {boolean} addTeamspaceIconAndName - whether to add the 👥 icon and teamspace name to the title, where relevant
  * @return {string}
  */
-export function displayTitle(note: CoreNoteFields, addTeamspaceIconAndName: boolean = true): string {
+// Param is nullable because the body explicitly handles a missing note (below) -- the previous
+// non-null annotation contradicted the runtime contract and forced suppressions at call sites.
+export function displayTitle(note: ?CoreNoteFields, addTeamspaceIconAndName: boolean = true): string {
   if (!note) {
     logError('general/displayTitle', 'No note found')
     return '(error: no note found)'
