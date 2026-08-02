@@ -472,20 +472,16 @@ export function sortSections(
     }
     
     if (a.sectionCode === 'TAG') {
-      // $FlowIgnore
       const orderB = orderMap[b.sectionCode] ?? maxIndex
       return tagPositionInMap - orderB
     }
     
     if (b.sectionCode === 'TAG') {
-      // $FlowIgnore
       const orderA = orderMap[a.sectionCode] ?? maxIndex
       return orderA - tagPositionInMap
     }
     
-    // $FlowIgnore
     const orderA = orderMap[a.sectionCode] ?? maxIndex
-    // $FlowIgnore
     const orderB = orderMap[b.sectionCode] ?? maxIndex
 
     if (orderA !== orderB) {

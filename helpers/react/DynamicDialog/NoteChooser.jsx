@@ -967,7 +967,6 @@ export function NoteChooser({
         (() => {
           const body = document.body
           if (!body) return null
-          // $FlowFixMe[incompatible-call] - document.body is checked for null above
           return createPortal(
             <div
               ref={calendarPickerRef}

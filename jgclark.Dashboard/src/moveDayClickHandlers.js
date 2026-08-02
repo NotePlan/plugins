@@ -479,7 +479,6 @@ export async function scheduleAllOverdueOpenToToday(
     // Get paras for all overdue items in notes (full TParagraphs, not ReducedParagraphs).
     // Pass [] for yesterdaysParas on purpose: schedule-all should still move yesterday-dated overdue tasks.
     // (Section generation does pass DY paras for display dedupe when Yesterday is on.)
-    // $FlowIgnore[prop-missing]
     // eslint-disable-next-line no-unused-vars
     const { filteredOverdueParas, preLimitOverdueCount } = await getRelevantOverdueTasks(config, []) // Note: does not include open checklist items
     const overdueParas = filteredOverdueParas

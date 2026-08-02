@@ -145,7 +145,6 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
       logDebug(pluginJson, `templateInsert: about to checkAndProcessFolderAndNewNoteTitle`)
       if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
 
-      // $FlowIgnore
       const renderedTemplate = await NPTemplating.render(frontmatterBody, frontmatterAttributes, { frontmatterProcessed: true })
       if (renderedTemplate == null) {
         logDebug(pluginJson, `templateInsert: render returned null (user likely cancelled a prompt); aborting`)
@@ -178,7 +177,6 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
     logDebug('templateAppend', `Starting templateAppend with templateName=${templateName}`)
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const content: string = Editor.content || ''
-      // $FlowIgnore
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
       let templateData, templateNote
       if (/<current>/i.test(selectedTemplate)) {
@@ -270,7 +268,6 @@ export async function templateInvoke(templateName?: string): Promise<void> {
           logError(pluginJson, `Unable to locate template: ${templateName} which was passed to templateExecute`)
         }
       }
-      // $FlowIgnore
       const selectedTemplate = selectedTemplateFilename ?? (await NPTemplating.chooseTemplate())
       const templateData = await NPTemplating.getTemplateContent(selectedTemplate)
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
@@ -285,7 +282,6 @@ export async function templateInvoke(templateName?: string): Promise<void> {
       const frontmatterWithMethods = Object.assign(frontmatterModule, frontmatterAttributes)
 
       let data = { ...frontmatterAttributes, frontmatter: frontmatterWithMethods }
-      // $FlowIgnore
       let renderedTemplate = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
       if (renderedTemplate == null) {
         logDebug(pluginJson, `templateInvoke: render returned null (user likely cancelled a prompt); aborting`)
@@ -575,7 +571,6 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
           },
         }
 
-        // $FlowIgnore
         let finalRenderedData = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
         if (finalRenderedData == null) {
           logDebug(pluginJson, `templateQuickNote: render returned null (user likely cancelled a prompt); aborting`)
@@ -799,7 +794,6 @@ export async function templateWeather(): Promise<string> {
     let weatherFormat = (templateConfig && templateConfig.weatherFormat) || ''
     weatherFormat = weatherFormat.length === 0 && templateConfig?.weatherFormat?.length > 0 ? templateConfig?.weatherFormat : weatherFormat
 
-    // $FlowIgnore
     const resolvedFormat = weatherFormat === undefined || weatherFormat === null || weatherFormat.trim().length === 0 ? undefined : weatherFormat
     const weather = await getNotePlanWeather(resolvedFormat, null, null, null)
 
@@ -812,7 +806,6 @@ export async function templateWeather(): Promise<string> {
 // $FlowIgnore
 export async function templateAdvice(): Promise<string> {
   try {
-    // $FlowIgnore
     const advice: string = await getAdvice()
 
     Editor.insertTextAtCursor(advice)
@@ -824,7 +817,6 @@ export async function templateAdvice(): Promise<string> {
 // $FlowIgnore
 export async function templateAffirmation(): Promise<string> {
   try {
-    // $FlowIgnore
     const affirmation: string = await getAffirmation()
 
     Editor.insertTextAtCursor(affirmation)
@@ -836,7 +828,6 @@ export async function templateAffirmation(): Promise<string> {
 // $FlowIgnore
 export async function templateVerse(): Promise<string> {
   try {
-    // $FlowIgnore
     const verse: string = await getVersePlain()
 
     Editor.insertTextAtCursor(verse)
@@ -848,7 +839,6 @@ export async function templateVerse(): Promise<string> {
 // $FlowIgnore
 export async function templateQuote(): Promise<string> {
   try {
-    // $FlowIgnore
     const verse: string = await getDailyQuote()
 
     Editor.insertTextAtCursor(verse)

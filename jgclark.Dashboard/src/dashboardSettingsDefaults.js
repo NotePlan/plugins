@@ -46,7 +46,6 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
   sectionDefaults.showCurrentReminders = true
 
   // clo(dashboardSettingsDefaults, `dashboardSettingsDefaults:`)
-  // $FlowIgnore[cannot-spread-indexer]
   return ({ ...dashboardSettingsDefaults, ...sectionDefaults }: any)
 }
 

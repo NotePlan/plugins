@@ -28,7 +28,6 @@ function makeProjectRowItem(sectionCode: TSectionCode, project: any, itemCount: 
     ID: thisID,
     sectionCode: sectionCode,
     itemType: 'project',
-    // $FlowIgnore[prop-missing]
     project: {
       filename: thisFilename,
       isTeamspace: parsedPossibleTeamspace?.isTeamspace ?? false,

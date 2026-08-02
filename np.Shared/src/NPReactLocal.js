@@ -163,7 +163,6 @@ function assembleHTMLString(bodyHTML: string, generatedOptions: any, windowOptio
   fullHTML.push('<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, maximum-scale=1, viewport-fit=cover">')
 
   // Add preBodyScript using generateScriptTags
-  // $FlowFixMe - generatedOptions.preBodyScript can be array/string/ScriptObj
   const preScript = generateScriptTags((generatedOptions.preBodyScript: any) ?? '')
   if (preScript !== '') {
     fullHTML.push(preScript)
@@ -181,7 +180,6 @@ function assembleHTMLString(bodyHTML: string, generatedOptions: any, windowOptio
   fullHTML.push(bodyHTML)
 
   // Add postBodyScript using generateScriptTags
-  // $FlowFixMe - generatedOptions.postBodyScript can be array/string/ScriptObj
   const postScript = generateScriptTags((generatedOptions.postBodyScript: any) ?? '')
   if (postScript !== '') {
     fullHTML.push(postScript)
@@ -223,7 +221,6 @@ export async function onMessageFromHTMLView(incoming: string): Promise<any> {
  *  - debug - boolean - outputs debugging variables at the bottom of the screen
  * @author @dwertheimer
  */
-// $FlowFixMe - inexact object literal
 export function openReactWindow(globalData: any = null, windowOptions?: HtmlWindowOptions = {}): boolean {
   try {
     logDebug(pluginJson, `NPReactLocal.openReactWindow Starting ...`)
@@ -253,7 +250,6 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
  * @param {Object} windowOptions - window options including windowTitle, customId, etc.
  * @author @dwertheimer
  */
-// $FlowFixMe - inexact object literal
 export function showInMainWindow(globalData: any = null, windowOptions?: HtmlWindowOptions = {}): boolean {
   try {
     logDebug(pluginJson, `NPReactLocal.showInMainWindow Starting ...`)
@@ -266,7 +262,6 @@ export function showInMainWindow(globalData: any = null, windowOptions?: HtmlWin
     const fullHTMLStr = assembleHTMLString(bodyHTML, generatedOptions, windowOptions)
 
     // Use HTMLView.showInMainWindow instead of showHTMLV2
-    // $FlowFixMe[prop-missing] - showInMainWindow is available in NotePlan v3.20+
     const windowOptsAny = (windowOptions: any)
     const mainWindowOptions = {
       splitView: windowOptsAny.splitView ?? false,
@@ -279,7 +274,6 @@ export function showInMainWindow(globalData: any = null, windowOptions?: HtmlWin
       reloadCommandName: windowOptsAny.reloadCommandName || null,
       reloadCommandArgs: windowOptsAny.reloadCommandArgs || null,
     }
-    // $FlowFixMe[prop-missing] - showInMainWindow is available in NotePlan v3.20+
     HTMLView.showInMainWindow(fullHTMLStr, windowOptions.windowTitle || 'React Window', mainWindowOptions)
 
     // If wanted, also write this HTML to a file so we can work on it offline.

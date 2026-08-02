@@ -20,7 +20,6 @@ describe('Prompt Await Issue Tests', () => {
     }
 
     // Mock userInput methods
-    // $FlowIgnore - jest mocking
     jest.mock(
       '@helpers/userInput',
       () => ({
@@ -37,7 +36,6 @@ describe('Prompt Await Issue Tests', () => {
     const userData = {}
 
     // Get the mocked function
-    // $FlowIgnore - jest mocked module
     const { askDateInterval } = require('@helpers/userInput')
 
     const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)

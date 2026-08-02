@@ -75,7 +75,6 @@ Named perspectives
 const pluginID = 'jgclark.Dashboard' // pluginJson['plugin.id']
 
 const standardSettings = cleanDashboardSettingsInAPerspective(
-  // $FlowIgnore[incompatible-call]
   [...dashboardSettingDefs, ...dashboardFilterDefs, ...showSectionSettingItems].reduce((acc, s) => {
     if (s.key) {
       // $FlowIgnore[prop-missing]
@@ -109,7 +108,6 @@ export async function getPerspectiveSettingDefaults(): Promise<Array<TPerspectiv
     {
       name: 'Home',
       isModified: false,
-      // $FlowIgnore[incompatible-call]
       dashboardSettings: {
         ...dashboardSettingsWithPerspectiveDefaults,
         includedFolders: 'Home, Family',
@@ -122,7 +120,6 @@ export async function getPerspectiveSettingDefaults(): Promise<Array<TPerspectiv
     {
       name: 'Work',
       isModified: false,
-      // $FlowIgnore[incompatible-call]
       dashboardSettings: {
         ...dashboardSettingsWithPerspectiveDefaults,
         includedFolders: 'Work, Company',
@@ -213,8 +210,6 @@ export async function loadPerspectiveDefsFromPluginSettings(_logAllKeys: boolean
         return []
       }
       const dashboardSettings = await getDashboardSettings()
-      // $FlowFixMe[prop-missing]
-      // $FlowFixMe[incompatible-call]
       defaultPersp.dashboardSettings = { ...defaultPersp.dashboardSettings, ...cleanDashboardSettingsInAPerspective(dashboardSettings, true) }
       perspectiveSettings = replacePerspectiveDef(perspectiveSettings, defaultPersp)
       await savePerspectiveSettings(perspectiveSettings)
@@ -362,10 +357,8 @@ export function getPerspectiveLiveVsSavedDiff(
   const newSettingsWithDefaults = { ...dashboardSettingsDefaults, ...liveDashboardSettings }
   const cleanedDefSettings = cleanDashboardSettingsInAPerspective(perspectiveDef.dashboardSettings || {})
   const activePerspDefDashboardSettingsWithDefaults = { ...dashboardSettingsDefaults, ...cleanedDefSettings }
-  // $FlowFixMe[incompatible-call]
   const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettingsWithDefaults)
   const activePerspDefShowTagSectionKeys = Object.keys(perspectiveDef.dashboardSettings || {}).filter((k) => k.startsWith('showTagSection_'))
-  // $FlowIgnore[prop-missing] - Dynamic property access for tag section keys
   const activePerspDefShowTagSectionObject = activePerspDefShowTagSectionKeys.reduce((acc, k) => {
     acc[k] = perspectiveDef.dashboardSettings[k]
     return acc
@@ -375,7 +368,6 @@ export function getPerspectiveLiveVsSavedDiff(
     ...activePerspDefDashboardSettingsWithDefaults,
     ...activePerspDefShowTagSectionObject,
   }
-  // $FlowFixMe[incompatible-call]
   const cleanedSavedSettings = cleanDashboardSettingsInAPerspective(activePerspDefDashboardSettingsWithDefaultsAndTAGs)
   const diff = compareObjects(cleanedSavedSettings, cleanedSettings, PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT)
   if (diff === null || Object.keys(diff).length === 0) return null

@@ -1834,7 +1834,6 @@ export async function execute(templateData: string = '', sessionData: any, templ
     if (!codeBlockHasComment(codeBlock) && blockIsJavaScript(codeBlock)) {
       const executeCodeBlock = codeBlock.replace('```templatejs\n', '').replace('```\n', '')
       try {
-        // $FlowIgnore
         let result = ''
 
         if (executeCodeBlock.includes('<%')) {
@@ -1892,7 +1891,6 @@ function restoreEventDateMethods(sessionData: Object): Object {
       const method = (format: string = 'YYYY MM DD'): string => moment(sessionData.data[valuePath]).format(format)
 
       // Add to methods object - TemplatingEngine will automatically spread to top level before render
-      // $FlowIgnore - We're dynamically adding this method
       enhancedData.methods[methodName] = method
     })
   }

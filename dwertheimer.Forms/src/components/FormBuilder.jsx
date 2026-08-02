@@ -195,7 +195,6 @@ You can edit or delete this comment field - it's just a note to help you get sta
     }
     try {
       // Use browser Clipboard API directly - no need for plugin round-trip
-      // $FlowFixMe[prop-missing] - navigator.clipboard may not be in Flow types
       if (navigator.clipboard && typeof (navigator.clipboard: any).writeText === 'function') {
         await (navigator.clipboard: any).writeText(urlToCopy)
         dispatch('SHOW_TOAST', {

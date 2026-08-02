@@ -594,7 +594,6 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
           reloadPluginID: opts.reloadPluginID,
           reloadCommandName: opts.reloadCommandName,
         }
-        // $FlowFixMe[incompatible-type] - Flow can't guarantee the Promise resolves to an object
         const mainWindowResult = await HTMLView.showInMainWindow(fullHTMLStr, opts.windowTitle ?? '', mainWindowSpecificOptions)
         if (mainWindowResult && mainWindowResult.success) {
           success = true

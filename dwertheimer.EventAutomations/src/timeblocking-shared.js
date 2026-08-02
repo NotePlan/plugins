@@ -92,7 +92,6 @@ export function getConfig(): AutoTimeBlockingConfig {
   const numKeys = Object.keys(config).length
   if (numKeys && !(numKeys === 1 && config._logLevel)) {
     try {
-      // $FlowIgnore
       // In real NotePlan, config.timeblockTextMustContainString won't be set, but in testing it will be, so this covers both test and prod
       if (!config.timeblockTextMustContainString) config.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
       validateAutoTimeBlockingConfig(config)
@@ -178,7 +177,6 @@ export async function writeSyncedCopies(todosParagraphs: Array<TParagraph>, conf
       return
     }
     logDebug(pluginJson, `Inserting synced list content: ${syncedList.length} items`)
-    // $FlowIgnore
     await insertItemsIntoNote(Editor, syncedList, config.syncedCopiesTitle, config.foldSyncedCopiesHeading, config)
   }
 }
@@ -191,7 +189,6 @@ export async function insertItemsIntoNote(
   config: AutoTimeBlockingConfig = getConfig(),
 ) {
   if (list && list.length > 0 && note) {
-    // $FlowIgnore
     logDebug(pluginJson, `insertItemsIntoNote: items.length=${list.length}`)
     clo(list, `insertItemsIntoNote: list`)
     clof(list, `insertItemsIntoNote: list`, null, false)

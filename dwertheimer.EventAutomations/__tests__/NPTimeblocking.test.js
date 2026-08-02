@@ -126,7 +126,6 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         Editor.note.backlinks = []
         const spy = jest.spyOn(CommandBar, 'prompt')
         await mainFile.insertTodosAsTimeblocks()
-        // $FlowIgnore - jest doesn't know about this param
         expect(mockWasCalledWithString(spy, /No todos\/references marked for >today/)).toBe(true)
         spy.mockRestore()
       })

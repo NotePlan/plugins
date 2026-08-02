@@ -57,14 +57,12 @@ export default class TasksModule {
 
     if (calendarDatePattern.test(resolvedIdentifier)) {
       logDebug(pluginJson, `_getNoteByIdentifier: Attempting to get calendar note for date-like identifier: ${resolvedIdentifier}`)
-      // $FlowIgnore - DataStore is a global in NotePlan
       note = await DataStore.calendarNoteByDateString(resolvedIdentifier)
       if (!note) {
         logDebug(pluginJson, `_getNoteByIdentifier: Calendar note not found for identifier: ${resolvedIdentifier}`)
       }
     } else {
       logDebug(pluginJson, `_getNoteByIdentifier: Attempting to get project note by title: "${resolvedIdentifier}"`)
-      // $FlowIgnore - DataStore is a global in NotePlan
       const notes = await DataStore.projectNoteByTitle(resolvedIdentifier)
       if (notes && notes.length > 0) {
         note = notes[0]

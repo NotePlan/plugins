@@ -89,7 +89,6 @@ const SettingsDialog = ({
 
   // Return whether the controlling setting item is checked or not
   function stateOfControllingSetting(item: TSettingItem): boolean {
-    // $FlowIgnore[invalid-computed-prop]
     return controllingSettingsState[item.dependsOnKey ?? ''] ?? false
   }
 

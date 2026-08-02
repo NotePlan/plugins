@@ -175,7 +175,6 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
 
     // Now map from paras -> notes and dedupe
     let numToRemove = allMatchedParas.length
-    // $FlowFixMe[incompatible-call]
     const recentMatchedNotes = recentMatchedParas.map((p) => p.note)
     // Dedupe this list
     const dedupedMatchedNotes = [...new Set(recentMatchedNotes)]
@@ -273,7 +272,6 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
 
     // Now map from paras -> notes and dedupe
     let numToRemove = allMatchedParas.length
-    // $FlowFixMe[incompatible-call]
     const recentMatchedNotes = recentMatchedParas.map((p) => p.note)
     // Dedupe this list
     const dedupedMatchedNotes = [...new Set(recentMatchedNotes)]
@@ -448,7 +446,6 @@ export async function removeOrphanedBlockIDs(params: string = ''): Promise<void>
 
     // Use numDays to limit to recent notes, if > 0
     if (config.numDays > 0) {
-      // $FlowFixMe[incompatible-call]
       const allMatchedNotes = parasWithBlockID.map((p) => p.note)
       // logDebug('allMatchedNotes', String(allMatchedNotes.length))
       const recentMatchedNotes = getNotesChangedInIntervalFromList(allMatchedNotes.filter(Boolean), config.numDays ?? 0)

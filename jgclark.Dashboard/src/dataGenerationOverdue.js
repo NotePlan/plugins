@@ -115,7 +115,6 @@ export async function getOverdueSectionData(
         const beforeMerge = dashboardParas.length
         // Cast: removeDuplicates() is typed over a generic indexed object, so its result no longer
         // carries the exact TParagraphForDashboard shape even though the elements are unchanged.
-        // $FlowFixMe[incompatible-call]
         dashboardParas = (removeDuplicates(dashboardParas.concat(yesterdaySpillDashboardParas), ['filename', 'content']): any)
         logDebug(
           'getOverdueSectionData',
@@ -274,7 +273,6 @@ export async function getRelevantOverdueTasks(
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after filtering by allowed teamspaces, ${filteredOverdueParas.length} overdue items`)
 
     // Filter out items in non-valid folders
-    // $FlowFixMe[incompatible-call]
     filteredOverdueParas = filterParasByRelevantFolders(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after filtering by valid folders, ${filteredOverdueParas.length} overdue items`)
 

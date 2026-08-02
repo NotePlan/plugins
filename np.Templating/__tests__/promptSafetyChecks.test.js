@@ -9,7 +9,6 @@ import '../lib/support/modules/prompts' // Import to register all prompt handler
 
 /* global describe, test, expect, jest, beforeEach, beforeAll */
 
-// $FlowFixMe - deliberately mocking for tests
 jest.mock(
   '@helpers/userInput',
   () => ({
@@ -35,9 +34,7 @@ describe('Prompt Safety Checks', () => {
 
     // Mock CommandBar methods for all tests
     global.CommandBar = {
-      // $FlowFixMe - Flow doesn't handle Jest mocks well
       textPrompt: jest.fn(() => Promise.resolve('Test Response')),
-      // $FlowFixMe - Flow doesn't handle Jest mocks well
       showOptions: jest.fn((options, message) => {
         return Promise.resolve({ index: 0, value: options[0] })
       }),

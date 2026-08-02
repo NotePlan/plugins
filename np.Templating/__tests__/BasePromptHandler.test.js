@@ -531,9 +531,7 @@ describe('BasePromptHandler', () => {
     })
 
     it('should handle null/undefined values', () => {
-      // $FlowFixMe - Testing with undefined
       expect(BasePromptHandler.removeQuotes('')).toBe('')
-      // $FlowFixMe - Testing with null
       expect(BasePromptHandler.removeQuotes('')).toBe('')
     })
   })

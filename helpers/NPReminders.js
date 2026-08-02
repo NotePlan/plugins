@@ -77,11 +77,9 @@ function titlesAndColorsFromReminderListObjects(lists: $ReadOnlyArray<any>): TRe
   const titles: Array<string> = []
   for (const list of lists) {
     // availableReminderLists returns list objects with title + color (typed loosely as TCalendarItem)
-    // $FlowFixMe[prop-missing]
     const title: string = list.title || ''
     if (!title || title.trim() === '') continue
     titles.push(title)
-    // $FlowFixMe[prop-missing]
     const listColor: ?string = list.color
     if (listColor && typeof listColor === 'string' && listColor.trim() !== '') {
       colorByTitle[title] = listColor

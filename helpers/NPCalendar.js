@@ -140,7 +140,6 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
       logWarn('NPCalendar / writeTimeBlocksToCalendar', 'no content found')
       return
     }
-    // $FlowFixMe - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
     const noteTitle = displayTitle(note)
     logDebug('NPCalendar / writeTimeBlocksToCalendar', `Starting for note '${noteTitle}' ...`)
 
@@ -157,7 +156,6 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
     }
 
     // Look through open note to find valid time blocks, but stop at Done or Cancelled sections
-    // $FlowIgnore - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
     const endOfActive = findEndOfActivePartOfNote(note)
     const timeblockParas = paragraphs.filter((p) => isTimeBlockPara(p) && p.lineIndex <= endOfActive && ((p.type !== 'done' && p.type !== 'checklistDone') || config.includeCompletedTasks))
     if (timeblockParas.length > 0) {

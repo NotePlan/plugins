@@ -11,7 +11,6 @@ import '../lib/support/modules/prompts' // Import to register all prompt handler
 /* global describe, test, expect, jest, beforeEach, beforeAll */
 
 // Mock the @helpers/userInput module
-// $FlowIgnore - jest mocking
 jest.mock('@helpers/userInput', () => ({
   askDateInterval: jest.fn<Array<any>, any>().mockImplementation((msg) => {
     return Promise.resolve('2023-01-01 to 2023-01-31')
@@ -19,7 +18,6 @@ jest.mock('@helpers/userInput', () => ({
 }))
 
 // Get the mocked function
-// $FlowIgnore - jest mocked module
 const { askDateInterval } = require('@helpers/userInput')
 
 describe('PromptDateIntervalHandler', () => {

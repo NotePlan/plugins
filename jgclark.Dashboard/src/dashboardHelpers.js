@@ -148,7 +148,6 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     } else {
       // Merge with defaults to ensure any new settings are added (existing settings take precedence)
       const defaults: TAnyObject = getDashboardSettingsDefaults()
-      // $FlowIgnore[cannot-spread-indexer]
       parsedDashboardSettings = { ...defaults, ...parsedDashboardSettings, showSearchSection: true }
 
       // Migration: Convert old showProjectSection to showProjectReviewSection
@@ -190,7 +189,6 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     logError('getDashboardSettings', `${err.name}: ${err.message}`)
     logWarn('getDashboardSettings', `Returning defaults after load error`)
     const defaults = getDashboardSettingsDefaults()
-    // $FlowFixMe[prop-missing]
     return ({ ...defaults, showSearchSection: true }: any)
   }
 }
@@ -605,7 +603,6 @@ function getReferencedOpenParagraphs(
 
   // Get list of allowed folders (using both include and exclude settings)
   const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
-  // $FlowIgnore[incompatible-call] - p.note almost guaranteed to exist
   logDebug('getReferencedOpenParagraphs: refOpenParas', refOpenParas.map((p) => p.note?.filename ?? '<no note>'))
 
   // Filter by teamspace first

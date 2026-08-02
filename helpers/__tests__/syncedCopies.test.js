@@ -85,7 +85,6 @@ describe('syncedCopies', () => {
   // ---------------------------------------------------
 
   describe('eliminateDuplicateParagraphs', () => {
-    // $FlowFixMe[missing-local-annot] - Test helper function
     const createMockParagraph = (content: string, filename: string, blockId: ?string = '', noteType: string = 'Notes', changedDate: Date = new Date()) => ({
       content,
       filename,
@@ -108,7 +107,6 @@ describe('syncedCopies', () => {
     })
 
     test('should return single paragraph unchanged', () => {
-      // $FlowIgnore[incompatible-call] - Test mock objects
       const paras = [createMockParagraph('Task 1', 'note1.md', 'block1')]
       // $FlowIgnore[prop-missing]
       // $FlowIgnore[incompatible-call]

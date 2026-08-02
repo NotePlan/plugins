@@ -94,7 +94,6 @@ export async function getWeatherSummary(format: string): Promise<string> {
     logDebug(`getWeatherSummary: received response: ${jsonIn.length} chars`)
     if (jsonIn != null) {
       try {
-        // $FlowIgnore[incompatible-call]
         allWeatherData = JSON.parse(jsonIn)
       } catch (error) {
         logError(`'${error.message}' parsing Weather data lookup`)

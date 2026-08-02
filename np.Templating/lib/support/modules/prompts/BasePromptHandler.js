@@ -699,7 +699,6 @@ export default class BasePromptHandler {
               result.promptMessage = allParams[1] || ''
               if (allParams.length > 2) {
                 const optionsValue = allParams[2] || ''
-                // $FlowFixMe - optionsValue is a string but result.options can be string | Array<string>
                 result.options = optionsValue
               }
             } else {
@@ -707,7 +706,6 @@ export default class BasePromptHandler {
               result.promptMessage = allParams[0] || ''
               if (allParams.length > 1) {
                 const optionsValue = allParams[1] || ''
-                // $FlowFixMe - optionsValue is a string but result.options can be string | Array<string>
                 result.options = optionsValue
               }
             }

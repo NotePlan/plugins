@@ -152,7 +152,6 @@ async function runTaskSorterAfterRepeatsImpl(
           // guard below then skips the cache update. Type-only cast; see LEFT report.
           : (noteToUse: any).note
       if (cacheNote != null) {
-        // $FlowIgnore[incompatible-call]
         DataStore.updateCache(cacheNote, false)
       }
       const sortFields = config.taskSortingOrder

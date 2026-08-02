@@ -248,7 +248,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     // Allow for a combination of button click and a content update
     if (updatedContent && data.actionType !== 'updateItemContent') {
       logDebug('bCDI', `content updated with another button press; need to update content first; new content: "${updatedContent}"`)
-      // $FlowIgnore[incompatible-call]
       result = doContentUpdate(data)
       if (result.success) {
         // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - TODO(later): ultimately delete this

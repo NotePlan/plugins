@@ -23,7 +23,6 @@ export const WEATHER_API_FALLBACK_MESSAGE =
 
 export async function getWeather(): Promise<string> {
   try {
-    // $FlowFixMe
     let response: any = await fetch(`https://wttr.in?format=3`, { timeout: 3000 })
     if (response) {
       response = response.startsWith('not found:')

@@ -211,7 +211,6 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       // const spy = jest.spyOn(global.Editor, 'insertParagraph')
       await mainFile.insertTodosAsTimeblocks()
       // insertParagraph doesn't work properly because it happens in the mock
-      // $FlowIgnore - jest doesn't know about this param
       // expect(spy.mock.lastCall[1]).toEqual(`No todos/references marked for this day!`)
       // spy.mockRestore()
       DataStore.settings = oldSettings

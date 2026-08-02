@@ -231,7 +231,6 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
                         console.error('Invalid key:', key)
                         return null // or handle the error as needed
                       }
-                      // $FlowIgnore
                       const value = perspective.dashboardSettings?.[key] ?? settingDef.default
                       const item = {
                         ...settingDef,

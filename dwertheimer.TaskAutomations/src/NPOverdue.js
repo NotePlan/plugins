@@ -254,7 +254,6 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
         noteTaskList: (overdues: any),
         overdueOnly: true,
       }
-      // $FlowIgnore
       const notesToReview = getNotesAndTasksToReview(options)
       clo(notesToReview, 'reviewOverdueTasksInNote: notesToReview')
       await reviewOverdueTasksByNote(notesToReview, options)
@@ -299,7 +298,6 @@ export async function reviewWeeklyTasks(forDateString?: string = getTodaysDateHy
  */
 export async function reviewEditorReferencedTasks(byTask: boolean = true, weeklyNote: boolean = false, forDateString?: string = getTodaysDateHyphenated()): Promise<void> {
   try {
-    // $FlowFixMe
     await Editor.openNoteByDate(new moment(forDateString || undefined).toDate())
     logDebug(pluginJson, `reviewEditorReferencedTasks: ${String(byTask)}, ${String(weeklyNote)}`)
     if (Editor.note?.type !== 'Calendar') {

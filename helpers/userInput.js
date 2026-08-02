@@ -109,7 +109,6 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
 
   // logDebug('userInput / chooseOptionWithModifiers()', `displayOptions: ${ displayOptions.length } options`)
 
-  // $FlowFixMe[prop-missing]
   const { index, keyModifiers } = await CommandBar.showOptions(
     displayOptions.map((option) => (typeof option === 'string' ? option : option.label)),
     message,
@@ -1100,12 +1099,10 @@ export async function datePicker(dateParams: string | Object, config?: { [string
         : {}
     }
 
-    // $FlowIgnore[incompatible-type]
     logDebug('userInput / datePicker', `params: ${JSON.stringify(dateParams)} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
       // $FlowIgnore[exponential-spread] known to be very small objects
-      // $FlowIgnore[not-an-object]
       ...dateConfig,
       // $FlowIgnore[not-an-object]
       ...paramConfig,

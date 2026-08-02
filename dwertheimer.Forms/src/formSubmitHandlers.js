@@ -341,7 +341,6 @@ export async function handleFormSubmitAction(data: any, reactWindowData: any, wi
     // Update window data with error/aiAnalysisResult if present
     // Only send SET_DATA if there's an error or AI analysis result to display
     if (hasAiAnalysis || hasFormSubmissionError) {
-      // $FlowFixMe[exponential-spread] - Building object step by step to avoid Flow exponential spread issue
       const updatedPluginData: any = {}
       const basePluginData = reactWindowData.pluginData || {}
       Object.keys(basePluginData).forEach((key) => {
