@@ -185,3 +185,45 @@ describe('{{pluginId}}' /* pluginID */, () => {
   })
 })
 ```
+
+---
+
+## If your test file has `// @flow`: use the casts, not a hand-rolled mock type
+
+`.flowconfig` sets `exact_by_default=true`, so this innocent-looking declaration is an **exact**
+object type:
+
+```js
+type MockNote = { filename: string, title: string }   // DON'T
+```
+
+`CoreNoteFields` has ~59 members, and Flow reports one error per missing member **per call
+site**. One `type MockNote` feeding 19 call sites produced **1,121 errors** in a single test
+file; four such files accounted for most of this repo's Flow noise. Suppressing it is also
+harder than it looks — `$FlowFixMe` above the *type declaration* suppresses nothing, because the
+errors are raised at the call sites.
+
+Instead, build the mock with the real `Note` / `Paragraph` classes and cast at the boundary:
+
+```js
+import { Note, asTNote } from '@mocks/index'
+
+const note = new Note({ filename: 'test.md', content: '# Title\n- a task' })
+const result = filterSomething(asTNote(note))
+```
+
+Available from `@mocks/index` (defined in `__mocks__/asNPTypes.js`):
+
+| Cast | Produces |
+|---|---|
+| `asTNote(x)` | `TNote` |
+| `asTNotes(xs)` | `Array<TNote>` — arrays are invariant, so casting elements is not enough |
+| `asCoreNoteFields(x)` | `CoreNoteFields` — when the function also accepts `Editor` |
+| `asTParagraph(x)` | `TParagraph` |
+| `asTParagraphs(xs)` | `Array<TParagraph>` |
+
+These are type-level no-ops that compile away — no runtime cost. Prefer them to
+`$FlowIgnore[prop-missing]`, which hides every error on the line, including real ones.
+
+If your test file is plain JS with no `// @flow` pragma, none of this applies — Flow doesn't
+check it, and a plain object literal is fine.

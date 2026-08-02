@@ -11,8 +11,9 @@ import { hasFrontMatter, getAttributes } from '@helpers/NPFrontMatter'
  */
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 export class Note {
-  // Explicitly define properties that are dynamically assigned
-  content: string
+  // NB: `content` is deliberately NOT declared as a field here — it is implemented as the
+  // get/set pair at the bottom of the class, backed by `_content`. Declaring both makes it a
+  // duplicate class member.
   /** Full note markdown when tests construct notes with `{ rawContent }` only */
   rawContent: string = ''
   // Properties
@@ -251,7 +252,8 @@ export class Note {
           this.paragraphs = makeParagraphsFromContent(this._content)
         }
       } else {
-        this[key] = data[key]
+        // Mocks are built from arbitrary test fixtures, so this is a genuinely dynamic write.
+        ;(this: any)[key] = data[key]
       }
     })
     return this
