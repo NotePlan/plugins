@@ -265,8 +265,7 @@ export async function DELETEMEcreateTimeBlocksForTodaysTasks(config: AutoTimeBlo
         clof(sortedParas, `createTimeBlocksForTodaysTasks sortedParas`, ['filename', 'content'], true)
         const sortedParasExcludingCurrentNote = sortedParas.filter((p) => p.filename !== Editor.filename)
         clof(sortedParasExcludingCurrentNote, `createTimeBlocksForTodaysTasks sortedParasExcludingCurrentNote`, ['filename', 'content'], true)
-        // $FlowFixMe
-        await writeSyncedCopies(...sortedParasExcludingCurrentNote, { runSilently: true, ...config })
+        await writeSyncedCopies(sortedParasExcludingCurrentNote, { runSilently: true, ...config })
       }
       return passBackResults ? timeBlockTextList : []
     } else {
