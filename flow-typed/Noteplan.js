@@ -788,11 +788,11 @@ declare class DataStore {
    * EM has also said "It doesn't have to be async, because it runs on the same thread and updates the cache directly, but that has nothing to do with the content of the paragraph or note, that's read directly out of the file again".
    *
    * Note: Available from NotePlan v3.7.1
-   * @param {TNote} note to update
+   * @param {CoreNoteFields} note to update (Editor is accepted as well as a Note)
    * @param {boolean} shouldUpdateTags?
    * @returns {TNote?} updated note object
    */
-  static updateCache(note: TNote, shouldUpdateTags: boolean): TNote | null;
+  static updateCache(note: CoreNoteFields, shouldUpdateTags?: boolean): TNote | null;
 
   /**
    * DataStore.listPlugins()

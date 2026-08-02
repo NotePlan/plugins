@@ -1351,7 +1351,7 @@ export function findNotesMatchingHashtagOrMentionFromList(
  * @return {Array<string>}
  */
 export function getHeadingsFromNote(
-  note: TNote,
+  note: CoreNoteFields, // Editor as well as a Note: only .paragraphs/.title/.type/.filename are read
   includeMarkdown: boolean = false,
   optionAddATopAndBottom: boolean = true,
   optionCreateNewHeading: boolean = false,

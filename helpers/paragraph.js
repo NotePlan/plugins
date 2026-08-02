@@ -346,11 +346,11 @@ export function printParagraph(p: TParagraph) {
  * I.e. adds before any ## Done or ## Completed archive section.
  * @author @jgclark
  *
- * @param {TNote} note - the note to append to
+ * @param {CoreNoteFields} note - the note (or Editor) to append to
  * @param {string} paraText - the text to append
  * @param {ParagraphType} paragraphType - the usual paragraph type to append
  */
-export function smartAppendPara(note: TNote, paraText: string, paragraphType: ParagraphType): void {
+export function smartAppendPara(note: CoreNoteFields, paraText: string, paragraphType: ParagraphType): void {
   // Insert the text at the smarter point (+ 1 as the API call inserts before the line in question)
   note.insertParagraph(paraText, findEndOfActivePartOfNote(note) + 1, paragraphType)
 }
@@ -362,11 +362,11 @@ export function smartAppendPara(note: TNote, paraText: string, paragraphType: Pa
  * Note: see smartPrependParas that works on multiple lines
  * @author @jgclark
  *
- * @param {TNote} note - the note to prepend to
+ * @param {CoreNoteFields} note - the note (or Editor) to prepend to
  * @param {string} paraText - the text to prepend
  * @param {ParagraphType} paragraphType - the usual paragraph type to prepend
  */
-export function smartPrependPara(note: TNote, paraText: string, paragraphType: ParagraphType): void {
+export function smartPrependPara(note: CoreNoteFields, paraText: string, paragraphType: ParagraphType): void {
   // Insert the text at the smarter point
   note.insertParagraph(paraText, findStartOfActivePartOfNote(note), paragraphType)
 }
@@ -378,11 +378,11 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
  * @author @jgclark
  * @test in jgclark.QuickCapture/index.js
  *
- * @param {TNote} note - the note to append to
+ * @param {CoreNoteFields} note - the note (or Editor) to append to
  * @param {Array<string>} paraTextArr - an array of text to append
  * @param {Array<ParagraphType>} paragraphTypeArr - a matching array of the type of the paragraphs to append
  */
-export function smartAppendParas(note: TNote, paraTextArr: Array<string>, paraTypeArr: Array<ParagraphType>): void {
+export function smartAppendParas(note: CoreNoteFields, paraTextArr: Array<string>, paraTypeArr: Array<ParagraphType>): void {
   // Get the smarter insertion point
   const firstInsertionLine = findEndOfActivePartOfNote(note) + 1
   logDebug('paragraph/smartAppendParas', `inserting ${String(paraTextArr.length)} paras; firstInsertionLine = ${firstInsertionLine}`)
@@ -401,11 +401,11 @@ export function smartAppendParas(note: TNote, paraTextArr: Array<string>, paraTy
  * @author @jgclark
  * @test in jgclark.QuickCapture/index.js
  *
- * @param {TNote} note - the note to prepend to
+ * @param {CoreNoteFields} note - the note (or Editor) to prepend to
  * @param {Array<string>} paraTextArr - an array of text to prepend
  * @param {Array<ParagraphType>} paragraphTypeArr - a matching array of the type of the paragraphs to prepend
  */
-export function smartPrependParas(note: TNote, paraTextArr: Array<string>, paraTypeArr: Array<ParagraphType>): void {
+export function smartPrependParas(note: CoreNoteFields, paraTextArr: Array<string>, paraTypeArr: Array<ParagraphType>): void {
   // Get the smarter insertion point
   const firstInsertionLine = findStartOfActivePartOfNote(note)
   logDebug('paragraph/smartPrependParas', `inserting ${String(paraTextArr.length)} paras; firstInsertionLine = ${firstInsertionLine}`)
@@ -569,7 +569,7 @@ export function createSectionsAndParaAfterPreamble(
  * @author @jgclark
  * @test in jgclark.QuickCapture/index.js
  *
- * @param {TNote} note - the note to prepend to
+ * @param {CoreNoteFields} note - the note (or Editor) to prepend to
  * @param {number} insertionIndex - the line to insert the text at
  * @param {Array<string>} paraTextArr - an array of text to prepend
  * @param {Array<ParagraphType>} paragraphTypeArr - a matching array of the type of the paragraphs to prepend

@@ -1,7 +1,6 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import type { SortableParagraphSubset } from '../../helpers/sorting'
 import type { AutoTimeBlockingConfig } from './config'
 import { appendLinkIfNecessary, removeDateTagsFromArray, includeTasksWithPatterns, excludeTasksWithPatterns } from './timeblocking-helpers'
 import { validateAutoTimeBlockingConfig, getTimeBlockingDefaults } from './config'
@@ -47,7 +46,7 @@ export function deleteParagraphsContainingString(destNote: CoreNoteFields, timeB
  * @param {AutoTimeBlockingConfig} config - The configuration object for auto time blocking.
  * @returns {Promise<void>}
  */
-export async function createSyncedCopies(todos: Array<SortableParagraphSubset>, config: AutoTimeBlockingConfig): Promise<void> {
+export async function createSyncedCopies(todos: Array<TParagraph>, config: AutoTimeBlockingConfig): Promise<void> {
   // Assuming `writeSyncedCopies` is a utility function that handles the creation of synced copies.
   await writeSyncedCopies(todos, { runSilently: true, ...config })
 }
@@ -122,7 +121,7 @@ export function getConfig(): AutoTimeBlockingConfig {
  * @param {Boolean} isSyncedCopyRun - true if we are just trying to get synced copies output (makes a difference in MANUAL_ORDERING mode)
  * @returns
  */
-export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig, isSyncedCopyRun = false): Array<TParagraph> {
+export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig, isSyncedCopyRun: boolean = false): Array<TParagraph> {
   const { includeTasksWithText, excludeTasksWithText, includeAllTodos, timeBlockTag } = config
   // filter down to just the open todos
   const backlinkParas = getTodaysReferences(Editor.note).filter((p) => p.type === 'open')
@@ -166,7 +165,7 @@ export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig, isSyncedC
  * @param {Array<TParagraph>} todosParagraphs - the paragraphs to write
  * @return {Promise<void}
  */
-export async function writeSyncedCopies(todosParagraphs: Array<SortableParagraphSubset>, config: AutoTimeBlockingConfig): Promise<void> {
+export async function writeSyncedCopies(todosParagraphs: Array<TParagraph>, config: AutoTimeBlockingConfig): Promise<void> {
   if (!todosParagraphs.length && !config.runSilently) {
     await showMessage(`No todos/references marked for this day!`, 'OK', 'Write Synced Copies')
   } else {

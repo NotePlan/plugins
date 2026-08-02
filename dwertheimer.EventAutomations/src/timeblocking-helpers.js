@@ -632,7 +632,7 @@ export const addDurationToTasks = (tasks: Array<SortableParagraphSubset>, config
 }
 
 export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<SortableParagraphSubset>, config: { [key: string]: any }): TimeBlocksWithMap {
-  let newInfo = { timeMap, blockList: [], timeBlockTextList: [], noTimeForTasks: {} }
+  let newInfo: TimeBlocksWithMap = { timeMap, blockList: [], timeBlockTextList: [], noTimeForTasks: {} }
   // $FlowIgnore
   const availableTimes = filterTimeMapToOpenSlots(timeMap, config) // will be different for BY_TIMEBLOCK_TAG
   if (availableTimes.length === 0) {

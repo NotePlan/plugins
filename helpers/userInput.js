@@ -798,7 +798,7 @@ async function handleNewFolderCreation(
  * @returns {string} - the selected heading as text without any markdown heading markers. Blank string implies no heading selected, and user wishes to write to the end of the note. Special string '<<top of note>>' implies to write to the top (after any preamble or frontmatter). Likewise '<<bottom of note>>'.
  */
 export async function chooseHeading(
-  note: TNote,
+  note: CoreNoteFields,
   optionAddATopAndtBottom: boolean = true,
   optionCreateNewHeading: boolean = false,
   includeArchive: boolean = false,
