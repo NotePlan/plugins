@@ -1112,6 +1112,12 @@ declare class CommandBar {
    * If you want to provide an existing search text that will be inserted into the command bar, use the third parameter.
    * Note: The user selection is returned as a Promise. So use it with "await CommandBar.showOptions(...)".
    *
+   * **Escape (plugins, observed Aug 2026):** Pressing ESC may **terminate the current plugin command**
+   * without resolving this promise — post-await JavaScript does not run. Not the same as `textPrompt`
+   * returning `false`. For cancel-with-continue on a dropdown, add an explicit "Cancel" row to
+   * `options` so the user selects it and this promise resolves normally. See `helpers/userInput.js`
+   * (showOptions ESC contract comment).
+   *
    * @param {[String]|[TCommandBarOptionObject]} options - Array of strings or objects with options
    * @param {String} placeholder - Placeholder text for the search input
    * @param {String} searchText - Initial search text to populate

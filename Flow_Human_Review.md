@@ -140,42 +140,7 @@ it needs GSAP added as a dependency — that's a new decision, not a restoration
 
 ---
 
-### 17a. Babel's Flow parser doesn't implement Flow's newer type syntax
-
-`np.plugin-test/src/react/WebView.jsx:166`
-
-`sendToPlugin`'s parameter is `[command, data, additionalDetails = '']`. The precise Flow type is
-an optional tuple element; Flow 0.245 accepts it, but Babel fails to parse it, so the file stops
-transforming and both the rollup build and jest break. It is typed `Array<any>` instead.
-
-**This was measured, not assumed.** An earlier version of this document said this was
-"blocked on a Babel upgrade". That is wrong — upgrading does not help:
-
-
-| Front-end                                                       | optional tuple `[string, any, string?]` | mapped type `{ [K in keyof O]: … }` | conditional type `T extends U ? A : B` |
-| --------------------------------------------------------------- | --------------------------------------- | ----------------------------------- | -------------------------------------- |
-| `@babel/preset-flow` 7.25.9 (current)                           | ✗                                       | ✗                                   | ✗                                      |
-| `@babel/preset-flow` 7.29.7 (latest 7.x)                        | ✗                                       | ✗                                   | ✗                                      |
-| `@babel/preset-flow` 8.0.1 / parser 8.0.4                       | ✗                                       | ✗                                   | ✗                                      |
-| `@babel/parser` 8.0.4 with `['flow', {all: true, enums: true}]` | ✗                                       | ✗                                   | ✗                                      |
-| `**babel-plugin-syntax-hermes-parser**`                         | ✗ unlabeled · **✓ labeled**             | **✓**                               | **✓**                                  |
-
-
-Babel's own Flow parser has simply not implemented these, at any version. The supported route is
-`babel-plugin-syntax-hermes-parser` (Hermes is Meta's Flow parser, which tracks the language).
-
-Two further findings from the same test:
-
-- The *labeled* tuple form `[a: string, b: any, c?: string]` is accepted by **both** Flow and
-Hermes; the unlabeled `[string, any, string?]` is Flow-only. Prefer the labeled form.
-
-**Suggestion:** do nothing for now. Switching the Flow front-end to `hermes-parser` touches jest,
-rollup and eslint at once, for a single optional-tuple typing win. Revisit if the team wants modern
-Flow syntax generally — at which point it is one coordinated change, not three.
-
----
-
-### 17b. `TEditor` is missing `linkedItems` and `datedTodos`
+### 17. `TEditor` is missing `linkedItems` and `datedTodos`
 
 `flow-typed/Noteplan.js`
 
@@ -188,7 +153,7 @@ same question was raised for `datedTodos` earlier in the sweep and left open.
 
 ---
 
-### 19. `TDashboardSettings` — 68 "required" properties that nothing guarantees
+### 18. `TDashboardSettings` — 68 "required" properties that nothing guarantees
 
 `jgclark.Dashboard/src/types.js:29-138`
 
@@ -201,83 +166,3 @@ The sweep added `TDashboardSettingsIn = $ReadOnly<Partial<TDashboardSettings>>` 
 which is the honest input type. The underlying question remains.
 
 **Suggestion:** audit the 68-required / 17-optional split. Most probably want to be optional.
-
----
-
-### 21. `chooseOption` / `CommandBar.showOptions` cancel contract — for @jgclark
-
-**Status (Aug 2026):** `np.CallbackURLs` was fixed locally with a file-private
-`chooseWizardOption()` wrapper around `chooseOptionWithModifiers` (see
-`np.CallbackURLs/src/NPXCallbackWizard.js`). That is enough for that plugin for now. **No change
-was made to `helpers/userInput.js` `chooseOption()` itself** — this item is for a repo-wide
-decision.
-
-#### Background
-
-`chooseOption()` (`helpers/userInput.js:52`) was written when `CommandBar.showOptions` cancel
-behaviour was less clear. Several plugins (notably `np.CallbackURLs`) were written assuming ESC
-returns `false`, matching `getInput()` / `textPrompt()` / `showForm()`:
-
-```js
-const choice = await chooseOption('How should the note open?', opts, opts[0].value)
-if (choice === false) return false   // intended cancel path — never actually ran
-```
-
-That matches how @jgclark remembers the API working at the time.
-
-#### What `chooseOption` actually does today
-
-```js
-export async function chooseOption(...) {
-  const { index } = await CommandBar.showOptions(...)
-  return options[index]?.value ?? defaultValue ?? options[0].value
-}
-```
-
-It **never returns `false`**. On ESC/cancel, one of:
-
-1. **Silent default** — if `showOptions` returns a result with a missing/invalid `index`, the
-  `?? defaultValue ?? options[0].value` chain picks the default (or first option). The user
-   thinks they cancelled; the plugin proceeds as if they chose the default.
-2. **Throw** — if `showOptions` resolves to `null` (how `getValuesForFrontmatterTag` in
-  `helpers/NPFrontMatter.js` treats cancel), destructuring throws and the caller may appear to
-   "abort" without a clean `false` return.
-
-There is **no documented guarantee** in `flow-typed/Noteplan.js` that ESC kills the plugin run.
-Templating's cancel story is built on prompt helpers returning `false` / `null`, not on runtime
-abort.
-
-#### Scale
-
-Roughly **40 call sites** use `chooseOption` across the repo. Most do not check for cancel. A few
-already type the result as `string | boolean` and treat non-string as "keep current value"
-(`helpers/NPSettings.js`) — anticipating cancel without getting it.
-
-Cancel-sensitive code tends to use `chooseOptionWithModifiers`, `textPrompt`, or `showForm`
-instead (e.g. Templating `PromptFormHandler`, TaskAutomations `getUserActionForThisTask`).
-
-#### Options for a repo-wide fix (when you want to tackle it)
-
-
-| Approach                                                   | Pros                                                              | Cons                                                                                             |
-| ---------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **A. Teach `chooseOption` to return `false` on cancel**    | One fix, matches `getInput` contract, all `=== false` checks work | ~40 callers; some relied on "ESC = default"; return type becomes `Promise<T | TDefault | false>` |
-| **B. Leave `chooseOption` as-is; document "no cancel"**    | No breaking changes                                               | Misleading for authors who expect `false`; defaults on ESC remain                                |
-| **C. Per-call-site wrappers** (what CallbackURLs does now) | Safe, incremental                                                 | Duplicated `chooseWizardOption`-style helpers                                                    |
-
-
-**Suggested cancel detection** (if A): after `showOptions`, return `false` when
-`response == null`, `index == null`, `index < 0`, or both `value` and `label` are missing.
-Apply the same rules to `chooseOptionWithModifiers` for consistency.
-
-**Do not use `false` as an option `.value`** if A is adopted — reserve `false` for the helper's
-cancel sentinel only (option values should stay strings or other domain types).
-
-#### Recommendation for now
-
-- **Defer A** until you can skim callers or accept a behaviour change (ESC stops meaning "take
-default").
-- **CallbackURLs** local wrapper is the template for any other wizard that needs cancel before
-then.
-- When you do A, CallbackURLs can drop `chooseWizardOption` and go back to plain `chooseOption`.
-

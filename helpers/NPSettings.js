@@ -110,6 +110,8 @@ export async function updateSettingType__string_(setting: any, currentValue: any
 export async function updateSettingType_stringChoices(setting: any, currentValue: any): Promise<string> {
   const choices = setting.choices.map((choice) => ({ label: choice, value: choice.trim() }))
   const newVal: string | boolean = await chooseOption(`Choose a value for '${setting.title}'`, choices, currentValue)
+  // chooseOption never returns false; non-string branch not reached on ESC (showOptions aborts plugin).
+  // For cancel-with-continue, add an explicit "Cancel" row to choices (see userInput.js showOptions contract).
   if (typeof newVal === 'string') {
     logDebug(pluginJson, `updateSettingType_string: newValue: ${newVal}`)
     return newVal

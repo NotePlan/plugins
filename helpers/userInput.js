@@ -40,9 +40,29 @@ export type Option<T> = $ReadOnly<{
   value: T,
 }>
 
+//-----------------------------------------------------------------------------
+// CommandBar.showOptions — Escape / cancel contract (plugin authors)
+//
+// `chooseOption`, `chooseOptionWithModifiers`, and `chooseDecoratedOptionWithModifiers` all await
+// `CommandBar.showOptions`.
+//
+// On Escape (observed Aug 2026): NotePlan typically ENDS the current plugin command. The promise does
+// not resolve; code after `await` does not run (no `false` return, no throw).
+//
+// This is NOT the same as `getInput()` / `textPrompt()` / `showForm()`, which can return `false` and
+// let the caller continue.
+//
+// For cancel-with-continue on a dropdown: add an explicit "Cancel" (or similar) OPTION to the list.
+// The user selects it; `showOptions` resolves and your code can branch normally. Do not rely on ESC
+// or on `if (result === false)` after these helpers — that path is a dead-end on Escape.
+//-----------------------------------------------------------------------------
+
 /**
  * Ask user to choose from a set of options (from nmn.sweep) using CommandBar
  * @author @nmn
+ *
+ * **Escape / cancel:** See the `CommandBar.showOptions` contract comment in this file. On ESC the
+ * plugin command usually aborts. For cancel-with-continue, add an explicit "Cancel" row to `options`.
  *
  * @param {string} message - text to display to user
  * @param {Array<T>} options - array of label:value options to present to the user
@@ -61,6 +81,9 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
  * Show a list of options to the user and return which option they picked, along with any modifier key pressed.
  * Optionally, allow the user to create a new item.
  * @author @dwertheimer based on @nmn chooseOption
+ *
+ * **Escape / cancel:** Same as `chooseOption` — see the `CommandBar.showOptions` contract comment in
+ * this file. For cancel-with-continue, add an explicit "Cancel" row to `options`.
  *
  * @param {string} message - text to display to user
  * @param {Array<Option<T>>} options - array of options to display
@@ -116,6 +139,9 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
  * This is a fork of chooseOptionWithModifiers(), without the <TDefault> type parameter, using the new CommandBar.showOptions() options from v3.18
  * Note: requires at least v3.18
  * @author @jgclark, @dwertheimer based on @nmn chooseOption
+ *
+ * **Escape / cancel:** Same as `chooseOption` — see the `CommandBar.showOptions` contract comment in
+ * this file. For cancel-with-continue, add an explicit "Cancel" row to `options`.
  *
  * @param {string} message - text to display to user
  * @param {Array<TCommandBarOptionObject>} options - array of options to display

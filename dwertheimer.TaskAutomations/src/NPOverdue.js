@@ -388,6 +388,7 @@ export async function getNotesToReviewForOpenTasks(
     // const DEFAULT_OPTION: Option1 = { unit: 'day', num: 0 }
     const history = await chooseOptionWithModifiers('Review Calendar Note Tasks From the Last...', OPTIONS)
     // KNOWN BUG - chooseOptionWithModifiers() resolves to {label, value, index, keyModifiers}; `num` lives on history.value, so history.num is always undefined and this cancel/opt-click check never fires. Should be `history.value.num === -1`.
+    // showOptions ESC aborts plugin — this branch not reached on Escape. For cancel-with-continue, add explicit "Cancel" row (userInput.js).
     if (!history || (history: any).num === -1) return false
     const { value, keyModifiers } = history
 

@@ -1,7 +1,10 @@
 // @flow
 
 /*
-REMEMBER: Always build a flow cancel path every time you offer a prompt
+REMEMBER: Dropdown prompts use CommandBar.showOptions (via chooseWizardOption / chooseOption).
+On Escape, NotePlan usually aborts the plugin command — code after await does not run. For
+cancel-with-continue, add an explicit "Cancel" row to the options list. getInput/textPrompt
+false branches are valid on ESC and let execution continue.
 TODO: add wizard for template variables
 TODO: new search?text=noteplan or search?filter=Upcoming
 TODO: add back button to return to previous step (@qualitativeeasing)
@@ -22,8 +25,14 @@ import { getSelectedParagraph } from '@helpers/NPParagraph'
 // https://help.noteplan.co/article/49-x-callback-url-scheme#addnote
 
 /**
- * Prompt for one of several options; return false if the user cancelled (ESC).
- * Uses chooseOptionWithModifiers so cancellation is detectable (chooseOption silently falls back to the default).
+ * Prompt for one of several options; return false if cancel is detectable.
+ *
+ * Built on `chooseOptionWithModifiers` → `CommandBar.showOptions`. On ESC the plugin command
+ * usually aborts — this function never returns. `index < 0` and catch → `false` are not reached
+ * on Escape. For cancel-with-continue, add an explicit "Cancel" row to `options` (see
+ * `helpers/userInput.js` showOptions ESC contract comment). Call-site `=== false` guards after
+ * this function share the same ESC behaviour.
+ *
  * @param {string} message
  * @param {$ReadOnlyArray<Option<T>>} options
  * @returns {Promise<T | false>}
@@ -31,10 +40,12 @@ import { getSelectedParagraph } from '@helpers/NPParagraph'
 async function chooseWizardOption<T>(message: string, options: $ReadOnlyArray<Option<T>>): Promise<T | false> {
   try {
     const pick = await chooseOptionWithModifiers(message, options, false)
+    // showOptions ESC aborts plugin — false returns below not reached on Escape
     if (!pick || pick.index == null || pick.index < 0) return false
     if (pick.value === undefined && pick.label === undefined) return false
     return (pick.value: any)
   } catch (error) {
+    // showOptions ESC aborts plugin — catch → false not reached on Escape
     logDebug(pluginJson, `chooseWizardOption cancelled: ${(error: any).message || String(error)}`)
     return false
   }
@@ -132,6 +143,7 @@ export async function getFilter(): Promise<string | false> {
     const opts = filters.map((f) => ({ label: f, value: f }))
     opts.push({ label: 'None of these; I need to make a new one', value: '__new__' })
     const chosen = await chooseWizardOption('Choose a filter', opts)
+    // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
     if (chosen === false) return false
     if (chosen === '__new__') {
       NotePlan.openURL(`noteplan://x-callback-url/search?filter=__new__`)
@@ -171,6 +183,7 @@ async function askOpenType(): Promise<'subWindow' | 'splitView' | 'reuseSplitVie
     { label: 'Open in Split View', value: 'splitView' },
   ]
   const choice = await chooseWizardOption('How should the note open?', opts)
+  // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
   if (choice === false) return false
   if (choice === '__none__') return null
   const reuse = await chooseWizardOption(
@@ -180,6 +193,7 @@ async function askOpenType(): Promise<'subWindow' | 'splitView' | 'reuseSplitVie
       { label: 'No (always open a new window/split)', value: 'no' },
     ],
   )
+  // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
   if (reuse === false) return false
   if (choice === 'subWindow') return reuse === 'yes' ? 'useExistingSubWindow' : 'subWindow'
   if (choice === 'splitView') return reuse === 'yes' ? 'reuseSplitView' : 'splitView'
@@ -199,6 +213,7 @@ async function askTimeframe(): Promise<'week' | 'month' | 'quarter' | 'year' | n
     { label: 'Year view', value: 'year' },
   ]
   const choice = await chooseWizardOption('Which calendar view?', opts)
+  // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
   if (choice === false) return false
   return choice === '__none__' ? null : choice
 }
@@ -215,6 +230,7 @@ async function askHighlight(): Promise<{ start: number, length: number } | null 
       { label: 'Yes (enter position)', value: 'yes' },
     ],
   )
+  // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
   if (wantHighlight === false) return false
   if (wantHighlight !== 'yes') return null
   const startStr = await getInput('Character index to jump to (0 = start, 9999 = end)', 'OK', 'highlightStart', '0')
@@ -235,6 +251,7 @@ async function askWhatKind(): Promise<string | false> {
     { label: 'Open a Folder', value: 'folder' },
   ]
   let choice: string | false = await chooseWizardOption('What kind of note do you want to use/open?', opts)
+  // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
   if (choice === false) return false
   if (choice === 'date') {
     const opts = [
@@ -244,6 +261,7 @@ async function askWhatKind(): Promise<string | false> {
       { label: 'yesterday (always yesterday)', value: 'yesterday' },
     ]
     choice = await chooseWizardOption('What date?', opts)
+    // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
     if (choice === false) return false
     if (choice === 'nameDate') {
       choice = await getInput('Enter a date in YYYYMMDD format (no dashes)')
@@ -267,6 +285,7 @@ async function getAddTextAdditions(): Promise<{ text: string, mode: string, open
     { label: 'Append text to the end of the note', value: 'append' },
   ]
   const mode = await chooseWizardOption('How would you like to add the text?', opts)
+  // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
   if (mode === false) return false
   const openNote = await chooseWizardOption(
     'Open the note after adding the text?',
@@ -275,6 +294,7 @@ async function getAddTextAdditions(): Promise<{ text: string, mode: string, open
       { label: 'No', value: 'no' },
     ],
   )
+  // showOptions ESC: openNote === false guard not reached; use explicit Cancel row for cancel-with-continue
   return openNote === false ? false : { text: text ? text : '', mode, openNote }
 }
 
@@ -353,6 +373,7 @@ export async function toggleSidebar(): Promise<string> {
       { label: 'Yes', value: 'yes' },
     ],
   )
+  // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
   if (forceCollapse === false) return ''
   const forceOpen = await chooseWizardOption(
     'Force sidebar to show/open?',
@@ -361,6 +382,7 @@ export async function toggleSidebar(): Promise<string> {
       { label: 'Yes', value: 'yes' },
     ],
   )
+  // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
   if (forceOpen === false) return ''
   const animated = await chooseWizardOption(
     'Animate the toggle? (Mac only)',
@@ -369,6 +391,7 @@ export async function toggleSidebar(): Promise<string> {
       { label: 'No (instant)', value: 'no' },
     ],
   )
+  // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
   if (animated === false) return ''
   const params: { [string]: string } = {}
   if (forceCollapse === 'yes') params.forceCollapse = 'yes'
@@ -526,6 +549,7 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
         { label: 'DELETE a note by title', value: 'deleteNote' },
       ]
       commandType = await chooseWizardOption(`Select a link type to create`, options)
+      // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
       if (commandType === false) {
         canceled = true
       }
@@ -622,6 +646,7 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
         op.push({ label: 'Templating <% runPlugin %> command', value: 'template' })
       }
       const urlType = await chooseWizardOption(`What type of URL do you want?`, op)
+      // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
       if (urlType === false) {
         canceled = true
       } else {

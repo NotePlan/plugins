@@ -106,26 +106,20 @@ value for `NoTasks`' `this.pointer`, and a changed Map key in `taskNoteStats`.
 
 ---
 
-## Two things the audit caught that would otherwise have shipped
+## Babel vs Flow syntax (audit note)
 
-Both are cases where **Flow 0.245 accepts syntax that Babel cannot parse**, so the file silently
-fails to transform — breaking the rollup build *and* jest.
+Flow 0.245 accepts some syntax that `@babel/preset-flow` cannot parse, so a file can pass `flow
+check` but silently fail to transform (breaking rollup and jest). Measured Aug 2026 across Babel
+7.25.9, 7.29.7, and 8.0.1:
 
-1. Optional tuple elements (`[string, any, string?]`) in `np.plugin-test/src/react/WebView.jsx`.
-2. Mapped types (`{ [K in keyof Obj]: … }`) replacing `$ObjMap` in `helpers/checkType.js` — this
-   one turned 19 test suites red before it was reverted.
+| Syntax | Babel `@babel/preset-flow` | Fix / workaround |
+| --- | --- | --- |
+| Optional tuple `[string, any, string?]` | ✗ | Use labeled tuple `[command: string, data: any, additionalDetails?: string]` (fixed in `np.plugin-test`) |
+| Mapped type `{ [K in keyof O]: … }` | ✗ | Keep `$ObjMap` in `helpers/checkType.js` (item 18b) |
+| Conditional type `T extends U ? A : B` | ✗ | Avoid or switch to `babel-plugin-syntax-hermes-parser` repo-wide |
 
-An earlier version of this document said both were "blocked on a Babel upgrade". **That was
-wrong, and it was worth checking.** Tested against `@babel/preset-flow` 7.25.9, 7.29.7 and 8.0.1,
-and `@babel/parser` 8.0.4 with every `flow` plugin option: all three syntaxes fail on all of
-them. Babel's Flow parser has not implemented them at any version.
-
-The supported route is `babel-plugin-syntax-hermes-parser`, which does parse mapped types and
-conditional types (and the *labeled* tuple form, `[a: string, b: any, c?: string]`, which Flow
-also accepts — so prefer that spelling). `$ObjMap` still parses under it too.
-
-Not recommended today: it swaps the Flow front-end for jest, rollup and eslint at once, and buys
-exactly one error (item 18b, a deprecation). Full table in item 17a.
+Hermes parser accepts all of the above. Not recommended today for mapped/conditional types alone:
+it swaps the Flow front-end for jest, rollup and eslint at once for one deprecation fix (item 18b).
 
 ---
 

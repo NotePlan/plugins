@@ -161,12 +161,9 @@ export function WebView({ data, dispatch }: Props): Node {
    * Send data back to the plugin to update the data in the plugin
    * This could cause a refresh of the Webview if the plugin sends back new data, so we want to save any passthrough data first
    * In that case, don't call this directly, use sendActionToPlugin() instead
-   * @param {[command:string,data:any,additionalDetails:string]} param0
-   * NB: the third element is optional (it has a default), so the old `[string, any, string]` tuple type rejected the
-   * 2-element call in sendActionToPlugin(). The precise type is `[string, any, string?]`, but this repo's
-   * @babel/preset-flow (7.25) cannot parse optional tuple elements, so `Array<any>` is used instead.
+   * @param {[command:string,data:any,additionalDetails?:string]} param0
    */
-  const sendToPlugin = ([command, data, additionalDetails = '']: Array<any>) => {
+  const sendToPlugin = ([command: string, data: any, additionalDetails?: string = '']) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')
