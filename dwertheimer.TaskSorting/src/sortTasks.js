@@ -137,8 +137,11 @@ async function deleteParagraphsFromNote(note: CoreNoteFields, tasksToDelete: Arr
   logDebug(pluginJson, `${functionName}: Deleting ${sortedTasks.length} tasks from note`)
 
   // Set Editor flags to avoid UI updates during bulk deletion
-  // Note: @jgclark checked in April 2026 and can't find any evidence this exists in the API
+  // Note: @jgclark checked in April 2026 and can't find any evidence this exists in the API, hence
+  // the guard. Suppressed rather than deleted so it still works if/when NotePlan adds it.
+  // $FlowIgnore[prop-missing] - not in flow-typed/Noteplan.js; the guard makes this safe
   if (Editor.beginEdits) {
+    // $FlowIgnore[not-a-function]
     Editor.beginEdits()
   }
 
@@ -151,7 +154,9 @@ async function deleteParagraphsFromNote(note: CoreNoteFields, tasksToDelete: Arr
     }
   } finally {
     // Always end edits, even if there was an error -- though see above.
+    // $FlowIgnore[prop-missing] - see the beginEdits note above
     if (Editor.endEdits) {
+      // $FlowIgnore[not-a-function]
       Editor.endEdits()
     }
   }
@@ -349,7 +354,9 @@ function insertTodos(
       due: '',
     }
     let lastSubcat = ''
-    for (const lineIndex in todos) {
+    // NB: was `for (const lineIndex in todos)`. for...in over an array yields *string* keys and
+    // would also pick up any non-index properties, so index directly instead.
+    for (let lineIndex = 0; lineIndex < todos.length; lineIndex++) {
       const shcZero = todos[lineIndex][subHeadingCategory][0] ?? `<none>`
       // logDebug(`InsertTodos: shcZero=${shcZero} typeof=${typeof shcZero} todos[lineIndex][subHeadingCategory]=${todos[lineIndex][subHeadingCategory]}`)
       const subCat =
