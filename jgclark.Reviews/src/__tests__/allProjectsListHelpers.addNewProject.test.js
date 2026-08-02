@@ -42,7 +42,7 @@ function folderFilterFingerprint(config: any): string {
   return `${include}\u0002${ignore}`
 }
 
-function makeProjectNote(filename: string, tag: string = '#project'): Note {
+function makeProjectNote(filename: string, tag: string = '#project'): TNote {
   return new Note({
     title: 'Test project',
     filename,

@@ -375,7 +375,7 @@ export function namedTagExistsInLine(blockName: string, line: string): boolean {
  * @returns a single object with the same keys and the values combined into arrays
  */
 function reduceArrayOfObjectsToSingleObject(arr: Array<{ [key: string]: any }>, propToLookAt?: ?string = null): { [key: string]: any } {
-  return arr.reduce((acc, obj) => {
+  return arr.reduce((acc: { [key: string]: any }, obj) => {
     const o = propToLookAt ? obj[propToLookAt] : obj
     Object.keys(o).forEach((key) => {
       if (acc[key]) {
