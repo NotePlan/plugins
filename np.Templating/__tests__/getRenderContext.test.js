@@ -13,7 +13,7 @@ import { CustomConsole } from '@jest/console'
 import { simpleFormatter, DataStore, NotePlan, Editor, CommandBar } from '@mocks/index'
 
 global.NotePlan = new NotePlan()
-// $FlowIgnore[prop-missing]
+// $FlowIgnore[cannot-write]
 globalThis.NotePlan = global.NotePlan
 global.DataStore = DataStore
 global.Editor = Editor

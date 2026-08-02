@@ -945,7 +945,7 @@ export function isTriggerLoop(note: TNote, minimumTimeRequiredMS: number = 2000)
   try {
     if (!note.versions || !note.versions.length) return false // no note version, so no recent update
 
-    const timeSinceLastEdit: number = Date.now() - note.versions[0].date
+    const timeSinceLastEdit: number = Date.now() - Number(note.versions[0].date)
     if (timeSinceLastEdit <= minimumTimeRequiredMS) {
       logDebug(pluginJson, `isTriggerLoop: only ${String(timeSinceLastEdit)}ms after the last document write. Stopping execution to avoid infinite loop.`)
       return true

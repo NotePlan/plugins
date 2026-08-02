@@ -1245,7 +1245,7 @@ declare class CommandBar {
 
 type CommandBarFormResult = {
   +submitted: boolean,
-  +values: object,
+  +values: TAnyObject,
 }
 
 type CalendarDateUnit = 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second'
@@ -1304,7 +1304,7 @@ declare class Calendar {
    * @param {boolean} [enabledOnly=false] - If true, returns only calendars that are enabled in NotePlan's settings. If false or omitted, returns all calendars the user has access to (including disabled ones).
    * @return {Array<string>}
    */
-  static availableCalendarTitles(writeOnly: boolean, enabledOnly: boolean): $ReadOnlyArray < string >;
+  static availableCalendarTitles(writeOnly?: boolean, enabledOnly?: boolean): $ReadOnlyArray < string >;
   /**
    * Calendar.availableCalendars()
    * Get all calendars the user has access to, returning full calendar objects with detailed information (title, color, source, etc.) instead of just titles.
@@ -1768,7 +1768,16 @@ type TTeamspaceID = string; // should be a UUID string (length 36, e.g. "275ce63
  * Ranges are used when you deal with selections or need to know where a
  * paragraph is in the complete text.
  */
-declare var Range: TRange
+// NotePlan's `Range` global shadows the DOM `Range` class. Declaring it with `declare var`
+// supplies only a *value* binding, so the *type* binding that Flow's own dom.js relies on
+// (`createRange(): Range`, `getRangeAt(index: number): Range`, …) disappears and the standard
+// library stops checking. `declare class` supplies both bindings, so dom.js stays well-formed.
+declare class Range {
+  start: number;
+  end: number;
+  +length: number;
+  static create(start: number, end: number): TRange;
+}
 declare interface TRange {
   /**
    * Character start index of the range. (Get or set.)
@@ -2055,7 +2064,9 @@ type TBacklinkFields = {
   filename: string,
   noteType: NoteType,
   linkedNoteTitles: Array<string>,
-  subItems: Array<TBacklinkFields>,
+  // The top-level entries of `.backlinks` are notes; their `subItems` are the real paragraphs
+  // that link here (possibly nested further). See getFlatListOfBacklinks() in helpers/NPnote.js.
+  subItems: Array<TSubItem>,
   // referencedBlocks: ,
   note: {},
 }
@@ -2064,6 +2075,15 @@ type TBacklinkFields = {
 type TRegularFilename = string
 type TCalendarFilename = string
 */
+
+/**
+ * One entry of [Editor|Note].versions — a snapshot from the backup database.
+ * The first entry is the current version, the second the previous one, etc.
+ */
+type TNoteVersion = {
+  +content: string,
+  +date: Date,
+}
 
 type TCoreNoteFields = CoreNoteFields
 declare interface CoreNoteFields {
@@ -2146,7 +2166,7 @@ declare interface CoreNoteFields {
    * TODO(@nmn): Please include `subItems` here
    * Note: Available from v3.2.0
    */
-  +backlinks: $ReadOnlyArray<TBacklinkNoteFields>;
+  +backlinks: $ReadOnlyArray<TBacklinkFields>;
   /**
    * [Editor|Note].publicRecordID
    * Returns the database record ID of the published note (on CloudKit). Returns null if the note is not published yet.
@@ -2169,7 +2189,7 @@ declare interface CoreNoteFields {
    * The first entry in the array is the current version and the second contains the content of the previous version, etc.
    * Note: Available from v3.7.2
    */
-  +versions: $ReadOnlyArray<string, Date>;
+  +versions: $ReadOnlyArray<TNoteVersion>;
   /**
    * [Editor|Note].frontmatterTypes
    * Get all 'type's assigned to this note in the frontmatter as an array of strings.
@@ -2924,8 +2944,11 @@ type FetchOptions = {
  */
 declare function fetch(url: string, options?: FetchOptions): Promise<string> /* do not run with await. see documentation */
 
-// Every function made available must be assigned to `globalThis`
-// This type ensures that only functions are made available as plugins
-declare var globalThis: { [string]: () => mixed, document: mixed, [string]: mixed } | null
+// NB: `globalThis` is intentionally NOT redeclared here.
+// It used to be `{ [string]: () => mixed, document: mixed, [string]: mixed } | null`, which Flow
+// rejects outright ("Multiple indexers are not supported"). Redeclaring it at all also shadows
+// the `globalThis` binding that Flow's own react.js libdef uses as a type namespace
+// (`globalThis.React.PropsOf<E>`), breaking the standard library. Flow's core lib already
+// declares `globalThis`; plugins assign their commands onto it as before.
 
 declare type TAnyObject = { [key: string]: any }

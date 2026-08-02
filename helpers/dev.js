@@ -454,7 +454,10 @@ export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string
  * @returns {Array<string>}
  * @reference https://stackoverflow.com/questions/59228638/console-log-an-object-does-not-log-the-method-added-via-prototype-in-node-js-c
  */
-export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array<string> {
+// Note: the indexer is covariant (`+`) because this only ever *reads* property names. An
+// invariant indexer would reject every concretely-typed object (e.g. a backlink), since
+// `string` is not interchangeable with `mixed` for a writable property.
+export function getAllPropertyNames(inObj: interface { +[string]: mixed }): Array<string> {
   // CRITICAL: Check for null/undefined before processing (typeof null === 'object' in JavaScript!)
   if (inObj === null || inObj === undefined) {
     return []

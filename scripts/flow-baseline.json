@@ -1,0 +1,228 @@
+{
+  "generated": "2026-08-02T00:17:37.731Z",
+  "rawTotal": 8254,
+  "byPlugin": {
+    "flow-typed": {
+      "sites": 13,
+      "raw": 13,
+      "test": 0,
+      "src": 13
+    },
+    "(flowlib)": {
+      "sites": 12,
+      "raw": 12,
+      "test": 0,
+      "src": 12
+    },
+    "KimMachineGun.Raindrop": {
+      "sites": 15,
+      "raw": 15,
+      "test": 0,
+      "src": 15
+    },
+    "__mocks__": {
+      "sites": 3,
+      "raw": 3,
+      "test": 3,
+      "src": 0
+    },
+    "aaronpoweruser.ReadwiseUnofficial": {
+      "sites": 2,
+      "raw": 2,
+      "test": 0,
+      "src": 2
+    },
+    "dbludeau.TodoistNoteplanSync": {
+      "sites": 16,
+      "raw": 17,
+      "test": 0,
+      "src": 16
+    },
+    "dwertheimer.EventAutomations": {
+      "sites": 69,
+      "raw": 191,
+      "test": 1,
+      "src": 68
+    },
+    "dwertheimer.Favorites": {
+      "sites": 8,
+      "raw": 13,
+      "test": 0,
+      "src": 8
+    },
+    "dwertheimer.Forms": {
+      "sites": 4,
+      "raw": 5,
+      "test": 0,
+      "src": 4
+    },
+    "dwertheimer.JestHelpers": {
+      "sites": 7,
+      "raw": 7,
+      "test": 0,
+      "src": 7
+    },
+    "dwertheimer.MathSolver": {
+      "sites": 7,
+      "raw": 20,
+      "test": 0,
+      "src": 7
+    },
+    "dwertheimer.TaskAutomations": {
+      "sites": 97,
+      "raw": 112,
+      "test": 0,
+      "src": 97
+    },
+    "dwertheimer.TaskSorting": {
+      "sites": 52,
+      "raw": 71,
+      "test": 0,
+      "src": 52
+    },
+    "dwertheimer.test-plugin-scratch": {
+      "sites": 9,
+      "raw": 13,
+      "test": 0,
+      "src": 9
+    },
+    "helpers": {
+      "sites": 99,
+      "raw": 134,
+      "test": 1,
+      "src": 98
+    },
+    "jgclark.Dashboard": {
+      "sites": 207,
+      "raw": 5550,
+      "test": 57,
+      "src": 150
+    },
+    "jgclark.EventHelpers": {
+      "sites": 6,
+      "raw": 6,
+      "test": 1,
+      "src": 5
+    },
+    "jgclark.Filer": {
+      "sites": 5,
+      "raw": 5,
+      "test": 0,
+      "src": 5
+    },
+    "jgclark.MOCs": {
+      "sites": 3,
+      "raw": 4,
+      "test": 0,
+      "src": 3
+    },
+    "jgclark.NoteHelpers": {
+      "sites": 6,
+      "raw": 6,
+      "test": 0,
+      "src": 6
+    },
+    "jgclark.PeriodicReviews": {
+      "sites": 4,
+      "raw": 4,
+      "test": 0,
+      "src": 4
+    },
+    "jgclark.RepeatExtensions": {
+      "sites": 2,
+      "raw": 2,
+      "test": 0,
+      "src": 2
+    },
+    "jgclark.Reviews": {
+      "sites": 50,
+      "raw": 1164,
+      "test": 41,
+      "src": 9
+    },
+    "jgclark.SearchExtensions": {
+      "sites": 5,
+      "raw": 7,
+      "test": 1,
+      "src": 4
+    },
+    "jgclark.Summaries": {
+      "sites": 11,
+      "raw": 12,
+      "test": 0,
+      "src": 11
+    },
+    "m1well.Expenses": {
+      "sites": 2,
+      "raw": 2,
+      "test": 0,
+      "src": 2
+    },
+    "np.CallbackURLs": {
+      "sites": 56,
+      "raw": 68,
+      "test": 0,
+      "src": 56
+    },
+    "np.MeetingNotes": {
+      "sites": 4,
+      "raw": 6,
+      "test": 0,
+      "src": 4
+    },
+    "np.Preview": {
+      "sites": 2,
+      "raw": 2,
+      "test": 0,
+      "src": 2
+    },
+    "np.Templating": {
+      "sites": 420,
+      "raw": 634,
+      "test": 360,
+      "src": 60
+    },
+    "np.ThemeChooser": {
+      "sites": 12,
+      "raw": 13,
+      "test": 0,
+      "src": 12
+    },
+    "np.Tidy": {
+      "sites": 3,
+      "raw": 5,
+      "test": 0,
+      "src": 3
+    },
+    "np.WeatherLookup": {
+      "sites": 11,
+      "raw": 14,
+      "test": 0,
+      "src": 11
+    },
+    "np.plugin-test": {
+      "sites": 18,
+      "raw": 25,
+      "test": 0,
+      "src": 18
+    },
+    "np.statistics": {
+      "sites": 2,
+      "raw": 3,
+      "test": 0,
+      "src": 2
+    },
+    "scripts": {
+      "sites": 22,
+      "raw": 31,
+      "test": 22,
+      "src": 0
+    },
+    "shared.AI": {
+      "sites": 50,
+      "raw": 63,
+      "test": 0,
+      "src": 50
+    }
+  }
+}
