@@ -97,7 +97,7 @@ class ConfettiCannon {
       y: window.innerHeight * 2,
     }]
 
-    this.pointer = { x: 0, y: 0 }
+    this.pointer = ({}: any)
 
     // bind methods
     // Note: cast because Flow treats class methods as non-writable and complains about reading

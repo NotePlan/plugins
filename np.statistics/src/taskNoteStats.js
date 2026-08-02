@@ -82,7 +82,7 @@ export async function showTaskCountForAll(): Promise<void> {
     cancelledTasksTotal += countParagraphsOfType(["cancelled"])
     // following is not quite the same as future. TODO: make future
     scheduledTasksTotal += countParagraphsOfType(["scheduled"])
-    if (openTasksForNote > 0) { open.set(n.title ?? n.filename, openTasksForNote) }
+    if (openTasksForNote > 0) { open.set((n.title: any), openTasksForNote) }
 
     openChecklistsTotal += countParagraphsOfType(["checklist"]) // doesn't include scheduled
     doneChecklistsTotal += countParagraphsOfType(["checklistDone"])

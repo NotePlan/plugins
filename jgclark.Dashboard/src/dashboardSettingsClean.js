@@ -154,7 +154,7 @@ export function removeInvalidTagSections(settingsIn: TDashboardSettingsIn): TAny
     return result
   } catch (error) {
     logError('removeInvalidTagSections', `Error: ${error.message}. Returning original settings.`)
-    return { ...settingsIn }
+    return (settingsIn: any)
   }
 }
 
