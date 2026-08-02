@@ -7,6 +7,16 @@ type Props = {
   data: any /* passed in from the plugin as globalSharedData */,
   dispatch: Function,
 }
+
+/**
+ * One row of the overdue-tasks table.
+ * `data` arrives from the plugin as globalSharedData and is typed `any`, so rows genuinely carry
+ * no static shape here. This alias names the intent rather than pretending to a precision the
+ * data doesn't have — if the plugin side ever exports a row type, point this at it.
+ */
+type TableRow = TAnyObject
+/** A row's identifier, as stored on the row objects the plugin sends. */
+type RowID = string | number
 /****************************************************************************************************************************
  *                             NOTES
  * WebView should act as a "controlled component", as far as the data from the plugin is concerned.
@@ -92,7 +102,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * Send data back to the plugin to update the data in the plugin
    * @param {[command:string,data:any,additionalDetails:string]} param0
    */
-  const sendToPlugin = ([command, data, additionalDetails = '']) => {
+  const sendToPlugin = ([command, data, additionalDetails = '']: [string, any, string]) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     logDebug(`Webview: sendToPlugin: command:${JSON.stringify(command)} details:${additionalDetails} data:${JSON.stringify(data)}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')
@@ -129,7 +139,7 @@ export function WebView({ data, dispatch }: Props): Node {
   /**
    * Set a row's .highlight to true
    */
-  const highlightRow = (rowID, shouldHideAfter) => {
+  const highlightRow = (rowID: RowID, shouldHideAfter: boolean) => {
     logDebug(`Webview: highlightRow ${rowID}; shouldHideAfter=${String(shouldHideAfter)} ${shouldHideAfter ? '(set to Processed & hiding)' : ''}`)
     shouldHideAfter ? updateTableData({ id: rowID, overdueStatus: 'Processed' }) : ''
     // updateTableData({ id: rowID, highlight: true })
@@ -145,7 +155,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {*} data
    * @returns
    */
-  const addPassthroughVars = (data) => {
+  const addPassthroughVars = (data: TAnyObject) => {
     const newData = { ...data }
     newData.lastWindowScrollTop = window.scrollY
     newData.startingFilter = filterValue.current
@@ -216,7 +226,7 @@ export function WebView({ data, dispatch }: Props): Node {
   /**
    * Some actions should not hide the row after the action is processed (e.g. updating priority)
    */
-  const shouldHideAfter = React.useCallback((action) => {
+  const shouldHideAfter = React.useCallback((action: string) => {
     if (/__p\d__/.test(action)) {
       return false
     }
@@ -231,7 +241,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {milliseconds|false} omitAfter - whether to omit the rows from view afterwards (false = don't omit, a number = omit after that many milliseconds)
    */
   const highlightAndSend = React.useCallback(
-    (rowIDs, action, objectToSend, omitAfter? = null) => {
+    (rowIDs: Array<RowID>, action: string, objectToSend: TAnyObject, omitAfter?: ?number = null) => {
       logDebug(`Webview: highlightAndSend rowIds:${rowIDs.toString()} action:${action} omitAfter:${String(omitAfter)} objectToSend=${JSON.stringify(objectToSend)}`)
       rowIDs.forEach((rowID) => highlightRow(rowID, shouldHideAfter(objectToSend.choice))) // highlight the rows immediately
       // do now
@@ -252,7 +262,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {number} rowID
    * @param {{label:string,value:string}} dropdownSelected
    */
-  const onDropdownItemSelected = React.useCallback((rowID, itemSelected) => {
+  const onDropdownItemSelected = React.useCallback((rowID: RowID, itemSelected: TAnyObject) => {
     logDebug(`Webview: onDropdownItemSelected: row:${rowID} itemSelected: ${JSON.stringify(itemSelected)}`)
     if (isNaN(rowID)) throw new Error(`rowID is not a number: ${rowID} (${typeof rowID})`)
     if (!itemSelected.value) throw new Error(`itemSelected.value is not defined: ${itemSelected.value} (${typeof itemSelected.value})`)
@@ -265,13 +275,15 @@ export function WebView({ data, dispatch }: Props): Node {
   })
 
   // Get the selected rows or a single row if it's just a click-expanded row
-  const getSelectedItems = React.useCallback((isMulti = true) => data.overdueParas.filter((r) => (isMulti ? r.isSelected && !r.omit : r.isExpanded)), [data])
+  const getSelectedItems = React.useCallback((isMulti: boolean = true) => data.overdueParas.filter((r) => (isMulti ? r.isSelected && !r.omit : r.isExpanded)), [data])
 
   /**
    * A multi-row Context Action was selected (either a button click or a dropdown selection)
    */
   const multiSetHandler = React.useCallback(
-    (event, info) => {
+    // `event` is either a dropdown-selection object (has .label) or a button-id string, so it is
+    // genuinely untyped here — both shapes are read below.
+    (event: any, info: TAnyObject) => {
       logDebug(`Webview: multiSetHandler event=${JSON.stringify(event)} info=${JSON.stringify(info || {})}`, event)
       const isDateSelect = event?.label?.length > 0
       const buttonType = /(.*?)-button/.exec(event)?.[1]
@@ -309,14 +321,14 @@ export function WebView({ data, dispatch }: Props): Node {
     logDebug(`Webview: EFFECT data.overdueParas changed`, data.overdueParas)
   }, [data])
 
-  const hideRow = (row) => {
+  const hideRow = (row: TableRow) => {
     logDebug(`Webview: hideRow rowID=${row.id}`)
     updateTableData([{ id: row.id, omit: true }])
   }
 
   // you can send the columns you want in the props, or use the default columns below
 
-  const rescheduleComponent = ({ row }) => (
+  const rescheduleComponent = ({ row }: { row: TableRow }) => (
     <ThemedSelect options={dropdownOptionsLine} onSelect={(e) => onDropdownItemSelected} id="multi" onChange={() => logDebug(`Webview: onchange multi`)} />
   )
 
@@ -327,7 +339,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {any} valuesToChange - an object of rows and fields to change
    */
   const getUpdatedRowData = React.useCallback(
-    (rowID, valuesToChange: { [string]: mixed }) => {
+    (rowID: RowID, valuesToChange: { [string]: mixed }) => {
       if (isNaN(rowID)) return data.overdueParas
       logDebug(`Webview: getUpdatedRowData ${data.overdueParas[0].omit} ${data.overdueParas[1].omit} ${data.overdueParas[2].omit} ${data.overdueParas[3].omit}`)
       return data.overdueParas.map((item) => {
@@ -373,7 +385,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {*} delay - delay in ms before writing to table and sending to NotePlan
    */
   const handleTaskStatusChange = React.useCallback(
-    (rowID, newStatus, highlight = false, delay = 500) => {
+    (rowID: RowID, newStatus: string, highlight: boolean = false, delay: number = 500) => {
       if (typeof rowID === 'number' && newStatus && data.overdueParas[rowID].type !== newStatus) {
         logDebug(`Webview: WebView::handleTaskStatusChange rowID=${rowID}, newStatus=${newStatus} highlight=${String(highlight)} delay=${delay}`, newStatus)
         // const dataWithOmittedRow = data.overdueParas.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus, omit: true, highlight: false }))
@@ -402,7 +414,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {*} text
    * @returns
    */
-  function decodeHTMLEntities(text) {
+  function decodeHTMLEntities(text: string) {
     const textArea = document.createElement('textarea')
     textArea.innerHTML = text
     const decoded = textArea.value
@@ -420,7 +432,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * Update edited content field - this comes from the field itself
    */
   const handleEditableContentChange = React.useCallback(
-    ({ id, field, value }) => {
+    ({ id, field, value }: { id: RowID, field: string, value: any }) => {
       // updateTableData([{ id, [field]: decodeHTMLEntities(value) }])
       const decodedValue = decodeHTMLEntities(value)
       logDebug(`Webview: contentUpdated (actual edited paragraph.onInput) id=${id}, field=${field}, value=${decodedValue}`)
@@ -436,7 +448,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * The wrapper got a change event. Not sure we need this one, but TBD
    * @param {*} value - is the field value of the edited cell, but we need more info
    */
-  const handleEditableWrapperChange = (value) => {
+  const handleEditableWrapperChange = (value: any) => {
     logDebug(`Webview: handleEditableWrapperChange (EditableElement onChange) value=${JSON.stringify(value)}`)
     // setValue(value);
   }
@@ -444,7 +456,7 @@ export function WebView({ data, dispatch }: Props): Node {
   //FIXME: i am here. expanded component does not work
 
   // Wnen the user clicks the down arrow, this component is rendered
-  const ExpandedComponent = ({ data: row, handler }) => {
+  const ExpandedComponent = ({ data: row, handler }: { data: TableRow, handler: Function }) => {
     logDebug(`Webview: ExpandedComponent row=${JSON.stringify(row, null, 2)}`)
     return (
       <div className="expanded-row">
@@ -483,13 +495,13 @@ export function WebView({ data, dispatch }: Props): Node {
   /****************************************************************************************************************************
    *                             TYPE FILTER
    ****************************************************************************************************************************/
-  const handleTypeFilterChange = React.useCallback(({ value }) => {
+  const handleTypeFilterChange = React.useCallback(({ value }: { value: any }) => {
     logDebug(`WebView:handleTypeFilterChange: ${value}`)
     filterValue ? (filterValue.current = value) : logDebug(`WARNING: WebView:handleTypeFilterChange: filterValue is undefined`)
     setFilter(value)
   }, [])
   // Filter callback for filtering items based on current filterValue
-  function rowFilter(row) {
+  function rowFilter(row: TableRow) {
     if (filterValue.current === 'All') {
       return true
     }
@@ -515,7 +527,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {Array} selectedRows
    */
   const updateSelectedItems = React.useCallback(
-    (selectedRows) => {
+    (selectedRows: Array<TableRow>) => {
       if (selectedRows !== undefined) {
         // check if this has already been done (to avoid infinite loop in React Render)
         let madeChanges = false
@@ -549,7 +561,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * Using this useRef to guard against that. It's weird though. Wish I understood why this is happening.
    * @param {Array} selectedRows
    */
-  const onSelectionCheck = React.useCallback(({ allSelected, selectedCount, selectedRows }) => {
+  const onSelectionCheck = React.useCallback(({ allSelected, selectedCount, selectedRows }: { allSelected: boolean, selectedCount: number, selectedRows: Array<TableRow> }) => {
     if (selectedCount === 0 && justSelectedRows.current === false) {
       // logDebug(`Webview: Guarding against this ghost call...selectedCountZero ${allSelected} ${selectedCount} ${selectedRows}`, selectedRows)
       justSelectedRows.current = true
@@ -567,7 +579,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {Array} selectedRows
    */
   const onRowSingleClick = React.useCallback(
-    (row) => {
+    (row: TableRow) => {
       logDebug(`Webview: onRowSingleClick row`, row)
       // const newData = data.overdueParas.map((item) => ({ ...item, isSelected: row.id === item.id ? !item.isSelected : item.isSelected }))
       // only allow one expanded at a time
@@ -585,7 +597,7 @@ export function WebView({ data, dispatch }: Props): Node {
     [data],
   )
 
-  const onRowDoubleClick = (row, event) => {
+  const onRowDoubleClick = (row: TableRow, event: TAnyObject) => {
     logDebug(`Webview: onRowDoubleClick -- for now doing nothing, just expanding`, row, event)
   }
 
@@ -593,7 +605,7 @@ export function WebView({ data, dispatch }: Props): Node {
     Selects
     NOTE: menuPortalTarget={document.body} is required to get the dropdown to expand outside of the div
    */
-  const SelectDateForMultiple = (handler) => {
+  const SelectDateForMultiple = (handler: Function) => {
     return (
       <ThemedSelect
         options={dropdownOptionsAll}
@@ -608,8 +620,8 @@ export function WebView({ data, dispatch }: Props): Node {
 
   const SelectDateForSingle = <ThemedSelect options={dropdownOptionsLine} onSelect={onDropdownItemSelected} onChange={onDropdownItemSelected} />
 
-  const keyListener = React.useCallback((event) => {
-    const handleKeyDown = (event) => {
+  const keyListener = React.useCallback((event: TAnyObject) => {
+    const handleKeyDown = (event: TAnyObject) => {
       const { key, metaKey, altKey, ctrlKey, shiftKey } = event
       console.log('WebView: keydown event', event)
       if (event.key === 'Escape') {
@@ -639,7 +651,7 @@ export function WebView({ data, dispatch }: Props): Node {
     ...columnSpec({ handleTaskStatusChange, hideRow, showDaysTilDueColumn }),
     {
       name: 'Action',
-      cell: (row) =>
+      cell: (row: TableRow) =>
         row.isSelected ? '' : <ThemedSelect options={dropdownOptionsLine} onSelect={(e) => onDropdownItemSelected} onChange={(e) => onDropdownItemSelected(row.id, e)} />,
       allowOverflow: true,
       grow: 2,
