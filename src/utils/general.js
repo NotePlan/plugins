@@ -28,7 +28,6 @@ module.exports = {
     const response = await fetch(URL)
 
     if (response != null) {
-      //$FlowIgnore[incompatible-call]
       const data = JSON.parse(response)[0]
       const quoteLine = `${data.q} - *${data.a}*`
       console.log(`\t${quoteLine}`)

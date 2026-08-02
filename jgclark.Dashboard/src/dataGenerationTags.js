@@ -111,7 +111,6 @@ export async function getTaggedSectionData(
             })
           }
           logTimer('getTaggedSectionData', thisStartTime, `- from CACHE found ${notesWithTag.length} notes with ${thisTag}`)
-          // $FlowIgnore[unsafe-arithmetic]
           // cacheLookupTime = new Date() - cachedOperationStartTime
           source = turnOnAPIComparison ? 'using CACHE + API' : 'using just CACHE'
         } else {
@@ -119,7 +118,6 @@ export async function getTaggedSectionData(
           logDebug('getTaggedSectionData', `- using API only for ${thisTag}`)
           // Note: this is slow (1-3ms per note, so 3-9s for 3250 notes).
           notesWithTag = findNotesMatchingHashtagOrMention(thisTag, true, true, true, [], WANTED_PARA_TYPES, '', false, true)
-          // $FlowIgnore[unsafe-arithmetic]
           // const APILookupTime = new Date() - thisStartTime
           logTimer('getTaggedSectionData', thisStartTime, `- from API only found ${notesWithTag.length} notes with ${thisTag}`)
           source = 'using API'
@@ -239,7 +237,6 @@ export async function getTaggedSectionData(
 
           for (const p of sortedTagParas) {
             const thisID = `${sectionID}-${itemCount}`
-            // $FlowIgnore[incompatible-call]
             items.push(createSectionItemObject(thisID, thisSectionCode, p))
             itemCount++
           }

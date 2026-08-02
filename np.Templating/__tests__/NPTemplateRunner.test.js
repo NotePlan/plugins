@@ -213,9 +213,7 @@ describe('NPTemplateRunner', () => {
     NPnote.getOrMakeCalendarNote.mockResolvedValue(mockNote)
     // $FlowFixMe - Mock functions
     NPnote.chooseNoteV2.mockResolvedValue({ title: 'Chosen Note' })
-    // $FlowFixMe - Mock functions
     const userInput = require('@helpers/userInput')
-    // $FlowFixMe[prop-missing] - Mock function
     ;(userInput.chooseHeading: any).mockResolvedValue('Test Heading')
 
     const NPdateTime = require('@helpers/NPdateTime')
@@ -931,7 +929,6 @@ describe('NPTemplateRunner', () => {
     })
 
     test('should handle replaceHeading option', async () => {
-      // $FlowFixMe - Mock functions
       const NPParagraph = require('@helpers/NPParagraph')
       // $FlowFixMe - Mock function
       NPParagraph.findHeading.mockReturnValue({

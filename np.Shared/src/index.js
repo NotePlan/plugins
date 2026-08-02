@@ -70,7 +70,6 @@ export async function checkForWantedResources(pluginID: string, filesToCheck?: A
     // We want to check, so read this plugin's requiredSharedFiles
     const livePluginJson = await getPluginJson(pluginID)
     const requiredSharedFiles = livePluginJson['plugin.requiredSharedFiles'] ?? []
-    // $FlowFixMe
     logDebug(`${pluginID}/init/checkForWantedResources`, `plugin np.Shared is loaded 😄 and provides ${String(requiredSharedFiles.length)} files:`)
 
     // Double-check that the requiredSharedFiles can be accessed

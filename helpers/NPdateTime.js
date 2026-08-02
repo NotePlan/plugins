@@ -853,9 +853,7 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
       // Note: In some environments the Calendar API can return non-Date objects (e.g. {}) during early startup / WebView contexts.
       // In WebView, startOfWeek/endOfWeek often return Thenables (Promises) that sync code cannot await.
       // Treat both as equivalent to Calendar being unavailable and fall back to moment-based week boundaries.
-      // $FlowIgnore[incompatible-type]
       startDate = Calendar.startOfWeek(date)
-      // $FlowIgnore[incompatible-type]
       endDate = Calendar.endOfWeek(date)
       const startIsThenable = isThenable(startDate)
       const endIsThenable = isThenable(endDate)
@@ -1215,7 +1213,6 @@ export function getRelativeDates(useISODailyDates: boolean = false): Array<Relat
     // Weeks
     // Note: can't start with moment as NP weeks count differently
     const addRelativeWeek = (relName: string, offset: number = 0): void => {
-      // $FlowIgnore[incompatible-type]
       const thisNPWeekInfo: ?NotePlanWeekInfo = getNPWeekData(new Date(), offset)
       if (!thisNPWeekInfo || !thisNPWeekInfo.weekString) {
         logWarn('NPdateTime::getRelativeDates', `Couldn't calculate '${relName}' (offset=${String(offset)}), skipping`)
@@ -1600,9 +1597,7 @@ export function formatNPWeek(date: Date): string {
   // Use NotePlan's Calendar API when available (respects user's week start preference)
   if (typeof Calendar !== 'undefined' && Calendar && typeof Calendar.weekNumber === 'function') {
     const weekNumber = Calendar.weekNumber(date)
-    // $FlowIgnore[incompatible-type]
     const startDate = Calendar.startOfWeek(date)
-    // $FlowIgnore[incompatible-type]
     const endDate = Calendar.endOfWeek(date)
     const startIsThenable = isThenable(startDate)
     const endIsThenable = isThenable(endDate)

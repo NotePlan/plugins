@@ -134,7 +134,6 @@ export async function getRemindersGeneratedData(
     // Form fields for the heading add-Reminder button (CommandButton -> showDialog)
     const reminderFormFields: Array<TSettingItem> = [
       { type: 'input', label: 'Reminder:', key: 'text', focus: true },
-      // $FlowIgnore[incompatible-type]
       {
         type: 'dropdown-select',
         label: 'Reminder List:',

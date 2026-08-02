@@ -186,7 +186,6 @@ const OrderingPanel = ({
         e.dataTransfer.setDragImage(dragImage, 0, 0)
         setTimeout(() => {
           if (document.body && dragImage.parentNode) {
-            // $FlowIgnore[incompatible-use]
             document.body.removeChild(dragImage)
           }
         }, 0)

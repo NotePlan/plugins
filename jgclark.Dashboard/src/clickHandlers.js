@@ -880,7 +880,6 @@ function getEnabledSectionCodesAmongCalendarVisibilityRefreshList(mergedSettings
   return SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS.filter((code) => {
     const detail = allSectionDetails.find((s) => s.sectionCode === code)
     if (!detail?.showSettingName) return false
-    // $FlowIgnore[invalid-computed-prop]
     return mergedSettings[detail.showSettingName] !== false
   })
 }
@@ -898,7 +897,6 @@ function getNewlyEnabledCalendarSectionCodes(diffKeys: Array<string>, nextMerged
   for (const key of diffKeys) {
     const detail = allSectionDetails.find((d) => d.showSettingName === key)
     if (!detail || !allCalendarSectionCodes.includes(detail.sectionCode)) continue
-    // $FlowIgnore[invalid-computed-prop]
     if (nextMerged[key]) {
       codes.push(detail.sectionCode)
     }
@@ -969,8 +967,6 @@ function planSectionRefreshAfterDashboardSettingsChange(
   // $FlowIgnore[prop-missing]
   // $FlowIgnore[cannot-spread-indexer]
   const prevMerged: { [string]: any } = { ...defaults, ...priorDashboardSettingsSnapshot }
-  // $FlowIgnore[prop-missing]
-  // $FlowIgnore[cannot-spread-indexer]
   const nextMerged: { [string]: any } = { ...defaults, ...(settingsToSave || {}) }
   const oldTheme = String(prevMerged.dashboardTheme ?? '')
   const newTheme = String(nextMerged.dashboardTheme ?? '')

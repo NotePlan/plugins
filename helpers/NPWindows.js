@@ -908,7 +908,6 @@ export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: numbe
  * @param {EditorWinDetails | HTMLWinDetails} winDetails
  * @returns {EditorWinDetails | HTMLWinDetails} constrained winDetails
  */
-// $FlowFixMe[incompatible-return]
 // export function constrainWindowSizeAndPosition(winDetails: EditorWinDetails | HTMLWinDetails): EditorWinDetails | HTMLWinDetails {
 export function constrainWindowSizeAndPosition<T: { x: number, y: number, width: number, height: number, ... }>(winDetails: T): T {
   try {

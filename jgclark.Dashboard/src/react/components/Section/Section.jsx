@@ -172,7 +172,6 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
       if (section.sectionCode === 'TB') {
         if (!isTBSectionVisibleInSettings(dashboardSettings)) return
       } else {
-        // $FlowIgnore[invalid-computed-prop]
         if ((dashboardSettings: TAnyObject)[section.showSettingName] === false) return
       }
     }
@@ -418,7 +417,6 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   // FIXME: this is getting called 3 times per section, once for each of the 3 sections in the Dashboard (TB, TAG, PROJREVIEW/PROJACT)
   // FIXME: this is also getting called another set of times after lastUpdated: "UPDATE_DATA Setting firstRun to false after force initial load"
 
-  // $FlowIgnore[invalid-computed-prop]
   let hideSection =
     !items.length ||
     (section.sectionCode === 'TB'
@@ -678,7 +676,6 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
 
 // Memoize Section component to prevent re-renders when props haven't changed
 // This helps prevent cascading re-renders when pluginData changes but section prop is the same
-// $FlowFixMe[incompatible-type]
 const MemoizedSection = (React.memo(Section, (prevProps: SectionProps, nextProps: SectionProps): boolean => {
   // Only re-render if the section object reference changed
   // Note: This won't prevent re-renders from context changes, but will prevent prop-based re-renders

@@ -64,11 +64,8 @@ export function FormBrowserView({
   useEffect(() => {
     const handleResponse = (event: MessageEvent) => {
       const { data: eventData } = event
-      // $FlowFixMe[incompatible-type] - eventData can be various types
       if (eventData && typeof eventData === 'object' && eventData.type === 'RESPONSE' && eventData.payload) {
-        // $FlowFixMe[prop-missing] - payload structure is validated above
         const payload = eventData.payload
-        // $FlowFixMe[prop-missing] - payload structure is validated above
         if (payload && typeof payload === 'object') {
           const correlationId = (payload: any).correlationId
           const success = (payload: any).success

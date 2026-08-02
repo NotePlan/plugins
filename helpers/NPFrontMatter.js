@@ -1071,7 +1071,6 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       }
       logDebug('updateFrontMatterVars', `normalizedValue for key: ${canonicalKey} = ${normalizedValue}`)
 
-      // $FlowIgnore
       normalizedNewAttributes[canonicalKey] = normalizedValue
     })
 
@@ -1094,7 +1093,6 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
 
     // Update existing attributes -- just replace the text in the paragraph
     keysToUpdate.forEach((key: string) => {
-      // $FlowIgnore
       const attributeLine = `${key}: ${normalizedNewAttributes[key]}`
       const keyPrefixRe = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:`, 'i')
       const paragraph = note.paragraphs.find((para) => keyPrefixRe.test(para.content))
@@ -1110,7 +1108,6 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
 
     // Add new attributes to the end of the frontmatter
     keysToAdd.forEach((key) => {
-      // $FlowIgnore
       const newAttributeLine = `${key}: ${normalizedNewAttributes[key]}`
       // Insert before the closing '---'
       // clo(note.paragraphs, `updateFrontMatterVars: note.paragraphs`)

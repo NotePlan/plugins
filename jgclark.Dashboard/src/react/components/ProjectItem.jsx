@@ -101,7 +101,6 @@ function ProjectItem({ item, thisSection }: Props): Node {
         {/* {isFromTeamspace && teamspaceName}
         {folderNamePart && <span className="folderName">{folderNamePart}</span>}
         {item.project && (
-          // $FlowFixMe[incompatible-type] - TProjectForDashboard extends TNoteForDashboard, so this is safe
           <NoteTitleLink
             item={item}
             noteData={item.project}

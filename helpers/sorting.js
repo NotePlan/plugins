@@ -298,6 +298,5 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
 
   // logDebug('getTasksByType', `\tgetTasksByType Open Tasks:${String(tasks.open.length)} returning from getTasksByType`)
   // logDebug('getTasksByType', `\tgetTasksByType Open Checklists:${String(tasks.checklist.length)} returning from getTasksByType`)
-  // $FlowFixMe - Flow doesn't like that I am ensuring that all the keys are in the object using reduce above
   return tasks
 }

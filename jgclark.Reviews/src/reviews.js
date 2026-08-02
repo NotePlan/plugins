@@ -823,7 +823,6 @@ async function finishReviewCoreLogic(note: CoreNoteFields, scrollPos: number = 0
         }
         clearNextReviewFrontmatterField(note)
         updateBodyMetadataInNote(note, [reviewedTodayString])
-        // $FlowIgnore[prop-missing]
         DataStore.updateCache(note, true)
         return
       }
@@ -861,7 +860,6 @@ async function finishReviewCoreLogic(note: CoreNoteFields, scrollPos: number = 0
       clearNextReviewFrontmatterField(note)
       // Update @review(date) on the note
       updateBodyMetadataInNote(note, [reviewedTodayString])
-      // $FlowIgnore[prop-missing]
       DataStore.updateCache(note, true)
     }
 

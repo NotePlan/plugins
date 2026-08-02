@@ -111,7 +111,6 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
   useLayoutEffect(() => {
     // logDebug(`DialogForProjectItems`, `BEFORE POSITION detailsMessageObject`, detailsMessageObject)
-    // $FlowIgnore[incompatible-call]
     if (dialogRef) positionDialog(dialogRef)
     // logDebug(`DialogForProjectItems`, `AFTER POSITION detailsMessageObject`, detailsMessageObject)
   }, [])

@@ -448,7 +448,6 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
       // Ask user to choose or create a new template
       const createNew = await CommandBar.showOptions(['Create New Form', 'Edit Existing Form'], 'Form Builder', 'Choose an option')
       clo(createNew, `openFormBuilder: User selected option`)
-      // $FlowFixMe[incompatible-type] - showOptions returns number index
       if (createNew.value === 'Create New Form' || createNew.index === 0) {
         logDebug(pluginJson, `openFormBuilder: User chose to create new template`)
         // Create new template
@@ -650,7 +649,6 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
             logWarn(pluginJson, `openFormBuilder: [STEP 6] WARNING - receivingTemplateTitle was set to "${receivingTemplateTitle}" but not found in reloaded note frontmatter!`)
           }
         }
-        // $FlowFixMe[incompatible-type] - showOptions returns number index
       } else if (createNew.index === 1 || createNew.value === 'Edit Existing Form') {
         logDebug(pluginJson, `openFormBuilder: User chose to edit existing form`)
 

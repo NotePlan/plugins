@@ -110,7 +110,6 @@ async function getPopulatedTimeMapForToday(dateStr: string, intervalMins: number
   }
   const blankDayMap = getBlankDayMap(parseInt(intervalMins))
 
-  // $FlowFixMe - [prop-missing] and [incompatible-variance]
   const eventMap = blockOutEvents(eventsScheduledForToday, blankDayMap, config)
   return eventMap
 }
@@ -188,7 +187,6 @@ export async function DELETEMEcreateTimeBlocksForTodaysTasks(config: AutoTimeBlo
     if (openOrScheduledForToday) {
       const sortedTodos = openOrScheduledForToday.length ? sortListBy(openOrScheduledForToday, '-priority') : []
       logDebug(pluginJson, `After sortListBy, ${sortedTodos.length} open items  Editor.paras=${Editor.paragraphs.length}`)
-      // $FlowIgnore
       if (timeBlockTag?.length) {
         logDebug(pluginJson, `timeBlockTag: ("${timeBlockTag}"), Editor.paras=${Editor.paragraphs.length}`)
       } else {

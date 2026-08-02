@@ -183,7 +183,6 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
         // dedupe results by making and unmaking it into a set
         let uniqNotes = resultNotes.filter((noteToUse, index, self) =>
           index === self.findIndex((t) => (
-            // $FlowFixMe[incompatible-use]
             t.filename === noteToUse.filename
           ))
         )
@@ -197,11 +196,9 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
             uniqNotes.sort((a, b) => (displayTitle(a).toUpperCase() < displayTitle(b).toUpperCase() ? -1 : 1))
             break
           case 'createdDate':
-            // $FlowFixMe[incompatible-use]
             uniqNotes.sort((a, b) => (a.createdDate > b.createdDate ? -1 : 1))
             break
           default: // updatedDate
-            // $FlowFixMe[incompatible-use]
             uniqNotes.sort((a, b) => (a.changedDate > b.changedDate ? -1 : 1))
             break
         }

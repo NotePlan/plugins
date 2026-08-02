@@ -59,8 +59,6 @@ export function convertNoteToOption(note: TNote, overrideType?: ?string, include
   if (includeDecoration) {
     try {
       // Use the shared helper that works with both TNote and NoteOption
-      // $FlowFixMe[incompatible-call] - NoteOption is compatible with the union type TNote | NoteOption (both have filename, type, frontmatterAttributes)
-      // $FlowFixMe[prop-missing] - NoteOption doesn't need all TNote properties for decoration
       const decoration = getNoteDecorationForReact((option: any))
       if (decoration && decoration.icon && decoration.color) {
         option.decoration = {

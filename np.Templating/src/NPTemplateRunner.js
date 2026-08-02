@@ -70,7 +70,6 @@ export async function replaceNoteContents(note: CoreNoteFields, renderedTemplate
  */
 export async function handleHeadingSelection(note: CoreNoteFields, writeUnderHeading: string): Promise<string> {
   if (/<choose>/i.test(writeUnderHeading) || /<select>/i.test(writeUnderHeading)) {
-    // $FlowIgnore -- note does not exist on CoreNoteFields (only on Editor)
     return await chooseHeading(note, true)
   }
   return writeUnderHeading

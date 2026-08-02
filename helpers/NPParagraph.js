@@ -1017,7 +1017,6 @@ export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false, 
 export function getOverdueTags(para: TParagraph, asOfDayString?: string = ''): string[] {
   const funcs = [hasOverdueDayTag, hasOverdueWeekTag, hasOverdueMonthTag, hasOverdueQuarterTag, hasOverdueYearTag]
   return funcs.reduce((acc, func) => {
-    // $FlowIgnore - flow doesn't know what the signature of the functions is
     const tagList = func(para, true, asOfDayString)?.overdueLinks || []
     // $FlowIgnore - see above
     return [...acc, ...tagList]
@@ -1242,14 +1241,12 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
         match = false
       }
     } else if (field === 'rawContent') {
-      // $FlowIgnore[prop-missing]
       if (typeof paragraph[field] === 'undefined') {
         throw `paragraphMatches: paragraph.${field} is undefined. You must pass in the correct fields to match. 'fields' is set to ${JSP(fields)}, but paragraph=${JSP(
           paragraph,
         )}, which does not have all the fields`
       }
       // Exact match, or match ignoring leading indent (backlinks strip indent from rawContent)
-      // $FlowIgnore[prop-missing]
       if (!rawContentMatchesIgnoringLeadingIndent(paragraph[field], fieldsObject[field])) {
         match = false
       }
@@ -1324,7 +1321,6 @@ export function findParagraph(
     // const p = paragraphDataToFind
     logDebug(pluginJson, `findParagraph: found no paragraphs in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(paragraphDataToFind.rawContent)}`)
     // logDebug(`\n**** Looking for "${p[fieldsToMatch[0]]}" "${p[fieldsToMatch[1]]}" in the following list`)
-    //$FlowIgnore
     // parasToLookIn.forEach((p) => logDebug(pluginJson, `\t findParagraph: ${p[fieldsToMatch[0]]} ${p[fieldsToMatch[1]]}`))
   }
   return null

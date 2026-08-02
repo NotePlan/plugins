@@ -205,7 +205,6 @@ export async function openTasksToTop(
         rawContent.push(taskPara.raw)
 
         // Add all children content (not just tasks)
-        // $FlowIgnore[method-unbinding] - these are SortableParagraphSubset entries from getTasksByType(),
         // whose `children` is an array property, not the NotePlan API method of the same name.
         if (taskPara.children && taskPara.children.length) {
           taskPara.children.forEach((child) => {
@@ -217,7 +216,6 @@ export async function openTasksToTop(
         rawContent.push(taskPara.raw)
 
         // Add child tasks (but not other content like notes, quotes)
-        // $FlowIgnore[method-unbinding] - these are SortableParagraphSubset entries from getTasksByType(),
         // whose `children` is an array property, not the NotePlan API method of the same name.
         if (taskPara.children && taskPara.children.length) {
           taskPara.children.forEach((child) => {
@@ -631,9 +629,7 @@ async function deleteExistingTasks(note: CoreNoteFields, tasks: GroupedTasks): P
         }
 
         // Also include children if they exist
-        // $FlowIgnore[method-unbinding] - `children` is an array property on SortableParagraphSubset, not the NotePlan API method
         if (taskPara.children && taskPara.children.length) {
-          // $FlowIgnore[method-unbinding]
           taskPara.children.forEach((child) => {
             if (child.paragraph) {
               tasksToDelete.push(child.paragraph)

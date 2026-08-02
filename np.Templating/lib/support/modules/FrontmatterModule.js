@@ -22,7 +22,6 @@ function coalesceNullFrontmatterValue(val: mixed): mixed {
 }
 
 export default class FrontmatterModule {
-  // $FlowIgnore
   constructor(NPTemplating: any = null) {
     if (NPTemplating) {
       // $FlowIgnore

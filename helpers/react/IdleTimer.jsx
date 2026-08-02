@@ -55,7 +55,6 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
     }
 
     const handleVisibilityChange = () => {
-      // $FlowIgnore
       if (document.visibilityState === 'visible') {
         setLastActivity(Date.now())
         // Reset the timeout flag when user becomes active
@@ -66,14 +65,12 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
     window.addEventListener('mousemove', handleUserActivity)
     window.addEventListener('keydown', handleUserActivity)
     window.addEventListener('scroll', handleUserActivity)
-    // $FlowIgnore
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
       window.removeEventListener('mousemove', handleUserActivity)
       window.removeEventListener('keydown', handleUserActivity)
       window.removeEventListener('scroll', handleUserActivity)
-      // $FlowIgnore
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])

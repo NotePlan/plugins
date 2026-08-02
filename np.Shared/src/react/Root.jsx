@@ -97,7 +97,6 @@ export function Root(/* props: Props */): Node {
   const [showSimpleDialogTest, setShowSimpleDialogTest] = useState<boolean>(false)
   const [simpleDialogExample, setSimpleDialogExample] = useState<number>(0)
 
-  // $FlowFixMe
   const tempSavedClicksRef = useRef<Array<TAnyObject>>([]) // temporarily store the clicks in the webview
 
   // Map to store pending requests for request/response pattern
@@ -218,7 +217,6 @@ export function Root(/* props: Props */): Node {
 
     const bannerMessage = { type, msg, timeout, color: colorClass, border: borderClass, icon: iconClass, floating }
     logDebug(`Root`, `showBanner: ${type} '${msg}'`)
-    // $FlowFixMe - bannerMessage object matches the expected shape
     setBannerMessage(bannerMessage)
   }, []) // State setters are stable, no dependencies needed
 
@@ -274,7 +272,6 @@ export function Root(/* props: Props */): Node {
 
     const toastMessage = { type, msg, timeout, color: colorClass, border: borderClass, icon: iconClass }
     logDebug(`Root`, `showToast: ${JSON.stringify(toastMessage, null, 2)}`)
-    // $FlowFixMe - toastMessage object matches the expected shape
     setToastMessage(toastMessage)
   }, []) // State setters are stable, no dependencies needed
 
@@ -403,7 +400,6 @@ export function Root(/* props: Props */): Node {
                 }
                 break
               case 'RETURN_VALUE' /* function called returned a value */:
-                // $FlowIgnore
                 // setMessageFromPlugin(payload)
                 break
               default:

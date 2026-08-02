@@ -317,7 +317,6 @@ export default class NoteModule {
       // Normal usage: first param is heading text, second is includeHeading
       const headingText = String(headingTextOrEditor || '')
       const shouldIncludeHeading = Boolean(headingTextOrIncludeHeading)
-      // $FlowIgnore[incompatible-call] - getCurrentNote() is nullable; getBlockUnderHeading already no-ops on a missing note
       return getBlockUnderHeading((this.getCurrentNote(): any), headingText, shouldIncludeHeading)
     }
   }

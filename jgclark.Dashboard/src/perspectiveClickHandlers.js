@@ -40,14 +40,12 @@ import { getGlobalSharedData } from '@helpers/HTMLView'
 async function getLiveDashboardSettingsForPerspectiveSave(settingsFromBridge?: TDashboardSettingsIn | TPerspectiveSettings): Promise<TDashboardSettings> {
   if (settingsFromBridge && typeof settingsFromBridge === 'object' && !Array.isArray(settingsFromBridge) && Object.keys(settingsFromBridge).length > 0) {
     const defaults = getDashboardSettingsDefaults()
-  // $FlowIgnore[cannot-spread-indexer]
     return { ...defaults, ...settingsFromBridge, showSearchSection: true }
   }
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const fromReact = reactWindowData?.pluginData?.dashboardSettings
   if (fromReact && typeof fromReact === 'object' && !Array.isArray(fromReact) && Object.keys(fromReact).length > 0) {
     const defaults = getDashboardSettingsDefaults()
-  // $FlowIgnore[cannot-spread-indexer]
     return { ...defaults, ...fromReact, showSearchSection: true }
   }
   return getDashboardSettings()

@@ -37,7 +37,6 @@ export async function chooseRunPluginXCallbackURL(
       plugin.commands?.forEach((command) => {
         const show = `${command.name} (${plugin.name})`
         if (filterCommandRegex && !filterCommandRegex.test(show)) return
-        // $FlowIgnore
         commandMap.push({
           name: command.name,
           description: command.desc,

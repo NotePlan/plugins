@@ -597,7 +597,6 @@ export function normaliseDashboardNumberSettings(settingsIn: TAnyObject): TAnyOb
         return
       }
       const key: string = def.key
-      // $FlowIgnore[prop-missing]
       const rawValue: any = settingsOut[key]
       if (rawValue === null || rawValue === undefined) {
         return
@@ -608,7 +607,6 @@ export function normaliseDashboardNumberSettings(settingsIn: TAnyObject): TAnyOb
 
       const coerced = Number(rawValue)
       if (!Number.isNaN(coerced)) {
-        // $FlowIgnore[prop-missing]
         settingsOut[key] = coerced
       }
     })

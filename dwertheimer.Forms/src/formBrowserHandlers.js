@@ -214,7 +214,6 @@ export async function getFormFields(params: { templateFilename?: string, templat
         
         // Send banner message to React window if windowId is provided
         if (params.windowId && typeof params.windowId === 'string' && params.windowId.length > 0) {
-          // $FlowFixMe[incompatible-call] - We've checked that windowId is a string above
           await sendBannerMessage(params.windowId, warningMsg, 'WARN', 10000)
         }
       }

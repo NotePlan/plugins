@@ -97,7 +97,6 @@ export async function getThemeChoice(lightOrDark: string = '', message: string =
     label: `${t.name} (${t.mode || ''})${isBuiltInTheme(t.filename) ? '' : ' - Custom Theme'}`,
     isBuiltIn: isBuiltInTheme(t.filename),
   }))
-  // $FlowIgnore
   themeOpts = sortListBy(themeOpts, ['isBuiltIn', 'label'])
   // clo(themeOpts, `getThemeChoice, themeOpts`)
   if (lightOrDark !== '') {
@@ -194,7 +193,6 @@ export async function copyCurrentTheme(
         await showMessage(`Theme "${themeName}" already exists. Please choose a different name.`)
         return
       } else {
-        // $FlowIgnore
         theme.name = themeName || ''
         const success = Editor.addTheme(JSON.stringify(theme), `${themeName}.json`)
         logDebug(pluginJson, `copyCurrentTheme saving theme success: ${String(success)}`)

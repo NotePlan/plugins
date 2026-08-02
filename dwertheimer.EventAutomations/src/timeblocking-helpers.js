@@ -260,9 +260,7 @@ export function createOpenBlockObject(block: BlockData, config: { [key: string]:
   if (!startTime || !endTime) return null
   return {
     start: getTimeStringFromDate(startTime),
-    // $FlowIgnore
     end: getTimeStringFromDate(endTime),
-    // $FlowIgnore
     minsAvailable: differenceInMinutes(endTime, startTime, { roundingMethod: 'ceil' }),
     title: block.title,
   }
@@ -449,13 +447,11 @@ export function ORIGINALprocessByTimeBlockTag(sortedTaskList: Array<ParagraphWit
   }
   namedBlocks.forEach((block) => {
     const blockTitle = (block.title || '').replace(config.timeblockTextMustContainString, '').replace(/ {2,}/g, ' ').trim()
-    //$FlowIgnore
     const tasksMatchingThisNamedTimeblock = unprocessedTasks.filter((task) => (block.title ? namedTagExistsInLine(blockTitle, task.content) : false))
     logDebug(`processByTimeBlockTag tasksMatchingThisNamedTimeblock (${blockTitle}): ${JSP(tasksMatchingThisNamedTimeblock.map((p) => p.content || ''))}`)
     tasksMatchingThisNamedTimeblock.forEach((task, i) => {
       // call matchTasksToSlots for each block as if the block all that's available
       // remove from sortedTaskList
-      // $FlowIgnore
       logDebug(pluginJson, `Calling matchTasksToSlots for item[${i}]: ${task.content} duration:${task.duration}`)
       // const filteredTimeMap = timeMap.filter((t) => t.start >= block.start && t.start <= block.end)
       // second `t.busy` cast: the first `.includes()` call invalidates Flow's `typeof t.busy === 'string'` refinement on the property
@@ -494,7 +490,6 @@ export function ORIGINALprocessByTimeBlockTag(sortedTaskList: Array<ParagraphWit
   newBlockList = blockList?.filter((b) => !b.title || b.title === '') || [] // remove the named blocks from the list
 
   config.mode = 'PRIORITY_FIRST' // now that we've processed the named blocks, we can process the rest of the tasks by priority
-  // $FlowIgnore
   results.push(matchTasksToSlots(unprocessedTasks, { blockList: newBlockList, timeMap }, config))
 
   return {
@@ -533,7 +528,6 @@ export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, 
       let scheduling = true
       let schedulingCount = 0
       let scheduledMins = 0
-      // $FlowIgnore - flow doesn't like .length below but it is safe
       for (let i = 0; i < newBlockList.length && scheduling; i++) {
         if (newBlockList && newBlockList[i]) {
           let block = newBlockList[i]
@@ -635,7 +629,6 @@ export const addDurationToTasks = (tasks: Array<SortableParagraphSubset>, config
 
 export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<SortableParagraphSubset>, config: { [key: string]: any }): TimeBlocksWithMap {
   let newInfo: TimeBlocksWithMap = { timeMap, blockList: [], timeBlockTextList: [], noTimeForTasks: {} }
-  // $FlowIgnore
   const availableTimes = filterTimeMapToOpenSlots(timeMap, config) // will be different for BY_TIMEBLOCK_TAG
   if (availableTimes.length === 0) {
     timeMap.forEach((m) => console.log(`getTimeBlockTimesForEvents no more times available: ${JSON.stringify(m)}`))

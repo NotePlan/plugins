@@ -661,7 +661,6 @@ export class Project {
    */
   get isReadyForReview(): boolean {
     // logDebug(pluginJson, `isReadyForReview: ${this.title}:  ${String(this.nextReviewDays)} ${String(this.isPaused)}`)
-    // $FlowFixMe[invalid-compare]
     return !this.isPaused && !this.isCompleted && this.nextReviewDays != null && !isNaN(this.nextReviewDays) && this.nextReviewDays <= 0
   }
 
@@ -837,7 +836,6 @@ if (preserveEmpty) {
 attrs[singleKeyName] = this.getProjectTagsFrontmatterValue(singleKeyName)
 
 // Prefer open Editor when present; getOpenEditorFromFilename returns false (not null), so use || not ??
-// $FlowFixMe[incompatible-call]
 const success = updateFrontMatterVars(possibleThisEditor || noteForWrites, attrs)
 if (!success) {
   logError('updateProjectMetadata', `Failed to update frontmatter metadata for '${this.title}'`)

@@ -32,7 +32,6 @@ describe(`${PLUGIN_NAME}`, () => {
     test('getListOfEnabledSections() includes REM when showUndatedOverdueReminders is missing', () => {
       const defaults = getDashboardSettingsDefaults()
       const withoutKey = { ...defaults }
-      // $FlowIgnore[prop-missing]
       delete withoutKey.showUndatedOverdueReminders
       const enabled = getListOfEnabledSections(withoutKey)
       expect(enabled).toContain('REM')

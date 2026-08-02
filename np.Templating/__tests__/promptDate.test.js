@@ -19,7 +19,6 @@ jest.mock('@helpers/userInput', () => ({
 }))
 
 // Get the mocked function
-// $FlowIgnore - jest mocked module
 const { datePicker } = require('@helpers/userInput')
 
 describe('PromptDateHandler', () => {

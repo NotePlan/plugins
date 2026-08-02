@@ -34,7 +34,6 @@ const DEFAULT_TEMPLATE_CONFIG = {
   userLastName: '',
   userEmail: '',
   userPhone: '',
-  // $FlowFixMe
   services: {},
 }
 
