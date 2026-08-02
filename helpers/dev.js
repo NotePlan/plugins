@@ -236,7 +236,7 @@ export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<s
       return newObj // Changed from non-object to object
     }
 
-    const differences = {}
+    const differences: { [string]: any } = {}
     const keys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)])
 
     for (const key of keys) {
@@ -308,7 +308,7 @@ export function deepCompare(value1: any, value2: any, path: string): void {
  * @returns {Object|null} - An object representing the differences or null if no differences.
  */
 function getObjectDiff(obj1: any, obj2: any): DiffObject | null {
-  const diff = {}
+  const diff: { [string]: any } = {}
 
   const keys = new Set([...Object.keys(obj1), ...Object.keys(obj2)])
 
@@ -542,7 +542,7 @@ export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string =
     const arrayCopy = value.map((item: any) => deepCopy(item, propsToInclude, showIndices))
     if (showIndices) {
       // Convert array to object with index keys for stringification
-      const objectWithIndices = {}
+      const objectWithIndices: { [string]: any } = {}
       arrayCopy.forEach((item: any, index: number) => {
         objectWithIndices[`[${index}]`] = item
       })
@@ -553,7 +553,7 @@ export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string =
   }
 
   // Handle Object (including objects with prototype properties)
-  const copy = {}
+  const copy: { [string]: any } = {}
   const propNames = propsToInclude || Object.keys(value)
   for (const key of propNames) {
     if (propsToInclude ? propsToInclude.includes(key) : true) {
@@ -955,7 +955,7 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
   try {
     // Parse argsAsJSON (if any) into argObj using JSON
     if (argsAsString) {
-      const argObj = {}
+      const argObj: { [string]: string } = {}
       argsAsString.split(';').forEach((arg) => {
         if (arg.split('=').length === 2) {
           let key = arg.split('=')[0].trim()

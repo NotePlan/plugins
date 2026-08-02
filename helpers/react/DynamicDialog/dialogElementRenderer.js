@@ -529,11 +529,11 @@ export function renderItem({
                     const jsonString = JSON.stringify(updatedData, null, 2)
                       .replace(/"([^"]+)":/g, '$1:') // Remove quotes from keys
                       .replace(/:\s*"([^"]*)"/g, ': "$1"') // Keep quotes on string values
-                    handleFieldChange(item.key, jsonString)
+                    handleFieldChange((item.key: any), jsonString)
                   } catch (error) {
                     logError('JsonEditor', `Error converting data to string: ${error.message}`)
                     // Fallback: just stringify as JSON
-                    handleFieldChange(item.key, JSON.stringify(updatedData, null, 2))
+                    handleFieldChange((item.key: any), JSON.stringify(updatedData, null, 2))
                   }
                 }
               }}
@@ -624,12 +624,12 @@ export function renderItem({
           if (item.key) {
             // Handle cleared date/string
             if (date instanceof Date && isNaN(date.getTime())) {
-              handleFieldChange(item.key, null)
+              handleFieldChange((item.key: any), null)
             } else if (typeof date === 'string' && date === '') {
-              handleFieldChange(item.key, null)
+              handleFieldChange((item.key: any), null)
             } else {
               // Store the value as-is (formatted string or Date object)
-              handleFieldChange(item.key, date)
+              handleFieldChange((item.key: any), date)
             }
           }
         }
@@ -817,6 +817,9 @@ export function renderItem({
               valueToStore = outputFormat === 'filename' ? noteFilename : noteTitle
             }
             logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${item.key}", value="${valueToStore}"`)
+            // NB: unlike the other handleFieldChange calls in this file, this one is NOT inside an
+            // `if (item.key)` guard, so item.key really can be undefined here (TSettingItem.key is
+            // optional - separator items have none). Left erroring deliberately.
             handleFieldChange(item.key, valueToStore)
           } else {
             logError('dialogElementRenderer', `note-chooser: handleNoteChange called but item.key is undefined`)
@@ -983,7 +986,7 @@ export function renderItem({
               endDate: event.endDate instanceof Date ? event.endDate.toISOString() : event.endDate,
               occurrences: event.occurrences ? event.occurrences.map((d: Date | string) => (d instanceof Date ? d.toISOString() : d)) : [],
             }
-            handleFieldChange(item.key, serializedEvent)
+            handleFieldChange((item.key: any), serializedEvent)
           }
         }
 

@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T03:31:17.178Z",
-  "rawTotal": 1016,
+  "generated": "2026-08-02T03:34:05.759Z",
+  "rawTotal": 1002,
   "byPlugin": {
     "flow-typed": {
       "sites": 9,
@@ -75,10 +75,10 @@
       "src": 7
     },
     "helpers": {
-      "sites": 89,
-      "raw": 126,
+      "sites": 77,
+      "raw": 112,
       "test": 1,
-      "src": 88
+      "src": 76
     },
     "jgclark.Dashboard": {
       "sites": 100,
