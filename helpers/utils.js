@@ -130,7 +130,7 @@ export const isScheduled = (t: TParagraph): boolean => t.type === 'scheduled' ||
  * @return {Array<{[string]: any}>} An array of objects without duplicates based on the specified keys.
  */
 export function removeDuplicates(arr: Array<{ [string]: any }>, keys: Array<string>): Array<{ [string]: any }> {
-  const seen = new Map()
+  const seen = new Map<string, boolean>()
 
   return arr.filter((item) => {
     const keyValue = keys.map((key) => item[key]).join('|')

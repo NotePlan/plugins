@@ -46,7 +46,7 @@ export function initializeData(query?: string): JSONClickData {
   if (!loadedJSON) {
     logDebug(pluginJson, `initializeData JSON did not exist (as we expected) for "${filename || ''}". Creating file from template.`)
     if (query) {
-      const newJSON = {
+      const newJSON: JSONClickData = {
         initialSubject: query,
         unclickedLinks: [],
         clickedLinks: [],

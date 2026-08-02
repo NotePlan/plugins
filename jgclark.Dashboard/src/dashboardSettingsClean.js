@@ -226,7 +226,7 @@ export function syncTagSectionsWithSettings(sections: Array<TSection>, dashboard
     }
 
     // Keep the latest TAG row for a given tag name (last in array wins), preserve overall order.
-    const seen = new Set()
+    const seen = new Set<string>()
     const dedupedReversed: Array<TSection> = []
     const removedDupes: Array<string> = []
     for (let i = withoutDisabled.length - 1; i >= 0; i--) {

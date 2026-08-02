@@ -53,7 +53,7 @@ export function generateREADMECommands() {
   if (Array.isArray(commands)) {
     logDebug(pluginJson, `generateREADMECommands(): found array.`)
     output.push(`### Commands`)
-    commands.forEach((command) => {
+    commands.forEach((command: any) => {
       const linkText = `try it`
       const rpu = createPrettyRunPluginLink(linkText, pluginJson['plugin.id'], command.name)
       const aliases = commmand.aliases && command.aliases.length ? `\r\t*Aliases:${command.aliases.toString()}*` : ''
