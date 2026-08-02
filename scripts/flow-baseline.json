@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T03:25:47.467Z",
-  "rawTotal": 1061,
+  "generated": "2026-08-02T03:27:39.165Z",
+  "rawTotal": 1047,
   "byPlugin": {
     "flow-typed": {
       "sites": 9,
@@ -27,10 +27,10 @@
       "src": 15
     },
     "dwertheimer.EventAutomations": {
-      "sites": 34,
-      "raw": 58,
+      "sites": 33,
+      "raw": 57,
       "test": 1,
-      "src": 33
+      "src": 32
     },
     "dwertheimer.Favorites": {
       "sites": 7,
@@ -75,10 +75,10 @@
       "src": 7
     },
     "helpers": {
-      "sites": 90,
-      "raw": 127,
+      "sites": 89,
+      "raw": 126,
       "test": 1,
-      "src": 89
+      "src": 88
     },
     "jgclark.Dashboard": {
       "sites": 126,
@@ -159,10 +159,10 @@
       "src": 2
     },
     "np.Templating": {
-      "sites": 112,
-      "raw": 128,
+      "sites": 111,
+      "raw": 127,
       "test": 58,
-      "src": 54
+      "src": 53
     },
     "np.ThemeChooser": {
       "sites": 8,
@@ -201,10 +201,10 @@
       "src": 0
     },
     "shared.AI": {
-      "sites": 47,
-      "raw": 58,
+      "sites": 36,
+      "raw": 47,
       "test": 0,
-      "src": 47
+      "src": 36
     }
   }
 }

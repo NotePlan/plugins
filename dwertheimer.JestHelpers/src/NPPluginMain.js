@@ -192,7 +192,7 @@ export function getNotePlan(): any {
  * outputEditorJson
  * Plugin entrypoint for "/Output Editor Doc as JSON"
  */
-export function outputEditorJson() {
+export function outputEditorJson(): void {
   try {
     const e = Editor
     const nObj = {

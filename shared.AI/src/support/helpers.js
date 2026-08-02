@@ -72,7 +72,7 @@ export function generateREADMECommands() {
  * @params (Object) learningTopic - General object that directs the behavior of the function.
  * Currently under construction.
  */
-export async function rerollSingleKeyTerm(promptIn: string, exclusions: string) {
+export async function rerollSingleKeyTerm(promptIn: string, exclusions: string): Promise<string> {
   let prompt = `Return a single topic that is related to the topic of ${promptIn}. No numbers.
   Exclude the following topics from the result: ${exclusions}
   Example: Maple Syrup, Economic Growth in Nigeria (2020)
@@ -163,11 +163,11 @@ export function scrollToEntry(_heading: string, _deleteItem?: ?string = null, fo
   }
 }
 
-export function capitalizeFirstLetter(string) {
+export function capitalizeFirstLetter(string: string): string {
   return string[0].toUpperCase() + string.slice(1)
 }
 
-export async function checkModel() {
+export async function checkModel(): Promise<string> {
   const { defaultModel } = DataStore.settings
   let chosenModel = defaultModel
   if (defaultModel === 'Choose Model') {

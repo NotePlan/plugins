@@ -170,7 +170,7 @@ export function makeAllItemsTodos(paras: Array<TParagraph>): Array<TParagraph> {
 
 // Numbered groups only: named groups (?<name>...) are not supported on macOS 12 / older JavaScriptCore.
 // Group 2 = hours number, group 5 = minutes number (when present).
-export const durationRegEx = (durationMarker: string) =>
+export const durationRegEx = (durationMarker: string): RegExp =>
   new RegExp(
     `\\s*${durationMarker}(([0-9]+\\.?[0-9]*|\\.[0-9]+)(hours|hour|hr|h))?(([0-9]+\\.?[0-9]*|\\.[0-9]+)(minutes|mins|min|m))?`,
     'mg',

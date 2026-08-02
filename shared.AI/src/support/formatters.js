@@ -16,7 +16,7 @@ const pluginJson = `shared.AI/helpers`
  * @param {boolean} useFullHistory - Indicates whether or not the subtitle should use part or all of the history.
  * @param {string} fullHistoryText - The entire search query from the first to the current search request. Pure text only.
  */
-export function formatSubtitle(subject: string, prevSubject?: string = '', fullHistory: string, useFullHistory: boolean, fullHistoryText: string) {
+export function formatSubtitle(subject: string, prevSubject?: string = '', fullHistory: string, useFullHistory: boolean, fullHistoryText: string): { newFullHistoryText: string, formattedSubtitle: string } {
   let fullHistoryTextOut = ''
   let backLink = ''
   let subtitle = ''
@@ -56,7 +56,7 @@ export function formatSubtitle(subject: string, prevSubject?: string = '', fullH
  * @param {string} subtitle - The readable text that indicates the core elements of the search.
  * @param {string} fullHistoryText - The entire search query from the first to the current search request. Pure text only.
  */
-export async function formatKeyTermsForSummary(keyTerms: [string], subject: string, remixText?: string = '', subtitle: string = '', fullHistoryText: string) {
+export async function formatKeyTermsForSummary(keyTerms: [string], subject: string, remixText?: string = '', subtitle: string = '', fullHistoryText: string): Promise<string> {
   // logDebug(pluginJson, `\n\nformatBulletSummary\nSubject: ${subject}\nResponse: ${summary}\nLink: ${link})}`)
   let keyString = '#### Go Deeper?\n'
   const jsonData = DataStore.loadJSON(getDataFileName())
@@ -99,7 +99,7 @@ export async function formatKeyTermsForSummary(keyTerms: [string], subject: stri
  * @param {string} subtitle - the subtitle text the adds context to the pure subject search
  * @param {string} fullHistoryText - the entirety of the previous search chain in context
  */
-export async function formatBulletSummary(subject: string, summary: string, keyTerms: string, remixText?: string = '', subtitle: string, fullHistoryText: string) {
+export async function formatBulletSummary(subject: string, summary: string, keyTerms: string, remixText?: string = '', subtitle: string, fullHistoryText: string): Promise<string> {
   // logDebug(pluginJson, `\n\nformatBulletSummary\nSubject: ${subject}\nResponse: ${summary}\nLink: ${link})}`)
 
   // let title = subject.replace('- ', '')
@@ -120,7 +120,7 @@ export async function formatBulletSummary(subject: string, summary: string, keyT
  * @param {string} text - the text to be used in the Go Further link
  * Currently under construction.
  */
-export async function formatFurtherLink(text: string) {
+export async function formatFurtherLink(text: string): Promise<string> {
   const fileName = Editor.filename
 
   const furtherLink = createPrettyOpenNoteLink(text, fileName, true, text)
@@ -132,7 +132,7 @@ export async function formatFurtherLink(text: string) {
  * https://beta.openai.com/docs/api-reference/completions/create
  * @param {Object} info - The info needed to provide the function with something to parse and format.
  */
-export function formatModelInformation(info: Object) {
+export function formatModelInformation(info: Object): string {
   const modelInfo = `Good At: ${info.goodAt}\n\nCost: ${info.cost}.`
   console.log(modelInfo)
   return modelInfo

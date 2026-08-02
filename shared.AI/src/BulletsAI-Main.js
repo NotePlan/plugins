@@ -61,7 +61,7 @@ export async function createOuterLink() {
   Editor.replaceSelectionWithText(outerLink)
 }
 
-export async function createRemix() {
+export async function createRemix(): Promise<string> {
   return await CommandBar.showInput('Type in your remix request', 'Start Remix')
 }
 
@@ -325,7 +325,7 @@ export async function updateResearchCollectionTableOfContents(newPath: string, o
   }
 }
 
-export async function updatePrettyLink(link: string, originalNoteTitle: string, newPath: string) {
+export async function updatePrettyLink(link: string, originalNoteTitle: string, newPath: string): Promise<string> {
   // logDebug(pluginJson, link)
   const heading = link.split(']')[0].slice(1)
   const newLink = `${newPath}/${originalNoteTitle}.${DataStore.defaultFileExtension || '.txt'}`

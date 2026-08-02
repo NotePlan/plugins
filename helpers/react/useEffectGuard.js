@@ -88,7 +88,7 @@ export function useEffectGuard(
  * }, [dependencies])
  * ```
  */
-export function useEffectTracker(componentName: string, effectName: string, options: GuardOptions = {}) {
+export function useEffectTracker(componentName: string, effectName: string, options: GuardOptions = {}): () => void {
   const { maxRuns, timeWindow, onExceeded } = { ...defaultOptions, ...options }
   const runTimesRef = useRef<Array<number>>([])
 
