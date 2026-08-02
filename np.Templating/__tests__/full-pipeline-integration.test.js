@@ -130,14 +130,14 @@ const customRender = async (templateData, userData = {}) => {
 
 // Mock modules for testing
 jest.mock('../lib/TemplatingEngine', () => {
-  return jest.fn().mockImplementation(() => {
+  return jest.fn<Array<any>, any>().mockImplementation(() => {
     return {
-      render: jest.fn().mockImplementation((template) => {
+      render: jest.fn<Array<any>, any>().mockImplementation((template) => {
         // Record the template state right before rendering
         pipelineStates.finalResult = template
         return Promise.resolve(template)
       }),
-      incrementalRender: jest.fn().mockImplementation((template) => Promise.resolve(template)),
+      incrementalRender: jest.fn<Array<any>, any>().mockImplementation((template) => Promise.resolve(template)),
     }
   })
 })
@@ -150,11 +150,11 @@ jest.mock('../lib/TemplatingEngine', () => {
  */
 jest.mock('../lib/core', () => {
   return {
-    getTemplateContent: jest.fn().mockImplementation((templateName) => {
+    getTemplateContent: jest.fn<Array<any>, any>().mockImplementation((templateName) => {
       return Promise.resolve(TEMPLATE_CONTENT[templateName] || '')
     }),
-    getTemplateFolder: jest.fn().mockResolvedValue('@Templates'),
-    isCommentTag: jest.fn().mockImplementation(() => false),
+    getTemplateFolder: jest.fn<Array<any>, any>().mockResolvedValue('@Templates'),
+    isCommentTag: jest.fn<Array<any>, any>().mockImplementation(() => false),
   }
 })
 
@@ -166,8 +166,8 @@ jest.mock('../lib/core', () => {
  */
 jest.mock('../lib/rendering/templateProcessor', () => {
   return {
-    importTemplates: jest.fn().mockImplementation(customImportTemplates),
-    render: jest.fn().mockImplementation(customRender),
+    importTemplates: jest.fn<Array<any>, any>().mockImplementation(customImportTemplates),
+    render: jest.fn<Array<any>, any>().mockImplementation(customRender),
   }
 })
 
@@ -177,10 +177,10 @@ jest.mock('../lib/rendering/templateProcessor', () => {
  * A simplified implementation of frontmatter processing for testing purposes.
  */
 jest.mock('../lib/support/modules/FrontmatterModule', () => {
-  return jest.fn().mockImplementation(() => {
+  return jest.fn<Array<any>, any>().mockImplementation(() => {
     return {
-      isFrontmatterTemplate: jest.fn().mockImplementation((content) => content.startsWith('---')),
-      parse: jest.fn().mockImplementation((content) => {
+      isFrontmatterTemplate: jest.fn<Array<any>, any>().mockImplementation((content) => content.startsWith('---')),
+      parse: jest.fn<Array<any>, any>().mockImplementation((content) => {
         if (content.startsWith('---')) {
           const frontmatterEnd = content.indexOf('---', 3)
           if (frontmatterEnd !== -1) {
@@ -201,7 +201,7 @@ jest.mock('../lib/support/modules/FrontmatterModule', () => {
         }
         return { attributes: {}, body: content }
       }),
-      body: jest.fn().mockImplementation((content) => {
+      body: jest.fn<Array<any>, any>().mockImplementation((content) => {
         if (content.startsWith('---')) {
           const frontmatterEnd = content.indexOf('---', 3)
           if (frontmatterEnd !== -1) {
@@ -210,7 +210,7 @@ jest.mock('../lib/support/modules/FrontmatterModule', () => {
         }
         return content
       }),
-      attributes: jest.fn().mockImplementation((content) => {
+      attributes: jest.fn<Array<any>, any>().mockImplementation((content) => {
         if (content.startsWith('---')) {
           const frontmatterEnd = content.indexOf('---', 3)
           if (frontmatterEnd !== -1) {

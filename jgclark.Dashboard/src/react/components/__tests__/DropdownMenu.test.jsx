@@ -28,25 +28,25 @@ describe.skip('DropdownMenu Component', () => {
   const defaultProps = {
     sectionItems: [],
     otherItems: [],
-    handleSwitchChange: jest.fn(),
-    handleInputChange: jest.fn(),
-    handleComboChange: jest.fn(),
-    handleSaveInput: jest.fn(),
-    onSaveChanges: jest.fn(),
+    handleSwitchChange: jest.fn<Array<any>, any>(),
+    handleInputChange: jest.fn<Array<any>, any>(),
+    handleComboChange: jest.fn<Array<any>, any>(),
+    handleSaveInput: jest.fn<Array<any>, any>(),
+    onSaveChanges: jest.fn<Array<any>, any>(),
     iconClass: 'fa-solid fa-filter',
     className: '',
     labelPosition: 'right',
     isOpen: false,
-    toggleMenu: jest.fn(),
+    toggleMenu: jest.fn<Array<any>, any>(),
   }
 
   beforeEach(() => {
-    mockOnSaveChanges = jest.fn()
-    mockToggleMenu = jest.fn()
-    mockHandleSwitchChange = jest.fn()
-    mockHandleInputChange = jest.fn()
-    mockHandleComboChange = jest.fn()
-    mockHandleSaveInput = jest.fn()
+    mockOnSaveChanges = jest.fn<Array<any>, any>()
+    mockToggleMenu = jest.fn<Array<any>, any>()
+    mockHandleSwitchChange = jest.fn<Array<any>, any>()
+    mockHandleInputChange = jest.fn<Array<any>, any>()
+    mockHandleComboChange = jest.fn<Array<any>, any>()
+    mockHandleSaveInput = jest.fn<Array<any>, any>()
   })
 
   afterEach(() => {

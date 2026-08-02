@@ -2,6 +2,7 @@
 
 import NPTemplating from '../lib/NPTemplating'
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
 import { getTags } from '../lib/core'
 import PromptDateIntervalHandler from '../lib/support/modules/prompts/PromptDateIntervalHandler'
 import BasePromptHandler from '../lib/support/modules/prompts/BasePromptHandler'
@@ -12,7 +13,7 @@ import '../lib/support/modules/prompts' // Import to register all prompt handler
 // Mock the @helpers/userInput module
 // $FlowIgnore - jest mocking
 jest.mock('@helpers/userInput', () => ({
-  askDateInterval: jest.fn().mockImplementation((msg) => {
+  askDateInterval: jest.fn<Array<any>, any>().mockImplementation((msg) => {
     return Promise.resolve('2023-01-01 to 2023-01-31')
   }),
 }))
@@ -40,7 +41,7 @@ describe('PromptDateIntervalHandler', () => {
     const templateData = "<%- promptDateInterval('dateRange', 'Select date range:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData.dateRange).toBe('2023-01-01 to 2023-01-31')
     expect(result.sessionTemplateData).toBe('<%- dateRange %>')
@@ -51,7 +52,7 @@ describe('PromptDateIntervalHandler', () => {
     const templateData = "<%- promptDateInterval('dateRange', 'Select date range with, comma:', '{format: \"YYYY-MM-DD\"}') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData.dateRange).toBe('2023-01-01 to 2023-01-31')
     expect(result.sessionTemplateData).toBe('<%- dateRange %>')
@@ -73,7 +74,7 @@ describe('PromptDateIntervalHandler', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData.range1).toBe('2023-01-01 to 2023-01-31')
     expect(result.sessionData.range2).toBe('2023-02-01 to 2023-02-28')

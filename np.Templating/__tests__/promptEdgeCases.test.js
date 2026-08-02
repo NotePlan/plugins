@@ -13,7 +13,7 @@ import { DataStore } from '@mocks/index'
 
 // Mock the core getTags function
 jest.mock('../lib/core', () => ({
-  getTags: jest.fn().mockImplementation((templateData) => {
+  getTags: jest.fn<Array<any>, any>().mockImplementation((templateData) => {
     // Simple implementation to extract tags
     const tags = []
     const regex = /<%.*?%>/g
@@ -26,7 +26,7 @@ jest.mock('../lib/core', () => ({
 }))
 
 // Set up mock for DataStore.invokePluginCommandByName
-const mockInvokePluginCommandByName = jest.fn().mockImplementation((plugin, command, options) => {
+const mockInvokePluginCommandByName = jest.fn<Array<any>, any>().mockImplementation((plugin, command, options) => {
   if (options && options.variable && options.sessionData) {
     // This could be called by our tests directly
     options.sessionData[options.variable] =
@@ -55,7 +55,7 @@ jest.mock('../lib/support/modules/prompts/PromptRegistry', () => {
   const original = jest.requireActual('../lib/support/modules/prompts/PromptRegistry')
   return {
     ...original,
-    processPrompts: jest.fn().mockImplementation((templateData, userData) => {
+    processPrompts: jest.fn<Array<any>, any>().mockImplementation((templateData, userData) => {
       const sessionData = { ...userData }
 
       // Set test data based on the template content

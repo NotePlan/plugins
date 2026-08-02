@@ -18,6 +18,7 @@
  */
 
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
 import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 
@@ -166,7 +167,7 @@ describe('Prompt Tag Output Behavior - All Prompt Types', () => {
 <% const myVar = ${calls.assignment} -%>
 After`
 
-      const result: ProcessPromptsResult = await processPrompts(template, {})
+      const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
 
       // Should not return false (cancelled)
       expect(result).not.toBe(false)
@@ -190,7 +191,7 @@ After`)
 <% let myVar = ${calls.assignment} -%>
 After`
 
-      const result: ProcessPromptsResult = await processPrompts(template, {})
+      const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
       expect(result).not.toBe(false)
       if (result === false) return // Type guard
 
@@ -207,7 +208,7 @@ After`)
 <% var myVar = ${calls.assignment} -%>
 After`
 
-      const result: ProcessPromptsResult = await processPrompts(template, {})
+      const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
       expect(result).not.toBe(false)
       if (result === false) return // Type guard
 
@@ -226,7 +227,7 @@ After`)
 <% ${calls.execution} -%>
 After`
 
-      const result: ProcessPromptsResult = await processPrompts(template, {})
+      const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
       expect(result).not.toBe(false)
       if (result === false) return // Type guard
 
@@ -251,7 +252,7 @@ After`)
 <%- ${calls.output} -%>
 After`
       if (['prompt', 'promptDate', 'promptDateInterval'].includes(name)) {
-        const result: ProcessPromptsResult = await processPrompts(template, {})
+        const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
         expect(result).not.toBe(false)
         if (result === false) return // Type guard
 
@@ -275,7 +276,7 @@ After`
 <%- ${calls.output} -%>
 After`
       if (['promptTag', 'promptMention', 'promptKey'].includes(name)) {
-        const result: ProcessPromptsResult = await processPrompts(template, {})
+        const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
         expect(result).not.toBe(false)
         if (result === false) return // Type guard
 
@@ -294,7 +295,7 @@ ${expectedValue}After`)
 <% prompt("foo","message") %>
 <%- prompt('bar',"message") %>`
 
-      const result: ProcessPromptsResult = await processPrompts(template, {})
+      const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
       expect(result).not.toBe(false)
       if (result === false) return // Type guard
 
@@ -318,7 +319,7 @@ ${expectedValue}After`)
     test('should handle the original reported issue', async () => {
       const template = `<% prompt('lastName', 'What is your last name?') -%>`
 
-      const result: ProcessPromptsResult = await processPrompts(template, {})
+      const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
       expect(result).not.toBe(false)
       if (result === false) return // Type guard
 
@@ -335,7 +336,7 @@ ${expectedValue}After`)
     test('should handle output tag correctly', async () => {
       const template = `<%- prompt('lastName', 'What is your last name?') -%>`
 
-      const result: ProcessPromptsResult = await processPrompts(template, {})
+      const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
       expect(result).not.toBe(false)
       if (result === false) return // Type guard
 
@@ -361,7 +362,7 @@ Tag: <%- Select_a_tag %>
 Priority: <%- priority %>
 Date: <%- promptDate("Choose date:") -%>`
 
-      const result: ProcessPromptsResult = await processPrompts(template, {})
+      const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
       expect(result).not.toBe(false)
       if (result === false) return // Type guard
 
@@ -391,7 +392,7 @@ Date: <%- promptDate("Choose date:") -%>`
   describe('Edge cases and error handling', () => {
     test('should handle empty templates', async () => {
       const template = ``
-      const result: ProcessPromptsResult = await processPrompts(template, {})
+      const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
       expect(result).not.toBe(false)
       if (result === false) return // Type guard
 
@@ -402,7 +403,7 @@ Date: <%- promptDate("Choose date:") -%>`
 
     test('should handle templates with no prompts', async () => {
       const template = `Just some text with no prompts`
-      const result: ProcessPromptsResult = await processPrompts(template, {})
+      const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
       expect(result).not.toBe(false)
       if (result === false) return // Type guard
 
@@ -416,7 +417,7 @@ Date: <%- promptDate("Choose date:") -%>`
 <% const second = prompt("var2", "Second prompt") %>
 <%- first %> and <%- second %>`
 
-      const result: ProcessPromptsResult = await processPrompts(template, {})
+      const result: ProcessPromptsResult = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
       expect(result).not.toBe(false)
       if (result === false) return // Type guard
 

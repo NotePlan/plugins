@@ -361,8 +361,8 @@ describe('BasePromptHandler', () => {
     beforeEach(() => {
       // Mock CommandBar for tests in this describe block that might use it via StandardPromptHandler
       global.CommandBar = {
-        textPrompt: jest.fn().mockResolvedValue('mocked user input'),
-        showOptions: jest.fn().mockResolvedValue({ value: 'mocked option' }),
+        textPrompt: jest.fn<Array<any>, any>().mockResolvedValue('mocked user input'),
+        showOptions: jest.fn<Array<any>, any>().mockResolvedValue({ value: 'mocked option' }),
       }
     })
 

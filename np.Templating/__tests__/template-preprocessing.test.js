@@ -60,20 +60,20 @@ const importTemplates = async (templateData) => {
 // Mock core module
 jest.mock('../lib/core', () => {
   return {
-    getTemplateContent: jest.fn().mockImplementation((templateName) => {
+    getTemplateContent: jest.fn<Array<any>, any>().mockImplementation((templateName) => {
       return Promise.resolve(TEMPLATE_CONTENT[templateName] || '')
     }),
-    getTemplateFolder: jest.fn().mockResolvedValue('@Templates'),
-    isCommentTag: jest.fn().mockImplementation((tag) => false),
+    getTemplateFolder: jest.fn<Array<any>, any>().mockResolvedValue('@Templates'),
+    isCommentTag: jest.fn<Array<any>, any>().mockImplementation((tag) => false),
   }
 })
 
 // Mock FrontmatterModule
 jest.mock('../lib/support/modules/FrontmatterModule', () => {
-  return jest.fn().mockImplementation(() => {
+  return jest.fn<Array<any>, any>().mockImplementation(() => {
     return {
-      isFrontmatterTemplate: jest.fn().mockReturnValue(false),
-      body: jest.fn().mockImplementation((content) => content),
+      isFrontmatterTemplate: jest.fn<Array<any>, any>().mockReturnValue(false),
+      body: jest.fn<Array<any>, any>().mockImplementation((content) => content),
     }
   })
 })

@@ -15,9 +15,9 @@ jest.mock('../../AppContext.jsx', () => ({
 }))
 
 describe.skip('PerspectiveSelector Component', () => {
-  const mockDispatchDashboardSettings = jest.fn()
-  const mockDispatchPerspectiveSettings = jest.fn()
-  const mockSendActionToPlugin = jest.fn()
+  const mockDispatchDashboardSettings = jest.fn<Array<any>, any>()
+  const mockDispatchPerspectiveSettings = jest.fn<Array<any>, any>()
+  const mockSendActionToPlugin = jest.fn<Array<any>, any>()
 
   beforeAll(() => {
     global.NP_THEME = mockNP_THEME

@@ -4,6 +4,7 @@
 
 import NPTemplating from '../lib/NPTemplating'
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
 import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 import { Note } from '@mocks/index'
@@ -216,7 +217,7 @@ describe('Prompt Integration Tests', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Verify prompt tags were processed (converted to variable references)
     expect(result.sessionTemplateData).toContain('<%- userName %>')
@@ -283,7 +284,7 @@ describe('Prompt Integration Tests', () => {
     // For option selection (isUrgent)
     global.CommandBar.showOptions.mockImplementation(() => Promise.resolve('Yes'))
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Replace any quoted text placeholders in the session data
     const cleanedSessionData = replaceQuotedTextPlaceholders(result.sessionData)
@@ -338,7 +339,7 @@ describe('Prompt Integration Tests', () => {
     // Mock functions should not be called for existing values
     global.CommandBar.textPrompt.mockClear()
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
     if (result === false) return
 
     // Replace any quoted text placeholders in the session data
@@ -382,7 +383,7 @@ describe('Prompt Integration Tests', () => {
 
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Replace any quoted text placeholders in the session data
     const cleanedSessionData = replaceQuotedTextPlaceholders(result.sessionData)

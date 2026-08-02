@@ -2,6 +2,7 @@
 
 import NPTemplating from '../lib/NPTemplating'
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
 import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 
@@ -11,8 +12,8 @@ describe('Prompt Await Issue Tests', () => {
   beforeEach(() => {
     // Create a fresh CommandBar mock for each test
     global.CommandBar = {
-      textPrompt: jest.fn().mockResolvedValue('Test Response'),
-      showOptions: jest.fn().mockResolvedValue({ index: 0 }),
+      textPrompt: jest.fn<Array<any>, any>().mockResolvedValue('Test Response'),
+      showOptions: jest.fn<Array<any>, any>().mockResolvedValue({ index: 0 }),
     }
     global.DataStore = {
       settings: { _logLevel: 'none' },
@@ -23,8 +24,8 @@ describe('Prompt Await Issue Tests', () => {
     jest.mock(
       '@helpers/userInput',
       () => ({
-        datePicker: jest.fn().mockImplementation(() => Promise.resolve('2023-01-15')),
-        askDateInterval: jest.fn().mockImplementation(() => Promise.resolve('5d')),
+        datePicker: jest.fn<Array<any>, any>().mockImplementation(() => Promise.resolve('2023-01-15')),
+        askDateInterval: jest.fn<Array<any>, any>().mockImplementation(() => Promise.resolve('5d')),
       }),
       { virtual: true },
     )
@@ -39,7 +40,7 @@ describe('Prompt Await Issue Tests', () => {
     // $FlowIgnore - jest mocked module
     const { askDateInterval } = require('@helpers/userInput')
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Log the result for debugging
     // console.log('Session data:', JSON.stringify(result.sessionData, null, 2))
@@ -58,7 +59,7 @@ describe('Prompt Await Issue Tests', () => {
     const templateData = "<%- await promptDate('dateVariable01') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData).toHaveProperty('dateVariable01')
     expect(result.sessionData).not.toHaveProperty("await_'dateVariable01'")
@@ -70,7 +71,7 @@ describe('Prompt Await Issue Tests', () => {
     const templateData = "<%- await prompt('standardVariable01', 'Enter value:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData).toHaveProperty('standardVariable01')
     expect(result.sessionData).not.toHaveProperty("await_'standardVariable01'")
@@ -84,10 +85,10 @@ describe('Prompt Await Issue Tests', () => {
 
     // Mock CommandBar.textPrompt
     global.CommandBar = {
-      textPrompt: jest.fn().mockResolvedValue('Test Response'),
+      textPrompt: jest.fn<Array<any>, any>().mockResolvedValue('Test Response'),
     }
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData).not.toHaveProperty('keyVariable01')
     expect(result.sessionData).not.toHaveProperty("await_'keyVariable01'")
@@ -105,7 +106,7 @@ describe('Prompt Await Issue Tests', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData).toHaveProperty('startDate')
     expect(result.sessionData).toHaveProperty('endDate')
