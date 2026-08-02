@@ -15,7 +15,7 @@ const BASE_URL = 'https://api.openai.com/v1'
 const TOKEN_LIMIT = 3000 // tokens per request (actually 3072)
 const MAX_RETRIES = 5 // number of times to retry a request if it fails
 const CHAT_COMPONENT = 'chat/completions'
-const MODEL_COST = { 'gpt-4': { inputCost: 0.03 / 1000, outputCost: 0.06 / 1000 }, 'gpt-3.5-turbo': { inputCost: 0.0015 / 1000, outputCost: 0.002 / 1000 } }
+const MODEL_COST: { [string]: { inputCost: number, outputCost: number } } = { 'gpt-4': { inputCost: 0.03 / 1000, outputCost: 0.06 / 1000 }, 'gpt-3.5-turbo': { inputCost: 0.0015 / 1000, outputCost: 0.002 / 1000 } }
 
 /****************************************************************************************************************************
  *                             TYPES

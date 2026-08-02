@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T04:02:27.366Z",
-  "rawTotal": 878,
+  "generated": "2026-08-02T15:37:41.899Z",
+  "rawTotal": 893,
   "byPlugin": {
     "flow-typed": {
       "sites": 9,
@@ -69,10 +69,10 @@
       "src": 7
     },
     "helpers": {
-      "sites": 64,
-      "raw": 100,
+      "sites": 63,
+      "raw": 99,
       "test": 1,
-      "src": 63
+      "src": 62
     },
     "jgclark.Dashboard": {
       "sites": 89,
@@ -112,7 +112,7 @@
     },
     "jgclark.SearchExtensions": {
       "sites": 5,
-      "raw": 7,
+      "raw": 24,
       "test": 1,
       "src": 4
     },
@@ -171,10 +171,10 @@
       "src": 4
     },
     "shared.AI": {
-      "sites": 36,
-      "raw": 47,
+      "sites": 35,
+      "raw": 46,
       "test": 0,
-      "src": 36
+      "src": 35
     }
   }
 }

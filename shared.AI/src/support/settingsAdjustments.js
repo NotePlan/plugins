@@ -58,7 +58,7 @@ export async function setOpenAIAPIKey(useClipboard: boolean = false) {
   }
 }
 
-export async function updatePluginPreference(key: string, value: Any) {
+export async function updatePluginPreference(key: string, value: any) {
   // let { key } = DataStore.settings
   // const newValue = await CommandBar.showInput(`Current Value for ${key}: ${key}`, 'Update Preference Value')
   // DataStore.settings = {...DataStore.settings, key: newValue}

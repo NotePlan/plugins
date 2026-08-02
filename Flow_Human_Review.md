@@ -93,6 +93,21 @@ have been cast; this one has no guard, so it can write `settings[undefined]`.
 
 ---
 
+### 5a. Four undeclared identifiers that would throw `ReferenceError`
+
+Flow's `cannot-resolve-name` is not a typing nit here — these names don't exist at runtime
+either. Each is one character or one missing import away from working.
+
+| Location | Problem | Suggestion |
+|---|---|---|
+| `helpers/react/Modal/ModalWithTooltip.jsx:38` | `if (isMetaKey && metaKey)` — the event's `metaKey` was destructured **as** `isMetaKey` on the line above, so bare `metaKey` is undeclared. Throws on every mouse-over. | The second operand looks like a leftover; it is probably meant to be a prop. Most likely just `if (isMetaKey)`. |
+| `shared.AI/src/support/helpers.js:59` | `commmand.aliases` — three m's. The loop variable is `command`. | Fix the typo. |
+| `shared.AI/src/support/helpers.js:66` | `fs.writeFile(commandsPath, output)` — Node's `fs` isn't imported and isn't available in NotePlan's JS runtime anyway. | This function (`generateREADMECommands`) looks like it was written for a build script, not the plugin. Move it to `scripts/`, or use `DataStore.saveData`. `availablePreferences` at `:108` is undeclared for the same reason. |
+| `np.Templating/lib/helpers.js:100` | `logDebug('')` — the file imports `{ log, clo }` from `@helpers/dev` but not `logDebug`. | Add it to the import, or drop the line (it only prints a blank line). |
+| `dwertheimer.TaskAutomations/src/NPTaskScanAndProcess.js:104` | `keyModifiers.toString()` inside a `logDebug` — `keyModifiers` is never declared in that scope. Throws whenever the non-date branch is reached. | Check whether it should come from the function's parameters; otherwise remove it from the message. |
+
+---
+
 ## 🟠 Silently wrong
 
 ### 6. `np.CallbackURLs` — nine dead cancel checks in the wizard
@@ -291,3 +306,14 @@ and made things *worse* (+16 sites) — the type really is used both ways in tha
 
 **Suggestion:** untangle `sortTasks.js` so a given variable holds one or the other, then the type
 can be honest. Non-trivial; 53 tests cover the file, so it's a safe refactor to attempt.
+
+**Two attempts already made and reverted, so nobody repeats them:**
+
+1. Retyping `ParagraphsGroupedByType`'s elements to `SortableParagraphSubset` → **+16 sites**.
+2. Adding a `[string]: Array<SortableParagraphSubset>` indexer to `GroupedTasks` (which is
+   otherwise correct — callers *do* index it dynamically) → **+2 sites**, because it stops
+   masking the mismatch and surfaces it at `sortTasks.js:523, 542, 622, 623` instead. Then
+   aligning the six accumulators in that file to `Array<SortableParagraphSubset>` → **+26 sites**,
+   proving the file really does hold both types in the same variables.
+
+So the indexer on `GroupedTasks` is worth adding *as part of* the refactor, not before it.

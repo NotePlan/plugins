@@ -277,7 +277,7 @@ export function getSortableTask(para: TParagraph): SortableParagraphSubset {
  * @returns {GroupedTasks} - object of tasks by type {'open':[], 'scheduled'[], 'done':[], 'cancelled':[], etc.}
  */
 export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreIndents: boolean = false, useCalculatedScheduled: boolean = false): GroupedTasks {
-  const tasks = TASK_TYPES.reduce((acc, t) => ({ ...acc, ...{ [t]: [] } }), {})
+  const tasks: GroupedTasks = (TASK_TYPES.reduce((acc, t) => ({ ...acc, ...{ [t]: [] } }), {}): any)
   let lastParent = { indents: 999, children: [] }
   // clo(paragraphs, 'getTasksByType')
   for (let index = 0; index < paragraphs.length; index++) {
