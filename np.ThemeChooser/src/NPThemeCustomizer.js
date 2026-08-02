@@ -335,7 +335,7 @@ export async function createThemeSamples(idToScrollTo: string = '', autoRefreshR
     // const styleDiffs = localAdditionalStyles.length > 0 ? localAdditionalStyles.map((s) => currentStyles[s]) : []
     // clo(localAdditionalStyles, `NPStyleChooser::createThemeSamples localAdditionalStyles=`)
     let customs: Array<any> = []
-    const styleDiff = localAdditionalStyles.reduce((acc, s) => {
+    const styleDiff = localAdditionalStyles.reduce((acc: { [string]: any }, s: string) => {
       acc[s] = currentStyles[s]
       return acc
     }, {})

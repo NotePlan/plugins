@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T03:48:26.308Z",
-  "rawTotal": 966,
+  "generated": "2026-08-02T03:52:28.747Z",
+  "rawTotal": 949,
   "byPlugin": {
     "flow-typed": {
       "sites": 9,
@@ -57,10 +57,10 @@
       "src": 21
     },
     "dwertheimer.TaskSorting": {
-      "sites": 27,
-      "raw": 35,
+      "sites": 26,
+      "raw": 34,
       "test": 0,
-      "src": 27
+      "src": 26
     },
     "dwertheimer.test-plugin-scratch": {
       "sites": 7,
@@ -69,10 +69,10 @@
       "src": 7
     },
     "helpers": {
-      "sites": 77,
-      "raw": 112,
+      "sites": 65,
+      "raw": 100,
       "test": 1,
-      "src": 76
+      "src": 64
     },
     "jgclark.Dashboard": {
       "sites": 100,
@@ -129,10 +129,10 @@
       "src": 56
     },
     "np.MeetingNotes": {
-      "sites": 4,
-      "raw": 5,
+      "sites": 3,
+      "raw": 4,
       "test": 0,
-      "src": 4
+      "src": 3
     },
     "np.Preview": {
       "sites": 2,
@@ -147,10 +147,10 @@
       "src": 53
     },
     "np.ThemeChooser": {
-      "sites": 8,
-      "raw": 9,
+      "sites": 5,
+      "raw": 6,
       "test": 0,
-      "src": 8
+      "src": 5
     },
     "np.Tidy": {
       "sites": 2,

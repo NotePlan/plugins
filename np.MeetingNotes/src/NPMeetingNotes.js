@@ -528,7 +528,9 @@ async function updateNoteContent(note: CoreNoteFields, location: string, content
  * @param {string} content - The new content.
  * @returns {Promise<string|null>} The title of the note or null.
  */
-async function appendPrependNewNote(noteName: string, location: string, _folder: string = '', content: string): Promise<string | null> {
+// NB: returns undefined (not null) when the try block throws - the catch only logs. `?string`
+// covers all three outcomes; the caller already treats a falsy result as failure.
+async function appendPrependNewNote(noteName: string, location: string, _folder: string = '', content: string): Promise<?string> {
   try {
     let folder = _folder
     logDebug(`np.MeetingNotes appendPrependNewNote noteName=${noteName} location:${location} folder:${folder}`)
