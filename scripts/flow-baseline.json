@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T16:20:56.302Z",
-  "rawTotal": 798,
+  "generated": "2026-08-02T16:23:33.709Z",
+  "rawTotal": 779,
   "byPlugin": {
     "flow-typed": {
       "sites": 7,
@@ -39,10 +39,10 @@
       "src": 3
     },
     "dwertheimer.JestHelpers": {
-      "sites": 7,
-      "raw": 7,
+      "sites": 5,
+      "raw": 5,
       "test": 0,
-      "src": 7
+      "src": 5
     },
     "dwertheimer.MathSolver": {
       "sites": 4,
@@ -69,10 +69,10 @@
       "src": 7
     },
     "helpers": {
-      "sites": 56,
-      "raw": 91,
+      "sites": 55,
+      "raw": 90,
       "test": 0,
-      "src": 56
+      "src": 55
     },
     "jgclark.Dashboard": {
       "sites": 81,
@@ -105,10 +105,10 @@
       "src": 1
     },
     "jgclark.Reviews": {
-      "sites": 10,
-      "raw": 22,
+      "sites": 11,
+      "raw": 23,
       "test": 1,
-      "src": 9
+      "src": 10
     },
     "jgclark.SearchExtensions": {
       "sites": 5,
@@ -123,10 +123,10 @@
       "src": 6
     },
     "np.CallbackURLs": {
-      "sites": 44,
-      "raw": 46,
+      "sites": 31,
+      "raw": 31,
       "test": 0,
-      "src": 44
+      "src": 31
     },
     "np.MeetingNotes": {
       "sites": 3,
@@ -160,7 +160,7 @@
     },
     "np.WeatherLookup": {
       "sites": 4,
-      "raw": 8,
+      "raw": 6,
       "test": 0,
       "src": 4
     },

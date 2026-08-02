@@ -176,7 +176,7 @@ export async function chooseDecoratedOptionWithModifiers(
  * @param {?string} defaultValue - default value to display in text entry (default: empty)
  * @return {Promise<boolean|string>} - string that the user enters. Maybe be the empty string. If the user cancels the operation, it will return false instead.
  */
-export async function getInput(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<boolean | string> {
+export async function getInput(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<string | false> {
   if (typeof CommandBar.textPrompt === 'function') {
     // i.e. do we have .textPrompt available?
     return await CommandBar.textPrompt(dialogTitle, message, defaultValue)
@@ -196,7 +196,7 @@ export async function getInput(message: string, okLabel: string = 'OK', dialogTi
  * @param {?string} defaultValue - default value to display in text entry (default: empty)
  * @returns {Promise<boolean|string>} string that the user enters. Maybe be the empty string. If the user cancels the operation, it will return false instead.
  */
-export async function getInputTrimmed(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<boolean | string> {
+export async function getInputTrimmed(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<string | false> {
   if (typeof CommandBar.textPrompt === 'function') {
     // i.e. do we have .textPrompt available?
     const reply = await CommandBar.textPrompt(dialogTitle, message, defaultValue)
