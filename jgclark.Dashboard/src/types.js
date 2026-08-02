@@ -137,6 +137,24 @@ export type TDashboardSettings = {
   customSectionDisplayOrder: ?Array<TSectionCode>
 }
 
+/**
+ * What a function should accept when it only *reads* dashboard settings.
+ *
+ * `Partial<TDashboardSettings>` looks like the obvious choice, but object properties are
+ * read-write and therefore invariant, so a full `TDashboardSettings` is NOT assignable to
+ * `Partial<TDashboardSettings>` — Flow has to check `boolean | void ~> boolean` and fails, once
+ * per required property, per call site. Read-only properties are covariant, so wrapping in
+ * `$ReadOnly` accepts both a full settings object and a partial one.
+ *
+ * This is also the more honest description of what these functions receive: the settings object
+ * is assembled at runtime by getDashboardSettingsDefaults() from a `TSettingItem` array, so Flow
+ * cannot verify that any given "required" key is actually present, and older installs won't have
+ * newer keys until defaults are merged in.
+ *
+ * Use this for parameters. Keep `TDashboardSettings` for the fully-populated object itself.
+ */
+export type TDashboardSettingsIn = $ReadOnly<Partial<TDashboardSettings>>
+
 /** Keys allowed at the root of settings.json (from plugin.json + logging). */
 export const ALLOWED_ROOT_KEYS: Set<string> = new Set([
   'pluginID',

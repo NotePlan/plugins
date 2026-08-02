@@ -10,11 +10,11 @@ import { applyDerivedDashboardSettings, normaliseDashboardNumberSettings } from 
 import { getDashboardSettingsDefaults } from './dashboardSettingsDefaults'
 import { normalizePreferredWindowType } from './preferredWindowType'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
-import type { TDashboardSettings, TSection, TPerspectiveSettings } from './types'
+import type { TDashboardSettings, TDashboardSettingsIn, TSection, TPerspectiveSettings } from './types'
 import { logDebug, logError } from '@helpers/dev'
 
 /** Tag cache is used unless FFlag_UseTagCache is explicitly false in dashboardSettings. */
-export function isTagCacheEnabled(dashboardSettings: TDashboardSettings): boolean {
+export function isTagCacheEnabled(dashboardSettings: TDashboardSettingsIn): boolean {
   return dashboardSettings?.FFlag_UseTagCache !== false
 }
 
@@ -92,22 +92,27 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashbo
 
     // Filter out any showTagSection_ keys that are not used in the current perspective (i.e. not in tagsToShow)
     // $FlowIgnore[incompatible-call] - settingsIn is Partial<TDashboardSettings> but removeInvalidTagSections accepts TDashboardSettings; this is safe as it creates a copy
-    const perspSettingsWithoutIrrelevantTags = removeInvalidTagSections(settingsIn) // OK
+    const perspSettingsWithoutIrrelevantTags: TAnyObject = removeInvalidTagSections(settingsIn) // OK
 
+    // Note: this is a dynamic-key copy, so both sides must be indexed types. Typing the
+    // accumulator as `Partial<TDashboardSettings>` (exact, no indexer) forced Flow to check every
+    // possible value type against every one of the ~85 property slots — 3,160 errors from this
+    // one line. `TAnyObject` is the idiom already used in dashboardSettingsDefaults.js for
+    // exactly this. The looseness stays inside this function; the exported signature is unchanged.
     const removedKeys: Array<string> = []
-    const settingsOut = Object.keys(perspSettingsWithoutIrrelevantTags).reduce((acc: Partial<TDashboardSettings>, key) => {
+    const settingsOut = Object.keys(perspSettingsWithoutIrrelevantTags).reduce((acc: TAnyObject, key: string) => {
       if (!shouldRemoveKey(key)) {
         acc[key] = perspSettingsWithoutIrrelevantTags[key]
       } else {
         removedKeys.push(key)
       }
       return acc
-    }, {})
+    }, ({}: TAnyObject))
     if (removedKeys.length > 0) {
       // logDebug('cleanDashboardSettingsInAPerspective', `- Removed keys: [${removedKeys.join(', ')}]`)
     }
 
-    return settingsOut
+    return ((settingsOut: any): Partial<TDashboardSettings>)
   } catch (error) {
     logError('cleanDashboardSettingsInAPerspective', `Error: ${error.message}`)
     return {}
@@ -116,10 +121,10 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashbo
 
 /**
  * Tag section names currently listed in `tagsToShow` (source of truth for TAG section sync).
- * @param {TDashboardSettings} dashboardSettings
+ * @param {TDashboardSettingsIn} dashboardSettings
  * @returns {Set<string>}
  */
-export function getWantedTagNamesFromSettings(dashboardSettings: TDashboardSettings): Set<string> {
+export function getWantedTagNamesFromSettings(dashboardSettings: TDashboardSettingsIn): Set<string> {
   const tagsCsv = (dashboardSettings.tagsToShow ?? '').trim()
   if (!tagsCsv) return new Set()
   return new Set(getTagSectionDetails(dashboardSettings).map((d) => d.sectionName))
@@ -159,10 +164,10 @@ export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashb
  * Related: {@link removeInvalidTagSections} cleans the same tag drift in dashboard settings (`showTagSection_*` keys), not section rows.
  * @author @CursorAI
  * @param {Array<TSection>} sections
- * @param {TDashboardSettings} dashboardSettings
+ * @param {TDashboardSettingsIn} dashboardSettings
  * @returns {Array<TSection>}
  */
-export function removeStaleTagSections(sections: Array<TSection>, dashboardSettings: TDashboardSettings): Array<TSection> {
+export function removeStaleTagSections(sections: Array<TSection>, dashboardSettings: TDashboardSettingsIn): Array<TSection> {
   try {
     const wantedTagNames = getWantedTagNamesFromSettings(dashboardSettings)
     if (wantedTagNames.size === 0) {
@@ -193,10 +198,10 @@ export function removeStaleTagSections(sections: Array<TSection>, dashboardSetti
  * - dedupe repeated TAG sections by tag name (keep latest / last)
  * @author @CursorAI
  * @param {Array<TSection>} sections
- * @param {TDashboardSettings} dashboardSettings
+ * @param {TDashboardSettingsIn} dashboardSettings
  * @returns {Array<TSection>}
  */
-export function syncTagSectionsWithSettings(sections: Array<TSection>, dashboardSettings: TDashboardSettings): Array<TSection> {
+export function syncTagSectionsWithSettings(sections: Array<TSection>, dashboardSettings: TDashboardSettingsIn): Array<TSection> {
   try {
     const withoutStale = removeStaleTagSections(sections, dashboardSettings)
     const tagDetails = getTagSectionDetails(dashboardSettings)

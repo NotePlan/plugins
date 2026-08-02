@@ -410,7 +410,7 @@ This is the actual template body.
 
     describe(`${block('.getFrontmatterAttributes')}`, () => {
       it('should return frontmatter attributes from a note', () => {
-        const mockNote = {
+        const mockNote: any = {
           type: 'Notes',
           frontmatterAttributes: {
             title: 'Test Note',
@@ -428,7 +428,7 @@ This is the actual template body.
       })
 
       it('should return empty object when note has no frontmatter attributes', () => {
-        const mockNote = {
+        const mockNote: any = {
           type: 'Notes',
           frontmatterAttributes: null,
         }
@@ -447,7 +447,7 @@ This is the actual template body.
         const mockUpdate = jest.spyOn(NPFrontMatter, 'updateFrontMatterVars')
         mockUpdate.mockReturnValue(true)
 
-        const mockNote = { filename: 'test.md' }
+        const mockNote: any = { filename: 'test.md' }
         const mockAttributes = { status: 'completed' }
 
         const frontmatterModule = new FrontmatterModule()
@@ -463,7 +463,7 @@ This is the actual template body.
 
     describe(`${block('.updateFrontmatterAttributes')}`, () => {
       it('should be an alias for updateFrontMatterVars', () => {
-        const mockNote = { frontmatterAttributes: {} }
+        const mockNote: any = { frontmatterAttributes: {} }
         const mockAttributes = { title: 'Test', status: 'active' }
 
         const frontmatterModule = new FrontmatterModule()
@@ -513,7 +513,8 @@ This is the actual template body.
 
       it('should handle null note gracefully', () => {
         const frontmatterModule = new FrontmatterModule()
-        const result = frontmatterModule.properties(null)
+        // Deliberately passing null: the point of the test is that it doesn't throw.
+        const result = frontmatterModule.properties((null: any))
 
         expect(result).toEqual({})
       })

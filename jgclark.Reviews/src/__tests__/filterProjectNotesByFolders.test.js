@@ -1,22 +1,19 @@
 // @flow
 /* globals describe, expect, test */
 import { filterProjectNotesByFolders, getEffectiveFoldersToIgnore } from '../allProjectsListHelpers'
-
-  // Mock TNote type - simplified for testing
-  // $FlowFixMe[prop-missing] - MockNote only needs filename property for testing
-type MockNote = {
-  filename: string,
-  title: string,
-}
+import { asTNote } from '@mocks/index'
 
 describe('filterProjectNotesByFolders', () => {
-  // Create mock project notes for testing
-  const createMockNote = (filename: string, title: string = ''): MockNote => ({
-    filename,
-    title: title || filename.split('/').pop() || filename,
-  })
+  // These functions only ever look at `.filename`, so a two-field object is all the mock needs.
+  // asTNote() presents it as a TNote; declaring a local `type MockNote = {...}` instead would
+  // produce one error per missing CoreNoteFields member per call site (~1,100 in this file).
+  const createMockNote = (filename: string, title: string = ''): TNote =>
+    asTNote({
+      filename,
+      title: title || filename.split('/').pop() || filename,
+    })
 
-  const mockProjectNotes: Array<MockNote> = [
+  const mockProjectNotes: Array<TNote> = [
     // Root folder notes
     createMockNote('root-note.md', 'Root Note'),
     createMockNote('another-root.md', 'Another Root'),
@@ -100,7 +97,7 @@ describe('filterProjectNotesByFolders', () => {
 
     test('should not match root folder notes when specific folder is specified', () => {
       const filteredFolders = ['Projects']
-      const foldersToIgnore = []
+      const foldersToIgnore: Array<string> = []
       const result = filterProjectNotesByFolders(mockProjectNotes, filteredFolders, foldersToIgnore)
       
       expect(result.every(n => n.filename.startsWith('Projects/'))).toBe(true)
@@ -111,7 +108,7 @@ describe('filterProjectNotesByFolders', () => {
   describe('nested folder matching', () => {
     test('should not match notes in nested folders when just a sub-folder is included', () => {
       const filteredFolders = ['Research']
-      const foldersToIgnore = []
+      const foldersToIgnore: Array<string> = []
       const result = filterProjectNotesByFolders(mockProjectNotes, filteredFolders, foldersToIgnore)
       
       expect(result).toHaveLength(0) // no matches
@@ -119,7 +116,7 @@ describe('filterProjectNotesByFolders', () => {
 
     test('should match exact folder name', () => {
       const filteredFolders = ['Projects/Research']
-      const foldersToIgnore = []
+      const foldersToIgnore: Array<string> = []
       const result = filterProjectNotesByFolders(mockProjectNotes, filteredFolders, foldersToIgnore)
       
       // Should include files directly in Projects/Research and its subfolders
@@ -131,7 +128,7 @@ describe('filterProjectNotesByFolders', () => {
   describe('multiple folder matching', () => {
     test('should match notes from multiple folders', () => {
       const filteredFolders = ['Projects', 'Areas']
-      const foldersToIgnore = []
+      const foldersToIgnore: Array<string> = []
       const result = filterProjectNotesByFolders(mockProjectNotes, filteredFolders, foldersToIgnore)
       
       expect(result).toHaveLength(10)
@@ -141,7 +138,7 @@ describe('filterProjectNotesByFolders', () => {
 
     test('should match notes from root and specific folders', () => {
       const filteredFolders = ['/', 'Projects']
-      const foldersToIgnore = []
+      const foldersToIgnore: Array<string> = []
       const result = filterProjectNotesByFolders(mockProjectNotes, filteredFolders, foldersToIgnore)
       
       // Should match both root files and Projects files
@@ -215,7 +212,7 @@ describe('filterProjectNotesByFolders', () => {
 
     test('should handle folder name that matches part of another folder', () => {
       const filteredFolders = ['Testing']
-      const foldersToIgnore = []
+      const foldersToIgnore: Array<string> = []
       const result = filterProjectNotesByFolders(mockProjectNotes, filteredFolders, foldersToIgnore)
       
       // Should match 'Testing/project.md' but not 'Projects/Testing/test.md'

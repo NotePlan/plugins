@@ -10,16 +10,19 @@ import {
   noteMayContainCacheItems,
   trimMentionSuffix,
 } from '../src/tagMentionCache'
+import { asTNote } from '@mocks/index'
 
-/** @returns {any} */
-function mockNote(content, paragraphs = [], frontmatterAttributes = {}) {
-  return {
+// NB: the JSDoc `@returns {any}` that used to be here does nothing — Flow reads annotations, not
+// JSDoc — so this returned a bare object literal and every call site reported one error per
+// missing CoreNoteFields member (392 in this file). asTNote() is the annotation that counts.
+function mockNote(content: string, paragraphs: Array<any> = [], frontmatterAttributes: any = {}): TNote {
+  return asTNote({
     type: 'Notes',
     filename: 'test.md',
     content,
     paragraphs,
     frontmatterAttributes,
-  }
+  })
 }
 
 describe('buildTagMentionLookupContext', () => {

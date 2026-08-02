@@ -14,7 +14,7 @@ import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings.j
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import { updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentionCache'
-import type { TDashboardSettings, TPerspectiveDef } from './types'
+import type { TDashboardSettings, TDashboardSettingsIn, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getPeriodOfNPDateStr } from '@helpers/dateTime'
 import { clo, clof, clvt, compareObjects, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
@@ -347,12 +347,12 @@ const PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT: Array<string> = ['lastModified', '
  * Diff between a named perspective's saved def and live dashboard settings (null if equivalent).
  * Same rules as `resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload` (defaults, tag sections).
  * @param {TPerspectiveDef} perspectiveDef
- * @param {Partial<TDashboardSettings>} liveDashboardSettings
+ * @param {TDashboardSettingsIn} liveDashboardSettings
  * @returns {?{ [string]: any }}
  */
 export function getPerspectiveLiveVsSavedDiff(
   perspectiveDef: TPerspectiveDef,
-  liveDashboardSettings: Partial<TDashboardSettings>,
+  liveDashboardSettings: TDashboardSettingsIn,
 ): ?{ [string]: any } {
   if (!perspectiveDef || perspectiveDef.name === '-') return null
   const dashboardSettingsDefaults = getDashboardSettingsDefaults()
@@ -382,25 +382,25 @@ export function getPerspectiveLiveVsSavedDiff(
 /**
  * Whether live top-level dashboard settings differ from a named perspective's saved def.
  * @param {TPerspectiveDef} perspectiveDef
- * @param {Partial<TDashboardSettings>} liveDashboardSettings
+ * @param {TDashboardSettingsIn} liveDashboardSettings
  * @returns {boolean}
  */
 export function perspectiveDefDiffersFromLiveDashboard(
   perspectiveDef: TPerspectiveDef,
-  liveDashboardSettings: Partial<TDashboardSettings>,
+  liveDashboardSettings: TDashboardSettingsIn,
 ): boolean {
   return getPerspectiveLiveVsSavedDiff(perspectiveDef, liveDashboardSettings) !== null
 }
 
 /**
  * Whether live dashboard settings differ from the baseline snapshot (after switch or Save Perspective).
- * @param {Partial<TDashboardSettings>} baselineDashboardSettings
- * @param {Partial<TDashboardSettings>} liveDashboardSettings
+ * @param {TDashboardSettingsIn} baselineDashboardSettings
+ * @param {TDashboardSettingsIn} liveDashboardSettings
  * @returns {boolean}
  */
 export function liveDashboardDiffersFromBaseline(
-  baselineDashboardSettings: Partial<TDashboardSettings>,
-  liveDashboardSettings: Partial<TDashboardSettings>,
+  baselineDashboardSettings: TDashboardSettingsIn,
+  liveDashboardSettings: TDashboardSettingsIn,
 ): boolean {
   const dashboardSettingsDefaults = getDashboardSettingsDefaults()
   const cleanedLive = cleanDashboardSettingsInAPerspective({ ...dashboardSettingsDefaults, ...liveDashboardSettings })
@@ -419,15 +419,15 @@ export type TIsNamedPerspectiveModifiedOptions = {
  * Display: prefer baseline when set (avoids false `*` after switch when merge carryover ≠ raw def).
  * Save (`forSave: true`): also allow save when live differs from the saved def even if live matches baseline.
  * @param {TPerspectiveDef} perspectiveDef
- * @param {Partial<TDashboardSettings>} liveDashboardSettings
- * @param {Partial<TDashboardSettings>} [dashboardSettingsBaseline] - from pluginData after switch/save
+ * @param {TDashboardSettingsIn} liveDashboardSettings
+ * @param {TDashboardSettingsIn} [dashboardSettingsBaseline] - from pluginData after switch/save
  * @param {TIsNamedPerspectiveModifiedOptions} [options]
  * @returns {boolean}
  */
 export function isNamedPerspectiveModified(
   perspectiveDef: TPerspectiveDef,
-  liveDashboardSettings: Partial<TDashboardSettings>,
-  dashboardSettingsBaseline?: Partial<TDashboardSettings>,
+  liveDashboardSettings: TDashboardSettingsIn,
+  dashboardSettingsBaseline?: TDashboardSettingsIn,
   options?: TIsNamedPerspectiveModifiedOptions,
 ): boolean {
   if (!perspectiveDef || perspectiveDef.name === '-') return false
