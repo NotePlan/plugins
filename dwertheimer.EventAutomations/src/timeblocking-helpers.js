@@ -880,7 +880,7 @@ export function processTasksByTimeBlockTag(sortedTaskList: Array<ParagraphWithDu
     logDebug(`"STARTING TIMEFRAME PROCESSING": ${keys.length} timeframes matched in tasks`)
     let newTimeMapWithBlocks: TimeBlocksWithMap = { timeBlockTextList: [], timeMap: [], blockList: [] }
     // process tasks by timeframe key
-    const timeframes = config.timeframes || {}
+    const timeframes: TAnyObject = config.timeframes || {}
     keys.forEach((key) => {
       const tasksMatchingThisTimeframe = matched[key]
       const timeframe = timeframes[key]

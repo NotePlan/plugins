@@ -20,14 +20,21 @@ import { log, logError, clo, JSP, getFilteredProps } from '@helpers/dev'
 // import { createRunPluginCallbackUrl } from '@helpers/general'
 import { getInput } from '@helpers/userInput'
 
-/** NotePlan globals that generateMock can scaffold Jest mocks from (keyed by user-facing name). */
-const NOTEPLAN_GLOBALS: { [string]: any } = {
-  Calendar,
-  Clipboard,
-  CommandBar,
-  DataStore,
-  Editor,
-  NotePlan,
+/**
+ * NotePlan globals that generateMock can scaffold Jest mocks from (keyed by user-facing name).
+ * Built lazily: these are runtime globals that only exist inside NotePlan, so evaluating them at
+ * module scope throws ReferenceError anywhere else (it broke this plugin's own Jest suite).
+ * @returns {{ [string]: any }}
+ */
+function getNotePlanGlobals(): { [string]: any } {
+  return {
+    Calendar,
+    Clipboard,
+    CommandBar,
+    DataStore,
+    Editor,
+    NotePlan,
+  }
 }
 
 /**
@@ -160,9 +167,9 @@ export async function generateMock(incoming: ?string = ''): Promise<void> {
     // createMockClass(pl[0].commands[0], 'PluginCommandObjectMock')
 
     const name = await getInput('What is the name of the mock?')
-    const object = name ? NOTEPLAN_GLOBALS[name] : null
+    const object = name ? getNotePlanGlobals()[name] : null
 
-    if (object) createMockOutput(object, name)
+    if (object) createMockOutput(object, (name: any))
     else console.log(`No object for ${name || ''}`)
   } catch (error) {
     logError(pluginJson, JSP(error))

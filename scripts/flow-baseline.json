@@ -1,36 +1,12 @@
 {
-  "generated": "2026-08-02T19:19:33.562Z",
-  "rawTotal": 18,
+  "generated": "2026-08-02T21:45:19.883Z",
+  "rawTotal": 6,
   "byPlugin": {
-    "dwertheimer.TaskAutomations": {
-      "sites": 1,
-      "raw": 1,
-      "test": 0,
-      "src": 1
-    },
-    "dwertheimer.test-plugin-scratch": {
-      "sites": 2,
-      "raw": 2,
-      "test": 0,
-      "src": 2
-    },
-    "helpers": {
-      "sites": 4,
-      "raw": 4,
-      "test": 0,
-      "src": 4
-    },
     "jgclark.PeriodicReviews": {
       "sites": 4,
       "raw": 4,
       "test": 0,
       "src": 4
-    },
-    "jgclark.Summaries": {
-      "sites": 2,
-      "raw": 2,
-      "test": 0,
-      "src": 2
     },
     "np.Preview": {
       "sites": 2,

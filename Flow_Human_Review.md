@@ -1,20 +1,25 @@
 # Flow cleanup — items needing a human decision
 
-Generated during the repo-wide Flow error sweep. Everything here is a **real defect or a genuine
-design question**, not a missing annotation. Each one was deliberately left erroring, because an
-annotation or cast would hide the problem rather than fix it.
+Everything here is a **real defect or a genuine design question**, not a missing annotation.
 
-Track progress with `node scripts/flow-report.js`. CI (`Flow-Check` job) fails only if a plugin's
-unique-site count rises above `scripts/flow-baseline.json`, so fixing anything here is safe and
-the ratchet will lock the improvement in.
+Two kinds of entry:
+
+- **Still erroring** — Flow reports it today. Only items 1 and 2 are in this state.
+- **Silenced but not fixed** — the defect is real, but leaving it erroring wasn't an option under
+  the type-only rule, so the site carries a cast plus a `// KNOWN BUG` comment. Flow is quiet;
+  the bug is not gone.
+
+Track progress with `node scripts/flow-report.js`. CI (`Flow-Check`) fails only if a plugin's
+unique-site count rises above `scripts/flow-baseline.json`, so fixing anything here is safe.
 
 **Legend:** 🔴 user-visible breakage · 🟠 silent wrong behaviour · 🟡 dead/vestigial code · 🔵 design question
 
-Items fixed during the Aug 2026 review pass have been removed from this list.
+*Last verified against the code on 2026-08-02 — every item below was re-checked at its stated
+line, not carried over on trust. Items resolved in the review pass have been removed.*
 
 ---
 
-## 🔴 Broken — these fail at runtime
+## 🔴 Still erroring (6 of 6 remaining Flow errors)
 
 ### 1. `np.Preview` — two files import a function that no longer exists
 
@@ -32,91 +37,72 @@ files if they were only ever scratch tests (the names suggest so). Ask @jgclark 
 
 ---
 
-### 2. `jgclark.PeriodicReviews` — source imports three modules that don't exist
+### 2. `jgclark.PeriodicReviews` — source imports four modules that don't exist
 
-`jgclark.PeriodicReviews/src/reviewHTMLViewGenerator.js:9,10,18,19`
+`jgclark.PeriodicReviews/src/reviewHTMLViewGenerator.js:9, 10, 18, 19`
 
-Imports `../plugin.json`, `./periodicReviewHelpers` and `./reviewQuestions`. The plugin's `src/`
-contains only this one file — there is no `plugin.json` and no sibling modules.
+Imports `../plugin.json`, `./periodicReviewHelpers` (twice) and `./reviewQuestions`. The plugin's
+`src/` contains only this one file — there is no `plugin.json` and no sibling modules.
 
 **Suggestion:** the directory looks orphaned (left behind by a move or a partial extraction).
 Confirm with @jgclark, then either restore the missing files or delete `src/`.
 
 ---
 
-### 3. `KimMachineGun.Raindrop` — "create if not exists" fails when the note *does* exist
+## 🔴 Silenced but not fixed — real breakage
 
-`KimMachineGun.Raindrop/src/NPPluginMain.js:157`
+### 3. `KimMachineGun.Raindrop` — "create if not exists" opens `undefined` when the note exists
+
+`KimMachineGun.Raindrop/src/NPPluginMain.js:153-158`
+
+`createNoteIfNotExists()` has no return on the `existingNotes.length !== 0` path, so it resolves
+to `undefined` and the caller does `Editor.openNoteByFilename(undefined)`. The signature is now
+honestly `Promise<?string>` and the call site carries a `KNOWN BUG` comment and an `(filename: any)`
+cast — so Flow is quiet, but the note-already-exists case still fails.
+
+**Suggestion:** `return existingNotes[0].filename` on that branch, then drop the cast.
+
+---
+
+### 4. `np.Tidy` — a boolean passed where an encoded-params string is expected
+
+`np.Tidy/src/tidyMain.js:46-47`
 
 ```js
-async function createNoteIfNotExists(title, folder, content?): Promise<string> {
-  const existingNotes = DataStore.projectNoteByTitle(title, true, false) ?? []
-  if (existingNotes.length === 0) {
-    ... return await DataStore.newNoteWithContent(...) / newNote(...)
-  }
-  // no return on the "already exists" path -> undefined
-}
+await removeOrphanedBlockIDs((config.runSilently: any))
 ```
 
-The caller then does `await Editor.openNoteByFilename(filename)` with `undefined`.
+`removeOrphanedBlockIDs(params: string = '')` (`:430`) feeds `params` to
+`overrideSettingsWithEncodedTypedArgs()` and `getTagParamsFromString()`. Passing `true` takes the
+`if (params)` branch and `getTagParamsFromString(true, 'runSilently', false)` cannot read
+`runSilently`. Effect: **`runSilently` is never honoured** by this command. Currently cast with a
+`KNOWN BUG` comment.
 
-**Suggestion:** return `existingNotes[0].filename` on that branch. Also note
-`DataStore.newNote()` returns `?string`, so the declared `Promise<string>` is optimistic either
-way.
+**Suggestion:** pass `'{"runSilently":true}'` (or `''`), matching the other params-taking calls
+below it.
 
 ---
 
-### 4. `np.Tidy` — a boolean passed where a JSON parameter string is expected
+## 🟠 Silenced but not fixed — silently wrong
 
-`np.Tidy/src/tidyMain.js:46`
+### 5. `jgclark.Reviews` — a guard that can never be false
+
+`jgclark.Reviews/src/projects.js:251`
 
 ```js
-await removeOrphanedBlockIDs(config.runSilently)
+const finalProgressComment = (finalCommentRaw && (finalCommentRaw: any) !== true) ? ... : ''
 ```
 
-`removeOrphanedBlockIDs(params: string = '')` (`:429`) feeds `params` to
-`overrideSettingsWithEncodedTypedArgs()` and `getTagParamsFromString()`. Its two neighbours in
-`tidyUpAll` (`removeBlankNotes`, `removeTodayTagsFromCompletedTodos`) genuinely do take booleans,
-which is presumably how this slipped in. Effect: `**runSilently` is never honoured** by this
-command, and the arg parser receives `true`.
+`getInputTrimmed()` returns `Promise<string | false>` (`helpers/userInput.js`), so `!== true` is
+always true. The cast keeps Flow quiet.
 
-**Suggestion:** the file already builds `const param = config.runSilently ? '{"runSilently": true}' : ''`
-at `:57` — move that above the `runRemoveOrphansCommand` block and pass `param`.
+**Suggestion:** drop the `&& (finalCommentRaw: any) !== true` clause entirely.
 
 ---
 
-## 🟠 Silently wrong
+### 6. `jgclark.Summaries` — vacuous string comparisons on numbers
 
-### 11. `dbludeau.TodoistNoteplanSync` — `this` inside object methods
-
-`dbludeau.TodoistNoteplanSync/src/NPPluginMain.js:80, 104, 110`
-
-Flow's `object-this-reference`: these methods reference `this` but are defined on an object
-literal, so `this` depends entirely on how they're called. If any is ever passed as a callback
-it breaks.
-
-**Suggestion:** have them reference the object by name instead of `this`, or convert to a class.
-
----
-
-### 11d. `jgclark.Reviews/src/projects.js` — now-dead cancel guard
-
-`jgclark.Reviews/src/projects.js:249`
-
-```js
-const finalProgressComment = (finalCommentRaw && finalCommentRaw !== true) ? ... : ''
-```
-
-`getInputTrimmed()` was narrowed to `Promise<string | false>` during this cleanup (it can only
-ever return those — see `helpers/userInput.js:199`), so `!== true` is now provably always true.
-
-**Suggestion:** drop the `&& finalCommentRaw !== true` clause.
-
----
-
-### 12. `jgclark.Summaries` — vacuous guards
-
-`jgclark.Summaries/src/TMOccurrences.js:320, 321, 323`
+`jgclark.Summaries/src/TMOccurrences.js` — 7 occurrences of `!== ''`
 
 `this.count !== ''` and `this.total !== ''` where both are declared `number`. Those clauses can
 never be false, so they filter nothing; the adjacent `!isNaN(...)` checks do the real work.
@@ -127,35 +113,35 @@ never be false, so they filter nothing; the adjacent `!isNaN(...)` checks do the
 
 ## 🟡 Dead or vestigial
 
-### 13. `NoTasks.jsx` — confetti class references four undeclared globals
+### 7. `NoTasks.jsx` — confetti class references four undeclared globals
 
-`jgclark.Dashboard/src/react/components/NoTasks.jsx:123, 223-235, 266-283`
+`jgclark.Dashboard/src/react/components/NoTasks.jsx` — 16 references
 
 Calls `random()`, `TweenLite`, `Power4` and `_` (lodash). None is imported or declared anywhere;
 line 10 has a commented-out `// import {random} from 'lodash'`. `ConfettiCannon` would throw
 `ReferenceError` if constructed. The file header says **"no longer used (from v2.2 or v2.3)"**.
 
-**Suggestion:** delete the file (and its import sites, if any). If the confetti is wanted later,
-it needs GSAP added as a dependency — that's a new decision, not a restoration.
+**Suggestion:** delete the file. If the confetti is wanted later it needs GSAP added as a
+dependency — a new decision, not a restoration.
 
 ---
 
-### 17. `TEditor` is missing `linkedItems` and `datedTodos`
+## 🔵 Design questions
 
-`flow-typed/Noteplan.js`
+### 8. `TEditor` is missing `linkedItems` and `datedTodos`
 
-Both exist on the live Editor object and are declared on `Note`, but not on `TEditor`. Currently
-worked around with `(e: any)` casts.
+`flow-typed/Noteplan.js` — both are declared on `Note` (`:1736`, `:1743`) but **not** on `TEditor`
+
+Both appear to exist on the live Editor object. Call sites work around it with `(e: any)` casts.
 
 **Suggestion:** confirm with @EduardMe that Editor exposes them, then add both to `TEditor` (or
-move them to `CoreNoteFields`) and drop the casts. This was deliberately not done blind — the
-same question was raised for `datedTodos` earlier in the sweep and left open.
+move them to `CoreNoteFields`) and drop the casts. Deliberately not done blind.
 
 ---
 
-### 18. `TDashboardSettings` — 68 "required" properties that nothing guarantees
+### 9. `TDashboardSettings` — 68 of 86 properties are "required" but nothing guarantees them
 
-`jgclark.Dashboard/src/types.js:29-138`
+`jgclark.Dashboard/src/types.js` — 86 properties, 18 optional
 
 The settings object is assembled at runtime by `getDashboardSettingsDefaults()` from a
 `TSettingItem` array, so Flow cannot verify any given key is present, and older installs won't
@@ -163,6 +149,35 @@ have newer keys until defaults are merged. Consumers already treat them defensiv
 (`dashboardSettings?.FFlag_UseTagCache !== false`).
 
 The sweep added `TDashboardSettingsIn = $ReadOnly<Partial<TDashboardSettings>>` for parameters,
-which is the honest input type. The underlying question remains.
+which is the honest *input* type. The underlying question remains.
 
-**Suggestion:** audit the 68-required / 17-optional split. Most probably want to be optional.
+**Suggestion:** audit the required/optional split. Most probably want to be optional.
+
+---
+
+### 10. Babel cannot parse Flow's newer type syntax — measured, not assumed
+
+Flow 0.245 accepts syntax that `@babel/preset-flow` rejects, so a file can pass `flow check` and
+still fail to transform, breaking **both** the rollup build and jest. Tested 2026-08-02:
+
+| Syntax | preset-flow 7.25.9 (current) | 7.29.7 | 8.0.1 / parser 8.0.4 | `babel-plugin-syntax-hermes-parser` |
+|---|---|---|---|---|
+| `[string, any, string?]` | ✗ | ✗ | ✗ | ✗ |
+| `[a: string, b: any, c?: string]` (labeled) | ✗ | ✗ | ✗ | ✓ |
+| `{ [K in keyof O]: … }` (mapped) | ✗ | ✗ | ✗ | ✓ |
+| `T extends U ? A : B` (conditional) | ✗ | ✗ | ✗ | ✓ |
+| `$ObjMap<O, F>` (deprecated) | ✓ | ✓ | ✓ | ✓ |
+
+Also tested `@babel/parser` 8.0.4 with `['flow', {all: true, enums: true}]` — no change. Babel's
+Flow parser has simply not implemented these, at any version. **Upgrading Babel does not help.**
+
+Consequences today:
+- `np.plugin-test/src/react/WebView.jsx:166` — `sendToPlugin`'s param stays `Array<any>`. Both
+  optional-tuple spellings break the build; the non-optional `[string, any, string]` doesn't fit
+  the sole caller, which passes two elements.
+- `helpers/checkType.js` — keep `$ObjMap`. It is deprecated but parses everywhere. Rewriting it
+  as a mapped type turned 19 test suites red before it was reverted.
+
+**Suggestion:** do nothing for now. Adopting `babel-plugin-syntax-hermes-parser` swaps the Flow
+front-end for jest, rollup and eslint at once, and today would buy one deprecation. Revisit only
+if the team wants modern Flow syntax generally — then it is one coordinated change.

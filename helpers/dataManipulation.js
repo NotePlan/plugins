@@ -326,7 +326,9 @@ export function getStringArrayValue(input: ?(string | Array<mixed>), defaultValu
   if (input == null) {
     return defaultValue
   }
-  const raw = getArrayValue(input, defaultValue, separator)
+  // Cast: getArrayValue takes Array<mixed> and only ever returns defaultValue unchanged, but
+  // arrays are invariant so Array<string> is not accepted as Array<mixed>.
+  const raw = getArrayValue(input, (defaultValue: any), separator)
   return raw.map((item) => (typeof item === 'string' ? item : String(item ?? '')))
 }
 

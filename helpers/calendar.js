@@ -37,7 +37,7 @@ export function keepTodayPortionOnly(input: Array<TCalendarItem>, whatDate: Date
   return input
     .filter((event) => event.date != null)
     .map((event) => {
-    const eventDate = (event.date: Date)
+    const eventDate = ((event.date: any): Date)
     const diff = !event.endDate ? 0 : differenceInCalendarDays(eventDate, event.endDate)
     if (diff === 0) {
       return event

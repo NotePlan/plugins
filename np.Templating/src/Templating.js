@@ -330,7 +330,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
  */
 export async function templateNew(templateTitle: string = '', _folder?: string, newNoteTitle?: string, _args?: Object | string): Promise<string | null> {
   try {
-    logDebug(pluginJson, `templateNew: STARTING - templateTitle:"${templateTitle}", folder:"${String(_folder ?? '')}", newNoteTitle:"${String(newNoteTitle ?? '')}" args:${JSON.stringify(_args)}`)
+    logDebug(pluginJson, `templateNew: STARTING - templateTitle:"${templateTitle}", folder:"${String(_folder ?? '')}", newNoteTitle:"${String(newNoteTitle ?? '')}" args:${(JSON.stringify(_args): any)}`)
     let args = _args
     if (typeof _args === 'string') {
       args = JSON.parse(_args)

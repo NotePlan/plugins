@@ -466,7 +466,7 @@ export function SearchableChooser({
     // Use setTimeout to check if the new focus target is within our container
     setTimeout(() => {
       const relatedTarget = e.relatedTarget || document.activeElement
-      logDebug('SearchableChooser', `[${classNamePrefix}] Blur timeout: relatedTarget=${String(relatedTarget?.tagName || 'null')}, activeElement=${document.activeElement?.tagName || 'null'}`)
+      logDebug('SearchableChooser', `[${classNamePrefix}] Blur timeout: relatedTarget=${String((relatedTarget: any)?.tagName || 'null')}, activeElement=${document.activeElement?.tagName || 'null'}`)
       if (containerRef.current && relatedTarget instanceof HTMLElement) {
         // If the new focus is within our container or dropdown, don't close
         if (containerRef.current.contains(relatedTarget) || (dropdownRef.current && dropdownRef.current.contains(relatedTarget))) {

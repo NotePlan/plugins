@@ -163,7 +163,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * In that case, don't call this directly, use sendActionToPlugin() instead
    * @param {[command:string,data:any,additionalDetails?:string]} param0
    */
-  const sendToPlugin = ([command: string, data: any, additionalDetails?: string = '']) => {
+  const sendToPlugin = ([command, data, additionalDetails = '']: Array<any>) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')
