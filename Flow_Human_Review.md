@@ -108,6 +108,57 @@ either. Each is one character or one missing import away from working.
 
 ---
 
+### 5b. `np.ThemeChooser` — a missing `await` makes an entire fallback path dead
+`np.ThemeChooser/src/NPThemeCustomizer.js:371-372`
+
+```js
+note = openNoteByFilename(filepath, { ... })   // <- no await
+if (note) {                                     // a Promise is always truthy
+  contentWritten = true
+}
+```
+
+`openNoteByFilename()` (`helpers/NPnote.js:882`) returns `Promise<TNote | void>`. Without `await`,
+`note` holds a Promise, the truthiness check *always* passes, `contentWritten` is set
+unconditionally, and the whole fallback/re-write path below never runs — even when the open
+actually failed.
+
+**Suggestion:** add the `await` at :371, then annotate `let note: TEditor | TNote | null = null`
+at :365. Do not paper this over with `let note: any`.
+
+---
+
+### 5c. `np.Tidy` — a boolean passed where a JSON parameter string is expected
+`np.Tidy/src/tidyMain.js:46`
+
+```js
+await removeOrphanedBlockIDs(config.runSilently)
+```
+
+`removeOrphanedBlockIDs(params: string = '')` (`:429`) feeds `params` to
+`overrideSettingsWithEncodedTypedArgs()` and `getTagParamsFromString()`. Its two neighbours in
+`tidyUpAll` (`removeBlankNotes`, `removeTodayTagsFromCompletedTodos`) genuinely do take booleans,
+which is presumably how this slipped in. Effect: **`runSilently` is never honoured** by this
+command, and the arg parser receives `true`.
+
+**Suggestion:** the file already builds `const param = config.runSilently ? '{"runSilently": true}' : ''`
+at `:57` — move that above the `runRemoveOrphansCommand` block and pass `param`.
+
+---
+
+### 5d. `dwertheimer.Forms` — success dialog always shows an empty note title
+`dwertheimer.Forms/src/formBrowserHandlers.js:392`
+
+`submitData` (declared `:319`) has no `newNoteTitle`. The merged object
+`submitDataWithFormContext` (`:334`) is the one carrying
+`newNoteTitle`/`newNoteFolder`/`templateBody`, and it is what actually gets submitted at `:362`.
+So for `processingMethod === 'create-new'`, the success dialog's `noteTitle` is always `''`.
+
+**Suggestion:** `noteTitle = submitDataWithFormContext.newNoteTitle || ''`. Note `:394`
+(`submitData.getNoteTitled`) is correct as-is — only `:392` should move.
+
+---
+
 ## 🟠 Silently wrong
 
 ### 6. `np.CallbackURLs` — nine dead cancel checks in the wizard
@@ -243,6 +294,40 @@ ever return those — see `helpers/userInput.js:199`), so `!== true` is now prov
 
 ---
 
+### 11e. `note.content` can be undefined where it's passed straight into a `.split()`
+`dwertheimer.Favorites/src/requestHandlers.js:607`, `dwertheimer.Forms/src/requestHandlers.js:699`
+
+`TNote.content` is `?string`. Both sites pass it into `getNoteContentAsHTML(content: string, ...)`,
+which calls `content.split(...)`. A note with no content throws. Both currently carry a cast.
+
+**Suggestion:** guard (`if (!note.content) return { success: false, … }`) or default to
+`note.content || ''` — pick whichever matches the surrounding error handling.
+
+---
+
+### 11f. `DynamicDialog`'s button handler type excludes the async handlers people write
+`helpers/react/DynamicDialog/DynamicDialog.jsx:246`, `helpers/react/userInput.jsx:61`
+
+`handleButtonClick?: (key: string, value: any) => void | boolean` doesn't admit an async handler,
+but callers legitimately write them. Worse, `userInput.jsx:61` compares the raw result to
+`false` — so a returned Promise (always truthy) is already mis-handled today.
+
+**Suggestion:** widen the type to `=> void | boolean | Promise<void | boolean>`, *and* make the
+consumer `await` the result before comparing. The second half is a code change.
+
+---
+
+### 11g. `dwertheimer.JestHelpers` — vestigial `return {}`
+`dwertheimer.JestHelpers/src/NPPluginMain.js:225`
+
+Sits after the `console.log` calls in a console-dumping entry point; nothing consumes it, and the
+`catch` branch returns nothing. The return type was widened from `void` to `any` to make it
+type-check.
+
+**Suggestion:** if it is dead, delete the `return {}` and restore `: void`.
+
+---
+
 ### 12. `jgclark.Summaries` — vacuous guards
 `jgclark.Summaries/src/TMOccurrences.js:320, 321, 323`
 
@@ -335,6 +420,32 @@ should not be coerced`), even though JS handles both. Fixing means wrapping in `
 
 **Suggestion:** low risk and mechanical — `String(x)` is exactly what the template literal
 already does — but it *is* a code edit, so it needs a green light. ~32 sites, one sweep.
+
+---
+
+### 17a. Babel can't parse optional tuple elements
+`np.plugin-test/src/react/WebView.jsx:166`
+
+`sendToPlugin`'s parameter is `[command, data, additionalDetails = '']`. The precise Flow type is
+`[string, any, string?]`, and Flow 0.245 accepts it — but **@babel/preset-flow 7.25.9 cannot
+parse optional tuple elements**, so the file fails to transform and the rollup build breaks. It
+is currently typed `Array<any>` instead. (This bit during the sweep: an agent wrote the precise
+type, `flow-emit-audit` caught the parse failure, and it was reverted.)
+
+**Suggestion:** nothing to do today, but worth knowing before anyone "improves" that annotation.
+Upgrading @babel/preset-flow would lift the restriction.
+
+---
+
+### 17b. `TEditor` is missing `linkedItems` and `datedTodos`
+`flow-typed/Noteplan.js`, consumed at `dwertheimer.JestHelpers/src/NPPluginMain.js:205-206`
+
+Both exist on the live Editor object and are declared on `Note`, but not on `TEditor`. Currently
+worked around with `(e: any)` casts.
+
+**Suggestion:** confirm with @EduardMe that Editor exposes them, then add both to `TEditor` (or
+move them to `CoreNoteFields`) and drop the casts. This was deliberately not done blind — the
+same question was raised for `datedTodos` earlier in the sweep and left open.
 
 ---
 

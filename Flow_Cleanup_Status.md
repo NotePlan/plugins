@@ -3,7 +3,7 @@
 **Temporary working document.** Delete once the branch is merged and
 [Flow_Human_Review.md](./Flow_Human_Review.md) has been triaged.
 
-Branch: `flow-cleanup` · 36 commits · not pushed
+Branch: `flow-cleanup` · 38 commits · not pushed
 
 ---
 
@@ -11,11 +11,19 @@ Branch: `flow-cleanup` · 36 commits · not pushed
 
 | | Start | Now | Change |
 |---|---|---|---|
-| Raw `flow check` errors | 8,254 | **852** | −90% |
-| Unique `file:line:code` sites | 1,314 | **510** | −61% |
-| Files with errors | 205 | 138 | −33% |
-| Plugins at zero errors | 0 | **6** | — |
+| Raw `flow check` errors | 8,254 | **288** | −97% |
+| Unique `file:line:code` sites | 1,314 | **162** | −88% |
+| Files with errors | 205 | ~50 | −76% |
+| Plugins at zero errors | 0 | **14** | — |
 | Jest | 200 suites / 4,619 tests | unchanged, green | — |
+
+The last stretch was done by two waves of parallel agents over disjoint plugin groups, each held
+to the same type-only rule and each required to prove it with `scripts/flow-emit-audit.js` before
+finishing. Their work was then re-verified centrally.
+
+Three agent casts silenced defects that were already on the review list. Those sites now carry a
+`// KNOWN BUG - see Flow_Human_Review.md item N` comment, so the cast keeps Flow quiet while the
+defect stays visible to anyone reading the code.
 
 Raw count and site count diverge because Flow emits one error per
 (source-type × destination-slot) pair. Unique sites is the honest measure; the raw number was
