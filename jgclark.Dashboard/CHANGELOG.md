@@ -1,13 +1,45 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-<!-- - NOT-DO: Search: add an "Ignore Perspective" link to the message which fires off a search without the inclusion/exclusions
-- TODO(later): v2.3.0 UI to set the searchTerm and search options.
-- TODO: Prevent banner warning when completing non-standard scheduled items (that don't have a `<date` component)
-- TODO: ^⌥s triggers the search bar
-- TODO: fix long-standing layout bug where some tooltips were getting clipped
-- TODO: fix isNoteFromAllowedFolder() for teamspace or possibly 2025-W21.md
--->
+  Main additions in Dashboard v2.4 (features only; bug fixes and settings omitted):
+
+  New sections
+
+- Active Projects – open projects from Projects & Reviews, with next actions; existing Projects section renamed to Projects to Review
+- Wins – optional section for top-priority tasks (default >>) drawn from enabled Calendar sections
+- Apple Reminders – open reminders across relevant sections; complete / delete / add; click to open in Reminders; priorities supported
+
+  Projects & Reviews integration
+
+- Progress comments and next actions on project rows
+- Complete / cancel next actions in project sections (Active Projects round-trips for an updated next action)
+- Start review button and latest progress in the Project dialog
+- Stronger two-way sync with the Projects & Reviews plugin
+
+  Calendar / time
+
+- Timed Items – timeblocks and timed reminders in one section (title adapts)
+- Headings can appear in the current time-block / timed-items area
+- Neater time and scheduled-date chips (clock / calendar lozenges)
+
+  Task & note workflow
+
+- Add Task to note from Today / Week section headings
+- Search works with Search Extensions v2 or v3
+- Per-note display priority via frontmatter note-priority-delta
+
+  Spaces & windowing
+
+- (Team)Spaces awareness – include Private and/or Spaces per Perspective; clearer Space display in note links
+- Open Dashboard in the main window or a split view (as well as a separate window)
+- Better iOS / iPad support (main window where available, sidebar plugin preference)
+
+  Display polish
+
+- Note links as tinted lozenges (folder de-emphasised; frontmatter icon / color)
+- Mid-task note links use shorter labels and frontmatter icons
+- Tag/mention cache used by default (faster TAG sections)
+
 
 ## [2.4.0.b61] 2026-08-01
 - Change: Reminder time chip now matches NotePlan's new native style (from 3.20.2): pale lozenge with bell icon and colored text, placed after the title (was white-on-fill clock lozenge before the title).

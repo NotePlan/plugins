@@ -229,7 +229,7 @@ export const reminderItems: Array<TSectionItem> = [
       listname: 'Errands',
       notes: 'for liver',
       flagged: true,
-      priority: 3,
+      priority: 2,
       location: 'Vets',
       date: new moment().subtract(1, 'days').format('YYYY-MM-DD')
     },
@@ -557,7 +557,7 @@ export const openWeekParas: Array<TSectionItem> = [
       type: 'open',
       filename: thisFilename,
       lineIndex: 1,
-      priority: 0,
+      priority: 1,
       content: '! trim and order shots',
       rawContent: '! trim and order shots',
       prefix: '* ',
