@@ -31,7 +31,8 @@ describe('removeStaleTagSections', () => {
   }
 
   it('removes TAG sections whose name is not in tagsToShow', () => {
-    const sections = [
+    // Partial TSection fixtures - these functions only read ID, sectionCode and name.
+    const sections: Array<any> = [
       { ID: 'TAG_0', sectionCode: 'TAG', name: '@father', sectionItems: [] },
       { ID: 'DT', sectionCode: 'DT', name: 'Today', sectionItems: [] },
     ]
@@ -40,7 +41,8 @@ describe('removeStaleTagSections', () => {
   })
 
   it('keeps TAG sections listed in tagsToShow', () => {
-    const sections = [
+    // Partial TSection fixtures - these functions only read ID, sectionCode and name.
+    const sections: Array<any> = [
       { ID: 'TAG_0', sectionCode: 'TAG', name: '@friend', sectionItems: [] },
       { ID: 'DT', sectionCode: 'DT', name: 'Today', sectionItems: [] },
     ]
@@ -62,7 +64,8 @@ describe('syncTagSectionsWithSettings', () => {
       'showTagSection_@dbw': true,
       'showTagSection_@jgc': false,
     }
-    const sections = [
+    // Partial TSection fixtures - these functions only read ID, sectionCode and name.
+    const sections: Array<any> = [
       { ID: 'DT', sectionCode: 'DT', name: 'Today', sectionItems: [] },
       { ID: 'TAG_0', sectionCode: 'TAG', name: '@dbw', sectionItems: [] },
       { ID: 'TAG_1', sectionCode: 'TAG', name: '@jgc', sectionItems: [] },

@@ -28,8 +28,9 @@ export type TReminder = {
   notes?: string,
   listname: string,
   color?: string,
-  // TODO(future): Enable this if the API is extended to cover flagged status
-  // flagged: boolean,
+  // TODO(future): the NotePlan API does not yet expose flagged status, so nothing populates this
+  // from real data - but demoData.js carries it in anticipation, so it is declared optional here.
+  flagged?: boolean,
   priority?: number, // 0/omit = none; 1 / 2 / 3 = low / medium / high (from Apple 0 / 9 / 5 / 1)
   date?: string, // optional local calendar date YYYY-MM-DD (converted from API Zulu/UTC)
   time?: string, // optional local HH:MM in 24-hour format (converted from API Zulu/UTC)
