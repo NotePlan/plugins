@@ -161,12 +161,12 @@ function PluginSection({ plugin, viewOption, index }: PluginSectionProps): React
   )
 }
 
-type Command = {
+export type Command = {
   name: string,
   desc: string,
 }
 
-type Plugin = {
+export type Plugin = {
   name: string,
   version: string,
   author: string,

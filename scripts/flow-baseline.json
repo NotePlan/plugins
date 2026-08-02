@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T03:52:28.747Z",
-  "rawTotal": 949,
+  "generated": "2026-08-02T03:54:57.089Z",
+  "rawTotal": 938,
   "byPlugin": {
     "flow-typed": {
       "sites": 9,
@@ -117,10 +117,10 @@
       "src": 4
     },
     "jgclark.Summaries": {
-      "sites": 11,
-      "raw": 12,
+      "sites": 6,
+      "raw": 6,
       "test": 0,
-      "src": 11
+      "src": 6
     },
     "np.CallbackURLs": {
       "sites": 56,
@@ -165,10 +165,10 @@
       "src": 7
     },
     "np.plugin-test": {
-      "sites": 9,
-      "raw": 9,
+      "sites": 4,
+      "raw": 4,
       "test": 0,
-      "src": 9
+      "src": 4
     },
     "shared.AI": {
       "sites": 36,
