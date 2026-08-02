@@ -163,6 +163,9 @@ export function WebView({ data, dispatch }: Props): Node {
    * In that case, don't call this directly, use sendActionToPlugin() instead
    * @param {[command:string,data:any,additionalDetails?:string]} param0
    */
+  // NB: Array<any> on purpose. The precise type is a tuple with an optional third element,
+  // but @babel/preset-flow cannot parse optional or labeled tuple elements at any version, so
+  // writing it precisely type-checks under Flow and then breaks the rollup build and jest.
   const sendToPlugin = ([command, data, additionalDetails = '']: Array<any>) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
