@@ -204,31 +204,6 @@ which is the honest input type. The underlying question remains.
 
 ---
 
-### 20. `ParagraphsGroupedByType` is used with two different element types
-
-`helpers/sorting.js:50`, consumed only by `dwertheimer.TaskSorting/src/sortTasks.js`
-
-Declared with `Array<TParagraph>` values, but everything reaching it comes from
-`getTasksByType()`, which returns `SortableParagraphSubset` (a different shape, with
-`.paragraph`, `.children`, `.raw`). Retyping the elements to `SortableParagraphSubset` was tried
-and made things *worse* (+16 sites) — the type really is used both ways in that file.
-
-**Suggestion:** untangle `sortTasks.js` so a given variable holds one or the other, then the type
-can be honest. Non-trivial; 53 tests cover the file, so it's a safe refactor to attempt.
-
-**Two attempts already made and reverted, so nobody repeats them:**
-
-1. Retyping `ParagraphsGroupedByType`'s elements to `SortableParagraphSubset` → **+16 sites**.
-2. Adding a `[string]: Array<SortableParagraphSubset>` indexer to `GroupedTasks` (which is
-  otherwise correct — callers *do* index it dynamically) → **+2 sites**, because it stops
-   masking the mismatch and surfaces it at `sortTasks.js:523, 542, 622, 623` instead. Then
-   aligning the six accumulators in that file to `Array<SortableParagraphSubset>` → **+26 sites**,
-   proving the file really does hold both types in the same variables.
-
-So the indexer on `GroupedTasks` is worth adding *as part of* the refactor, not before it.
-
----
-
 ### 21. `chooseOption` / `CommandBar.showOptions` cancel contract — for @jgclark
 
 **Status (Aug 2026):** `np.CallbackURLs` was fixed locally with a file-private

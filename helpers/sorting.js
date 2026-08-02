@@ -41,23 +41,12 @@ export type GroupedTasks = {
   text: Array<SortableParagraphSubset>,
   code: Array<SortableParagraphSubset>,
   separator: Array<SortableParagraphSubset>, */,
+  // Indexer: callers iterate TASK_TYPES and index dynamically (`tasks[taskType]`).
+  [string]: Array<SortableParagraphSubset>,
 }
 
-// Note: the indexer is there because callers iterate TASK_TYPES and index in dynamically
-// (`tasks[taskType]`), which an exact object with only named keys rejects. Every value has the
-// same type, so an unrecognised key simply yields undefined — exactly the runtime behaviour.
-// The named keys are kept for documentation and editor completion.
-export type ParagraphsGroupedByType = {
-  open?: ?Array<TParagraph>,
-  scheduled?: ?Array<TParagraph>,
-  cancelled?: ?Array<TParagraph>,
-  done?: ?Array<TParagraph>,
-  checklist?: ?Array<TParagraph>,
-  checklistDone?: ?Array<TParagraph>,
-  checklistCancelled?: ?Array<TParagraph>,
-  checklistScheduled?: ?Array<TParagraph>,
-  [string]: ?Array<TParagraph>,
-}
+/** Sorted/grouped task buckets produced by TaskSorting (always SortableParagraphSubset elements). */
+export type ParagraphsGroupedByType = GroupedTasks
 
 const RE_HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
 const RE_MENTIONS: RegExp = /\B@([a-zA-Z0-9\/]+\b)/g

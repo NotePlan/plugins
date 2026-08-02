@@ -4,7 +4,7 @@ import pluginJson from '../plugin.json'
 import { chooseOption, chooseHeading, showMessage } from '@helpers/userInput'
 import { getTagParamsFromString } from '@helpers/general'
 import { removeHeadingFromNote, getBlockUnderHeading } from '@helpers/NPParagraph'
-import { sortListBy, getTasksByType, TASK_TYPES, type ParagraphsGroupedByType, type SortableParagraphSubset } from '@helpers/sorting'
+import { sortListBy, getTasksByType, TASK_TYPES, type GroupedTasks, type SortableParagraphSubset } from '@helpers/sorting'
 import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { saveEditorIfNecessary } from '@helpers/NPEditor'
@@ -35,7 +35,7 @@ const DEFAULT_HEADINGS = {
  * Get task type headings from user settings, with fallback to defaults
  * @returns {Object} Object with task type keys and custom heading values
  */
-function getTaskTypeHeadings() {
+function getTaskTypeHeadings(): typeof DEFAULT_HEADINGS {
   const settings = DataStore.settings
   return {
     open: settings?.headingOpenTasks || DEFAULT_HEADINGS.open,
@@ -47,6 +47,16 @@ function getTaskTypeHeadings() {
     cancelled: settings?.headingCancelledTasks || DEFAULT_HEADINGS.cancelled,
     checklistCancelled: settings?.headingCancelledChecklistItems || DEFAULT_HEADINGS.checklistCancelled,
   }
+}
+
+/**
+ * Look up a task-type heading label by key (task type strings come from settings/outputOrder).
+ * @param {typeof DEFAULT_HEADINGS} headings
+ * @param {string} taskType
+ * @returns {string}
+ */
+function getHeadingLabel(headings: typeof DEFAULT_HEADINGS, taskType: string): string {
+  return (headings: { [string]: string })[taskType] ?? ''
 }
 
 const ROOT = '__'
@@ -299,10 +309,13 @@ export async function sortTasksTagMention(noteOverride: TNote | typeof Editor | 
 
 const DEFAULT_SORT_INDEX = 0
 
+/** Rows passed to insertTodos: full sortable tasks, or a synthetic subheading line with only `.raw`. */
+type InsertTodoLine = SortableParagraphSubset | {| raw: string |}
+
 /**
  *
  * @param {TNote} note
- * @param {array} todos // @jgclark comment: needs type not just array. Perhaps Array<TParagraph> ?
+ * @param {Array<SortableParagraphSubset>} todos
  * @param {string} heading
  * @param {string} separator
  * @param {string} subHeadingCategory
@@ -310,7 +323,7 @@ const DEFAULT_SORT_INDEX = 0
  */
 function insertTodos(
   note: CoreNoteFields,
-  todos: Array<any>,
+  todos: Array<SortableParagraphSubset>,
   heading: string = '',
   separator: string = '',
   subHeadingCategory: string | null = null,
@@ -325,7 +338,7 @@ function insertTodos(
   // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
   // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
   logDebug(`\tInsertTodos: subHeadingCategory=${String(subHeadingCategory)} typeof=${typeof subHeadingCategory} ${todos.length} todos`)
-  let todossubHeadingCategory = []
+  let todossubHeadingCategory: Array<InsertTodoLine> = []
   const headingStr = heading ? `${heading}\n` : ''
   if (heading) {
     logDebug(`\tInsertTodos: heading=${heading}`)
@@ -341,6 +354,7 @@ function insertTodos(
     }
   }
 
+  let linesForContent: $ReadOnlyArray<InsertTodoLine>
   if (subHeadingCategory) {
     const leadingDigit = {
       hashtags: '#',
@@ -353,11 +367,13 @@ function insertTodos(
     // NB: was `for (const lineIndex in todos)`. for...in over an array yields *string* keys and
     // would also pick up any non-index properties, so index directly instead.
     for (let lineIndex = 0; lineIndex < todos.length; lineIndex++) {
-      const shcZero = todos[lineIndex][subHeadingCategory][0] ?? `<none>`
+      const todoRow = todos[lineIndex]
+      const categoryValue = (todoRow: any)[subHeadingCategory]
+      const shcZero = (Array.isArray(categoryValue) ? categoryValue[0] : categoryValue) ?? `<none>`
       // logDebug(`InsertTodos: shcZero=${shcZero} typeof=${typeof shcZero} todos[lineIndex][subHeadingCategory]=${todos[lineIndex][subHeadingCategory]}`)
       const subCat =
         /* $FlowIgnore - complaining about -priority being missing. */
-        (leadingDigit[subHeadingCategory] ? leadingDigit[subHeadingCategory] : '') + shcZero || todos[lineIndex][subHeadingCategory] || ''
+        (leadingDigit[subHeadingCategory] ? leadingDigit[subHeadingCategory] : '') + shcZero || categoryValue || ''
       // logDebug(
       //   `lastSubcat[${subHeadingCategory}]=${subCat} check: ${JSON.stringify(
       //     todos[lineIndex],
@@ -374,14 +390,15 @@ function insertTodos(
       }
       todossubHeadingCategory.push(todos[lineIndex])
     }
+    linesForContent = todossubHeadingCategory
   } else {
-    todossubHeadingCategory = todos
+    linesForContent = todos
   }
 
-  const contentStr = todossubHeadingCategory
+  const contentStr = linesForContent
     .map((t) => {
       let str = t.raw
-      if (t.children && t.children.length) {
+      if ('children' in t && t.children && t.children.length) {
         //TODO: sort 2nd level also indented tasks
         str += `\n${t.children.map((c) => c.raw).join('\n')}`
       }
@@ -491,25 +508,20 @@ export function sortParagraphsByType(
   paragraphs: $ReadOnlyArray<TParagraph>,
   sortOrder: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
   interleaveTaskTypes: boolean = true,
-): ParagraphsGroupedByType {
-  // $FlowFixMe
-  const sortedList: ParagraphsGroupedByType = {}
-  for (const ty of TASK_TYPES) {
-    sortedList[ty] = []
-  }
+): GroupedTasks {
+  const sortedList: GroupedTasks = (TASK_TYPES.reduce((acc, ty) => ({ ...acc, [ty]: [] }), {}): any)
   logDebug(`\tInitialized sortedList with keys: ${Object.keys(sortedList).join(', ')}`)
   if (paragraphs?.length) {
     logDebug(`\tsortParagraphsByType: ${paragraphs.length} total lines in section/note, interleaveTaskTypes: ${String(interleaveTaskTypes)}`)
     if (paragraphs.length) {
-      // GroupedTasks is an exact object with no indexer, but the code below indexes it dynamically with TASK_TYPES / group.types entries
-      const taskList: { [string]: Array<any> } = (getTasksByType(paragraphs): any)
+      const taskList = getTasksByType(paragraphs)
       logDebug(`\tOpen Tasks:${taskList.open.length}, Checklist Tasks:${taskList.checklist.length}`)
 
       if (interleaveTaskTypes) {
         // Interleaved sorting: prioritize open tasks over checklists within same priority
         const interleavedGroups = getInterleavedTaskGroups()
         for (const group of interleavedGroups) {
-          const combinedTasks: Array<TParagraph> = []
+          const combinedTasks: Array<SortableParagraphSubset> = []
           // Combine all task types in this group
           for (const taskType of group.types) {
             if (taskList[taskType] && taskList[taskType].length) {
@@ -524,8 +536,9 @@ export function sortParagraphsByType(
           // For interleaved sorting, put all tasks in the first type of each group
           // This maintains the interleaved order while satisfying the output format
           const firstTypeInGroup = group.types[0]
-          if (sortedList[firstTypeInGroup]) {
-            sortedList[firstTypeInGroup].push(...sortedCombined)
+          const bucket = sortedList[firstTypeInGroup]
+          if (bucket) {
+            bucket.push(...sortedCombined)
           }
         }
       } else {
@@ -604,23 +617,21 @@ async function getUserSort(sortChoices: Array<any> = SORT_ORDERS): Promise<Array
 /**
  * Delete Tasks from the note
  * @param {TNote} note
- * @param {Array<TParagraph>} tasks
+ * @param {GroupedTasks} tasks
  */
-async function deleteExistingTasks(note: CoreNoteFields, tasks: ParagraphsGroupedByType): Promise<void> {
-  const tasksToDelete = []
+async function deleteExistingTasks(note: CoreNoteFields, tasks: GroupedTasks): Promise<void> {
+  const tasksToDelete: Array<TParagraph> = []
   for (const typ of TASK_TYPES) {
-    if (tasks[typ] && tasks[typ].length) {
-      logDebug(`\tQueuing ${tasks[typ].length} ${typ} tasks for temporary deletion from note (so they can be re-inserted in the correct order)`)
-      // $FlowIgnore[incompatible-use] - the `tasks[typ] &&` check above is still valid; the logDebug() call between them invalidates Flow's refinement of the computed property
-      tasks[typ].forEach((taskPara: any) => {
+    const tasksForType = tasks[typ]
+    if (tasksForType.length) {
+      logDebug(`\tQueuing ${tasksForType.length} ${typ} tasks for temporary deletion from note (so they can be re-inserted in the correct order)`)
+      tasksForType.forEach((taskPara) => {
         if (taskPara.paragraph) {
           tasksToDelete.push(taskPara.paragraph)
         }
 
         // Also include children if they exist
-        // $FlowIgnore[method-unbinding] - these are SortableParagraphSubset entries from getTasksByType(),
-        // whose `children` is an array property, not the NotePlan API method of the same name.
-        // $FlowIgnore[method-unbinding]
+        // $FlowIgnore[method-unbinding] - `children` is an array property on SortableParagraphSubset, not the NotePlan API method
         if (taskPara.children && taskPara.children.length) {
           // $FlowIgnore[method-unbinding]
           taskPara.children.forEach((child) => {
@@ -661,14 +672,14 @@ export const addChecklistTypes = (sortArray: Array<string>): Array<string> => {
 /**
  * Write the tasks list back into the top of the document
  * @param {TNote} note
- * @param {ParagraphsGroupedByType} tasks
+ * @param {GroupedTasks} tasks
  * @param {boolean} drawSeparators
  * @param {boolean} withHeadings
  * @param {any|null|string} subHeadingCategory
  */
 export async function writeOutTasks(
   note: CoreNoteFields,
-  tasks: ParagraphsGroupedByType,
+  tasks: GroupedTasks,
   drawSeparators: boolean = false,
   withHeadings: boolean = false,
   subHeadingCategory: any | null | string = null,
@@ -692,9 +703,9 @@ export async function writeOutTasks(
 
       // Group 1: Active tasks (open + checklist) - interleaved by priority
       const activeTypes = ['open', 'checklist']
-      const activeTasks: Array<TParagraph> = []
+      const activeTasks: Array<SortableParagraphSubset> = []
       for (const taskType of activeTypes) {
-        if (tasks[taskType] && tasks[taskType].length > 0) {
+        if (tasks[taskType].length > 0) {
           activeTasks.push(...tasks[taskType])
         }
       }
@@ -704,9 +715,9 @@ export async function writeOutTasks(
 
       // Group 2: Scheduled tasks (scheduled + checklistScheduled) - interleaved by priority
       const scheduledTypes = ['scheduled', 'checklistScheduled']
-      const scheduledTasks: Array<TParagraph> = []
+      const scheduledTasks: Array<SortableParagraphSubset> = []
       for (const taskType of scheduledTypes) {
-        if (tasks[taskType] && tasks[taskType].length > 0) {
+        if (tasks[taskType].length > 0) {
           scheduledTasks.push(...tasks[taskType])
         }
       }
@@ -716,9 +727,9 @@ export async function writeOutTasks(
 
       // Group 3: Completed tasks (done + checklistDone) - interleaved by priority
       const completedTypes = ['done', 'checklistDone']
-      const completedTasks: Array<TParagraph> = []
+      const completedTasks: Array<SortableParagraphSubset> = []
       for (const taskType of completedTypes) {
-        if (tasks[taskType] && tasks[taskType].length > 0) {
+        if (tasks[taskType].length > 0) {
           completedTasks.push(...tasks[taskType])
         }
       }
@@ -728,9 +739,9 @@ export async function writeOutTasks(
 
       // Group 4: Cancelled tasks (cancelled + checklistCancelled) - interleaved by priority
       const cancelledTypes = ['cancelled', 'checklistCancelled']
-      const cancelledTasks: Array<TParagraph> = []
+      const cancelledTasks: Array<SortableParagraphSubset> = []
       for (const taskType of cancelledTypes) {
-        if (tasks[taskType] && tasks[taskType].length > 0) {
+        if (tasks[taskType].length > 0) {
           cancelledTasks.push(...tasks[taskType])
         }
       }
@@ -751,12 +762,12 @@ export async function writeOutTasks(
       }
     } else {
       // No headings: combine all tasks into one array
-      const allTasks: Array<TParagraph> = []
+      const allTasks: Array<SortableParagraphSubset> = []
 
       // Group 1: Active tasks (open + checklist) - interleaved by priority
       const activeTypes = ['open', 'checklist']
       for (const taskType of activeTypes) {
-        if (tasks[taskType] && tasks[taskType].length > 0) {
+        if (tasks[taskType].length > 0) {
           allTasks.push(...tasks[taskType])
         }
       }
@@ -764,7 +775,7 @@ export async function writeOutTasks(
       // Group 2: Scheduled tasks (scheduled + checklistScheduled) - interleaved by priority
       const scheduledTypes = ['scheduled', 'checklistScheduled']
       for (const taskType of scheduledTypes) {
-        if (tasks[taskType] && tasks[taskType].length > 0) {
+        if (tasks[taskType].length > 0) {
           allTasks.push(...tasks[taskType])
         }
       }
@@ -772,7 +783,7 @@ export async function writeOutTasks(
       // Group 3: Completed tasks (done + checklistDone) - interleaved by priority
       const completedTypes = ['done', 'checklistDone']
       for (const taskType of completedTypes) {
-        if (tasks[taskType] && tasks[taskType].length > 0) {
+        if (tasks[taskType].length > 0) {
           allTasks.push(...tasks[taskType])
         }
       }
@@ -780,7 +791,7 @@ export async function writeOutTasks(
       // Group 4: Cancelled tasks (cancelled + checklistCancelled) - interleaved by priority
       const cancelledTypes = ['cancelled', 'checklistCancelled']
       for (const taskType of cancelledTypes) {
-        if (tasks[taskType] && tasks[taskType].length > 0) {
+        if (tasks[taskType].length > 0) {
           allTasks.push(...tasks[taskType])
         }
       }
@@ -818,17 +829,16 @@ export async function writeOutTasks(
 
     for (let i = 0; i < writeSequence.length; i++) {
       const ty = writeSequence[i]
-      if (tasks[ty]?.length) {
-        logDebug(`\twriteOutTasks TASK_TYPE=${ty} -- ${tasks[ty].length} tasks -- withHeadings=${String(withHeadings)}`)
+      const tasksForType = tasks[ty]
+      if (tasksForType?.length) {
+        logDebug(`\twriteOutTasks TASK_TYPE=${ty} -- ${tasksForType.length} tasks -- withHeadings=${String(withHeadings)}`)
         try {
           note
             ? await insertTodos(
                 note,
-                // casts: `tasks[ty]?.length` above proves this is a non-empty array, but the logDebug() call in between invalidates Flow's refinement.
-                // `headings` is an exact object with no indexer, so it needs a cast to be indexed by a runtime string.
-                (tasks[ty]: any),
-                withHeadings ? `### ${(headings: any)[ty]}:` : '',
-                drawSeparators ? `${i === (tasks[ty]: any).length - 1 ? '---' : ''}` : '',
+                tasksForType,
+                withHeadings ? `### ${getHeadingLabel(headings, ty)}:` : '',
+                drawSeparators ? `${i === tasksForType.length - 1 ? '---' : ''}` : '',
                 subHeadingCategory,
                 title,
                 false, // Use normal tasksToTop behavior
@@ -983,7 +993,7 @@ export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<
  */
 export async function sortTasks(
   _withUserInput: string | boolean = true,
-  _sortFields: string | Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
+  _sortFields: ?(string | Array<mixed>) = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
   _withHeadings: string | boolean | null = null,
   _subHeadingCategory: string | boolean | null = null,
   _interleaveTaskTypes: string | boolean = true,
@@ -1124,7 +1134,7 @@ export async function sortTasks(
  */
 export async function sortTasksUnderHeading(
   _heading: string | null,
-  _sortOrder: string | Array<string> | null,
+  _sortOrder: ?(string | Array<mixed>) = null,
   _noteOverride: TNote | typeof Editor | null = null,
   _interleaveTaskTypes: string | boolean = true,
 ): Promise<void> {
