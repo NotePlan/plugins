@@ -266,7 +266,7 @@ export function removeAllAnnotations(buttonClickedIndex: number | null): void {
  * @param {*} lineIndex
  * @returns
  */
-export function findBlockToCalculate(blocks: $ReadOnlyArray<CodeBlock>, lineIndex: number): number {
+export function findBlockToCalculate(blocks: $ReadOnlyArray<$ReadOnly<CodeBlock>>, lineIndex: number): number {
   let blockToCalculate = -1
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i]

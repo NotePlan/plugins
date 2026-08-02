@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T03:43:43.449Z",
-  "rawTotal": 989,
+  "generated": "2026-08-02T03:46:05.704Z",
+  "rawTotal": 977,
   "byPlugin": {
     "flow-typed": {
       "sites": 9,
@@ -45,10 +45,10 @@
       "src": 7
     },
     "dwertheimer.MathSolver": {
-      "sites": 6,
-      "raw": 18,
+      "sites": 4,
+      "raw": 12,
       "test": 0,
-      "src": 6
+      "src": 4
     },
     "dwertheimer.TaskAutomations": {
       "sites": 21,
@@ -81,12 +81,6 @@
       "src": 92
     },
     "jgclark.EventHelpers": {
-      "sites": 6,
-      "raw": 6,
-      "test": 1,
-      "src": 5
-    },
-    "jgclark.Filer": {
       "sites": 5,
       "raw": 5,
       "test": 0,

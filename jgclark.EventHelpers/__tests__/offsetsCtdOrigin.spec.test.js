@@ -28,6 +28,10 @@ function calcDateForOffset(dateOffsetString: string, baseDate: string, lastCalcD
 
 /** @typedef {{content: string, level: number, type?: string}} OffsetLineSpec */
 
+/** One input line for simulateProcessDateOffsets(): matches the destructuring at the top of
+ * the loop below. Previously used without ever being declared or imported. */
+type OffsetLineSpec = { content: string, level: number, type?: string }
+
 /**
  * Simulate processDateOffsets loop over a note outline using production helpers.
  * @param {Array<OffsetLineSpec>} lines
