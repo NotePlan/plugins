@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T03:46:05.704Z",
-  "rawTotal": 977,
+  "generated": "2026-08-02T03:48:26.308Z",
+  "rawTotal": 966,
   "byPlugin": {
     "flow-typed": {
       "sites": 9,
@@ -9,10 +9,10 @@
       "src": 9
     },
     "KimMachineGun.Raindrop": {
-      "sites": 14,
-      "raw": 14,
+      "sites": 3,
+      "raw": 3,
       "test": 0,
-      "src": 14
+      "src": 3
     },
     "dbludeau.TodoistNoteplanSync": {
       "sites": 15,
