@@ -70,9 +70,13 @@ import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
 import { loadDashboardPluginSettings } from './dashboardPluginSettings'
 import { copyUpdatedSectionItemData } from './dataGeneration'
 import { externallyStartSearch } from './dataGenerationSearch'
+// NB: REFRESH_ACTIONS_ALLOWED_ON_HANDLER_FAILURE is a runtime const (types.js:448), not a type,
+// but it was listed in the `import type` block below. Rollup flattens all modules into one scope
+// so the built plugin still resolved it - but the import was wrong, and any other consumer of
+// this module (or a non-bundled build) would not have found it.
+import { REFRESH_ACTIONS_ALLOWED_ON_HANDLER_FAILURE } from './types'
 import type {
   MessageDataObject,
-  REFRESH_ACTIONS_ALLOWED_ON_HANDLER_FAILURE,
   TActionType,
   TBridgeClickHandlerResult,
   TParagraphForDashboard,

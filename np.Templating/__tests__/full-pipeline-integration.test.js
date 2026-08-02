@@ -55,7 +55,8 @@ const pipelineStates = {
  * @param {boolean} isFirstCall - Whether this is the first/top-level call
  * @returns {Promise<string>} The processed template with includes resolved
  */
-const customImportTemplates = async (templateData: string, isFirstCall: boolean = true) => {
+// Return type annotated: this function calls itself recursively, so Flow cannot infer it.
+const customImportTemplates = async (templateData: string, isFirstCall: boolean = true): Promise<string> => {
   let newTemplateData = templateData
 
   // Only set the initial template on the first call, not in recursive calls

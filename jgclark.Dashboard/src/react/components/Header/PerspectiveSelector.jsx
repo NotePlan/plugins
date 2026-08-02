@@ -486,4 +486,6 @@ const PerspectiveSelector = (): React$Node => {
   )
 }
 
-export default React.memo(PerspectiveSelector)
+// Annotated so the module can have a typed interface built (React.memo's result type is not
+// inferable across the module boundary).
+export default (React.memo(PerspectiveSelector): any)

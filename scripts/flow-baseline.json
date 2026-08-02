@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-02T15:47:25.733Z",
-  "rawTotal": 867,
+  "generated": "2026-08-02T15:54:46.919Z",
+  "rawTotal": 856,
   "byPlugin": {
     "flow-typed": {
       "sites": 9,
@@ -27,10 +27,10 @@
       "src": 29
     },
     "dwertheimer.Favorites": {
-      "sites": 7,
-      "raw": 12,
+      "sites": 6,
+      "raw": 11,
       "test": 0,
-      "src": 7
+      "src": 6
     },
     "dwertheimer.Forms": {
       "sites": 3,
@@ -69,16 +69,16 @@
       "src": 7
     },
     "helpers": {
-      "sites": 62,
-      "raw": 97,
-      "test": 1,
-      "src": 61
+      "sites": 60,
+      "raw": 95,
+      "test": 0,
+      "src": 60
     },
     "jgclark.Dashboard": {
-      "sites": 86,
-      "raw": 284,
+      "sites": 83,
+      "raw": 281,
       "test": 5,
-      "src": 81
+      "src": 78
     },
     "jgclark.EventHelpers": {
       "sites": 5,
@@ -141,16 +141,16 @@
       "src": 2
     },
     "np.Templating": {
-      "sites": 101,
-      "raw": 105,
-      "test": 58,
+      "sites": 97,
+      "raw": 101,
+      "test": 54,
       "src": 43
     },
     "np.ThemeChooser": {
-      "sites": 5,
-      "raw": 6,
+      "sites": 4,
+      "raw": 5,
       "test": 0,
-      "src": 5
+      "src": 4
     },
     "np.Tidy": {
       "sites": 2,

@@ -17,6 +17,7 @@ import promptHandlers from './handlers'
 
 // Export registry functions for direct use
 export { processPrompts, processPromptTag, getRegisteredPromptNames, isPromptTag }
+export type { TProcessPromptsSuccess, TProcessPromptsResult } from './PromptRegistry'
 
 // Export all prompt handler functions
 export { promptDate, promptDateInterval, parsePromptKeyParameters, prompt, getPromptParameters } from './handlers'

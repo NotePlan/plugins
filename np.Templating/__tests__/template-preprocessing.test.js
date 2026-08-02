@@ -20,7 +20,8 @@ const TEMPLATE_CONTENT: { [string]: string } = {
 }
 
 // Create a simplified version of importTemplates for testing
-const importTemplates = async (templateData: string) => {
+// Return type annotated: this function calls itself recursively, so Flow cannot infer it.
+const importTemplates = async (templateData: string): Promise<string> => {
   let newTemplateData = templateData
 
   // Process include tags
