@@ -108,15 +108,24 @@ value for `NoTasks`' `this.pointer`, and a changed Map key in `taskNoteStats`.
 
 ## Two things the audit caught that would otherwise have shipped
 
-Both are cases where **Flow 0.245 accepts syntax that @babel/preset-flow 7.25.9 cannot parse**,
-so the file silently fails to transform — breaking the rollup build *and* jest.
+Both are cases where **Flow 0.245 accepts syntax that Babel cannot parse**, so the file silently
+fails to transform — breaking the rollup build *and* jest.
 
 1. Optional tuple elements (`[string, any, string?]`) in `np.plugin-test/src/react/WebView.jsx`.
 2. Mapped types (`{ [K in keyof Obj]: … }`) replacing `$ObjMap` in `helpers/checkType.js` — this
    one turned 19 test suites red before it was reverted.
 
-Both are recorded as items 17a and 18b, and both are blocked on the same Babel upgrade. Worth
-doing as one piece of work.
+An earlier version of this document said both were "blocked on a Babel upgrade". **That was
+wrong, and it was worth checking.** Tested against `@babel/preset-flow` 7.25.9, 7.29.7 and 8.0.1,
+and `@babel/parser` 8.0.4 with every `flow` plugin option: all three syntaxes fail on all of
+them. Babel's Flow parser has not implemented them at any version.
+
+The supported route is `babel-plugin-syntax-hermes-parser`, which does parse mapped types and
+conditional types (and the *labeled* tuple form, `[a: string, b: any, c?: string]`, which Flow
+also accepts — so prefer that spelling). `$ObjMap` still parses under it too.
+
+Not recommended today: it swaps the Flow front-end for jest, rollup and eslint at once, and buys
+exactly one error (item 18b, a deprecation). Full table in item 17a.
 
 ---
 

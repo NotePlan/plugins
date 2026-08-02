@@ -413,17 +413,36 @@ doesn't actually want that rule. Worth deciding once rather than 17 times.
 
 ---
 
-### 17a. Babel can't parse optional tuple elements
-`np.plugin-test/src/react/WebView.jsx:166`
+### 17a. Babel's Flow parser doesn't implement Flow's newer type syntax
+`np.plugin-test/src/react/WebView.jsx:166` and `helpers/checkType.js:127` (item 18b)
 
 `sendToPlugin`'s parameter is `[command, data, additionalDetails = '']`. The precise Flow type is
-`[string, any, string?]`, and Flow 0.245 accepts it — but **@babel/preset-flow 7.25.9 cannot
-parse optional tuple elements**, so the file fails to transform and the rollup build breaks. It
-is currently typed `Array<any>` instead. (This bit during the sweep: an agent wrote the precise
-type, `flow-emit-audit` caught the parse failure, and it was reverted.)
+an optional tuple element; Flow 0.245 accepts it, but Babel fails to parse it, so the file stops
+transforming and both the rollup build and jest break. It is typed `Array<any>` instead.
 
-**Suggestion:** nothing to do today, but worth knowing before anyone "improves" that annotation.
-Upgrading @babel/preset-flow would lift the restriction.
+**This was measured, not assumed.** An earlier version of this document said both this and item
+18b were "blocked on a Babel upgrade". That is wrong — upgrading does not help:
+
+| Front-end | optional tuple `[string, any, string?]` | mapped type `{ [K in keyof O]: … }` | conditional type `T extends U ? A : B` |
+|---|---|---|---|
+| `@babel/preset-flow` 7.25.9 (current) | ✗ | ✗ | ✗ |
+| `@babel/preset-flow` 7.29.7 (latest 7.x) | ✗ | ✗ | ✗ |
+| `@babel/preset-flow` 8.0.1 / parser 8.0.4 | ✗ | ✗ | ✗ |
+| `@babel/parser` 8.0.4 with `['flow', {all: true, enums: true}]` | ✗ | ✗ | ✗ |
+| **`babel-plugin-syntax-hermes-parser`** | ✗ unlabeled · **✓ labeled** | **✓** | **✓** |
+
+Babel's own Flow parser has simply not implemented these, at any version. The supported route is
+`babel-plugin-syntax-hermes-parser` (Hermes is Meta's Flow parser, which tracks the language).
+
+Two further findings from the same test:
+- The *labeled* tuple form `[a: string, b: any, c?: string]` is accepted by **both** Flow and
+  Hermes; the unlabeled `[string, any, string?]` is Flow-only. Prefer the labeled form.
+- `$ObjMap` still parses fine under Hermes, so adopting it wouldn't force item 18b's rewrite.
+
+**Suggestion:** do nothing for now. Switching the Flow front-end to `hermes-parser` touches jest,
+rollup and eslint at once, and today it would buy exactly one error (item 18b, a deprecation).
+Revisit if the team wants modern Flow syntax generally — at which point it is one coordinated
+change, not three.
 
 ---
 
@@ -487,14 +506,18 @@ type CheckersToValues<Obj: { +[string]: Checker<mixed> }> =
   { [K in keyof Obj]: Obj[K] extends Checker<infer T> ? T : empty }
 ```
 
-type-checks under Flow 0.245, but **@babel/preset-flow 7.25.9 cannot parse mapped-type syntax**.
-The file then fails to transform, which breaks the rollup build *and* jest — 19 test suites went
-red. `scripts/flow-emit-audit.js` catches this (it reports the file as a Babel parse failure),
-which is how it was found.
+type-checks under Flow 0.245, but **Babel cannot parse mapped-type syntax — at any version,
+including 8.0.4** (see the table in item 17a; this was tested, not assumed). The file then fails
+to transform, which breaks the rollup build *and* jest — 19 test suites went red.
+`scripts/flow-emit-audit.js` catches it by reporting the file as a Babel parse failure, which is
+how it was found.
 
-Same root cause as item 17a. Both are blocked on upgrading `@babel/preset-flow`; that upgrade
-would unlock this one, optional tuple elements, and probably others. Worth doing as one piece of
-work rather than three.
+`$ObjMap` is deprecated but still works, and still parses under every front-end tested. So there
+is no urgency here.
+
+If the team ever does adopt `babel-plugin-syntax-hermes-parser` (item 17a), the mapped-type form
+parses cleanly under it and this can be revisited then. Until that happens, leave `$ObjMap`
+alone — the rewrite is not merely risky, it does not build.
 
 ---
 
