@@ -539,7 +539,7 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
           // Render the content with form values if it contains template tags
           // This ensures template tags are rendered before being written to the note
           // This makes the behavior consistent with the write-existing path which renders at line 764
-          let renderedContent = content
+          let renderedContent: any = content
           if (content && content.includes('<%')) {
             try {
               renderedContent = await NPTemplating.render(content, data)
@@ -632,7 +632,7 @@ export async function renderTemplate(frontmatterBody: string, data: Object): Pro
  */
 export function extractTitleAndShouldOpenSettings(frontmatterAttributes: Object, openInEditor: boolean): { noteTitle: string, shouldOpenInEditor: boolean } {
   const { openNoteTitle, writeNoteTitle, getNoteTitled } = frontmatterAttributes
-  let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || '' || (getNoteTitled && getNoteTitled.trim())
+  let noteTitle: any = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || '' || (getNoteTitled && getNoteTitled.trim())
   let shouldOpenInEditor = (openNoteTitle && openNoteTitle.length > 0) || openInEditor
 
   return { noteTitle, shouldOpenInEditor }

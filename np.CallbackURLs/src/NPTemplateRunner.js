@@ -9,7 +9,9 @@ import { getAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 
 // getNoteTitled, location, writeUnderHeading, replaceNoteContents
-const baseMetadata = {
+// Indexed: the null members are placeholders that get filled in with strings and booleans
+// below, and keys are also deleted dynamically before the object is serialised.
+const baseMetadata: TAnyObject = {
   type: 'self-runner',
   getNoteTitled: null,
   writeUnderHeading: null,

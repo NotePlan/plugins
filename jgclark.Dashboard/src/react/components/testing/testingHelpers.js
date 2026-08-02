@@ -17,7 +17,7 @@ export const sendDashboardSettingsToPlugin = (sendActionToPlugin: Function, newD
 export const getDashboardSettingsWithShowVarsSetTo = (getContext: () => AppContextType, showValue: boolean): Object => {
   const dashboardSettings = getContext().dashboardSettings
   return Object.keys(dashboardSettings).reduce(
-    (acc, key) => {
+    (acc: TAnyObject, key: string) => {
       if (key.startsWith('show') && key.endsWith('Section')) {
         acc[key] = showValue
       }

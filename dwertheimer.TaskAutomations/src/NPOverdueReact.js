@@ -292,7 +292,7 @@ export async function dropdownChangeReceived(data: { rows: Array<any>, choice: s
  */
 export async function onUserModifiedParagraphs(actionType: string, data: any): Promise<any> {
   try {
-    let returnValue = { success: false }
+    let returnValue: TAnyObject = { success: false }
     logDebug(pluginJson, `NP Plugin return path (onUserModifiedParagraphs) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
     clo(data, `onUserModifiedParagraphs data=`)
     switch (actionType) {

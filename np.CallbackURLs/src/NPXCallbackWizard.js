@@ -27,7 +27,9 @@ import { getSelectedParagraph } from '@helpers/NPParagraph'
  * @returns {string} the URL or false if user canceled
  */
 async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' | 'deleteNote' = 'openNote'): Promise<string | false> {
-  let url = '',
+  // `string | false` because the cancel paths below assign false - matching the declaration
+  // already used at :481 in this same file.
+  let url: string | false = '',
     note,
     fields
   const date = await askWhatKind() // returns date or '' or false
@@ -214,7 +216,8 @@ async function askWhatKind(): Promise<string | false> {
     { label: 'Open/use a Project Note (by title)', value: '' },
     { label: 'Open a Folder', value: 'folder' },
   ]
-  let choice = await chooseOption('What kind of note do you want to use/open?', opts, opts[0].value)
+  // Reassigned from getInput() below, which returns false when the user cancels.
+  let choice: string | boolean = await chooseOption('What kind of note do you want to use/open?', opts, opts[0].value)
   if (choice === 'date') {
     const opts = [
       { label: 'Enter a specific date', value: 'nameDate' },
@@ -234,7 +237,9 @@ async function askWhatKind(): Promise<string | false> {
   return choice || ''
 }
 
-async function getAddTextAdditions(): Promise<{ text: string, mode: string, openNote: string } | false> {
+// openType is added by the caller before the result is passed to createAddTextCallbackUrl,
+// whose options type declares it (helpers/general.js:352).
+async function getAddTextAdditions(): Promise<{ text: string, mode: string, openNote: string, openType?: 'subWindow' | 'splitView' | 'reuseSplitView' | 'useExistingSubWindow' | null } | false> {
   const text = await getInput('Enter text to add to the note', 'OK', 'Text to Add', 'PLACEHOLDER')
   log(pluginJson, `getAddTextAdditions: ${text || ''}`)
   if (text === false) return false

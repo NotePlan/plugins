@@ -21,7 +21,8 @@ export async function getURL(commandName: string, defaultValue: string): Promise
   ]
   if (defaultValue) options.push({ label: `Keep Previous Value: "${defaultValue}"`, value: 'previous' })
   const choice = await chooseOption('How do you want to set the URL?', options, null)
-  let url = ''
+  // CommandBar.textPrompt() and invokePluginCommandByName() both return false on cancel.
+  let url: string | false = ''
   if (choice) {
     if (choice === 'linkCreator') {
       url = await DataStore.invokePluginCommandByName('Get X-Callback-URL', 'np.CallbackURLs', ['', true])
