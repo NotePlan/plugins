@@ -230,6 +230,50 @@ export function calculateParagraphType(para: TParagraph): string {
  * @returns {SortableParagraphSubset} - a sortable object
  * @author @dwertheimer
  */
+/**
+ * Flatten a task's whole subtree into document order (depth-first, pre-order).
+ * Use this anywhere that needs "this task and everything nested under it" -- e.g. collecting paragraphs to
+ * delete before re-inserting, or rendering a task block back out. A one-level `task.children.forEach()` is
+ * NOT sufficient now that nesting is tracked to arbitrary depth: it would silently miss grandchildren,
+ * which on a delete/re-insert path leaves duplicates behind in the note.
+ * @author @dwertheimer
+ * @param {SortableParagraphSubset} task
+ * @returns {Array<SortableParagraphSubset>} every descendant, not including `task` itself
+ */
+// Param is structural on purpose: this only ever reads `children`, and callers legitimately hold
+// narrower shapes (e.g. the render loop in TaskSorting's insertTodos). Demanding a full
+// SortableParagraphSubset here would reject them for fields the function never touches.
+export function getAllDescendants(task: { +children?: $ReadOnlyArray<SortableParagraphSubset>, ... }): Array<SortableParagraphSubset> {
+  const descendants: Array<SortableParagraphSubset> = []
+  const visit = (node: { +children?: $ReadOnlyArray<SortableParagraphSubset>, ... }) => {
+    const kids = node.children || []
+    for (const child of kids) {
+      descendants.push(child)
+      visit(child)
+    }
+  }
+  visit(task)
+  return descendants
+}
+
+/**
+ * Sort a list of tasks and, recursively, each task's children by the same sort order.
+ * Children stay attached to their parent; only the ordering *within* each level changes.
+ * @author @dwertheimer
+ * @param {Array<SortableParagraphSubset>} tasks
+ * @param {Array<string>} sortOrder - same field list understood by sortListBy (e.g. ['-priority', 'content'])
+ * @returns {Array<SortableParagraphSubset>} newly-ordered list (children arrays are reordered in place)
+ */
+export function sortTaskTree(tasks: Array<SortableParagraphSubset>, sortOrder: Array<string>): Array<SortableParagraphSubset> {
+  const sorted = sortListBy(tasks, sortOrder)
+  for (const task of sorted) {
+    if (task.children && task.children.length) {
+      task.children = sortTaskTree(task.children, sortOrder)
+    }
+  }
+  return sorted
+}
+
 export function getSortableTask(para: TParagraph): SortableParagraphSubset {
   const content = para.content
   const hashtags = getElementsFromTask(content, RE_HASHTAGS)
@@ -265,27 +309,54 @@ export function getSortableTask(para: TParagraph): SortableParagraphSubset {
  * @param {boolean} ignoreIndents - whether to pay attention to child/indented paragraphs
  * @returns {GroupedTasks} - object of tasks by type {'open':[], 'scheduled'[], 'done':[], 'cancelled':[], etc.}
  */
+/** Indent depth of a task, treating a missing value as top level. */
+function indentsOf(task: SortableParagraphSubset): number {
+  return typeof task.indents === 'number' ? task.indents : 0
+}
+
 export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreIndents: boolean = false, useCalculatedScheduled: boolean = false): GroupedTasks {
   const tasks: GroupedTasks = (TASK_TYPES.reduce((acc, t) => ({ ...acc, ...{ [t]: [] } }), {}): any)
-  // cast: this sentinel is a stand-in for a SortableParagraphSubset (only .indents and .children are read before it is replaced by a real one below)
-  let lastParent: SortableParagraphSubset = ({ indents: 999, children: [] }: any)
+  // Ancestor chain for the paragraph currently being read, shallowest first. A paragraph belongs to the
+  // nearest preceding item with a strictly smaller indent level. Previously this was a single `lastParent`
+  // that was only reassigned for top-level tasks, so anything indented more than once (a grandchild) was
+  // pushed onto the *top-level* task's children array -- every level below the first collapsed into one.
+  const parentStack: Array<SortableParagraphSubset> = []
   // clo(paragraphs, 'getTasksByType')
   for (let index = 0; index < paragraphs.length; index++) {
     const para = paragraphs[index]
     // logDebug('getTasksByType', `${para.lineIndex}: ${para.type}`)
-    if (isTask(para) || (!ignoreIndents && para.indents > lastParent.indents)) {
+    // Treat a missing `indents` as 0. NotePlan always supplies it, but hand-built paragraphs (tests,
+    // other plugins) often do not, and `undefined <= undefined` is false -- which would stop the stack
+    // ever unwinding and nest every task under the first one.
+    const paraIndents = typeof para.indents === 'number' ? para.indents : 0
+    // Unwind BEFORE deciding what this paragraph is. Closing out every ancestor at the same or deeper
+    // level leaves the true parent on top. Doing this after the decision compares the paragraph against
+    // its own preceding SIBLING instead, which silently drops non-task lines that sit at sibling depth
+    // (e.g. a quote or note indented alongside subtasks -- see the taskDocument.json fixture).
+    if (!ignoreIndents) {
+      while (parentStack.length && paraIndents <= indentsOf(parentStack[parentStack.length - 1])) {
+        parentStack.pop()
+      }
+    }
+    const parent = !ignoreIndents && parentStack.length ? parentStack[parentStack.length - 1] : null
+    // Non-task lines (notes, quotes) still count as children when indented under a task, as before.
+    if (isTask(para) || parent != null) {
       // const content = para.content // Not used
       // console.log(`found: ${index}: ${para.type}: ${para.content}`)
       try {
         const task: SortableParagraphSubset = getSortableTask(para)
-        if (!ignoreIndents && para.indents > lastParent.indents) {
-          lastParent.children.push(task)
+        if (parent != null) {
+          parent.children.push(task)
+          parentStack.push(task)
         } else {
           // cast: para types are plain strings, but they are used here to index GroupedTasks, so declare the narrower key type (guarded by the `tasks[ct]` test below)
           const ct: $Keys<GroupedTasks> = ((useCalculatedScheduled ? task.calculatedType : task.type): any) // will always be the same as para.type except in case of scheduled
           if (ct && tasks[ct]) {
             const len = tasks[ct].push(task)
-            lastParent = tasks[ct][len - 1]
+            if (!ignoreIndents) {
+              parentStack.length = 0
+              parentStack.push(tasks[ct][len - 1])
+            }
           }
         }
       } catch (error) {

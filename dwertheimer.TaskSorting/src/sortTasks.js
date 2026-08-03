@@ -4,7 +4,7 @@ import pluginJson from '../plugin.json'
 import { chooseOption, chooseHeading, showMessage } from '@helpers/userInput'
 import { getTagParamsFromString } from '@helpers/general'
 import { removeHeadingFromNote, getBlockUnderHeading } from '@helpers/NPParagraph'
-import { sortListBy, getTasksByType, TASK_TYPES, type GroupedTasks, type SortableParagraphSubset } from '@helpers/sorting'
+import { sortListBy, getTasksByType, getAllDescendants, TASK_TYPES, type GroupedTasks, type SortableParagraphSubset } from '@helpers/sorting'
 import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { saveEditorIfNecessary } from '@helpers/NPEditor'
@@ -136,14 +136,13 @@ async function deleteExistingTasksFromSortable(note: CoreNoteFields, tasks: Arra
       tasksToDelete.push(task.paragraph)
     }
 
-    // Also include children if they exist
-    if (task.children && task.children.length) {
-      task.children.forEach((child) => {
-        if (child.paragraph) {
-          tasksToDelete.push(child.paragraph)
-        }
-      })
-    }
+    // Include the whole subtree, not just direct children -- a one-level loop would leave
+    // grandchildren behind in the note after the re-insert, i.e. duplicates.
+    getAllDescendants(task).forEach((descendant) => {
+      if (descendant.paragraph) {
+        tasksToDelete.push(descendant.paragraph)
+      }
+    })
   })
 
   // Use the common deletion logic
@@ -206,29 +205,25 @@ export async function openTasksToTop(
 
         // Add all children content (not just tasks)
         // whose `children` is an array property, not the NotePlan API method of the same name.
-        if (taskPara.children && taskPara.children.length) {
-          taskPara.children.forEach((child) => {
-            rawContent.push(child.raw)
-          })
-        }
+        getAllDescendants(taskPara).forEach((descendant) => {
+          rawContent.push(descendant.raw)
+        })
       } else {
         // Default: move all open tasks (parents + children) but no headings or non-task content
         rawContent.push(taskPara.raw)
 
         // Add child tasks (but not other content like notes, quotes)
         // whose `children` is an array property, not the NotePlan API method of the same name.
-        if (taskPara.children && taskPara.children.length) {
-          taskPara.children.forEach((child) => {
-            // Only include child tasks that match the same criteria as parent tasks
-            const isOpenTask = child.type === 'open' || child.type === 'scheduled'
-            const isChecklistTask = child.type === 'checklist' && includeChecklists
+        getAllDescendants(taskPara).forEach((child) => {
+          // Only include child tasks that match the same criteria as parent tasks
+          const isOpenTask = child.type === 'open' || child.type === 'scheduled'
+          const isChecklistTask = child.type === 'checklist' && includeChecklists
 
-            if (isOpenTask || isChecklistTask) {
-              rawContent.push(child.raw)
-            }
-            // Note: Excluding 'done', 'cancelled', and checklist types (unless includeChecklists is true)
-          })
-        }
+          if (isOpenTask || isChecklistTask) {
+            rawContent.push(child.raw)
+          }
+          // Note: Excluding 'done', 'cancelled', and checklist types (unless includeChecklists is true)
+        })
       }
     })
 
@@ -396,9 +391,11 @@ function insertTodos(
   const contentStr = linesForContent
     .map((t) => {
       let str = t.raw
-      if ('children' in t && t.children && t.children.length) {
-        //TODO: sort 2nd level also indented tasks
-        str += `\n${t.children.map((c) => c.raw).join('\n')}`
+      // Depth-first pre-order, so nested subtasks come back out in the right order at the right depth.
+      // `raw` is para.rawContent, which carries the leading tabs, so indentation round-trips as-is.
+      const descendants = getAllDescendants(t)
+      if (descendants.length) {
+        str += `\n${descendants.map((c) => c.raw).join('\n')}`
       }
       return str
     })
@@ -529,6 +526,7 @@ export function sortParagraphsByType(
 
           // Respect the chosen sort order when interleaving by leveraging the generic sorter
           const combinedSortOrder = sortOrder && sortOrder.length ? sortOrder : ['content']
+          // Top level only: children keep their document order (see sortTaskTree's docblock for why).
           const sortedCombined = sortListBy(combinedTasks, combinedSortOrder)
 
           // For interleaved sorting, put all tasks in the first type of each group
@@ -628,14 +626,12 @@ async function deleteExistingTasks(note: CoreNoteFields, tasks: GroupedTasks): P
           tasksToDelete.push(taskPara.paragraph)
         }
 
-        // Also include children if they exist
-        if (taskPara.children && taskPara.children.length) {
-          taskPara.children.forEach((child) => {
-            if (child.paragraph) {
-              tasksToDelete.push(child.paragraph)
-            }
-          })
-        }
+        // Whole subtree (see note in deleteExistingTasksFromSortable)
+        getAllDescendants(taskPara).forEach((descendant) => {
+          if (descendant.paragraph) {
+            tasksToDelete.push(descendant.paragraph)
+          }
+        })
       })
     }
   }
