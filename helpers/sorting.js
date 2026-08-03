@@ -259,6 +259,14 @@ export function getAllDescendants(task: { +children?: $ReadOnlyArray<SortablePar
 /**
  * Sort a list of tasks and, recursively, each task's children by the same sort order.
  * Children stay attached to their parent; only the ordering *within* each level changes.
+ *
+ * NOT USED BY DEFAULT, and that is a deliberate product decision (@dwertheimer, 2026-08-02):
+ * a parent's children are not all tasks. Notes and quotes indented at sibling depth are ordinary
+ * children here, and their meaning is positional -- the taskDocument.json fixture contains
+ * `> A quote after Subtask1-2`, which alphabetical sorting would move away from the subtask it
+ * names. TaskSorting therefore sorts only the top level and leaves each parent's children in
+ * document order. Keep this function for callers that genuinely want deep ordering (all-task
+ * subtrees), and see helpers/__tests__/sorting-indents.test.js for its pinned behaviour.
  * @author @dwertheimer
  * @param {Array<SortableParagraphSubset>} tasks
  * @param {Array<string>} sortOrder - same field list understood by sortListBy (e.g. ['-priority', 'content'])
