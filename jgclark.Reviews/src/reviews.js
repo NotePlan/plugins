@@ -28,9 +28,11 @@ import {
   isProjectNoteIsMarkedSequential,
   migrateProjectMetadataLineInEditor,
   migrateProjectMetadataLineInNote,
+  promptForMissingProjectTypeTag,
   type ReviewConfig,
   updateBodyMetadataInEditor,
   updateBodyMetadataInNote,
+  writeCombinedProjectTagAndReviewedMentions,
 } from './reviewHelpers'
 import {
   filterAndSortProjectsList,
@@ -774,6 +776,51 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
 //-------------------------------------------------------------------------------
 
 /**
+ * Apply finish-review metadata updates for a note or open editor.
+ * When there is no body metadata line and no combined `project:` frontmatter key, prompts the user to
+ * choose a project type tag from settings (plus Cancel). Cancel aborts without writing reviewed.
+ * @param {CoreNoteFields | TEditor} noteLike
+ * @param {ReviewConfig} config
+ * @param {string} reviewedTodayString - e.g. 'reviewed(2026-08-03)'
+ * @param {'editor' | 'note'} mode - which mention helpers to use when a metadata line already exists
+ * @returns {Promise<boolean>} false if the user cancelled (no metadata writes for the missing-project path)
+ * @private
+ */
+async function applyFinishReviewMetadataUpdates(
+  noteLike: CoreNoteFields | TEditor,
+  config: ReviewConfig,
+  reviewedTodayString: string,
+  mode: 'editor' | 'note',
+): Promise<boolean> {
+  const metadataLineIndex = getProjectMetadataLineIndex(noteLike)
+  if (metadataLineIndex === false) {
+    logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(noteLike)}'`)
+    // Avoid wiping nextReview until the user confirms the project tag choice.
+    const projectTag = await promptForMissingProjectTypeTag(config, displayTitle(noteLike))
+    if (projectTag == null) {
+      logInfo('finishReviewCoreLogic', `User cancelled; not finishing review for '${displayTitle(noteLike)}'`)
+      return false
+    }
+    clearNextReviewFrontmatterField(noteLike)
+    writeCombinedProjectTagAndReviewedMentions(noteLike, projectTag, [reviewedTodayString], 'finishReviewCoreLogic')
+    return true
+  }
+
+  if (mode === 'editor') {
+    // $FlowFixMe[incompatible-call] TEditor path
+    deleteMetadataMentionInEditor((noteLike: any), metadataLineIndex, [config.nextReviewMentionStr])
+    clearNextReviewFrontmatterField(noteLike)
+    // $FlowFixMe[incompatible-call]
+    updateBodyMetadataInEditor((noteLike: any), [reviewedTodayString])
+  } else {
+    deleteMetadataMentionInNote((noteLike: any), metadataLineIndex, [config.nextReviewMentionStr])
+    clearNextReviewFrontmatterField(noteLike)
+    updateBodyMetadataInNote((noteLike: any), [reviewedTodayString])
+  }
+  return true
+}
+
+/**
  * Finish a project review -- private core logic used by 2 functions.
  * @param (CoreNoteFields) note - The note to finish
  */
@@ -809,58 +856,45 @@ async function finishReviewCoreLogic(note: CoreNoteFields, scrollPos: number = 0
       logDebug('finishReviewCoreLogic', `Note: no open tasks found for sequential project '${displayTitle(note)}'.`)
     }
 
+    let wroteMetadata = false
     const possibleThisEditor = getOpenEditorFromFilename(note.filename)
     if (possibleThisEditor && possibleThisEditor !== false) {
       const thisEditorNote: ?CoreNoteFields = possibleThisEditor.note
       if (!thisEditorNote) {
         logDebug('finishReviewCoreLogic', `No editor note found for '${displayTitle(note)}'; falling back to datastore note update path.`)
         migrateProjectMetadataLineInNote(note)
-        const metadataLineIndex = getProjectMetadataLineIndex(note)
-        if (metadataLineIndex === false) {
-          logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
-        } else {
-          deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
+        wroteMetadata = await applyFinishReviewMetadataUpdates(note, config, reviewedTodayString, 'note')
+        if (wroteMetadata) {
+          DataStore.updateCache(note, true)
         }
-        clearNextReviewFrontmatterField(note)
-        updateBodyMetadataInNote(note, [reviewedTodayString])
-        DataStore.updateCache(note, true)
-        return
-      }
-      logDebug('finishReviewCoreLogic', `Updating EDITOR note '${displayTitle(thisEditorNote)}' ...`)
-      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
-      // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
-      // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
-      // FIXME: The following 3 calls get "Warning: The editor is not open! 'Editor' values will be undefined and functions not working. Open a note to fix this." errors
-      migrateProjectMetadataLineInEditor(possibleThisEditor)
-      const metadataLineIndex = getProjectMetadataLineIndex(possibleThisEditor)
-      if (metadataLineIndex === false) {
-        logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(thisEditorNote)}'`)
       } else {
-        // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-        deleteMetadataMentionInEditor(possibleThisEditor, metadataLineIndex, [config.nextReviewMentionStr])
+        logDebug('finishReviewCoreLogic', `Updating EDITOR note '${displayTitle(thisEditorNote)}' ...`)
+        // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
+        // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
+        // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
+        // FIXME: The following calls get "Warning: The editor is not open! 'Editor' values will be undefined and functions not working. Open a note to fix this." errors
+        migrateProjectMetadataLineInEditor(possibleThisEditor)
+        wroteMetadata = await applyFinishReviewMetadataUpdates(possibleThisEditor, config, reviewedTodayString, 'editor')
+        if (wroteMetadata) {
+          await possibleThisEditor.save()
+        }
+        // Note: no longer seem to need to update cache
       }
-      clearNextReviewFrontmatterField(possibleThisEditor)
-      // Update @review(date) on current open note
-      updateBodyMetadataInEditor(possibleThisEditor, [reviewedTodayString])
-      await possibleThisEditor.save()
-      // Note: no longer seem to need to update cache
     } else {
       logDebug('finishReviewCoreLogic', `Updating note '${displayTitle(note)}' ...`)
       // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
       // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
       // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
       migrateProjectMetadataLineInNote(note)
-      const metadataLineIndex = getProjectMetadataLineIndex(note)
-      if (metadataLineIndex === false) {
-        logDebug('finishReviewCoreLogic', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
-      } else {
-        // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-        deleteMetadataMentionInNote(note, metadataLineIndex, [config.nextReviewMentionStr])
+      wroteMetadata = await applyFinishReviewMetadataUpdates(note, config, reviewedTodayString, 'note')
+      if (wroteMetadata) {
+        DataStore.updateCache(note, true)
       }
-      clearNextReviewFrontmatterField(note)
-      // Update @review(date) on the note
-      updateBodyMetadataInNote(note, [reviewedTodayString])
-      DataStore.updateCache(note, true)
+    }
+
+    if (!wroteMetadata) {
+      logInfo('finishReviewCoreLogic', `- Stopped without updating project list (user cancelled or no write).`)
+      return
     }
 
     // Rebuild this project from the updated note so progress comments and other note changes
