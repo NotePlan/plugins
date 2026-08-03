@@ -1137,7 +1137,7 @@ export async function sortTasksUnderHeading(
   _heading: string | null,
   _sortOrder: ?(string | Array<mixed>) = null,
   _noteOverride: TNote | typeof Editor | null = null,
-  _interleaveTaskTypes: string | boolean = true,
+  _interleaveTaskTypes: string | boolean | null = null,
 ): Promise<void> {
   try {
     logDebug(`sortTasksUnderHeading: starting for heading="${_heading ?? ''}" sortOrder="${String(_sortOrder)}" with note override? ${_noteOverride ? 'yes' : 'no'}`)
@@ -1161,8 +1161,14 @@ export async function sortTasksUnderHeading(
       sortOrder = await getUserSort()
     }
 
-    // Handle interleaveTaskTypes parameter
-    const interleaveTaskTypes = getBooleanValue(_interleaveTaskTypes, true)
+    // Handle interleaveTaskTypes parameter.
+    // When no explicit argument is supplied -- which is always the case when run from the command menu --
+    // fall back to the user's "Combine Related Task Types?" setting. Previously the parameter default was
+    // `true`, so it always won and this command silently IGNORED that setting, while /ts honoured it.
+    // An explicit argument (from a template or x-callback, where it arrives as a string) still wins.
+    const interleaveTaskTypes =
+      _interleaveTaskTypes == null ? getBooleanValue(DataStore.settings?.interleaveTaskTypes ?? true, true) : getBooleanValue(_interleaveTaskTypes, true)
+    logDebug(pluginJson, `sortTasksUnderHeading: interleaveTaskTypes=${String(interleaveTaskTypes)} (from ${_interleaveTaskTypes == null ? 'setting' : 'argument'})`)
     logDebug(pluginJson, `sortTasksUnderHeading: about to get block under heading="${heading}" sortOrder="${String(sortOrder)}"`)
 
     if (heading && noteToUse) {
