@@ -4,7 +4,7 @@ import pluginJson from '../plugin.json'
 import { chooseOption, chooseHeading, showMessage } from '@helpers/userInput'
 import { getTagParamsFromString } from '@helpers/general'
 import { removeHeadingFromNote, getBlockUnderHeading } from '@helpers/NPParagraph'
-import { sortListBy, getTasksByType, TASK_TYPES, type GroupedTasks, type SortableParagraphSubset } from '@helpers/sorting'
+import { sortListBy, getTasksByType, getAllDescendants, TASK_TYPES, type GroupedTasks, type SortableParagraphSubset } from '@helpers/sorting'
 import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { saveEditorIfNecessary } from '@helpers/NPEditor'
@@ -136,14 +136,13 @@ async function deleteExistingTasksFromSortable(note: CoreNoteFields, tasks: Arra
       tasksToDelete.push(task.paragraph)
     }
 
-    // Also include children if they exist
-    if (task.children && task.children.length) {
-      task.children.forEach((child) => {
-        if (child.paragraph) {
-          tasksToDelete.push(child.paragraph)
-        }
-      })
-    }
+    // Include the whole subtree, not just direct children -- a one-level loop would leave
+    // grandchildren behind in the note after the re-insert, i.e. duplicates.
+    getAllDescendants(task).forEach((descendant) => {
+      if (descendant.paragraph) {
+        tasksToDelete.push(descendant.paragraph)
+      }
+    })
   })
 
   // Use the common deletion logic
@@ -206,29 +205,25 @@ export async function openTasksToTop(
 
         // Add all children content (not just tasks)
         // whose `children` is an array property, not the NotePlan API method of the same name.
-        if (taskPara.children && taskPara.children.length) {
-          taskPara.children.forEach((child) => {
-            rawContent.push(child.raw)
-          })
-        }
+        getAllDescendants(taskPara).forEach((descendant) => {
+          rawContent.push(descendant.raw)
+        })
       } else {
         // Default: move all open tasks (parents + children) but no headings or non-task content
         rawContent.push(taskPara.raw)
 
         // Add child tasks (but not other content like notes, quotes)
         // whose `children` is an array property, not the NotePlan API method of the same name.
-        if (taskPara.children && taskPara.children.length) {
-          taskPara.children.forEach((child) => {
-            // Only include child tasks that match the same criteria as parent tasks
-            const isOpenTask = child.type === 'open' || child.type === 'scheduled'
-            const isChecklistTask = child.type === 'checklist' && includeChecklists
+        getAllDescendants(taskPara).forEach((child) => {
+          // Only include child tasks that match the same criteria as parent tasks
+          const isOpenTask = child.type === 'open' || child.type === 'scheduled'
+          const isChecklistTask = child.type === 'checklist' && includeChecklists
 
-            if (isOpenTask || isChecklistTask) {
-              rawContent.push(child.raw)
-            }
-            // Note: Excluding 'done', 'cancelled', and checklist types (unless includeChecklists is true)
-          })
-        }
+          if (isOpenTask || isChecklistTask) {
+            rawContent.push(child.raw)
+          }
+          // Note: Excluding 'done', 'cancelled', and checklist types (unless includeChecklists is true)
+        })
       }
     })
 
@@ -396,9 +391,11 @@ function insertTodos(
   const contentStr = linesForContent
     .map((t) => {
       let str = t.raw
-      if ('children' in t && t.children && t.children.length) {
-        //TODO: sort 2nd level also indented tasks
-        str += `\n${t.children.map((c) => c.raw).join('\n')}`
+      // Depth-first pre-order, so nested subtasks come back out in the right order at the right depth.
+      // `raw` is para.rawContent, which carries the leading tabs, so indentation round-trips as-is.
+      const descendants = getAllDescendants(t)
+      if (descendants.length) {
+        str += `\n${descendants.map((c) => c.raw).join('\n')}`
       }
       return str
     })
@@ -452,10 +449,19 @@ function insertTodos(
         // Insert at end of the specified heading section
         const paras = getBlockUnderHeading(note, effectiveTitle)
         const lastPara = paras[paras.length - 1]
-        const insertFunc = lastPara.type === 'separator' ? `insertTodoBeforeParagraph` : `insertParagraphAfterParagraph`
-        logDebug(`\tinsertTodos note.${insertFunc} "${lastPara.content}"`)
-        // $FlowIgnore - calling function by name is not very Flow friendly (but it works!)
-        note[insertFunc](content, lastPara)
+        // Explicit branches rather than `note[insertFunc](...)`: the two API calls have different
+        // arities, which the computed-name form hid. insertParagraphAfterParagraph takes
+        // (content, otherParagraph, paragraphType) and was being called with only two arguments, so
+        // paragraphType arrived as `undefined`. 'text' is what every other insertion path in this
+        // function passes, and `content` is a pre-rendered block of raw lines that carry their own
+        // markers and leading tabs. insertTodoBeforeParagraph legitimately takes two arguments.
+        if (lastPara.type === 'separator') {
+          logDebug(`\tinsertTodos note.insertTodoBeforeParagraph "${lastPara.content}"`)
+          note.insertTodoBeforeParagraph(content, lastPara)
+        } else {
+          logDebug(`\tinsertTodos note.insertParagraphAfterParagraph "${lastPara.content}"`)
+          note.insertParagraphAfterParagraph(content, lastPara, 'text')
+        }
       }
     }
   } else {
@@ -529,6 +535,7 @@ export function sortParagraphsByType(
 
           // Respect the chosen sort order when interleaving by leveraging the generic sorter
           const combinedSortOrder = sortOrder && sortOrder.length ? sortOrder : ['content']
+          // Top level only: children keep their document order (see sortTaskTree's docblock for why).
           const sortedCombined = sortListBy(combinedTasks, combinedSortOrder)
 
           // For interleaved sorting, put all tasks in the first type of each group
@@ -628,14 +635,12 @@ async function deleteExistingTasks(note: CoreNoteFields, tasks: GroupedTasks): P
           tasksToDelete.push(taskPara.paragraph)
         }
 
-        // Also include children if they exist
-        if (taskPara.children && taskPara.children.length) {
-          taskPara.children.forEach((child) => {
-            if (child.paragraph) {
-              tasksToDelete.push(child.paragraph)
-            }
-          })
-        }
+        // Whole subtree (see note in deleteExistingTasksFromSortable)
+        getAllDescendants(taskPara).forEach((descendant) => {
+          if (descendant.paragraph) {
+            tasksToDelete.push(descendant.paragraph)
+          }
+        })
       })
     }
   }
@@ -1132,7 +1137,7 @@ export async function sortTasksUnderHeading(
   _heading: string | null,
   _sortOrder: ?(string | Array<mixed>) = null,
   _noteOverride: TNote | typeof Editor | null = null,
-  _interleaveTaskTypes: string | boolean = true,
+  _interleaveTaskTypes: string | boolean | null = null,
 ): Promise<void> {
   try {
     logDebug(`sortTasksUnderHeading: starting for heading="${_heading ?? ''}" sortOrder="${String(_sortOrder)}" with note override? ${_noteOverride ? 'yes' : 'no'}`)
@@ -1156,8 +1161,14 @@ export async function sortTasksUnderHeading(
       sortOrder = await getUserSort()
     }
 
-    // Handle interleaveTaskTypes parameter
-    const interleaveTaskTypes = getBooleanValue(_interleaveTaskTypes, true)
+    // Handle interleaveTaskTypes parameter.
+    // When no explicit argument is supplied -- which is always the case when run from the command menu --
+    // fall back to the user's "Combine Related Task Types?" setting. Previously the parameter default was
+    // `true`, so it always won and this command silently IGNORED that setting, while /ts honoured it.
+    // An explicit argument (from a template or x-callback, where it arrives as a string) still wins.
+    const interleaveTaskTypes =
+      _interleaveTaskTypes == null ? getBooleanValue(DataStore.settings?.interleaveTaskTypes ?? true, true) : getBooleanValue(_interleaveTaskTypes, true)
+    logDebug(pluginJson, `sortTasksUnderHeading: interleaveTaskTypes=${String(interleaveTaskTypes)} (from ${_interleaveTaskTypes == null ? 'setting' : 'argument'})`)
     logDebug(pluginJson, `sortTasksUnderHeading: about to get block under heading="${heading}" sortOrder="${String(sortOrder)}"`)
 
     if (heading && noteToUse) {

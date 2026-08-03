@@ -6,6 +6,11 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.4.6] 2026-08-03 @dwertheimer
+
+### Removed
+- **Removed the hidden `Create Meeting Note using Meeting Note Template` command (`templateMeetingNote`).** It had been non-functional since 2025-10-31: commit `b201b30d` renamed `NPTemplating.getTemplate()` to `getTemplateContent()`, and the companion commit that updated the call sites missed this one, so the command threw a `TypeError` on every invocation for nine months without a single report. It was `hidden: true` (reachable only by x-callback), had no callers anywhere in the repo, and is superseded by np.MeetingNotes' `newMeetingNote`, which is the more complete implementation. The helper functions it used (`getNoteTitleFromTemplate`, `getNoteTitleFromRenderedContent`) are used elsewhere and are unchanged.
+
 ## [2.4.5] 2026-05-17 @dwertheimer
 
 ### Fixed
