@@ -90,10 +90,7 @@ export async function chooseNoteV2(
   allowNewRegularNoteCreation?: boolean = true,
 ): Promise<?TNote> {
   logDebug('chooseNoteV2', `starting with includeCalendarNotes: ${String(includeCalendarNotes)} and includeFutureCalendarNotes: ${String(includeFutureCalendarNotes)}`)
-  // KNOWN BUG - `regularNotes` is correctly declared $ReadOnlyArray<TNote>, but when includeCalendarNotes is false
-  // `noteList` is still the caller's array and .sort() below mutates it in place. Fix is to copy (e.g. .slice()), not to re-type.
-  // $FlowIgnore[incompatible-type]
-  let noteList: Array<TNote> = regularNotes
+  let noteList: Array<TNote> = [...regularNotes]
   if (includeCalendarNotes) {
     noteList = noteList.concat(calendarNotesSortedByChanged())
   }
@@ -727,9 +724,6 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
  * This function returns an array of TParagraphs, one for each backlink, undoing the nesting.
  * TEST: is this working for teamspace notes? Initial testing on 20.8.25 by @jgclark implies not.
  */
-// KNOWN BUG - the catch block below falls through without returning, so on error this returns undefined rather than
-// the declared Array<TParagraph>. The honest type would be `Array<TParagraph> | void`; the code should `return []` instead.
-// $FlowFixMe[incompatible-return]
 export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
   try {
     const noteBacklinks = note.backlinks
@@ -755,6 +749,7 @@ export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
     return flatBacklinkParas
   } catch (err) {
     logError('NPnote/getFlatListOfBacklinks', JSP(err))
+    return []
   }
 }
 
@@ -954,9 +949,13 @@ export function highlightParagraphWithContent(content: string): boolean {
 export function highlightBlockWithHeading(content: string): boolean {
   const blockParas = getBlockUnderHeading(Editor, content, true)
   if (blockParas && blockParas.length > 0) {
-    // Range.create requires numbers; TParagraph.contentRange is ?Range, so the optional chains can yield undefined. A real fix needs a null check, not a type.
-    // $FlowFixMe[incompatible-call] but still TODO(@dwertheimer): why is 'Range' undefined?
-    const contentRange = Range.create(blockParas[0].contentRange?.start, blockParas[blockParas.length - 1].contentRange?.end)
+    const start = blockParas[0].contentRange?.start
+    const end = blockParas[blockParas.length - 1].contentRange?.end
+    if (start == null || end == null) {
+      logError(`highlightBlockWithHeading could not get contentRange for block under heading: "${content}"`)
+      return false
+    }
+    const contentRange = Range.create(start, end)
     Editor.highlightByRange(contentRange) // highlight the entire block
     return true
   }

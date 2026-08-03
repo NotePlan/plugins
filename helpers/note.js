@@ -313,14 +313,11 @@ export function getNoteByFilename(filename: string): ?TNote {
 export function getUniqueNoteTitle(title: string): string {
   try {
     let i = 0
-    // KNOWN BUG - DataStore.projectNoteByTitle() returns ?$ReadOnlyArray<TNote>, so `res` really is maybe-typed (fixed below),
-    // but `res.length` is then read without a null check. The code needs a guard (or `?? []`), not a different type.
-    let res: ?$ReadOnlyArray<TNote> = []
+    let res: $ReadOnlyArray<TNote> = []
     let newTitle = title
-    // $FlowIgnore[incompatible-use]
     while (++i === 1 || res.length > 0) {
       newTitle = i === 1 ? title : `${title} ${i}`
-      res = DataStore.projectNoteByTitle(newTitle, true, false)
+      res = DataStore.projectNoteByTitle(newTitle, true, false) ?? []
     }
     return newTitle
   } catch (err) {
