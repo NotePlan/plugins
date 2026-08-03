@@ -449,10 +449,19 @@ function insertTodos(
         // Insert at end of the specified heading section
         const paras = getBlockUnderHeading(note, effectiveTitle)
         const lastPara = paras[paras.length - 1]
-        const insertFunc = lastPara.type === 'separator' ? `insertTodoBeforeParagraph` : `insertParagraphAfterParagraph`
-        logDebug(`\tinsertTodos note.${insertFunc} "${lastPara.content}"`)
-        // $FlowIgnore - calling function by name is not very Flow friendly (but it works!)
-        note[insertFunc](content, lastPara)
+        // Explicit branches rather than `note[insertFunc](...)`: the two API calls have different
+        // arities, which the computed-name form hid. insertParagraphAfterParagraph takes
+        // (content, otherParagraph, paragraphType) and was being called with only two arguments, so
+        // paragraphType arrived as `undefined`. 'text' is what every other insertion path in this
+        // function passes, and `content` is a pre-rendered block of raw lines that carry their own
+        // markers and leading tabs. insertTodoBeforeParagraph legitimately takes two arguments.
+        if (lastPara.type === 'separator') {
+          logDebug(`\tinsertTodos note.insertTodoBeforeParagraph "${lastPara.content}"`)
+          note.insertTodoBeforeParagraph(content, lastPara)
+        } else {
+          logDebug(`\tinsertTodos note.insertParagraphAfterParagraph "${lastPara.content}"`)
+          note.insertParagraphAfterParagraph(content, lastPara, 'text')
+        }
       }
     }
   } else {
