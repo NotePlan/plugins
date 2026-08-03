@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Functions to find notes where the filename doesn't match what it should be based on the note's title.
 // by Leo Melo, readied for the plugin and maintained by @jgclark
-// Last updated 2025-06-13 for v1.2.0 by @jgclark
+// Last updated 2028-08-03 for v1.3.7 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../../plugin.json'
@@ -27,11 +27,8 @@ export async function findInconsistentNames(
   // Work out what files to check, taking note of any folders to ignore
   const settings = await getSettings()
   const foldersToIgnoreSetting = settings.foldersToIgnore ?? ''
-  const foldersToIgnore = foldersToIgnoreSetting.split(',').map((folder) => folder.trim())
-  // KNOWN BUG - these two arguments are in the wrong order. helpers/folders.js declares getRegularNotesInFolder(forFolder, ignoreSpecialFolders: boolean, foldersToIgnore: Array<string>)
-  // (its JSDoc claims the opposite order, which is what this call follows). At runtime the array is used as `ignoreSpecialFolders` (always truthy) and `true` is used as
-  // `foldersToIgnore`, so `true.length > 0` is false and the user's 'foldersToIgnore' setting is silently ignored. Casts keep the emitted JS unchanged; see LEFT report.
-  const filesToCheck = getRegularNotesInFolder(folder, (foldersToIgnore: any), (true: any))
+  const foldersToIgnore: Array<string> = foldersToIgnoreSetting.split(',').map((folder) => folder.trim())
+  const filesToCheck = getRegularNotesInFolder(folder, true, foldersToIgnore)
   logDebug('findInconsistentNames', `Will check ${filesToCheck.length} notes in folder '${folder}' and its sub-folders, ignoring [${foldersToIgnore.join(', ')}] folders`)
 
   const inconsistentFiles = filesToCheck

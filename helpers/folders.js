@@ -521,8 +521,8 @@ export function notesInFolderSortedByTitle(folder: string, alsoSubFolders: boole
  * @author @dwertheimer + @jgclark
 
  * @param {string} forFolder optional folder name (e.g. 'myFolderName'), matching all folders that include this string
- * @param {Array<string>} foldersToIgnore? (default []) ignore folders whose folder path starts with any of these strings
  * @param {boolean?} ignoreSpecialFolders (default true) ignore folders whose folder path starts with '@' (e.g. @Templates)
+ * @param {Array<string>} foldersToIgnore? (default []) ignore folders whose folder path starts with any of these strings
  * @returns {$ReadOnlyArray<TNote>} array of notes in the folder
  */
 export function getRegularNotesInFolder(forFolder: string = '', ignoreSpecialFolders: boolean = true, foldersToIgnore: Array<string> = []): $ReadOnlyArray<TNote> {
