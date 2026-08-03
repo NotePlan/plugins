@@ -46,6 +46,8 @@ This command exists to work around a limitation of my separate [Repeat Extension
 
 This command catches any such completed repeats that haven't had the next repeat generated from them. It will work on all notes changed over the number of days you set the 'recently changed' setting to be.
 
+It can use the "concrete dates" feature added to Repeat Extensions plugin in v1.2.
+
 ### Details on /Remove empty blocks
 The **/Remove empty blocks** command intelligently cleans up your notes while preserving important structure:
 
