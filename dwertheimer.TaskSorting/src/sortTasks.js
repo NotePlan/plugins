@@ -1135,8 +1135,11 @@ export async function sortTasks(
  */
 export async function sortTasksUnderHeading(
   _heading: string | null,
-  _sortOrder: ?(string | Array<mixed>) = null,
-  _noteOverride: TNote | typeof Editor | null = null,
+  // $ReadOnlyArray so callers can pass an Array<string> (Flow arrays are invariant, so the old
+  // Array<mixed> rejected it); CoreNoteFields covers both TNote and TEditor, which is all the body needs.
+  _sortOrder: ?(string | $ReadOnlyArray<mixed>) = null,
+  _noteOverride: CoreNoteFields | null = null,
+  // `null` default (not `true`) so the "Combine Related Task Types?" setting is consulted -- see #770.
   _interleaveTaskTypes: string | boolean | null = null,
 ): Promise<void> {
   try {
