@@ -13,7 +13,7 @@ import { getFoldersMatching } from './folders'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
 import { getHeadingsFromNote, getOrMakeCalendarNote } from './NPnote'
 import { usersVersionHas } from './NPVersions'
-import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
+import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, asValidHeadingLevel } from './paragraph'
 import { parseTeamspaceFilename } from './teamspace'
 import { RE_UUID } from './regex'
 
@@ -947,38 +947,6 @@ export async function chooseHeadingV2(
   }
 }
 
-/** The heading levels `insertHeading()` accepts. Markdown/NotePlan only understands `#` through `########`. */
-type InsertHeadingLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
-
-/**
- * Narrow an arbitrary number to the heading level union that `Note.insertHeading()` requires.
- * Callers of the public heading helpers pass a plain `number`, so out-of-range or non-integer values are
- * rounded and clamped into 1..8 (anything unusable, e.g. NaN, falls back to the documented default of 2).
- * @param {number} level
- * @returns {InsertHeadingLevel}
- */
-function asInsertHeadingLevel(level: number): InsertHeadingLevel {
-  switch (Math.round(level)) {
-    case 1:
-      return 1
-    case 2:
-      return 2
-    case 3:
-      return 3
-    case 4:
-      return 4
-    case 5:
-      return 5
-    case 6:
-      return 6
-    case 7:
-      return 7
-    case 8:
-      return 8
-    default:
-      return level > 8 ? 8 : 2
-  }
-}
 
 /**
  * Used as part of chooseHeading (above) and Dashboard, to handle special instructions -- inserting a new heading, or inserting at top or bottom of the note.
@@ -1003,7 +971,7 @@ export async function processChosenHeading(note: CoreNoteFields, chosenHeading: 
       newHeading = await getInput(`Enter heading to add at the start of the note`, 'OK', 'New Heading')
       if (newHeading && typeof newHeading === 'string') {
         const startPos = 0
-        note.insertHeading(newHeading, startPos, asInsertHeadingLevel(headingLevel))
+        note.insertHeading(newHeading, startPos, asValidHeadingLevel(headingLevel))
         logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (calendar note)`)
         headingToReturn = newHeading
       } else {
@@ -1015,7 +983,7 @@ export async function processChosenHeading(note: CoreNoteFields, chosenHeading: 
       newHeading = await getInput(`Enter heading to add under the title`, 'OK', 'New Heading')
       if (newHeading && typeof newHeading === 'string') {
         const startPos = findStartOfActivePartOfNote(note)
-        note.insertHeading(newHeading, startPos, asInsertHeadingLevel(headingLevel))
+        note.insertHeading(newHeading, startPos, asValidHeadingLevel(headingLevel))
         logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (project note)`)
         headingToReturn = newHeading
       } else {
@@ -1028,7 +996,7 @@ export async function processChosenHeading(note: CoreNoteFields, chosenHeading: 
       if (newHeading && typeof newHeading === 'string') {
         const indexEndOfActive = findEndOfActivePartOfNote(note)
         const newLindeIndex = indexEndOfActive + 1
-        note.insertHeading(newHeading, newLindeIndex, asInsertHeadingLevel(headingLevel || 2))
+        note.insertHeading(newHeading, newLindeIndex, asValidHeadingLevel(headingLevel || 2))
         logDebug('userInput / processChosenHeading', `appended new heading '${newHeading}' at line ${newLindeIndex}`)
         headingToReturn = newHeading
       } else {

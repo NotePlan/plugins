@@ -1097,8 +1097,6 @@ export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [st
       // The frontmatterAttributes setter only works with macOS >= 14 and iOS >= 16
       // and only works with the Editor
       const includingMissingAttributes = deleteMissingAttributes ? normalizedNewAttributes : { ...existingAttributes, ...normalizedNewAttributes }
-      // The libdef declares `+frontmatterAttributes` (read-only); NP's docs say the Editor setter is supported on macOS >= 14 / iOS >= 16.
-      // $FlowIgnore[cannot-write]
       note.frontmatterAttributes = includingMissingAttributes
       logDebug('updateFrontMatterVars', `updateFrontMatterVars: writing frontmatterAttributes to EDITOR note using setter`)
       return true

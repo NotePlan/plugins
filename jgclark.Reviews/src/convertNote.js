@@ -269,11 +269,6 @@ export async function convertToProject(noteArg?: TNote): Promise<void> {
     const formResult = await CommandBar.showForm({
       title: `Convert '${displayTitle(resolvedNote)}' to a Project`,
       submitText: 'Convert',
-      // Safe: as noted above, `min`/`max` are accepted at runtime for number fields, but the `fields` element type in flow-typed/Noteplan.js is an
-      // exact object that doesn't list them yet, so Flow rejects them as extra props. Nothing here is unsound.
-      // No real type can be written from here: the fix belongs in flow-typed/Noteplan.js, where showForm's `+fields` element type should be
-      // inexact (`{ ..., ... }`) or gain `min?: number, max?: number, optional?: boolean`.
-      // $FlowFixMe[prop-missing]
       fields,
     })
 

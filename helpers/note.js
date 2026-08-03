@@ -536,7 +536,7 @@ export const clearNote = (note: TNote) => {
  * @param {string} newSectionContent Note: without Heading text!
  */
 export function replaceSection(
-  note: TNote,
+  note: CoreNoteFields,
   headingOfSectionToReplace: string,
   newSectionHeading: string,
   newSectionHeadingLevel: headingLevelType,
@@ -579,7 +579,7 @@ export function replaceSection(
  * @param {string} headingOfSectionToRemove
  * @return {number} lineIndex of the found headingOfSectionToRemove, or if not found the last line of the note
  */
-export function removeSection(note: TNote, headingOfSectionToRemove: string): number {
+export function removeSection(note: CoreNoteFields, headingOfSectionToRemove: string): number {
   try {
     const paras = note.paragraphs ?? []
     const startOfActive = findStartOfActivePartOfNote(note)
@@ -816,7 +816,5 @@ export function setIconForNote(note: TNote, icon: string, iconColor: ?string, ic
   if (iconStyle) {
     noteFrontmatter['icon-style'] = iconStyle
   }
-  // The libdef declares `+frontmatterAttributes` (read-only); NP documentation says this particular usage *is* safe.
-  // $FlowIgnore[cannot-write]
   note.frontmatterAttributes = noteFrontmatter
 }

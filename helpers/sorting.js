@@ -4,25 +4,29 @@ import get from 'lodash/get'
 import { isScheduled } from './dateTime'
 import { clo, logDebug, logError } from './dev'
 
-export interface SortableParagraphSubset {
-  content: string;
-  index: number;
-  raw: string;
-  hashtags: Array<string>;
-  mentions: Array<string>;
-  exclamations: Array<string>;
-  parensPriority: Array<string>;
-  due: ?Date;
-  heading: ?string;
-  priority?: number;
-  type?: string;
-  filename: string;
-  indents: number;
-  children: Array<SortableParagraphSubset>;
-  paragraph: ?TParagraph;
-  calculatedType: ?string;
-  blockId?: string;
-  note?: TNote;
+// Note: an object type, not an `interface`, so it can be spread (`{ ...t, duration: 0 }`).
+// Kept INEXACT (trailing `...`) because .flowconfig sets exact_by_default=true and callers
+// routinely carry extra fields; an exact type here would reject them.
+export type SortableParagraphSubset = {
+  content: string,
+  index: number,
+  raw: string,
+  hashtags: Array<string>,
+  mentions: Array<string>,
+  exclamations: Array<string>,
+  parensPriority: Array<string>,
+  due: ?Date,
+  heading: ?string,
+  priority?: number,
+  type?: string,
+  filename: string,
+  indents: number,
+  children: Array<SortableParagraphSubset>,
+  paragraph: ?TParagraph,
+  calculatedType: ?string,
+  blockId?: string,
+  note?: TNote,
+  ...
 }
 
 export type GroupedTasks = {

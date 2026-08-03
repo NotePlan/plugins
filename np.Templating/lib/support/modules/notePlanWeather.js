@@ -266,10 +266,6 @@ export async function getNotePlanWeather(
     const latitudeLabel: string = _latitude === null || _latitude === undefined ? 'auto' : String(_latitude)
     const longitudeLabel: string = _longitude === null || _longitude === undefined ? 'auto' : String(_longitude)
     logDebug('getNotePlanWeather', `Calling NotePlan.getWeather with units: "${unitsLabel}", latitude: "${latitudeLabel}", longitude: "${longitudeLabel}" format: "${format}"`)
-    // The libdef types these params as required `string`/`number`, but the API accepts null/undefined to mean
-    // "auto-detect" (that is what the resolvedX values above deliberately produce). The declaration lives in
-    // flow-typed/Noteplan.js; widening it there is the real fix.
-    // $FlowFixMe[incompatible-call]
     const weather = await NotePlan.getWeather(_units, _latitude, _longitude)
     const location = weather?.location ?? {}
     const cityName = weather?.cityName ?? location?.cityName ?? location?.locality ?? ''

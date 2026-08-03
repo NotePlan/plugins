@@ -484,9 +484,6 @@ export async function saveSearch(
           const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Refresh results for ${searchTermsRepStr}](${xCallbackURL})` : ''
           resultOutputLines.unshift(xCallbackLine)
 
-          // `currentNote` is the global Editor (TEditor), which replaceSection() handles fine at runtime. No real type is possible from here:
-          // the fix is in helpers/note.js, whose `replaceSection(note: TNote, ...)` param should be `CoreNoteFields` (it only uses core fields).
-          // $FlowFixMe[prop-missing]
           replaceSection(currentNote, searchTermsRepStr, thisResultHeading, config.headingLevel, resultOutputLines.join('\n'))
 
           logDebug('saveSearch', `saveSearch() finished writing to current note.`)
