@@ -3,23 +3,8 @@
 //---------------------------------------------------------------
 // Render notes to HTML, including Mermaid and MathML.
 // by Jonathan Clark
-// v0.4.0, 5.7.2023
+// v0.4.0, 2023-07-05, @jgclark (slightly tidied on 2026-08-01)
 //---------------------------------------------------------------
-
-// export {
-//   testMermaid1,
-//   testMermaid2,
-//   testMermaid3,
-//   testMermaid4
-// } from './mermaidTests'
-
-// export {
-//   testMathML1,
-//   testMathML2,
-//   testMathJax1,
-//   testMathJax2,
-//   testMathJax3
-// } from './mathTests'
 
 export {
   addTriggerAndStartPreview,
