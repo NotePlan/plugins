@@ -4,6 +4,16 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/README.md) for details on available commands and use case.
 
+## [1.3.0] - 2026-08-02 (@dwertheimer)
+
+### Fixed
+- **Multi-level indented subtasks are no longer flattened when sorting.** Nesting was only ever tracked one level deep: a grandchild was compared against the top-level task rather than its own parent, so it came back out as a *sibling of its own parent*, and every level below the first collapsed into one. Sorting now tracks nesting to arbitrary depth, and a sorted task carries its whole subtree with it at the original depths.
+- Related: the code that removes tasks before re-inserting them in sorted order only walked one level of children, so on a deeply-nested note grandchildren were left behind and duplicated. It now walks the whole subtree.
+
+### Notes
+- Subtasks keep their **document order** within their parent; only the top level is re-ordered. This is deliberate: a parent's children include notes and quotes whose meaning depends on where they sit (e.g. a `> quote` referring to the line above it), and sorting those alphabetically moves them away from what they refer to.
+- **Known NotePlan limitation:** indentation made of *spaces* is not visible to plugins. NotePlan's parser reports space-indented lines as `indents: 0` and strips the leading spaces from `rawContent`, so the nesting information is gone before any plugin runs. **Indent with tabs** for sorting to preserve your structure. Raised with @EduardMe.
+
 ## [1.2.9] - 2026-04-04 (@dwertheimer)
 
 - **Sort tasks on the page** (`sortTasks`): optional **Note** or **Editor** as last argument (same idea as **Sort tasks under heading**), for templates/plugins when you must target the note you are editing.

@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.TaskSorting",
   "plugin.name": "🥷 Task Sorting & Tools",
-  "plugin.version": "1.2.9",
+  "plugin.version": "1.3.0",
   "plugin.lastUpdateInfo": "1.2.9: Optional Note/Editor override for Sort tasks on the page and quick sort commands (same idea as Sort under heading)",
   "plugin.description": "Commands for sorting tasks in a note",
   "plugin.releaseStatus": "beta",
