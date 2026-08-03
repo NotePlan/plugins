@@ -3,9 +3,9 @@
   "noteplan.minAppVersion": "3.21",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "2.4.5",
+  "plugin.version": "2.4.6",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "2.4.5: Canceling a batched (or any) Command Bar prompt aborts templateNew / render — returning null so no new note is created and the empty starter note is not trashed.\n2.4.4: `--` output blocks preserved on templateNew `frontmatterProcessed` render; `---` body pairing + ATX-heading YAML detection; Jest regressions (templating + helpers).\n2.4.1: Fix TemplateRunner replaceHeading with <current> so location: replace + replaceHeading: true removes the target heading; TemplateRunner debug logging for large bodies.\n2.4.0: TemplateRunner getNoteTitled calendar targets — rendered dates (YYYY-MM-DD, YYYY-MM, YYYY-Qn, YYYY) and new relative tokens; preserves YAML false/0 in frontmatter parsing.\n2.3.2: Frontmatter onePromptAtATime / batchPrompts false — disable auto Command Bar batching per template.\n2.3.1: promptForm({ ... }) — explicit single-tag Command Bar form; docs on PromptCommandBarForms / PromptCommands.\n2.3.0: Minor release — min NotePlan 3.21; Command Bar multi-field forms for batched prompts. Docs: https://noteplan.co/templates/docs\n2.2.10: templateRunner run-from-code for newNoteTitle; return null when nothing executed so Forms shows error.\n2.2.9: Add triggerTemplateRunner command to automatically run templates when notes are opened\n- New hidden command triggerTemplateRunner checks for runTemplateOnOpen frontmatter attribute\n- When a note with runTemplateOnOpen is opened, the specified template is automatically executed\n- Use triggers: onOpen => np.Templating.triggerTemplateRunner in note frontmatter to enable\n2.2.7: templateRunnerExecute now returns AI analysis errors from all code paths\n- Modified templateRunnerExecute to return Promise<string | void> instead of Promise<void>\n- Added hasAiAnalysisError helper function to detect AI analysis error marker\n- Updated all handler functions (handleCurrentNote, handleRegularNote, handleTodayNote, handleWeeklyNote) to return errors\n- Updated handleNewNoteCreation to return rendered content if it contains AI analysis error\n- All early return paths in templateRunnerExecute now check for and return AI analysis errors\n- This allows Forms plugin to capture and display template rendering errors to users\n2.2.6: (previous version)\n2.2.5: fix messaging in templateNew when templates not found\n- Support template:ignore code blocks in templates\n2.2.4: fix <default> templateLocale setting to allow for locale-specific date/time formatting\n2.2.3: add new weather formatting fields (location.*, :formatted: etc.",
+  "plugin.lastUpdateInfo": "2.4.6: Removed the hidden 'Create Meeting Note using Meeting Note Template' command, which had been throwing an error on every use since Oct 2025 and is superseded by the Meeting Notes plugin.\n2.4.5: Canceling a batched (or any) Command Bar prompt aborts templateNew / render — returning null so no new note is created and the empty starter note is not trashed.\n2.4.4: `--` output blocks preserved on templateNew `frontmatterProcessed` render; `---` body pairing + ATX-heading YAML detection; Jest regressions (templating + helpers).\n2.4.1: Fix TemplateRunner replaceHeading with <current> so location: replace + replaceHeading: true removes the target heading; TemplateRunner debug logging for large bodies.\n2.4.0: TemplateRunner getNoteTitled calendar targets — rendered dates (YYYY-MM-DD, YYYY-MM, YYYY-Qn, YYYY) and new relative tokens; preserves YAML false/0 in frontmatter parsing.\n2.3.2: Frontmatter onePromptAtATime / batchPrompts false — disable auto Command Bar batching per template.\n2.3.1: promptForm({ ... }) — explicit single-tag Command Bar form; docs on PromptCommandBarForms / PromptCommands.\n2.3.0: Minor release — min NotePlan 3.21; Command Bar multi-field forms for batched prompts. Docs: https://noteplan.co/templates/docs\n2.2.10: templateRunner run-from-code for newNoteTitle; return null when nothing executed so Forms shows error.\n2.2.9: Add triggerTemplateRunner command to automatically run templates when notes are opened\n- New hidden command triggerTemplateRunner checks for runTemplateOnOpen frontmatter attribute\n- When a note with runTemplateOnOpen is opened, the specified template is automatically executed\n- Use triggers: onOpen => np.Templating.triggerTemplateRunner in note frontmatter to enable\n2.2.7: templateRunnerExecute now returns AI analysis errors from all code paths\n- Modified templateRunnerExecute to return Promise<string | void> instead of Promise<void>\n- Added hasAiAnalysisError helper function to detect AI analysis error marker\n- Updated all handler functions (handleCurrentNote, handleRegularNote, handleTodayNote, handleWeeklyNote) to return errors\n- Updated handleNewNoteCreation to return rendered content if it contains AI analysis error\n- All early return paths in templateRunnerExecute now check for and return AI analysis errors\n- This allows Forms plugin to capture and display template rendering errors to users\n2.2.6: (previous version)\n2.2.5: fix messaging in templateNew when templates not found\n- Support template:ignore code blocks in templates\n2.2.4: fix <default> templateLocale setting to allow for locale-specific date/time formatting\n2.2.3: add new weather formatting fields (location.*, :formatted: etc.",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "@codedungeon & @dwertheimer",
   "plugin.dependencies": [],
@@ -89,25 +89,6 @@
       "jsFunction": "templateQuickNote",
       "arguments": [
         "template title to run"
-      ]
-    },
-    {
-      "name": "Create Meeting Note using Meeting Note Template",
-      "alias": [
-        "Meeting template note",
-        "quick",
-        "template",
-        "mnt",
-        "mtn",
-        "mmm",
-        "npm",
-        "np:mtn"
-      ],
-      "description": "Create new note based on Meeting Note Template",
-      "hidden": true,
-      "jsFunction": "templateMeetingNote",
-      "arguments": [
-        "template title to use"
       ]
     },
     {
@@ -216,8 +197,7 @@
       "name": "Add note properties/frontmatter to template",
       "description": "Add properties (a.k.a frontmatter) in a template that will become the properties of the note that is generated by the template",
       "jsFunction": "addFrontmatterToTemplate",
-      "alias": [
-      ],
+      "alias": [],
       "arguments": []
     },
     {
@@ -225,7 +205,9 @@
       "description": "Get help with templates and templating commands",
       "jsFunction": "templatingHelp",
       "alias": [
-        "tp:help", "help", "np:help"
+        "tp:help",
+        "help",
+        "np:help"
       ],
       "arguments": []
     },
@@ -241,7 +223,6 @@
         "tsettings"
       ]
     }
-
   ],
   "plugin.settings": [
     {
