@@ -61,7 +61,7 @@ export async function showTaskCountForAll(): Promise<void> {
   let doneChecklistsTotal = 0
   let cancelledChecklistsTotal = 0
   let scheduledChecklistsTotal = 0
-  const open = new Map() // track the open totals as an object
+  const open = new Map<string, number>() // track the open totals as an object
 
   // Iterate over all project notes, counting
   for (let i = 0; i < allNotesCount; i += 1) {
@@ -82,7 +82,7 @@ export async function showTaskCountForAll(): Promise<void> {
     cancelledTasksTotal += countParagraphsOfType(["cancelled"])
     // following is not quite the same as future. TODO: make future
     scheduledTasksTotal += countParagraphsOfType(["scheduled"])
-    if (openTasksForNote > 0) { open.set(n.title, openTasksForNote) }
+    if (openTasksForNote > 0) { open.set((n.title: any), openTasksForNote) }
 
     openChecklistsTotal += countParagraphsOfType(["checklist"]) // doesn't include scheduled
     doneChecklistsTotal += countParagraphsOfType(["checklistDone"])

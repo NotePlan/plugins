@@ -24,7 +24,7 @@ import { DataStore } from '@mocks/index'
 /* global describe, beforeEach, test, expect, jest */
 
 // Define template content for tests
-const TEMPLATE_CONTENT = {
+const TEMPLATE_CONTENT: { [string]: string } = {
   header: '# Included Header\n\nThis is the included header content.',
   footer: '## Included Footer\n\nThis is the included footer content.',
   nested: "Nested template with its own include: <%- include('header') %>",
@@ -55,7 +55,8 @@ const pipelineStates = {
  * @param {boolean} isFirstCall - Whether this is the first/top-level call
  * @returns {Promise<string>} The processed template with includes resolved
  */
-const customImportTemplates = async (templateData, isFirstCall = true) => {
+// Return type annotated: this function calls itself recursively, so Flow cannot infer it.
+const customImportTemplates = async (templateData: string, isFirstCall: boolean = true): Promise<string> => {
   let newTemplateData = templateData
 
   // Only set the initial template on the first call, not in recursive calls
@@ -67,8 +68,8 @@ const customImportTemplates = async (templateData, isFirstCall = true) => {
   const includeRegex = /<%[-\s]*include\(['"]([^'"]+)['"]\)[\s-]*%>/g
   let match
   while ((match = includeRegex.exec(templateData)) !== null) {
-    const fullTag = match[0]
-    const templateName = match[1]
+    const fullTag = (match: any)[0]
+    const templateName = (match: any)[1]
     const content = TEMPLATE_CONTENT[templateName]
 
     if (content) {
@@ -86,8 +87,8 @@ const customImportTemplates = async (templateData, isFirstCall = true) => {
   // Process import tags (same as include for our test purposes)
   const importRegex = /<%[-\s]*import\(['"]([^'"]+)['"]\)[\s-]*%>/g
   while ((match = importRegex.exec(templateData)) !== null) {
-    const fullTag = match[0]
-    const templateName = match[1]
+    const fullTag = (match: any)[0]
+    const templateName = (match: any)[1]
     const content = TEMPLATE_CONTENT[templateName]
 
     if (content) {
@@ -117,7 +118,7 @@ const customImportTemplates = async (templateData, isFirstCall = true) => {
  * @param {Object} userData - User data for variable interpolation
  * @returns {Promise<string>} The rendered template
  */
-const customRender = async (templateData, userData = {}) => {
+const customRender = async (templateData: string, userData: any = {}) => {
   // Process the imports
   const result = await customImportTemplates(templateData)
 
@@ -130,14 +131,14 @@ const customRender = async (templateData, userData = {}) => {
 
 // Mock modules for testing
 jest.mock('../lib/TemplatingEngine', () => {
-  return jest.fn().mockImplementation(() => {
+  return jest.fn<Array<any>, any>().mockImplementation(() => {
     return {
-      render: jest.fn().mockImplementation((template) => {
+      render: jest.fn<Array<any>, any>().mockImplementation((template) => {
         // Record the template state right before rendering
         pipelineStates.finalResult = template
         return Promise.resolve(template)
       }),
-      incrementalRender: jest.fn().mockImplementation((template) => Promise.resolve(template)),
+      incrementalRender: jest.fn<Array<any>, any>().mockImplementation((template) => Promise.resolve(template)),
     }
   })
 })
@@ -150,11 +151,11 @@ jest.mock('../lib/TemplatingEngine', () => {
  */
 jest.mock('../lib/core', () => {
   return {
-    getTemplateContent: jest.fn().mockImplementation((templateName) => {
+    getTemplateContent: jest.fn<Array<any>, any>().mockImplementation((templateName) => {
       return Promise.resolve(TEMPLATE_CONTENT[templateName] || '')
     }),
-    getTemplateFolder: jest.fn().mockResolvedValue('@Templates'),
-    isCommentTag: jest.fn().mockImplementation(() => false),
+    getTemplateFolder: jest.fn<Array<any>, any>().mockResolvedValue('@Templates'),
+    isCommentTag: jest.fn<Array<any>, any>().mockImplementation(() => false),
   }
 })
 
@@ -166,8 +167,8 @@ jest.mock('../lib/core', () => {
  */
 jest.mock('../lib/rendering/templateProcessor', () => {
   return {
-    importTemplates: jest.fn().mockImplementation(customImportTemplates),
-    render: jest.fn().mockImplementation(customRender),
+    importTemplates: jest.fn<Array<any>, any>().mockImplementation(customImportTemplates),
+    render: jest.fn<Array<any>, any>().mockImplementation(customRender),
   }
 })
 
@@ -177,10 +178,10 @@ jest.mock('../lib/rendering/templateProcessor', () => {
  * A simplified implementation of frontmatter processing for testing purposes.
  */
 jest.mock('../lib/support/modules/FrontmatterModule', () => {
-  return jest.fn().mockImplementation(() => {
+  return jest.fn<Array<any>, any>().mockImplementation(() => {
     return {
-      isFrontmatterTemplate: jest.fn().mockImplementation((content) => content.startsWith('---')),
-      parse: jest.fn().mockImplementation((content) => {
+      isFrontmatterTemplate: jest.fn<Array<any>, any>().mockImplementation((content) => content.startsWith('---')),
+      parse: jest.fn<Array<any>, any>().mockImplementation((content) => {
         if (content.startsWith('---')) {
           const frontmatterEnd = content.indexOf('---', 3)
           if (frontmatterEnd !== -1) {
@@ -201,7 +202,7 @@ jest.mock('../lib/support/modules/FrontmatterModule', () => {
         }
         return { attributes: {}, body: content }
       }),
-      body: jest.fn().mockImplementation((content) => {
+      body: jest.fn<Array<any>, any>().mockImplementation((content) => {
         if (content.startsWith('---')) {
           const frontmatterEnd = content.indexOf('---', 3)
           if (frontmatterEnd !== -1) {
@@ -210,7 +211,7 @@ jest.mock('../lib/support/modules/FrontmatterModule', () => {
         }
         return content
       }),
-      attributes: jest.fn().mockImplementation((content) => {
+      attributes: jest.fn<Array<any>, any>().mockImplementation((content) => {
         if (content.startsWith('---')) {
           const frontmatterEnd = content.indexOf('---', 3)
           if (frontmatterEnd !== -1) {

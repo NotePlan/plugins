@@ -2,13 +2,13 @@
 
 import NPTemplating from '../lib/NPTemplating'
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
 import { getTags } from '../lib/core'
 import BasePromptHandler from '../lib/support/modules/prompts/BasePromptHandler'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 
 /* global describe, test, expect, jest, beforeEach, beforeAll */
 
-// $FlowFixMe - deliberately mocking for tests
 jest.mock(
   '@helpers/userInput',
   () => ({
@@ -34,9 +34,7 @@ describe('Prompt Safety Checks', () => {
 
     // Mock CommandBar methods for all tests
     global.CommandBar = {
-      // $FlowFixMe - Flow doesn't handle Jest mocks well
       textPrompt: jest.fn(() => Promise.resolve('Test Response')),
-      // $FlowFixMe - Flow doesn't handle Jest mocks well
       showOptions: jest.fn((options, message) => {
         return Promise.resolve({ index: 0, value: options[0] })
       }),
@@ -48,7 +46,7 @@ describe('Prompt Safety Checks', () => {
       const templateData = "<%- prompt('variable-with-hyphens', 'Enter value:') %>"
       const userData = {}
 
-      const result = await processPrompts(templateData, userData)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
       // The hyphen should be converted to underscore as it's not valid in JS identifiers
       expect(result.sessionData).toHaveProperty('variable_with_hyphens')
@@ -59,7 +57,7 @@ describe('Prompt Safety Checks', () => {
       const templateData = "<%- prompt('class', 'Enter value:') %>"
       const userData = {}
 
-      const result = await processPrompts(templateData, userData)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
       // 'class' is a reserved word and should be prefixed
       expect(result.sessionData).toHaveProperty('var_class')
@@ -70,7 +68,7 @@ describe('Prompt Safety Checks', () => {
       const templateData = "<%- prompt('', 'Enter value:') %>"
       const userData = {}
 
-      const result = await processPrompts(templateData, userData)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
       // Empty variable names should be replaced with a default
       expect(result.sessionData).toHaveProperty('unnamed')
@@ -83,7 +81,7 @@ describe('Prompt Safety Checks', () => {
       const templateData = "<%- prompt('mixedQuotes', \"Message with 'mixed' quotes\", 'Default with \"quotes\"') %>"
       const userData = {}
 
-      const result = await processPrompts(templateData, userData)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
       expect(result.sessionData.mixedQuotes).toBe('Test Response')
       expect(result.sessionTemplateData).toBe('<%- mixedQuotes %>')
@@ -93,7 +91,7 @@ describe('Prompt Safety Checks', () => {
       const templateData = "<%- prompt('commaVar', 'Message with, comma', 'Default, with, commas') %>"
       const userData = {}
 
-      const result = await processPrompts(templateData, userData)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
       expect(result.sessionData.commaVar).toBe('Test Response')
       expect(result.sessionTemplateData).toBe('<%- commaVar %>')
@@ -103,7 +101,7 @@ describe('Prompt Safety Checks', () => {
       const templateData = "<%- prompt('nestedQuotes', 'Outer \"middle \\'inner\\' quotes\"') %>"
       const userData = {}
 
-      const result = await processPrompts(templateData, userData)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
       expect(result.sessionData.nestedQuotes).toBe('Test Response')
       expect(result.sessionTemplateData).toBe('<%- nestedQuotes %>')
@@ -113,7 +111,7 @@ describe('Prompt Safety Checks', () => {
       const templateData = "<%- prompt('badArray', 'Choose:', [option1, 'option2', option3]) %>"
       const userData = {}
 
-      const result = await processPrompts(templateData, userData)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
       // Should still process and not crash
       expect(result.sessionData).toHaveProperty('badArray')
@@ -135,7 +133,7 @@ describe('Prompt Safety Checks', () => {
         message: 'Hello, World!',
       }
 
-      const result = await processPrompts(templateData, userData)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
       // Verify the session data values are preserved
       expect(result.sessionData.name).toBe('John Doe')
@@ -159,7 +157,7 @@ describe('Prompt Safety Checks', () => {
         complexVar: 'Test Response',
       }
 
-      const result = await processPrompts(templateData, userData)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
       expect(result.sessionData.complexVar).toBe('Test Response')
       expect(result.sessionTemplateData).toBe('<%- complexVar %>')
@@ -174,7 +172,7 @@ describe('Prompt Safety Checks', () => {
         today01: '2023-01-15',
       }
 
-      const result = await processPrompts(templateData, userData)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
       expect(result.sessionData.today01).toBe('2023-01-15')
       expect(result.sessionTemplateData).toBe('Hello, <%- name01 %>! Today is <%- today01 %>.')
@@ -201,7 +199,7 @@ describe('Prompt Safety Checks', () => {
         alsoGood: 'Third Response',
       }
 
-      const result = await processPrompts(templateData, userData)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
       // The template processing should continue even after an error
       expect(result.sessionData.goodVar).toBe('Text Response')
@@ -258,7 +256,7 @@ describe('Prompt Safety Checks', () => {
       }
 
       // This should not throw an exception
-      const result = await processPrompts(templateData, userData)
+      const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
       // We're just checking that it doesn't crash
       expect(result.sessionTemplateData).toBeDefined()

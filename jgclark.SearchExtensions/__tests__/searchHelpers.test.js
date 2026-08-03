@@ -646,7 +646,7 @@ describe('searchHelpers.js tests', () => {
         resultNoteCount: 0,
         fullResultCount: 0,
       }
-      const config: $Shape<SearchConfig> = {
+      const config: Partial<SearchConfig> = {
         resultStyle: 'NotePlan',
         headingLevel: 2,
         groupResultsByNote: true,
@@ -655,7 +655,7 @@ describe('searchHelpers.js tests', () => {
         resultQuoteLength: 120,
         dateStyle: 'date',
       }
-      const result = createFormattedResultLines(resultSet, config)
+      const result = createFormattedResultLines(resultSet, (config: any))
       expect(result).toEqual([])
     })
   })

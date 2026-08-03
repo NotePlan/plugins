@@ -214,7 +214,6 @@ export async function getFormFields(params: { templateFilename?: string, templat
         
         // Send banner message to React window if windowId is provided
         if (params.windowId && typeof params.windowId === 'string' && params.windowId.length > 0) {
-          // $FlowFixMe[incompatible-call] - We've checked that windowId is a string above
           await sendBannerMessage(params.windowId, warningMsg, 'WARN', 10000)
         }
       }
@@ -389,7 +388,7 @@ export async function handleSubmitForm(params: { templateFilename?: string, form
     // Determine note title based on processing method for success dialog
     let noteTitle = ''
     if (processingMethod === 'create-new') {
-      noteTitle = submitData.newNoteTitle || ''
+      noteTitle = submitDataWithFormContext.newNoteTitle || ''
     } else if (processingMethod === 'write-existing') {
       noteTitle = submitData.getNoteTitled || ''
     }

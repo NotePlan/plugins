@@ -31,6 +31,10 @@ import { clo, logError } from '@helpers/dev'
  */
 class NPTemplating {
   templateConfig: any
+  // `configSetup(this)` is called from the static `setup()`, so the config is actually stashed on the
+  // constructor, not on an instance. Declare the static shape too so `this.templateConfig` type-checks
+  // inside the static methods below.
+  static templateConfig: any
 
   /**
    * Creates a new instance of NPTemplating.
@@ -94,7 +98,9 @@ class NPTemplating {
       return chooseTemplate(tags, promptMessage, userOptions)
     } catch (error) {
       logError(pluginJson, error)
-      return null
+      // NOTE: this really does return null on failure; the declared `Promise<string>` is a lie that many
+      // callers already depend on, so widen it here only via a cast rather than changing the public signature.
+      return (null: any)
     }
   }
 

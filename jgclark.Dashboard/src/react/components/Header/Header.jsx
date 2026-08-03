@@ -249,7 +249,6 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
     // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
     // const currentContent = para.content
     logDebug(`Header handleButtonClick`, `Button clicked on controlStr: ${controlStr}, handlingFunction: ${handlingFunction}`)
-    // $FlowIgnore[prop-missing]
     // const updatedContent = inputRef?.current?.getValue() || ''
     // if (controlStr === 'update') {
     //   logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)

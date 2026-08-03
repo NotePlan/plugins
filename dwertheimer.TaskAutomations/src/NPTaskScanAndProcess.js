@@ -66,7 +66,7 @@ export const SEE_TASK_AGAIN = 0
  * @param {TParagraph} origPara
  * @returns {void}
  */
-function updateParagraph(origPara): void {
+function updateParagraph(origPara: TParagraph): void {
   if (!origPara?.note) {
     logError(pluginJson, `NPTaskAndProcess::updateParagraph: note is null`)
     return
@@ -101,7 +101,7 @@ export async function processCmdKey(para: TParagraph, userChoice: RescheduleUser
     }
   } else {
     // non-date commands
-    logDebug(pluginJson, `processCmdKey(): not a >date command [${keyModifiers.toString()}] + userChoice=${userChoice}. Ignoring CMD press`)
+    logDebug(pluginJson, `processCmdKey(): not a >date command [CMD] + userChoice=${userChoice}. Ignoring CMD press`)
   }
   return false
 }
@@ -236,7 +236,7 @@ export async function handleEditAction(origPara: TParagraph): Promise<number> {
 // @returns {number} incrementor to move to next task. CONTINUE to go to next one, CANCEL to cancel, 0 to see this task again
  */
 export async function handleTypeAction(origPara: TParagraph, userChoice: string): Promise<number> {
-  const tMap = {
+  const tMap: { [string]: any } = {
     __done__: 'done',
     __canceled__: 'cancelled',
     __list__: 'list',
@@ -282,7 +282,7 @@ export function handleRemoveAction(origPara: TParagraph): number {
 
 // change the priority
 export function handlePriorityAction(origPara: TParagraph, userChoice: string): number {
-  const priorityMap = {
+  const priorityMap: { [string]: string } = {
     __p0__: '',
     __p1__: '!',
     __p2__: '!!',
@@ -484,7 +484,7 @@ async function reviewOverdueTasksInNote(paragraphsToConsider: Array<TParagraph>,
  */
 function dedupeSyncedLines(notesWithTasks: Array<Array<TParagraph>>): Array<Array<TParagraph>> {
   logDebug(pluginJson, `dedupeSyncedLines  notesWithTasks ${notesWithTasks.length}`)
-  const flatTasks = notesWithTasks.reduce((acc, n) => acc.concat(n), []) //flatten the array
+  const flatTasks = notesWithTasks.reduce((acc: Array<any>, n: any) => acc.concat(n), []) //flatten the array
   // clo(flatTasks, `dedupeSyncedLines  flatTasks`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length BEFORE deduping ${flatTasks.length}`)
   const noDupes = eliminateDuplicateParagraphs(flatTasks, 'most-recent', true)
@@ -502,8 +502,9 @@ function dedupeSyncedLines(notesWithTasks: Array<Array<TParagraph>>): Array<Arra
  * @author @dwertheimer
  */
 export function createArrayOfNotesAndTasks(tasks: Array<TParagraph>): Array<Array<TParagraph>> {
-  const notes = tasks.reduce((acc, r) => {
+  const notes = tasks.reduce((acc: { [string]: Array<TParagraph> }, r) => {
     if (r.note?.filename) {
+      // $FlowIgnore[incompatible-use] r.note is non-null inside this guard; the acc.hasOwnProperty() call invalidates Flow's refinement
       if (r.note.filename && !acc.hasOwnProperty(r.note.filename)) acc[r.note.filename] = []
       if (r.note?.filename) acc[r.note.filename].push(r)
     }
@@ -511,7 +512,8 @@ export function createArrayOfNotesAndTasks(tasks: Array<TParagraph>): Array<Arra
   }, {})
   // generate an array for each note (key)
   return Object.keys(notes).reduce((acc, k) => {
-    acc.push(notes[k])
+    // `notes` comes back from reduce() typed as the bare {} seed, which has no indexer
+    acc.push((notes: any)[k])
     return acc
   }, [])
 }
@@ -527,7 +529,7 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
   const { foldersToIgnore = [], overdueAsOf, /* openOnly = true, datePlusOnly = true, replaceDate = true, */ noteTaskList = null, noteFolder = false } = options
   // if (replaceDate) logDebug('getNotesAndTasksToReview: replaceDate is legacy and no longer supported. David u need to fix this')
   logDebug(`NPNote::getNotesAndTasksToReview`, `noteTaskList.length: ${noteTaskList?.length || 'undefined'} Looking in: ${noteFolder || 'all notes'}`)
-  let notesWithDates = []
+  let notesWithDates: Array<any> = []
   if (!noteTaskList) {
     logDebug(`NPNote::getNotesAndTasksToReview`, `no noteTaskList, so searching for notes`)
     if (noteFolder) {
@@ -615,8 +617,8 @@ export function getNotesWithOpenTasks(
     searchForgottenTasksOldestToNewest: boolean,
     overdueFoldersToIgnore: Array<string>,
     ignoreScheduledInForgottenReview: boolean,
-    restrictToFolder: string | null,
-    endingDateString: string,
+    restrictToFolder: string | null | false,
+    endingDateString?: string,
   },
 ): Array<Array<TParagraph>> {
   const { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore, ignoreScheduledInForgottenReview, restrictToFolder, endingDateString = getTodaysDateHyphenated() } = options
@@ -706,7 +708,7 @@ export function getOpenTasksByNote(notes: Array<TNote>, sortOrder: string | Arra
     if (openTasksInThisNote.length) notesWithOpenTasks.push(openTasksInThisNote)
   }
   if (sortOrder) {
-    const mapForSorting = notesWithOpenTasks.reduce((acc, n, i) => {
+    const mapForSorting = notesWithOpenTasks.reduce((acc: Array<any>, n: any, i: number) => {
       acc?.push({ filename: n[0].filename, changedDate: n[0].note?.changedDate, index: i, noteWithTasks: n })
       return acc
     }, [])
@@ -740,7 +742,8 @@ export function getWeeklyOpenTasks(): Array<TParagraph> {
  * @returns {Array<any>} Array of tasks to review
  */
 export function getReferencesForReview(note: CoreNoteFields, weeklyNote: boolean = false): Array<Array<TParagraph>> {
-  const refs = getTodaysReferences(note)
+  // getTodaysReferences() takes TNote|null; every caller here passes a real TNote (Editor.note), so widen the CoreNoteFields param
+  const refs = getTodaysReferences((note: any))
   logDebug(pluginJson, `getReferencesForReview refs.length=${refs.length}`)
   const openTasks = weeklyNote ? [] : refs.filter((p) => isOpen(p) && p.content !== '')
   const thisWeeksTasks = weeklyNote ? getWeeklyOpenTasks() : []

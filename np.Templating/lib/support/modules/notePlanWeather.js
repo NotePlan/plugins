@@ -258,7 +258,6 @@ export async function getNotePlanWeather(
   longitude: number | null = null,
 ): Promise<string | any> {
   try {
-    // $FlowFixMe - NotePlan global is available at runtime
     // work around NotePlan api bug where 0 was not doing a lookup, so sending nulls instead
     const _latitude = !latitude && !longitude ? undefined : latitude
     const _longitude = !latitude && !longitude ? undefined : longitude

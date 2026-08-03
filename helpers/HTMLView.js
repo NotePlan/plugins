@@ -198,7 +198,7 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
         }
         const data = await DataStore.loadData(fullPath, false)
         if (data) {
-          const base64Data = `data:image/png;base64,${data.toString('base64')}`
+          const base64Data = `data:image/png;base64,${(data: any).toString('base64')}`
           body = body.replaceAll(imagePath, base64Data)
         }
       } catch (err) {
@@ -594,7 +594,6 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
           reloadPluginID: opts.reloadPluginID,
           reloadCommandName: opts.reloadCommandName,
         }
-        // $FlowFixMe[incompatible-type] - Flow can't guarantee the Promise resolves to an object
         const mainWindowResult = await HTMLView.showInMainWindow(fullHTMLStr, opts.windowTitle ?? '', mainWindowSpecificOptions)
         if (mainWindowResult && mainWindowResult.success) {
           success = true

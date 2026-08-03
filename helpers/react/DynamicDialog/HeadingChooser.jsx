@@ -301,7 +301,6 @@ export function HeadingChooser({
       return option.shortDescription || null
     },
     truncateDisplay: truncateText,
-    // $FlowFixMe[incompatible-type] - Flow can't properly narrow union type in onSelect handler
     onSelect: (option: any) => {
       // Handle both regular selections and manual entries
       // Type guard: check if this is a manual entry option

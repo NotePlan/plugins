@@ -132,10 +132,8 @@ export async function getFilteredTemplateList(
       // Check if template matches filters
       if (templateMatchesFilters(attributeValues, matches, exclude, filterValues)) {
         // We already checked note.title != null and note.filename above, so it's safe to use here
-        // $FlowFixMe - Flow doesn't understand that we've already filtered out null titles/filenames
         const title: string = (note.title: any) || ''
         const filename: string = (note.filename: any) || ''
-        // $FlowFixMe - Flow has issues with optional properties in object literals
         const result: { label: string, value: string, note?: TNote } = includeNoteObject ? { label: title, value: filename, note } : { label: title, value: filename }
         templateList.push(result)
       }
@@ -247,7 +245,6 @@ export async function chooseTemplate(tags?: any = '*', promptMessage: string = '
       return null
     }
 
-    // $FlowIgnore
     logDebug(pluginJson, `chooseTemplate: Found ${templateNotes.length} templates in ${timer(start)}`)
 
     // Use chooseNoteV2 to show decorated note selection (includes icons, colors, folder paths, etc.)
@@ -528,7 +525,6 @@ export async function createTemplate(title: string = '', metaData: any, content:
 
       let metaTagData = []
       for (const [key, value] of Object.entries(metaData)) {
-        // $FlowIgnore
         metaTagData.push(`${key}: ${value}`)
       }
       let templateContent = `---\ntitle: ${noteName || ''}\n${metaTagData.join('\n')}\n---\n`

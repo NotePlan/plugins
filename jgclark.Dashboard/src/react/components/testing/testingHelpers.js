@@ -5,7 +5,7 @@ import { waitFor } from '@helpers/testing/testingUtils'
 
 // Helper functions for repeated use in tests
 
-export const sendDashboardSettingsToPlugin = (sendActionToPlugin, newDashboardSettings, message: string) => {
+export const sendDashboardSettingsToPlugin = (sendActionToPlugin: Function, newDashboardSettings: TAnyObject, message: string) => {
   const mbo = {
     actionType: `dashboardSettingsChanged`,
     settings: newDashboardSettings,
@@ -17,7 +17,7 @@ export const sendDashboardSettingsToPlugin = (sendActionToPlugin, newDashboardSe
 export const getDashboardSettingsWithShowVarsSetTo = (getContext: () => AppContextType, showValue: boolean): Object => {
   const dashboardSettings = getContext().dashboardSettings
   return Object.keys(dashboardSettings).reduce(
-    (acc, key) => {
+    (acc: TAnyObject, key: string) => {
       if (key.startsWith('show') && key.endsWith('Section')) {
         acc[key] = showValue
       }
@@ -39,7 +39,7 @@ export const backupCurrentSettings = (getContext: () => AppContextType): [Object
   return [backupDashboardSettings, backupPerspectiveSettings]
 }
 
-export const restoreSettings = async (getContext, backupDashboardSettings, backupPerspectiveSettings) => {
+export const restoreSettings = async (getContext: Function, backupDashboardSettings: TAnyObject, backupPerspectiveSettings: Array<TAnyObject>) => {
   // Use getContext() directly
   console.log(`Restoring backup settings`)
   getContext().dispatchDashboardSettings({

@@ -40,6 +40,7 @@ export type TidyConfig = {
   runRemoveOrphansCommand: boolean,
   runRemoveDoneMarkersCommand: boolean,
   runRemoveDoneTimePartsCommand: boolean,
+  runRemoveEmptyElementsFromRecentNotesCommand: boolean,
   runRemoveSectionFromRecentNotesCommand: boolean,
   removeTriggersFromRecentCalendarNotes: boolean,
   removeTodayTagsFromCompletedTodos: boolean,

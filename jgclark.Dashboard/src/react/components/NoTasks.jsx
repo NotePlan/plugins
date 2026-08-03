@@ -43,6 +43,15 @@ const NoTasks = (): Node => {
 // Following code also uses Babel.
 //--------------------------------------------------------------------------
 
+// The confetti code below is legacy/unused (see header note) and expects these to be supplied as
+// page-level globals by the CDN scripts listed above (GSAP's TweenLite/Power4, lodash's `_` and
+// `random`). They are never imported here, so declare them for Flow only. `declare var` is
+// Flow-only syntax and is stripped by Babel, so this emits no JS.
+declare var TweenLite: any
+declare var Power4: any
+declare var _: any
+declare var random: any
+
 // constants
 const DECAY = 4     // confetti decay in seconds
 const SPREAD = 60   // degrees to spread from the angle of the cannon
@@ -70,14 +79,15 @@ class ConfettiCannon {
   vector: Array<{ x: number, y: number }>
   pointer: { x: number, y: number }
   confettiSpriteIds: Array<number>
-  confettiSprites: Record<number,
-    { x: number, y: number, r: number, d: number, angle: number, tilt: number, tiltAngle: number, tiltAngleIncremental: number, color: string }
-  >
+  // Note: was Record<number, ...>, but Flow's Record requires string keys. Also adds
+  // `velocity`, which addConfettiParticles() sets and tweenConfettiParticle() reads.
+  confettiSprites: { [number]: { x: number, y: number, r: number, d: number, angle: number, velocity: number, tilt: number, tiltAngle: number, tiltAngleIncremental: number, color: string } }
   timer: TimeoutID
 
   constructor() {
     // setup a canvas
-    this.canvas = document.getElementById('canvas')
+    // Cast: getElementById is typed as HTMLElement | null; this canvas is created by the JSX below.
+    this.canvas = ((document.getElementById('canvas'): any): HTMLCanvasElement)
     this.dpr = window.devicePixelRatio || 1
     this.ctx = this.canvas.getContext('2d')
     this.ctx.scale(this.dpr, this.dpr)
@@ -96,22 +106,26 @@ class ConfettiCannon {
       y: window.innerHeight * 2,
     }]
 
-    this.pointer = {}
+    this.pointer = ({}: any)
 
     // bind methods
-    this.render = this.render.bind(this)
-    this.handleMousedown = this.handleMousedown.bind(this)
-    this.handleMouseup = this.handleMouseup.bind(this)
-    this.handleMousemove = this.handleMousemove.bind(this)
-    this.handleTouchstart = this.handleTouchstart.bind(this)
-    this.handleTouchmove = this.handleTouchmove.bind(this)
-    this.setCanvasSize = this.setCanvasSize.bind(this)
+    // Note: cast because Flow treats class methods as non-writable and complains about reading
+    // one without calling it (method-unbinding). This constructor-binding pattern is standard
+    // for React class components; the casts compile away.
+    const self: any = this
+    self.render = self.render.bind(this)
+    self.handleMousedown = self.handleMousedown.bind(this)
+    self.handleMouseup = self.handleMouseup.bind(this)
+    self.handleMousemove = self.handleMousemove.bind(this)
+    self.handleTouchstart = self.handleTouchstart.bind(this)
+    self.handleTouchmove = self.handleTouchmove.bind(this)
+    self.setCanvasSize = self.setCanvasSize.bind(this)
 
     this.setupListeners()
     this.setCanvasSize()
 
     // fire off for a demo
-    this.timer = setTimeout(this.handleMouseup, 1000)
+    this.timer = setTimeout(self.handleMouseup, 1000)
   }
 
   setupListeners() {
@@ -251,7 +265,7 @@ class ConfettiCannon {
     }
   }
 
-  tweenConfettiParticle(id) {
+  tweenConfettiParticle(id: number) {
     const minAngle = this.confettiSprites[id].angle - SPREAD / 2
     const maxAngle = this.confettiSprites[id].angle + SPREAD / 2
 
@@ -282,7 +296,7 @@ class ConfettiCannon {
     })
   }
 
-  updateConfettiParticle(id) {
+  updateConfettiParticle(id: number) {
     const sprite = this.confettiSprites[id]
 
     const tiltAngle = 0.0005 * sprite.d

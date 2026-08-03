@@ -251,13 +251,22 @@ export async function processPromptTag(tag: string, sessionData: any): Promise<s
   }
 }
 
+/** What processPrompts() resolves to when no prompt was cancelled and nothing threw. */
+export type TProcessPromptsSuccess = { sessionTemplateData: string, sessionData: any }
+
+/**
+ * What processPrompts() resolves to. `false` means a prompt was cancelled, or an error was
+ * caught — callers must handle it before reading `sessionData`/`sessionTemplateData`.
+ */
+export type TProcessPromptsResult = TProcessPromptsSuccess | false
+
 /**
  * Processes all prompt tags in the given template.
  * @param {string} templateData The template content.
  * @param {any} initialSessionData The initial session data object.
- * @returns {Promise<{sessionTemplateData: string, sessionData: any}>} The updated template and session data.
+ * @returns {Promise<TProcessPromptsResult>} The updated template and session data, or false if cancelled.
  */
-export async function processPrompts(templateData: string, initialSessionData: any = {}): Promise<{ sessionTemplateData: string, sessionData: any } | false> {
+export async function processPrompts(templateData: string, initialSessionData: any = {}): Promise<TProcessPromptsResult> {
   let sessionTemplateData = templateData
   const sessionData = initialSessionData && typeof initialSessionData === 'object' ? initialSessionData : {}
 

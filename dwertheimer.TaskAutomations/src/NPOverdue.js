@@ -250,10 +250,10 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
         showNote: false,
         replaceDate,
         noteFolder: false,
-        noteTaskList: overdues,
+        // noteTaskList is declared Array<Array<TParagraph>>, but a flat single-note list is fine here: dedupeSyncedLines() flattens with concat() and createArrayOfNotesAndTasks() re-groups by note
+        noteTaskList: (overdues: any),
         overdueOnly: true,
       }
-      // $FlowIgnore
       const notesToReview = getNotesAndTasksToReview(options)
       clo(notesToReview, 'reviewOverdueTasksInNote: notesToReview')
       await reviewOverdueTasksByNote(notesToReview, options)
@@ -298,7 +298,6 @@ export async function reviewWeeklyTasks(forDateString?: string = getTodaysDateHy
  */
 export async function reviewEditorReferencedTasks(byTask: boolean = true, weeklyNote: boolean = false, forDateString?: string = getTodaysDateHyphenated()): Promise<void> {
   try {
-    // $FlowFixMe
     await Editor.openNoteByDate(new moment(forDateString || undefined).toDate())
     logDebug(pluginJson, `reviewEditorReferencedTasks: ${String(byTask)}, ${String(weeklyNote)}`)
     if (Editor.note?.type !== 'Calendar') {
@@ -386,11 +385,14 @@ export async function getNotesToReviewForOpenTasks(
     ]
     // const DEFAULT_OPTION: Option1 = { unit: 'day', num: 0 }
     const history = await chooseOptionWithModifiers('Review Calendar Note Tasks From the Last...', OPTIONS)
-    if (!history || history.num === -1) return false
+    // KNOWN BUG - chooseOptionWithModifiers() resolves to {label, value, index, keyModifiers}; `num` lives on history.value, so history.num is always undefined and this cancel/opt-click check never fires. Should be `history.value.num === -1`.
+    // showOptions ESC aborts plugin — this branch not reached on Escape. For cancel-with-continue, add explicit "Cancel" row (userInput.js).
+    if (!history || (history: any).num === -1) return false
     const { value, keyModifiers } = history
 
     const noteTypes = keyModifiers.indexOf('opt') > -1 ? 'both' : 'Calendar'
-    const notesWithOpenTasks = await getNotesWithOpenTasks(noteTypes, value, {
+    // chooseOptionWithModifiers() declares its `value` as string, but the OPTIONS above carry {num, unit} objects
+    const notesWithOpenTasks = await getNotesWithOpenTasks(noteTypes, (value: any), {
       searchForgottenTasksOldestToNewest,
       overdueFoldersToIgnore: forgottenFoldersToIgnore,
       ignoreScheduledInForgottenReview,

@@ -124,6 +124,13 @@ const logWithColorConsole = (logType: string, componentName: string, detail?: st
 }
 
 /**
+ * Second argument to the log* helpers below: either a message string, or any value to be logged
+ * as data. Non-string details are moved into the args list by logWithObjectsMaybe(), so arrays
+ * and objects are both legitimate here.
+ */
+export type TLogDetail = string | TAnyObject | Array<mixed>
+
+/**
  * Logs with flexible support for both string details and an object as the detail.
  * If the 'detail' parameter is an object, it is appended to the args and detail becomes empty.
  * Otherwise, if 'detail' is a string, it will be joined into the componentName for context.
@@ -135,7 +142,7 @@ const logWithColorConsole = (logType: string, componentName: string, detail?: st
  * @param {...any} args - Additional arguments to include in the log call.
  * @returns {void}
  */
-export const logWithObjectsMaybe = (logType: string, componentName: string, detail?: string | TAnyObject, ...args: any[]): void => {
+export const logWithObjectsMaybe = (logType: string, componentName: string, detail?: TLogDetail, ...args: any[]): void => {
   let componentNameAndInfo = componentName
   let detailToSend = detail || ''
   let argsToSend = args
@@ -162,7 +169,7 @@ export const logWithObjectsMaybe = (logType: string, componentName: string, deta
  * @param {...any} args - Additional arguments to log.
  * @returns {void}
  */
-export const logDebug = (componentName: string, detail?: string | TAnyObject, ...args: any[]): void => {
+export const logDebug = (componentName: string, detail?: TLogDetail, ...args: any[]): void => {
   logWithObjectsMaybe('DEBUG', componentName, detail, ...args)
 }
 
@@ -174,7 +181,7 @@ export const logDebug = (componentName: string, detail?: string | TAnyObject, ..
  * @param {...any} args - Additional arguments to log.
  * @returns {void}
  */
-export const logError = (componentName: string, detail?: string, ...args: any[]): void => {
+export const logError = (componentName: string, detail?: TLogDetail, ...args: any[]): void => {
   logWithObjectsMaybe('ERROR', componentName, detail, ...args)
 }
 
@@ -186,7 +193,7 @@ export const logError = (componentName: string, detail?: string, ...args: any[])
  * @param {...any} args - Additional arguments to log.
  * @returns {void}
  */
-export const logInfo = (componentName: string, detail?: string, ...args: any[]): void => {
+export const logInfo = (componentName: string, detail?: TLogDetail, ...args: any[]): void => {
   logWithObjectsMaybe('INFO', componentName, detail, ...args)
 }
 
@@ -198,7 +205,7 @@ export const logInfo = (componentName: string, detail?: string, ...args: any[]):
  * @param {...any} args - Additional arguments to log.
  * @returns {void}
  */
-export const logWarn = (componentName: string, detail?: string, ...args: any[]): void => {
+export const logWarn = (componentName: string, detail?: TLogDetail, ...args: any[]): void => {
   logWithObjectsMaybe('WARN', componentName, detail, ...args)
 }
 

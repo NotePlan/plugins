@@ -1,8 +1,8 @@
 // @flow
 
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
 import NPTemplating from '../lib/NPTemplating'
-import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 
 /* global describe, test, expect, jest, beforeEach, beforeAll */
@@ -24,15 +24,16 @@ describe('Unquoted Parameter Tests', () => {
       }),
     }
 
-    global.getValuesForFrontmatterTag = jest.fn().mockResolvedValue(['Option1', 'Option2'])
+    global.getValuesForFrontmatterTag = jest.fn<Array<any>, any>().mockResolvedValue(['Option1', 'Option2'])
   })
 
   test('should process unquoted parameter as a string literal', async () => {
     // The template with unquoted parameter
     const template = `<% const category = promptKey(category) -%>\nResult: <%- category %>`
 
+    
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
+    const { sessionTemplateData, sessionData } = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
 
     // Log diagnostic information
     // console.log('Session Data:', JSON.stringify(sessionData, null, 2))
@@ -60,8 +61,9 @@ describe('Unquoted Parameter Tests', () => {
     // Template that uses the existing variable as parameter
     const template = `<% const result = promptKey(existingVar) -%>\nResult: <%- result %>`
 
+    
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, initialSessionData, '<%', '%>', getTags)
+    const { sessionTemplateData, sessionData } = ((await processPrompts(template, initialSessionData): any): TProcessPromptsSuccess)
 
     // Log diagnostic information
     // console.log('Initial Session Data:', JSON.stringify(initialSessionData, null, 2))

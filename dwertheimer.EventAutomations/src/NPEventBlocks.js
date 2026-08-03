@@ -218,7 +218,8 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
           revisedLine = '...' // If the line was all a date description, we need something to show
           logDebug(pluginJson, `processTimeLines could not separate line timing from rest of text="${revisedLine}"`)
         }
-        confirmedEventData.push({ originalLine: line.content, revisedLine, dateRangeInfo: chosenDateRange, paragraph: line, index: i })
+        // cast: the spread copy of a ParsedTextDateRange has writable start/end, and ConfirmedEvent.dateRangeInfo is an invariant position
+        confirmedEventData.push({ originalLine: line.content, revisedLine, dateRangeInfo: (chosenDateRange: any), paragraph: line, index: i })
       } else {
         // do nothing with this line?
         logDebug(pluginJson, `processTimeLines no times found for "${line.content}"`)
@@ -267,9 +268,10 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
           // work around the fact that eventByID sends back the wrong endDate for all day events
           if (isAllDay && endDate) endDate = addMinutes(endDate, -1) // https://discord.com/channels/763107030223290449/1011492449769762836/1011492451460059246
           logDebug(pluginJson, `processTimeLines event=${title} event.calendarItemLink=${calendarItemLink}`)
-          const startDateString = date.toLocaleString().split(', ')[0]
+          // casts: TCalendarItem.date is typed `Date | null`, but an event returned by Calendar.eventByID() always has one
+          const startDateString = (date: any).toLocaleString().split(', ')[0]
           const endDateString = endDate ? endDate.toLocaleString().split(', ')[0] : ''
-          const dateStr = isAllDay ? `${startDateString}${startDateString === endDateString ? '' : `-${endDateString}`}` : date.toLocaleString()
+          const dateStr = isAllDay ? `${startDateString}${startDateString === endDateString ? '' : `-${endDateString}`}` : (date: any).toLocaleString()
           logDebug(
             pluginJson,
             `noDuration: ${String(startDateString === endDateString)} dateStr = "${dateStr}" endDate: ${endDate ? endDate.toString() : ''} ${

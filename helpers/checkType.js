@@ -113,18 +113,18 @@ export const checkArray =
     throw new Error(`Expected array, got ${typeof value}`)
   }
 
-type CheckerToValue = <T>(Checker<T>) => T
 
 /**
  * Create a checker for an object whose properties are validated by a map of property checkers.
  * Keys in `checkerObj` correspond to keys expected on the value being checked.
- * @template Obj
+ * Return type is intentionally loose ({ [string]: mixed }) so this file stays Babel-parseable
+ * without Flow mapped-type syntax; no current callers rely on a precise inferred object shape.
  * @param {{ +[string]: Checker<mixed> }} checkerObj - Map of property names to checker functions.
- * @returns {Checker<$ObjMap<Obj, CheckerToValue>>} Checker for objects matching the specified shape.
+ * @returns {Checker<{ [string]: mixed }>} Checker for objects matching the specified shape.
  * @throws {Error} If the value is not an object.
  */
 export const checkObj =
-  <Obj: { +[string]: Checker<mixed> }>(checkerObj: Obj): Checker<$ObjMap<Obj, CheckerToValue>> =>
+  (checkerObj: { +[string]: Checker<mixed> }): Checker<{ [string]: mixed }> =>
   (value: mixed) => {
     if (typeof value === 'object' && value !== null) {
       for (const key in checkerObj) {

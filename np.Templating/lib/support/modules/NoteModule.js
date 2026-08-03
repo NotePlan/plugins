@@ -143,7 +143,7 @@ export default class NoteModule {
   paragraphs(): Array<{ key: string, value: string | boolean | Array<any> }> {
     let paragraphs = this.getCurrentNote()?.paragraphs
 
-    let result = []
+    let result: Array<{ key: string, value: string | boolean | Array<any> }> = []
 
     if (paragraphs == null) {
       return result
@@ -215,7 +215,7 @@ export default class NoteModule {
   backlinks(): Array<{ key: string, value: string | boolean | Array<any> }> {
     let backlinks = this.getCurrentNote()?.backlinks
 
-    let result = []
+    let result: Array<{ key: string, value: string | boolean | Array<any> }> = []
     if (backlinks == null) {
       return result
     }
@@ -235,7 +235,7 @@ export default class NoteModule {
   linkedItems(): Array<{ key: string, value: string | boolean | Array<any> }> {
     let linkedItems = this.getCurrentNote()?.linkedItems
 
-    let result = []
+    let result: Array<{ key: string, value: string | boolean | Array<any> }> = []
     if (linkedItems == null) {
       return result
     }
@@ -255,7 +255,7 @@ export default class NoteModule {
   datedTodos(): Array<{ key: string, value: string | boolean | Array<any> }> {
     let datedTodos = this.getCurrentNote()?.datedTodos
 
-    let result = []
+    let result: Array<{ key: string, value: string | boolean | Array<any> }> = []
     if (datedTodos == null) {
       return result
     }
@@ -317,14 +317,9 @@ export default class NoteModule {
       // Normal usage: first param is heading text, second is includeHeading
       const headingText = String(headingTextOrEditor || '')
       const shouldIncludeHeading = Boolean(headingTextOrIncludeHeading)
-      return getBlockUnderHeading(this.getCurrentNote(), headingText, shouldIncludeHeading)
+      return getBlockUnderHeading((this.getCurrentNote(): any), headingText, shouldIncludeHeading)
     }
   }
-
-  /**
-   * NOTE: LEAVING THE FOLLOWING FUNCTIONS FOR FUTURE CONSIDERATION.
-   * NEED TO FIGURE OUT HOW TO RELIABLY EDIT A NOTE'S CONTENTS
-   */
 
   /**
    * Remove paragraphs in a section (under a title/heading) of the current note.
@@ -336,10 +331,9 @@ export default class NoteModule {
    * @param {string} headingOfSectionToRemove
    * @return {void}
    */
-  removeSection(headingOfSectionToRemove: string): void {
-    return 'Not implemented yet'
+  removeSection(headingOfSectionToRemove: string): ?number {
     const note = this.getCurrentNote()
-    note ? removeSection(note, headingOfSectionToRemove) : null
+    return note ? removeSection(note, headingOfSectionToRemove) : null
   }
 
   /**
@@ -350,10 +344,11 @@ export default class NoteModule {
    * @param {boolean} includeFromStartOfSection
    * @param {number} headingLevel of the heading to insert where necessary (1-5, default 2)
    */
-  async replaceContentUnderHeading(heading: string, newContentText: string, includeFromStartOfSection: boolean = false, headingLevel: number = 2): void {
-    return 'Not implemented yet'
+  async replaceContentUnderHeading(heading: string, newContentText: string, includeFromStartOfSection: boolean = false, headingLevel: number = 2): Promise<void> {
     const note = this.getCurrentNote()
-    note ? await replaceContentUnderHeading(note, heading, newContentText, includeFromStartOfSection, headingLevel) : null
+    if (note) {
+      await replaceContentUnderHeading(note, heading, newContentText, includeFromStartOfSection, headingLevel)
+    }
   }
 }
 

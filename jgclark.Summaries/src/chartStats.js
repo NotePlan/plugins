@@ -258,7 +258,7 @@ export async function chartSummaryStats(periodOrDays?: any): Promise<void> {
       yesNoHabits = usedDemoData ? [] : stringListOrArrayToArray(config.progressYesNo ?? [], ',')
       yesNoData = {
         dates: [],
-        counts: yesNoHabits.reduce((acc, habit) => ({ ...acc, [habit]: [] }), {}),
+        counts: yesNoHabits.reduce((acc: { [string]: Array<number> }, habit: string) => ({ ...acc, [habit]: [] }), {}),
         rawDates: []
       }
     } else {
@@ -569,9 +569,9 @@ function valueForDate(occ: TMOccurrences, dateStr: string): number {
  * Look up TMOccurrences by display tag, trying canonical forms so config entries with or without @/# still find data.
  * @param {Map<string, TMOccurrences>} occByTerm - Map from term to occurrence
  * @param {string} tag - Display tag (e.g. @sleep, sleep, #run)
- * @returns {TMOccurrences | undefined} Matching occurrence or undefined
+ * @returns {TMOccurrences | void} Matching occurrence, or undefined
  */
-function lookupOccByTag(occByTerm: Map<string, TMOccurrences>, tag: string): TMOccurrences | undefined {
+function lookupOccByTag(occByTerm: Map<string, TMOccurrences>, tag: string): TMOccurrences | void {
   let occ = occByTerm.get(tag)
   if (occ) return occ
   if (tag.startsWith('@')) {
@@ -590,8 +590,8 @@ function buildTagDataFromOccurrences(
   rawDates: Array<string>,
   config: SummariesConfig
 ): Object {
-  const counts = {}
-  const occByTerm = new Map()
+  const counts: { [string]: Array<number> } = {}
+  const occByTerm = new Map<string, TMOccurrences>()
   occs.forEach((occ) => {
     if (occ.type !== 'yesno') {
       occByTerm.set(occ.term, occ)
@@ -624,7 +624,7 @@ function buildYesNoDataFromOccurrences(
   rawDates: Array<string>
 ): { yesNoData: Object, yesNoHabits: Array<string> } {
   const yesNoHabits = yesNoOccs.map((occ) => occ.term.trim())
-  const counts = {}
+  const counts: { [string]: Array<number> } = {}
   yesNoOccs.forEach((occ, i) => {
     const habit = yesNoHabits[i]
     counts[habit] = rawDates.map((d) => valueForDate(occ, d))

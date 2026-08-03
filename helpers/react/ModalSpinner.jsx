@@ -30,7 +30,7 @@ function ModalSpinner({
   textAbove?: string,
   textBelow?: string,
   style?: {
-    container?: { [string]: any },
+    container?: Object, // Object (not an indexer type) so it can be spread into the container's inline style below
     textAbove?: { [string]: any },
     textBelow?: { [string]: any },
     spinner?: { [string]: any },

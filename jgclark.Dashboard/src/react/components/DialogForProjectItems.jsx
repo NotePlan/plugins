@@ -23,7 +23,7 @@ import '../css/animation.css'
 type Props = {
   onClose: (xWasClicked: boolean) => void,
   details: MessageDataObject,
-  positionDialog: (dialogRef: { current: HTMLDialogElement | null }) => void,
+  positionDialog: (dialogRef: { current: ?HTMLDialogElement }) => void, // matches the React$RefObject<?HTMLDialogElement> declared below (useRef can hold undefined)
 }
 
 type DialogButtonProps = {
@@ -111,7 +111,6 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
   useLayoutEffect(() => {
     // logDebug(`DialogForProjectItems`, `BEFORE POSITION detailsMessageObject`, detailsMessageObject)
-    // $FlowIgnore[incompatible-call]
     if (dialogRef) positionDialog(dialogRef)
     // logDebug(`DialogForProjectItems`, `AFTER POSITION detailsMessageObject`, detailsMessageObject)
   }, [])

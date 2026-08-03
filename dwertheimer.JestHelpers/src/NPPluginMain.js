@@ -21,6 +21,23 @@ import { log, logError, clo, JSP, getFilteredProps } from '@helpers/dev'
 import { getInput } from '@helpers/userInput'
 
 /**
+ * NotePlan globals that generateMock can scaffold Jest mocks from (keyed by user-facing name).
+ * Built lazily: these are runtime globals that only exist inside NotePlan, so evaluating them at
+ * module scope throws ReferenceError anywhere else (it broke this plugin's own Jest suite).
+ * @returns {{ [string]: any }}
+ */
+function getNotePlanGlobals(): { [string]: any } {
+  return {
+    Calendar,
+    Clipboard,
+    CommandBar,
+    DataStore,
+    Editor,
+    NotePlan,
+  }
+}
+
+/**
  * A convenience function for creating Jest __mocks__ stubs for a NP API function
  * Outputs result to console where it can be pasted into a __mocks__ file and edited
  * @param {*} object
@@ -150,8 +167,9 @@ export async function generateMock(incoming: ?string = ''): Promise<void> {
     // createMockClass(pl[0].commands[0], 'PluginCommandObjectMock')
 
     const name = await getInput('What is the name of the mock?')
+    const object = name ? getNotePlanGlobals()[name] : null
 
-    if (name && this[name]) createMockOutput(this[name], name)
+    if (object) createMockOutput(object, (name: any))
     else console.log(`No object for ${name || ''}`)
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -192,18 +210,19 @@ export function getNotePlan(): any {
  * outputEditorJson
  * Plugin entrypoint for "/Output Editor Doc as JSON"
  */
-export function outputEditorJson() {
+export function outputEditorJson(): void {
   try {
     const e = Editor
     const nObj = {
       title: e.title,
       filename: e.filename,
       type: e.type,
-      paragraphs: [],
+      paragraphs: ([]: Array<Object>),
       frontmatterAttributes: e.frontmatterAttributes,
       frontmatterTypes: e.frontmatterTypes,
-      linkedItems: e.linkedItems,
-      datedTodos: e.datedTodos,
+      // `linkedItems`/`datedTodos` exist on the live Editor object but are not declared on TEditor in flow-typed/Noteplan.js (centrally owned), so cast to any to read them
+      linkedItems: (e: any).linkedItems,
+      datedTodos: (e: any).datedTodos,
     }
     nObj.paragraphs = e.paragraphs.map((p) => ({
       content: p.content,
@@ -222,7 +241,6 @@ export function outputEditorJson() {
     console.log(`--- /Editor ---`)
     console.log(`--- For debugging paras ---`)
     nObj.paragraphs.forEach((p) => console.log(`[${p.lineIndex}]: type=${p.type} content="${p.content}" heading:"${p.heading}"`))
-    return {}
   } catch (error) {
     logError(pluginJson, JSON.stringify(error))
   }

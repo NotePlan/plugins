@@ -121,6 +121,8 @@ export type TDashboardSettings = {
   showQuarterSection: boolean,
   showYearSection: boolean,
   showSavedSearchSection: boolean, // Note: the SEARCH Section doesn't need a setting. This is for future use for SAVEDSEARCH section(s).
+  showSearchSection?: boolean, // always forced true when settings are assembled (see getDashboardSettingsDefaults() / dashboardHelpers); optional here because older stored settings won't have it
+
   showTimeBlockSection: boolean,
   showTodaySection: boolean,
   showTomorrowSection: boolean,
@@ -136,6 +138,24 @@ export type TDashboardSettings = {
   winsPriorityMarker: string, // '>>', '!!!' or '!!' -- which priority marker to treat as a 'Win'/'big rock' when treatTopPriorityAsWins is true
   customSectionDisplayOrder: ?Array<TSectionCode>
 }
+
+/**
+ * What a function should accept when it only *reads* dashboard settings.
+ *
+ * `Partial<TDashboardSettings>` looks like the obvious choice, but object properties are
+ * read-write and therefore invariant, so a full `TDashboardSettings` is NOT assignable to
+ * `Partial<TDashboardSettings>` — Flow has to check `boolean | void ~> boolean` and fails, once
+ * per required property, per call site. Read-only properties are covariant, so wrapping in
+ * `$ReadOnly` accepts both a full settings object and a partial one.
+ *
+ * This is also the more honest description of what these functions receive: the settings object
+ * is assembled at runtime by getDashboardSettingsDefaults() from a `TSettingItem` array, so Flow
+ * cannot verify that any given "required" key is actually present, and older installs won't have
+ * newer keys until defaults are merged in.
+ *
+ * Use this for parameters. Keep `TDashboardSettings` for the fully-populated object itself.
+ */
+export type TDashboardSettingsIn = $ReadOnly<Partial<TDashboardSettings>>
 
 /** Keys allowed at the root of settings.json (from plugin.json + logging). */
 export const ALLOWED_ROOT_KEYS: Set<string> = new Set([
@@ -153,7 +173,11 @@ export const ALLOWED_ROOT_KEYS: Set<string> = new Set([
 // Type for a perspective definition; this includes (most) TDashboardSettings
 export type TPerspectiveDef = {
   name: string,
-  dashboardSettings: Partial<TDashboardSettings>,
+  // TDashboardSettingsIn rather than Partial<TDashboardSettings> so that a fully-populated
+  // settings object can be stored here. Properties are invariant, so `Partial<T>` rejected a
+  // complete `T` — one error per required property, per assignment site. The field itself is
+  // still writable; only its contents are read-only.
+  dashboardSettings: TDashboardSettingsIn,
   isModified: boolean,
   isActive: boolean,
   lastModified?: number,
@@ -396,6 +420,7 @@ export type MessageDataObject = {
   logMessage?: string,
   userInputObj?: TAnyObject,
   perspectiveName?: string,
+  switchToPerspectiveName?: string /* only used when actionType = 'savePerspectiveAndSwitchToPerspective': the perspective to switch to after saving */,
   stringToEvaluate?: string,
 }
 
@@ -484,7 +509,7 @@ export type TPluginData = {
     perspectiveSettings?: boolean,
   },
   /** Live dashboard snapshot after switch/save; used for `*` when `isModified` is false (merge carryover ≠ raw def). */
-  dashboardSettingsBaseline?: Partial<TDashboardSettings>,
+  dashboardSettingsBaseline?: TDashboardSettingsIn,
   demoMode: boolean /* use fake content for demo/test purposes */,
   totalDoneCount?: number,
   startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands */,

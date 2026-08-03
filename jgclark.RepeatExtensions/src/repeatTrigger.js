@@ -25,7 +25,7 @@ export async function onEditorWillSave(): Promise<void> {
       const latestContent = Editor.content ?? ''
       const noteReadOnly: CoreNoteFields = Editor.note
       const previousContent = noteReadOnly.versions[0].content
-      const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
+      const timeSinceLastEdit: number = Date.now() - Number(noteReadOnly.versions[0].date)
 
       if (timeSinceLastEdit <= 2000) {
         return

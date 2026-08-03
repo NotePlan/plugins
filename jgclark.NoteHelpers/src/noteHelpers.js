@@ -209,7 +209,8 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
         logDebug('addTriggerToNote', `- result of updateFrontMatterVars = ${String(res)}`)
       } else {
         logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" doesn't already have frontmatter`)
-        await convertNoteToFrontmatter(Editor.note, `triggers: ${triggerStringArg}`)
+        // Note: cast is safe because line 160 above throws if `Editor.note` is null; Flow just loses that refinement across the intervening calls
+        await convertNoteToFrontmatter((Editor.note: any), `triggers: ${triggerStringArg}`)
       }
       return
     } else {
@@ -371,8 +372,12 @@ export async function addItemToFrontmatter(note: ?TNote, key: ?string, value: ?s
       }
       thisValue = inputValue
     } else {
-      thisValue = value
+      // KNOWN BUG - this branch is unreachable. The guard on line 368 tests `thisValue`, which was just initialised to '' and never reassigned before here,
+      // so it is always true (cf. the `key` guard above, which correctly tests the *parameter*). The result is that a `value` passed by the caller is always
+      // ignored and the user is always prompted. The guard should read `if (!value || value === '')`. The cast below is type-only; see LEFT report.
+      thisValue = (value: any)
     }
+    // $FlowIgnore[invalid-computed-prop] safe: `thisKey` is a plain runtime string; Flow only allows literal computed keys in object literals
     const res = updateFrontMatterVars(thisNote, { [thisKey]: thisValue })
     if (res) {
       logDebug('note/addItemToFrontmatter', `addItemToFrontmatter(${thisKey}: ${thisValue}) returned ${String(res)}.`)

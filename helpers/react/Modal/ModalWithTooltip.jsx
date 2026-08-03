@@ -35,7 +35,7 @@ function ModalWithTooltip({
 
   const handleMouseOver = (event: MouseEvent) => {
     const { metaKey: isMetaKey, shiftKey: isShiftKey, ctrlKey: isCtrlKey, altKey: isAltKey, hasModifier } = extractModifierKeys(event)
-    if (isMetaKey && metaKey) {
+    if (isMetaKey) {
       setTooltipText(tooltipTextCmdModifier)
     } else {
       setTooltipText(tooltipTextNoModifier)

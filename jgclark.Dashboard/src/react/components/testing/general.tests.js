@@ -20,7 +20,7 @@ type TestGroup = {
 
 // helper functions for repeated use in tests
 
-const sendDashboardSettingsToPlugin = (sendActionToPlugin, newDashboardSettings, message: string) => {
+const sendDashboardSettingsToPlugin = (sendActionToPlugin: Function, newDashboardSettings: TAnyObject, message: string) => {
   const mbo = {
     actionType: `dashboardSettingsChanged`,
     settings: newDashboardSettings,
@@ -89,6 +89,7 @@ export default {
               ?.sectionItems?.find((s, i) => {
                 return s.para?.content === taskContent
               })
+          // $FlowIgnore[incompatible-call] anonFunc returns the found item or undefined; waitFor() only tests it for truthiness
           await waitFor(anonFunc, 'find overdue section with task we created', 20000)
         } catch (error) {
           await pause(error.message)

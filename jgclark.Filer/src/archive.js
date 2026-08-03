@@ -20,7 +20,7 @@ import { showMessage } from '@helpers/userInput'
  * @param {string?} archiveRootFolder optional; if not given, then use the built-in @Archive folder)
  * @returns {?string} newFilename, if success
  */
-export async function archiveNote(noteIn?: TNote, archiveRootFolder?: string): ?string {
+export async function archiveNote(noteIn?: TNote, archiveRootFolder?: string): Promise<?string> {
   try {
     let note: TNote | null
     if (noteIn && (typeof noteIn === "object")) {
@@ -56,7 +56,7 @@ export async function archiveNote(noteIn?: TNote, archiveRootFolder?: string): ?
  * @param {TNote?} noteIn optional; if not given, then use the open Editor's note)
  * @returns {?string} newFilename, if success
  */
-export async function unarchiveNote(noteIn?: TNote): ?string {
+export async function unarchiveNote(noteIn?: TNote): Promise<?string> {
   try {
     let note: TNote | null
     if (noteIn && (typeof noteIn === 'object')) {

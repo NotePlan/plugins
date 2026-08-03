@@ -36,7 +36,6 @@
 const TEST = false // when set to true, doesn't actually create or delete anything. Just a dry run
 const COMMAND = 'Plugin Release'
 
-// $FlowIgnore
 const fs = require('fs/promises')
 const path = require('path')
 const colors = require('chalk')
@@ -331,11 +330,9 @@ async function getReleaseFileList(pluginDevDirFullPath, appPluginsPath, dependen
 
   let name
   if ((name = existingFileName('changelog.md'))) {
-    //$FlowFixMe - see note above
     fileList.changelog = fullPath(name)
   } else {
     if ((name = existingFileName('readme.md'))) {
-      //$FlowFixMe - see note above
       fileList.changelog = fullPath(name)
     } else {
       Messenger.note(`==> ${COMMAND}: Missing ${colors.cyan('CHANGELOG.md')} or ${colors.cyan('README.md')} in ${pluginDevDirFullPath}`)

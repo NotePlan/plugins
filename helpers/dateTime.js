@@ -1633,7 +1633,6 @@ export function getDateOptions(): $ReadOnlyArray<{ label: string, value: string 
 
   const options = inputs.map((i) => ({
     label: `${i['l']} ${format(i['d'], formats[i['lf']])}`,
-    // $FlowIgnore
     value: format(i['d'], formats[i['vf']]),
   }))
   return options

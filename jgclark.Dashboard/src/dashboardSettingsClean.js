@@ -10,11 +10,11 @@ import { applyDerivedDashboardSettings, normaliseDashboardNumberSettings } from 
 import { getDashboardSettingsDefaults } from './dashboardSettingsDefaults'
 import { normalizePreferredWindowType } from './preferredWindowType'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
-import type { TDashboardSettings, TSection, TPerspectiveSettings } from './types'
+import type { TDashboardSettings, TDashboardSettingsIn, TSection, TPerspectiveSettings } from './types'
 import { logDebug, logError } from '@helpers/dev'
 
 /** Tag cache is used unless FFlag_UseTagCache is explicitly false in dashboardSettings. */
-export function isTagCacheEnabled(dashboardSettings: TDashboardSettings): boolean {
+export function isTagCacheEnabled(dashboardSettings: TDashboardSettingsIn): boolean {
   return dashboardSettings?.FFlag_UseTagCache !== false
 }
 
@@ -78,7 +78,7 @@ export function isDashboardGlobalOnlySettingsDiff(diffKeys: Array<string>): bool
  * @param {boolean} deleteAllShowTagSections - also clean out showTag_* settings
  * @returns {Partial<TDashboardSettings>}
  */
-export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashboardSettings>, deleteAllShowTagSections?: boolean): Partial<TDashboardSettings> {
+export function cleanDashboardSettingsInAPerspective(settingsIn: TDashboardSettingsIn, deleteAllShowTagSections?: boolean): Partial<TDashboardSettings> {
   const patternsToRemove = buildDashboardGlobalSettingPatterns(deleteAllShowTagSections)
 
   function shouldRemoveKey(key: string): boolean {
@@ -91,23 +91,27 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashbo
     }
 
     // Filter out any showTagSection_ keys that are not used in the current perspective (i.e. not in tagsToShow)
-    // $FlowIgnore[incompatible-call] - settingsIn is Partial<TDashboardSettings> but removeInvalidTagSections accepts TDashboardSettings; this is safe as it creates a copy
-    const perspSettingsWithoutIrrelevantTags = removeInvalidTagSections(settingsIn) // OK
+    const perspSettingsWithoutIrrelevantTags: TAnyObject = removeInvalidTagSections(settingsIn)
 
+    // Note: this is a dynamic-key copy, so both sides must be indexed types. Typing the
+    // accumulator as `Partial<TDashboardSettings>` (exact, no indexer) forced Flow to check every
+    // possible value type against every one of the ~85 property slots — 3,160 errors from this
+    // one line. `TAnyObject` is the idiom already used in dashboardSettingsDefaults.js for
+    // exactly this. The looseness stays inside this function; the exported signature is unchanged.
     const removedKeys: Array<string> = []
-    const settingsOut = Object.keys(perspSettingsWithoutIrrelevantTags).reduce((acc: Partial<TDashboardSettings>, key) => {
+    const settingsOut = Object.keys(perspSettingsWithoutIrrelevantTags).reduce((acc: TAnyObject, key: string) => {
       if (!shouldRemoveKey(key)) {
         acc[key] = perspSettingsWithoutIrrelevantTags[key]
       } else {
         removedKeys.push(key)
       }
       return acc
-    }, {})
+    }, ({}: TAnyObject))
     if (removedKeys.length > 0) {
       // logDebug('cleanDashboardSettingsInAPerspective', `- Removed keys: [${removedKeys.join(', ')}]`)
     }
 
-    return settingsOut
+    return ((settingsOut: any): Partial<TDashboardSettings>)
   } catch (error) {
     logError('cleanDashboardSettingsInAPerspective', `Error: ${error.message}`)
     return {}
@@ -116,10 +120,10 @@ export function cleanDashboardSettingsInAPerspective(settingsIn: Partial<TDashbo
 
 /**
  * Tag section names currently listed in `tagsToShow` (source of truth for TAG section sync).
- * @param {TDashboardSettings} dashboardSettings
+ * @param {TDashboardSettingsIn} dashboardSettings
  * @returns {Set<string>}
  */
-export function getWantedTagNamesFromSettings(dashboardSettings: TDashboardSettings): Set<string> {
+export function getWantedTagNamesFromSettings(dashboardSettings: TDashboardSettingsIn): Set<string> {
   const tagsCsv = (dashboardSettings.tagsToShow ?? '').trim()
   if (!tagsCsv) return new Set()
   return new Set(getTagSectionDetails(dashboardSettings).map((d) => d.sectionName))
@@ -129,27 +133,29 @@ export function getWantedTagNamesFromSettings(dashboardSettings: TDashboardSetti
  * Remove tag sections from the dashboard settings that are not relevant to the current perspective
  * (e.g. leaving only the tags included in dashboardSettings.tagsToShow)
  * Related: {@link removeStaleTagSections} cleans the same tag drift in `pluginData.sections` (TAG rows), not settings keys.
- * @param {TDashboardSettings} settingsIn
- * @returns {TDashboardSettings} - settings without irrelevant tag sections
+ * Note: `showTagSection_*` keys are dynamic, so this works on an indexed copy rather than the
+ * exact TDashboardSettings shape. The input is only spread; the returned object is a fresh copy.
+ * @param {TDashboardSettingsIn} settingsIn
+ * @returns {TAnyObject} - settings without irrelevant tag sections
  */
-export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashboardSettings {
+export function removeInvalidTagSections(settingsIn: TDashboardSettingsIn): TAnyObject {
   try {
-    const result = { ...settingsIn }
-    const tagSectionDetails = getTagSectionDetails(result)
+    const result: TAnyObject = { ...settingsIn }
+    // Cast: `result` is the same object as `settingsIn`, just re-typed as an indexed copy so the dynamic showTagSection_* keys can be enumerated below.
+    const tagSectionDetails = getTagSectionDetails((result: any))
     const showTagSectionKeysToRemove = Object.keys(result).filter(
       (key) => key.startsWith('showTagSection_') && !tagSectionDetails.some((detail) => detail.showSettingName === key),
     )
 
     showTagSectionKeysToRemove.forEach((key) => {
       if (result[key] !== undefined && typeof result[key] === 'boolean') {
-        // $FlowIgnore[incompatible-type]
         delete result[key]
       }
     })
     return result
   } catch (error) {
     logError('removeInvalidTagSections', `Error: ${error.message}. Returning original settings.`)
-    return settingsIn
+    return (settingsIn: any)
   }
 }
 
@@ -159,10 +165,10 @@ export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashb
  * Related: {@link removeInvalidTagSections} cleans the same tag drift in dashboard settings (`showTagSection_*` keys), not section rows.
  * @author @CursorAI
  * @param {Array<TSection>} sections
- * @param {TDashboardSettings} dashboardSettings
+ * @param {TDashboardSettingsIn} dashboardSettings
  * @returns {Array<TSection>}
  */
-export function removeStaleTagSections(sections: Array<TSection>, dashboardSettings: TDashboardSettings): Array<TSection> {
+export function removeStaleTagSections(sections: Array<TSection>, dashboardSettings: TDashboardSettingsIn): Array<TSection> {
   try {
     const wantedTagNames = getWantedTagNamesFromSettings(dashboardSettings)
     if (wantedTagNames.size === 0) {
@@ -193,10 +199,10 @@ export function removeStaleTagSections(sections: Array<TSection>, dashboardSetti
  * - dedupe repeated TAG sections by tag name (keep latest / last)
  * @author @CursorAI
  * @param {Array<TSection>} sections
- * @param {TDashboardSettings} dashboardSettings
+ * @param {TDashboardSettingsIn} dashboardSettings
  * @returns {Array<TSection>}
  */
-export function syncTagSectionsWithSettings(sections: Array<TSection>, dashboardSettings: TDashboardSettings): Array<TSection> {
+export function syncTagSectionsWithSettings(sections: Array<TSection>, dashboardSettings: TDashboardSettingsIn): Array<TSection> {
   try {
     const withoutStale = removeStaleTagSections(sections, dashboardSettings)
     const tagDetails = getTagSectionDetails(dashboardSettings)
@@ -221,7 +227,7 @@ export function syncTagSectionsWithSettings(sections: Array<TSection>, dashboard
     }
 
     // Keep the latest TAG row for a given tag name (last in array wins), preserve overall order.
-    const seen = new Set()
+    const seen = new Set<string>()
     const dedupedReversed: Array<TSection> = []
     const removedDupes: Array<string> = []
     for (let i = withoutDisabled.length - 1; i >= 0; i--) {
@@ -250,26 +256,30 @@ export function syncTagSectionsWithSettings(sections: Array<TSection>, dashboard
 
 /**
  * Normalize and apply derived-setting rules before persisting dashboard settings.
- * Accepts `TAnyObject` so x-callback and bridge save paths can mutate settings by dynamic key.
- * @param {TAnyObject} priorSettings - settings before this change
- * @param {TAnyObject} nextSettings - candidate settings after user edit
+ * Accepts an indexed read-only object so x-callback and bridge save paths can pass settings with
+ * dynamic keys, and so read-only settings (TDashboardSettingsIn) are accepted too. Both inputs
+ * are only read/spread here; the returned object is a fresh, writable copy.
+ * @param {$ReadOnly<TAnyObject>} priorSettings - settings before this change
+ * @param {$ReadOnly<TAnyObject>} nextSettings - candidate settings after user edit
  * @param {{ mergeDefaults?: boolean }} [options]
  * @returns {TAnyObject}
  */
 export function prepareDashboardSettingsForSave(
-  priorSettings: TAnyObject,
-  nextSettings: TAnyObject,
+  priorSettings: $ReadOnly<TAnyObject>,
+  nextSettings: $ReadOnly<TAnyObject>,
   options?: { mergeDefaults?: boolean },
 ): TAnyObject {
   let prepared: TAnyObject = { ...nextSettings }
   if (options?.mergeDefaults === true) {
-    prepared = { ...getDashboardSettingsDefaults(), ...prepared }
+    // Cast: Flow refuses to spread an indexed object after explicit-keyed one (cannot-spread-indexer). Merge order is unchanged.
+    prepared = { ...getDashboardSettingsDefaults(), ...(prepared: any) }
   }
   prepared = normaliseDashboardNumberSettings(prepared)
   prepared.preferredWindowType = normalizePreferredWindowType(prepared.preferredWindowType)
   // $FlowIgnore[incompatible-call] runtime settings object may include dynamic keys before tag cleanup
   prepared = removeInvalidTagSections((prepared: any))
-  prepared = applyDerivedDashboardSettings(priorSettings, prepared)
+  // Cast: applyDerivedDashboardSettings() declares a writable indexer, but only reads priorSettings; $ReadOnly<TAnyObject> is rejected on variance alone.
+  prepared = applyDerivedDashboardSettings((priorSettings: any), prepared)
   return prepared
 }
 
@@ -286,7 +296,8 @@ export function preparePerspectiveSettingsForSave(priorDefs: TPerspectiveSetting
     const nextDashboardSettings = prepareDashboardSettingsForSave(priorDashboardSettings, persp.dashboardSettings ?? {}, { mergeDefaults: false })
     return {
       ...persp,
-      dashboardSettings: nextDashboardSettings,
+      // Cast: prepareDashboardSettingsForSave() returns the loose indexed TAnyObject shape (dynamic showTagSection_* keys); TPerspectiveDef.dashboardSettings is the exact type.
+      dashboardSettings: (nextDashboardSettings: any),
     }
   })
 }

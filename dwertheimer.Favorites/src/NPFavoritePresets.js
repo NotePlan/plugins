@@ -9,7 +9,7 @@ import { getPluginJson } from '@helpers/NPConfiguration'
 const COMMAND_NAME_TEMPLATE = 'Favorites: Set Preset '
 
 // check whether valid URL or xcallback URL
-const isValidURL = (url) => /^(https?|[a-z0-9\-]+):\/\/[a-z0-9\-]+/i.test(url)
+const isValidURL = (url: string) => /^(https?|[a-z0-9\-]+):\/\/[a-z0-9\-]+/i.test(url)
 
 /**
  * Get the URL either through the callback creator or hand-entered
@@ -21,7 +21,8 @@ export async function getURL(commandName: string, defaultValue: string): Promise
   ]
   if (defaultValue) options.push({ label: `Keep Previous Value: "${defaultValue}"`, value: 'previous' })
   const choice = await chooseOption('How do you want to set the URL?', options, null)
-  let url = ''
+  // CommandBar.textPrompt() and invokePluginCommandByName() both return false on cancel.
+  let url: string | false = ''
   if (choice) {
     if (choice === 'linkCreator') {
       url = await DataStore.invokePluginCommandByName('Get X-Callback-URL', 'np.CallbackURLs', ['', true])

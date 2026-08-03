@@ -1,7 +1,7 @@
 // @flow
 
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
-import { getTags } from '../lib/core'
+import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 
 /* global describe, test, expect, jest, beforeEach, beforeAll */
@@ -22,7 +22,7 @@ describe('Variable Assignment Quotes Bug Test', () => {
     }
 
     // Mock necessary functions for promptKey
-    global.getValuesForFrontmatterTag = jest.fn().mockResolvedValue(['Option1', 'Option2'])
+    global.getValuesForFrontmatterTag = jest.fn<Array<any>, any>().mockResolvedValue(['Option1', 'Option2'])
   })
 
   test('should correctly process variable assignment with promptKey and quotes', async () => {
@@ -31,8 +31,9 @@ describe('Variable Assignment Quotes Bug Test', () => {
 Category: <%- category %>
 `
 
+    
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
+    const { sessionTemplateData, sessionData } = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
 
     // Check the actual values in sessionData
     // console.log('Session Data:', JSON.stringify(sessionData, null, 2))
@@ -57,8 +58,9 @@ Category: <%- category %>
 Category: <%- category %>
 `
 
+    
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
+    const { sessionTemplateData, sessionData } = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
 
     // Verify the session data contains our variable
     expect(sessionData).toHaveProperty('category')
@@ -79,8 +81,9 @@ Category: <%- category %>
 Category: <%- category %>
 `
 
+    
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {}, '<%', '%>', getTags)
+    const { sessionTemplateData, sessionData } = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
 
     // Verify the session data contains our variable
     expect(sessionData).toHaveProperty('category')

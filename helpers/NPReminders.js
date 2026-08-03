@@ -28,8 +28,9 @@ export type TReminder = {
   notes?: string,
   listname: string,
   color?: string,
-  // TODO(future): Enable this if the API is extended to cover flagged status
-  // flagged: boolean,
+  // TODO(future): the NotePlan API does not yet expose flagged status, so nothing populates this
+  // from real data - but demoData.js carries it in anticipation, so it is declared optional here.
+  flagged?: boolean,
   priority?: number, // 0/omit = none; 1 / 2 / 3 = low / medium / high (from Apple 0 / 9 / 5 / 1)
   date?: string, // optional local calendar date YYYY-MM-DD (converted from API Zulu/UTC)
   time?: string, // optional local HH:MM in 24-hour format (converted from API Zulu/UTC)
@@ -66,19 +67,19 @@ export function dedupeReminderListTitles(titles: Array<string>): Array<string> {
 
 /**
  * Build titles + color map from Calendar.availableReminderLists() results.
- * @param {Array<any>} lists - reminder list objects from the NotePlan API
+ * @param {$ReadOnlyArray<any>} lists - reminder list objects from the NotePlan API
  * @returns {TReminderListsResult}
  */
-function titlesAndColorsFromReminderListObjects(lists: Array<any>): TReminderListsResult {
+// Note: $ReadOnlyArray because the list is only iterated, and every caller passes the result of
+// Calendar.availableReminderLists(), which the API declares as read-only.
+function titlesAndColorsFromReminderListObjects(lists: $ReadOnlyArray<any>): TReminderListsResult {
   const colorByTitle: { [string]: string } = {}
   const titles: Array<string> = []
   for (const list of lists) {
     // availableReminderLists returns list objects with title + color (typed loosely as TCalendarItem)
-    // $FlowFixMe[prop-missing]
     const title: string = list.title || ''
     if (!title || title.trim() === '') continue
     titles.push(title)
-    // $FlowFixMe[prop-missing]
     const listColor: ?string = list.color
     if (listColor && typeof listColor === 'string' && listColor.trim() !== '') {
       colorByTitle[title] = listColor
@@ -325,7 +326,7 @@ export function mapCalendarItemToReminder(
  * @param {{ time?: string }} reminder
  * @returns {boolean}
  */
-export function reminderHasTime(reminder: { time?: string }): boolean {
+export function reminderHasTime(reminder: { time?: string, ... }): boolean {
   return Boolean(reminder.time && reminder.time.trim() !== '')
 }
 
@@ -334,7 +335,7 @@ export function reminderHasTime(reminder: { time?: string }): boolean {
  * @param {{ time?: string }} reminder
  * @returns {boolean}
  */
-export function reminderTimeHasBeenReached(reminder: { time?: string }): boolean {
+export function reminderTimeHasBeenReached(reminder: { time?: string, ... }): boolean {
   if (!reminderHasTime(reminder) || !reminder.time) {
     return false
   }

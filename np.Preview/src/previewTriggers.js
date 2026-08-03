@@ -34,7 +34,7 @@ export async function updatePreview(): Promise<void> {
     const latestContent = Editor.content ?? ''
     const noteReadOnly: CoreNoteFields = Editor.note
     const previousContent = noteReadOnly.versions[0].content
-    const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
+    const timeSinceLastEdit: number = Date.now() - Number(noteReadOnly.versions[0].date)
     // logDebug(pluginJson, `onEditorWillSave triggered for '${noteReadOnly.filename}' with ${noteReadOnly.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago`)
     // logDebug(pluginJson, `- previous version: ${String(noteReadOnly.versions[0].date)} [${previousContent}]`)
     // logDebug(pluginJson, `- new version: ${String(Date.now())} [${latestContent}]`)

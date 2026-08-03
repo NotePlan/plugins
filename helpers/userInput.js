@@ -40,9 +40,29 @@ export type Option<T> = $ReadOnly<{
   value: T,
 }>
 
+//-----------------------------------------------------------------------------
+// CommandBar.showOptions — Escape / cancel contract (plugin authors)
+//
+// `chooseOption`, `chooseOptionWithModifiers`, and `chooseDecoratedOptionWithModifiers` all await
+// `CommandBar.showOptions`.
+//
+// On Escape (observed Aug 2026): NotePlan typically ENDS the current plugin command. The promise does
+// not resolve; code after `await` does not run (no `false` return, no throw).
+//
+// This is NOT the same as `getInput()` / `textPrompt()` / `showForm()`, which can return `false` and
+// let the caller continue.
+//
+// For cancel-with-continue on a dropdown: add an explicit "Cancel" (or similar) OPTION to the list.
+// The user selects it; `showOptions` resolves and your code can branch normally. Do not rely on ESC
+// or on `if (result === false)` after these helpers — that path is a dead-end on Escape.
+//-----------------------------------------------------------------------------
+
 /**
  * Ask user to choose from a set of options (from nmn.sweep) using CommandBar
  * @author @nmn
+ *
+ * **Escape / cancel:** See the `CommandBar.showOptions` contract comment in this file. On ESC the
+ * plugin command usually aborts. For cancel-with-continue, add an explicit "Cancel" row to `options`.
  *
  * @param {string} message - text to display to user
  * @param {Array<T>} options - array of label:value options to present to the user
@@ -61,6 +81,9 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
  * Show a list of options to the user and return which option they picked, along with any modifier key pressed.
  * Optionally, allow the user to create a new item.
  * @author @dwertheimer based on @nmn chooseOption
+ *
+ * **Escape / cancel:** Same as `chooseOption` — see the `CommandBar.showOptions` contract comment in
+ * this file. For cancel-with-continue, add an explicit "Cancel" row to `options`.
  *
  * @param {string} message - text to display to user
  * @param {Array<Option<T>>} options - array of options to display
@@ -86,7 +109,6 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
 
   // logDebug('userInput / chooseOptionWithModifiers()', `displayOptions: ${ displayOptions.length } options`)
 
-  // $FlowFixMe[prop-missing]
   const { index, keyModifiers } = await CommandBar.showOptions(
     displayOptions.map((option) => (typeof option === 'string' ? option : option.label)),
     message,
@@ -116,6 +138,9 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
  * This is a fork of chooseOptionWithModifiers(), without the <TDefault> type parameter, using the new CommandBar.showOptions() options from v3.18
  * Note: requires at least v3.18
  * @author @jgclark, @dwertheimer based on @nmn chooseOption
+ *
+ * **Escape / cancel:** Same as `chooseOption` — see the `CommandBar.showOptions` contract comment in
+ * this file. For cancel-with-continue, add an explicit "Cancel" row to `options`.
  *
  * @param {string} message - text to display to user
  * @param {Array<TCommandBarOptionObject>} options - array of options to display
@@ -176,7 +201,7 @@ export async function chooseDecoratedOptionWithModifiers(
  * @param {?string} defaultValue - default value to display in text entry (default: empty)
  * @return {Promise<boolean|string>} - string that the user enters. Maybe be the empty string. If the user cancels the operation, it will return false instead.
  */
-export async function getInput(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<boolean | string> {
+export async function getInput(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<string | false> {
   if (typeof CommandBar.textPrompt === 'function') {
     // i.e. do we have .textPrompt available?
     return await CommandBar.textPrompt(dialogTitle, message, defaultValue)
@@ -196,7 +221,7 @@ export async function getInput(message: string, okLabel: string = 'OK', dialogTi
  * @param {?string} defaultValue - default value to display in text entry (default: empty)
  * @returns {Promise<boolean|string>} string that the user enters. Maybe be the empty string. If the user cancels the operation, it will return false instead.
  */
-export async function getInputTrimmed(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<boolean | string> {
+export async function getInputTrimmed(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<string | false> {
   if (typeof CommandBar.textPrompt === 'function') {
     // i.e. do we have .textPrompt available?
     const reply = await CommandBar.textPrompt(dialogTitle, message, defaultValue)
@@ -798,7 +823,7 @@ async function handleNewFolderCreation(
  * @returns {string} - the selected heading as text without any markdown heading markers. Blank string implies no heading selected, and user wishes to write to the end of the note. Special string '<<top of note>>' implies to write to the top (after any preamble or frontmatter). Likewise '<<bottom of note>>'.
  */
 export async function chooseHeading(
-  note: TNote,
+  note: CoreNoteFields,
   optionAddATopAndtBottom: boolean = true,
   optionCreateNewHeading: boolean = false,
   includeArchive: boolean = false,
@@ -927,12 +952,12 @@ export async function chooseHeadingV2(
 /**
  * Used as part of chooseHeading (above) and Dashboard, to handle special instructions -- inserting a new heading, or inserting at top or bottom of the note.
  * If there are no special instructions, it just returns the heading as is.
- * @param {TNote} note
+ * @param {CoreNoteFields} note
  * @param {string} chosenHeading - The text of the new heading to add, or 5 possible special instruction strings.
  * @param {number?} headingLevel - The level of the heading to add (1-5) where requested. If not given, will default to 2.
  * @returns {string} headingToReturn - The heading to return, or one of the special instruction strings <<top of note>>, <<bottom of note>>. Or empty string if user cancelled operation.
  */
-export async function processChosenHeading(note: TNote, chosenHeading: string, headingLevel: number = 2): Promise<string> {
+export async function processChosenHeading(note: CoreNoteFields, chosenHeading: string, headingLevel: number = 2): Promise<string> {
   try {
     if (chosenHeading === '') {
       throw new Error('No heading passed to processChosenHeading(). Stopping.')
@@ -1074,12 +1099,10 @@ export async function datePicker(dateParams: string | Object, config?: { [string
         : {}
     }
 
-    // $FlowIgnore[incompatible-type]
     logDebug('userInput / datePicker', `params: ${JSON.stringify(dateParams)} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
       // $FlowIgnore[exponential-spread] known to be very small objects
-      // $FlowIgnore[not-an-object]
       ...dateConfig,
       // $FlowIgnore[not-an-object]
       ...paramConfig,

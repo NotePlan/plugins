@@ -147,7 +147,6 @@ export function renderItem({
             label={thisLabel}
             options={(item.options || []).map((option) => (typeof option === 'string' ? { label: option, value: option } : option))}
             value={item.value || ''}
-            // $FlowIgnore[incompatible-type]
             onChange={(option: Option) => {
               item.key && handleFieldChange(item.key, option.value)
               item.key && handleComboChange(item.key, { target: { value: option.value } })

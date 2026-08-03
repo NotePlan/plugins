@@ -287,13 +287,13 @@ export async function openTemplateForm(templateTitle?: string): Promise<void> {
     // Templating syntax in frontmatter attributes will be rendered later when form is submitted
     // Use getFrontmatterAttributes to get parsed but unrendered frontmatter attributes
     // This prevents errors when frontmatter contains templating syntax referencing form fields that don't exist yet
-    let frontmatterAttributes = getFrontmatterAttributes(templateNote) || {}
+    let frontmatterAttributes: { [string]: any } = getFrontmatterAttributes(templateNote) || {}
     
     // If frontmatterAttributes is empty, try parsing from templateData directly (without rendering)
     if (!frontmatterAttributes || Object.keys(frontmatterAttributes).length === 0) {
       // Fallback: parse frontmatter from templateData without rendering
       const fmParts = getSanitizedFmParts(templateData, false)
-      frontmatterAttributes = fmParts.attributes || {}
+      frontmatterAttributes = (fmParts.attributes: any) || {}
     }
 
     // Load TemplateRunner processing variables from codeblock (not frontmatter)
@@ -448,7 +448,6 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
       // Ask user to choose or create a new template
       const createNew = await CommandBar.showOptions(['Create New Form', 'Edit Existing Form'], 'Form Builder', 'Choose an option')
       clo(createNew, `openFormBuilder: User selected option`)
-      // $FlowFixMe[incompatible-type] - showOptions returns number index
       if (createNew.value === 'Create New Form' || createNew.index === 0) {
         logDebug(pluginJson, `openFormBuilder: User chose to create new template`)
         // Create new template
@@ -650,7 +649,6 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
             logWarn(pluginJson, `openFormBuilder: [STEP 6] WARNING - receivingTemplateTitle was set to "${receivingTemplateTitle}" but not found in reloaded note frontmatter!`)
           }
         }
-        // $FlowFixMe[incompatible-type] - showOptions returns number index
       } else if (createNew.index === 1 || createNew.value === 'Edit Existing Form') {
         logDebug(pluginJson, `openFormBuilder: User chose to edit existing form`)
 

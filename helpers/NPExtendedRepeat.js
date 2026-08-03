@@ -181,7 +181,7 @@ export function generateNewRepeatDate(noteToUse: CoreNoteFields, currentContent:
  */
 export async function generateRepeatForPara(
   origPara: TParagraph,
-  origNote: CoreNoteFields,
+  origNote: ?CoreNoteFields, // nullable: callers pass `para.note`, which is `?TNote`; the `if (!origNote) throw` guard below is what makes it safe
   config: RepeatConfig,
   allowedToUseEditor: boolean = true,
   skipEditorSave: boolean = false,

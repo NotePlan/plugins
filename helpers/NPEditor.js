@@ -411,7 +411,7 @@ export async function getOrOpenEditorFromFilename(filename: string, newWindowTyp
 
 /**
  * Highlight the given paragraph in a specific Editor pane (note must already be open in that pane).
- * Editor.paragraphs lines often lack .filename; match rawContent or content only (see shared.AI chat.js).
+ * Editor.paragraphs lines often lack .filename; match rawContent or content only.
  * @param {TEditor} thisEditor - the Editor pane to search and highlight in
  * @param {string} paraContentToTest - the content or rawContent of the paragraph to highlight -- it will search for both
  * @param {boolean} thenStopHighlight? (default: false)

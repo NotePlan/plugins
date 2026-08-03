@@ -4,7 +4,7 @@ import { logDebug } from '@helpers/dev'
 
 type Direction = 'open' | 'done' | null
 
-function setTasks(dir) {
+function setTasks(dir: ?string) {
   const paragraphs = Editor.paragraphs
   logDebug(`setTasks: ${String(paragraphs.length || 'zero')} paragraphs`)
   logDebug(`setTasks; setting to: ${dir || 'null'}`)
@@ -59,5 +59,6 @@ export default async function markTasks(mark: Direction, withConfirmation: boole
       if (res === 'No') return
     }
   }
+  // KNOWN BUG - `dir` is only ever set from the chooser when `mark` is falsy; when markTasks() is called with a `mark` argument, `dir` stays null here and setTasks() falls through to its `else` branch and marks everything done, ignoring `mark`.
   await setTasks(dir)
 }

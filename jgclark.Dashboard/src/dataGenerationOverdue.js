@@ -29,14 +29,14 @@ import { removeDuplicates } from '@helpers/utils'
  * @param {boolean} useDemoData?
  * @param {Array<TSectionItem>} overdueReminderItems? - past-dated (and yesterday-fallback) reminders to append
  * @param {Array<TParagraphForDashboard>} yesterdaySpillDashboardParas? - DY-off spill of yesterday open tasks
- * @param {Array<{ content: string }>} yesterdaysParasForDedupe? - DY-on list used to strip DY duplicates from overdue
+ * @param {$ReadOnlyArray<{ content: string, ... }>} yesterdaysParasForDedupe? - DY-on list used to strip DY duplicates from overdue (only `content` is read)
  */
 export async function getOverdueSectionData(
   config: TDashboardSettings,
   useDemoData: boolean = false,
   overdueReminderItems: Array<TSectionItem> = [],
   yesterdaySpillDashboardParas: Array<TParagraphForDashboard> = [],
-  yesterdaysParasForDedupe: Array<{ content: string }> = [],
+  yesterdaysParasForDedupe: $ReadOnlyArray<{ content: string, ... }> = [],
 ): Promise<TSection> {
   try {
     const thisSectionCode = 'OVERDUE'
@@ -113,8 +113,9 @@ export async function getOverdueSectionData(
       // undated open items sitting in yesterday's note, so without this they would vanish when DY is off.
       if (yesterdaySpillDashboardParas.length > 0) {
         const beforeMerge = dashboardParas.length
-        // $FlowFixMe[incompatible-call]
-        dashboardParas = removeDuplicates(dashboardParas.concat(yesterdaySpillDashboardParas), ['filename', 'content'])
+        // Cast: removeDuplicates() is typed over a generic indexed object, so its result no longer
+        // carries the exact TParagraphForDashboard shape even though the elements are unchanged.
+        dashboardParas = (removeDuplicates(dashboardParas.concat(yesterdaySpillDashboardParas), ['filename', 'content']): any)
         logDebug(
           'getOverdueSectionData',
           `- merged ${String(yesterdaySpillDashboardParas.length)} yesterday-spill task(s); ${String(beforeMerge)} -> ${String(dashboardParas.length)} after filename+content dedupe`,
@@ -253,12 +254,12 @@ export async function getOverdueSectionData(
  * If we are showing the Yesterday section, and we have some yesterdaysParas passed, then don't return any ones matching this list.
  * Note: scheduleAllOverdueOpenToToday intentionally passes [] so yesterday-dated overdue tasks are still moved.
  * @param {TDashboardSettings} dashboardSettings
- * @param {Array<{ content: string }>} yesterdaysParas - items already shown in DY (content match); empty skips this filter
+ * @param {$ReadOnlyArray<{ content: string, ... }>} yesterdaysParas - items already shown in DY (content match); empty skips this filter. Read-only + inexact so callers can pass their own wider para arrays (arrays are invariant).
  * @returns {{ filteredOverdueParas: Array<TParagraph>, preLimitOverdueCount: number }}
  */
 export async function getRelevantOverdueTasks(
   dashboardSettings: TDashboardSettings,
-  yesterdaysParas: Array<{ content: string }>
+  yesterdaysParas: $ReadOnlyArray<{ content: string, ... }>
 ): Promise<{
   filteredOverdueParas: Array<TParagraph>, preLimitOverdueCount: number
 }> {
@@ -272,7 +273,6 @@ export async function getRelevantOverdueTasks(
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after filtering by allowed teamspaces, ${filteredOverdueParas.length} overdue items`)
 
     // Filter out items in non-valid folders
-    // $FlowFixMe[incompatible-call]
     filteredOverdueParas = filterParasByRelevantFolders(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after filtering by valid folders, ${filteredOverdueParas.length} overdue items`)
 

@@ -134,12 +134,13 @@ export async function getRemindersGeneratedData(
     // Form fields for the heading add-Reminder button (CommandButton -> showDialog)
     const reminderFormFields: Array<TSettingItem> = [
       { type: 'input', label: 'Reminder:', key: 'text', focus: true },
-      // $FlowIgnore[incompatible-type]
       {
         type: 'dropdown-select',
         label: 'Reminder List:',
         key: 'list',
-        options: listTitlesForAdd,
+        // Cast: TSettingItem.options (in helpers/react/DynamicDialog) is Array<TOptionObject>, but
+        // dropdown-select also accepts a plain Array<string>. Arrays are invariant so this can't be widened here.
+        options: (listTitlesForAdd: any),
         noWrapOptions: true,
         value: listTitlesForAdd[0] || '',
       },

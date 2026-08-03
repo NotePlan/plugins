@@ -72,7 +72,7 @@ function makeProjectListCacheKey(filename: string, tag: string): string {
  * @param {?string} content - Raw file content
  * @returns {?Array<any>} Parsed project rows, or null if unusable
  */
-export function parseAllProjectsListFileContent(content: ?string): ?Array<any> {
+export function parseAllProjectsListFileContent(content: ?string): Array<any> | null {
   if (content == null || content === '') {
     return null
   }
@@ -289,7 +289,6 @@ function getFolderFilterFingerprint(config: ReviewConfig): string {
 }
 
 function getFileAgeMs(prefName: string): number {
-  // $FlowFixMe[incompatible-call] - DataStore.preference returns mixed, but we handle it
   const prefValue: mixed = DataStore.preference(prefName)
   const timestamp: number = typeof prefValue === 'number' ? prefValue : 0
   const reviewListDate = new Date(timestamp)

@@ -34,8 +34,11 @@ export function getTimedEntries(input: Array<TCalendarItem>): Array<TCalendarIte
  * @returns {Array<TCalendarItem>} the same array of items but with the start and end times adjusted to the day of interest
  */
 export function keepTodayPortionOnly(input: Array<TCalendarItem>, whatDate: Date = new Date()): Array<TCalendarItem> {
-  return input.map((event) => {
-    const diff = !event.endDate ? 0 : differenceInCalendarDays(event.date, event.endDate)
+  return input
+    .filter((event) => event.date != null)
+    .map((event) => {
+    const eventDate = ((event.date: any): Date)
+    const diff = !event.endDate ? 0 : differenceInCalendarDays(eventDate, event.endDate)
     if (diff === 0) {
       return event
     } else {
@@ -53,13 +56,13 @@ export function keepTodayPortionOnly(input: Array<TCalendarItem>, whatDate: Date
         url: event.url,
         availability: event.availability,
       }
-      const todayWasStart = differenceInCalendarDays(event.date, whatDate) === 0
+      const todayWasStart = differenceInCalendarDays(eventDate, whatDate) === 0
       const todayWasEnd = !event.endDate ? true : differenceInCalendarDays(event.endDate, whatDate) === 0
       if (todayWasStart) {
-        eventCopy.endDate = endOfDay(event.date)
+        eventCopy.endDate = endOfDay(eventDate)
       }
       if (todayWasEnd) {
-        eventCopy.date = startOfDay(event.endDate || event.date)
+        eventCopy.date = startOfDay((event.endDate || eventDate))
       }
       if (!todayWasStart && !todayWasEnd) {
         eventCopy.date = startOfDay(whatDate)

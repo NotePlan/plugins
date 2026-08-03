@@ -176,12 +176,12 @@ export async function newMeetingNoteFromID(eventID: string, template?: string): 
  * Selects an event and a template.
  * @param {TCalendarItem} _selectedEvent
  * @param {string} _templateFilename
- * @returns {Promise<{selectedEvent: TCalendarItem, templateFilename: string}>}
+ * @returns {Promise<{selectedEvent: ?TCalendarItem, templateFilename: ?string}>} either may be null/undefined if the user cancelled
  */
 async function selectEventAndTemplate(
   _selectedEvent?: TCalendarItem | null = null,
   _templateFilename?: string,
-): Promise<{ selectedEvent: TCalendarItem | null, templateFilename: string }> {
+): Promise<{ selectedEvent: ?TCalendarItem, templateFilename: ?string }> {
   const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
   const templateFilename = await chooseTemplateIfNeededFromTemplateTitle(_templateFilename, true)
   return { selectedEvent, templateFilename }
@@ -189,12 +189,13 @@ async function selectEventAndTemplate(
 
 /**
  * Pre-renders and renders the template for a selected event.
- * @param {TCalendarItem} selectedEvent
- * @param {string} templateFilename
+ * @param {?TCalendarItem} selectedEvent - may be null/undefined; the body already guards for that
+ * @param {?string} templateFilename - may be null/undefined; the body already guards for that
  * @returns {Promise<{result: string, attrs: any}>}
  */
-async function renderTemplateForEvent(selectedEvent, templateFilename): Object {
-  logDebug(pluginJson, `${timer(scriptLoad)} - renderTemplateForEvent: templateFilename: "${templateFilename}"; selectedEvent.title: "${selectedEvent?.title}"`)
+async function renderTemplateForEvent(selectedEvent: ?TCalendarItem, templateFilename: ?string): Object {
+  // casts: both may legitimately be null/undefined here and are only being logged
+  logDebug(pluginJson, `${timer(scriptLoad)} - renderTemplateForEvent: templateFilename: "${(templateFilename: any)}"; selectedEvent.title: "${(selectedEvent?.title: any)}"`)
   let templateVariables, templateContent
   if (selectedEvent) {
     templateVariables = generateEventData(selectedEvent)
@@ -266,8 +267,9 @@ function getNoteTitle(_noteTitle: string, renderedTemplateContent: string, attri
  * @param {boolean} forceNewNote - skip "note already exists" check and create new note
  * @returns {Promise<string>} The note title.
  */
-async function handleExistingNotes(_noteTitle: string, renderedContent: string, folder: string, forceNewNote: boolean = false): Promise<string> {
+async function handleExistingNotes(_noteTitle: string, renderedContent: string, _folder: string, forceNewNote: boolean = false): Promise<string> {
   let noteTitle = _noteTitle
+  let folder = _folder
   const existingNotes = await DataStore.projectNoteByTitle(noteTitle, false, false)
   const noteContent = titleExistsInNote(renderedContent) ? renderedContent : `# ${noteTitle}\n${renderedContent}`
   logDebug(pluginJson, `handleExistingNotes: Found ${String(existingNotes?.length)} existing notes with title ${noteTitle}`)
@@ -311,7 +313,7 @@ async function handleExistingNotes(_noteTitle: string, renderedContent: string, 
  * @param {boolean} forceNewNote - ignore the "note exists" commandbar and force new note creation
  * @returns {Promise<void>}
  */
-async function createNoteAndLinkEvent(selectedEvent: TCalendarItem | null, renderedContent: string, attrs: Object, forceNewNote: boolean = false): Promise<void> {
+async function createNoteAndLinkEvent(selectedEvent: ?TCalendarItem, renderedContent: string, attrs: Object, forceNewNote: boolean = false): Promise<void> {
   const folder: string = attrs?.folder || ''
   const append: string = attrs?.append || ''
   const prepend: string = attrs?.prepend || ''
@@ -528,7 +530,9 @@ async function updateNoteContent(note: CoreNoteFields, location: string, content
  * @param {string} content - The new content.
  * @returns {Promise<string|null>} The title of the note or null.
  */
-async function appendPrependNewNote(noteName: string, location: string, _folder: string = '', content: string): Promise<string | null> {
+// NB: returns undefined (not null) when the try block throws - the catch only logs. `?string`
+// covers all three outcomes; the caller already treats a falsy result as failure.
+async function appendPrependNewNote(noteName: string, location: string, _folder: string = '', content: string): Promise<?string> {
   try {
     let folder = _folder
     logDebug(`np.MeetingNotes appendPrependNewNote noteName=${noteName} location:${location} folder:${folder}`)

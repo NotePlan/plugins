@@ -9,7 +9,7 @@
 import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
-import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
+import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TDashboardSettingsIn, TPerspectiveSettings } from './types'
 import { prepareDashboardSettingsForSave, preparePerspectiveSettingsForSave } from './dashboardSettingsClean'
 import {
   addNewPerspective,
@@ -32,20 +32,20 @@ import { getGlobalSharedData } from '@helpers/HTMLView'
 
 /**
  * Live dashboard settings for perspective save: prefer WebView state (what the user sees), then disk.
- * @param {Partial<TDashboardSettings>} [settingsFromBridge] - optional `data.settings` from React
+ * Note: `MessageDataObject.settings` is `TDashboardSettings | TPerspectiveSettings`, so this
+ * accepts both and narrows with the Array.isArray() guard below.
+ * @param {TDashboardSettingsIn | TPerspectiveSettings} [settingsFromBridge] - optional `data.settings` from React
  * @returns {Promise<TDashboardSettings>}
  */
-async function getLiveDashboardSettingsForPerspectiveSave(settingsFromBridge?: Partial<TDashboardSettings>): Promise<TDashboardSettings> {
+async function getLiveDashboardSettingsForPerspectiveSave(settingsFromBridge?: TDashboardSettingsIn | TPerspectiveSettings): Promise<TDashboardSettings> {
   if (settingsFromBridge && typeof settingsFromBridge === 'object' && !Array.isArray(settingsFromBridge) && Object.keys(settingsFromBridge).length > 0) {
     const defaults = getDashboardSettingsDefaults()
-  // $FlowIgnore[cannot-spread-indexer]
     return { ...defaults, ...settingsFromBridge, showSearchSection: true }
   }
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const fromReact = reactWindowData?.pluginData?.dashboardSettings
   if (fromReact && typeof fromReact === 'object' && !Array.isArray(fromReact) && Object.keys(fromReact).length > 0) {
     const defaults = getDashboardSettingsDefaults()
-  // $FlowIgnore[cannot-spread-indexer]
     return { ...defaults, ...fromReact, showSearchSection: true }
   }
   return getDashboardSettings()
@@ -141,7 +141,8 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
   const cleanedLiveSettings = prepareDashboardSettingsForSave(activeDef.dashboardSettings ?? {}, dashboardSettings, { mergeDefaults: true })
   const newDef = {
     ...activeDef,
-    dashboardSettings: cleanDashboardSettingsInAPerspective(cleanedLiveSettings),
+    // Cast: prepareDashboardSettingsForSave() returns the loose indexed TAnyObject shape (dynamic showTagSection_* keys); the callee wants the exact settings type.
+    dashboardSettings: cleanDashboardSettingsInAPerspective((cleanedLiveSettings: any)),
     isModified: false,
   }
   const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
@@ -152,7 +153,8 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
   })
   if (!res) return handlerResult(false, [], { errorMsg: `saveDashboardPluginSettings failed` })
   const savedPerspectives = (await loadDashboardPluginSettings()).perspectiveSettings
-  const cleanedBaseline = cleanDashboardSettingsInAPerspective(cleanedLiveSettings)
+  // Cast: as above -- cleanedLiveSettings is the loose indexed TAnyObject shape.
+  const cleanedBaseline = cleanDashboardSettingsInAPerspective((cleanedLiveSettings: any))
   await setPluginData(
     {
       perspectiveSettings: Array.isArray(savedPerspectives) ? savedPerspectives : revisedDefs,

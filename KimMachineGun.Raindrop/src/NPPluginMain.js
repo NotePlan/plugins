@@ -35,6 +35,22 @@ export async function searchAndInsertOrCopy(): Promise<void> {
     await searchInRaindrop(insertOrCopyRaindropTitle)
 }
 
+/** A raindrop (bookmark) as returned by the raindrop.io REST API, limited to the fields used here. */
+type Raindrop = {
+    title: string,
+    link: string,
+    tags: Array<string>,
+    excerpt: string,
+    highlight: { body: string },
+    collection: { $id: number },
+}
+
+/** A raindrop.io collection, limited to the fields used here. */
+type Collection = {
+    _id: number,
+    title: string,
+}
+
 export async function searchAndCreateNote(): Promise<void> {
     await searchInRaindrop(createRaindropNote)
 }
@@ -55,9 +71,9 @@ async function searchInRaindrop(cb: (raindrop: Raindrop) => Promise<void>): Prom
             return
         }
 
-        let raindrops = []
+        let raindrops: Array<any> = []
         for (let i = 0; ; i++) {
-            const raw = await requestToRaindrop('GET', `https://api.raindrop.io/rest/v1/raindrops/0?search=${encodeURIComponent(search)}&page=${encodeURIComponent(i)}&perPage=50`)
+            const raw = await requestToRaindrop('GET', `https://api.raindrop.io/rest/v1/raindrops/0?search=${encodeURIComponent(search)}&page=${encodeURIComponent(String(i))}&perPage=50`)
 
             const response = JSON.parse(raw)
             if (!response.result) {
@@ -135,13 +151,15 @@ async function createRaindropNote(rd: Raindrop) {
     body = `${body}---\n`
 
     const filename = await createNoteIfNotExists(title, noteFolder, body)
-    await Editor.openNoteByFilename(filename)
+    // KNOWN BUG - createNoteIfNotExists() returns undefined when the note already exists (it has no return in that branch), so this opens `undefined` instead of the existing note. It should return the existing note's filename.
+    await Editor.openNoteByFilename((filename: any))
 }
 
-async function createNoteIfNotExists(title: string, folder: string, content?: string): string {
+async function createNoteIfNotExists(title: string, folder: string, _content?: string): Promise<?string> {
     const existingNotes = DataStore.projectNoteByTitle(title, true, false) ?? []
     if (existingNotes.length === 0) {
-        if (content) {
+        if (_content) {
+            let content = _content
             content = `# ${title}\n${content}`
             return await DataStore.newNoteWithContent(content, folder)
         } else {
@@ -155,7 +173,7 @@ function formatTag(tag: string): string {
     return `#${prefix}${tag.replaceAll(' ', '_').toLowerCase()}`
 }
 
-async function fetchCollection(id: number): ?Collection {
+async function fetchCollection(id: number): Promise<?Collection> {
     const raw = await requestToRaindrop('GET', `https://api.raindrop.io/rest/v1/collection/${id}`)
     const response = JSON.parse(raw)
     if (!response.result) {
@@ -165,7 +183,7 @@ async function fetchCollection(id: number): ?Collection {
     return response.item
 }
 
-async function requestToRaindrop(method: string, url: string, init?: RequestInit): Promise<Response> {
+async function requestToRaindrop(method: string, url: string, init?: FetchOptions): Promise<string> {
     const settings = DataStore.settings
     const accessToken = settings.accessToken ?? ''
     if (accessToken === '') {

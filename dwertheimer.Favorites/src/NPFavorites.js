@@ -74,7 +74,7 @@ export async function openFavorite(): Promise<void> {
   const notesWithStars = DataStore.projectNotes.filter((note) => note.title?.includes(config.favoriteIcon))
   const combinedNotes = [...notesWithFM, ...notesWithStars]
   const nonDuplicateNotes = combinedNotes.filter((note, index, self) => self.findIndex((t) => t.filename === note.filename) === index)
-  const faveNotes = favoriteNotes(nonDuplicateNotes, config)
+  const faveNotes = favoriteNotes(((nonDuplicateNotes: any): Array<TNote>), config)
 
   const faveOptions = getFaveOptionsArray(faveNotes)
   if (faveOptions.length === 0) {

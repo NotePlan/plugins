@@ -64,17 +64,20 @@ describe('replaceSmartQuotes', () => {
   })
 
   test('should handle null input', () => {
-    const input = null
+    // `any` on purpose: this test deliberately passes a non-string to prove the runtime guard
+    const input: any = null
     expect(replaceSmartQuotes(input)).toBe(input)
   })
 
   test('should handle undefined input', () => {
-    const input = undefined
+    // `any` on purpose: this test deliberately passes a non-string to prove the runtime guard
+    const input: any = undefined
     expect(replaceSmartQuotes(input)).toBe(input)
   })
 
   test('should handle non-string input', () => {
-    const input = 123
+    // `any` on purpose: this test deliberately passes a non-string to prove the runtime guard
+    const input: any = 123
     expect(replaceSmartQuotes(input)).toBe(input)
   })
 
@@ -130,18 +133,18 @@ describe('replaceSmartQuotes', () => {
 // Test for imported templates with smart quotes
 describe('importTemplates with smart quotes', () => {
   // Mock the importTemplates function to test smart quote replacement
-  const mockImportTemplates = async (templateData) => {
+  const mockImportTemplates = async (templateData: string) => {
     // Simulate the importTemplates function behavior
     let newTemplateData = templateData
     const importRegex = /<%[-\s]*import\(['"]([^'"]+)['"]\)[\s-]*%>/g
     let match
 
     while ((match = importRegex.exec(templateData)) !== null) {
-      const fullTag = match[0]
-      const templateName = match[1]
+      const fullTag = (match: any)[0]
+      const templateName = (match: any)[1]
 
       // Mock template content with smart quotes
-      const mockTemplateContent = {
+      const mockTemplateContent: { [string]: string } = {
         'weather-template': `const ampm = hours >= 12 ? \u2018PM\u2019 : \u2018AM\u2019;
 const minutesStr = minutes < 10 ? \u20180\u2019 + minutes : minutes;`,
       }

@@ -11,7 +11,7 @@ describe('projectClassCalculations finished flags', () => {
    * @param {any} overrides
    * @returns {any}
    */
-  function makeProjectLike(overrides = {}) {
+  function makeProjectLike(overrides: any = {}) {
     return {
       filename: 'test.md',
       folder: 'Projects',

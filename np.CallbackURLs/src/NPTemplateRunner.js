@@ -9,7 +9,9 @@ import { getAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 
 // getNoteTitled, location, writeUnderHeading, replaceNoteContents
-const baseMetadata = {
+// Indexed: the null members are placeholders that get filled in with strings and booleans
+// below, and keys are also deleted dynamically before the object is serialised.
+const baseMetadata: TAnyObject = {
   type: 'self-runner',
   getNoteTitled: null,
   writeUnderHeading: null,
@@ -22,7 +24,8 @@ const baseMetadata = {
  * Create the new template
  * @returns
  */
-async function createNewTemplate(): Promise<string> {
+// Returns void (not '') on the early-exit path at the `else { return }` below, so the return type has to admit void.
+async function createNewTemplate(): Promise<string | void> {
   const title = await getInputTrimmed(`Enter the title for the new template (something unique and short is best)`, 'Create Template', 'Template Title')
   if (title && typeof title === 'string') {
     // const template = await NPTemplating.createTemplate(title)

@@ -8,25 +8,26 @@
 
 // @flow
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
 import { getTags } from '../lib/core'
 import { DataStore } from '@mocks/index'
 
 // Mock the core getTags function
 jest.mock('../lib/core', () => ({
-  getTags: jest.fn().mockImplementation((templateData) => {
+  getTags: jest.fn<Array<any>, any>().mockImplementation((templateData) => {
     // Simple implementation to extract tags
     const tags = []
     const regex = /<%.*?%>/g
     let match
     while ((match = regex.exec(templateData)) !== null) {
-      tags.push(match[0])
+      tags.push((match: any)[0])
     }
     return Promise.resolve(tags)
   }),
 }))
 
 // Set up mock for DataStore.invokePluginCommandByName
-const mockInvokePluginCommandByName = jest.fn().mockImplementation((plugin, command, options) => {
+const mockInvokePluginCommandByName = jest.fn<Array<any>, any>().mockImplementation((plugin, command, options) => {
   if (options && options.variable && options.sessionData) {
     // This could be called by our tests directly
     options.sessionData[options.variable] =
@@ -52,10 +53,10 @@ const mockInvokePluginCommandByName = jest.fn().mockImplementation((plugin, comm
 
 // Mock the processPrompts function
 jest.mock('../lib/support/modules/prompts/PromptRegistry', () => {
-  const original = jest.requireActual('../lib/support/modules/prompts/PromptRegistry')
+  const original = jest.requireActual<any>('../lib/support/modules/prompts/PromptRegistry')
   return {
     ...original,
-    processPrompts: jest.fn().mockImplementation((templateData, userData) => {
+    processPrompts: jest.fn<Array<any>, any>().mockImplementation((templateData, userData) => {
       const sessionData = { ...userData }
 
       // Set test data based on the template content
@@ -129,7 +130,7 @@ describe('Prompt Edge Cases', () => {
     const templateData = `<% const testVar = await prompt() %>`
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Call the mock directly instead of relying on the implementation
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {
@@ -145,7 +146,7 @@ describe('Prompt Edge Cases', () => {
     const templateData = `<% const emptyMsg = await prompt('emptyMsg') %>`
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Call the mock directly
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {
@@ -161,7 +162,7 @@ describe('Prompt Edge Cases', () => {
     const templateData = `<% const complexDefault = await prompt('complexDefault', \`Complex \${1 + 2} default\`) %>`
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Call the mock directly
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {
@@ -185,7 +186,7 @@ describe('Prompt Edge Cases', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Call the mock directly
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {
@@ -206,7 +207,7 @@ describe('Prompt Edge Cases', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Call the mocks directly
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {
@@ -237,7 +238,7 @@ describe('Prompt Edge Cases', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Call the mock directly
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {
@@ -257,7 +258,7 @@ describe('Prompt Edge Cases', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Call the mock directly
     mockInvokePluginCommandByName('np.Templating', 'NPTemplating: prompt', {

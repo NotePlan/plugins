@@ -167,7 +167,6 @@ const dt = () => {
 
       await writeMinifiedPluginFileContents(pluginJson, path.join(targetFolder, 'plugin.json'))
       // await fs.copyFile(pluginJson, path.join(targetFolder, 'plugin.json')) //the non-minified version
-      // $FlowFixMe
       const pluginJsonData = JSON.parse(await fs.readFile(pluginJson))
 
       const pluginFolder = pluginDevFolder.replace(rootFolderPath, '').substring(1)
@@ -240,7 +239,6 @@ const dt = () => {
         message('success', msg, 'SUCCESS', true)
       }
     } else {
-      // $FlowIgnore
       console.log(`Generated "${outputFile.replace(rootFolder, '')}"`)
     }
   }
@@ -287,16 +285,13 @@ const dt = () => {
     const rootLevelFolders = rootFolder
       .filter(
         (dirent) =>
-          // $FlowIgnore
           dirent.isDirectory() && !dirent.name.startsWith('.') && !FOLDERS_TO_IGNORE.includes(dirent.name) && (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
       )
       .map(async (dirent) => {
-        // $FlowIgnore
         const pluginFolder = path.join(__dirname, '..', dirent.name)
         const pluginContents = await fs.readdir(pluginFolder, {
           withFileTypes: true,
         })
-        // $FlowIgnore
         const isBundled = pluginContents.some((dirent) => dirent.name === 'src' && dirent.isDirectory)
         if (!isBundled) {
           return null
@@ -367,22 +362,16 @@ const dt = () => {
       const rootLevelFolders = rootFolder
         .filter(
           (dirent) =>
-            // $FlowIgnore
             dirent.isDirectory() &&
-            // $FlowIgnore
             !dirent.name.startsWith('.') &&
-            // $FlowIgnore
             !FOLDERS_TO_IGNORE.includes(dirent.name) &&
-            // $FlowIgnore
             (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
         )
         .map(async (dirent) => {
-          // $FlowIgnore
           const pluginFolder = path.join(__dirname, '..', dirent.name)
           const pluginContents = await fs.readdir(pluginFolder, {
             withFileTypes: true,
           })
-          // $FlowIgnore
           const isBundled = pluginContents.some((dirent) => dirent.name === 'src' && dirent.isDirectory)
           if (!isBundled) {
             return null
@@ -414,7 +403,6 @@ const dt = () => {
       let cachedBundle = null
       for (const plugin of bundledPlugins) {
         const pluginJsonFilename = path.join(plugin, 'plugin.json')
-        // $FlowIgnore
         const pluginJsonData = JSON.parse(await fs.readFile(pluginJsonFilename))
 
         progress?.tick({ id: pluginJsonData['plugin.id'], mem: reportMemoryUsage('') })
@@ -492,7 +480,6 @@ const dt = () => {
           const files = await fg(path.join(requiredFilesInDevFolder, '**/*'))
           for (const file of files) {
             // console.log(`Watching ${file}`)
-            // $FlowFixMe - this works but Flow doesn't like "this" inside a function
             this.addWatchFile(file)
           }
         },

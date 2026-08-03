@@ -16,9 +16,9 @@ import { filterCommands } from './support/filterFunctions.jsx'
  ****************************************************************************************************************************/
 // color this component's output differently in the console
 const consoleStyle = 'background: #222; color: #bada55' //lime green
-const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
-const logSubtle = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args)
-const logTemp = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
+const logDebug = (msg: string, ...args: Array<any>) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
+const logSubtle = (msg: string, ...args: Array<any>) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args)
+const logTemp = (msg: string, ...args: Array<any>) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
 
 /****************************************************************************************************************************/
 
@@ -161,12 +161,12 @@ function PluginSection({ plugin, viewOption, index }: PluginSectionProps): React
   )
 }
 
-type Command = {
+export type Command = {
   name: string,
   desc: string,
 }
 
-type Plugin = {
+export type Plugin = {
   name: string,
   version: string,
   author: string,
@@ -174,7 +174,8 @@ type Plugin = {
   updateIsAvailable: boolean,
   installLink?: string,
   documentation?: string,
-  desc?: string,
+  // NB: not optional — this list is built from NotePlan's PluginObject, whose `desc` is a required string
+  desc: string,
   lastUpdateInfo?: string,
   commands: Array<Command>,
 }

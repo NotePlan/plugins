@@ -2,10 +2,11 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import DynamicDialog, { type TDynamicDialogProps, type TSettingItem } from './DynamicDialog/DynamicDialog'
+import { resolveDynamicDialogButtonClick } from './DynamicDialog/dynamicDialogButtonClick.js'
 import { logDebug, logError } from './reactDev'
 
 // Re-export types for convenience
-export type { TDynamicDialogProps, TSettingItem } from './DynamicDialog/DynamicDialog'
+export type { TDynamicDialogProps, TSettingItem, TDynamicDialogHandleButtonClick, TDynamicDialogButtonClickResult } from './DynamicDialog/DynamicDialog'
 
 /**
  * Shows a React modal dialog and returns the user input or null if canceled.
@@ -55,14 +56,11 @@ export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject
       resolve(userInputObj)
     }
 
-    const handleButtonClick = (key: string, value: string) => {
+    const handleButtonClick = async (key: string, value: string) => {
       logDebug('showDialog', 'handleButtonClick', key, value)
-      if (dialogProps.handleButtonClick) {
-        const result = dialogProps.handleButtonClick(key, value)
-        // If handleButtonClick returns false, don't close the dialog
-        if (result === false) {
-          return
-        }
+      const shouldClose = await resolveDynamicDialogButtonClick(dialogProps.handleButtonClick, key, value)
+      if (!shouldClose) {
+        return
       }
       handleClose()
     }
@@ -122,7 +120,8 @@ export function showConfirmationDialog({
     const defaultOptions = ['No', 'Yes']
     const initialOptions = options || defaultOptions
     const defaultOption = initialOptions[initialOptions.length - 1] // default option is the last one
-    const finalOptions = initialOptions.map((option) => ({
+    // Annotated with TSettingItem's own option element type: Array<> is invariant, so an inferred Array<{label,value,isDefault}> cannot be assigned to it
+    const finalOptions: Array<string | { label: string, value: string, isDefault?: boolean }> = initialOptions.map((option) => ({
       label: option,
       value: option,
       isDefault: option === defaultOption,

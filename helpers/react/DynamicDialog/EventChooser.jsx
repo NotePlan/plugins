@@ -211,7 +211,7 @@ export function EventChooser({
       // Convert preloaded events (ISO strings) to EventOption format with Date objects
       // This matches the format EventChooser expects after processing requestFromPlugin response
       const eventOptions: Array<EventOption> = initialEvents
-        .map((event: any) => {
+        .map((event: any): EventOption => {
           // Plugin returns events with date/endDate as ISO strings that need to be converted to Date objects
           return {
             id: event.id || '',

@@ -110,8 +110,17 @@ export type OptionType = { label: string, value: string, id?: number }
 //   }
 // }
 
+/**
+ * One react-select style callback: given the library's base styles (and, for some keys, the
+ * current state), return the styles to use. Annotating `colourStyles` with this gives every
+ * callback below its parameter types, instead of 21 separate inline annotations.
+ * See https://react-select.com/styles
+ */
+// react-select always passes the state object as the 2nd arg; marking it optional made destructuring it an error
+type StyleFn = (styles: TAnyObject, state: TAnyObject) => TAnyObject
+
 /* the dot is the little coloured circle next to the selected value */
-const dot = (color = 'transparent') => ({
+const dot = (color: string = 'transparent') => ({
   alignItems: 'center',
   display: 'flex',
 
@@ -154,7 +163,7 @@ const bgColor = chroma(NP_THEME.base.backgroundColor)
 const bOrW = chroma.contrast(bgColor, 'white') > 2 ? 'white' : 'black'
 const lighterBG = chroma.average([NP_THEME.base.backgroundColor, NP_THEME.base.altColor, bOrW]).css()
 // const mixedBG = chroma.mix(NP_THEME.base.backgroundColor, NP_THEME.base.altColor).css()
-const colourStyles = {
+const colourStyles: { [string]: StyleFn } = {
   /* size of the control, but colors don't seem to do anything */
   clearIndicator: (styles) => ({ ...styles, color: '#00FF00' }),
   // clearIndicator: (styles) => ({ ...styles, color: '#00FF00' }),
@@ -225,7 +234,7 @@ type Props = {
   onSelect?: Function,
   onChange?: Function,
   defaultValue?: OptionType,
-  id: string,
+  id?: string, // optional: no call site passes it, and it is not forwarded to <Select>
 }
 export function ThemedSelect(props: Props): any {
   const { options, onSelect, onChange, defaultValue } = props

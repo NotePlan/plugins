@@ -15,9 +15,9 @@ jest.mock('../../AppContext.jsx', () => ({
 }))
 
 describe.skip('PerspectiveSelector Component', () => {
-  const mockDispatchDashboardSettings = jest.fn()
-  const mockDispatchPerspectiveSettings = jest.fn()
-  const mockSendActionToPlugin = jest.fn()
+  const mockDispatchDashboardSettings = jest.fn<Array<any>, any>()
+  const mockDispatchPerspectiveSettings = jest.fn<Array<any>, any>()
+  const mockSendActionToPlugin = jest.fn<Array<any>, any>()
 
   beforeAll(() => {
     global.NP_THEME = mockNP_THEME
@@ -28,7 +28,7 @@ describe.skip('PerspectiveSelector Component', () => {
   })
 
   beforeEach(() => {
-    useAppContext.mockReturnValue({
+    ;(useAppContext: any).mockReturnValue({
       dashboardSettings: { lastChange: '2024-10-17' },
       dispatchDashboardSettings: mockDispatchDashboardSettings,
       dispatchPerspectiveSettings: mockDispatchPerspectiveSettings,
@@ -47,7 +47,7 @@ describe.skip('PerspectiveSelector Component', () => {
   })
 
   test('renders perspective options when loaded', async () => {
-    useAppContext.mockReturnValue({
+    ;(useAppContext: any).mockReturnValue({
       dashboardSettings: { lastChange: '2024-10-17' },
       dispatchDashboardSettings: jest.fn(),
       dispatchPerspectiveSettings: jest.fn(),
@@ -64,7 +64,7 @@ describe.skip('PerspectiveSelector Component', () => {
   })
 
   test('renders modified option with a star', async () => {
-    useAppContext.mockReturnValue({
+    ;(useAppContext: any).mockReturnValue({
       dashboardSettings: { activePerspectiveName: 'Default', lastChange: '2024-10-17' },
       dispatchDashboardSettings: jest.fn(),
       dispatchPerspectiveSettings: jest.fn(),

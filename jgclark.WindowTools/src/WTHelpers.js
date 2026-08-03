@@ -299,7 +299,7 @@ export async function onEditorWillSave(): Promise<void> {
 
     // first check to see if this has been called in the last 3secs: if so don't proceed, as this could be a double call.
     const noteReadOnly: CoreNoteFields = Editor.note
-    const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
+    const timeSinceLastEdit: number = Date.now() - Number(noteReadOnly.versions[0].date)
     if (timeSinceLastEdit <= 3000) {
       logDebug('onEditorWillSave', `onEditorWillSave fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
       return

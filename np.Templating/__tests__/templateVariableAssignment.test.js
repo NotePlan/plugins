@@ -2,6 +2,7 @@
 // @flow
 
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
 import NPTemplating from '../lib/NPTemplating'
 import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
@@ -41,7 +42,7 @@ Tags: <% const selectedTag = promptTag("Select a tag:") -%><%- selectedTag %>
 `
 
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {})
+    const { sessionTemplateData, sessionData } = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
 
     // Verify the session data contains our variables
     expect(sessionData).toHaveProperty('category')
@@ -86,7 +87,7 @@ Tags: <% const selectedTag = promptTag("Select a tag:") -%><%- selectedTag %>
 `
 
     // Process the template
-    const { sessionTemplateData, sessionData } = await processPrompts(template, {})
+    const { sessionTemplateData, sessionData } = ((await processPrompts(template, {}): any): TProcessPromptsSuccess)
 
     // Verify all variables were set in the session data
     expect(sessionData).toHaveProperty('projectType')

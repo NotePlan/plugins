@@ -240,7 +240,7 @@ export function getNotesWithFrontmatter(noteType: 'Notes' | 'Calendar' | 'All' =
  * @param {boolean} onlyTemplateNotes - whether to include only template notes (default: false). By default, includes all notes that have frontmatter keys.
  * @returns {Array<CoreNoteFields>} - an array of notes that have front matter (template notes are included only if includeTemplateFolders is true and the note has frontmatter keys)
  */
-export function getFrontmatterNotes(includeTemplateFolders: boolean = false, onlyTemplateNotes: boolean = false): Array<CoreNoteFields> {
+export function getFrontmatterNotes(includeTemplateFolders: boolean = false, onlyTemplateNotes: boolean = false): $ReadOnlyArray<CoreNoteFields> {
   const start = new Date()
   const templateFolder = NotePlan.environment.templateFolder || '@Templates'
   const returnedNotes = DataStore.projectNotes.filter((note) => {
@@ -945,7 +945,7 @@ export function isTriggerLoop(note: TNote, minimumTimeRequiredMS: number = 2000)
   try {
     if (!note.versions || !note.versions.length) return false // no note version, so no recent update
 
-    const timeSinceLastEdit: number = Date.now() - note.versions[0].date
+    const timeSinceLastEdit: number = Date.now() - Number(note.versions[0].date)
     if (timeSinceLastEdit <= minimumTimeRequiredMS) {
       logDebug(pluginJson, `isTriggerLoop: only ${String(timeSinceLastEdit)}ms after the last document write. Stopping execution to avoid infinite loop.`)
       return true
@@ -1071,7 +1071,6 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       }
       logDebug('updateFrontMatterVars', `normalizedValue for key: ${canonicalKey} = ${normalizedValue}`)
 
-      // $FlowIgnore
       normalizedNewAttributes[canonicalKey] = normalizedValue
     })
 
@@ -1094,7 +1093,6 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
 
     // Update existing attributes -- just replace the text in the paragraph
     keysToUpdate.forEach((key: string) => {
-      // $FlowIgnore
       const attributeLine = `${key}: ${normalizedNewAttributes[key]}`
       const keyPrefixRe = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:`, 'i')
       const paragraph = note.paragraphs.find((para) => keyPrefixRe.test(para.content))
@@ -1110,7 +1108,6 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
 
     // Add new attributes to the end of the frontmatter
     keysToAdd.forEach((key) => {
-      // $FlowIgnore
       const newAttributeLine = `${key}: ${normalizedNewAttributes[key]}`
       // Insert before the closing '---'
       // clo(note.paragraphs, `updateFrontMatterVars: note.paragraphs`)
@@ -1890,7 +1887,7 @@ export function detectInlineTitle(bodyContent: string): { hasInlineTitle: boolea
   // Check if body content starts with output frontmatter (--- or --)
   // Output frontmatter is ONLY valid if it starts at the beginning of body content
   const firstLine = lines[0]?.trim() || ''
-  let frontmatterBlocks = []
+  let frontmatterBlocks: Array<any> = []
 
   if (firstLine === '---' || firstLine === '--') {
     // Find the output frontmatter block ONLY at the start

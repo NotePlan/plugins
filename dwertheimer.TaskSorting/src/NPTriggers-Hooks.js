@@ -31,7 +31,7 @@ export async function onOpen(note: TNote): Promise<void> {
     const now = new Date()
     if (Editor?.note?.changedDate) {
       const lastEdit = new Date(Editor?.note?.changedDate)
-      if (now - lastEdit > 15000) {
+      if (Number(now) - Number(lastEdit) > 15000) {
         logDebug(pluginJson, `onOpen ${timer(lastEdit)} since last edit`)
         // Put your code here or call a function that does the work
       } else {

@@ -39,6 +39,7 @@ import type { Option } from './DropdownSelect.jsx'
 import { Button, ButtonGroup } from './ButtonComponents.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms.js'
+import { type TDynamicDialogHandleButtonClick, resolveDynamicDialogButtonClick } from './dynamicDialogButtonClick.js'
 
 //--------------------------------------------------------------------------
 // Memoized chooser wrappers (per html-react-rules: handlers passed to children must be useCallback)
@@ -77,7 +78,7 @@ type RenderItemProps = {
   indent?: boolean,
   className?: string,
   disabled?: boolean, // Add disabled prop
-  handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
+  handleButtonClick?: TDynamicDialogHandleButtonClick,
   visible?: boolean, // Add visible prop
   buttonText?: string, // Add buttonText prop
   folders?: Array<string>, // For folder-chooser
@@ -300,9 +301,9 @@ export function renderItem({
             <ThemedSelect
               disabled={disabled}
               key={`cmb${index}`}
-              options={item.options ? item.options.map((option) => (typeof option === 'string' ? { label: option, value: option } : option)) : []} // Normalize options to ensure they are in { label, value } format
+              options={item.options ? item.options.map((option: any) => (typeof option === 'string' ? { label: option, value: option } : option)) : []} // Normalize options to ensure they are in { label, value } format ((option: any) because TSettingItem's option type and ThemedSelect's OptionType are different exact object types and Array<> is invariant)
               value={item.value || item.default || undefined} // Ensure value is not undefined
-              onChange={(selectedOption) => {
+              onChange={(selectedOption: any) => {
                 const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
                 item.key && handleFieldChange(item.key, value)
                 item.key && handleComboChange(item.key, value) // Pass the selected option
@@ -529,11 +530,11 @@ export function renderItem({
                     const jsonString = JSON.stringify(updatedData, null, 2)
                       .replace(/"([^"]+)":/g, '$1:') // Remove quotes from keys
                       .replace(/:\s*"([^"]*)"/g, ': "$1"') // Keep quotes on string values
-                    handleFieldChange(item.key, jsonString)
+                    handleFieldChange((item.key: any), jsonString)
                   } catch (error) {
                     logError('JsonEditor', `Error converting data to string: ${error.message}`)
                     // Fallback: just stringify as JSON
-                    handleFieldChange(item.key, JSON.stringify(updatedData, null, 2))
+                    handleFieldChange((item.key: any), JSON.stringify(updatedData, null, 2))
                   }
                 }
               }}
@@ -557,7 +558,10 @@ export function renderItem({
             disabled={disabled}
             onClick={(value) => {
               if (item.key) {
-                handleButtonClick(item.key, value)
+                const key = item.key
+                void (async () => {
+                  await resolveDynamicDialogButtonClick(handleButtonClick, key, value)
+                })()
               } else {
                 console.error('Button item is missing a key')
               }
@@ -603,8 +607,12 @@ export function renderItem({
               onClick={(value) => {
                 if (item.key) {
                   const key = item.key
-                  handleButtonClick(key, value)
-                  handleFieldChange(key, value)
+                  void (async () => {
+                    const shouldContinue = await resolveDynamicDialogButtonClick(handleButtonClick, key, value)
+                    if (shouldContinue) {
+                      handleFieldChange(key, value)
+                    }
+                  })()
                 } else {
                   console.error('Button group item is missing a key')
                 }
@@ -624,12 +632,12 @@ export function renderItem({
           if (item.key) {
             // Handle cleared date/string
             if (date instanceof Date && isNaN(date.getTime())) {
-              handleFieldChange(item.key, null)
+              handleFieldChange((item.key: any), null)
             } else if (typeof date === 'string' && date === '') {
-              handleFieldChange(item.key, null)
+              handleFieldChange((item.key: any), null)
             } else {
               // Store the value as-is (formatted string or Date object)
-              handleFieldChange(item.key, date)
+              handleFieldChange((item.key: any), date)
             }
           }
         }
@@ -792,6 +800,7 @@ export function renderItem({
             `note-chooser: handleNoteChange called with noteTitle="${noteTitle}", noteFilename="${noteFilename}", item.key="${item.key || 'undefined'}"`,
           )
           if (item.key) {
+            const key = item.key
             // For multi-select mode, noteTitle contains the formatted string and noteFilename is empty
             // For single-select mode, use noteOutputFormat (with backwards compatibility for singleSelectOutputFormat)
             const itemAny = (item: any)
@@ -816,8 +825,8 @@ export function renderItem({
               outputFormat = outputFormat || 'title' // Final default
               valueToStore = outputFormat === 'filename' ? noteFilename : noteTitle
             }
-            logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${item.key}", value="${valueToStore}"`)
-            handleFieldChange(item.key, valueToStore)
+            logDebug('dialogElementRenderer', `note-chooser: Calling handleFieldChange with key="${key}", value="${valueToStore}"`)
+            handleFieldChange(key, valueToStore)
           } else {
             logError('dialogElementRenderer', `note-chooser: handleNoteChange called but item.key is undefined`)
           }
@@ -905,10 +914,10 @@ export function renderItem({
             'dialogElementRenderer',
             `heading-chooser: sourceNoteKey="${String(sourceNoteKey)}", noteValue="${String(noteValue || '')}", noteFilename="${String(
               noteFilename || 'null',
-            )}", hasRequestFromPlugin=${!!requestFromPlugin}`,
+            )}", hasRequestFromPlugin=${String(!!requestFromPlugin)}`,
           )
         } else {
-          logDebug('dialogElementRenderer', `heading-chooser: sourceNoteKey="${String(sourceNoteKey || 'undefined')}", updatedSettings=${!!updatedSettings}, noteFilename=null`)
+          logDebug('dialogElementRenderer', `heading-chooser: sourceNoteKey="${String(sourceNoteKey || 'undefined')}", updatedSettings=${String(!!updatedSettings)}, noteFilename=null`)
         }
 
         const handleHeadingChange = (heading: string) => {
@@ -983,7 +992,7 @@ export function renderItem({
               endDate: event.endDate instanceof Date ? event.endDate.toISOString() : event.endDate,
               occurrences: event.occurrences ? event.occurrences.map((d: Date | string) => (d instanceof Date ? d.toISOString() : d)) : [],
             }
-            handleFieldChange(item.key, serializedEvent)
+            handleFieldChange((item.key: any), serializedEvent)
           }
         }
 

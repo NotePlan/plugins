@@ -6,7 +6,7 @@
 import pluginJson from '../plugin.json'
 import { favoriteNotes, noteIsFavorite, getFavoritedTitle, removeFavoriteFromTitle } from './favorites'
 import { getConfig } from './NPFavorites'
-import { type RequestResponse } from './routerUtils'
+import { type RequestResponse } from '@helpers/react/routerUtils'
 import { getFrontmatterNotes, ensureFrontmatter, getFrontmatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { getNoteDecoration } from '@helpers/NPnote'
 import { getFolderFromFilename, getFolderDisplayName } from '@helpers/folders'
@@ -31,7 +31,7 @@ export async function handleGetFavoriteNotes(requestData: Object): Promise<Reque
     const notesWithStars = DataStore.projectNotes.filter((note) => note.title?.includes(config.favoriteIcon))
     const combinedNotes = [...notesWithFM, ...notesWithStars]
     const nonDuplicateNotes = combinedNotes.filter((note, index, self) => self.findIndex((t) => t.filename === note.filename) === index)
-    const faveNotes = favoriteNotes(nonDuplicateNotes, config)
+    const faveNotes = favoriteNotes(((nonDuplicateNotes: any): Array<TNote>), config)
 
     // Format notes for React component
     const formattedNotes = faveNotes.map((note) => {
@@ -604,7 +604,7 @@ export async function handleGetNoteContentAsHTML(params: { noteIdentifier: strin
     }
 
     // Get the note content as HTML
-    const html = await getNoteContentAsHTML(note.content, note)
+    const html = await getNoteContentAsHTML(note.content ?? '', note)
 
     const totalElapsed: number = Date.now() - startTime
     logDebug(pluginJson, `handleGetNoteContentAsHTML: COMPLETE - totalElapsed=${totalElapsed}ms`)

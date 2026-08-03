@@ -176,7 +176,7 @@ export async function finalizeChanges(result: any): Promise<TParagraph | null> {
  */
 export function paragraphUpdateReceived(data: { rows: Array<any>, field: string }): Array<any> {
   const { rows, field } = data
-  const updatesByNote = {}
+  const updatesByNote: { [string]: Array<TParagraph> } = {}
   const updatedStatics = []
   if (rows?.length && field) {
     const sortedRows = sortListBy(rows, ['filename', '-lineIndex'])
@@ -198,7 +198,8 @@ export function paragraphUpdateReceived(data: { rows: Array<any>, field: string 
     }
     Object.keys(updatesByNote).forEach((filename) => {
       if (updatesByNote[filename].length) {
-        updatesByNote[filename][0].note.updateParagraphs(updatesByNote[filename])
+        // paragraphs only land in updatesByNote when para.filename was truthy, so .note is non-null here
+        (updatesByNote[filename][0].note: any).updateParagraphs(updatesByNote[filename])
       }
     })
     return updatedStatics
@@ -236,7 +237,7 @@ export async function dropdownChangeReceived(data: { rows: Array<any>, choice: s
   if (rows?.length && choice) {
     const updatedStatics = []
     const sortedRows = sortListBy(rows, ['filename', '-lineIndex'])
-    const updatesByNote = {}
+    const updatesByNote: { [string]: Array<TParagraph> } = {}
     for (const row of sortedRows) {
       clo(row, `dropdownChangeReceived getting row of potentials:${sortedRows.length}, staticObject is:`)
       // const note = DataStore.noteByFilename(row.filename, row.noteType || 'Notes')
@@ -292,7 +293,7 @@ export async function dropdownChangeReceived(data: { rows: Array<any>, choice: s
  */
 export async function onUserModifiedParagraphs(actionType: string, data: any): Promise<any> {
   try {
-    let returnValue = { success: false }
+    let returnValue: TAnyObject = { success: false }
     logDebug(pluginJson, `NP Plugin return path (onUserModifiedParagraphs) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
     clo(data, `onUserModifiedParagraphs data=`)
     switch (actionType) {
@@ -340,7 +341,7 @@ export function getOverdueTasks(noteFolder?: string | false = false): Array<TPar
     overdueOnly: true,
   }
   const notesToReview = getNotesAndTasksToReview(options)
-  const flatParaList = notesToReview.reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
+  const flatParaList = notesToReview.reduce((acc: Array<any>, noteTasks: any) => [...acc, ...noteTasks], [])
   logDebug(pluginJson, `getOverdueTasks took ${timer(start)}`)
   return flatParaList
 }
@@ -463,7 +464,7 @@ export async function getTodayReferencedTasks(weeklyNote: boolean = false): Prom
 
 export async function getDataForReactView(testData?: boolean = false, noteFolder?: string | false = false): any {
   const startTime = new Date()
-  let staticParasToReview = []
+  let staticParasToReview: Array<any> = []
 
   const {
     askToReviewWeeklyTasks,
@@ -502,9 +503,9 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
       .filter(Boolean)
     start = new Date()
     // clo(notesWithOpenTasks, `processOverdueReact: notesWithOpenTasks length=${notesWithOpenTasks.length}`)
-    const openTasksinRecentNotes = openTasksNotOverdue.reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
+    const openTasksinRecentNotes = openTasksNotOverdue.reduce((acc: Array<any>, noteTasks: any) => [...acc, ...noteTasks], [])
     const forgottenTasks = getStaticTaskList(openTasksinRecentNotes, 'LeftOpen')
-    const todayTaskParas = ((await getTodayReferencedTasks()) || []).reduce((acc, noteTasks) => [...acc, ...noteTasks], []).filter((t) => t.content !== '')
+    const todayTaskParas = ((await getTodayReferencedTasks()) || []).reduce((acc: Array<any>, noteTasks: any) => [...acc, ...noteTasks], []).filter((t) => t.content !== '')
     logDebug(`>>> getDataForReactView todayReferenced took: ${timer(start)}`)
     start = new Date()
     // clo(todayTaskParas, `processOverdueReact: todayTaskParas length=${todayTaskParas.length}`)

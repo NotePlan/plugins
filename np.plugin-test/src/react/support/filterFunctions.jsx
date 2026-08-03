@@ -6,6 +6,10 @@
 
 // @flow
 
+// NB: without this import, `Plugin` below resolved to the *DOM* Plugin type (browser plugins),
+// which is why plugin.desc and plugin.commands read as missing.
+import type { Plugin } from '../PluginListingPage.jsx'
+
 const CATEGORY_FILTER_APPLIES_TO_COMMANDS = false
 
 type FilterCommandsProps = {

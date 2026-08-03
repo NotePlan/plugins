@@ -96,7 +96,8 @@ async function copyLineForTags(typ: 'hashtags' | 'mentions'): Promise<void> {
       for (let i = 0; i < tagsInQuestion.length; i++) {
         // const tag = tagsInQuestion[i]
         if (i > 0) {
-          tagsInQuestion.push(tagsInQuestion.shift())
+          // cast: .shift() is typed `string | void`, but the `length <= 1` guard above means there is always an element here
+          tagsInQuestion.push((tagsInQuestion.shift(): any))
           const updatedText = appendTagsToText(contentWithoutTheseTags, {
             ...existingTags,
             //$FlowIgnore

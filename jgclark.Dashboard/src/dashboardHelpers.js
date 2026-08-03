@@ -102,7 +102,9 @@ export async function getDashboardSettingsForOpenWebView(pluginDataDashboardSett
     pluginDataDashboardSettings && Object.keys(pluginDataDashboardSettings).length > 0
       ? { ...fromDisk, ...pluginDataDashboardSettings }
       : fromDisk
-  return removeInvalidTagSections(merged)
+  // removeInvalidTagSections() returns the loose indexed TAnyObject shape (it has to, because the
+  // showTagSection_* keys are dynamic); the object it returns is still a full settings object.
+  return (removeInvalidTagSections(merged): any)
 }
 
 export { removeStaleTagSections } from './dashboardSettingsClean'
@@ -146,7 +148,6 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     } else {
       // Merge with defaults to ensure any new settings are added (existing settings take precedence)
       const defaults: TAnyObject = getDashboardSettingsDefaults()
-      // $FlowIgnore[cannot-spread-indexer]
       parsedDashboardSettings = { ...defaults, ...parsedDashboardSettings, showSearchSection: true }
 
       // Migration: Convert old showProjectSection to showProjectReviewSection
@@ -188,7 +189,6 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     logError('getDashboardSettings', `${err.name}: ${err.message}`)
     logWarn('getDashboardSettings', `Returning defaults after load error`)
     const defaults = getDashboardSettingsDefaults()
-    // $FlowFixMe[prop-missing]
     return ({ ...defaults, showSearchSection: true }: any)
   }
 }
@@ -603,7 +603,6 @@ function getReferencedOpenParagraphs(
 
   // Get list of allowed folders (using both include and exclude settings)
   const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
-  // $FlowIgnore[incompatible-call] - p.note almost guaranteed to exist
   logDebug('getReferencedOpenParagraphs: refOpenParas', refOpenParas.map((p) => p.note?.filename ?? '<no note>'))
 
   // Filter by teamspace first
@@ -806,14 +805,15 @@ export function buildAddTaskFormFields(headings: Array<string>, config: TDashboa
   const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
   if (!headings.length) return formFieldsBase
   const defaultHeadingToAddTo = getDefaultHeadingForNewTask(config)
-  // $FlowIgnore[incompatible-type]
+  // $FlowIgnore[incompatible-return] concat() widens to the literal's own type; the literal is a valid TSettingItem at runtime
   return formFieldsBase.concat([
     {
       type: 'dropdown-select',
       label: 'Under Heading:',
       key: 'heading',
-      // $FlowFixMe[incompatible-type]
-      options: headings,
+      // Cast: TSettingItem.options (in helpers/react/DynamicDialog) is Array<TOptionObject>, but
+      // dropdown-select also accepts a plain Array<string>. Arrays are invariant so this can't be widened here.
+      options: (headings: any),
       noWrapOptions: true,
       value: defaultHeadingToAddTo,
     },
@@ -910,8 +910,8 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
  * @returns {Array<TParagraph>}
  */
 function getChildrenFromPara(para: TParagraph): Array<TParagraph> {
-  if (typeof para.children === 'function' && para.children != null) {
-    return para.children() ?? []
+  if (typeof (para: any).children === 'function' && (para: any).children != null) {
+    return (para.children(): any) ?? []
   }
   return []
 }
@@ -1230,14 +1230,14 @@ export function filterParasByRelevantFolders(
 
 /**
  * Filter paragraphs to only include those from allowed teamspaces based on dashboard settings.
- * @param {Array<TParagraph>} paras - paragraphs to filter
+ * @param {$ReadOnlyArray<TParagraph>} paras - paragraphs to filter (read-only, so DataStore.listOverdueTasks() results can be passed directly)
  * @param {TDashboardSettings} dashboardSettings - dashboard settings containing teamspace filters
  * @param {Date} startTime - timer start time for logging
  * @param {string} functionName - name of calling function for logging
  * @returns {Array<TParagraph>} filtered paragraphs
  */
 export function filterParasByAllowedTeamspaces(
-  paras: Array<TParagraph>,
+  paras: $ReadOnlyArray<TParagraph>,
   dashboardSettings: TDashboardSettings,
   startTime: Date,
   functionName: string
@@ -1411,8 +1411,10 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
  * @returns {void}
  */
 export function setTimeFieldsOnDashboardPara(para: TParagraphForDashboard): void {
-  para.startTime = getStartTimeFromPara(para)
-  const endTime = getEndTimeFromPara(para)
+  // Casts: the helpers take an exact `{ content: string }`, so a wider TParagraphForDashboard is
+  // rejected on exactness alone even though only `content` is read.
+  para.startTime = getStartTimeFromPara((para: any))
+  const endTime = getEndTimeFromPara((para: any))
   if (endTime) {
     para.endTime = endTime
   }

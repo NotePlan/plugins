@@ -18,12 +18,13 @@ import {
 } from '../lib/rendering/templateProcessor'
 import FrontmatterModule from '../lib/support/modules/FrontmatterModule'
 import { processPrompts } from '../lib/support/modules/prompts'
+import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts'
 import TemplatingEngine from '../lib/TemplatingEngine'
 import { DataStore } from '@mocks/index'
 
 // Create mock implementations for the functions we're testing but aren't exported
 // from templateProcessor.js
-const validateTemplateStructure = jest.fn().mockImplementation((templateData) => {
+const validateTemplateStructure = jest.fn<Array<any>, any>().mockImplementation((templateData) => {
   // Simple mock implementation to check for unclosed tags
   if (templateData.includes('<%') && !templateData.includes('%>')) {
     return 'Template has unclosed tag'
@@ -34,7 +35,7 @@ const validateTemplateStructure = jest.fn().mockImplementation((templateData) =>
   return null
 })
 
-const normalizeTemplateData = jest.fn().mockImplementation((templateData) => {
+const normalizeTemplateData = jest.fn<Array<any>, any>().mockImplementation((templateData) => {
   if (templateData === null || templateData === undefined) return ''
 
   // Convert smart quotes to regular quotes
@@ -48,7 +49,7 @@ const normalizeTemplateData = jest.fn().mockImplementation((templateData) => {
   return result
 })
 
-const loadGlobalHelpers = jest.fn().mockImplementation((sessionData) => {
+const loadGlobalHelpers = jest.fn<Array<any>, any>().mockImplementation((sessionData) => {
   return {
     ...sessionData,
     methods: {
@@ -58,7 +59,7 @@ const loadGlobalHelpers = jest.fn().mockImplementation((sessionData) => {
   }
 })
 
-const processFrontmatter = jest.fn().mockImplementation(async (templateData, sessionData) => {
+const processFrontmatter = jest.fn<Array<any>, any>().mockImplementation(async (templateData, sessionData) => {
   const fm = new FrontmatterModule()
   if (!fm.isFrontmatterTemplate(templateData)) {
     return { templateData, sessionData }
@@ -75,8 +76,8 @@ const processFrontmatter = jest.fn().mockImplementation(async (templateData, ses
   }
 })
 
-const processTemplatePrompts = jest.fn().mockImplementation(async (templateData, sessionData) => {
-  const result = await processPrompts(templateData, sessionData)
+const processTemplatePrompts = jest.fn<Array<any>, any>().mockImplementation(async (templateData, sessionData) => {
+  const result = ((await processPrompts(templateData, sessionData): any): TProcessPromptsSuccess | false)
   if (result === false) return false
 
   return {
@@ -85,7 +86,7 @@ const processTemplatePrompts = jest.fn().mockImplementation(async (templateData,
   }
 })
 
-const tempSaveIgnoredCodeBlocks = jest.fn().mockImplementation((templateData) => {
+const tempSaveIgnoredCodeBlocks = jest.fn<Array<any>, any>().mockImplementation((templateData) => {
   const codeBlocks = []
   let result = templateData
 
@@ -95,7 +96,7 @@ const tempSaveIgnoredCodeBlocks = jest.fn().mockImplementation((templateData) =>
   let index = 0
 
   while ((match = regex.exec(templateData)) !== null) {
-    const block = match[0]
+    const block = (match: any)[0]
     codeBlocks.push(block)
     result = result.replace(block, `__codeblock:${index}__`)
     index++
@@ -104,7 +105,7 @@ const tempSaveIgnoredCodeBlocks = jest.fn().mockImplementation((templateData) =>
   return { templateData: result, codeBlocks }
 })
 
-const restoreCodeBlocks = jest.fn().mockImplementation((templateData, codeBlocks) => {
+const restoreCodeBlocks = jest.fn<Array<any>, any>().mockImplementation((templateData, codeBlocks) => {
   let result = templateData
 
   for (let index = 0; index < codeBlocks.length; index++) {
@@ -120,28 +121,28 @@ jest.mock('../lib/support/modules/prompts', () => ({
 }))
 
 jest.mock('../lib/TemplatingEngine', () => {
-  return jest.fn().mockImplementation(() => ({
-    render: jest.fn().mockResolvedValue('rendered content'),
-    incrementalRender: jest.fn().mockResolvedValue('incrementally rendered content'),
+  return jest.fn<Array<any>, any>().mockImplementation(() => ({
+    render: jest.fn<Array<any>, any>().mockResolvedValue('rendered content'),
+    incrementalRender: jest.fn<Array<any>, any>().mockResolvedValue('incrementally rendered content'),
   }))
 })
 
 // Mock FrontmatterModule
 jest.mock('../lib/support/modules/FrontmatterModule', () => {
-  return jest.fn().mockImplementation(() => ({
-    isFrontmatterTemplate: jest.fn().mockReturnValue(true),
-    parse: jest.fn().mockReturnValue({
+  return jest.fn<Array<any>, any>().mockImplementation(() => ({
+    isFrontmatterTemplate: jest.fn<Array<any>, any>().mockReturnValue(true),
+    parse: jest.fn<Array<any>, any>().mockReturnValue({
       attributes: { title: 'Test Template', type: 'test' },
       body: 'Template body content',
     }),
-    body: jest.fn().mockReturnValue('Template body content'),
+    body: jest.fn<Array<any>, any>().mockReturnValue('Template body content'),
   }))
 })
 
 // Mock the render function
 jest.mock('../lib/rendering/templateProcessor', () => {
   // Define mock functions inside the factory to avoid out-of-scope references
-  const mockValidateTemplateStructure = (templateData) => {
+  const mockValidateTemplateStructure = (templateData: string) => {
     if (templateData.includes('<%') && !templateData.includes('%>')) {
       return 'Template has unclosed tag'
     }
@@ -151,7 +152,7 @@ jest.mock('../lib/rendering/templateProcessor', () => {
     return null
   }
 
-  const mockNormalizeTemplateData = (templateData) => {
+  const mockNormalizeTemplateData = (templateData: string) => {
     if (templateData === null || templateData === undefined) return ''
 
     let result = templateData.toString().replace(/[""]/g, '"').replace(/['']/g, "'")
@@ -163,20 +164,20 @@ jest.mock('../lib/rendering/templateProcessor', () => {
     return result
   }
 
-  const mockLoadGlobalHelpers = (sessionData) => {
+  const mockLoadGlobalHelpers = (sessionData: any) => {
     return {
       ...sessionData,
       methods: {
-        formatDate: jest.fn(),
-        dayOfWeek: jest.fn(),
+        formatDate: jest.fn<Array<any>, any>(),
+        dayOfWeek: jest.fn<Array<any>, any>(),
       },
     }
   }
 
-  const original = jest.requireActual('../lib/rendering/templateProcessor')
+  const original = jest.requireActual<any>('../lib/rendering/templateProcessor')
   return {
     ...original,
-    render: jest.fn().mockImplementation(async (template, userData) => {
+    render: jest.fn<Array<any>, any>().mockImplementation(async (template, userData) => {
       // Add await to make linter happy
       await Promise.resolve()
 
@@ -217,7 +218,7 @@ describe('Render Pipeline Functions', () => {
     }
 
     // Set up the mock for renderFrontmatter
-    global.renderFrontmatter = jest.fn().mockResolvedValue({
+    global.renderFrontmatter = jest.fn<Array<any>, any>().mockResolvedValue({
       frontmatterAttributes: { title: 'Test', type: 'example' },
       frontmatterBody: 'Body content',
     })
@@ -229,7 +230,7 @@ describe('Render Pipeline Functions', () => {
 
     beforeEach(() => {
       // Set up the mock function with dynamic responses for testing
-      mockValidateTemplateStructure = jest.fn().mockReturnValue(null) // Default to returning null for valid templates
+      mockValidateTemplateStructure = jest.fn<Array<any>, any>().mockReturnValue(null) // Default to returning null for valid templates
 
       // Override the mock in the main mock object
       validateTemplateStructure.mockImplementation(mockValidateTemplateStructure)
@@ -303,16 +304,16 @@ describe('Render Pipeline Functions', () => {
 
     beforeEach(() => {
       // Create a fresh mock for each test
-      mockIsFrontmatterTemplate = jest.fn().mockReturnValue(true)
+      mockIsFrontmatterTemplate = jest.fn<Array<any>, any>().mockReturnValue(true)
 
       // Update the FrontmatterModule mock
-      FrontmatterModule.mockImplementation(() => ({
+      ;(FrontmatterModule: any).mockImplementation(() => ({
         isFrontmatterTemplate: mockIsFrontmatterTemplate,
-        parse: jest.fn().mockReturnValue({
+        parse: jest.fn<Array<any>, any>().mockReturnValue({
           attributes: { title: 'Test Template', type: 'test' },
           body: 'Template body content',
         }),
-        body: jest.fn().mockReturnValue('Template body content'),
+        body: jest.fn<Array<any>, any>().mockReturnValue('Template body content'),
       }))
     })
 
@@ -351,7 +352,7 @@ describe('Render Pipeline Functions', () => {
   describe('processTemplatePrompts', () => {
     test('should return false if prompt processing is cancelled', async () => {
       // Setup mock to simulate cancellation
-      processPrompts.mockResolvedValueOnce(false)
+      ;(processPrompts: any).mockResolvedValueOnce(false)
 
       const result = await processTemplatePrompts('template with prompts', {})
 
@@ -360,7 +361,7 @@ describe('Render Pipeline Functions', () => {
 
     test('should return updated template and session data', async () => {
       // Setup mock to return processed data
-      processPrompts.mockResolvedValueOnce({
+      ;(processPrompts: any).mockResolvedValueOnce({
         sessionTemplateData: 'processed template',
         sessionData: { promptResult: 'value' },
       })
@@ -418,7 +419,7 @@ describe('Render Pipeline Functions', () => {
     // This tests the full render pipeline integration
     test('should process a template through the complete pipeline', async () => {
       // Mock dependencies
-      processPrompts.mockResolvedValue({
+      ;(processPrompts: any).mockResolvedValue({
         sessionTemplateData: 'template with processed prompts',
         sessionData: { promptResult: 'value' },
       })

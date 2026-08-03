@@ -70,7 +70,6 @@ export async function replaceNoteContents(note: CoreNoteFields, renderedTemplate
  */
 export async function handleHeadingSelection(note: CoreNoteFields, writeUnderHeading: string): Promise<string> {
   if (/<choose>/i.test(writeUnderHeading) || /<select>/i.test(writeUnderHeading)) {
-    // $FlowIgnore -- note does not exist on CoreNoteFields (only on Editor)
     return await chooseHeading(note, true)
   }
   return writeUnderHeading
@@ -150,7 +149,7 @@ export async function replaceHeadingSectionWithContent(note: CoreNoteFields, ren
   }
   note.insertParagraph(renderedTemplate, headingIndex, 'text')
   // $FlowIgnore[prop-missing] -- note.note only exists when the target is Editor
-  if (note.note && typeof Editor !== 'undefined' && typeof Editor.save === 'function') {
+  if (note.note && typeof Editor !== 'undefined' && typeof (Editor: any).save === 'function') {
     try {
       await Editor.save()
     } catch (error) {
@@ -539,7 +538,7 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
           // Render the content with form values if it contains template tags
           // This ensures template tags are rendered before being written to the note
           // This makes the behavior consistent with the write-existing path which renders at line 764
-          let renderedContent = content
+          let renderedContent: any = content
           if (content && content.includes('<%')) {
             try {
               renderedContent = await NPTemplating.render(content, data)
@@ -632,7 +631,7 @@ export async function renderTemplate(frontmatterBody: string, data: Object): Pro
  */
 export function extractTitleAndShouldOpenSettings(frontmatterAttributes: Object, openInEditor: boolean): { noteTitle: string, shouldOpenInEditor: boolean } {
   const { openNoteTitle, writeNoteTitle, getNoteTitled } = frontmatterAttributes
-  let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || '' || (getNoteTitled && getNoteTitled.trim())
+  let noteTitle: any = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || '' || (getNoteTitled && getNoteTitled.trim())
   let shouldOpenInEditor = (openNoteTitle && openNoteTitle.length > 0) || openInEditor
 
   return { noteTitle, shouldOpenInEditor }
@@ -1096,7 +1095,9 @@ export async function templateRunnerExecute(_selectedTemplate?: string = '', ope
         // This allows combinations like "<%- field1 %> <today>" to work correctly
         if (noteTitle && typeof noteTitle === 'string' && noteTitle.includes('<%')) {
           try {
-            noteTitle = await NPTemplating.render(noteTitle, data)
+            // render() can return null when the user cancels a prompt; that is handled on the next line,
+            // but `noteTitle` was inferred as string from its initializer, so cast.
+            noteTitle = (await NPTemplating.render(noteTitle, data): any)
             if (noteTitle == null) {
               logDebug(pluginJson, `templateRunnerExecute user cancelled while rendering noteTitle`)
               return

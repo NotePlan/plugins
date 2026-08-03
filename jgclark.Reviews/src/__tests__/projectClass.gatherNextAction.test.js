@@ -31,9 +31,9 @@ beforeEach(() => {
 /**
  * @param {string} content
  * @param {string=} rawContent
- * @returns {Paragraph}
+ * @returns {TParagraph}
  */
-function makeOpenPara(content: string, rawContent?: string): Paragraph {
+function makeOpenPara(content: string, rawContent?: string): TParagraph {
   const raw = rawContent ?? content
   return new Paragraph({ type: 'open', content, rawContent: raw })
 }
@@ -49,14 +49,16 @@ function makeOpenPara(content: string, rawContent?: string): Paragraph {
  * @returns {Array<string>}
  */
 function gatherNextActions(
-  note: Note,
-  paras: Array<Paragraph>,
+  note: TNote,
+  paras: Array<TParagraph>,
   nextActionTags: Array<string> = [],
   sequentialTag: string = '',
   hashtags: Array<string> = [],
   metadataLine: string = '',
 ): Array<string> {
-  const project = Object.create(Project.prototype)
+  // Object.create() returns an object with no known properties; this builds a bare Project to
+  // exercise one method without running the constructor.
+  const project: any = Object.create(Project.prototype)
   project.nextActionsRawContent = []
   project.note = note
   project.gatherAnyNextActionContent(nextActionTags, paras, sequentialTag, hashtags, metadataLine)

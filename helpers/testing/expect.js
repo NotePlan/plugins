@@ -164,11 +164,13 @@ export const expect = (actual: any): Object => {
     // Add more matchers as needed
   }
 
-  const notMatchers: Matchers = {}
+  // Built up key-by-key from `matchers` below, so it is a dictionary rather than the fixed `Matchers` shape
+  const notMatchers: { [string]: MatcherFunction } = {}
   for (const [key, matcher] of Object.entries(matchers)) {
     notMatchers[key] = (expected: any, varNameOrMsg?: string): void => {
       try {
-        matcher(expected, varNameOrMsg)
+        // cast: Object.entries() widens values to `mixed`; every value of `matchers` is a MatcherFunction
+        (matcher: any)(expected, varNameOrMsg)
       } catch (error) {
         return
       }

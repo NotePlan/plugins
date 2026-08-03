@@ -145,7 +145,6 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
       logDebug(pluginJson, `templateInsert: about to checkAndProcessFolderAndNewNoteTitle`)
       if (templateNote && (await checkAndProcessFolderAndNewNoteTitle(templateNote, frontmatterAttributes))) return
 
-      // $FlowIgnore
       const renderedTemplate = await NPTemplating.render(frontmatterBody, frontmatterAttributes, { frontmatterProcessed: true })
       if (renderedTemplate == null) {
         logDebug(pluginJson, `templateInsert: render returned null (user likely cancelled a prompt); aborting`)
@@ -178,7 +177,6 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
     logDebug('templateAppend', `Starting templateAppend with templateName=${templateName}`)
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const content: string = Editor.content || ''
-      // $FlowIgnore
       const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
       let templateData, templateNote
       if (/<current>/i.test(selectedTemplate)) {
@@ -270,7 +268,6 @@ export async function templateInvoke(templateName?: string): Promise<void> {
           logError(pluginJson, `Unable to locate template: ${templateName} which was passed to templateExecute`)
         }
       }
-      // $FlowIgnore
       const selectedTemplate = selectedTemplateFilename ?? (await NPTemplating.chooseTemplate())
       const templateData = await NPTemplating.getTemplateContent(selectedTemplate)
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.renderFrontmatter(templateData)
@@ -285,7 +282,6 @@ export async function templateInvoke(templateName?: string): Promise<void> {
       const frontmatterWithMethods = Object.assign(frontmatterModule, frontmatterAttributes)
 
       let data = { ...frontmatterAttributes, frontmatter: frontmatterWithMethods }
-      // $FlowIgnore
       let renderedTemplate = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
       if (renderedTemplate == null) {
         logDebug(pluginJson, `templateInvoke: render returned null (user likely cancelled a prompt); aborting`)
@@ -330,7 +326,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
  */
 export async function templateNew(templateTitle: string = '', _folder?: string, newNoteTitle?: string, _args?: Object | string): Promise<string | null> {
   try {
-    logDebug(pluginJson, `templateNew: STARTING - templateTitle:"${templateTitle}", folder:"${_folder}", newNoteTitle:"${newNoteTitle}" args:${JSON.stringify(_args)}`)
+    logDebug(pluginJson, `templateNew: STARTING - templateTitle:"${templateTitle}", folder:"${String(_folder ?? '')}", newNoteTitle:"${String(newNoteTitle ?? '')}" args:${(JSON.stringify(_args): any)}`)
     let args = _args
     if (typeof _args === 'string') {
       args = JSON.parse(_args)
@@ -401,13 +397,13 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     }
 
     // Use the rendered frontmatter attributes first, then fall back to inline title detection
-    const renderedNewNoteTitle = frontmatterAttributes.newNoteTitle
+    const renderedNewNoteTitle: any = frontmatterAttributes.newNoteTitle
     logDebug(pluginJson, `templateNew: rendered frontmatterAttributes.newNoteTitle: "${renderedNewNoteTitle}"`)
-    logDebug(pluginJson, `templateNew: newNoteTitle parameter: "${newNoteTitle}"`)
+    logDebug(pluginJson, `templateNew: newNoteTitle parameter: "${String(newNoteTitle ?? '')}"`)
 
     // Check if the template requires a noteTitle by looking for the variable in the template
     const templateRequiresNoteTitle = frontmatterBody.includes('<%- noteTitle %>') || frontmatterBody.includes('<%= noteTitle %>')
-    logDebug(pluginJson, `templateNew: templateRequiresNoteTitle: ${templateRequiresNoteTitle}`)
+    logDebug(pluginJson, `templateNew: templateRequiresNoteTitle: ${String(templateRequiresNoteTitle)}`)
 
     // Get the note title - either from parameters, frontmatter, or ask the user
     let noteTitle = newNoteTitle || renderedNewNoteTitle
@@ -438,7 +434,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
 
     // Use the final title - prefer the rendered title if it's different from what we provided
     const finalNoteTitle = renderedTemplateNoteTitle || noteTitle || (await CommandBar.textPrompt('Template', 'Enter New Note Title', ''))
-    logDebug(pluginJson, `templateNew: final noteTitle: "${finalNoteTitle}"`)
+    logDebug(pluginJson, `templateNew: final noteTitle: "${String(finalNoteTitle ?? '')}"`)
 
     if (typeof finalNoteTitle === 'boolean' || finalNoteTitle.length === 0) {
       return null // user did not provide note title (Cancel) abort
@@ -575,7 +571,6 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
           },
         }
 
-        // $FlowIgnore
         let finalRenderedData = await NPTemplating.render(frontmatterBody, data, { frontmatterProcessed: true })
         if (finalRenderedData == null) {
           logDebug(pluginJson, `templateQuickNote: render returned null (user likely cancelled a prompt); aborting`)
@@ -799,7 +794,6 @@ export async function templateWeather(): Promise<string> {
     let weatherFormat = (templateConfig && templateConfig.weatherFormat) || ''
     weatherFormat = weatherFormat.length === 0 && templateConfig?.weatherFormat?.length > 0 ? templateConfig?.weatherFormat : weatherFormat
 
-    // $FlowIgnore
     const resolvedFormat = weatherFormat === undefined || weatherFormat === null || weatherFormat.trim().length === 0 ? undefined : weatherFormat
     const weather = await getNotePlanWeather(resolvedFormat, null, null, null)
 
@@ -812,7 +806,6 @@ export async function templateWeather(): Promise<string> {
 // $FlowIgnore
 export async function templateAdvice(): Promise<string> {
   try {
-    // $FlowIgnore
     const advice: string = await getAdvice()
 
     Editor.insertTextAtCursor(advice)
@@ -824,7 +817,6 @@ export async function templateAdvice(): Promise<string> {
 // $FlowIgnore
 export async function templateAffirmation(): Promise<string> {
   try {
-    // $FlowIgnore
     const affirmation: string = await getAffirmation()
 
     Editor.insertTextAtCursor(affirmation)
@@ -836,7 +828,6 @@ export async function templateAffirmation(): Promise<string> {
 // $FlowIgnore
 export async function templateVerse(): Promise<string> {
   try {
-    // $FlowIgnore
     const verse: string = await getVersePlain()
 
     Editor.insertTextAtCursor(verse)
@@ -848,7 +839,6 @@ export async function templateVerse(): Promise<string> {
 // $FlowIgnore
 export async function templateQuote(): Promise<string> {
   try {
-    // $FlowIgnore
     const verse: string = await getDailyQuote()
 
     Editor.insertTextAtCursor(verse)
@@ -1166,7 +1156,9 @@ export async function getRenderContext(userData: any = {}): Promise<Object> {
 }
 
 export async function templateFileByTitle(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = ''): Promise<string | void> {
-  return await templateRunnerExecute(selectedTemplate, openInEditor, args)
+  // templateRunnerExecute is declared `Promise<string | void | null>`; callers of templateFileByTitle treat
+  // the null and undefined cases identically, so narrow via a cast rather than widening this public signature.
+  return ((await templateRunnerExecute(selectedTemplate, openInEditor, args): any): string | void)
 }
 
 /**

@@ -66,8 +66,9 @@ function filterTasks(
 }
 
 function sortTasks(filteredTasks: Array<TParagraph>, includeTaskTypes: Array<string>, sortByFields: Array<string>): Array<TParagraph> {
-  const tasksByType = getTasksByType(filteredTasks) //FIXME: need to check getTasksbyType -- numbers are wrong
-  let consolidatedTasks = []
+  // GroupedTasks has named keys but no indexer, so cast to a dictionary type to allow the dynamic `type` lookups below
+  const tasksByType: { [string]: Array<any> } = (getTasksByType(filteredTasks): any) //FIXME: need to check getTasksbyType -- numbers are wrong
+  let consolidatedTasks: Array<any> = []
   // Object.keys(tasksByType).forEach((type) => {
   //   consolidatedTasks = [...consolidatedTasks, ...tasksByType[type]]
   // })
@@ -86,7 +87,7 @@ function sortTasks(filteredTasks: Array<TParagraph>, includeTaskTypes: Array<str
 }
 
 function getSyncedCopies(sortedTasks: Array<TParagraph>, includeTaskTypes: Array<string>): Array<string> {
-  let syncedCopyList = []
+  let syncedCopyList: Array<string> = []
   syncedCopyList = sortedTasks && sortedTasks.length ? getSyncedCopiesAsList(sortedTasks, includeTaskTypes) : []
   return syncedCopyList
 }
@@ -177,7 +178,7 @@ async function openSyncedTasksNoteInEditor(filename: string, searchFor: string, 
  * @param {*} args - searchFor, searchInTypesStr, includeTaskTypesStr, sortByFieldsStr, outputFilename, inFoldersStr, notInFoldersStr, headings
  * @returns array of all the variable strings filled in or false if cancelled, stop execution
  */
-async function fillInMissingArguments(args): any {
+async function fillInMissingArguments(args: any): any {
   let [searchFor, searchInTypesStr, includeTaskTypesStr, sortByFieldsStr, outputFilename, inFoldersStr, notInFoldersStr, headings] = args
   searchFor = searchFor == null ? (await getInput(`Search for:\n(cannot be blank)`, `Submit`, `Search`, '')) || '' : searchFor
   if (!searchFor) return false
@@ -267,8 +268,8 @@ export async function taskSync(...args: Array<string>): Promise<void> {
     logDebug(`includeTaskTypesStr=${includeTaskTypesStr.toString()}`)
     const includeTaskTypes = includeTaskTypesStr?.length ? includeTaskTypesStr.split(',').map((m) => m.trim()) : ['open']
     const sortByFields = sortByFieldsStr?.length ? sortByFieldsStr.split(',').map((m) => m.trim()) : ['-priority', 'content']
-    const inFolders = inFoldersStr?.length ? (inFoldersStr === '*' ? [] : inFoldersStr.split(',').map((m) => m.trim())) : []
-    const notInFolders = notInFoldersStr?.length ? (notInFoldersStr === '*' ? [] : notInFoldersStr.split(',').map((m) => m.trim())) : []
+    const inFolders: Array<string> = inFoldersStr?.length ? (inFoldersStr === '*' ? [] : inFoldersStr.split(',').map((m) => m.trim())) : []
+    const notInFolders: Array<string> = notInFoldersStr?.length ? (notInFoldersStr === '*' ? [] : notInFoldersStr.split(',').map((m) => m.trim())) : []
     const filename = outputFilename?.length
       ? outputFilename !== '*'
         ? /.txt|.md/.test(outputFilename)

@@ -70,9 +70,13 @@ import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
 import { loadDashboardPluginSettings } from './dashboardPluginSettings'
 import { copyUpdatedSectionItemData } from './dataGeneration'
 import { externallyStartSearch } from './dataGenerationSearch'
+// NB: REFRESH_ACTIONS_ALLOWED_ON_HANDLER_FAILURE is a runtime const (types.js:448), not a type,
+// but it was listed in the `import type` block below. Rollup flattens all modules into one scope
+// so the built plugin still resolved it - but the import was wrong, and any other consumer of
+// this module (or a non-bundled build) would not have found it.
+import { REFRESH_ACTIONS_ALLOWED_ON_HANDLER_FAILURE } from './types'
 import type {
   MessageDataObject,
-  REFRESH_ACTIONS_ALLOWED_ON_HANDLER_FAILURE,
   TActionType,
   TBridgeClickHandlerResult,
   TParagraphForDashboard,
@@ -244,7 +248,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     // Allow for a combination of button click and a content update
     if (updatedContent && data.actionType !== 'updateItemContent') {
       logDebug('bCDI', `content updated with another button press; need to update content first; new content: "${updatedContent}"`)
-      // $FlowIgnore[incompatible-call]
       result = doContentUpdate(data)
       if (result.success) {
         // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - TODO(later): ultimately delete this

@@ -22,7 +22,15 @@ type GuardOptions = {
   onExceeded?: () => void, // Callback when limit is exceeded
 }
 
-const defaultOptions: GuardOptions = {
+/**
+ * GuardOptions after the defaults have been merged in: maxRuns and timeWindow are always
+ * present. Flow cannot work this out from spreading two all-optional objects, so the destructure
+ * below is annotated with this instead - otherwise maxRuns reads as possibly-undefined and every
+ * comparison and multiplication against it is an error.
+ */
+type ResolvedGuardOptions = { maxRuns: number, timeWindow: number, onExceeded?: () => void }
+
+const defaultOptions: ResolvedGuardOptions = {
   maxRuns: 50,
   timeWindow: 5000,
 }
@@ -32,7 +40,7 @@ export function useEffectGuard(
   effectName: string,
   options: GuardOptions = {},
 ): number {
-  const { maxRuns, timeWindow, onExceeded } = { ...defaultOptions, ...options }
+  const { maxRuns, timeWindow, onExceeded }: ResolvedGuardOptions = { ...defaultOptions, ...options }
   const runCountRef = useRef<number>(0)
   const runTimesRef = useRef<Array<number>>([])
   const renderCountRef = useRef<number>(0)
@@ -88,8 +96,8 @@ export function useEffectGuard(
  * }, [dependencies])
  * ```
  */
-export function useEffectTracker(componentName: string, effectName: string, options: GuardOptions = {}) {
-  const { maxRuns, timeWindow, onExceeded } = { ...defaultOptions, ...options }
+export function useEffectTracker(componentName: string, effectName: string, options: GuardOptions = {}): () => void {
+  const { maxRuns, timeWindow, onExceeded }: ResolvedGuardOptions = { ...defaultOptions, ...options }
   const runTimesRef = useRef<Array<number>>([])
 
   return () => {

@@ -46,7 +46,8 @@ export function filterSettingsItems(items: Array<TSettingItem>, query: string): 
   const matchedKeys: Set<string> = new Set()
   for (const item of items) {
     if (item.key && itemMatchesQuery(item, q)) {
-      matchedKeys.add(item.key)
+      // Cast: `item.key` is refined non-null by the guard, but the intervening call invalidates the property refinement.
+      matchedKeys.add((item.key: any))
     }
   }
 
@@ -54,7 +55,8 @@ export function filterSettingsItems(items: Array<TSettingItem>, query: string): 
   for (const item of items) {
     const dependsOn = getDependsOnKey(item)
     if (item.key && dependsOn && matchedKeys.has(dependsOn)) {
-      matchedKeys.add(item.key)
+      // Cast: as above -- the guard refines `item.key`, but the intervening calls invalidate the refinement.
+      matchedKeys.add((item.key: any))
     }
   }
 

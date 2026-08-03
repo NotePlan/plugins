@@ -131,7 +131,7 @@ export function bucketReminderItems(allItems: Array<TSectionItem>): TReminderBuc
     logDebug('bucketReminderItems', `- skipped ${String(skippedFutureCount)} reminder(s) dated after ${tomorrowISO}`)
   }
   // Log which bucket each reminder landed in, so a mis-bucketed one is visible.
-  const bucketOf = (arr, name) => arr.forEach((it) => logDebug('bucketReminderItems', `- bucket=${name} "${String(it.reminder?.title ?? '?').slice(0, 34)}" date=${String(it.reminder?.date ?? 'UNDATED')} time=${String(it.reminder?.time ?? '-')}`))
+  const bucketOf = (arr: Array<any>, name: string) => arr.forEach((it) => logDebug('bucketReminderItems', `- bucket=${name} "${String(it.reminder?.title ?? '?').slice(0, 34)}" date=${String(it.reminder?.date ?? 'UNDATED')} time=${String(it.reminder?.time ?? '-')}`))
   bucketOf(timedTodayItems, 'timedToday')
   bucketOf(untimedTodayItems, 'untimedToday')
   bucketOf(yesterdayItems, 'yesterday')

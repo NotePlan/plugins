@@ -104,18 +104,15 @@ function getFormattedDateTime() {
           // conditionall add those keys to config
           if (ds !== '') {
             // Ignore type error for now
-            // $FlowFixMe
             config.dateStyle = ds
           }
           if (ts !== '') {
-            // $FlowFixMe
             config.timeStyle = ts
           }
           config.hour12 = h12
 
           const text = new Intl.DateTimeFormat(
             loc,
-            // $FlowFixMe
             config,
           ).format()
 
@@ -221,11 +218,8 @@ export async function getWeekDates(paramStr: string = ''): Promise<string> {
   const format = String(await getTagParamsFromString(paramStr, 'format', 'EEE yyyy-MM-dd'))
   // $FlowFixme complains about number literals even though I am checking them as numbers in arange
   if (weekStartsOn >= 0 && weekStartsOn <= 6) {
-    // $FlowIgnore
     console.log(dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: weekStartsOn })), 'yyyy-MM-dd'))
-    // $FlowIgnore
     const start = dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: weekStartsOn })), format)
-    // $FlowIgnore
     const end = dateFormat(new Date(endOfWeek(new Date(), { weekStartsOn: weekStartsOn })), format)
     return `${start} - ${end}`
   } else {

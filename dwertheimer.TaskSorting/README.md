@@ -20,50 +20,97 @@ Commands for sorting tasks in a note
 - Marking all tasks complete (or incomplete)
 - Copying tags/mentions from previous lines when doing multiple task entry
 
-## Understanding Task Type Grouping (Interleaving)
+## Understanding Task Type Grouping
 
-When sorting tasks, the plugin can handle task types in two ways:
+NotePlan has two kinds of task lines:
 
-### Combined Mode (Recommended - Default)
-Groups related task types together and sorts them as one unit:
-- **Open Tasks**: `* open` tasks + `+ checklist` items (sorted together by priority)
-- **Scheduled Tasks**: `* [>] scheduled` + `+ [>] scheduled checklist` items
-- **Completed Tasks**: `* [x] done` + `+ [x] completed checklist` items  
-- **Cancelled Tasks**: `* [-] cancelled` + `+ [-] cancelled checklist` items
+- ⚪ **Circle tasks** - regular bullet tasks
+- 🔲 **Box tasks** - checklist items
 
-**Result**: 4 logical groups that make more sense for daily use
+When you sort, you choose two things:
 
-**Example output:**
+1. **Combine related types?** (interactive `/ts` prompt, plugin preference **"Combine Related Task Types?"**, or x-callback **`arg4`**)
+   - **Yes (default, recommended):** Circle and box versions of the same status stay together in **4 groups** (open, scheduled, completed, cancelled).
+   - **No (traditional):** **8 separate groups** - circle and box each get their own section.
+
+2. **Add type headings?** (interactive `/ts` prompt or x-callback **`arg2`**)
+   - **Yes:** Adds headings such as `### Open Tasks:`.
+   - **No:** Sorted tasks only - no Open / Scheduled / Completed headings.
+
+These two choices together determine **what you see in the note**. The sections below describe the results.
+
+### Combined mode (recommended) - 4 groups
+
+When combining is on, you get up to four sections (only sections that have tasks are shown unless you turned on empty headings in preferences):
+
+| Heading | What goes here |
+|---|---|
+| **Open Tasks** | ⚪ open tasks and 🔲 open checklists |
+| **Scheduled Tasks** | ⚪ scheduled and 🔲 scheduled checklists |
+| **Completed Tasks** | ⚪ completed and 🔲 completed checklists |
+| **Cancelled Tasks** | ⚪ cancelled and 🔲 cancelled checklists |
+
+You will **not** see separate "Checklist Items" headings in this mode.
+
+### Traditional mode - 8 separate groups
+
+When combining is off, circle and box lines are kept apart:
+
+1. Open tasks (⚪)
+2. Checklist items (🔲)
+3. Scheduled tasks (⚪)
+4. Scheduled checklists (🔲)
+5. Completed tasks (⚪)
+6. Completed checklists (🔲)
+7. Cancelled tasks (⚪)
+8. Cancelled checklists (🔲)
+
+### What order will my tasks be in?
+
+This depends on whether you asked for type headings.
+
+#### Combined mode + type headings (typical `/ts` choice)
+
+You get the 4 headings above. **Within each heading:**
+
+1. All ⚪ circle tasks appear first, sorted by your chosen order (for example priority, then text).
+2. All 🔲 box tasks appear after them, also sorted.
+
+Circle and box tasks are **not** mixed by priority. A high-priority 🔲 item still appears **below** all ⚪ items in that section.
+
+Example after sorting by priority with headings on:
+
 ```text
 ### Open Tasks:
-* !!! high priority open task
-+ !! medium priority checklist item
-* ! low priority open task
-+ another checklist item
+⚪ !!! High priority work task
+⚪ !! Completed work task
+⚪ ! Low priority work task
+⚪ nothing
+🔲 !!! foo box
 
 ### Completed Tasks:
-* [x] completed task @done(2025-11-06)
-+ [x] completed checklist @done(2025-11-06)
+⚪ [x] completed task
 ```
 
-### Separated Mode (Traditional)
-Keeps all 8 task types completely separate:
-1. Open tasks (`*`)
-2. Checklist items (`+`)
-3. Scheduled tasks (`* [>]`)
-4. Scheduled checklists (`+ [>]`)
-5. Done tasks (`* [x]`)
-6. Done checklists (`+ [x]`)
-7. Cancelled tasks (`* [-]`)
-8. Cancelled checklists (`+ [-]`)
+#### Combined mode + no type headings
 
-**Result**: 8 separate sections (can be verbose for notes with mixed task types)
+Tasks are sorted **together** - ⚪ and 🔲 in one list by your sort order (priority, tags, and so on). A 🔲 item can appear between ⚪ items when its priority warrants it. No `### Open Tasks` style headings are added.
 
-### How to Control Task Grouping
-- **Interactive (`/ts`)**: Will prompt you to choose each time
-- **Quick Commands (`/tsd`, `/tsm`, `/tst`, `/tsc`)**: Set in Plugin Preferences → "Combine Related Task Types?"
-- **Via x-callback URL** (command **Sort tasks on the page** only): use `arg4` — `true` to combine related task types, `false` for eight separate groups (see [X-callback URL examples](#x-callback-url-examples))
-- **Default**: Combined mode (interleaving enabled)
+#### Traditional mode + type headings
+
+Up to **8** headings. Circle tasks only under circle headings; box tasks only under box headings. Nothing is mixed across those types.
+
+#### Traditional mode + no type headings
+
+Still 8 separate types internally, written in the plugin's default order, without type headings.
+
+### How to control grouping
+
+- **Interactive (`/ts`):** You are asked about combining and headings each time.
+- **Quick commands (`/tsd`, `/tsm`, `/tst`, `/tsc`):** Plugin Preferences → **"Combine Related Task Types?"**
+- **X-callback** (**Sort tasks on the page**): **`arg4`** - `true` = combined, `false` = eight separate groups.
+- **Sort under heading (`/tsh`):** **`arg3`** - same combine setting for that one section.
+- **Default:** Combined mode on.
 
 ## Customization Options
 
@@ -71,16 +118,16 @@ Keeps all 8 task types completely separate:
 You can customize the text used for each task type heading in Plugin Preferences:
 
 **Headings used when COMBINING task types** (recommended mode):
-- **Open Tasks** → includes both `*` tasks and `+` checklist items (e.g., "Tareas Abiertas" in Spanish)
-- **Scheduled Tasks** → includes both `* [>]` and `+ [>]` items (e.g., "Tâches Planifiées" in French)
-- **Completed Tasks** → includes both `* [x]` and `+ [x]` items (e.g., "已完成" in Chinese)
-- **Cancelled Tasks** → includes both `* [-]` and `+ [-]` items
+- **Open Tasks** → includes both ⚪ circle tasks and 🔲 box checklist items (e.g., "Tareas Abiertas" in Spanish)
+- **Scheduled Tasks** → includes both ⚪ and 🔲 scheduled items (e.g., "Tâches Planifiées" in French)
+- **Completed Tasks** → includes both ⚪ and 🔲 completed items (e.g., "已完成" in Chinese)
+- **Cancelled Tasks** → includes both ⚪ and 🔲 cancelled items
 
 **Additional headings used ONLY in traditional mode** (8 separate sections):
-- **Checklist Items** → for `+` items only (e.g., "Lista de Verificación")
-- **Scheduled Checklist Items** → for `+ [>]` items only
-- **Completed Checklist Items** → for `+ [x]` items only
-- **Cancelled Checklist Items** → for `+ [-]` items only
+- **Checklist Items** → for 🔲 open checklists only (e.g., "Lista de Verificación")
+- **Scheduled Checklist Items** → for 🔲 scheduled checklists only
+- **Completed Checklist Items** → for 🔲 completed checklists only
+- **Cancelled Checklist Items** → for 🔲 cancelled checklists only
 
 **To customize:**
 1. Open Plugin Preferences for Task Sorting
@@ -123,12 +170,13 @@ noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sor
 noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sort%20tasks%20on%20the%20page&arg0=false&arg1=-priority,content&arg2=false&arg3=false&arg4=true&arg5=true
 ```
 
-**New Feature: Task Type Interleaving (Default Behavior)**
-- **By default**, tasks are interleaved: compatible task types are combined and sorted together by priority
-- Within each priority level, open tasks appear before checklists
-- This allows tasks to be sorted by priority first, then by type (open before checklist)
+**Combined with headings (`arg4=true`, `arg2=true`):** Four section headings; within each section, all ⚪ circle tasks then all 🔲 box tasks. See [What order will my tasks be in?](#what-order-will-my-tasks-be-in).
 
-**Sorting behavior (same ideas as `arg5` and `arg4` above):**
+**Combined without headings (`arg4=true`, `arg2=false`):** ⚪ and 🔲 sorted in one list by your sort order; no type headings added.
+
+**Traditional (`arg4=false`):** Eight separate groups; with headings on, circle and box each get their own heading.
+
+**Sorting scope (`arg5`):**
 - **`arg5` true** (typical): Sort within each heading. Tasks stay under the heading they were under, but order changes inside that section.
 - **`arg5` false**: One sort for the whole note; open tasks can move to the very top of the note.
 - **Traditional eight-way grouping**: set **`arg4` false** (separate open vs checklist sections, etc.).

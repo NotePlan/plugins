@@ -89,7 +89,7 @@ export function JSP(obj: any, space: string | number = 2): string {
         if (Array.isArray(obj[propName])) {
           try {
             if (PARAM_BLACKLIST.indexOf(propName) === -1) {
-              acc[propName] = obj[propName].map((x) => {
+              acc[propName] = obj[propName].map((x: any) => {
                 if (typeof x === 'object' && !(x instanceof Date)) {
                   return JSP(x, '')
                 } else {
@@ -236,7 +236,7 @@ export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<s
       return newObj // Changed from non-object to object
     }
 
-    const differences = {}
+    const differences: { [string]: any } = {}
     const keys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)])
 
     for (const key of keys) {
@@ -308,7 +308,7 @@ export function deepCompare(value1: any, value2: any, path: string): void {
  * @returns {Object|null} - An object representing the differences or null if no differences.
  */
 function getObjectDiff(obj1: any, obj2: any): DiffObject | null {
-  const diff = {}
+  const diff: { [string]: any } = {}
 
   const keys = new Set([...Object.keys(obj1), ...Object.keys(obj2)])
 
@@ -349,7 +349,7 @@ function getObjectDiff(obj1: any, obj2: any): DiffObject | null {
  * @returns {Array|null} - An array representing the differences or null if no differences.
  */
 function getArrayDiff(arr1: Array<any>, arr2: Array<any>): DiffArray | null {
-  const diff = []
+  const diff: DiffArray = []
 
   const maxLength = Math.max(arr1.length, arr2.length)
 
@@ -415,8 +415,9 @@ export function getDiff(data1: any, data2: any): ?(DiffObject | DiffArray | { be
  * @example clof({ foo: { bar: [{ willPrint: 1, ignored:2 }] } }, 'Goes deep as long as it finds a matching field', ['foo', 'bar', 'willPrint'], false)
  */
 export function clof(obj: any, preamble: string = '', fields: ?Array<string> | string = null, compactMode: ?boolean = false): void {
+  const fieldList: ?Array<string> = fields == null ? null : typeof fields === 'string' ? [fields] : fields
   const topLevelIsArray = Array.isArray(obj)
-  const copy = deepCopy(obj, fields?.length ? fields : null, true)
+  const copy = deepCopy(obj, fieldList?.length ? fieldList : null, true)
   const topLevel = topLevelIsArray ? Object.keys(copy).map((k) => copy[k]) : copy
   if (Array.isArray(topLevel)) {
     if (topLevel.length === 0) {
@@ -429,8 +430,8 @@ export function clof(obj: any, preamble: string = '', fields: ?Array<string> | s
     })
     logDebug(`${preamble}: ^^^`)
   } else {
-    if (topLevel === {}) {
-      const keycheck = fields ? ` for fields: [${fields.join(', ')}] - all other properties are pruned` : ''
+    if (Object.keys(topLevel).length === 0) {
+      const keycheck = fieldList?.length ? ` for fields: [${fieldList.join(', ')}] - all other properties are pruned` : ''
       logDebug(`${preamble}: {} (no data${keycheck})`)
     } else {
       logDebug(`${preamble}:\n`, compactMode ? JSON.stringify(topLevel) : JSON.stringify(topLevel, null, 2))
@@ -454,7 +455,10 @@ export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string
  * @returns {Array<string>}
  * @reference https://stackoverflow.com/questions/59228638/console-log-an-object-does-not-log-the-method-added-via-prototype-in-node-js-c
  */
-export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array<string> {
+// Note: the indexer is covariant (`+`) because this only ever *reads* property names. An
+// invariant indexer would reject every concretely-typed object (e.g. a backlink), since
+// `string` is not interchangeable with `mixed` for a writable property.
+export function getAllPropertyNames(inObj: interface { +[string]: mixed }): Array<string> {
   // CRITICAL: Check for null/undefined before processing (typeof null === 'object' in JavaScript!)
   if (inObj === null || inObj === undefined) {
     return []
@@ -531,7 +535,8 @@ export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string =
 
   // Handle Date
   if (value instanceof Date) {
-    return new Date(value.getTime())
+    // Cast: the copy is the same type as the input, but Flow cannot see that through T.
+    return ((new Date(value.getTime()): any): T)
   }
 
   // Handle Array
@@ -539,7 +544,7 @@ export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string =
     const arrayCopy = value.map((item: any) => deepCopy(item, propsToInclude, showIndices))
     if (showIndices) {
       // Convert array to object with index keys for stringification
-      const objectWithIndices = {}
+      const objectWithIndices: { [string]: any } = {}
       arrayCopy.forEach((item: any, index: number) => {
         objectWithIndices[`[${index}]`] = item
       })
@@ -550,7 +555,7 @@ export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string =
   }
 
   // Handle Object (including objects with prototype properties)
-  const copy = {}
+  const copy: { [string]: any } = {}
   const propNames = propsToInclude || Object.keys(value)
   for (const key of propNames) {
     if (propsToInclude ? propsToInclude.includes(key) : true) {
@@ -609,6 +614,21 @@ const _message = (message: any): string => {
   }
 
   return logMessage
+}
+
+/**
+ * Fold any trailing log arguments into the message string.
+ * The log* functions used to accept only (pluginInfo, message), so a call like
+ * `logDebug('Foo', 'bar:', someObject)` silently dropped `someObject`. They now take a rest
+ * param and append it here, matching what helpers/react/reactDev.js has always done.
+ * @author @dwertheimer
+ * @param {any} message the original second argument
+ * @param {Array<any>} args any further arguments the caller supplied
+ * @returns {any} the message unchanged when there are no extra args, else a combined string
+ */
+const _withExtraArgs = (message: any, args: Array<any>): any => {
+  if (!args || args.length === 0) return message
+  return [_message(message), ...args.map(_message)].filter((part) => part !== '').join(' ')
 }
 
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
@@ -720,7 +740,9 @@ function getPluginSettingsForLogging(): any {
  */
 export const shouldOutputForLogLevel = (logType: string): boolean => {
   // Default DEBUG so early logs are not dropped while DataStore.settings is still unresolved or _logLevel is unset.
-  let userLogLevel = 0
+  // Note: `number | string` because _logLevel can be either ('DEBUG' or an index) — the branch
+  // below already handles both.
+  let userLogLevel: number | string = 0
   const thisMessageLevel = LOG_LEVELS.indexOf(logType.toUpperCase())
   const pluginSettings = getPluginSettingsForLogging()
   // Note: Performing a null change against a value that is `undefined` will be true
@@ -826,12 +848,12 @@ export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): 
  * @param {any} message
  * @returns {string}
  */
-export function logError(pluginInfo: any, error?: any): string {
+export function logError(pluginInfo: any, error?: any, ...args: Array<any>): string {
   if (typeof error === 'object' && error != null) {
     const msg = `${error.filename ?? '<unknown file>'} ${error.lineNumber ?? '<unkonwn line>'}: ${error.message}`
-    return log(pluginInfo, msg, 'ERROR')
+    return log(pluginInfo, _withExtraArgs(msg, args), 'ERROR')
   }
-  return log(pluginInfo, error, 'ERROR')
+  return log(pluginInfo, _withExtraArgs(error, args), 'ERROR')
 }
 
 /**
@@ -841,8 +863,8 @@ export function logError(pluginInfo: any, error?: any): string {
  * @param {any} message
  * @returns {string}
  */
-export function logWarn(pluginInfo: any, message: any = ''): string {
-  return log(pluginInfo, message, 'WARN')
+export function logWarn(pluginInfo: any, message: any = '', ...args: Array<any>): string {
+  return log(pluginInfo, _withExtraArgs(message, args), 'WARN')
 }
 
 /**
@@ -852,8 +874,8 @@ export function logWarn(pluginInfo: any, message: any = ''): string {
  * @param {any} message
  * @returns {string}
  */
-export function logInfo(pluginInfo: any, message: any = ''): string {
-  return log(pluginInfo, message, 'INFO')
+export function logInfo(pluginInfo: any, message: any = '', ...args: Array<any>): string {
+  return log(pluginInfo, _withExtraArgs(message, args), 'INFO')
 }
 
 /**
@@ -864,8 +886,8 @@ export function logInfo(pluginInfo: any, message: any = ''): string {
  * @param {any} message
  * @returns {string}
  */
-export function logDebug(pluginInfo: any, message: any = ''): string {
-  return log(pluginInfo, message, 'DEBUG')
+export function logDebug(pluginInfo: any, message: any = '', ...args: Array<any>): string {
+  return log(pluginInfo, _withExtraArgs(message, args), 'DEBUG')
 }
 
 /**
@@ -937,7 +959,7 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
   try {
     // Parse argsAsJSON (if any) into argObj using JSON
     if (argsAsString) {
-      const argObj = {}
+      const argObj: { [string]: string } = {}
       argsAsString.split(';').forEach((arg) => {
         if (arg.split('=').length === 2) {
           let key = arg.split('=')[0].trim()
@@ -951,7 +973,8 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
 
       // Attempt to change arg values that are numerics or booleans to the right types, otherwise they will stay as strings
       for (const key in argObj) {
-        let value = argObj[key].trim()
+        // Deliberately re-typed below: string args are coerced to number/boolean/array.
+        let value: any = argObj[key].trim()
         logDebug(`dev.js`, `overrideSettingsWithStringArgs key:${key} value:${argObj[key]} typeof:${typeof argObj[key]} !isNaN(${value}):${String(!isNaN(argObj[key]))}`)
         if (!isNaN(value) && value !== '') {
           // Change to number type

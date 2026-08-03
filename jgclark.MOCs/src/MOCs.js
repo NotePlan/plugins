@@ -176,12 +176,13 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
         logDebug('makeMOC', `- after matchWholeWords,  ${results.length} matches for [${searchTerm}]`)
       }
 
-      const resultNotes = results.map((r) => r.note)
+      // Cast: TParagraph.note is nullable, but a search result always comes from a note.
+      // (The $FlowFixMe just below has long acknowledged the same assumption.)
+      const resultNotes: Array<TNote> = (results.map((r) => r.note): any)
       if (resultNotes.length > 0) {
         // dedupe results by making and unmaking it into a set
         let uniqNotes = resultNotes.filter((noteToUse, index, self) =>
           index === self.findIndex((t) => (
-            // $FlowFixMe[incompatible-use]
             t.filename === noteToUse.filename
           ))
         )
@@ -195,11 +196,9 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
             uniqNotes.sort((a, b) => (displayTitle(a).toUpperCase() < displayTitle(b).toUpperCase() ? -1 : 1))
             break
           case 'createdDate':
-            // $FlowFixMe[incompatible-use]
             uniqNotes.sort((a, b) => (a.createdDate > b.createdDate ? -1 : 1))
             break
           default: // updatedDate
-            // $FlowFixMe[incompatible-use]
             uniqNotes.sort((a, b) => (a.changedDate > b.changedDate ? -1 : 1))
             break
         }

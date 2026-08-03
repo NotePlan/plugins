@@ -2,7 +2,6 @@
 
 const pluginJson = '@helpers/openAI.js'
 import { log, logError, logWarn, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { getSettings } from '@helpers/NPConfiguration'
 import { getInput, showMessage } from '@helpers/userInput'
 
 // @flow
@@ -15,7 +14,7 @@ const BASE_URL = 'https://api.openai.com/v1'
 const TOKEN_LIMIT = 3000 // tokens per request (actually 3072)
 const MAX_RETRIES = 5 // number of times to retry a request if it fails
 const CHAT_COMPONENT = 'chat/completions'
-const MODEL_COST = { 'gpt-4': { inputCost: 0.03 / 1000, outputCost: 0.06 / 1000 }, 'gpt-3.5-turbo': { inputCost: 0.0015 / 1000, outputCost: 0.002 / 1000 } }
+const MODEL_COST: { [string]: { inputCost: number, outputCost: number } } = { 'gpt-4': { inputCost: 0.03 / 1000, outputCost: 0.06 / 1000 }, 'gpt-3.5-turbo': { inputCost: 0.0015 / 1000, outputCost: 0.002 / 1000 } }
 
 /****************************************************************************************************************************
  *                             TYPES
@@ -238,18 +237,10 @@ export async function getOpenAIKey(): Promise<string | null> {
 
     if (!key) {
       logDebug(pluginJson, `No OpenAI key in this plugin's settings`)
-      // next check AI plugin
-      const settings = await getSettings('shared.AI', null)
-      if (settings) {
-        key = settings.apiKey
-      }
+      // ask user
+      key = await getInput('OpenAI API Key', 'OK', 'Enter Key', '')
       if (!key) {
-        logDebug(pluginJson, `No OpenAI key in shared.AI plugin`)
-        // finally, ask user
-        key = await getInput('OpenAI API Key', 'OK', 'Enter Key', '')
-      }
-      if (!key) {
-        logError(pluginJson, `Tried 3x to get API Key but was set to null`)
+        logError(pluginJson, `Tried to get API Key but was set to null`)
       }
     }
   }
@@ -266,7 +257,9 @@ export async function getOpenAIKey(): Promise<string | null> {
  * Returns object of the request and the response (so it can be used and saved for caching)
  * @returns {Promise<{request: ChatObject, response: ChatResponse | null}} API result JSON response or null
  */
-export async function makeOneShotChatRequest(SYSTEM_MESSAGE: string, userPrompt: string, model?: string): Promise<{ request: ChatObject, response: ChatResponse | null }> {
+// newChatObject() returns ChatObject | null (it returns null when no model is configured),
+// so the declared request type has to admit it.
+export async function makeOneShotChatRequest(SYSTEM_MESSAGE: string, userPrompt: string, model?: string): Promise<{ request: ChatObject | null, response: ChatResponse | null }> {
   const request = newChatObject(SYSTEM_MESSAGE, userPrompt, model)
   // clo(request, `makeOneShotChatObject: request=`)
   const response = await makeRequest(CHAT_COMPONENT, 'POST', request)

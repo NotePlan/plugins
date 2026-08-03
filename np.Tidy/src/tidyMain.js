@@ -43,7 +43,8 @@ export async function tidyUpAll(): Promise<void> {
     if (config.runRemoveOrphansCommand) {
       CommandBar.showLoading(true, `Tidying up orphaned blockIDs ...`, 0.2)
       logDebug('tidyUpAll', `Starting removeOrphanedBlockIDs...`)
-      await removeOrphanedBlockIDs(config.runSilently)
+      // KNOWN BUG - removeOrphanedBlockIDs() takes an encoded-params *string*, not a boolean. Passing `true` makes it take the `if (params)` branch and call overrideSettingsWithEncodedTypedArgs(config, true), and getTagParamsFromString(true, 'runSilently', false) then can't read runSilently. Should pass '{"runSilently":true}' (or ''), like the other params-taking calls below.
+      await removeOrphanedBlockIDs((config.runSilently: any))
     }
 
     if (config.removeTodayTagsFromCompletedTodos) {
@@ -174,7 +175,6 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
 
     // Now map from paras -> notes and dedupe
     let numToRemove = allMatchedParas.length
-    // $FlowFixMe[incompatible-call]
     const recentMatchedNotes = recentMatchedParas.map((p) => p.note)
     // Dedupe this list
     const dedupedMatchedNotes = [...new Set(recentMatchedNotes)]
@@ -272,7 +272,6 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
 
     // Now map from paras -> notes and dedupe
     let numToRemove = allMatchedParas.length
-    // $FlowFixMe[incompatible-call]
     const recentMatchedNotes = recentMatchedParas.map((p) => p.note)
     // Dedupe this list
     const dedupedMatchedNotes = [...new Set(recentMatchedNotes)]
@@ -447,7 +446,6 @@ export async function removeOrphanedBlockIDs(params: string = ''): Promise<void>
 
     // Use numDays to limit to recent notes, if > 0
     if (config.numDays > 0) {
-      // $FlowFixMe[incompatible-call]
       const allMatchedNotes = parasWithBlockID.map((p) => p.note)
       // logDebug('allMatchedNotes', String(allMatchedNotes.length))
       const recentMatchedNotes = getNotesChangedInIntervalFromList(allMatchedNotes.filter(Boolean), config.numDays ?? 0)

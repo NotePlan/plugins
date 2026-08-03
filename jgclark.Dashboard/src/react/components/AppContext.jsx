@@ -12,6 +12,8 @@
 import React, { createContext, useContext, useEffect, useReducer, useRef, useMemo, type Node } from 'react'
 // import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import type { TDashboardSettings, TReactSettings, TPluginData, TPerspectiveSettings } from '../../types'
+import type { TDashboardSettingsAction } from '../reducers/dashboardSettingsReducer'
+import type { TPerspectiveSettingsAction } from '../reducers/perspectiveSettingsReducer'
 import { dashboardSettingsReducer } from '../reducers/dashboardSettingsReducer'
 import { perspectiveSettingsReducer } from '../reducers/perspectiveSettingsReducer'
 import { useSyncDashboardSettingsWithPlugin } from '../customHooks/useSyncDashboardSettingsWithPlugin'
@@ -32,9 +34,11 @@ export type AppContextType = {
   setReactSettings: (any) => void,
   updatePluginData: (newData: TPluginData, messageForLog?: string) => void,
   dashboardSettings: TDashboardSettings,
-  dispatchDashboardSettings: (action: { type: string, payload?: any, reason?: string }) => void,
+  // These are the raw useReducer() dispatchers, so they must be typed with the reducers' own action types:
+  // an { type: string, payload?: any } shape is contravariantly incompatible (it would let a caller omit `payload`).
+  dispatchDashboardSettings: (action: TDashboardSettingsAction) => void,
   perspectiveSettings: TPerspectiveSettings,
-  dispatchPerspectiveSettings: (action: { type: string, payload?: any, reason?: string }) => void,
+  dispatchPerspectiveSettings: (action: TPerspectiveSettingsAction) => void,
 }
 
 type Props = {
@@ -46,15 +50,19 @@ type Props = {
  ****************************************************************************************************************************/
 
 // Default context value with initial reactSettings and functions.
+// Note: `pluginData` and `dashboardSettings` are deliberately empty placeholders — React replaces
+// this whole object with the provider's value on the first render. They are cast rather than
+// filled in because a bare `{}` is checked against every required property of TPluginData /
+// TDashboardSettings, one error each (136 from these two lines).
 const defaultContextValue: AppContextType = {
   sendActionToPlugin: () => {},
   sendToPlugin: () => {},
   dispatch: () => {},
-  pluginData: {}, // TEST: removal of settings in here
+  pluginData: ({}: any), // TEST: removal of settings in here
   reactSettings: {}, // Initial empty reactSettings local
   setReactSettings: () => {},
   updatePluginData: () => {}, // Placeholder function, actual implementation below.
-  dashboardSettings: {},
+  dashboardSettings: ({}: any),
   dispatchDashboardSettings: () => {},
   perspectiveSettings: [],
   dispatchPerspectiveSettings: () => {},

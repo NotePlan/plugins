@@ -22,12 +22,12 @@ export function logAllEnvironmentSettings(): void {
 /**
  * Choose a plugin command to run, and return the XCallbackURL for it
  * @param {boolean} showInstalledOnly - if true, only show installed plugins
- * @param {RegExp} filterCommandRegex - if provided, only show commands that match the regex
+ * @param {?RegExp} filterCommandRegex - if provided, only show commands that match the regex
  * @returns {boolean | { url: string, pluginID: string, command: string, args: Array<string> }} - false if user cancels, otherwise the XCallbackURL for the chosen command
  */
 export async function chooseRunPluginXCallbackURL(
   showInstalledOnly: boolean = true,
-  filterCommandRegex: RegExp = null,
+  filterCommandRegex: ?RegExp = null,
 ): Promise<boolean | { url: string, pluginID: string, command: string, args: Array<string> }> {
   const plugins = showInstalledOnly ? await DataStore.installedPlugins() : await DataStore.listPlugins(true)
 
@@ -37,7 +37,6 @@ export async function chooseRunPluginXCallbackURL(
       plugin.commands?.forEach((command) => {
         const show = `${command.name} (${plugin.name})`
         if (filterCommandRegex && !filterCommandRegex.test(show)) return
-        // $FlowIgnore
         commandMap.push({
           name: command.name,
           description: command.desc,
@@ -50,7 +49,8 @@ export async function chooseRunPluginXCallbackURL(
     }
   })
   commandMap = commandMap.sort((a, b) => a.label.localeCompare(b.label))
-  const chosenID = await chooseOption('Which command?', commandMap, '__NONE__')
+  // cast: commandMap entries carry extra keys (name/description/command/plugin) used below, and Option<T> is an exact object type
+  const chosenID = await chooseOption('Which command?', (commandMap: any), '__NONE__')
   logDebug(`NPdev::chooseRunPluginXCallbackURL`, `chosen: ${chosenID}`)
   const chosenCommand = commandMap.find((command) => command.value === chosenID)
   const command = chosenCommand?.command?.name

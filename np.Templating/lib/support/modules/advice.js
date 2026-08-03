@@ -16,6 +16,6 @@ export async function getAdvice(): Promise<string> {
 
 import affirmations from './data/affirmations'
 
-export function getAffirmation() {
+export function getAffirmation(): string {
   return affirmations[Math.floor(Math.random() * affirmations.length)]
 }

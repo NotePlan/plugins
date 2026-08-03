@@ -100,9 +100,9 @@ export const extractExpenseRowFromCsvRow = (row: string, config: Config): Expens
  */
 export const aggregateByCategoriesAndMonth = (values: ExpenseTrackingRow[],
                                               delimiter: string): ExpenseAggregateRow[] => {
-  const getGroupIdentifier = (row) => `${getMonth(row.date)}${delimiter}${row.category}`
+  const getGroupIdentifier = (row: any) => `${getMonth(row.date)}${delimiter}${row.category}`
 
-  return [ ...values.reduce((sum, row) => {
+  return [ ...values.reduce((sum: any, row: any) => {
     const identifier = getGroupIdentifier(row)
 
     const temp = sum.get(identifier) || {

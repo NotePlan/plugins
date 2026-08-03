@@ -41,7 +41,7 @@ describe('npBridgeResolve', () => {
 
   test('awaitTopLevelApiProp invokes method with namespace as this', async () => {
     const Calendar = {
-      items: function () {
+      items: function (this: { _items: Array<number> }) {
         return this._items
       },
       _items: [1, 2],

@@ -170,9 +170,9 @@ const DropdownSelect = ({
 
   /**
    * Assigns the input element to both the local ref and an optional parent inputRef.
-   * @param {?HTMLInputElement} el - The input DOM node
+   * @param {HTMLInputElement | null} el - The input DOM node
    */
-  const setInputRefs = (el: ?HTMLInputElement) => {
+  const setInputRefs = (el: HTMLInputElement | null) => {
     localInputRef.current = el
     if (inputRef) {
       inputRef.current = el

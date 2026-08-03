@@ -37,7 +37,15 @@ export function cleanErrorMessage(errorMessage: string): string {
  * @param {string} processedTemplateData - The processed template data
  * @returns {{contextLines: string, lineInfo: string, adjustedLine: number}} Error context information
  */
-export function extractErrorContext(error: Error, processedTemplateData: string): { contextLines: string, lineInfo: string, adjustedLine: number } {
+/**
+ * An error thrown by the EJS renderer. Beyond the standard Error shape it carries the line and
+ * column in the template where rendering failed, which is what this module reports on.
+ */
+// NOTE: the second half of the intersection is an `interface`, not an object type. Callers pass a plain
+// `Error` (a class instance), and class instances are not subtypes of object types under exact_by_default.
+type TTemplateRenderError = Error & interface { line?: number, column?: number }
+
+export function extractErrorContext(error: TTemplateRenderError, processedTemplateData: string): { contextLines: string, lineInfo: string, adjustedLine: number } {
   let contextLines = ''
   let lineInfo = ''
   let adjustedLine = -1
@@ -45,7 +53,7 @@ export function extractErrorContext(error: Error, processedTemplateData: string)
   // Extract line and column for better error context
   if (error?.line) {
     // Adjust the line number offset - EJS adds boilerplate code at the top
-    adjustedLine = error.line - 7 // Assuming 7 lines of boilerplate
+    adjustedLine = Number(error.line) - 7 // Assuming 7 lines of boilerplate
     lineInfo = `Line: ${adjustedLine}`
 
     if (error?.column) {
@@ -66,7 +74,7 @@ export function extractErrorContext(error: Error, processedTemplateData: string)
 
         if (error.column && adjustedLine - 1 < templateLines.length) {
           const errorLineText = templateLines[adjustedLine - 1] || ''
-          const columnMarker = '   ' + ' '.repeat(String(adjustedLine).length + 2) + ' '.repeat(Math.min(error.column, errorLineText.length)) + '^'
+          const columnMarker = '   ' + ' '.repeat(String(adjustedLine).length + 2) + ' '.repeat(Math.min((error.column: any), errorLineText.length)) + '^'
           contextLines += `${columnMarker}\n`
         }
       } catch (e) {
@@ -123,10 +131,11 @@ export function buildBasicErrorMessage(errorMessage: string, lineInfo: string, c
  * @returns {string} Error message with previous phase errors appended
  */
 export function appendPreviousPhaseErrorsToError(
-  result: string,
+  _result: string,
   previousPhaseErrors: Array<{ phase: string, error: string, context: string }>,
   sectionTitle: string = 'Errors from previous rendering phases:',
 ): string {
+  let result = _result
   if (previousPhaseErrors && previousPhaseErrors.length > 0) {
     result += `\n**${sectionTitle}**\n`
     previousPhaseErrors.forEach((err) => {

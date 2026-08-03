@@ -26,27 +26,29 @@ describe.skip('DropdownMenu Component', () => {
   let mockHandleSaveInput
 
   const defaultProps = {
-    sectionItems: [],
-    otherItems: [],
-    handleSwitchChange: jest.fn(),
-    handleInputChange: jest.fn(),
-    handleComboChange: jest.fn(),
-    handleSaveInput: jest.fn(),
-    onSaveChanges: jest.fn(),
+    // Annotated: DropdownMenu takes Array<TSettingItem> for both, and a bare [] has an
+    // unknown element type that no TSettingItem can satisfy (18 errors from these two lines).
+    sectionItems: ([]: Array<TSettingItem>),
+    otherItems: ([]: Array<TSettingItem>),
+    handleSwitchChange: jest.fn<Array<any>, any>(),
+    handleInputChange: jest.fn<Array<any>, any>(),
+    handleComboChange: jest.fn<Array<any>, any>(),
+    handleSaveInput: jest.fn<Array<any>, any>(),
+    onSaveChanges: jest.fn<Array<any>, any>(),
     iconClass: 'fa-solid fa-filter',
     className: '',
     labelPosition: 'right',
     isOpen: false,
-    toggleMenu: jest.fn(),
+    toggleMenu: jest.fn<Array<any>, any>(),
   }
 
   beforeEach(() => {
-    mockOnSaveChanges = jest.fn()
-    mockToggleMenu = jest.fn()
-    mockHandleSwitchChange = jest.fn()
-    mockHandleInputChange = jest.fn()
-    mockHandleComboChange = jest.fn()
-    mockHandleSaveInput = jest.fn()
+    mockOnSaveChanges = jest.fn<Array<any>, any>()
+    mockToggleMenu = jest.fn<Array<any>, any>()
+    mockHandleSwitchChange = jest.fn<Array<any>, any>()
+    mockHandleInputChange = jest.fn<Array<any>, any>()
+    mockHandleComboChange = jest.fn<Array<any>, any>()
+    mockHandleSaveInput = jest.fn<Array<any>, any>()
   })
 
   afterEach(() => {

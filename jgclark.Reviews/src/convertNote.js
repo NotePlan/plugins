@@ -198,7 +198,23 @@ export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> 
     const sequentialDescription = `The marker to identify sequential projects. If this appears in a project's frontmatter 'project' attribute, or the metadata line, the first open task/checklist will be shown as a next action.`
     const sequentialFieldOffered = sequentialTagSetting !== ''
 
-    const fields: Array<{ [string]: mixed }> = [
+    // Note: `min`/`max` are accepted at runtime by CommandBar.showForm for number fields, but are not (yet) in its flow-typed signature
+    type ConvertToProjectFormField = {
+      type: string,
+      key: string,
+      title: string,
+      label?: string,
+      placeholder?: string,
+      default?: string | number | boolean,
+      required?: boolean,
+      description?: string,
+      format?: string,
+      choices?: $ReadOnlyArray<string>,
+      boxHeight?: number,
+      min?: number,
+      max?: number,
+    }
+    const fields: Array<ConvertToProjectFormField> = [
       { type: 'string', key: 'projectTag', title: 'Project type tag', choices: tagChoices, default: defaultTag, required: true },
       { type: 'date', key: 'startDate', title: 'Start date', description: 'Project start date', default: todayIso, required: false },
       { type: 'date', key: 'dueDate', title: 'Due date (optional)', description: 'Target completion date', required: false },
@@ -253,6 +269,9 @@ export async function convertToProject(noteArg?: CoreNoteFields): Promise<void> 
     const formResult = await CommandBar.showForm({
       title: `Convert '${displayTitle(resolvedNote)}' to a Project`,
       submitText: 'Convert',
+      // Safe: as noted above, `min`/`max` are accepted at runtime for number fields, but the `fields` element type in flow-typed/Noteplan.js is an
+      // exact object that doesn't list them yet, so Flow rejects them as extra props. Nothing here is unsound.
+      // $FlowIgnore[prop-missing]
       fields,
     })
 

@@ -41,18 +41,12 @@ export type GroupedTasks = {
   text: Array<SortableParagraphSubset>,
   code: Array<SortableParagraphSubset>,
   separator: Array<SortableParagraphSubset>, */,
+  // Indexer: callers iterate TASK_TYPES and index dynamically (`tasks[taskType]`).
+  [string]: Array<SortableParagraphSubset>,
 }
 
-export type ParagraphsGroupedByType = {
-  open?: ?Array<TParagraph>,
-  scheduled?: ?Array<TParagraph>,
-  cancelled?: ?Array<TParagraph>,
-  done?: ?Array<TParagraph>,
-  checklist?: ?Array<TParagraph>,
-  checklistDone?: ?Array<TParagraph>,
-  checklistCancelled?: ?Array<TParagraph>,
-  checklistScheduled?: ?Array<TParagraph>,
-}
+/** Sorted/grouped task buckets produced by TaskSorting (always SortableParagraphSubset elements). */
+export type ParagraphsGroupedByType = GroupedTasks
 
 const RE_HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
 const RE_MENTIONS: RegExp = /\B@([a-zA-Z0-9\/]+\b)/g
@@ -272,8 +266,9 @@ export function getSortableTask(para: TParagraph): SortableParagraphSubset {
  * @returns {GroupedTasks} - object of tasks by type {'open':[], 'scheduled'[], 'done':[], 'cancelled':[], etc.}
  */
 export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreIndents: boolean = false, useCalculatedScheduled: boolean = false): GroupedTasks {
-  const tasks = TASK_TYPES.reduce((acc, t) => ({ ...acc, ...{ [t]: [] } }), {})
-  let lastParent = { indents: 999, children: [] }
+  const tasks: GroupedTasks = (TASK_TYPES.reduce((acc, t) => ({ ...acc, ...{ [t]: [] } }), {}): any)
+  // cast: this sentinel is a stand-in for a SortableParagraphSubset (only .indents and .children are read before it is replaced by a real one below)
+  let lastParent: SortableParagraphSubset = ({ indents: 999, children: [] }: any)
   // clo(paragraphs, 'getTasksByType')
   for (let index = 0; index < paragraphs.length; index++) {
     const para = paragraphs[index]
@@ -286,7 +281,8 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
         if (!ignoreIndents && para.indents > lastParent.indents) {
           lastParent.children.push(task)
         } else {
-          const ct = useCalculatedScheduled ? task.calculatedType : task.type // will always be the same as para.type except in case of scheduled
+          // cast: para types are plain strings, but they are used here to index GroupedTasks, so declare the narrower key type (guarded by the `tasks[ct]` test below)
+          const ct: $Keys<GroupedTasks> = ((useCalculatedScheduled ? task.calculatedType : task.type): any) // will always be the same as para.type except in case of scheduled
           if (ct && tasks[ct]) {
             const len = tasks[ct].push(task)
             lastParent = tasks[ct][len - 1]
@@ -302,6 +298,5 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
 
   // logDebug('getTasksByType', `\tgetTasksByType Open Tasks:${String(tasks.open.length)} returning from getTasksByType`)
   // logDebug('getTasksByType', `\tgetTasksByType Open Checklists:${String(tasks.checklist.length)} returning from getTasksByType`)
-  // $FlowFixMe - Flow doesn't like that I am ensuring that all the keys are in the object using reduce above
   return tasks
 }

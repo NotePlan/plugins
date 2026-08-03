@@ -13,7 +13,7 @@ import { CustomConsole } from '@jest/console'
 import { simpleFormatter, DataStore, NotePlan, Editor, CommandBar } from '@mocks/index'
 
 global.NotePlan = new NotePlan()
-// $FlowIgnore[prop-missing]
+// $FlowIgnore[cannot-write]
 globalThis.NotePlan = global.NotePlan
 global.DataStore = DataStore
 global.Editor = Editor
@@ -81,7 +81,6 @@ jest.mock('@helpers/NPEditor', () => ({
 }))
 
 // Mock NPTemplating as a global module alias
-// $FlowIgnore[underconstrained-implicit-instantiation]
 jest.mock(
   'NPTemplating',
   () => {
@@ -119,7 +118,6 @@ beforeAll(() => {
 describe('getRenderContext', () => {
   beforeEach(() => {
     // Reset NPTemplating setup state
-    // $FlowIgnore[prop-missing]
     NPTemplating.templateConfig = null
     DataStore.settings['_logLevel'] = 'none'
   })
@@ -228,7 +226,6 @@ describe('getRenderContext', () => {
       const customMethod = jest.fn().mockReturnValue('test result')
       const userData = {
         methods: {
-          // $FlowIgnore[missing-local-annot]
           calculateTotal: (a: number, b: number) => a + b,
           customMethod,
         },
@@ -250,7 +247,6 @@ describe('getRenderContext', () => {
           value: 100,
         },
         methods: {
-          // $FlowIgnore[missing-local-annot]
           double: (x: number) => x * 2,
         },
       }
@@ -427,10 +423,9 @@ describe('getRenderContext', () => {
   describe('Error handling', () => {
     it('should handle errors gracefully', async () => {
       // Mock NPTemplating.setup to throw an error
-      // $FlowIgnore[cannot-write]
       const originalSetup = NPTemplating.setup
-      // $FlowIgnore[cannot-write,underconstrained-implicit-instantiation]
-      NPTemplating.setup = jest.fn().mockRejectedValue(new Error('Setup failed'))
+      // $FlowIgnore[cannot-write]
+      NPTemplating.setup = jest.fn<Array<any>, any>().mockRejectedValue(new Error('Setup failed'))
 
       await expect(getRenderContext()).rejects.toThrow('Setup failed')
 

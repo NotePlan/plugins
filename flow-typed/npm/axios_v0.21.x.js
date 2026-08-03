@@ -106,7 +106,7 @@ declare module 'axios' {
     ...
   };
 
-  declare type AxiosXHRConfigShape<T, R = T> = $Shape<AxiosXHRConfig<T, R>>;
+  declare type AxiosXHRConfigShape<T, R = T> = Partial<AxiosXHRConfig<T, R>>;
 
   declare type AxiosXHR<T, R = T> = {|
     config: AxiosXHRConfig<T, R>,

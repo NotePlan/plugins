@@ -14,7 +14,7 @@ import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings.j
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import { updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentionCache'
-import type { TDashboardSettings, TPerspectiveDef } from './types'
+import type { TDashboardSettings, TDashboardSettingsIn, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getPeriodOfNPDateStr } from '@helpers/dateTime'
 import { clo, clof, clvt, compareObjects, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
@@ -25,7 +25,9 @@ import { chooseNoteV2 } from '@helpers/NPnote'
 import { backupSettings } from '@helpers/NPConfiguration'
 import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 
-export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
+// `type` marks non-perspective rows the dropdown renders specially (e.g. the '_separator_' option);
+// `isDefault` is set by DynamicDialog's dropdown-select. Both are optional so plain name options still fit.
+export type TPerspectiveOptionObject = { isModified?: boolean, isDefault?: boolean, label: string, value: string, type?: string }
 
 // Re-export for existing importers (PerspectiveSelector, perspectiveClickHandlers, etc.)
 export { cleanDashboardSettingsInAPerspective, removeInvalidTagSections } from './dashboardSettingsClean'
@@ -73,7 +75,6 @@ Named perspectives
 const pluginID = 'jgclark.Dashboard' // pluginJson['plugin.id']
 
 const standardSettings = cleanDashboardSettingsInAPerspective(
-  // $FlowIgnore[incompatible-call]
   [...dashboardSettingDefs, ...dashboardFilterDefs, ...showSectionSettingItems].reduce((acc, s) => {
     if (s.key) {
       // $FlowIgnore[prop-missing]
@@ -107,7 +108,6 @@ export async function getPerspectiveSettingDefaults(): Promise<Array<TPerspectiv
     {
       name: 'Home',
       isModified: false,
-      // $FlowIgnore[incompatible-call]
       dashboardSettings: {
         ...dashboardSettingsWithPerspectiveDefaults,
         includedFolders: 'Home, Family',
@@ -120,7 +120,6 @@ export async function getPerspectiveSettingDefaults(): Promise<Array<TPerspectiv
     {
       name: 'Work',
       isModified: false,
-      // $FlowIgnore[incompatible-call]
       dashboardSettings: {
         ...dashboardSettingsWithPerspectiveDefaults,
         includedFolders: 'Work, Company',
@@ -211,8 +210,6 @@ export async function loadPerspectiveDefsFromPluginSettings(_logAllKeys: boolean
         return []
       }
       const dashboardSettings = await getDashboardSettings()
-      // $FlowFixMe[prop-missing]
-      // $FlowFixMe[incompatible-call]
       defaultPersp.dashboardSettings = { ...defaultPersp.dashboardSettings, ...cleanDashboardSettingsInAPerspective(dashboardSettings, true) }
       perspectiveSettings = replacePerspectiveDef(perspectiveSettings, defaultPersp)
       await savePerspectiveSettings(perspectiveSettings)
@@ -341,28 +338,27 @@ function deletePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, name:
 }
 
 /** Keys omitted when comparing live dashboard settings to a saved perspective def. */
-const PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT: Array<string> = ['lastModified', 'lastChange', 'usePerspectives']
+// Typed as compareObjects()'s `fieldsToIgnore` param type (Array<string | RegExp>) rather than Array<string>: arrays are invariant, so Array<string> is rejected at every call site.
+const PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT: Array<string | RegExp> = ['lastModified', 'lastChange', 'usePerspectives']
 
 /**
  * Diff between a named perspective's saved def and live dashboard settings (null if equivalent).
  * Same rules as `resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload` (defaults, tag sections).
  * @param {TPerspectiveDef} perspectiveDef
- * @param {Partial<TDashboardSettings>} liveDashboardSettings
+ * @param {TDashboardSettingsIn} liveDashboardSettings
  * @returns {?{ [string]: any }}
  */
 export function getPerspectiveLiveVsSavedDiff(
   perspectiveDef: TPerspectiveDef,
-  liveDashboardSettings: Partial<TDashboardSettings>,
+  liveDashboardSettings: TDashboardSettingsIn,
 ): ?{ [string]: any } {
   if (!perspectiveDef || perspectiveDef.name === '-') return null
   const dashboardSettingsDefaults = getDashboardSettingsDefaults()
   const newSettingsWithDefaults = { ...dashboardSettingsDefaults, ...liveDashboardSettings }
   const cleanedDefSettings = cleanDashboardSettingsInAPerspective(perspectiveDef.dashboardSettings || {})
   const activePerspDefDashboardSettingsWithDefaults = { ...dashboardSettingsDefaults, ...cleanedDefSettings }
-  // $FlowFixMe[incompatible-call]
   const cleanedSettings = cleanDashboardSettingsInAPerspective(newSettingsWithDefaults)
   const activePerspDefShowTagSectionKeys = Object.keys(perspectiveDef.dashboardSettings || {}).filter((k) => k.startsWith('showTagSection_'))
-  // $FlowIgnore[prop-missing] - Dynamic property access for tag section keys
   const activePerspDefShowTagSectionObject = activePerspDefShowTagSectionKeys.reduce((acc, k) => {
     acc[k] = perspectiveDef.dashboardSettings[k]
     return acc
@@ -372,7 +368,6 @@ export function getPerspectiveLiveVsSavedDiff(
     ...activePerspDefDashboardSettingsWithDefaults,
     ...activePerspDefShowTagSectionObject,
   }
-  // $FlowFixMe[incompatible-call]
   const cleanedSavedSettings = cleanDashboardSettingsInAPerspective(activePerspDefDashboardSettingsWithDefaultsAndTAGs)
   const diff = compareObjects(cleanedSavedSettings, cleanedSettings, PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT)
   if (diff === null || Object.keys(diff).length === 0) return null
@@ -382,25 +377,25 @@ export function getPerspectiveLiveVsSavedDiff(
 /**
  * Whether live top-level dashboard settings differ from a named perspective's saved def.
  * @param {TPerspectiveDef} perspectiveDef
- * @param {Partial<TDashboardSettings>} liveDashboardSettings
+ * @param {TDashboardSettingsIn} liveDashboardSettings
  * @returns {boolean}
  */
 export function perspectiveDefDiffersFromLiveDashboard(
   perspectiveDef: TPerspectiveDef,
-  liveDashboardSettings: Partial<TDashboardSettings>,
+  liveDashboardSettings: TDashboardSettingsIn,
 ): boolean {
   return getPerspectiveLiveVsSavedDiff(perspectiveDef, liveDashboardSettings) !== null
 }
 
 /**
  * Whether live dashboard settings differ from the baseline snapshot (after switch or Save Perspective).
- * @param {Partial<TDashboardSettings>} baselineDashboardSettings
- * @param {Partial<TDashboardSettings>} liveDashboardSettings
+ * @param {TDashboardSettingsIn} baselineDashboardSettings
+ * @param {TDashboardSettingsIn} liveDashboardSettings
  * @returns {boolean}
  */
 export function liveDashboardDiffersFromBaseline(
-  baselineDashboardSettings: Partial<TDashboardSettings>,
-  liveDashboardSettings: Partial<TDashboardSettings>,
+  baselineDashboardSettings: TDashboardSettingsIn,
+  liveDashboardSettings: TDashboardSettingsIn,
 ): boolean {
   const dashboardSettingsDefaults = getDashboardSettingsDefaults()
   const cleanedLive = cleanDashboardSettingsInAPerspective({ ...dashboardSettingsDefaults, ...liveDashboardSettings })
@@ -419,21 +414,22 @@ export type TIsNamedPerspectiveModifiedOptions = {
  * Display: prefer baseline when set (avoids false `*` after switch when merge carryover ≠ raw def).
  * Save (`forSave: true`): also allow save when live differs from the saved def even if live matches baseline.
  * @param {TPerspectiveDef} perspectiveDef
- * @param {Partial<TDashboardSettings>} liveDashboardSettings
- * @param {Partial<TDashboardSettings>} [dashboardSettingsBaseline] - from pluginData after switch/save
+ * @param {TDashboardSettingsIn} liveDashboardSettings
+ * @param {TDashboardSettingsIn} [dashboardSettingsBaseline] - from pluginData after switch/save
  * @param {TIsNamedPerspectiveModifiedOptions} [options]
  * @returns {boolean}
  */
 export function isNamedPerspectiveModified(
   perspectiveDef: TPerspectiveDef,
-  liveDashboardSettings: Partial<TDashboardSettings>,
-  dashboardSettingsBaseline?: Partial<TDashboardSettings>,
+  liveDashboardSettings: TDashboardSettingsIn,
+  dashboardSettingsBaseline?: TDashboardSettingsIn,
   options?: TIsNamedPerspectiveModifiedOptions,
 ): boolean {
   if (!perspectiveDef || perspectiveDef.name === '-') return false
   if (perspectiveDef.isModified) return true
   const hasBaseline = Boolean(dashboardSettingsBaseline && Object.keys(dashboardSettingsBaseline).length > 0)
-  const differsFromBaseline = hasBaseline && liveDashboardDiffersFromBaseline(dashboardSettingsBaseline, liveDashboardSettings)
+  // Cast: `hasBaseline` already proves dashboardSettingsBaseline is set, but Flow does not refine a maybe-type through a separate Boolean() variable.
+  const differsFromBaseline = hasBaseline && liveDashboardDiffersFromBaseline((dashboardSettingsBaseline: any), liveDashboardSettings)
   const differsFromDef = perspectiveDefDiffersFromLiveDashboard(perspectiveDef, liveDashboardSettings)
   if (options?.forSave) {
     return differsFromBaseline || differsFromDef
@@ -606,7 +602,8 @@ export function mergeDashboardSettingsForPerspectiveDef(
     ...prevWithoutTagSections,
     ...perspectiveOnly,
   }
-  newDashboardSettings = removeInvalidTagSections(newDashboardSettings)
+  // Cast: removeInvalidTagSections() returns the loose indexed TAnyObject shape (dynamic showTagSection_* keys); it is still a full settings object.
+  newDashboardSettings = (removeInvalidTagSections(newDashboardSettings): any)
   if (lastChange) {
     newDashboardSettings.lastChange = lastChange
   }
@@ -681,7 +678,7 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
       return false
     }
     activeDef.isModified = false
-    const dSet: Partial<TDashboardSettings> = await getDashboardSettings()
+    const dSet: TDashboardSettingsIn = await getDashboardSettings()
     activeDef.dashboardSettings = dSet
     const newDefs = replacePerspectiveDef(allDefs, activeDef)
     logDebug('updateCurrentPerspectiveDef', `Will update def '${activeDef.name}'`)
@@ -898,20 +895,22 @@ export const endsWithStar = (input: string): boolean => /\*$/.test(input)
 /**
  * Set (in React) perspectiveSettings if it has changed via the JSON editor in the Dashboard Settings panel
  * Return the updated settings object without the perspectiveSettings to be saved as dashboardSettings
- * @param {TDashboardSettings} updatedSettings
- * @param {TDashboardSettings} dashboardSettings
+ * @param {TDashboardSettingsIn} updatedSettings - only spread, never mutated
+ * @param {TDashboardSettingsIn} dashboardSettings - only spread, never mutated
  * @param {Function} sendActionToPlugin
  * @param {string} logMessage
- * @returns {TDashboardSettings}
+ * @returns {TAnyObject} the merged settings, minus perspectiveSettings
  */
 export function setPerspectivesIfJSONChanged(
-  updatedSettings: Partial<TDashboardSettings>,
-  dashboardSettings: TDashboardSettings,
+  updatedSettings: TDashboardSettingsIn,
+  dashboardSettings: TDashboardSettingsIn,
   sendActionToPlugin: Function,
   logMessage: string,
-): TDashboardSettings {
+): TAnyObject {
   logDebug('setPerspectivesIfJSONChanged', `🥷 starting reason "${logMessage}"`)
-  const settingsToSave = { ...dashboardSettings, ...updatedSettings }
+  // Annotated TAnyObject (the declared return type) because the JSON-editor path below reads and
+  // deletes a `perspectiveSettings` key, which is not part of the exact TDashboardSettings shape.
+  const settingsToSave: TAnyObject = { ...dashboardSettings, ...updatedSettings }
   if (settingsToSave.perspectiveSettings) {
     // this should only be true if we are coming from the settings panel with the JSON editor
     // TODO(dwertheimer): I don't understand this log comment

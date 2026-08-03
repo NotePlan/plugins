@@ -39,9 +39,9 @@ import PluginListingPage from './PluginListingPage.jsx'
  ****************************************************************************************************************************/
 // color this component's output differently in the console
 const consoleStyle = 'background: #222; color: #bada55' //lime green
-const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
-const logSubtle = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args)
-const logTemp = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
+const logDebug = (msg: string, ...args: Array<any>) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
+const logSubtle = (msg: string, ...args: Array<any>) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args)
+const logTemp = (msg: string, ...args: Array<any>) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
 
 /**
  * Root element for the Plugin's React Tree
@@ -78,7 +78,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {any} e - the event object
    * @param {number} index - the index of the button that was clicked
    */
-  const onSubmitClick = (e, index) => {
+  const onSubmitClick = (e: any, index: number) => {
     logDebug(`Webview: onSubmitClick: click on index: ${index} ${JSON.stringify(e, null, 2)}`)
     sendActionToPlugin('onSubmitClick', { index: index })
   }
@@ -121,7 +121,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {string} text
    * @returns {string} cleaned text without HTML entities
    */
-  function decodeHTMLEntities(text) {
+  function decodeHTMLEntities(text: string) {
     const textArea = document.createElement('textarea')
     textArea.innerHTML = text
     const decoded = textArea.value
@@ -137,7 +137,9 @@ export function WebView({ data, dispatch }: Props): Node {
    */
   const addPassthroughVars = (data: PassedData): PassedData => {
     const newData = { ...data }
-    if (!newData.passThroughVars) newData.passThroughVars = {}
+    // cast: with exact_by_default, the bare `{}` literal is inferred as an exact empty object, so the
+    // assignment on the next line is rejected. PassedData.passThroughVars is `any`, so this is safe.
+    if (!newData.passThroughVars) newData.passThroughVars = ({}: any)
     newData.passThroughVars.lastWindowScrollTop = window.scrollY
     return newData
   }
@@ -159,9 +161,12 @@ export function WebView({ data, dispatch }: Props): Node {
    * Send data back to the plugin to update the data in the plugin
    * This could cause a refresh of the Webview if the plugin sends back new data, so we want to save any passthrough data first
    * In that case, don't call this directly, use sendActionToPlugin() instead
-   * @param {[command:string,data:any,additionalDetails:string]} param0
+   * @param {[command:string,data:any,additionalDetails?:string]} param0
    */
-  const sendToPlugin = ([command, data, additionalDetails = '']) => {
+  // NB: Array<any> on purpose. The precise type is a tuple with an optional third element,
+  // but @babel/preset-flow cannot parse optional or labeled tuple elements at any version, so
+  // writing it precisely type-checks under Flow and then breaks the rollup build and jest.
+  const sendToPlugin = ([command, data, additionalDetails = '']: Array<any>) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')

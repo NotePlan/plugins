@@ -892,7 +892,6 @@ function migrateProjectMetadataLineCore(
         }
       }
 
-      // $FlowFixMe[incompatible-call]
       const mergedOK = updateFrontMatterVars((note: any), fmAttrs)
       if (!mergedOK) {
         mergeFailedDetail = `frontmatter merge failed (${logContext})`

@@ -97,13 +97,14 @@ export async function getThemeChoice(lightOrDark: string = '', message: string =
     label: `${t.name} (${t.mode || ''})${isBuiltInTheme(t.filename) ? '' : ' - Custom Theme'}`,
     isBuiltIn: isBuiltInTheme(t.filename),
   }))
-  // $FlowIgnore
   themeOpts = sortListBy(themeOpts, ['isBuiltIn', 'label'])
   // clo(themeOpts, `getThemeChoice, themeOpts`)
   if (lightOrDark !== '') {
     // would be nice to filter here
   }
-  const selection = await chooseOption(message, themeOpts, '')
+  // cast: themeOpts carries an extra `isBuiltIn` key used only for sorting above, and Option<T> is exact.
+  // chooseOption only ever reads .label/.value, so the extra key is harmless.
+  const selection = await chooseOption(message, (themeOpts: any), '')
   logDebug(pluginJson, `getThemeChoice user selected: ${JSP(selection)}`)
   return selection ? selection : ''
 }
@@ -183,7 +184,8 @@ export async function copyCurrentTheme(
   try {
     logDebug(pluginJson, `copyCurrentTheme running copy:${String(themeNameToCopy)}`)
     const themeObj = themeNameToCopy ? getThemeObj(themeNameToCopy) : Editor.currentTheme
-    const theme = themeObj?.values || {}
+    // `values` is the raw theme JSON blob (arbitrary user-authored keys such as `name`), so `any` is the honest type here
+    const theme: any = themeObj?.values || {}
     const themeName = await CommandBar.textPrompt('Copy Theme', 'Enter a name for the new copied theme', `${theme.name} Copy`)
     if (themeName && themeName.length) {
       const avails = Editor.availableThemes
@@ -191,7 +193,6 @@ export async function copyCurrentTheme(
         await showMessage(`Theme "${themeName}" already exists. Please choose a different name.`)
         return
       } else {
-        // $FlowIgnore
         theme.name = themeName || ''
         const success = Editor.addTheme(JSON.stringify(theme), `${themeName}.json`)
         logDebug(pluginJson, `copyCurrentTheme saving theme success: ${String(success)}`)

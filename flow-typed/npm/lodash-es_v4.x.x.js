@@ -1317,8 +1317,11 @@ declare module "lodash-es" {
   ): T1;
   declare export function defaultTo<T1: number, T2>(value: T1, defaultValue: T2): T1 | T2;
   declare export function defaultTo<T1: void | null, T2>(value: T1, defaultValue: T2): T2;
-  declare export var flow: ($ComposeReverse & (funcs: Array<Function>) => Function);
-  declare export var flowRight: ($Compose & (funcs: Array<Function>) => Function);
+  // NOTE: these used to be typed with `$ComposeReverse` / `$Compose`, magic types that Flow removed,
+  // so they no longer resolve (cannot-resolve-name). Spelled out as overloads for the two shapes
+  // lodash accepts: a variadic list of functions, or a single array of functions.
+  declare export var flow: (((...funcs: Array<Function>) => Function) & ((funcs: Array<Function>) => Function));
+  declare export var flowRight: (((...funcs: Array<Function>) => Function) & ((funcs: Array<Function>) => Function));
   declare export function identity<T>(value: T): T;
   declare export function iteratee(func?: any): Function;
   declare export function matches(source?: ?Object): Function;

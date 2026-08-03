@@ -7,7 +7,7 @@
 /* eslint-disable */
 
 import pluginJson from '../plugin.json'
-import { log, clo } from '@helpers/dev'
+import { log, clo, logDebug } from '@helpers/dev'
 
 export function helpInfo(section: string, userDocPage?: string): string {
   let docPage = userDocPage || ''

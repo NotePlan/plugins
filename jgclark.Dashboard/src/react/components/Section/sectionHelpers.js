@@ -4,7 +4,7 @@
 // Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
-import type { TSection, TSectionItem, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
+import type { TSection, TSectionItem, TDashboardSettings, TDashboardSettingsIn, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
 import { allSectionDetails, CAN_HAVE_EMPTY_SECTION_MESSAGES, sectionsPriorityBeforeTagWhenCalendarFocus, treatSingleItemTypesAsZeroItems } from '../../../constants'
 import { logTimer } from '@helpers/dev.js'
 import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/reactDev'
@@ -376,10 +376,10 @@ export function getShowTagSettingName(tag: string): string {
 
 /**
  * Get Section Details for all wanted tags/mentions in settings
- * @param {TDashboardSettings} dashboardSettings
+ * @param {TDashboardSettingsIn} dashboardSettings - only `tagsToShow` is read
  * @returns {Array<TSectionDetails>} {sectionCode, sectionName, showSettingName}
  */
-export function getTagSectionDetails(dashboardSettings: TDashboardSettings): Array<TSectionDetails> {
+export function getTagSectionDetails(dashboardSettings: TDashboardSettingsIn): Array<TSectionDetails> {
   const tags = (dashboardSettings.tagsToShow ?? '')
     .split(',')
     .map((t) => t.trim())
@@ -472,20 +472,16 @@ export function sortSections(
     }
     
     if (a.sectionCode === 'TAG') {
-      // $FlowIgnore
       const orderB = orderMap[b.sectionCode] ?? maxIndex
       return tagPositionInMap - orderB
     }
     
     if (b.sectionCode === 'TAG') {
-      // $FlowIgnore
       const orderA = orderMap[a.sectionCode] ?? maxIndex
       return orderA - tagPositionInMap
     }
     
-    // $FlowIgnore
     const orderA = orderMap[a.sectionCode] ?? maxIndex
-    // $FlowIgnore
     const orderB = orderMap[b.sectionCode] ?? maxIndex
 
     if (orderA !== orderB) {

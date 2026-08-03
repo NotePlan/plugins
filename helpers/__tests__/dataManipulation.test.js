@@ -2,7 +2,7 @@
 /* globals describe, expect, test, toEqual, beforeAll */
 
 import colors from 'chalk'
-import { renameKey, renameKeys, stringListOrArrayToArray } from '../dataManipulation'
+import { renameKey, renameKeys, stringListOrArrayToArray, getStringArrayValue } from '../dataManipulation'
 import { clo, logDebug } from '../dev'
 
 const FILE = `${colors.yellow('helpers/dataManipulation')}`
@@ -355,6 +355,18 @@ describe(`${FILE}`, () => {
       const newObj = renameKeys(testObj, keysMap)
       clo(newObj, 'newObj:')
       expect(newObj).toEqual(expectedObj)
+    })
+  })
+
+  describe('getStringArrayValue()', () => {
+    test('null input -> defaultValue', () => {
+      expect(getStringArrayValue(null, ['priority'])).toEqual(['priority'])
+    })
+    test('coerces non-string array elements', () => {
+      expect(getStringArrayValue(['-priority', 1], [])).toEqual(['-priority', '1'])
+    })
+    test('splits comma-separated string', () => {
+      expect(getStringArrayValue('-priority,content', [])).toEqual(['-priority', 'content'])
     })
   })
 })

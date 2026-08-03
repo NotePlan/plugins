@@ -51,10 +51,8 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   // Override the quickTemplateNote title with the selected event
   // $FlowIgnore
   const selEvent = selections.find((event) => event.value === selectedEvent)
-  // $FlowIgnore
   // const theTime = selEvent.time === '00:00' ? '' : selEvent.time
   logDebug(pluginJson, `Selected event: ${selectedEvent} ${String(JSON.stringify(selEvent))}`)
-  // $FlowIgnore
   // const theTitle = `${selectedEvent} {{date8601()}} ${theTime || ''}`
   if (selectedEvent && useQuickTemplate) {
     // quickTemplateNote is not defined!

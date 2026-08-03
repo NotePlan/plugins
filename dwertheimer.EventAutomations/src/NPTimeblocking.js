@@ -33,7 +33,7 @@ import {
 } from './timeblocking-shared'
 import { validateAutoTimeBlockingConfig } from './config'
 import { getPresetOptions, setConfigForPreset } from './presets'
-import type { IntervalMap, PartialCalendarItem } from './timeblocking-flow-types'
+import type { IntervalMap, OpenBlock, PartialCalendarItem } from './timeblocking-flow-types'
 import { getTimedEntries, keepTodayPortionOnly } from '@helpers/calendar'
 import { saveEditorIfNecessary } from '@helpers/NPEditor'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
@@ -98,7 +98,8 @@ async function getPopulatedTimeMapForToday(dateStr: string, intervalMins: number
   // const todayEvents = await Calendar.eventsToday()
   const eventsArray = await getEventsForDay(dateStr)
   const eventsWithStartAndEnd = getTimedEntries(eventsArray || [])
-  let eventsScheduledForToday = keepTodayPortionOnly(eventsWithStartAndEnd)
+  // `any` because this array mixes real TCalendarItems with the PartialCalendarItem-shaped objects built from note timeblocks (line below)
+  let eventsScheduledForToday: Array<any> = keepTodayPortionOnly(eventsWithStartAndEnd)
   // remove the timebocks that NP wrote to the calendar and may not have been deleted yet due to latency
   eventsScheduledForToday = eventsScheduledForToday.filter((e) => !e.notes.startsWith('NPTB:'))
   clof(eventsScheduledForToday, `getPopulatedTimeMapForToday eventsScheduledForToday`, ['date', 'title'], true)
@@ -109,13 +110,12 @@ async function getPopulatedTimeMapForToday(dateStr: string, intervalMins: number
   }
   const blankDayMap = getBlankDayMap(parseInt(intervalMins))
 
-  // $FlowFixMe - [prop-missing] and [incompatible-variance]
   const eventMap = blockOutEvents(eventsScheduledForToday, blankDayMap, config)
   return eventMap
 }
 
 export async function deleteCalendarEventsWithTag(tag: string, dateStr: string): Promise<void> {
-  let dateString = dateStr
+  let dateString: ?string = dateStr
   if (!dateStr) {
     dateString = Editor.filename ? getDateStringFromCalendarFilename(Editor.filename) : null
   }
@@ -187,7 +187,6 @@ export async function DELETEMEcreateTimeBlocksForTodaysTasks(config: AutoTimeBlo
     if (openOrScheduledForToday) {
       const sortedTodos = openOrScheduledForToday.length ? sortListBy(openOrScheduledForToday, '-priority') : []
       logDebug(pluginJson, `After sortListBy, ${sortedTodos.length} open items  Editor.paras=${Editor.paragraphs.length}`)
-      // $FlowIgnore
       if (timeBlockTag?.length) {
         logDebug(pluginJson, `timeBlockTag: ("${timeBlockTag}"), Editor.paras=${Editor.paragraphs.length}`)
       } else {
@@ -265,8 +264,7 @@ export async function DELETEMEcreateTimeBlocksForTodaysTasks(config: AutoTimeBlo
         clof(sortedParas, `createTimeBlocksForTodaysTasks sortedParas`, ['filename', 'content'], true)
         const sortedParasExcludingCurrentNote = sortedParas.filter((p) => p.filename !== Editor.filename)
         clof(sortedParasExcludingCurrentNote, `createTimeBlocksForTodaysTasks sortedParasExcludingCurrentNote`, ['filename', 'content'], true)
-        // $FlowFixMe
-        await writeSyncedCopies(...sortedParasExcludingCurrentNote, { runSilently: true, ...config })
+        await writeSyncedCopies(sortedParasExcludingCurrentNote, { runSilently: true, ...config })
       }
       return passBackResults ? timeBlockTextList : []
     } else {
@@ -570,7 +568,7 @@ async function insertAndFinalizeTimeBlocks(
  * @param {string} dateStr - The date string for today, used to identify relevant events.
  * @param {AutoTimeBlockingConfig} config - The configuration object for auto time blocking.
  * @param {Object} pluginJson - Plugin metadata for logging and debugging.
- * @returns {Promise<{blockList: Array<string>, noTimeForTasks: Object, timeBlockTextList: Array<string>}>}
+ * @returns {Promise<{blockList: Array<OpenBlock>, noTimeForTasks: Object, timeBlockTextList: Array<string>}>}
  *          An object containing the lists of time block text entries and tasks with no allocated time.
  */
 async function generateTimeBlocks(
@@ -578,7 +576,7 @@ async function generateTimeBlocks(
   dateStr: string,
   config: AutoTimeBlockingConfig,
   pluginJson: Object,
-): Promise<{ blockList: Array<string>, noTimeForTasks: Object, timeBlockTextList: Array<string> }> {
+): Promise<{ blockList: Array<OpenBlock>, noTimeForTasks: Object, timeBlockTextList: Array<string> }> {
   // Generate a populated time map for today
   const calendarMapWithEvents = await getPopulatedTimeMapForToday(dateStr, config.intervalMins, config)
   logDebug(pluginJson, `generateTimeBlocks: After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots`)

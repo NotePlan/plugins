@@ -315,7 +315,6 @@ export function moveParagraphToNote(para: TParagraph, destinationNote: TNote): b
   // Use rawContent instead of content for more reliable matching
   if (noteHasRawContent(destinationNote, para.rawContent)) {
     para?.note?.removeParagraph(para) // this may not work if you are using Editor.* commands rather than Editor.note.* commands
-    // $FlowFixMe - not in the type defs yet
     DataStore.updateCache(oldNote) // try to force Editor and Editor.note to be in sync after the move
     return true
   } else {

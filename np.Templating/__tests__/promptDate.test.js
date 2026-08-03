@@ -1,6 +1,7 @@
 // @flow
 
 import { processPrompts } from '../lib/support/modules/prompts/PromptRegistry'
+import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
 import { getTags } from '../lib/core'
 import NPTemplating from '../lib/NPTemplating'
 import PromptDateHandler from '../lib/support/modules/prompts/PromptDateHandler'
@@ -18,7 +19,6 @@ jest.mock('@helpers/userInput', () => ({
 }))
 
 // Get the mocked function
-// $FlowIgnore - jest mocked module
 const { datePicker } = require('@helpers/userInput')
 
 describe('PromptDateHandler', () => {
@@ -50,7 +50,7 @@ describe('PromptDateHandler', () => {
     const templateData = "<%- promptDate('selectedDate', 'Select a date:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData.selectedDate).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('<%- selectedDate %>')
@@ -58,12 +58,12 @@ describe('PromptDateHandler', () => {
 
   test('Should handle quoted parameters properly', async () => {
     // Using the mocked datePicker from @helpers/userInput
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = "<%- promptDate('selectedDate', 'Select a date with, comma:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData.selectedDate).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('<%- selectedDate %>')
@@ -74,12 +74,12 @@ describe('PromptDateHandler', () => {
 
   test('Should handle single quotes in parameters', async () => {
     // Using the mocked datePicker from @helpers/userInput
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = "<%- promptDate('selectedDate', \"Select a date with 'quotes':\") %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData.selectedDate).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('<%- selectedDate %>')
@@ -90,12 +90,12 @@ describe('PromptDateHandler', () => {
 
   test('Should handle double quotes in parameters', async () => {
     // Using the mocked datePicker from @helpers/userInput
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = "<%- promptDate('selectedDate', 'Select a date with \"quotes\":') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData.selectedDate).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('<%- selectedDate %>')
@@ -105,7 +105,7 @@ describe('PromptDateHandler', () => {
   })
 
   test('Should handle multiple promptDate calls', async () => {
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = `
       <%- promptDate('firstDate', 'Select first date:') %>
@@ -113,7 +113,7 @@ describe('PromptDateHandler', () => {
     `
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData.firstDate).toBe('2023-01-15')
     expect(result.sessionData.secondDate).toBe('2023-01-15')
@@ -121,13 +121,13 @@ describe('PromptDateHandler', () => {
   })
 
   test('Should reuse existing values in session data without prompting again', async () => {
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = "<%- promptDate('existingDate', 'Select a date:') %>"
     // Provide an existing value in the session data
     const userData = { existingDate: '2022-12-25' }
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Should use the existing value without calling datePicker
     expect(result.sessionData.existingDate).toBe('2022-12-25')
@@ -136,14 +136,14 @@ describe('PromptDateHandler', () => {
   })
 
   test('Should handle complex date formatting options', async () => {
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     // Test with more complex options
     // question, defaultValue, canBeEmpty
     const templateData = "<%- let formattedDate = promptDate('formattedDate', 'Select date XX', '2027-12-12', true) %>"
     const userData = {}
     const expectedFirstParamObject = { question: 'Select date XX', defaultValue: '2027-12-12', canBeEmpty: true }
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData.formattedDate).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('')
@@ -151,12 +151,12 @@ describe('PromptDateHandler', () => {
   })
 
   test('Should handle variable names with question marks', async () => {
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = "<%- promptDate('dueDate?', 'Select due date:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // The question mark should be removed from the variable name
     expect(result.sessionData.dueDate).toBe('2023-01-15')
@@ -166,8 +166,8 @@ describe('PromptDateHandler', () => {
   test('Should handle variable names with spaces', async () => {
     const templateData = "<%- promptDate('due date', 'When is this due?') %>"
     const userData = {}
-    datePicker.mockClear()
-    const result = await processPrompts(templateData, userData)
+    ;(datePicker: any).mockClear()
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Spaces should be converted to underscores
     expect(result.sessionData.due_date).toBe('2023-01-15')
@@ -175,15 +175,15 @@ describe('PromptDateHandler', () => {
   })
 
   test('Should gracefully handle errors', async () => {
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     // Make datePicker throw an error for this test
-    datePicker.mockRejectedValueOnce(new Error('Test error'))
+    ;(datePicker: any).mockRejectedValueOnce(new Error('Test error'))
 
     const templateData = "<%- promptDate('errorDate', 'This will cause an error:') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     // Should handle the error gracefully
     expect(result.sessionData.errorDate).toBe('')
@@ -191,12 +191,12 @@ describe('PromptDateHandler', () => {
   })
 
   test('Should handle default value correctly', async () => {
-    datePicker.mockClear()
+    ;(datePicker: any).mockClear()
 
     const templateData = "<%- promptDate('startDate2', 'Enter start date:', '2024-01-01') %>"
     const userData = {}
 
-    const result = await processPrompts(templateData, userData)
+    const result = ((await processPrompts(templateData, userData): any): TProcessPromptsSuccess)
 
     expect(result.sessionData.startDate2).toBe('2023-01-15')
     expect(result.sessionTemplateData).toBe('<%- startDate2 %>')

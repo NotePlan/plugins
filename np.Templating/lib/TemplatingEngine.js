@@ -537,7 +537,6 @@ export default class TemplatingEngine {
    * @param {any} obj - The object to check
    * @returns {boolean} True if the object is an ES6 class, false otherwise
    */
-  // $FlowFixMe
   isClass(obj: any): boolean {
     const isCtorClass = obj.constructor && obj.constructor.toString().substring(0, 5) === 'class'
     if (obj.prototype === undefined) {

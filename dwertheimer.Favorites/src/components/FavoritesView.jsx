@@ -10,8 +10,7 @@ import { FilterableList } from '@helpers/react/FilterableList'
 import { type ListItemAction } from '@helpers/react/List'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { defaultNoteIconDetails } from '@helpers/NPnote.js'
-import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog'
-import { type TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
+import DynamicDialog, { type TSettingItem, type TDynamicDialogHandleButtonClick } from '@helpers/react/DynamicDialog/DynamicDialog'
 import { type NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
 import { waitForCondition } from '@helpers/promisePolyfill'
 import { pluginEnvelopeFromResponsePayload, unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
@@ -342,8 +341,8 @@ function FavoritesViewComponent({
     setAddCommandDialogData({})
   }, [])
 
-  const handleAddCommandButtonClick = useCallback(
-    async (key: string, value: string) => {
+  const handleAddCommandButtonClick: TDynamicDialogHandleButtonClick = useCallback(
+    async (key: string, _value: string) => {
       if (key === 'getCallbackURL') {
         try {
           const envelope = await requestFromPlugin('getCallbackURL', {})
@@ -380,13 +379,11 @@ function FavoritesViewComponent({
   // Note: __windowId is automatically injected by Root.jsx sendToPlugin, so we don't need to add it here
   const handleItemClick = useCallback(
     (item: FavoriteNote | FavoriteCommand | FolderHeaderItem, event: MouseEvent) => {
-      // $FlowFixMe[prop-missing] - header pseudo-items are not clickable
       if (item && item.__isFolderHeader) return
       const isOptionClick = event.altKey || (event.metaKey === false && event.ctrlKey) // Alt key (option on Mac)
       const isCmdClick = event.metaKey || event.ctrlKey // Cmd key (meta on Mac, ctrl on Windows)
 
       if (showNotes) {
-        // $FlowFixMe[incompatible-cast] - item is FavoriteNote when showNotes is true
         const note: FavoriteNote = (item: any)
         // Send action to plugin to open note
         dispatch(
@@ -402,7 +399,6 @@ function FavoritesViewComponent({
           'FavoritesView: openNote',
         )
       } else {
-        // $FlowFixMe[incompatible-cast] - item is FavoriteCommand when showNotes is false
         const command: FavoriteCommand = (item: any)
         // Send action to plugin to run command
         dispatch(
@@ -581,7 +577,6 @@ function FavoritesViewComponent({
         )
       }
 
-      // $FlowFixMe[incompatible-cast] - item is FavoriteNote when showNotes is true
       const note: FavoriteNote = item
       const folder = note.folder || ''
       const folderDisplay = folder && folder !== '/' ? `${folder} / ` : ''
@@ -622,7 +617,6 @@ function FavoritesViewComponent({
 
   // Render command item
   const renderCommandItem = useCallback((item: any, index: number): Node => {
-    // $FlowFixMe[incompatible-cast] - item is FavoriteCommand when showNotes is false
     const command: FavoriteCommand = item
     return (
       <div className="favorites-item-command">
@@ -638,7 +632,6 @@ function FavoritesViewComponent({
   // Filter function for notes
   const filterNote = useCallback((item: any, text: string): boolean => {
     if (!text) return true
-    // $FlowFixMe[incompatible-cast] - item is FavoriteNote when showNotes is true
     const note: FavoriteNote = item
     const searchText = text.toLowerCase()
     const title = (note.title || '').toLowerCase()
@@ -653,7 +646,6 @@ function FavoritesViewComponent({
   // Filter function for commands
   const filterCommand = useCallback((item: any, text: string): boolean => {
     if (!text) return true
-    // $FlowFixMe[incompatible-cast] - item is FavoriteCommand when showNotes is false
     const command: FavoriteCommand = item
     const searchText = text.toLowerCase()
     const name = (command.name || '').toLowerCase()
@@ -665,11 +657,9 @@ function FavoritesViewComponent({
   const getItemLabel = useCallback(
     (item: any): string => {
       if (showNotes) {
-        // $FlowFixMe[incompatible-cast] - item is FavoriteNote when showNotes is true
         const note: FavoriteNote = item
         return note.title || note.filename || ''
       } else {
-        // $FlowFixMe[incompatible-cast] - item is FavoriteCommand when showNotes is false
         const command: FavoriteCommand = item
         return command.name || ''
       }

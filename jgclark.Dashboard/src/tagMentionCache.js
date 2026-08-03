@@ -103,7 +103,8 @@ function recordTagMentionCacheLastRunTime(when: Date): void {
  * @returns {{ lastRun: Date | null, source: string }}
  */
 function getTagMentionCacheLastRunInfo(cache: Object): { lastRun: ?Date, source: string } {
-  const fromPref = parseTagMentionCacheTimestamp(DataStore.preference(lastTimeThisWasRunPref))
+  // Cast: DataStore.preference() is declared `mixed`; parseTagMentionCacheTimestamp() already handles anything it is given.
+  const fromPref = parseTagMentionCacheTimestamp((DataStore.preference(lastTimeThisWasRunPref): any))
   const fromFile = parseTagMentionCacheTimestamp(cache?.lastUpdated)
   if (fromPref == null && fromFile == null) {
     return { lastRun: null, source: 'none' }

@@ -394,7 +394,6 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     if (note.backlinks?.length > 0) {
       console.log(`Backlinks:`)
       console.log(`- ${String(note.backlinks.length)} backlinked note(s)`)
-      // $FlowIgnore[prop-missing]
       const flatBacklinkParas = getFlatListOfBacklinks(note) ?? [] // Note: this requires DataStore
       console.log(`- ${String(flatBacklinkParas.length)} backlink paras:`)
       for (let i = 0; i < flatBacklinkParas.length; i++) {
@@ -896,7 +895,6 @@ export async function openNoteByFilename(filename: string, options: OpenNoteOpti
     const dataStoreNote = isCalendarNote ? await DataStore.noteByFilename(filename, 'Calendar') : null
     if (dataStoreNote) {
       dataStoreNote.content = ''
-      // $FlowIgnore[incompatible-call]
       note = await Editor.openNoteByFilename(
         filename,
         options.newWindow || false,
@@ -1351,7 +1349,7 @@ export function findNotesMatchingHashtagOrMentionFromList(
  * @return {Array<string>}
  */
 export function getHeadingsFromNote(
-  note: TNote,
+  note: CoreNoteFields, // Editor as well as a Note: only .paragraphs/.title/.type/.filename are read
   includeMarkdown: boolean = false,
   optionAddATopAndBottom: boolean = true,
   optionCreateNewHeading: boolean = false,
@@ -1576,7 +1574,6 @@ export async function getNoteFromParamOrUser(purpose: string, noteTitleArg: stri
     const possDateStr = getDateStrFromRelativeDateString(noteTitleArg)
     if (possDateStr !== '') {
       noteTitleArgIsCalendarNote = true
-      // $FlowFixMe[incompatible-type]
       note = getOrMakeCalendarNote(possDateStr)
       if (note != null) {
         logDebug('getNoteFromParamOrUser', `Found match with relative date '${noteTitleArg}' = filename ${note?.filename ?? '(error)'}`)

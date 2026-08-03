@@ -13,22 +13,23 @@ import { DataStore } from '@mocks/index'
 /* global describe, beforeEach, test, expect, jest */
 
 // Define template content for tests
-const TEMPLATE_CONTENT = {
+const TEMPLATE_CONTENT: { [string]: string } = {
   header: '# Included Header\n\nThis is the included header content.',
   footer: '## Included Footer\n\nThis is the included footer content.',
   nested: "Nested template with its own include: <%- include('header') %>",
 }
 
 // Create a simplified version of importTemplates for testing
-const importTemplates = async (templateData) => {
+// Return type annotated: this function calls itself recursively, so Flow cannot infer it.
+const importTemplates = async (templateData: string): Promise<string> => {
   let newTemplateData = templateData
 
   // Process include tags
   const includeRegex = /<%[-\s]*include\(['"]([^'"]+)['"]\)[\s-]*%>/g
   let match
   while ((match = includeRegex.exec(templateData)) !== null) {
-    const fullTag = match[0]
-    const templateName = match[1]
+    const fullTag = (match: any)[0]
+    const templateName = (match: any)[1]
     const content = TEMPLATE_CONTENT[templateName]
 
     if (content) {
@@ -45,8 +46,8 @@ const importTemplates = async (templateData) => {
   // Process import tags (same as include for our test purposes)
   const importRegex = /<%[-\s]*import\(['"]([^'"]+)['"]\)[\s-]*%>/g
   while ((match = importRegex.exec(templateData)) !== null) {
-    const fullTag = match[0]
-    const templateName = match[1]
+    const fullTag = (match: any)[0]
+    const templateName = (match: any)[1]
     const content = TEMPLATE_CONTENT[templateName]
 
     if (content) {
@@ -60,20 +61,20 @@ const importTemplates = async (templateData) => {
 // Mock core module
 jest.mock('../lib/core', () => {
   return {
-    getTemplateContent: jest.fn().mockImplementation((templateName) => {
+    getTemplateContent: jest.fn<Array<any>, any>().mockImplementation((templateName) => {
       return Promise.resolve(TEMPLATE_CONTENT[templateName] || '')
     }),
-    getTemplateFolder: jest.fn().mockResolvedValue('@Templates'),
-    isCommentTag: jest.fn().mockImplementation((tag) => false),
+    getTemplateFolder: jest.fn<Array<any>, any>().mockResolvedValue('@Templates'),
+    isCommentTag: jest.fn<Array<any>, any>().mockImplementation((tag) => false),
   }
 })
 
 // Mock FrontmatterModule
 jest.mock('../lib/support/modules/FrontmatterModule', () => {
-  return jest.fn().mockImplementation(() => {
+  return jest.fn<Array<any>, any>().mockImplementation(() => {
     return {
-      isFrontmatterTemplate: jest.fn().mockReturnValue(false),
-      body: jest.fn().mockImplementation((content) => content),
+      isFrontmatterTemplate: jest.fn<Array<any>, any>().mockReturnValue(false),
+      body: jest.fn<Array<any>, any>().mockImplementation((content) => content),
     }
   })
 })

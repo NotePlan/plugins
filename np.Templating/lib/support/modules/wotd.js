@@ -21,7 +21,6 @@ export async function getWOTD(params: any): Promise<string> {
 
     const result = await fetch(url, options)
 
-    // $FlowIgnore
     const data = JSON.parse(result)
 
     let word = data?.word

@@ -167,7 +167,7 @@ export async function savePluginCommand(pluginJson: any, fields: PresetCommand):
  * @param {Array<any>} callbackArgs - arguments to pass to the callback function (after the command object) - empty args for error
  * NOTE: See function themePresetChosen in np.ThemeChooser for example callback
  */
-export async function presetChosen(pluginJson: any, jsFunction: string, callback: function, callbackArgs: ?Array<any> = []): Promise<void> {
+export async function presetChosen(pluginJson: any, jsFunction: string, callback: Function, callbackArgs: ?Array<any> = []): Promise<void> {
   // need try/catch here so we can use this immediately after pluginFunction
   try {
     const livePluginJson = await getPluginJson(pluginJson['plugin.id'])

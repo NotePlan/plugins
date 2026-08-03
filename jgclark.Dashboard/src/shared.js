@@ -102,7 +102,6 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
 		// Normalize filename: if toFilename was used, ensure filename is set in result
 		// $FlowIgnore[prop-missing]
 		if (!result.filename && result.toFilename) {
-			//$FlowIgnore[prop-missing]
 			result.filename = result.toFilename
 		}
 

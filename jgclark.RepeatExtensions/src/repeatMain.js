@@ -65,7 +65,7 @@ export function logTaskSortSkippedNoSectionHeading(filename: string): void {
 }
 
 /**
- * Make global Editor the window for filename. Task Sorting uses global Editor (saveEditorIfNecessary, beginEdits, etc.), not a separate TEditor reference.
+ * Make global Editor the window for filename. Task Sorting uses global Editor (saveEditorIfNecessary, etc.), not a separate TEditor reference.
  * @param {string} filename - note filename
  * @returns {typeof Editor | false} global Editor when it matches filename, else false
  */
@@ -84,7 +84,7 @@ export function focusEditorForFilename(filename: string): typeof Editor | false 
   }
 
   logDebug('focusEditorForFilename', `Focusing Editor for '${filename}' (global Editor was '${Editor.filename}')`)
-  if (typeof editorWin.focus === 'function') {
+  if (typeof (editorWin: any).focus === 'function') {
     editorWin.focus()
   }
 
@@ -147,9 +147,11 @@ async function runTaskSorterAfterRepeatsImpl(
       const cacheNote =
         typeof Editor !== 'undefined' && Editor != null && Editor.filename === noteToUse.filename && Editor.note != null
           ? Editor.note
-          : noteToUse.note
+          // `CoreNoteFields` has no `.note` (only TEditor does), hence the cast. Note: this fallback can only ever evaluate to null/undefined —
+          // it is reached only when Editor.note == null, and if noteToUse is a plain TNote it has no `.note` at all — so the `cacheNote != null`
+          // guard below then skips the cache update. Type-only cast; see LEFT report.
+          : (noteToUse: any).note
       if (cacheNote != null) {
-        // $FlowIgnore[incompatible-call]
         DataStore.updateCache(cacheNote, false)
       }
       const sortFields = config.taskSortingOrder

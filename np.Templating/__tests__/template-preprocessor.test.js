@@ -9,6 +9,7 @@
 
 // @flow
 import path from 'path'
+// $FlowIgnore[cannot-resolve-module] - `fs/promises` is a node builtin; flow-typed has no libdef for the subpath form
 import fs from 'fs/promises'
 import { existsSync } from 'fs'
 import TemplatingEngine from '../lib/TemplatingEngine'
@@ -26,7 +27,7 @@ declare var test: any
 declare var expect: any
 
 // Helper to load test fixtures
-const factory = async (factoryName = '') => {
+const factory = async (factoryName: string = '') => {
   const factoryFilename = path.join(__dirname, 'factories', factoryName)
   if (existsSync(factoryFilename)) {
     return await fs.readFile(factoryFilename, 'utf-8')
@@ -42,7 +43,7 @@ describe('preProcessTags Function Tests', () => {
     global.DataStore = DataStore
     global.DataStore.settings = { _logLevel: 'none' }
     // Mock DataStore.invokePluginCommandByName
-    DataStore.invokePluginCommandByName = jest.fn().mockResolvedValue('mocked result')
+    DataStore.invokePluginCommandByName = jest.fn<Array<any>, any>().mockResolvedValue('mocked result')
   })
 
   afterEach(() => {
@@ -57,12 +58,12 @@ describe('preProcessTags Function Tests', () => {
   })
 
   test('should handle null input gracefully', async () => {
-    const { newTemplateData } = await preProcessTags(null)
+    const { newTemplateData } = await preProcessTags((null: any))
     expect(newTemplateData).toEqual('')
   })
 
   test('should handle undefined input gracefully', async () => {
-    const { newTemplateData } = await preProcessTags(undefined)
+    const { newTemplateData } = await preProcessTags((undefined: any))
     expect(newTemplateData).toEqual('')
   })
 

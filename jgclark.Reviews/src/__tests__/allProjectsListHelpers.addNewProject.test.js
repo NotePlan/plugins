@@ -5,7 +5,7 @@
 const reviewSettingsHolder: { config: any } = { config: null }
 
 jest.mock('../reviewHelpers', () => {
-  const actual = jest.requireActual('../reviewHelpers')
+  const actual = jest.requireActual<any>('../reviewHelpers')
   return {
     ...actual,
     updateRichProjectListIfOpen: jest.fn(() => Promise.resolve()),
@@ -23,7 +23,7 @@ import { Project } from '../projectClass'
 
 const preferenceValues: { [string]: any } = {}
 
-function makeConfig(overrides: { [string]: any } = {}): any {
+function makeConfig(overrides: any = {}): any {
   return {
     projectTypeTags: ['#project'],
     foldersToInclude: [],
@@ -42,7 +42,7 @@ function folderFilterFingerprint(config: any): string {
   return `${include}\u0002${ignore}`
 }
 
-function makeProjectNote(filename: string, tag: string = '#project'): Note {
+function makeProjectNote(filename: string, tag: string = '#project'): TNote {
   return new Note({
     title: 'Test project',
     filename,

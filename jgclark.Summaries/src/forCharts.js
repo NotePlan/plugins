@@ -186,7 +186,6 @@ export async function generateTaskCompletionStats(
             doneDate = moment(n.date).format('YYYY-MM-DD') // the note's date
           }
           // If we've found a task done in the right period, save
-          // $FlowIgnore[incompatible-call]
           if (doneDate && withinDateRange(doneDate, fromDateStr, toDateStr)) {
             addToObj(doneDate)
           }

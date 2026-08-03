@@ -30,7 +30,7 @@ type LocationOption = {
   value?: string,
 }
 
-function UTCToLocalTimeString(d, format, timeOffset) {
+function UTCToLocalTimeString(d: Date, format: string, timeOffset: number) {
   let timeOffsetInHours = timeOffset / 60 / 60
   if (timeOffsetInHours == null) {
     timeOffsetInHours = (new Date().getTimezoneOffset() / 60) * -1
@@ -132,7 +132,7 @@ function getConfigErrorText(): string {
  * @param {settings} params
  * @returns
  */
-async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams = null): Promise<{ [string]: any } | null> {
+async function getWeatherForLocation(location: LocationOption, weatherParams: ?WeatherParams = null): Promise<{ [string]: any } | null> {
   const params = weatherParams ? weatherParams : DataStore.settings
   const url = utils.getWeatherURLLatLong(location.lat, location.lon, params.appid, params.units || 'metric')
   logDebug(`weather-utils::getWeatherForLocation`, `url: \n${url}`)
@@ -165,7 +165,7 @@ export async function insertWeatherCallbackURL(xcallbackWeatherLocation: string 
       Editor.insertTextAtCursor(getConfigErrorText())
       return ''
     } else {
-      let locationString = xcallbackWeatherLocation
+      let locationString: string | false = xcallbackWeatherLocation
       if (!locationString?.length) locationString = await CommandBar.textPrompt('Weather Lookup', 'Enter a location name to lookup weather for:', '')
       if (locationString && locationString?.length) {
         logDebug(pluginJson, `insertWeatherCallbackURL: locationString: ${String(locationString)}`)
@@ -207,7 +207,8 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
       Editor.insertTextAtCursor(getConfigErrorText())
       return
     } else {
-      let location = incoming
+      // `incoming` is optional, and getInput() returns a boolean when the user cancels.
+      let location: ?string | false = incoming
       do {
         if (location?.length === 0) {
           location = await getInput(`What city do you want to lookup? (do not include state)`, 'OK', 'Weather Lookup')
@@ -226,7 +227,7 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
             location = ''
           }
         } else {
-          logDebug(pluginJson, `insertWeatherByLocation: No location to look for: ${location}`)
+          logDebug(pluginJson, `insertWeatherByLocation: No location to look for: ${String(location)}`)
         }
       } while (location !== false)
     }
@@ -257,7 +258,7 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
         location = { lat: settings.lat, lon: settings.lon, label: settings.locationName }
       }
       let text = ''
-      let dfd = []
+      let dfd: Array<any> = []
       let locTime = ''
       if (location.lat && location.lon && location.label) {
         logDebug(pluginJson, `weatherByLatLong: have lat/lon for ${location.label}`)

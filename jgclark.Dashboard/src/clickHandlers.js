@@ -195,6 +195,7 @@ async function clearReminderDueDateAfterCreate(reminderId: string, fallbackListN
   // Plain object update (same pattern as HTML-view Calendar APIs). Do not assign reminder.date = null
   // on the CalendarItem first -- that setter has historically turned null into epoch before update ran.
   // $FlowIgnore[incompatible-call] Calendar.update accepts a reminder-shaped object with date: null (v3.21.2+)
+  // $FlowIgnore[prop-missing] the object literal deliberately omits TCalendarItem fields (attendeeNames etc) that the reminder update path does not use
   await Calendar.update({
     id: reminder.id,
     title: reminder.title,
@@ -326,7 +327,7 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
       const reminderItem: TCalendarItem = CalendarItem.create(
         reminderTitle,
         dueDate,
-        null, // endDate unused for reminders; use null not undefined (avoids bridge arg shift)
+        (null: any), // endDate unused for reminders; use null not undefined (avoids bridge arg shift)
         'reminder',
         isAllDay,
         listTrimmed,
@@ -879,7 +880,6 @@ function getEnabledSectionCodesAmongCalendarVisibilityRefreshList(mergedSettings
   return SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS.filter((code) => {
     const detail = allSectionDetails.find((s) => s.sectionCode === code)
     if (!detail?.showSettingName) return false
-    // $FlowIgnore[invalid-computed-prop]
     return mergedSettings[detail.showSettingName] !== false
   })
 }
@@ -897,7 +897,6 @@ function getNewlyEnabledCalendarSectionCodes(diffKeys: Array<string>, nextMerged
   for (const key of diffKeys) {
     const detail = allSectionDetails.find((d) => d.showSettingName === key)
     if (!detail || !allCalendarSectionCodes.includes(detail.sectionCode)) continue
-    // $FlowIgnore[invalid-computed-prop]
     if (nextMerged[key]) {
       codes.push(detail.sectionCode)
     }
@@ -968,8 +967,6 @@ function planSectionRefreshAfterDashboardSettingsChange(
   // $FlowIgnore[prop-missing]
   // $FlowIgnore[cannot-spread-indexer]
   const prevMerged: { [string]: any } = { ...defaults, ...priorDashboardSettingsSnapshot }
-  // $FlowIgnore[prop-missing]
-  // $FlowIgnore[cannot-spread-indexer]
   const nextMerged: { [string]: any } = { ...defaults, ...(settingsToSave || {}) }
   const oldTheme = String(prevMerged.dashboardTheme ?? '')
   const newTheme = String(nextMerged.dashboardTheme ?? '')

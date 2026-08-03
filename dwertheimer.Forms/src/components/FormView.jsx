@@ -382,7 +382,6 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     const customCSS = pluginData?.customCSS || ''
     if (!customCSS || typeof document === 'undefined') return
 
-    // $FlowFixMe[incompatible-use] - document.head is checked for null
     const head = document.head
     if (!head) return
 
@@ -393,7 +392,6 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     if (!styleElement) {
       styleElement = document.createElement('style')
       styleElement.id = styleId
-      // $FlowFixMe[incompatible-use] - head is checked for null above
       head.appendChild(styleElement)
     }
 
@@ -415,9 +413,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     const handleResponse = (event: MessageEvent) => {
       const responseStartTime = performance.now()
       const { data: eventData } = event
-      // $FlowFixMe[incompatible-type] - eventData can be various types
       if (eventData && typeof eventData === 'object' && eventData.type === 'RESPONSE' && eventData.payload) {
-        // $FlowFixMe[prop-missing] - payload structure is validated above
         const payload = eventData.payload
         if (payload && typeof payload === 'object' && payload.correlationId && typeof payload.correlationId === 'string') {
           const { correlationId, success } = payload
@@ -976,7 +972,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
       // Log what changed
       const hasError = pluginData?.formSubmissionError || pluginData?.aiAnalysisResult
       if (hasError) {
-        logDebug('FormView', `[FRONT-END] SET_DATA contains error: formSubmissionError=${!!pluginData?.formSubmissionError}, aiAnalysisResult=${!!pluginData?.aiAnalysisResult}`)
+        logDebug('FormView', `[FRONT-END] SET_DATA contains error: formSubmissionError=${String(!!pluginData?.formSubmissionError)}, aiAnalysisResult=${String(!!pluginData?.aiAnalysisResult)}`)
       }
     }
 

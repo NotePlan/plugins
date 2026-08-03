@@ -9,7 +9,6 @@
 export async function getDailyQuote(): Promise<string> {
   const response = await fetch(`https://zenquotes.io/api/random`, { timeout: 3000 })
   if (response) {
-    //$FlowIgnore[incompatible-call]
     const quoteLines = JSON.parse(response)
     if (quoteLines.length > 0) {
       const data = quoteLines[0]

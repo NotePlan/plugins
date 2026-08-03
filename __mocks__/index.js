@@ -12,3 +12,6 @@ export { Range } from './Range.mock'
 export { PluginObject } from './PluginObject.mock'
 export { PluginCommandObject } from './PluginCommandObject.mock'
 export { simpleFormatter, mockWasCalledWithString, loadFactoryFile } from './jestHelpers'
+// Casts for passing mocks into functions typed against the real NotePlan API. See asNPTypes.js
+// for why these are strongly preferred over hand-rolling a `type MockNote = {...}` per test file.
+export { asTNote, asTNotes, asCoreNoteFields, asTParagraph, asTParagraphs } from './asNPTypes'

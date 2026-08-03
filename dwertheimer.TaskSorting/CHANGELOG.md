@@ -8,6 +8,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 - **Sort tasks on the page** (`sortTasks`): optional **Note** or **Editor** as last argument (same idea as **Sort tasks under heading**), for templates/plugins when you must target the note you are editing.
 - **Quick sort commands** (`tasksToTop`, `sortTasksDefault`, `sortTasksByDue`, `sortTasksByPerson`, `sortTasksByTag`, `sortTasksTagMention`): optional **Note** or **Editor** as sole extra argument when called from code.
+- **README:** Plain-language guide to combined vs traditional grouping (⚪ circle vs 🔲 box tasks, with and without type headings).
 
 ## [1.2.8] - 2025-11-10 (@dwertheimer)
 

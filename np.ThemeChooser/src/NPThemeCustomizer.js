@@ -36,7 +36,7 @@ export async function saveTheme(themeObj: any, filename: string, showMessageAfte
  * @param {string} pluginCommandToCall
  * @param {Array<string>} args
  */
-async function saveChangedTheme(theme: any, filename, pluginIDToCall: string | null = null, pluginCommandToCall: string | null = null, args: Array<string> = []): Promise<void> {
+async function saveChangedTheme(theme: any, filename: string, pluginIDToCall: string | null = null, pluginCommandToCall: string | null = null, args: Array<string> = []): Promise<void> {
   logDebug(pluginJson, `saveChangedTheme saving changed theme ${filename} ${theme.name}`)
   await saveTheme(theme, filename, false)
   logDebug(
@@ -334,8 +334,8 @@ export async function createThemeSamples(idToScrollTo: string = '', autoRefreshR
     const [, localAdditionalStyles] = getPropDifferences(masterTheme.styles, currentStyles)
     // const styleDiffs = localAdditionalStyles.length > 0 ? localAdditionalStyles.map((s) => currentStyles[s]) : []
     // clo(localAdditionalStyles, `NPStyleChooser::createThemeSamples localAdditionalStyles=`)
-    let customs = []
-    const styleDiff = localAdditionalStyles.reduce((acc, s) => {
+    let customs: Array<any> = []
+    const styleDiff = localAdditionalStyles.reduce((acc: { [string]: any }, s: string) => {
       acc[s] = currentStyles[s]
       return acc
     }, {})
@@ -362,13 +362,13 @@ export async function createThemeSamples(idToScrollTo: string = '', autoRefreshR
     // Editor.insertTextAtCursor(outputArray.join('\n')) //TODO: open document
     logDebug(pluginJson, `createThemeSamples about to open file by filename`)
     const filepath = `@Theme/Customize Themes.md`
-    let note,
-      contentWritten = false
+    let note: TEditor | TNote | null = null
+    let contentWritten = false
     if (Editor?.note?.filename === filepath) {
       // Don't reload the file if we are already in it
       note = Editor
     } else {
-      note = openNoteByFilename(filepath, { createIfNeeded: true, content: `${frontmatter}${content}` })
+      note = (await openNoteByFilename(filepath, { createIfNeeded: true, content: `${frontmatter}${content}` })) ?? null
       if (note) {
         contentWritten = true
         logDebug(pluginJson, `createThemeSamples new note created successfully using openNoteByFilename`)
@@ -385,7 +385,7 @@ export async function createThemeSamples(idToScrollTo: string = '', autoRefreshR
         }
         if (testNote) {
           logDebug(pluginJson, `createThemeSamples found file by filename: ${testNote.filename}`)
-          note = await Editor.openNoteByFilename(testNote.filename, false, 0, 0, false, false)
+          note = (await Editor.openNoteByFilename(testNote.filename, false, 0, 0, false, false)) ?? null
           // clo(note, `NPThemeCustomizer::createThemeSamples note=`)
         }
       }

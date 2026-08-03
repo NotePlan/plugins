@@ -210,7 +210,7 @@ const colourStyles = {
   /* the options in the dropdown, background and text color */
   // option: (styles: StyleObject) => ({ ...styles, backgroundColor: NP_THEME.base.backgroundColor, color: NP_THEME.base.textColor ?? 'black' }),
   // option: (styles, { data, isDisabled, isFocused, isSelected }) => {
-  option: (styles: StyleObject, { isDisabled, isSelected }) => {
+  option: (styles: StyleObject, { isDisabled, isSelected }: { isDisabled: boolean, isSelected: boolean }) => {
     // console.log('option', styles, data, isDisabled, isFocused, isSelected)
     return {
       ...styles,
