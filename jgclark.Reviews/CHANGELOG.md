@@ -1,6 +1,9 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.0.4] - 2026-08-03 (unreleased)
+- Fixes from flow cleanup
+
 ## [2.0.3] - 2026-07-17
 - Fix: Project lists no longer include notes from `@Archive` (also always excludes `@Templates` and `@Trash`, as documented for Folders to Exclude).
 - Fix: Pausing/resuming a project when its note is not open in an Editor no longer fails to write frontmatter.

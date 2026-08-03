@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-07-17 for v2.0.2, @CursorAI & @jgclark
+// Last updated 2026-08-03 for v2.0.4, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -715,10 +715,7 @@ export function buildEmptyProjectListHelpHtml(config: ReviewConfig, projectsBefo
   const filterHint = projectsBeforeDisplayFilters > 0
     ? `<p class="empty-help-filters">There ${projectsBeforeDisplayFilters === 1 ? 'is' : 'are'} <b>${String(projectsBeforeDisplayFilters)}</b> matching project${projectsBeforeDisplayFilters === 1 ? '' : 's'} in your list, but current <b>Filter + Order…</b> settings are hiding ${projectsBeforeDisplayFilters === 1 ? 'it' : 'them'}. Try turning on finished/paused projects, or turning off "ready for review only".</p>`
     : ''
-  // KNOWN BUG - `ReviewConfig` has no `frontmatterKey`; the setting is called `projectMetadataFrontmatterKey` (see plugin.json and the rest of this plugin).
-  // So this is always undefined and the help panel always tells the user the key is 'project:', even when they have configured a different key.
-  // Renaming the property would change the emitted JS, so it is only cast here; see LEFT report.
-  const frontmatterKey = displayEscapedSettingNameOrValue((config: any).frontmatterKey ?? 'project:')
+  const frontmatterKey = displayEscapedSettingNameOrValue((config: any).projectMetadataFrontmatterKey ?? 'project:')
   const folderSentence = buildFolderScopeHelpSentence(config)
   const settingsGearButton = makePluginCommandButton(
     `<i class="fa-solid fa-gear"></i>`,

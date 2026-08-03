@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 2026-04-30 for v2.0.0.b26, @jgclark
+// Last updated 2026-08-03 for v2.0.4, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment'
@@ -241,14 +241,12 @@ async function promptProjectCloseoutInputs(actionType: 'completed' | 'cancelled'
   }
   const summaryDestination = parseSummaryDestination(summaryRaw)
 
-  const finalCommentRaw = await getInputTrimmed(
+  const finalCommentRaw: string | false = await getInputTrimmed(
     'Final progress comment? (optional; leave blank for none)',
     'OK',
     `${actionWord} Project`,
   )
-  // KNOWN BUG - dead guard: `getInputTrimmed()` returns `string | false`, so `!== true` can never be false and the test is redundant (the preceding
-  // truthiness check already rules out `false` and ''). Harmless today, but it hides the intent. Cast is type-only; see LEFT report.
-  const finalProgressComment = (finalCommentRaw && (finalCommentRaw: any) !== true)
+  const finalProgressComment = (finalCommentRaw)
     ? String(finalCommentRaw).trim()
     : ''
 
