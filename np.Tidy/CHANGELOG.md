@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.20.1] - 2026-08-03 @jgclark
+- fix to '/Remove orphaned blockIDs' not honouring 'run silently?' setting
+
 ## [1.20.0] - 2026-07-30 @jgclark
 ### New
 - new **/Cancel incomplete tasks in a folder** command: for a chosen folder and its subfolders, counts incomplete tasks and checklists in regular notes, shows a strong warning, and then (if confirmed) bulk-cancels them. Optional `folderToStart` parameter for template/callback. Teamspace notes are skipped. Useful after importing notes. (Addresses core ask in #746 for @darrengillman.)

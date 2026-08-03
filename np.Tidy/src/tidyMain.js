@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2026-04-28 for v1.19.2, @jgclark
+// Last updated 2026-08-03 for v1.20.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -40,13 +40,6 @@ export async function tidyUpAll(): Promise<void> {
       await removeBlankNotes(config.runSilently)
     }
 
-    if (config.runRemoveOrphansCommand) {
-      CommandBar.showLoading(true, `Tidying up orphaned blockIDs ...`, 0.2)
-      logDebug('tidyUpAll', `Starting removeOrphanedBlockIDs...`)
-      // KNOWN BUG - removeOrphanedBlockIDs() takes an encoded-params *string*, not a boolean. Passing `true` makes it take the `if (params)` branch and call overrideSettingsWithEncodedTypedArgs(config, true), and getTagParamsFromString(true, 'runSilently', false) then can't read runSilently. Should pass '{"runSilently":true}' (or ''), like the other params-taking calls below.
-      await removeOrphanedBlockIDs((config.runSilently: any))
-    }
-
     if (config.removeTodayTagsFromCompletedTodos) {
       CommandBar.showLoading(true, `Tidying up completed >today items...`, 0.3)
       logDebug('tidyUpAll', `Starting Tidying up completed >today items...`)
@@ -54,8 +47,14 @@ export async function tidyUpAll(): Promise<void> {
     }
 
     // Following functions take params; so send runSilently as a param
-
     const param = config.runSilently ? '{"runSilently": true}' : ''
+
+    if (config.runRemoveOrphansCommand) {
+      CommandBar.showLoading(true, `Tidying up orphaned blockIDs ...`, 0.2)
+      logDebug('tidyUpAll', `Starting removeOrphanedBlockIDs...`)
+      await removeOrphanedBlockIDs(param)
+    }
+
     if (config.runRemoveDoneMarkersCommand) {
       CommandBar.showLoading(true, `Tidying up @done markers...`, 0.4)
       logDebug('tidyUpAll', `Starting removeDoneMarkers...`)
