@@ -368,17 +368,13 @@ export async function showFlexiSearchDialog(
     // Look up the 5 preferences from local store
     // Note: extra commas aren't typos
     const saveType = String(DataStore.preference(`${pluginID}.saveType`)) ?? 'quick'
-    const caseSensitiveSearching = DataStore.preference(`${pluginID}.caseSensitiveSearching`) ?? false
-    const fullWordSearching = DataStore.preference(`${pluginID}.fullWordSearching`) ?? false
+    const caseSensitiveSearching = String(DataStore.preference(`${pluginID}.caseSensitiveSearching`) ?? false)
+    const fullWordSearching = String(DataStore.preference(`${pluginID}.fullWordSearching`) ?? false)
     const noteTypesStr = String(DataStore.preference(`${pluginID}.noteTypesStr`)) ?? 'notes,calendar,'
     const paraTypesStr = String(DataStore.preference(`${pluginID}.paraTypesStr`)) ?? 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
-      // These two prefs hold booleans, and String.replace() stringifies them at runtime. DataStore.preference() is declared `mixed`, so no real
-      // type can be written without wrapping the values in String() as the neighbouring prefs do - a code change, not a type change.
-      // $FlowIgnore[incompatible-call]
       .replace('%%CASESENSPREF%%', caseSensitiveSearching)
-      // $FlowIgnore[incompatible-call]
       .replace('%%FULLWORDPREF%%', fullWordSearching)
       .replace('%%NOTETYPESSTRPREF%%', noteTypesStr)
       .replace('%%PARATYPESSTRPREF%%', paraTypesStr)

@@ -2,11 +2,10 @@
 // Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
 
 import { allSectionDetails } from '../../../constants.js'
-import type { TDashboardSettings } from '../../../types.js'
+import type { TDashboardSettings, TSettingItem } from '../../../types.js'
 import { dashboardFilterDefs } from '../../../dashboardSettings.js'
 import { getTagSectionDetails } from '../Section/sectionHelpers.js'
 import { clo } from '@helpers/react/reactDev.js'
-import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 
 /**
  * Create two arrays of TSettingItems to use in Dropdown menu, using details in constants allSectionDetails, dashboardFilters.

@@ -14,21 +14,19 @@ type ArrayReferenceFn = (o: { [string]: any }, s: string) => any
 // `Object` is a global declared in Flow's core libdef, so the extra static cannot be declared here; the cast is the
 // narrowest way to write "we are adding a property Flow does not know about".
 ;(Object: any).arrayReference = function (o: { [string]: any }, s: string): any {
-  // $FlowFixMe[reassign-const] `experimental.const_params` forbids reassigning a param; fixing it needs a local var (a runtime change)
-  s = s.replace(/\[(\w+)\]/g, '.$1') // convert indexes to properties
-  // $FlowFixMe[reassign-const] as above
-  s = s.replace(/^\./, '') // strip a leading dot
-  const a = s.split('.')
+  // Params are effectively const under `experimental.const_params`, so walk over locals instead of reassigning them.
+  const normalizedPath = s.replace(/\[(\w+)\]/g, '.$1').replace(/^\./, '') // convert indexes to properties, then strip a leading dot
+  const a = normalizedPath.split('.')
+  let current = o
   for (let i = 0, n = a.length; i < n; ++i) {
     const k = a[i]
-    if (k in o) {
-      // $FlowFixMe[reassign-const] as above
-      o = o[k]
+    if (k in current) {
+      current = current[k]
     } else {
       return
     }
   }
-  return o
+  return current
 }
 
 const formatData = (obj: any) => {

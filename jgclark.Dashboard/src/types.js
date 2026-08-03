@@ -7,8 +7,9 @@
 // Types for Settings
 
 import type { TReminder } from '@helpers/NPReminders'
-import type { TSettingItem, TSettingItemType as TDialogSettingItemType } from '@helpers/react/DynamicDialog/DynamicDialog'
-export type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
+import type { TSettingItem as TDialogSettingItem, TSettingItemType as TDialogSettingItemType } from '@helpers/react/DynamicDialog/DynamicDialog'
+// DynamicDialog's own (un-widened) setting item, for things that are handed straight to DynamicDialog, e.g. action button form fields.
+export type { TSettingItem as TDialogSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 
 export type TDashboardLoggingConfig = {
   _logLevel: string,
@@ -309,7 +310,7 @@ export type TActionButton = {
   actionParam: string /* NB: all have to be passed as a string for simplicity. For "move all" buttons when filtering is active, may contain '|onlyShown' suffix */,
   postActionRefresh?: Array<TSectionCode>,
   tooltip: string,
-  formFields?: Array<TSettingItem>,
+  formFields?: Array<TDialogSettingItem>,
   submitOnEnter?: boolean,
   submitButtonText?: string,
 }
@@ -536,12 +537,13 @@ export type TPluginData = {
 export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList' | 'orderingPanel' | 'teamspace-multiselect'
 
 /**
- * A TSettingItem whose `type` may also be one of the Dashboard-only values above ('header',
- * 'perspectiveList', 'teamspace-multiselect') that DynamicDialog's own TSettingItemType doesn't list.
- * Use this for the Dashboard's own setting definitions; cast at the DynamicDialog boundary.
- * TODO: remove once those three values are added to TSettingItemType in DynamicDialog.jsx (see above).
+ * DynamicDialog's TSettingItem, but with `type` widened to also allow the Dashboard-only values above
+ * ('header', 'perspectiveList', 'teamspace-multiselect') that DynamicDialog's own TSettingItemType
+ * doesn't list. Everything inside the Dashboard imports TSettingItem from here, so it gets this
+ * widened version; only calls straight into DynamicDialog need a cast.
+ * TODO: remove this widening once those three values are added to TSettingItemType in DynamicDialog.jsx (see above).
  */
-export type TDashboardSettingItem = { ...TSettingItem, type: TDialogSettingItemType | TSettingItemType }
+export type TSettingItem = { ...TDialogSettingItem, type: TDialogSettingItemType | TSettingItemType }
 
 export type TItemToProcess = {
   ...TSectionItem,

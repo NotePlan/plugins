@@ -30,10 +30,11 @@ export function getContentWithLinks(note: CoreNoteFields | null | void): string 
   }
 
   if (noteHasFileLinks(note)) {
-    // `contentWithAbsoluteAttachmentPaths` is a newer NotePlan API property that is not yet declared anywhere in
-    // flow-typed/Noteplan.js, so no real type exists for it here; adding it to CoreNoteFields is the real fix.
-    // $FlowIgnore (bare: hides both [prop-missing] on the property read and the [incompatible-return] it causes)
-    return note.contentWithAbsoluteAttachmentPaths ? note.contentWithAbsoluteAttachmentPaths : note.content || ''
+    // `contentWithAbsoluteAttachmentPaths` is a newer NotePlan API property that is not yet declared in
+    // flow-typed/Noteplan.js. Confined to this one read (and typed on the way out) until the libdef declares it.
+    // $FlowIgnore[prop-missing] TODO: remove once CoreNoteFields declares `+contentWithAbsoluteAttachmentPaths: string | void`
+    const contentWithAbsolutePaths: ?string = note.contentWithAbsoluteAttachmentPaths
+    return contentWithAbsolutePaths || note.content || ''
   }
 
   return note.content || ''

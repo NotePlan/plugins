@@ -6,7 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
+import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TDialogSettingItem } from './types'
 import { getDoneCountsForToday, getNumCompletedTasksFromCalendarNote } from './countDoneTasks'
 import {
   buildAddTaskChecklistButtons,
@@ -115,8 +115,8 @@ export function getTodaySectionData(
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const todayHeadings: Array<string> = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, false) : []
     const tomorrowHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, false) : []
-    const todayFormFields: Array<TSettingItem> = buildAddTaskFormFields(todayHeadings, config)
-    const tomorrowFormFields: Array<TSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
+    const todayFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(todayHeadings, config)
+    const tomorrowFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
 
     let sectionDescription = `{closedOrOpenTaskCount}` // ` ` from ${todayDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
@@ -640,7 +640,7 @@ export function getTomorrowSectionData(
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const tomorrowHeadings: Array<string> = tomorrowsNote ? getHeadingsFromNote(tomorrowsNote, false, true, true, false) : []
-    const tomorrowFormFields: Array<TSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
+    const tomorrowFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
 
     let sectionDescription = `{count}` // ` ` from ${tomorrowDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`

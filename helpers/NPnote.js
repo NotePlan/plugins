@@ -67,6 +67,23 @@ export const noteIconsToUse: Array<TFolderIcon> = [
 // Functions
 
 /**
+ * Make a placeholder entry for chooseNoteV2()'s note list, standing in for a note that doesn't exist yet
+ * (a future calendar date, or the '[New note]' option). Its only job is to keep the indexes of the note list
+ * and the CommandBar options list matching.
+ * Note: this deliberately holds only the fields the list needs, so it can never satisfy the full TNote interface.
+ * WARNING: if the user picks one of these, chooseNoteV2() currently returns this stub, not a real note.
+ * @param {string} title
+ * @param {NoteType} type
+ * @param {Date?} changedDate
+ * @returns {TNote} partial note stub
+ */
+function makeNoteListPlaceholder(title: string, type: NoteType, changedDate?: Date): TNote {
+  const stub = changedDate ? { title, type, changedDate } : { title, type }
+  // $FlowIgnore[prop-missing] deliberate partial stub, as described above: there is no real type for it
+  return stub
+}
+
+/**
  * Choose a particular note from a list of notes shown to the user, with a number of display options.
  * The 'regularNotes' parameter allows both a subset of notes to be used, and to allow the generation of the list (which can take appreciable time) to happen at a less noticeable time.
  * Note: no try-catch, so that failure can stop processing.
@@ -94,9 +111,7 @@ export async function chooseNoteV2(
   if (includeCalendarNotes) {
     noteList = noteList.concat(calendarNotesSortedByChanged())
   }
-  // Date arithmetic: `changedDate` really is a Date, and Date-minus-Date is valid JS but Flow has no type for it.
-  // $FlowIgnore[unsafe-arithmetic]
-  const sortedNoteList = noteList.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  const sortedNoteList = noteList.sort((first, second) => Number(second.changedDate) - Number(first.changedDate)) // most recent first
 
   // Form the options to give to the CommandBar
   // Note: We will set up the more advanced options for the `CommandBar.showOptions` call, but downgrade them if we're not running v3.18+
@@ -123,16 +138,9 @@ export async function chooseNoteV2(
     for (const rd of relativeDates) {
       const matchingNote = sortedNoteList.find((note) => note.title === rd.dateStr)
       if (!matchingNote) {
-        // Make a temporary partial note for this date. There is no real type for this: it is deliberately a stub
-        // holding only the 3 fields the CommandBar list needs, so it can never satisfy the full CoreNoteFields interface.
-        // $FlowIgnore[prop-missing]
-        const newNote: TNote = {
-          title: rd.dateStr,
-          type: 'Calendar',
-          // TODO: get this applied to the earlier sort
-          changedDate: weekAgoDate,
-        }
-        sortedNoteList.push(newNote)
+        // Make a temporary partial note for this date
+        // TODO: get the changedDate applied to the earlier sort
+        sortedNoteList.push(makeNoteListPlaceholder(rd.dateStr, 'Calendar', weekAgoDate))
         opts.push({
           text: `${rd.dateStr}\t(${rd.relName})`,
           icon: 'calendar-plus',
@@ -157,9 +165,7 @@ export async function chooseNoteV2(
       alpha: 0.6,
       darkAlpha: 0.6,
     })
-    // Another deliberate 2-field stub (see above): no real type can describe it, as TNote requires all of CoreNoteFields.
-    // $FlowIgnore[prop-missing]
-    sortedNoteList.unshift({ title: '[New note]', type: 'Notes' }) // just keep the indexes matching
+    sortedNoteList.unshift(makeNoteListPlaceholder('[New note]', 'Notes')) // just keep the indexes matching
   }
   if (currentNoteFirst && note) {
     sortedNoteList.unshift(note)
@@ -334,9 +340,8 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     console.log(`- type ${note.type}`)
     // If it's a Teamspace note, show some details
     if (note.isTeamspaceNote) {
-      // `.isTeamspaceNote` guarantees these are set, but it is a plain boolean, not a type guard, so Flow still sees ?string.
-      // $FlowIgnore[incompatible-type]
-      console.log(`- 🧑‍🤝‍🧑 teamspace: ${note.teamspaceTitle} (id ${note.teamspaceID})\n- filename ${note.filename}`)
+      // Note: `.isTeamspaceNote` is a plain boolean, not a type guard, so these stay ?string as far as Flow is concerned.
+      console.log(`- 🧑‍🤝‍🧑 teamspace: ${note.teamspaceTitle ?? '?'} (id ${note.teamspaceID ?? '?'})\n- filename ${note.filename}`)
       console.log(`- resolvedFilename: ${note.resolvedFilename}`)
     } else {
       console.log(`- Private note\n- filename ${note.filename}`)
@@ -560,11 +565,11 @@ export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
     }
     // Not a project note, so look at calendar notes
     let possDateString = noteIdentifier
-    if (new RegExp(dt.RE_OFFSET_DATE).test(possDateString)) {
+    // Note: matching on RE_OFFSET_DATE_CAPTURE, which is RE_OFFSET_DATE plus a capture group, so this both tests and captures.
+    const offsetDateMatch = possDateString.match(new RegExp(dt.RE_OFFSET_DATE_CAPTURE))
+    if (offsetDateMatch) {
       // this is a date interval, so -> date string relative to today
-      // The RE_OFFSET_DATE .test() above guarantees a match, but Flow cannot connect the two regexes, so .match() stays ?RegExp$matchResult.
-      // $FlowIgnore[incompatible-use]
-      const thisOffset = possDateString.match(new RegExp(dt.RE_OFFSET_DATE_CAPTURE))[1]
+      const thisOffset = offsetDateMatch[1]
       possDateString = dt.calcOffsetDateStrUsingCalendarType(thisOffset)
       logDebug('NPnote/getNoteFromIdentifier', `found offset date ${thisOffset} -> '${possDateString}'`)
     }
@@ -617,11 +622,11 @@ export function getNoteFilenameFromTitle(inputStr: string): string | null {
   }
   // Not a project note, so look at calendar notes
   let possDateString = inputStr
-  if (new RegExp(dt.RE_OFFSET_DATE).test(possDateString)) {
+  // Note: matching on RE_OFFSET_DATE_CAPTURE, which is RE_OFFSET_DATE plus a capture group, so this both tests and captures.
+  const offsetDateMatch = possDateString.match(new RegExp(dt.RE_OFFSET_DATE_CAPTURE))
+  if (offsetDateMatch) {
     // this is a date interval, so -> date string relative to today
-    // The RE_OFFSET_DATE .test() above guarantees a match, but Flow cannot connect the two regexes, so .match() stays ?RegExp$matchResult.
-    // $FlowIgnore[incompatible-use]
-    const thisOffset = possDateString.match(new RegExp(dt.RE_OFFSET_DATE_CAPTURE))[1]
+    const thisOffset = offsetDateMatch[1]
     possDateString = dt.calcOffsetDateStrUsingCalendarType(thisOffset)
     logDebug('NPnote/getNoteFilenameFromTitle', `found offset date ${thisOffset} -> '${possDateString}'`)
   }

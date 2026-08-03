@@ -9,9 +9,8 @@
 
 // @flow
 import path from 'path'
-// $FlowIgnore[cannot-resolve-module] `fs/promises` is a node builtin; flow-typed ships no libdef for the subpath form
-import fs from 'fs/promises'
-import { existsSync } from 'fs'
+// Use the `fs.promises` namespace rather than the `fs/promises` subpath, which flow-typed ships no libdef for
+import { existsSync, promises as fs } from 'fs'
 import TemplatingEngine from '../lib/TemplatingEngine'
 import { preProcessTags } from '../lib/rendering/templateProcessor'
 import { DataStore } from '@mocks/index'

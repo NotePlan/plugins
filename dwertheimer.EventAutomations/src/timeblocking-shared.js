@@ -199,7 +199,9 @@ export async function insertItemsIntoNote(
       const thePara = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
       if (thePara) {
         logDebug(pluginJson, `insertItemsIntoNote: folding "${heading}" - isFolded=${String(Editor.isFolded(thePara))}`)
-        // $FlowIgnore[method-unbinding] - the function is not being removed from the Editor object.
+        // Flow limitation, not something a real type can express: testing for the existence of an API *method* trips
+        // [method-unbinding] (same as jgclark.NoteHelpers/src/newNote.js:185). The function is not being unbound here.
+        // $FlowIgnore[method-unbinding]
         if (Editor.isFolded) {
           // make sure this command exists
           if (!Editor.isFolded(thePara)) {

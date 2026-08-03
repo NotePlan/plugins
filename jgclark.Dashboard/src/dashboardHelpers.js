@@ -29,7 +29,7 @@ import type {
   TSection,
   TSectionCode,
   TSectionItem,
-  TSettingItem,
+  TDialogSettingItem,
 } from './types'
 import { getNestedValue, setNestedValue, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
@@ -800,10 +800,10 @@ export function getDefaultHeadingForNewTask(config: TDashboardSettings): string 
  * Build form fields for add-task / add-checklist dialogs (task input + optional heading dropdown).
  * @param {Array<string>} headings
  * @param {TDashboardSettings} config
- * @returns {Array<TSettingItem>}
+ * @returns {Array<TDialogSettingItem>}
  */
-export function buildAddTaskFormFields(headings: Array<string>, config: TDashboardSettings): Array<TSettingItem> {
-  const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
+export function buildAddTaskFormFields(headings: Array<string>, config: TDashboardSettings): Array<TDialogSettingItem> {
+  const formFieldsBase: Array<TDialogSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
   if (!headings.length) return formFieldsBase
   const defaultHeadingToAddTo = getDefaultHeadingForNewTask(config)
   return formFieldsBase.concat(
@@ -818,7 +818,7 @@ export function buildAddTaskFormFields(headings: Array<string>, config: TDashboa
         noWrapOptions: true,
         value: defaultHeadingToAddTo,
       },
-    ]: Array<TSettingItem>),
+    ]: Array<TDialogSettingItem>),
   )
 }
 
@@ -826,7 +826,7 @@ export function buildAddTaskFormFields(headings: Array<string>, config: TDashboa
  * Build addTask + addChecklist action buttons for a calendar note.
  * @param {{
  *   filename: string,
- *   formFields: Array<TSettingItem>,
+ *   formFields: Array<TDialogSettingItem>,
  *   colorClass: string,
  *   taskTooltip: string,
  *   checklistTooltip: string,
@@ -837,7 +837,7 @@ export function buildAddTaskFormFields(headings: Array<string>, config: TDashboa
  */
 export function buildAddTaskChecklistButtons(opts: {
   filename: string,
-  formFields: Array<TSettingItem>,
+  formFields: Array<TDialogSettingItem>,
   colorClass: string,
   taskTooltip: string,
   checklistTooltip: string,

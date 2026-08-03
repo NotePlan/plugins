@@ -833,8 +833,6 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
   // const { filename, content, modifierKey } = validateAndFlattenMessageObject(data)
   // const note = await Editor.openNoteByFilename(filename, modifierKey === 'meta', 0, 0, modifierKey === 'alt')
   // if (note) {
-  //   // $FlowIgnore[prop-missing]
-  //   // $FlowIgnore[incompatible-call]
   //   const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
   //   logDebug('doShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph`,)
   //   return handlerResult(true)

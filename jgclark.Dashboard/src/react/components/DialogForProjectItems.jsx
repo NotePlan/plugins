@@ -23,7 +23,7 @@ import '../css/animation.css'
 type Props = {
   onClose: (xWasClicked: boolean) => void,
   details: MessageDataObject,
-  positionDialog: (dialogRef: { current: ?HTMLDialogElement }) => void, // matches the React$RefObject<?HTMLDialogElement> declared below (useRef can hold undefined)
+  positionDialog: (dialogRef: { current: ?HTMLElement }) => void, // matches the React$RefObject<?HTMLElement> declared below (useRef can hold undefined)
 }
 
 type DialogButtonProps = {
@@ -40,7 +40,9 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   const [resetCalendar, setResetCalendar] = useState(false)
 
   // const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
-  const dialogRef: React$RefObject<?HTMLDialogElement> = useRef <? HTMLDialogElement > (null)
+  // Note: typed as ?HTMLElement (not ?HTMLDialogElement) because flowlib types every non-special intrinsic's ref instance as HTMLElement,
+  // and React$RefObject is invariant in its type argument.
+  const dialogRef: React$RefObject<?HTMLElement> = useRef <? HTMLElement > (null)
 
   logInfo('DialogForProjectItems', `Starting, with detailsMessageObject= ${JSP(detailsMessageObject, 2)}`)
   let validated
@@ -191,10 +193,6 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
         className={`projectControlDialog ${animationClass}`}
         aria-labelledby="Actions Dialog"
         aria-describedby="Actions that can be taken on projects"
-        // Flowlib types <dialog>'s ref instance as plain HTMLElement, and React$RefObject is invariant in
-        // its type argument, so no honest annotation of a ?HTMLDialogElement ref can satisfy it. The real
-        // fix is a flowlib/react-dom change (a `dialog` intrinsic with HTMLDialogElement), not one here.
-        // $FlowIgnore[incompatible-type]
         ref={dialogRef}
       >
         {/* Title area ---------------- */}

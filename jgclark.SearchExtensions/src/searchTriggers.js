@@ -27,19 +27,17 @@ import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
  */
 function getUrlParams(query: string): { [key: string]: string } {
   const search = /([^&=]+)=?([^&]*)/g
-  let match: RegExp$matchResult | null
   const decode = function (s: string) {
     // Regex for replacing addition symbol with a space
     return decodeURIComponent(s.replace(/\+/g, " "))
   }
   const urlParams: { [key: string]: string } = {}
-  while ((match = search.exec(query)) !== null) {
-    // Flow limitation, not something a real type can express: it does not refine an assignment made inside the while condition, so `match` stays
-    // nullable in the body. Dropping the annotation on `match` does not help either. Only restructuring the loop (a code change) would.
-    // $FlowIgnore[incompatible-use]
+  // Note: assignment is done before the test (rather than inside the while condition) so that Flow can refine `match` to non-null in the body.
+  let match: RegExp$matchResult | null = search.exec(query)
+  while (match !== null) {
     urlParams[decode(match[1])] = decode(match[2])
-    // $FlowIgnore[incompatible-use] same as above
     console.log(`Found param: ${decode(match[1])} / ${decode(match[2])}`)
+    match = search.exec(query)
   }
   clo(urlParams)
   return urlParams

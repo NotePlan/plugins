@@ -975,15 +975,11 @@ export async function runExtendedSearch(
   }
   catch (err) {
     logError('runExtendedSearch', err.message)
-    // const emptyResultObject = { searchTerm: '', resultsLines: [], resultCount: 0 }
-    // KNOWN BUG - this `return null` is not survivable by the caller. runExtendedSearches() assigns the result to
-    // `const resultObject: resultObjectType` and immediately does `termsResults.push(resultObject)` then `resultObject.resultCount`,
-    // so any error caught here turns into a TypeError on null one line later rather than a handled empty result.
-    // The honest return type is `Promise<?resultObjectType>`; writing that makes Flow demand the null guard that is genuinely missing.
-    // Suppression retained deliberately so the bug is not hidden by a type change: the fix is a code fix (return an empty
-    // resultObjectType here, or guard in runExtendedSearches()), not an annotation.
-    // $FlowFixMe[incompatible-return]
-    return null // for completeness
+    // Note: this used to `return null`, which the caller could not survive: runExtendedSearches() assigns the result to
+    // `const resultObject: resultObjectType` and immediately reads `resultObject.resultCount`, turning any error caught here into a
+    // TypeError on null one line later. Re-throwing lets runExtendedSearches()'s own catch report the *real* error and return its
+    // empty resultOutputType, which is the same end state the TypeError used to produce, but without the misleading log line.
+    throw err
   }
 }
 
@@ -1248,12 +1244,9 @@ export async function makeAnySyncs(input: resultOutputType): Promise<resultOutpu
   }
   catch (err) {
     logError('makeAnySyncs', err.message)
-    // KNOWN BUG - as above. runExtendedSearches() returns this value straight on as `Promise<resultOutputType>`, so on error the null
-    // escapes to saveSearch()/flexiSearch(), which immediately read `resultSet.resultCount` and throw a TypeError.
-    // The honest return type is `Promise<?resultOutputType>`; writing that makes Flow demand the null guard that is genuinely missing.
-    // Suppression retained deliberately so the bug is not hidden by a type change: the fix is a code fix (return `input` unchanged
-    // here, or guard in runExtendedSearches()), not an annotation.
-    // $FlowFixMe[incompatible-return]
-    return null
+    // Note: this used to `return null`, which runExtendedSearches() passed straight on as its `Promise<resultOutputType>`, so the null
+    // escaped to saveSearch()/flexiSearch(), which immediately read `resultSet.resultCount` and threw a TypeError there.
+    // Returning the unmodified input instead means a failure to add blockIDs costs only the sync links, not the whole result set.
+    return input
   }
 }

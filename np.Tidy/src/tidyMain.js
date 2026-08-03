@@ -549,14 +549,13 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
     const blankNotes = allNotesSortedByChanged()
       .filter((n) => n.filename.match(/(.txt|.md)$/))
-      // KNOWN BUG - this guard does not do what it looks like it does, so the suppression has to stay.
-      // `TNote.content` is `string | void`. `n.content !== 'undefined'` compares against the *string*
-      // 'undefined', so it is true when content really is undefined; `n.content.length !== 'undefined'`
-      // compares a number against a string and is therefore always true (and throws first if content is
-      // undefined). The author meant `typeof n.content !== 'undefined'`. Not fixed here because that is a
-      // behaviour change, not a typing change.
-      // $FlowFixMe[incompatible-type]
-      .filter((n) => n.content !== 'undefined' && n.content.length !== 'undefined' && n.content.length <= 2)
+      // Note: `TNote.content` is `string | void`. The previous guard compared against the *string* 'undefined'
+      // (`n.content !== 'undefined' && n.content.length !== 'undefined'`), which was always true and then threw a
+      // TypeError whenever content really was undefined. The intent was `typeof n.content !== 'undefined'`.
+      .filter((n) => {
+        const content = n.content
+        return typeof content === 'string' && content.length <= 2
+      })
     
     const nonTeamspaceNotes = blankNotes.filter((n) => !isTeamspaceNoteFromFilename(n.filename))
     const teamspaceNotes = blankNotes.filter((n) => isTeamspaceNoteFromFilename(n.filename))

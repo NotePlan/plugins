@@ -5,11 +5,6 @@
 
 // @flow
 
-// KNOWN BUG - when the service responds but returns an empty array, this function falls out of the bottom and
-// resolves `undefined` rather than a string. Declaring the return type `Promise<string | void>` would be honest but
-// would only push the same defect onto the callers (`const verse: string = await getDailyQuote()`); the real fix is a
-// missing return, which is a runtime change.
-// $FlowFixMe[incompatible-return]
 export async function getDailyQuote(): Promise<string> {
   const response = await fetch(`https://zenquotes.io/api/random`, { timeout: 3000 })
   if (response) {
@@ -18,7 +13,8 @@ export async function getDailyQuote(): Promise<string> {
       const data = quoteLines[0]
       return `${data.q} - *${data.a}*`
     }
-  } else {
-    return `**quote() web service did not respond**`
+    // Previously fell out of the bottom here and resolved `undefined` out of a `Promise<string>`
+    return `**quote() web service returned no quotes**`
   }
+  return `**quote() web service did not respond**`
 }

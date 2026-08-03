@@ -121,20 +121,17 @@ export function getNoteLinkForDisplay(filename: string, dateStyle: string): stri
   if (!note) {
     return '<error>'
   }
-  // Note: `note.date != null` guards all three branches below, but Flow drops property refinements after the
-  // displayTitle() call in the first branch, so `note.date` reads as ?Date again. A real fix means hoisting it to a local const.
-  if (note.date != null) {
+  // Note: hoisted to a local const, so that the refinement survives the displayTitle() call in the first branch below.
+  const noteDate = note.date
+  if (noteDate != null) {
     return dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
       ? ` ([[${displayTitle(note)}]])`
       : dateStyle === 'scheduled'
-      ? // $FlowIgnore[incompatible-call]
-        ` >${hyphenatedDate(note.date)} `
+      ? ` >${hyphenatedDate(noteDate)} `
       : dateStyle === 'date'
-      ? // $FlowIgnore[incompatible-call]
-        ` (${toNPLocaleDateString(note.date)})`
+      ? ` (${toNPLocaleDateString(noteDate)})`
       : dateStyle === 'at'
-      ? // $FlowIgnore[incompatible-call]
-        ` @${hyphenatedDate(note.date)} `
+      ? ` @${hyphenatedDate(noteDate)} `
       : '?'
   } else {
     return `[[${note.title ?? ''}]]`
@@ -336,9 +333,7 @@ export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Ar
   const projectNotes = getRegularNotesFromFilteredFolders(foldersToIgnore, true)
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
-  // Date-minus-Date is valid JS but Flow has no type for it, so this cannot be expressed without changing the code.
-  // $FlowIgnore[unsafe-arithmetic]
-  const allNotesSorted = allNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  const allNotesSorted = allNotes.sort((first, second) => Number(second.changedDate) - Number(first.changedDate)) // most recent first
   return allNotesSorted
 }
 
@@ -350,9 +345,7 @@ export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Ar
  */
 export function allRegularNotesSortedByChanged(foldersToIgnore: Array<string> = []): Array<TNote> {
   const regularNotes = getRegularNotesFromFilteredFolders(foldersToIgnore, true)
-  // Date-minus-Date is valid JS but Flow has no type for it, so this cannot be expressed without changing the code.
-  // $FlowIgnore[unsafe-arithmetic]
-  const regularNotesSorted = regularNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  const regularNotesSorted = regularNotes.sort((first, second) => Number(second.changedDate) - Number(first.changedDate)) // most recent first
   return regularNotesSorted
 }
 
@@ -376,9 +369,7 @@ export function allNotesSortedByTitle(foldersToIgnore: Array<string> = [], exclu
  * @return {Array<TNote>} array of notes
  */
 export function calendarNotesSortedByChanged(): Array<TNote> {
-  // Date-minus-Date is valid JS but Flow has no type for it, so this cannot be expressed without changing the code.
-  // $FlowIgnore[unsafe-arithmetic]
-  return DataStore.calendarNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
+  return DataStore.calendarNotes.slice().sort((first, second) => Number(second.changedDate) - Number(first.changedDate))
 }
 
 /**
@@ -438,9 +429,7 @@ export function pastCalendarNotes(): Array<TNote> {
  */
 export function weeklyNotesSortedByChanged(): Array<TNote> {
   const weeklyNotes = DataStore.calendarNotes.slice().filter((f) => f.filename.match(RE_WEEKLY_NOTE_FILENAME))
-  // Date-minus-Date is valid JS but Flow has no type for it, so this cannot be expressed without changing the code.
-  // $FlowIgnore[unsafe-arithmetic]
-  return weeklyNotes.sort((first, second) => second.changedDate - first.changedDate)
+  return weeklyNotes.sort((first, second) => Number(second.changedDate) - Number(first.changedDate))
 }
 
 /**
@@ -449,9 +438,7 @@ export function weeklyNotesSortedByChanged(): Array<TNote> {
  * @return {Array<TNote>} array of notes
  */
 export function projectNotesSortedByChanged(): Array<TNote> {
-  // Date-minus-Date is valid JS but Flow has no type for it, so this cannot be expressed without changing the code.
-  // $FlowIgnore[unsafe-arithmetic]
-  return DataStore.projectNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
+  return DataStore.projectNotes.slice().sort((first, second) => Number(second.changedDate) - Number(first.changedDate))
 }
 
 /**
@@ -556,10 +543,9 @@ export function replaceSection(
   newSectionContent: string,
 ): void {
   try {
-    // Deliberate duck-type test for the Editor: TNote has no `note` property, and there is no Flow type for 'either shape'.
-    // $FlowIgnore[prop-missing]
-    const editorNote = note?.note
-    const isEditor = editorNote !== undefined
+    // Note: callers can pass the Editor here (it satisfies the TNote-shaped API we use). Identity-check it rather than
+    // duck-typing on a `.note` property that TNote doesn't have. Only used for the log line below.
+    const isEditor = note === Editor
     logDebug(
       'note / replaceSection',
       `Starting for note '${displayTitle(note)}' ${

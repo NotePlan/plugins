@@ -529,9 +529,12 @@ export async function createTemplate(title: string = '', metaData: any, content:
       }
       let templateContent = `---\ntitle: ${noteName || ''}\n${metaTagData.join('\n')}\n---\n`
       templateContent += content
-      // KNOWN BUG - `projectNoteByFilename()` returns `?TNote`, and there is no null check, so a failed/slow note
-      // creation makes this throw (the catch below swallows it and `createTemplate` silently returns false).
-      // $FlowFixMe[incompatible-use]
+      // `projectNoteByFilename()` returns `?TNote`; a failed/slow note creation used to throw here and be silently
+      // swallowed by the catch below, so report it explicitly instead.
+      if (!note) {
+        logError(pluginJson, `createTemplate :: could not open newly-created note "${filename || ''}"`)
+        return false
+      }
       note.content = templateContent
       return true
     } else {

@@ -30,6 +30,20 @@ const pluginJson = 'helpers/NPFrontMatter.js'
 //----------------------------------------------------------------------------
 
 /**
+ * Duck-type test for whether we were handed the Editor rather than a plain Note.
+ * The Editor exposes a `.note` property; CoreNoteFields does not, and Flow has no type for 'either shape',
+ * so the suppression lives here once rather than at every call site.
+ * @param {CoreNoteFields} note - the note (or Editor) to test
+ * @returns {boolean} true if this looks like the Editor
+ */
+export function isEditorObject(note: CoreNoteFields): boolean {
+  // $FlowIgnore[prop-missing] deliberate duck-type test; see JSDoc above
+  return Boolean(note.note)
+}
+
+//----------------------------------------------------------------------------
+
+/**
  * Frontmatter cannot have colons in the content (specifically ": " or ending in colon) or values starting in @ or #, or containing >, so we need to wrap those in quotes.
  * If a string is wrapped in double quotes and contains additional double quotes, convert the internal quotes to single quotes.
  * This often happens when people include double quotes in template tags in their frontmatter
@@ -551,9 +565,7 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         logDebug('ensureFrontmatter', `front to add: "${fm}"`)
         note.insertParagraph(fm, 0, 'text')
       }
-      // Deliberate duck-type test for the Editor: CoreNoteFields has no `note` property, and there is no Flow type for 'either shape'.
-      // $FlowIgnore[prop-missing]
-      if (note.note) {
+      if (isEditorObject(note)) {
         // we must be looking at the Editor (because it has a note property)
         logDebug(
           'ensureFrontmatter',
@@ -1013,8 +1025,7 @@ export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [st
   try {
     clo(newAttributes, `updateFrontMatterVars: newAttributes = `)
     logDebug('updateFrontMatterVars', `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs before ensureFrontmatter`)
-    // $FlowIgnore[prop-missing]
-    const isEditor = Boolean(note.note)
+    const isEditor = isEditorObject(note)
     // Ensure the note has front matter (for both Editor and note cases)
     if (!ensureFrontmatter(note, !isEditor)) {
       logError(pluginJson, `updateFrontMatterVars: Failed to ensure front matter for note "${note.filename || ''}".`)

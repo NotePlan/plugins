@@ -33,7 +33,7 @@ import { isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
-export async function getPrioritySectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
+export async function getPrioritySectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<?TSection> {
   try {
     const thisSectionCode = 'PRIORITY'
     let totalPriority = 0
@@ -132,13 +132,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
     return section
   } catch (error) {
     logError(pluginJson, JSP(error))
-    // KNOWN BUG - getPrioritySectionData is declared Promise<TSection> but returns null here, and its only
-    // caller (getSomeSectionsData in dataGeneration.js) does `sections.push(await getPrioritySectionData(...))`
-    // with no null guard, unlike the getTaggedSectionData call a few lines above it. So an error in this
-    // function puts a null into Array<TSection> and everything downstream that reads section.sectionCode
-    // throws. Typing the return as Promise<?TSection> is the right declaration but needs that caller fixed
-    // first, so the suppression stays until then.
-    // $FlowFixMe[incompatible-return]
+    // Returns null on error; the caller (getSomeSectionsData in dataGeneration.js) skips it.
     return null
   }
 }

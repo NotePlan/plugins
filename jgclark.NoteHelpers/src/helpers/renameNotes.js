@@ -45,7 +45,8 @@ export async function renameNoteToTitle(
     const currentFilepath = note.filename
     let newFilepath = getFSSafeFilenameFromNoteTitle(note)
 
-    if (newFilepath === '' || title === '') {
+    // Note: `title` is `?string`, so test for missing as well as empty (the previous `title === ''` let `undefined` through).
+    if (newFilepath === '' || !title) {
       // No title found, so don't do anything.
       logWarn(pluginJson, 'renameNoteToTitle(): No title found. Stopping.')
       return false
@@ -79,10 +80,8 @@ export async function renameNoteToTitle(
     logInfo(pluginJson, `renameNoteToTitle(): New filename will be "${newFilepath}"`)
 
     if (shouldPromptBeforeRenaming) {
-      const currentFilename = currentFilepath.split('/').pop()
-      // Two maybe-typed values interpolated into a template literal: `.pop()` is `string | void`, and `note.title` is `string | void` (the
-      // guard above only tests `title === ''`). No real type is possible without adding a guard or a String() wrapper, i.e. a code change.
-      // $FlowIgnore[incompatible-type]
+      // Note: `.pop()` is typed `string | void` even though split() always yields at least one element, hence the fallback.
+      const currentFilename = currentFilepath.split('/').pop() ?? currentFilepath
       const promptResponse = await showMessageYesNoCancel(`Would you like to rename "${currentFilename}" to match the note title "${title}"?
 
   Current path: ${currentFilepath}

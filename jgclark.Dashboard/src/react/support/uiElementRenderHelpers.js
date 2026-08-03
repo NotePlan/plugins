@@ -156,7 +156,6 @@ export function renderItem({
             fixedWidth={item.fixedWidth}
           />
         )
-      // $FlowIgnore[incompatible-type] see TODO in types.js which explains this
       case 'teamspace-multiselect':
         // logDebug('renderItem', `teamspace-multiselect: ${String(index)} / '${thisLabel}' / ${item.description} / ${String(item.handleDescriptionItself || false)}`)
         return <MultiSelectSpaces
@@ -196,7 +195,6 @@ export function renderItem({
             )}
           </>
         )
-      // $FlowIgnore[incompatible-type] don't understand this
       case 'perspectiveList':
         return <PerspectiveSettings handleFieldChange={handleFieldChange} className={className} />
       case 'orderingPanel':

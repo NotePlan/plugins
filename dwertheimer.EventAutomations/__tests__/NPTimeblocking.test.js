@@ -135,10 +135,9 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const spy = jest.spyOn(CommandBar, 'prompt')
         await mainFile.insertTodosAsTimeblocks()
         // `mock.lastCall` exists at runtime (jest >= 26) but is absent from the `mock` object type in
-        // flow-typed/npm/jest_v27.x.x.js, whose inexactness still does not permit reading undeclared props.
-        // Real fix is to add `lastCall: TArguments` to that libdef, which is outside this plugin.
-        // $FlowIgnore[prop-missing]
-        expect(spy.mock.lastCall[1]).toEqual(`No todos/references marked for >today`)
+        // flow-typed/npm/jest_v27.x.x.js, so read the last entry of `mock.calls` (which is the same thing) instead
+        const lastCall = spy.mock.calls[spy.mock.calls.length - 1]
+        expect(lastCall[1]).toEqual(`No todos/references marked for >today`)
         spy.mockRestore()
       })
     })

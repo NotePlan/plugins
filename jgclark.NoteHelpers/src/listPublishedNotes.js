@@ -26,10 +26,8 @@ export async function listPublishedNotes(): Promise<void> {
     outputArray.push(`Found ${publishedNotes.length} published notes. Last run: ${new Date().toLocaleString()}  [🔄 Refresh list](${xCallbackURL})`)
     outputArray.push(``)
     publishedNotes.map(note => {
-      // `publicRecordID` is `?string`, and the truthiness filter above is not carried into this callback by Flow. No real type is possible:
-      // making it non-maybe would need a String() wrapper or a guard here, i.e. a code change rather than a type change.
-      // $FlowIgnore[incompatible-type]
-      outputArray.push(`- [Link](${publicURLPrefix}${note.publicRecordID}) to ${displayFolderAndTitle(note)}`)
+      // Note: `publicRecordID` is `?string`; the truthiness filter above guarantees it is set here, but Flow can't carry that into this callback.
+      outputArray.push(`- [Link](${publicURLPrefix}${note.publicRecordID ?? ''}) to ${displayFolderAndTitle(note)}`)
     })
     const outString = outputArray.join('\n')
 

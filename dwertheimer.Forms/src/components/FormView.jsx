@@ -919,6 +919,15 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
   }
 
   /**
+   * AppContext declares sendToPlugin as (command, dataToSend) positional args (which is how FormBrowserView and
+   * FormBuilderView fill the slot), while the local sendToPlugin above takes a single tuple. Adapt, so that a
+   * consumer calling context.sendToPlugin('foo', data) does not end up array-destructuring the command string.
+   */
+  const sendToPluginFromContext = (command: string, dataToSend: any, additionalDetails: string = '') => {
+    sendToPlugin([command, dataToSend, additionalDetails])
+  }
+
+  /**
    * Updates the pluginData with the provided new data (must be the whole pluginData object)
    *
    * @param {Object} newData - The new data to update the plugin with,
@@ -1007,14 +1016,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     <>
       <AppProvider
         sendActionToPlugin={sendActionToPlugin}
-        /* KNOWN BUG - AppContext declares `sendToPlugin: (command: string, dataToSend: any) => void` (two positional
-           args), but the implementation above takes ONE argument and array-destructures it. A consumer doing
-           `sendToPlugin('foo', data)` off the context would destructure the string and get command === 'f'.
-           FormBrowserView/FormBuilderView fill this same slot with the 2-arg `sendActionToPlugin`, so the two
-           disagree. Nothing reads context.sendToPlugin today, which is why it has gone unnoticed. Left as-is:
-           choosing a calling convention is a behaviour change, not a typing one. */
-        // $FlowIgnore[incompatible-type]
-        sendToPlugin={sendToPlugin}
+        sendToPlugin={sendToPluginFromContext}
         requestFromPlugin={requestFromPlugin}
         dispatch={dispatch}
         pluginData={pluginData}

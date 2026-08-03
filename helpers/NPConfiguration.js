@@ -253,12 +253,9 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
       return {}
     }
 
-    // eslint-disable-next-line
-    let [format, ...contents] = block.split('\n')
-    // `contents` is the rest element of an array destructuring, so it is Array<string>; the code then reuses the same
-    // binding for the joined string. Only a second variable would fix this, not a different type.
-    // $FlowIgnore[incompatible-type]
-    contents = contents.join('\n')
+    // eslint-disable-next-line no-unused-vars
+    const [format, ...contentLines] = block.split('\n')
+    const contents = contentLines.join('\n')
 
     const value: any = json5.parse(contents)
     return value

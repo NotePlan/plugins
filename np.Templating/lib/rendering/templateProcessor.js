@@ -663,13 +663,11 @@ export async function preProcessCalendar(tag: string = ''): Promise<string> {
       const noteName = noteNameWithPossibleDashes.replace(/-/g, '')
       logDebug(pluginJson, `preProcessCalendar: Looking up calendar note for: ${noteName} (original: ${noteNameWithPossibleDashes})`)
       const calendarNote = await DataStore.calendarNoteByDateString(noteName)
-      if (typeof calendarNote !== 'undefined') {
-        // KNOWN BUG - `calendarNoteByDateString()` returns `?TNote`, so this guard misses the `null` case and the read
-        // throws a TypeError; and `TNote.content` is `string | void`, so this can also resolve `undefined` out of a
-        // function declared `Promise<string>`. Both need a runtime guard change, not a type change.
-        // $FlowFixMe[incompatible-use]
-        // $FlowFixMe[incompatible-return]
-        return calendarNote.content
+      // Note: `calendarNoteByDateString()` returns `?TNote` and `TNote.content` is `string | void`, so both have to be
+      // checked; the previous `typeof calendarNote !== 'undefined'` guard missed `null` and threw a TypeError.
+      const calendarNoteContent = calendarNote?.content
+      if (calendarNoteContent != null) {
+        return calendarNoteContent
       } else {
         return `**An error occurred loading note "${noteName}"**`
       }

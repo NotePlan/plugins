@@ -360,6 +360,10 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
 
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindow(perspectiveName, useDemoData)
+    if (!data) {
+      logError('showDashboardReact', `Couldn't assemble the initial data for the React Window, so stopping.`)
+      return
+    }
     // logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
     const preferredWindowType = config?.preferredWindowType
     const { showInMainWindow, splitView } = windowOptionsFromPreferredWindowType(preferredWindowType)
@@ -460,9 +464,9 @@ export async function reactWindowInitialisedSoStartGeneratingData(): Promise<voi
 /**
  * Because perspectiveSettings may need to be created on first run, we need to get the dashboardSettings from the perspectiveSettings
  * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns {TDashboardSettings}
+ * @returns {?TDashboardSettings} the new settings, or null if they couldn't be worked out
  */
-async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspectiveSettings): Promise<TDashboardSettings> {
+async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspectiveSettings): Promise<?TDashboardSettings> {
   try {
     const activeDef = getActivePerspectiveDef(perspectiveSettings)
     if (!activeDef) throw new Error(`getDashboardSettingsFromPerspective: getActivePerspectiveDef failed`)
@@ -489,12 +493,8 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
     return newDashboardSettings
   } catch (error) {
     logError('getDashboardSettingsFromPerspective', error.message)
-    // KNOWN BUG - the declared return type is Promise<TDashboardSettings> but this path returns {}, and
-    // getInitialDataForReactWindow() assigns it straight into `dashboardSettings` and builds pluginData
-    // from it, so every setting silently reads as undefined instead of the failure being handled.
-    // Promise<?TDashboardSettings> is the correct declaration, but needs that caller to handle null first.
-    // $FlowFixMe[prop-missing]
-    return {}
+    // Return null (not {}) so the caller can keep using the settings it already has.
+    return null
   }
 }
 
@@ -502,9 +502,9 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
  * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin.
  * @param {string?} perspectiveName - the name of the Perspective to use, or blank to mean use the current one
  * @param {boolean?} useDemoData - whether to use demo data
- * @returns {PassedData} the React Data Window object
+ * @returns {?PassedData} the React Data Window object, or null if it couldn't be assembled
  */
-export async function getInitialDataForReactWindow(perspectiveName: string = '', useDemoData: boolean = false): Promise<PassedData> {
+export async function getInitialDataForReactWindow(perspectiveName: string = '', useDemoData: boolean = false): Promise<?PassedData> {
   try {
     logDebug('getInitialDataForReactWindow', `>>>>> Starting`)
     const startTime = new Date()
@@ -514,7 +514,12 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
     if (perspectiveName) {
       logDebug('getInitialDataForReactWindow', `will use perspective '${perspectiveName}'`)
       perspectiveSettings = (await switchToPerspective(perspectiveName, perspectiveSettings)) || perspectiveSettings
-      dashboardSettings = await getDashboardSettingsFromPerspective(perspectiveSettings)
+      const settingsForPerspective = await getDashboardSettingsFromPerspective(perspectiveSettings)
+      if (settingsForPerspective) {
+        dashboardSettings = settingsForPerspective
+      } else {
+        logWarn('getInitialDataForReactWindow', `couldn't get dashboardSettings for perspective '${perspectiveName}', so will carry on with the existing settings`)
+      }
     }
     // clo(dashboardSettings, `getInitialDataForReactWindow: dashboardSettings=`)
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
@@ -543,12 +548,8 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
     return dataToPass
   } catch (error) {
     logError(pluginJson, error.message)
-    // KNOWN BUG - the declared return type is Promise<PassedData> but this path returns {}, which is then
-    // handed to the React window as its whole initial payload (data.pluginData, data.dashboardSettings,
-    // ... are all undefined). Promise<?PassedData> is the correct declaration, but the caller at
-    // reactWindowInitialisedSoStartGeneratingData() has no null handling, so fix that first.
-    // $FlowFixMe[prop-missing]
-    return {}
+    // Return null (not {}) so the caller doesn't hand a hollow payload to the React window.
+    return null
   }
 }
 

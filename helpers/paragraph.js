@@ -341,6 +341,38 @@ export function printParagraph(p: TParagraph) {
   logDebug('paragraph/printParagraph', JSON.stringify(logObject, null, 2))
 }
 
+/** The heading levels that Note.insertHeading() accepts. */
+export type HeadingLevelType = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+
+/**
+ * Coerce an arithmetically-derived heading level into the 1-8 range that Note.insertHeading() accepts.
+ * Values outside that range are clamped (NotePlan has no headings deeper than H8, and there is no H0).
+ * @author @dwertheimer
+ * @param {number} level
+ * @returns {HeadingLevelType} a valid heading level
+ */
+export function asValidHeadingLevel(level: number): HeadingLevelType {
+  const clamped = Math.min(8, Math.max(1, Math.round(level)))
+  switch (clamped) {
+    case 1:
+      return 1
+    case 2:
+      return 2
+    case 3:
+      return 3
+    case 4:
+      return 4
+    case 5:
+      return 5
+    case 6:
+      return 6
+    case 7:
+      return 7
+    default:
+      return 8
+  }
+}
+
 /**
  * Appends text to a chosen note, but more smartly than usual.
  * I.e. adds before any ## Done or ## Completed archive section.
@@ -474,10 +506,8 @@ export function smartCreateSectionsAndPara(
           } else {
             insertionIndex = latestInsertionLineIndex
           }
-          // insertHeading() wants headingLevelType (1..5); `firstHeadingLevel + i` is plain arithmetic, which Flow
-          // always types as `number`. There is no type-level way to say 'stays within 1..5'.
-          // $FlowIgnore[incompatible-call]
-          destNote.insertHeading(headingArray[i], insertionIndex, firstHeadingLevel + i) // add the heading
+          const thisHeadingLevel = asValidHeadingLevel(firstHeadingLevel + i)
+          destNote.insertHeading(headingArray[i], insertionIndex, thisHeadingLevel) // add the heading
           logDebug('paragraph/smartCreateSectionsAndPara', `added heading "${headingArray[i]}" at line ${String(insertionIndex)} level ${String(firstHeadingLevel + i)}`)
           latestInsertionLineIndex = insertionIndex + 1
         }
@@ -547,10 +577,8 @@ export function createSectionsAndParaAfterPreamble(
           // Heading doesn't exist, so add it
           let insertionIndex = 0
           insertionIndex = latestInsertionLineIndex
-          // insertHeading() wants headingLevelType (1..5); `firstHeadingLevel + i` is plain arithmetic, which Flow
-          // always types as `number`. There is no type-level way to say 'stays within 1..5'.
-          // $FlowIgnore[incompatible-call]
-          destNote.insertHeading(headingArray[i], insertionIndex, firstHeadingLevel + i) // add the heading
+          const thisHeadingLevel = asValidHeadingLevel(firstHeadingLevel + i)
+          destNote.insertHeading(headingArray[i], insertionIndex, thisHeadingLevel) // add the heading
           logDebug('paragraph/smartCreateSectionsAndPara', `added heading "${headingArray[i]}" at line ${String(insertionIndex)} level ${String(firstHeadingLevel + i)}`)
           latestInsertionLineIndex = insertionIndex + 1
         }
@@ -840,14 +868,14 @@ export function removeDuplicateSyncedLines(paras: $ReadOnlyArray<TParagraph>): $
  * @returns {string} number of !, or 4 if line is flagged as 'working-on', or -1
  */
 export function getTaskPriority(content: string): number {
-  let numExclamations = 0
   if (content.match(/\B\!+\B(?!\[)/)) {
     // not in middle of word, or starting an image tag
-    // The `content.match()` in the `if` above guarantees a match, but it is a separate RegExp literal so Flow
-    // cannot connect the two and .match() stays ?RegExp$matchResult.
-    // $FlowIgnore[incompatible-use]
-    numExclamations = content.match(/\B\!+\B/)[0].length
-    return numExclamations
+    // Note: this second (unanchored) match is guaranteed to succeed if the test above did, but it can find an earlier
+    // run of '!'s than the one the test matched, so keep it as a separate match rather than re-using the test's result.
+    const exclamationMatch = content.match(/\B\!+\B/)
+    if (exclamationMatch) {
+      return exclamationMatch[0].length
+    }
   }
   if (content.match(/^>>/)) {
     return 4

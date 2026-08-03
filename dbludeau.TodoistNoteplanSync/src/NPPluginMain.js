@@ -80,11 +80,9 @@ const setup: {
     // remove leading and tailing slashes
     passedFolder = passedFolder.replace(/\/+$/, '')
     passedFolder = passedFolder.replace(/^\/+/, '')
-    // No annotation can express this: Flow bans `this` in object-literal methods outright, and rejects a `this` parameter on a
-    // setter ("A setter cannot have a `this` parameter"). Only rewriting `this` as `setup` (or making this object a class) would
-    // type, and that is a code change, not a type change. This setter is only ever reached as `setup.newFolder = x`, so `this` is `setup`.
-    // $FlowIgnore[object-this-reference]
-    this.folder = passedFolder
+    // Note: written as `setup.folder` (not `this.folder`) to match the other setters in this object. Flow bans `this` in object-literal
+    // methods outright, and this setter is only ever reached as `setup.newFolder = x`, so `this` was always `setup` anyway.
+    setup.folder = passedFolder
   },
   /**
    * @param {boolean} passedSyncDates
@@ -108,15 +106,15 @@ const setup: {
    * @param {boolean} passedTeamAccount
    */
   set teamAccount(passedTeamAccount: boolean) {
-    // $FlowIgnore[object-this-reference] see the note on the newFolder setter above: Flow has no `this` annotation for object-literal setters
-    this.useTeamAccount = passedTeamAccount
+    // Note: `setup` rather than `this`; see the newFolder setter above.
+    setup.useTeamAccount = passedTeamAccount
   },
   /**
    * @param {boolean} passedSyncUnassigned
    */
   set syncUnassigned(passedSyncUnassigned: boolean) {
-    // $FlowIgnore[object-this-reference] see the note on the newFolder setter above: Flow has no `this` annotation for object-literal setters
-    this.addUnassigned = passedSyncUnassigned
+    // Note: `setup` rather than `this`; see the newFolder setter above.
+    setup.addUnassigned = passedSyncUnassigned
   },
   /**
    * @param {string} passedHeader

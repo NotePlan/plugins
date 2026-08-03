@@ -123,11 +123,11 @@ export async function scheduleAllThisWeekNextWeek(data: MessageDataObject, moveO
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p && p.note) {
+            // Note: hold onto p.note before writing to p.content, as the write invalidates Flow's refinement of p.note
+            const thisNote = p.note
             p.content = replaceArrowDatesInString(p.content, `>${nextWeekDateStr}`)
-            // $FlowIgnore[incompatible-use]
-            p.note.updateParagraph(p)
-            // $FlowIgnore[incompatible-call]
-            DataStore.updateCache(p.note, false)
+            thisNote.updateParagraph(p)
+            DataStore.updateCache(thisNote, false)
             numberScheduled++
           } else {
             logWarn('scheduleAllThisWeekNextWeek', `Couldn't find calendar note para matching this dashboardPara to reschedule:`)
@@ -294,11 +294,11 @@ export async function scheduleAllLastWeekThisWeek(data: MessageDataObject, moveO
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p && p.note) {
+            // Note: hold onto p.note before writing to p.content, as the write invalidates Flow's refinement of p.note
+            const thisNote = p.note
             p.content = replaceArrowDatesInString(p.content, `>${thisWeekDateStr}`)
-            // $FlowIgnore[incompatible-use]
-            p.note.updateParagraph(p)
-            // $FlowIgnore[incompatible-call] test above is still valid
-            DataStore.updateCache(p.note, false)
+            thisNote.updateParagraph(p)
+            DataStore.updateCache(thisNote, false)
             numberScheduled++
           }
         }

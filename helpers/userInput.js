@@ -89,15 +89,15 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
  * @param {Array<Option<T>>} options - array of options to display
  * @param {boolean} addCreate? - add an option to create a new item (default: false)
  * @param {string?} addCreateItemDescriptor - (if addCreate is true) descriptor for the "Add new item" option (default: 'item')
- * @returns {Promise<{value: T, label: string, index: number, keyModifiers: Array<string>}>} - Promise resolving to the result
+ * @returns {Promise<{value: T | string, label: string, index: number, keyModifiers: Array<string>}>} - Promise resolving to the result (`value` is a plain string for a newly-created item)
  * see CommandBar.showOptions for more info
  */
-export async function chooseOptionWithModifiers<T, TDefault = T>(
+export async function chooseOptionWithModifiers<T>(
   message: string,
   options: $ReadOnlyArray<Option<T>>,
   addCreate: boolean = false,
   addCreateItemDescriptor: string = 'item',
-): Promise<{ ...TDefault, index: number, keyModifiers: Array<string>, label: string, value: string }> {
+): Promise<{ index: number, keyModifiers: Array<string>, label: string, value: T | string }> {
   logDebug('userInput / chooseOptionWithModifiers()', `About to showOptions with ${options.length} options & prompt:"${message}"`)
 
   // Add the "Add new item" option if addCreate is true
@@ -119,9 +119,6 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
     const result = await getInput('Enter new ' + addCreateItemDescriptor + ':', 'OK', 'Add New Item')
     if (result && typeof result === 'string') {
       // Return a custom result with the new item
-      // The declared return type spreads the type parameter (`{ ...TDefault, ... }`), which no concrete object literal can satisfy.
-      // A real type needs the TDefault parameter removed from this public signature, which would change every caller.
-      // $FlowFixMe[incompatible-return]
       return {
         index: -1, // -1 indicates a custom entry
         keyModifiers: keyModifiers || [],
@@ -131,7 +128,6 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
     }
   }
 
-  // $FlowFixMe[incompatible-return] see above: `{ ...TDefault, ... }` is not satisfiable by any object literal
   return { ...displayOptions[index], index, keyModifiers }
 }
 
@@ -951,6 +947,39 @@ export async function chooseHeadingV2(
   }
 }
 
+/** The heading levels `insertHeading()` accepts. Markdown/NotePlan only understands `#` through `########`. */
+type InsertHeadingLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+
+/**
+ * Narrow an arbitrary number to the heading level union that `Note.insertHeading()` requires.
+ * Callers of the public heading helpers pass a plain `number`, so out-of-range or non-integer values are
+ * rounded and clamped into 1..8 (anything unusable, e.g. NaN, falls back to the documented default of 2).
+ * @param {number} level
+ * @returns {InsertHeadingLevel}
+ */
+function asInsertHeadingLevel(level: number): InsertHeadingLevel {
+  switch (Math.round(level)) {
+    case 1:
+      return 1
+    case 2:
+      return 2
+    case 3:
+      return 3
+    case 4:
+      return 4
+    case 5:
+      return 5
+    case 6:
+      return 6
+    case 7:
+      return 7
+    case 8:
+      return 8
+    default:
+      return level > 8 ? 8 : 2
+  }
+}
+
 /**
  * Used as part of chooseHeading (above) and Dashboard, to handle special instructions -- inserting a new heading, or inserting at top or bottom of the note.
  * If there are no special instructions, it just returns the heading as is.
@@ -974,10 +1003,7 @@ export async function processChosenHeading(note: CoreNoteFields, chosenHeading: 
       newHeading = await getInput(`Enter heading to add at the start of the note`, 'OK', 'New Heading')
       if (newHeading && typeof newHeading === 'string') {
         const startPos = 0
-        // `headingLevel` is declared `number` here, but insertHeading() wants headingLevelType (1..5). Narrowing this param
-        // is the real fix, but it is a public signature whose external callers pass plain numbers.
-        // $FlowIgnore[incompatible-call]
-        note.insertHeading(newHeading, startPos, headingLevel)
+        note.insertHeading(newHeading, startPos, asInsertHeadingLevel(headingLevel))
         logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (calendar note)`)
         headingToReturn = newHeading
       } else {
@@ -989,8 +1015,7 @@ export async function processChosenHeading(note: CoreNoteFields, chosenHeading: 
       newHeading = await getInput(`Enter heading to add under the title`, 'OK', 'New Heading')
       if (newHeading && typeof newHeading === 'string') {
         const startPos = findStartOfActivePartOfNote(note)
-        // $FlowIgnore[incompatible-call] see above: `number` vs headingLevelType
-        note.insertHeading(newHeading, startPos, headingLevel)
+        note.insertHeading(newHeading, startPos, asInsertHeadingLevel(headingLevel))
         logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (project note)`)
         headingToReturn = newHeading
       } else {
@@ -1003,8 +1028,7 @@ export async function processChosenHeading(note: CoreNoteFields, chosenHeading: 
       if (newHeading && typeof newHeading === 'string') {
         const indexEndOfActive = findEndOfActivePartOfNote(note)
         const newLindeIndex = indexEndOfActive + 1
-        // $FlowIgnore[incompatible-call] see above: `number` vs headingLevelType
-        note.insertHeading(newHeading, newLindeIndex, headingLevel || 2)
+        note.insertHeading(newHeading, newLindeIndex, asInsertHeadingLevel(headingLevel || 2))
         logDebug('userInput / processChosenHeading', `appended new heading '${newHeading}' at line ${newLindeIndex}`)
         headingToReturn = newHeading
       } else {
@@ -1086,30 +1110,28 @@ export async function askForISODate(question: string): Promise<string> {
  */
 export async function datePicker(dateParams: string | Object, config?: { [string]: ?mixed } = {}): Promise<string | false> {
   try {
-    const dateConfig = config.date ?? {}
-    // `config` is typed { [string]: ?mixed }, so `config.date` is mixed and Object.keys() rejects it. Typing `config` more
-    // precisely is the real fix, but its shape is caller-defined JSON5.
-    // $FlowIgnore[not-an-object]
-    clo(dateConfig, `userInput / datePicker dateParams="${JSON.stringify(dateParams)}" dateConfig typeof="${typeof dateConfig}" keys=${Object.keys(dateConfig || {}).toString()}`)
-    let paramConfig = dateParams
+    // `config` is caller-defined JSON5, so `config.date` arrives as `mixed`: only a runtime check can make it readable.
+    const rawDateConfig = config.date
+    const dateConfig: { [string]: mixed } = typeof rawDateConfig === 'object' && rawDateConfig !== null ? { ...rawDateConfig } : {}
+    clo(dateConfig, `userInput / datePicker dateParams="${JSON.stringify(dateParams)}" dateConfig typeof="${typeof rawDateConfig}" keys=${Object.keys(dateConfig).toString()}`)
+    let paramConfig: { [string]: mixed } = typeof dateParams === 'object' && dateParams !== null ? { ...dateParams } : {}
     if (typeof dateParams === 'string') {
       // JSON stringified string
       const dateParamsTrimmed = dateParams.trim()
-      paramConfig = dateParamsTrimmed
+      // parseJSON5() returns null/undefined on a parse failure; an empty object then leaves the defaults in place,
+      // exactly as spreading the old nullable value did.
+      const parsed = dateParamsTrimmed
         ? dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
           ? parseJSON5(dateParams)
-          : dateParamsTrimmed !== ''
-          ? parseJSON5(`{${dateParams}}`)
-          : {}
-        : {}
+          : parseJSON5(`{${dateParams}}`)
+        : null
+      paramConfig = parsed ?? {}
     }
 
     logDebug('userInput / datePicker', `params: ${JSON.stringify(dateParams)} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
       ...dateConfig,
-      // `paramConfig` is `string | Object` because it starts as `dateParams`; only the runtime typeof test narrows it.
-      // $FlowIgnore[not-an-object]
       ...paramConfig,
     }
     // logDebug('userInput / datePicker', allSettings.toString())
@@ -1322,17 +1344,18 @@ export async function chooseNote(
     return displayTitleWithRelDate(note)
   })
   const { note } = Editor
+  // Parallel to `opts`, so it needs a placeholder for each non-note row. `null` says "there is no note here" honestly,
+  // where the old code unshifted the string '[New note]' into an Array<TNote> and relied on it never being read.
+  const noteChoices: Array<TNote | null> = [...sortedNoteListFiltered]
   if (allowNewNoteCreation) {
     opts.unshift('[New note]')
-    // Deliberate sentinel to keep indexes aligned with `opts`; no real type can describe an Array<TNote> holding a string.
-    // $FlowIgnore[incompatible-type] just to keep the indexes matching; won't be used
-    sortedNoteListFiltered.unshift('[New note]') // just keep the indexes matching
+    noteChoices.unshift(null) // just keep the indexes matching
   }
   if (currentNoteFirst && note) {
-    sortedNoteListFiltered.unshift(note)
+    noteChoices.unshift(note)
     opts.unshift(`[Current note: "${displayTitleWithRelDate(Editor)}"]`)
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
-  const noteToReturn = opts[index] === '[New note]' ? await createNewRegularNote() : sortedNoteListFiltered[index]
+  const noteToReturn = opts[index] === '[New note]' ? await createNewRegularNote() : noteChoices[index]
   return noteToReturn ?? null
 }

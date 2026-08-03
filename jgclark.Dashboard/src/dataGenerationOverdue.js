@@ -37,7 +37,7 @@ export async function getOverdueSectionData(
   overdueReminderItems: Array<TSectionItem> = [],
   yesterdaySpillDashboardParas: Array<TParagraphForDashboard> = [],
   yesterdaysParasForDedupe: $ReadOnlyArray<{ content: string, ... }> = [],
-): Promise<TSection> {
+): Promise<?TSection> {
   try {
     const thisSectionCode = 'OVERDUE'
     let totalOverdue = 0
@@ -238,13 +238,7 @@ export async function getOverdueSectionData(
     return section
   } catch (error) {
     logError(pluginJson, JSP(error))
-    // KNOWN BUG - getOverdueSectionData is declared Promise<TSection> but returns null here, and its only
-    // caller (getSomeSectionsData in dataGeneration.js) does `sections.push(await getOverdueSectionData(...))`
-    // with no null guard, unlike the getTaggedSectionData call a few lines above it. So an error in this
-    // function puts a null into Array<TSection> and everything downstream that reads section.sectionCode
-    // throws. Typing the return as Promise<?TSection> is the right declaration but needs that caller fixed
-    // first, so the suppression stays until then.
-    // $FlowFixMe[incompatible-return]
+    // Returns null on error; the caller (getSomeSectionsData in dataGeneration.js) skips it.
     return null
   }
 }

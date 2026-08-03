@@ -25,7 +25,7 @@ import '../css/animation.css'
 type Props = {
   onClose: (xWasClicked: boolean) => void,
   details: MessageDataObject,
-  positionDialog: (dialogRef: { current: ?HTMLDivElement }) => void,
+  positionDialog: (dialogRef: { current: ?HTMLElement }) => void, // matches the React$RefObject<?HTMLElement> declared below
 }
 
 type DialogButtonProps = {
@@ -47,7 +47,9 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // EditableInput exposes an imperative handle of { getValue(): string } (React.useImperativeHandle in
   // helpers/react/EditableInput.jsx), not a raw HTMLInputElement. Its RefType isn't exported, so restate it.
   const inputRef: React$RefObject<?EditableInputHandle> = useRef <? EditableInputHandle > (null)
-  const dialogRef: React$RefObject<?HTMLDivElement> = useRef <? HTMLDivElement > (null)
+  // Note: typed as ?HTMLElement (not ?HTMLDivElement) because flowlib types <dialog>'s ref instance as HTMLElement,
+  // and React$RefObject is invariant in its type argument.
+  const dialogRef: React$RefObject<?HTMLElement> = useRef <? HTMLElement > (null)
 
   //----------------------------------------------------------------------
   // State
@@ -499,10 +501,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         className={`itemControlDialog ${animationClass}`}
         aria-labelledby="Actions Dialog"
         aria-describedby="Actions that can be taken on items"
-        // Flowlib types <dialog>'s ref instance as plain HTMLElement, and React$RefObject is invariant in
-        // its type argument, so no honest annotation of a ?HTMLDivElement ref can satisfy it. The real fix
-        // is a flowlib/react-dom change (a `dialog` intrinsic with HTMLDialogElement), not one here.
-        // $FlowIgnore[incompatible-type]
         ref={dialogRef}
       >
         <div className="dialogTitle">

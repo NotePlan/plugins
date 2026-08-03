@@ -86,10 +86,11 @@ export const fieldSorter =
         if (aValue === bValue) return 0
         if (aValue == null || aValue === 'NaN') return isDesc ? -dir : dir //null or undefined always come last
         if (bValue == null || bValue === 'NaN') return isDesc ? dir : -dir
-        // `aValue`/`bValue` are string | number | null; the `typeof aValue === typeof bValue` test guarantees they are
-        // comparable at runtime but is not a Flow refinement, and there is no type that expresses 'same type as'.
-        // $FlowIgnore[invalid-compare]
-        return typeof aValue === typeof bValue ? (aValue > bValue ? dir : -dir) : 0
+        // `aValue`/`bValue` are string | number here (nulls returned above, and non-numeric strings are the only non-numbers
+        // that survive the Number() conversion). Compare only like with like; mixed types are treated as equal, as before.
+        if (typeof aValue === 'number' && typeof bValue === 'number') return aValue > bValue ? dir : -dir
+        if (typeof aValue === 'string' && typeof bValue === 'string') return aValue > bValue ? dir : -dir
+        return 0
       })
       .reduce((p, n) => (p ? p : n), 0)
 

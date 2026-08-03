@@ -390,20 +390,17 @@ export async function gatherMatchingLines(
   const startDT = new Date()
   for (const n of notes) {
     i += 1
+    // Hoisted to a local const so that the null test below refines it for all the branches (a property read on `n` would be invalidated by the dateStyle calls)
+    const noteDate = n.date
     const noteContext =
-      n.date == null
+      noteDate == null
         ? `[[${n.title ?? ''}]]`
-        : // The `n.date == null` test above guards all three branches, but the dateStyle.startsWith() call below
-          // invalidates Flow's property refinement, so `n.date` reads as `Date | void` again. A real fix means hoisting it to a local const.
-          dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
-        ? // $FlowIgnore[incompatible-call]
-          ` > ${dt.hyphenatedDate(n.date)} `
+        : dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
+        ? ` > ${dt.hyphenatedDate(noteDate)} `
         : dateStyle === 'date'
-        ? // $FlowIgnore[incompatible-call]
-          ` (${toLocaleDateTimeString(n.date)})`
+        ? ` (${toLocaleDateTimeString(noteDate)})`
         : dateStyle === 'at'
-        ? // $FlowIgnore[incompatible-call]
-          ` @${dt.hyphenatedDate(n.date)} `
+        ? ` @${dt.hyphenatedDate(noteDate)} `
         : ''
 
     // set up regex for searching, now with word boundaries on either side
@@ -969,10 +966,9 @@ export function getTagDetails(para: TParagraph, asOfDayString?: string = ''): Ov
     // const type = typeNames[i]
     const result = typeFuncs[i](para, true, asOfDayString)
     // Passing returnDetails=true always yields OverdueDetails, but the hasOverdue*Tag() functions are declared
-    // `boolean | OverdueDetails` and Flow has no overloads/dependent return types to express that.
-    // $FlowIgnore[prop-missing]
-    if ((result && result.isOverdue) || result.overdueLinks?.length || result.notOverdueLinks?.length) {
-      // $FlowIgnore[incompatible-return] see above: `result` is an OverdueDetails here, but its declared type still includes boolean
+    // `boolean | OverdueDetails` (Flow has no overloads), so narrow at runtime. A boolean result has no detail fields to test.
+    if (typeof result === 'boolean') continue
+    if (result.isOverdue || result.overdueLinks?.length || result.notOverdueLinks?.length) {
       return result
     }
   }
@@ -1020,11 +1016,11 @@ export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false, 
  */
 export function getOverdueTags(para: TParagraph, asOfDayString?: string = ''): string[] {
   const funcs = [hasOverdueDayTag, hasOverdueWeekTag, hasOverdueMonthTag, hasOverdueQuarterTag, hasOverdueYearTag]
-  return funcs.reduce((acc, func) => {
-    // The declared return of the hasOverdue*Tag() functions is `boolean | OverdueDetails`, so `overdueLinks` has an unknown
-    // element type and cannot be spread. Only overloads / dependent return types would fix this properly.
-    const tagList = func(para, true, asOfDayString)?.overdueLinks || []
-    // $FlowIgnore[incompatible-type]
+  return funcs.reduce((acc: Array<string>, func) => {
+    // The declared return of the hasOverdue*Tag() functions is `boolean | OverdueDetails` (Flow has no overloads),
+    // so narrow at runtime: a boolean result carries no links.
+    const result = func(para, true, asOfDayString)
+    const tagList = typeof result === 'boolean' ? [] : result.overdueLinks ?? []
     return [...acc, ...tagList]
   }, [])
 }
@@ -1216,6 +1212,19 @@ export function rawContentMatchesIgnoringLeadingIndent(a: string, b: string): bo
 }
 
 /**
+ * Read an arbitrarily-named field from a paragraph.
+ * TParagraph is a Flow interface with no index signature, so computed access can't be typed; this confines the
+ * one unavoidable suppression to a single place, and returns `mixed` so callers must refine before using the value.
+ * @param {TParagraph} paragraph
+ * @param {string} field
+ * @returns {mixed} the value of that field (undefined if the paragraph doesn't have it)
+ */
+function getParagraphFieldValue(paragraph: TParagraph, field: string): mixed {
+  // $FlowIgnore[prop-missing] deliberate dynamic field access; see JSDoc above
+  return paragraph[field]
+}
+
+/**
  * Check a paragraph object against a plain object of fields to see if they match.
  * Does an explicit match for specified fields but if the content is truncated with "..." it will match if the truncated version is the same
  * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph content at 300 chars)
@@ -1257,23 +1266,20 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
         match = false
       }
     } else {
-      // `field` is a plain string here (the 'content'/'rawContent' branches above refine it to a literal), and TParagraph
-      // is an interface with no index signature. Typing `fields` as $Keys<TParagraph> would still not give Flow a computed-access rule.
-      // $FlowIgnore[prop-missing]
-      if (typeof paragraph[field] === 'undefined') {
+      const paraValue = getParagraphFieldValue(paragraph, field)
+      if (typeof paraValue === 'undefined') {
         throw `paragraphMatches: paragraph.${field} is undefined. You must pass in the correct fields to match. 'fields' is set to ${JSP(fields)}, but paragraph=${JSP(
           paragraph,
         )}, which does not have all the fields`
       }
+      const expectedValue = fieldsObject[field]
       // Check if the field value is truncated and use startsWith accordingly
-      if (typeof fieldsObject[field] === 'string' && fieldsObject[field].endsWith('...')) {
-        const fieldTruncatedContent = fieldsObject[field].slice(0, -3)
-        // $FlowIgnore[prop-missing] see above
-        if (!paragraph[field].startsWith(fieldTruncatedContent)) {
+      if (typeof expectedValue === 'string' && expectedValue.endsWith('...')) {
+        const fieldTruncatedContent = expectedValue.slice(0, -3)
+        if (typeof paraValue !== 'string' || !paraValue.startsWith(fieldTruncatedContent)) {
           match = false
         }
-        // $FlowIgnore[prop-missing] see above
-      } else if (paragraph[field] !== fieldsObject[field]) {
+      } else if (paraValue !== expectedValue) {
         match = false
       }
     }

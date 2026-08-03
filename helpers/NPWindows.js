@@ -799,14 +799,19 @@ export function storeWindowRect(customId: string): void {
 export function getStoredWindowRect(customId: string): Rect | false {
   try {
     const prefName = `WinRect_${customId}`
-    // DataStore.preference() is declared as returning `mixed` (prefs are untyped), so there is no way to state
-    // that this particular key holds a Rect. The `if (!windowRect)` below is the only runtime check available.
-    // $FlowIgnore[incompatible-type]
-    const windowRect: Rect = DataStore.preference(prefName)
-    if (!windowRect) {
+    // DataStore.preference() is untyped (`mixed`), so the stored value has to be validated at runtime before it can be
+    // treated as a Rect. Anything malformed takes the same "couldn't retrieve it" path as a missing pref.
+    const storedPref = DataStore.preference(prefName)
+    if (!storedPref || typeof storedPref !== 'object') {
       logWarn('getWindowRect', `Couldn't retrieve Rect from saved pref ${prefName}`)
       return false
     }
+    const { x, y, width, height } = storedPref
+    if (typeof x !== 'number' || typeof y !== 'number' || typeof width !== 'number' || typeof height !== 'number') {
+      logWarn('getWindowRect', `Saved pref ${prefName} isn't a valid Rect (x/y/width/height must all be numbers)`)
+      return false
+    }
+    const windowRect: Rect = { x, y, width, height }
     logDebug('getWindowRect', `Retrieved Rect ${rectToString(windowRect)} from saved ${prefName}`)
     return windowRect
   } catch (error) {
@@ -911,7 +916,7 @@ export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: numbe
  * @returns {EditorWinDetails | HTMLWinDetails} constrained winDetails
  */
 // export function constrainWindowSizeAndPosition(winDetails: EditorWinDetails | HTMLWinDetails): EditorWinDetails | HTMLWinDetails {
-export function constrainWindowSizeAndPosition<T: { x: number, y: number, width: number, height: number, ... }>(winDetails: T): T {
+export function constrainWindowSizeAndPosition<T: { x: number, y: number, width: number, height: number, +title?: string, ... }>(winDetails: T): T {
   try {
     const screenHeight = NotePlan.environment.screenHeight // remember bottom edge is y=0
     const screenWidth = NotePlan.environment.screenWidth
@@ -919,10 +924,7 @@ export function constrainWindowSizeAndPosition<T: { x: number, y: number, width:
     const right = winDetails.x + winDetails.width
     const top = winDetails.y + winDetails.height
     const bottom = winDetails.y
-    // Only used for logging. Adding `title?: string` to the type bound above would be the real fix, but it makes
-    // callers that pass a plain Rect (which has no title at all) fail the bound check.
-    // $FlowIgnore[prop-missing]
-    const title = winDetails.title ?? 'n/a'
+    const title = winDetails.title ?? 'n/a' // only used for logging; a plain Rect has no title
     if (winDetails.x < 0) {
       logDebug('constrainWS+P', `  - window '${title}' has left edge at ${String(left)}px; moving right to 0px`)
       winDetails.x = 0

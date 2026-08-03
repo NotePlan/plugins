@@ -218,17 +218,13 @@ export async function getSomeSectionsData(
       }
     }
     if (wantOD) {
-      sections.push(
-        await getOverdueSectionData(
-          config,
-          useDemoData,
-          placement.forOVERDUE,
-          yesterdaySpillTaskParas,
-          yesterdayParasForOverdueDedupe,
-        ),
-      )
+      const overdueSection = await getOverdueSectionData(config, useDemoData, placement.forOVERDUE, yesterdaySpillTaskParas, yesterdayParasForOverdueDedupe)
+      if (overdueSection) sections.push(overdueSection)
     }
-    if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
+    if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) {
+      const prioritySection = await getPrioritySectionData(config, useDemoData)
+      if (prioritySection) sections.push(prioritySection)
+    }
 
     // Note: The WINS section is generated separately in the front end after the other sections are generated.
 
