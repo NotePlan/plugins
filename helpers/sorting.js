@@ -240,12 +240,17 @@ export function calculateParagraphType(para: TParagraph): string {
  * @param {SortableParagraphSubset} task
  * @returns {Array<SortableParagraphSubset>} every descendant, not including `task` itself
  */
-// Param is structural on purpose: this only ever reads `children`, and callers legitimately hold
-// narrower shapes (e.g. the render loop in TaskSorting's insertTodos). Demanding a full
-// SortableParagraphSubset here would reject them for fields the function never touches.
-export function getAllDescendants(task: { +children?: $ReadOnlyArray<SortableParagraphSubset>, ... }): Array<SortableParagraphSubset> {
+// Minimal structural contract: this only ever reads `children`. Declared as an interface (not an
+// object type) so that BOTH a SortableParagraphSubset -- itself an interface, and Flow will not accept
+// interface instances where an object type is expected -- and the bare `{| raw: string |}` sub-heading
+// arm of InsertTodoLine satisfy it, without every caller needing a refinement first.
+export interface HasSortableChildren {
+  +children?: $ReadOnlyArray<SortableParagraphSubset>;
+}
+
+export function getAllDescendants(task: HasSortableChildren): Array<SortableParagraphSubset> {
   const descendants: Array<SortableParagraphSubset> = []
-  const visit = (node: { +children?: $ReadOnlyArray<SortableParagraphSubset>, ... }) => {
+  const visit = (node: HasSortableChildren) => {
     const kids = node.children || []
     for (const child of kids) {
       descendants.push(child)
