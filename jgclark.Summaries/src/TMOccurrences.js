@@ -3,7 +3,7 @@
 // TMOccurrences class and related types/functions for tracking hashtag/mention occurrences
 // Extracted to avoid circular dependency with gatherOccurrencesHelpers.js
 // Jonathan Clark
-// Last updated 2026-02-03 for v1.1.0 by @jgclark
+// Last updated 2026-08-03 for v1.1.0+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -317,12 +317,12 @@ export class TMOccurrences {
     let output = ''
     // logDebug('TMOcc:getStats', `starting for ${this.term} type=${this.type} style=${style} `)
     // Format count, total, and average with proper null/NaN handling
-    // KNOWN BUG - dead guards: `this.count` and `this.total` are declared (and always assigned) as `number`, so `!== ''` can never be false and adds nothing.
+    // WARNING: KNOWN BUG - dead guards: `this.count` and `this.total` are declared (and always assigned) as `number`, so `!== ''` can never be false and adds nothing.
     // If the intent was to catch an unset value, the class fields would need to be `?number` and the guards written as `!= null`. Casts are type-only; see LEFT report.
-    const countStr = (!isNaN(this.count) && (this.count: any) !== '') ? this.count.toLocaleString() : `none`
-    const totalStr = (!isNaN(this.total) && (this.total: any) !== '' && this.total > 0) ? `total ${this.total.toLocaleString()}` : 'total 0'
+    const countStr = (!isNaN(this.count)) ? this.count.toLocaleString() : `none`
+    const totalStr = (!isNaN(this.total) && this.total > 0) ? `total ${this.total.toLocaleString()}` : 'total 0'
     // This is the average per item, not the average per day. In general I feel this is more useful for numeric amounts
-    const itemAvgStr = (!isNaN(this.total) && (this.total: any) !== '' && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 }) : ''
+    const itemAvgStr = (!isNaN(this.total) && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 }) : ''
 
     switch (style) {
       case 'CSV': {
@@ -372,13 +372,13 @@ export class TMOccurrences {
               break
             }
             case 'average': {
-              if (itemAvgStr !== '') output += "avg " + itemAvgStr
+              if (itemAvgStr !== '') output += `avg ${itemAvgStr}`
               output += ` (from ${countStr})`
               break
             }
             default: { // 'all'
               if (totalStr !== '') output += totalStr
-              if (itemAvgStr !== '') output += ", avg " + itemAvgStr
+              if (itemAvgStr !== '') output += `, avg ${itemAvgStr}`
               output += ` (from ${countStr})`
               break
             }

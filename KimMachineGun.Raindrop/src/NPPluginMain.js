@@ -151,7 +151,7 @@ async function createRaindropNote(rd: Raindrop) {
     body = `${body}---\n`
 
     const filename = await createNoteIfNotExists(title, noteFolder, body)
-    // KNOWN BUG - createNoteIfNotExists() returns undefined when the note already exists (it has no return in that branch), so this opens `undefined` instead of the existing note. It should return the existing note's filename.
+    // WARNING: KNOWN BUG - createNoteIfNotExists() returns undefined when the note already exists (it has no return in that branch), so this opens `undefined` instead of the existing note. It should return the existing note's filename.
     await Editor.openNoteByFilename((filename: any))
 }
 
