@@ -17,6 +17,15 @@ on:
   pull_request:
     branches: ['main']
 
+# A push to a PR branch matches BOTH triggers above, which would otherwise run this twice for the
+# same commit. Grouping by ref and cancelling superseded runs keeps it to one, and also cancels an
+# in-flight check when you push again.
+# The pull_request trigger is kept despite `push` covering every branch here, because pushes from
+# forks do not run workflows in this repo -- only their PRs do.
+concurrency:
+  group: flow-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   Flow-Check:
     runs-on: macos-latest
