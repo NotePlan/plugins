@@ -1,0 +1,32 @@
+# Flow type checking.
+#
+# Deliberately a SEPARATE workflow from node.js.yml so it can run on every branch push, not just
+# on PRs into main. Type errors are cheapest to fix while the code is still fresh in your head --
+# waiting until PR time is what let them accumulate in the first place. Jest and the plugin builds
+# stay on the narrower trigger in node.js.yml, since those are far more expensive to run.
+#
+# The repo is at zero Flow errors and this gate keeps it there: any error fails the build.
+# For a readable breakdown locally, run `node scripts/flow-report.js`
+# (or `node scripts/flow-report.js --plugin <name>` to list the sites for one plugin).
+
+name: Flow
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+    branches: ['main']
+
+jobs:
+  Flow-Check:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+          cache: 'npm'
+      - run: npm ci
+      - name: Check for Flow errors
+        run: npx flow check
