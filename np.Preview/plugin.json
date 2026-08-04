@@ -7,12 +7,12 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.Preview/",
-  "plugin.version": "0.4.5",
-  "plugin.lastUpdateInfo": "v0.4.5: updated to use Mermaid v11.\nv0.4.4: added embed images to preview, fixed some bugs",
+  "plugin.version": "0.4.6",
+  "plugin.lastUpdateInfo": "v0.4.6: Mermaid via CDN latest 11.x, with offline UMD fallback 11.16.1.\nv0.4.5: updated to use Mermaid v11.",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Preview/CHANGELOG.md",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
-    "mermaid@10.1.0.min.mjs",
+    "mermaid@11.16.1.min.js",
     "tex-chtml.js"
   ],
   "plugin.requiredSharedFiles": [],

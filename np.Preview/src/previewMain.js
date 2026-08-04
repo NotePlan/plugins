@@ -2,7 +2,7 @@
 
 //--------------------------------------------------------------
 // Main rendering function for Preview
-// by Jonathan Clark, last updated 2025-03-14 for v0.4.5
+// by Jonathan Clark, last updated 2026-08-04 for v0.4.6
 //--------------------------------------------------------------
 
 
@@ -24,6 +24,9 @@ import { showMessageYesNo } from '@helpers/userInput'
 // Constants
 const savedFilename = '../../np.Preview/preview.html'
 
+// Local offline Mermaid UMD snapshot (refresh by copying mermaid/dist/mermaid.min.js after bumping dep)
+const MERMAID_OFFLINE_FILENAME = 'mermaid@11.16.1.min.js'
+
 // Set up for MathJax
 const initMathJaxScripts = `
 <script type="text/javascript" id="MathJax-script" async
@@ -31,21 +34,48 @@ const initMathJaxScripts = `
 </script>
 `
 
-// Set up for Mermaid, using live copy of the Mermaid library (for now)
 // is current NP theme dark or light?
 const isDarkTheme = (Editor.currentTheme.mode === 'dark')
 
-// Note: using CDN version of mermaid.js, because whatever we tried for a packaged local version didn't work for Gantt charts.
+/**
+ * Build Mermaid boot script for the preview HTML window.
+ * Tries CDN latest Mermaid 11.x first; falls back to shipped UMD for offline use.
+ * @param {string?} mermaidTheme - optional Mermaid theme name
+ * @returns {string} HTML script tag module
+ */
 function initMermaidScripts(mermaidTheme?: string): string {
   const mermaidThemeToUse = mermaidTheme
     ? mermaidTheme : isDarkTheme
       ? 'dark' : 'default'
+  // Online: floating major from jsDelivr. Offline: official UMD snapshot in requiredFiles.
   return `
 <script type="module">
-import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-// import merm from "./mermaid@10.1.0.min.mjs";
-// var mermaid = merm.default;
-mermaid.initialize({ startOnLoad: true, theme: '${mermaidThemeToUse}' });
+const theme = '${mermaidThemeToUse}';
+const CDN = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+const LOCAL = './${MERMAID_OFFLINE_FILENAME}';
+
+async function loadLocalUmd() {
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script')
+    s.src = LOCAL
+    s.onload = resolve
+    s.onerror = reject
+    document.head.appendChild(s)
+  })
+  return window.mermaid
+}
+
+async function getMermaid() {
+  try {
+    return (await import(CDN)).default
+  } catch (_e) {
+    return await loadLocalUmd()
+  }
+}
+
+const mermaid = await getMermaid()
+mermaid.initialize({ startOnLoad: false, theme })
+await mermaid.run()
 </script>
 `
 }
