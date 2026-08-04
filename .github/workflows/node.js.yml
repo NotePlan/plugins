@@ -25,10 +25,11 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # Ratchet, not a gate. The repo still has Flow errors; this only fails when a plugin's unique
-  # error-site count goes UP against scripts/flow-baseline.json. As plugins are cleaned up, run
-  # `node scripts/flow-report.js --update-baseline` and commit, so the new floor is locked in.
-  # Once the whole repo reaches zero, replace this with a plain `npx flow check`.
+  # Strict gate: the repo is at zero Flow errors, so any new error fails the build.
+  # This replaced the previous ratchet (scripts/flow-report.js --check against a committed
+  # baseline), which had served its purpose getting us from 8,254 errors to zero.
+  # `node scripts/flow-report.js` is still the tool for a readable per-plugin breakdown, and
+  # `--plugin <name>` lists the individual sites -- it is just no longer what gates CI.
   Flow-Check:
     runs-on: macos-latest
     steps:
@@ -39,8 +40,8 @@ jobs:
           node-version: 24.x
           cache: 'npm'
       - run: npm ci
-      - name: Check for Flow regressions
-        run: node scripts/flow-report.js --check
+      - name: Check for Flow errors
+        run: npx flow check
 
   Run-all-Jest-Tests:
     runs-on: macos-latest
