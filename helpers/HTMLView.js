@@ -132,17 +132,36 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
     // Change frontmatter for this note (if present)
     // In particular remove trigger line
     if (hasFrontmatter) {
-      let titleAsMD = ''
+      let fmTitleText = ''
       // look for 2nd '---' and double it, because of showdown bug
       for (let i = 1; i < lines.length; i++) {
-        if (lines[i].match(/^title:\s/)) {
-          titleAsMD = lines[i].replace('title:', '#')
+        const titleMatch = lines[i].match(/^title:\s*(.*)$/)
+        if (titleMatch) {
+          // Strip optional YAML quotes around the value
+          fmTitleText = titleMatch[1].trim().replace(/^["'](.*)["']$/, '$1').trim()
           logDebug('getNoteContentAsHTML', `removing title line ${String(i)}`)
           lines.splice(i, 1)
         }
-        if (lines[i].trim() === '---') {
+        if (lines[i] != null && lines[i].trim() === '---') {
           lines.splice(i, 0, '') // add a blank before second HR to stop it acting as an ATX header line
-          lines.splice(i + 2, 0, titleAsMD) // add the title (as MD)
+          // After this splice: blank at i, closing --- at i+1; body starts at i+2
+          // If the first H1 in the body already matches the frontmatter title, do not inject a second H1
+          let bodyHasSameTitleH1 = false
+          if (fmTitleText !== '') {
+            for (let j = i + 2; j < lines.length; j++) {
+              const h1Match = lines[j].match(/^#\s+(.+)$/)
+              if (h1Match) {
+                if (h1Match[1].trim() === fmTitleText) {
+                  bodyHasSameTitleH1 = true
+                  logDebug('getNoteContentAsHTML', `skipping frontmatter title injection; body already has matching first H1 '${fmTitleText}'`)
+                }
+                break
+              }
+            }
+          }
+          if (fmTitleText !== '' && !bodyHasSameTitleH1) {
+            lines.splice(i + 2, 0, `# ${fmTitleText}`) // add the title as an H1 once
+          }
           break
         }
       }

@@ -1,5 +1,5 @@
 # 🖥️ Preview Plugin
-This plugin provides the **/preview note** and **/start live preview** commands that renders the current note to HTML including:
+This plugin provides the **/preview note** and **/start live preview** commands that render a note to HTML including:
 - standard Markdown conversion (including referenced images)
 - [Mermaid diagrams](https://mermaid.js.org) (e.g. flowcharts, gantt charts, sequence diagrams ...)
 - [MathJax](https://www.mathjax.org/) fragments or lines (for mathematical equations and notation)
@@ -23,6 +23,27 @@ triggers: onEditorWillSave => np.Preview.updatePreview
 ```
 
 It deliberately updates the Preview window without giving it focus, so that you can continue editing.
+
+## Preview a specified note (x-callback / other plugins)
+
+From the Command Bar, **/preview note** always previews the **currently open Editor note**.
+
+Other plugins and automations can **preview any note** (without opening it in the Editor first) by passing a note identifier as `arg0`:
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=np.Preview&command=preview%20note&arg0=<encoded filename or identifier>
+```
+
+Examples of `arg0`:
+
+- Filename: `Projects/My%20Note.md`
+- Note title: `My%20Note`
+- Relative date: `today`, `yesterday`, `this%20week`
+- Calendar date string: `20260804`
+
+Optional `arg1` sets the Mermaid theme (e.g. `default`, `dark`, `forest`). If omitted, the plugin picks `default` or `dark` from the current NotePlan theme.
+
+If the specified note is open in the Editor, unsaved Editor content is used. Live preview (**start live preview**) still applies only to the note that has the trigger in the open Editor.
 
 ## Mermaid charts
 <img src="kanban-mermaid@2x.png" alt="Example of Kanban board in Mermaid charts" />
