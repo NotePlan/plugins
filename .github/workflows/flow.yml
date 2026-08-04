@@ -17,15 +17,18 @@ on:
   pull_request:
     branches: ['main']
 
-# A push to a PR branch matches BOTH triggers above, so without grouping this runs twice on the
-# same commit. The group key must be identical across the two events, which rules out ref/PR-number
-# (push sees `refs/heads/<branch>`, pull_request sees the PR number). The HEAD commit SHA is the one
-# value both agree on: for pull_request, `github.sha` is the synthetic merge commit, so use
-# `pull_request.head.sha` there and plain `github.sha` for push.
+# Grouped PER EVENT, deliberately. Pushing again supersedes your own in-flight run, which is what
+# you want; but push and pull_request are NOT collapsed into each other, even though a PR-branch
+# push fires both on the same commit.
+#
+# Cancelling across events was tried and is worse: GitHub reports a cancelled run as a FAILING
+# check, so the PR showed `Flow-Check pass` next to `Flow-Check fail (2s)` -- misleading, and it
+# would block merging under branch protection. One duplicated 1m12s run is the cheaper problem.
+#
 # The pull_request trigger is kept despite `push` covering every branch here, because pushes from
 # forks do not run workflows in this repo -- only their PRs do.
 concurrency:
-  group: flow-${{ github.event.pull_request.head.sha || github.sha }}
+  group: flow-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
