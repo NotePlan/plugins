@@ -75,5 +75,12 @@
     "author": "Marginal Reader",
     "description": "Manage tasks by life role with an interactive panel",
     "repo": "marginalreader/role-focus"
+  },
+  {
+    "id": "np.reminders",
+    "name": "Reminders Import",
+    "author": "EduardMe",
+    "description": "Import Apple Reminders into the current note as linked tasks with reminder pills that sync two-way (requires NotePlan 3.21.2+)",
+    "repo": "EduardMe/noteplan-reminder-import-plugin"
   }
 ]
