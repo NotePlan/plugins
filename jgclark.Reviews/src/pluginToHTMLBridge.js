@@ -29,6 +29,7 @@ import {
   getLiveWindowRectFromWin, getWindowFromCustomId,
   logWindowsList,
   openNoteInSplitViewIfNotOpenAlready,
+  rectToString,
   storeWindowRect,
 } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
@@ -43,6 +44,7 @@ type MessageDataObject = {
   encodedFilename: string,
   encodedContent?: string,
   scrollPos?: number,
+  reason?: string,
 }
 type SettingDataObject = {
   settingName: string,
@@ -50,7 +52,7 @@ type SettingDataObject = {
   scrollPos?: number,
 }
 
-const windowCustomId = `${pluginJson['plugin.id']}.main`
+const windowCustomId = `${pluginJson['plugin.id']}.rich-review-list`
 
 //-----------------------------------------------------------------
 
@@ -76,6 +78,7 @@ function normalizeProjectListClickPayload(data: any, typeOverride?: string): Mes
     encodedFilename: payload.encodedFilename ?? '',
     encodedContent: payload.encodedContent,
     scrollPos: payload.scrollPos,
+    reason: payload.reason,
   }
 }
 
@@ -97,6 +100,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
         break
       case 'showNoteInEditorFromFilename':
       case 'showLineInEditorFromFilename':
+      case 'windowResized':
         // Fallback if HTML sends handler name as actionType instead of onClickProjectListItem wrapper
         await bridgeClickProjectListItem(normalizeProjectListClickPayload(data, actionType))
         break
@@ -394,13 +398,16 @@ export async function bridgeClickProjectListItem(data: MessageDataObject | any) 
         break
       }
       case 'windowResized': {
-        logDebug('bCPLI / windowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
+        const reason = clickData.reason != null ? String(clickData.reason) : 'unknown'
+        logDebug('bCPLI / windowResized', `windowResized (${reason}) for '${windowCustomId}'`)
         const thisWin = getWindowFromCustomId(windowCustomId)
         // Note: cast is safe because getLiveWindowRectFromWin() guards `if (win)` and returns false for a falsy window; its param is mis-typed as DOM `Window`
         const rect = getLiveWindowRectFromWin((thisWin: any))
         if (rect) {
-          // logDebug('bCPLI / windowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
+          logDebug('bCPLI / windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
           storeWindowRect(windowCustomId)
+        } else {
+          logWarn('bCPLI / windowResized', `-> no live rect for '${windowCustomId}', not saving`)
         }
         break
       }

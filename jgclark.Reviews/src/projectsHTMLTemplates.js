@@ -448,6 +448,41 @@ export const tagTogglesVisibilityScript: string = `
 </script>
 `
 
+/**
+ * Listen for geometry changes and ask the plugin to persist windowRect.
+ * Note: DOM `resize` covers size changes only; position (move) is saved on hide via onViewWillDisappear.
+ */
+export const resizeListenerScript: string = `
+<script>
+(function() {
+  var debounceTimeout = null;
+  function notifyWindowGeometryChanged(reason) {
+    try {
+      console.log('Projects List window geometry change (' + reason + ') -> windowResized');
+      sendMessageToPlugin('windowResized', { actionType: 'windowResized', reason: reason });
+    } catch (e) {
+      console.log('windowResized notify failed', e && e.message);
+    }
+  }
+  window.addEventListener('resize', function() {
+    if (debounceTimeout) clearTimeout(debounceTimeout);
+    // Debounce so continuous drag-resize does not spam the plugin.
+    debounceTimeout = setTimeout(function() {
+      notifyWindowGeometryChanged('resize');
+    }, 1000);
+  });
+  // Expose so onViewWillDisappear can flush any pending resize save immediately.
+  window.__reviewsNotifyWindowGeometryChanged = notifyWindowGeometryChanged;
+  window.__reviewsClearResizeGeometryTimer = function() {
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = null;
+    }
+  };
+})();
+</script>
+`
+
 export const windowCloseAndReopenScripts: string = `
 <script>
 /**
@@ -476,10 +511,23 @@ function refreshData() {
 /**
  * Event handler for when the window is closed. (This is a workaround for the fact that the window is not actually closed, but just hidden, with timers still running.)
  * Note: this only works from v3.21.0
+ * Also persists window position/size - the only reliable path for pure window *moves* (DOM resize does not fire for those).
  */
 window.addEventListener('onViewWillDisappear', () => {
   console.log('onViewWillDisappear event handler called for Project List window');
   cancelAutoRefresh();
+  if (typeof window.__reviewsClearResizeGeometryTimer === 'function') {
+    window.__reviewsClearResizeGeometryTimer();
+  }
+  if (typeof window.__reviewsNotifyWindowGeometryChanged === 'function') {
+    window.__reviewsNotifyWindowGeometryChanged('willDisappear');
+  } else {
+    try {
+      sendMessageToPlugin('windowResized', { actionType: 'windowResized', reason: 'willDisappear' });
+    } catch (e) {
+      console.log('windowResized on disappear failed', e && e.message);
+    }
+  }
 });
 
 /**
