@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
-// Last updated 2026-03-07 for v1.1.0.b9 by @jgclark
+// Last updated 2026-08-07 for v1.1.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 export {
@@ -35,7 +35,7 @@ import pluginJson from '../plugin.json'
 import { renameKeys } from '@helpers/dataManipulation'
 import { clo, compareObjects, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { backupSettings, pluginUpdated, saveSettings } from '@helpers/NPConfiguration'
-import { editSettings } from '@helpers/NPSettings'
+// import { editSettings } from '@helpers/NPSettings'
 
 const pluginID = "jgclark.Summaries"
 
@@ -100,14 +100,14 @@ export async function onUpdateOrInstall(): Promise<void> {
 }
 
 /**
- * Update Settings/Preferences (for iOS etc)
- * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
- * @author @dwertheimer
+ * Open this plugin's settings pane in NotePlan Preferences.
+ * Used by the Habit & Summary Charts gear button, and the hidden open-plugin-settings command.
+ * @returns {Promise<void>}
  */
-export async function updateSettings() {
+export async function openSettings(): Promise<void> {
   try {
-    logDebug(pluginJson, `updateSettings running`)
-    await editSettings(pluginJson)
+    logDebug(pluginJson, `openSettings: opening plugin configuration view`)
+    await NotePlan.showConfigurationView()
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
