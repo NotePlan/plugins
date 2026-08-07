@@ -344,6 +344,11 @@ button,
 		white-space: nowrap;
 	}
 
+	/* Project title chips in PROJACT/PROJREVIEW: full body size (not compact context badge) */
+	.itemNoteLink.itemNoteLinkNormalSize {
+		font-size: inherit;
+	}
+
 	/* Colour the note titles (inside .itemNoteLink or wiki links in content) */
 	.noteTitle {
 		color: var(--tint-color);

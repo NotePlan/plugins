@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
 // Called by ItemRow component
-// Last updated 2026-05-06 for v2.4.0.b32 by @jgclark/@Cursor
+// Last updated 2026-08-07 for v2.4.0.b61 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
@@ -115,6 +115,7 @@ function ProjectItem({ item, thisSection }: Props): Node {
           thisSection={thisSection}
           alwaysShowNoteTitle={true}
           suppressTeamspaceName={suppressTeamspaceName}
+          normalSize={true}
         />
 
         <a className="dialogTriggerIcon">

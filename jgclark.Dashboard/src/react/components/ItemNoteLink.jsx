@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show Note Titles as clickable links. Handles Teamspace indicators and folder names.
 // Used by ItemContent and DialogFor*Items components.
-// Last updated 2026-07-12 for v2.4.0.b49 by @jgclark
+// Last updated 2026-08-07 for v2.4.0.b61 by @jgclark
 //--------------------------------------------------------------------------
 
 import React from 'react'
@@ -20,6 +20,8 @@ type Props = {
   thisSection: TSection,
   alwaysShowNoteTitle: boolean,
   suppressTeamspaceName?: boolean,
+  /** When true, use full (body) font size - for project title chips in PROJACT/PROJREVIEW. Default chip size is compact. */
+  normalSize?: boolean,
 }
 
 //-----------------------------------------------------------
@@ -27,8 +29,10 @@ type Props = {
 /**
  * Dashboard React component to show Note Titles as clickable links.
  * Handles Teamspace indicators and folder names.
+ * @param {Props} props
+ * @returns {React$Node}
  */
-function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppressTeamspaceName = false }: Props): React$Node {
+function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppressTeamspaceName = false, normalSize = false }: Props): React$Node {
   const { reactSettings, dashboardSettings } = useAppContext()
 
   // ------ COMPUTED VALUES --------------------------------
@@ -80,7 +84,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppress
       enabled={!reactSettings?.dialogData?.isOpen}
     >
       {/* Single lozenge wrapping teamspace + folder + note title (icons/colors kept on children) */}
-      <span className="itemNoteLink">
+      <span className={normalSize ? 'itemNoteLink itemNoteLinkNormalSize' : 'itemNoteLink'}>
         {isFromTeamspace && teamspaceName}
         {folderNamePart && <span className="folderName">{folderNamePart}</span>}
         <NoteTitleLink

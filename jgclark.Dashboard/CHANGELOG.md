@@ -43,6 +43,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.4.0.b62] 2026-08-07 (unreleased)
 - Fix: Window size + position is saved again when resizing/moving it
+- Change: Project title chips in **Active Projects** and **Projects to Review** keep normal font size; compact size remains for task context note links.
 
 ## [2.4.0.b61] 2026-08-01
 - Change: Reminder time chip now matches NotePlan's new native style (from 3.20.2): pale lozenge with bell icon and colored text, placed after the title (was white-on-fill clock lozenge before the title).
