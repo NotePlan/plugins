@@ -499,11 +499,17 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
    *         limited: {L} of {T} open
    * - PROJREVIEW: no limit: {T} projects ready to review
    *                limited: {L} of {T} projects ready to review
+   *                ({L} = project rows only; next-action children are excluded)
    * - PROJACT: no limit: {T} active projects
    *             limited: {L} of {T} active projects
+   *             ({L} = project rows only; next-action children are excluded)
    */
-  // Replace {countWithLimit} (e.g. from PROJECT) with the number of items, and pluralise it if neccesary
-  descriptionToUse = descriptionToUse.replace('{countWithLimit}', limitApplied ? `first ${numItemsToShow} of ${totalCount ?? '?'}` : `${totalCount ?? '?'}`)
+  // Replace {countWithLimit}: for project sections count project rows only (not next-action children)
+  const isProjectSection = section.sectionCode === 'PROJACT' || section.sectionCode === 'PROJREVIEW'
+  const countForLimitCaption = isProjectSection
+    ? itemsToShow.filter((item) => item.itemType === 'project').length
+    : numItemsToShow
+  descriptionToUse = descriptionToUse.replace('{countWithLimit}', limitApplied ? `first ${countForLimitCaption} of ${totalCount ?? '?'}` : `${totalCount ?? '?'}`)
 
   // Replace {count} with the number of items, and pluralise it if neccesary
   descriptionToUse = descriptionToUse.replace(
