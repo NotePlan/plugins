@@ -419,6 +419,7 @@ export type MessageDataObject = {
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   toFilename?: string,
   newDimensions?: { width: number, height: number },
+  reason?: string /* why windowResized was requested (e.g. resize, willDisappear) */,
   settings?: TDashboardSettings | TPerspectiveSettings,
   perspectiveSettings?: TPerspectiveSettings,
   filename?: string /* only used when actionType = 'showNoteInEditorFromFilename', otherwise filename comes from the item */,

@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2026-07-27 for v2.4.0.b55 by @jgclark + @CursorAI
+// Last updated 2026-07-06 for v2.4.0.b62 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,6 +29,7 @@ import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/
 import { getGlobalSharedData, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { usersVersionHas } from '@helpers/NPVersions'
+import { isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
 //------------------------------------------------------------------------------
@@ -346,6 +347,12 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
 export async function showDashboardReact(callMode: string = 'full', perspectiveName: string = '', useDemoData: boolean = false): Promise<void> {
   try {
     logInfo(pluginJson, `showDashboardReact starting up (mode '${callMode}') with perpsectiveName '${perspectiveName}' ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
+    // Persist live position/size before we re-open/rebuild (covers pure moves while the window stayed open).
+    // Dashboard goes through np.Shared openReactWindow, so we do not rely solely on showHTMLV2's save-if-open path.
+    if (isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
+      logDebug('showDashboardReact', `Window already open - saving live Rect for '${WEBVIEW_WINDOW_ID}' before re-show`)
+      storeWindowRect(WEBVIEW_WINDOW_ID)
+    }
     // clo(DataStore.settings, `showDashboardReact: DataStore.settings=`)
     const startTime = new Date()
 

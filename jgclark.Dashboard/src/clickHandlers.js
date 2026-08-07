@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-07-30 for v2.4.0.b57 by @jgclark + @CursorAI
+// Last updated 2026-08-06 for v2.4.0.b62 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -778,16 +778,25 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
   }
 }
 
+/**
+ * Persist the live floating-window Rect for the Dashboard (size and position).
+ * Invoked from WebView after a debounced resize or onViewWillDisappear, and from plugin-side
+ * show/refresh paths so pure moves still save even when the WebView is already null.
+ * @returns {TBridgeClickHandlerResult}
+ */
 export function doWindowResized(): TBridgeClickHandlerResult {
-  logDebug('doWindowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
+  logDebug('doWindowResized', `windowResized triggered on plugin side for '${windowCustomId}'`)
   const thisWin = getWindowFromCustomId(windowCustomId)
   if (thisWin !== false) {
     const rect = getLiveWindowRectFromWin(thisWin)
     if (rect) {
-      logDebug('doWindowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
+      logDebug('doWindowResized', `-> saving rect: ${rectToString(rect)} to pref`)
       storeWindowRect(windowCustomId)
-      return handlerResult(rect ? true : false)
+      return handlerResult(true)
     }
+    logWarn('doWindowResized', `-> no live rect for '${windowCustomId}', not saving`)
+  } else {
+    logWarn('doWindowResized', `-> could not find window '${windowCustomId}'`)
   }
   return handlerResult(false, [], { errorMsg: 'Could not get window from customId', errorMessageLevel: 'ERROR' })
 }
