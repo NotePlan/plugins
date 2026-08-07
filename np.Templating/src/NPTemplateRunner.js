@@ -148,8 +148,9 @@ export async function replaceHeadingSectionWithContent(note: CoreNoteFields, ren
     }
   }
   note.insertParagraph(renderedTemplate, headingIndex, 'text')
-  // $FlowIgnore[prop-missing] -- note.note only exists when the target is Editor
-  if (note.note && typeof Editor !== 'undefined' && typeof (Editor: any).save === 'function') {
+  // Only the Editor carries a `.note` back-reference; `CoreNoteFields` (shared by Editor and Note) does not declare it,
+  // so the "am I the Editor?" test has to be written as a read of the Editor's shape.
+  if (((note: any): TEditor).note && typeof Editor !== 'undefined' && typeof (Editor: any).save === 'function') {
     try {
       await Editor.save()
     } catch (error) {
@@ -217,10 +218,11 @@ export async function writeUnderExistingHeading(note: CoreNoteFields, writeUnder
  * @param {CoreNoteFields} note - the note to modify
  * @param {string} renderedTemplate - rendered template content
  * @param {string} location - write location
- * @param {boolean} isEditor - whether we're in the editor
+ * @param {?(boolean|TNote)} isEditor - whether we're in the editor; only its truthiness is used, and writeNoteContents()
+ *   passes the Editor's `.note` back-reference rather than a boolean (the tests pass booleans)
  * @returns {Promise<void>}
  */
-export async function writeWithoutHeading(note: CoreNoteFields, renderedTemplate: string, location: string, isEditor: boolean): Promise<void> {
+export async function writeWithoutHeading(note: CoreNoteFields, renderedTemplate: string, location: string, isEditor: ?(boolean | TNote)): Promise<void> {
   const startIndex = findStartOfActivePartOfNote(note)
   const renderedTemplateSummary = `${renderedTemplate.length} chars, ${renderedTemplate.split('\n').length} lines`
   if (location === 'append') {
@@ -262,9 +264,10 @@ export async function writeNoteContents(
     addHeadingLocation: 'append',
   },
 ): Promise<void> {
-  let note: CoreNoteFields | null | void = _note
-  // $FlowIgnore
-  const isEditor = note.note
+  // `_note` is a non-null `CoreNoteFields` and `note` is never reassigned, so the old `| null | void` was wrong.
+  let note: CoreNoteFields = _note
+  // see replaceHeadingSectionWithContent(): `.note` is the Editor-only back-reference
+  const isEditor = ((note: any): TEditor).note
   const renderedTemplateSummary = `${renderedTemplate.length} chars, ${renderedTemplate.split('\n').length} lines`
   logDebug(
     pluginJson,

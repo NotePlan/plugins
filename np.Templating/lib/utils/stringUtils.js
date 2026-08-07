@@ -71,7 +71,6 @@ export const getProperyValue = (object: any, key: string): any => {
   // Use for...of loop instead of forEach to allow proper early return
   for (const token of tokens) {
     // Traverse the object, updating 'current' to be the next nested object/value
-    // $FlowIgnorew - Flow might complain about dynamic property access, but it's intended.
     if (current && typeof current === 'object' && token in current) {
       // Added checks for safety
       current = current[token]

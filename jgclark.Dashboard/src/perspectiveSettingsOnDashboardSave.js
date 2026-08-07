@@ -66,8 +66,9 @@ export async function resolvePerspectivesWhenDashboardSettingsWithoutPerspective
   }
   if (needToSetDash) {
     if (dashboardNewSettings && typeof dashboardNewSettings === 'object' && !Array.isArray(dashboardNewSettings)) {
-      // $FlowFixMe[incompatible-call]
-      perspectivesToSave = setDashPerspectiveSettings(dashboardNewSettings, perspectiveSettings)
+      // Cast: dashboardNewSettings arrives as `mixed` from the bridge and the typeof/Array.isArray guard
+      // above only narrows it to `object`, which Flow will not accept as the exact TDashboardSettingsIn.
+      perspectivesToSave = setDashPerspectiveSettings((dashboardNewSettings: any), perspectiveSettings)
     } else {
       logError(logFn, `newSettings is not an object: ${JSP(newSettings)}`)
     }

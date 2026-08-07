@@ -37,8 +37,9 @@ export const getFaveOptionsArray = (notes: $ReadOnlyArray<TNote>): $ReadOnlyArra
   notes
     .filter((n) => Boolean(n.title && n.filename))
     .map((n) => {
-      // $FlowIgnore
-      return { label: n.title, value: n.filename }
+      // cast: the .filter() above already proved n.title is set, but Flow does not refine through Array.filter(),
+      // so `+title: string | void` survives into here. The real type is `string`.
+      return { label: (n.title: any), value: n.filename }
     })
 
 /**

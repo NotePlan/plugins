@@ -67,6 +67,23 @@ export const noteIconsToUse: Array<TFolderIcon> = [
 // Functions
 
 /**
+ * Make a placeholder entry for chooseNoteV2()'s note list, standing in for a note that doesn't exist yet
+ * (a future calendar date, or the '[New note]' option). Its only job is to keep the indexes of the note list
+ * and the CommandBar options list matching.
+ * Note: this deliberately holds only the fields the list needs, so it can never satisfy the full TNote interface.
+ * WARNING: if the user picks one of these, chooseNoteV2() currently returns this stub, not a real note.
+ * @param {string} title
+ * @param {NoteType} type
+ * @param {Date?} changedDate
+ * @returns {TNote} partial note stub
+ */
+function makeNoteListPlaceholder(title: string, type: NoteType, changedDate?: Date): TNote {
+  const stub = changedDate ? { title, type, changedDate } : { title, type }
+  // $FlowIgnore[prop-missing] deliberate partial stub, as described above: there is no real type for it
+  return stub
+}
+
+/**
  * Choose a particular note from a list of notes shown to the user, with a number of display options.
  * The 'regularNotes' parameter allows both a subset of notes to be used, and to allow the generation of the list (which can take appreciable time) to happen at a less noticeable time.
  * Note: no try-catch, so that failure can stop processing.
@@ -90,13 +107,11 @@ export async function chooseNoteV2(
   allowNewRegularNoteCreation?: boolean = true,
 ): Promise<?TNote> {
   logDebug('chooseNoteV2', `starting with includeCalendarNotes: ${String(includeCalendarNotes)} and includeFutureCalendarNotes: ${String(includeFutureCalendarNotes)}`)
-  // $FlowIgnore[incompatible-type]
-  let noteList: Array<TNote> = regularNotes
+  let noteList: Array<TNote> = [...regularNotes]
   if (includeCalendarNotes) {
     noteList = noteList.concat(calendarNotesSortedByChanged())
   }
-  // $FlowIgnore[unsafe-arithmetic]
-  const sortedNoteList = noteList.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  const sortedNoteList = noteList.sort((first, second) => Number(second.changedDate) - Number(first.changedDate)) // most recent first
 
   // Form the options to give to the CommandBar
   // Note: We will set up the more advanced options for the `CommandBar.showOptions` call, but downgrade them if we're not running v3.18+
@@ -124,14 +139,8 @@ export async function chooseNoteV2(
       const matchingNote = sortedNoteList.find((note) => note.title === rd.dateStr)
       if (!matchingNote) {
         // Make a temporary partial note for this date
-        // $FlowIgnore[prop-missing]
-        const newNote: TNote = {
-          title: rd.dateStr,
-          type: 'Calendar',
-          // TODO: get this applied to the earlier sort
-          changedDate: weekAgoDate,
-        }
-        sortedNoteList.push(newNote)
+        // TODO: get the changedDate applied to the earlier sort
+        sortedNoteList.push(makeNoteListPlaceholder(rd.dateStr, 'Calendar', weekAgoDate))
         opts.push({
           text: `${rd.dateStr}\t(${rd.relName})`,
           icon: 'calendar-plus',
@@ -156,9 +165,7 @@ export async function chooseNoteV2(
       alpha: 0.6,
       darkAlpha: 0.6,
     })
-    // $FlowIgnore[incompatible-call] just to keep the indexes matching; won't be used
-    // $FlowIgnore[prop-missing]
-    sortedNoteList.unshift({ title: '[New note]', type: 'Notes' }) // just keep the indexes matching
+    sortedNoteList.unshift(makeNoteListPlaceholder('[New note]', 'Notes')) // just keep the indexes matching
   }
   if (currentNoteFirst && note) {
     sortedNoteList.unshift(note)
@@ -333,8 +340,8 @@ export async function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = fa
     console.log(`- type ${note.type}`)
     // If it's a Teamspace note, show some details
     if (note.isTeamspaceNote) {
-      // $FlowIgnore[incompatible-type]
-      console.log(`- 🧑‍🤝‍🧑 teamspace: ${note.teamspaceTitle} (id ${note.teamspaceID})\n- filename ${note.filename}`)
+      // Note: `.isTeamspaceNote` is a plain boolean, not a type guard, so these stay ?string as far as Flow is concerned.
+      console.log(`- 🧑‍🤝‍🧑 teamspace: ${note.teamspaceTitle ?? '?'} (id ${note.teamspaceID ?? '?'})\n- filename ${note.filename}`)
       console.log(`- resolvedFilename: ${note.resolvedFilename}`)
     } else {
       console.log(`- Private note\n- filename ${note.filename}`)
@@ -558,10 +565,11 @@ export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
     }
     // Not a project note, so look at calendar notes
     let possDateString = noteIdentifier
-    if (new RegExp(dt.RE_OFFSET_DATE).test(possDateString)) {
+    // Note: matching on RE_OFFSET_DATE_CAPTURE, which is RE_OFFSET_DATE plus a capture group, so this both tests and captures.
+    const offsetDateMatch = possDateString.match(new RegExp(dt.RE_OFFSET_DATE_CAPTURE))
+    if (offsetDateMatch) {
       // this is a date interval, so -> date string relative to today
-      // $FlowIgnore[incompatible-use]
-      const thisOffset = possDateString.match(new RegExp(dt.RE_OFFSET_DATE_CAPTURE))[1]
+      const thisOffset = offsetDateMatch[1]
       possDateString = dt.calcOffsetDateStrUsingCalendarType(thisOffset)
       logDebug('NPnote/getNoteFromIdentifier', `found offset date ${thisOffset} -> '${possDateString}'`)
     }
@@ -614,10 +622,11 @@ export function getNoteFilenameFromTitle(inputStr: string): string | null {
   }
   // Not a project note, so look at calendar notes
   let possDateString = inputStr
-  if (new RegExp(dt.RE_OFFSET_DATE).test(possDateString)) {
+  // Note: matching on RE_OFFSET_DATE_CAPTURE, which is RE_OFFSET_DATE plus a capture group, so this both tests and captures.
+  const offsetDateMatch = possDateString.match(new RegExp(dt.RE_OFFSET_DATE_CAPTURE))
+  if (offsetDateMatch) {
     // this is a date interval, so -> date string relative to today
-    // $FlowIgnore[incompatible-use]
-    const thisOffset = possDateString.match(new RegExp(dt.RE_OFFSET_DATE_CAPTURE))[1]
+    const thisOffset = offsetDateMatch[1]
     possDateString = dt.calcOffsetDateStrUsingCalendarType(thisOffset)
     logDebug('NPnote/getNoteFilenameFromTitle', `found offset date ${thisOffset} -> '${possDateString}'`)
   }
@@ -720,7 +729,6 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
  * This function returns an array of TParagraphs, one for each backlink, undoing the nesting.
  * TEST: is this working for teamspace notes? Initial testing on 20.8.25 by @jgclark implies not.
  */
-// $FlowFixMe[incompatible-return]
 export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
   try {
     const noteBacklinks = note.backlinks
@@ -746,6 +754,7 @@ export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
     return flatBacklinkParas
   } catch (err) {
     logError('NPnote/getFlatListOfBacklinks', JSP(err))
+    return []
   }
 }
 
@@ -945,8 +954,13 @@ export function highlightParagraphWithContent(content: string): boolean {
 export function highlightBlockWithHeading(content: string): boolean {
   const blockParas = getBlockUnderHeading(Editor, content, true)
   if (blockParas && blockParas.length > 0) {
-    // $FlowFixMe[incompatible-call] but still TODO(@dwertheimer): why is 'Range' undefined?
-    const contentRange = Range.create(blockParas[0].contentRange?.start, blockParas[blockParas.length - 1].contentRange?.end)
+    const start = blockParas[0].contentRange?.start
+    const end = blockParas[blockParas.length - 1].contentRange?.end
+    if (start == null || end == null) {
+      logError(`highlightBlockWithHeading could not get contentRange for block under heading: "${content}"`)
+      return false
+    }
+    const contentRange = Range.create(start, end)
     Editor.highlightByRange(contentRange) // highlight the entire block
     return true
   }
@@ -1120,7 +1134,8 @@ export function findNotesMatchingHashtagOrMention(
     )
 
     // const startTime = new Date()
-    let notesInFolder: Array<TNote>
+    // $ReadOnlyArray because one branch assigns `notesToSearch` (itself read-only) unchanged, and nothing below mutates it
+    let notesInFolder: $ReadOnlyArray<TNote>
     // If folder given (not empty) then filter using it
     if (folder && folder !== '') {
       if (includeSubfolders) {
@@ -1132,7 +1147,6 @@ export function findNotesMatchingHashtagOrMention(
       }
     } else {
       // no folder specified, so grab all notes from DataStore
-      // $FlowIgnore[incompatible-type]
       notesInFolder = notesToSearch
     }
     logDebug(
@@ -1150,8 +1164,7 @@ export function findNotesMatchingHashtagOrMention(
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
         return isHashtag
           ? caseInsensitiveArrayIncludes(item, correctedHashtags)
-          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-            caseInsensitiveArrayIncludes(item, n.mentions)
+          : caseInsensitiveArrayIncludes(item, n.mentions)
       })
     } else {
       notesWithItem = notesInFolder.filter((n) => {
@@ -1299,8 +1312,7 @@ export function findNotesMatchingHashtagOrMentionFromList(
         // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         return isHashtag
           ? caseInsensitiveArrayIncludes(item, correctedHashtags)
-          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-            caseInsensitiveArrayIncludes(item, n.mentions)
+          : caseInsensitiveArrayIncludes(item, n.mentions)
       })
     } else {
       projectNotesWithItem = projectNotesInFolder.filter((n) => {
@@ -1308,8 +1320,7 @@ export function findNotesMatchingHashtagOrMentionFromList(
         // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtagOrMentionFromList', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         return isHashtag
           ? caseInsensitiveArrayIncludes(item, correctedHashtags)
-          : // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-            caseInsensitiveArrayIncludes(item, n.mentions)
+          : caseInsensitiveArrayIncludes(item, n.mentions)
       })
     }
     if (projectNotesWithItem.length > 0) {
@@ -1587,7 +1598,6 @@ export async function getNoteFromParamOrUser(purpose: string, noteTitleArg: stri
       logDebug('getNoteFromParamOrUser', `- Note is of the form of a Calendar note string. Will attempt to create it.`)
 
       // Test to see if we can get this calendar note
-      // $FlowIgnore[incompatible-type] straight away test for null return
       note = getOrMakeCalendarNote(noteTitleArg)
       if (note) {
         logDebug('getNoteFromParamOrUser', `- Found Calendar note '${displayTitle(note)}'`)
@@ -1616,7 +1626,6 @@ export async function getNoteFromParamOrUser(purpose: string, noteTitleArg: stri
     const result = await chooseNoteV2(`Select note for ${purpose}`, notesIn, true, true, false, false)
     if (result != null && typeof result !== 'boolean') {
       note = result
-      // $FlowIgnore[incompatible-call] tested note is not null here
       logDebug('getNoteFromParamOrUser', `- found note '${displayTitle(note)}'`)
     }
   }

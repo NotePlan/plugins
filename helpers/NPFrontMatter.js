@@ -30,6 +30,20 @@ const pluginJson = 'helpers/NPFrontMatter.js'
 //----------------------------------------------------------------------------
 
 /**
+ * Duck-type test for whether we were handed the Editor rather than a plain Note.
+ * The Editor exposes a `.note` property; CoreNoteFields does not, and Flow has no type for 'either shape',
+ * so the suppression lives here once rather than at every call site.
+ * @param {CoreNoteFields} note - the note (or Editor) to test
+ * @returns {boolean} true if this looks like the Editor
+ */
+export function isEditorObject(note: CoreNoteFields): boolean {
+  // $FlowIgnore[prop-missing] deliberate duck-type test; see JSDoc above
+  return Boolean(note.note)
+}
+
+//----------------------------------------------------------------------------
+
+/**
  * Frontmatter cannot have colons in the content (specifically ": " or ending in colon) or values starting in @ or #, or containing >, so we need to wrap those in quotes.
  * If a string is wrapped in double quotes and contains additional double quotes, convert the internal quotes to single quotes.
  * This often happens when people include double quotes in template tags in their frontmatter
@@ -551,8 +565,7 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         logDebug('ensureFrontmatter', `front to add: "${fm}"`)
         note.insertParagraph(fm, 0, 'text')
       }
-      // $FlowIgnore
-      if (note.note) {
+      if (isEditorObject(note)) {
         // we must be looking at the Editor (because it has a note property)
         logDebug(
           'ensureFrontmatter',
@@ -1008,12 +1021,11 @@ export function normalizeValue(value: mixed): string {
  * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in newAttributes (default: false)
  * @returns {boolean} - Whether the front matter was updated successfully.
  */
-export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
+export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
   try {
     clo(newAttributes, `updateFrontMatterVars: newAttributes = `)
     logDebug('updateFrontMatterVars', `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs before ensureFrontmatter`)
-    // $FlowIgnore[prop-missing]
-    const isEditor = Boolean(note.note)
+    const isEditor = isEditorObject(note)
     // Ensure the note has front matter (for both Editor and note cases)
     if (!ensureFrontmatter(note, !isEditor)) {
       logError(pluginJson, `updateFrontMatterVars: Failed to ensure front matter for note "${note.filename || ''}".`)
@@ -1085,7 +1097,6 @@ export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [s
       // The frontmatterAttributes setter only works with macOS >= 14 and iOS >= 16
       // and only works with the Editor
       const includingMissingAttributes = deleteMissingAttributes ? normalizedNewAttributes : { ...existingAttributes, ...normalizedNewAttributes }
-      // $FlowIgnore
       note.frontmatterAttributes = includingMissingAttributes
       logDebug('updateFrontMatterVars', `updateFrontMatterVars: writing frontmatterAttributes to EDITOR note using setter`)
       return true

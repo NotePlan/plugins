@@ -21,11 +21,21 @@ export type EventBlocksConfig = {
   calendar?: string,
 }
 
-type ConfirmedEvent = {
+/**
+ * The only paragraph fields the event-block pipeline touches: `content` (read + written back) and
+ * `type` (read, to skip title lines). Declared structurally and inexactly so that a synthetic
+ * one-line block (see createEventPrompt) is as acceptable as a real TParagraph read from a note.
+ */
+export interface EventTextLine {
+  content: string;
+  +type: ParagraphType;
+}
+
+type ConfirmedEvent<TLine: EventTextLine> = {
   revisedLine: string,
   originalLine: string,
   dateRangeInfo: ParsedTextDateRange,
-  paragraph: TParagraph,
+  paragraph: TLine,
   index: number,
 }
 
@@ -182,13 +192,13 @@ export async function createEvent(title: string, range: { start: Date, end: Date
  * then ask the user to choose the correct one. Return the ConfirmedEvent data for each line to be turned into an event
  * Skips blank lines and title lines
  * NOTE: Calendar.parseDateText does not correctly return "today at" so we try to fix that here
- * @param {Array<TParagraph>} paragraphBlock
+ * @param {Array<TLine>} paragraphBlock
  * @param {EventBlocksConfig} config
- * @returns {Promise<Array<ConfirmedEvent>>} - the list of unambiguous event info to create
+ * @returns {Promise<Array<ConfirmedEvent<TLine>>>} - the list of unambiguous event info to create
  */
-export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, config: EventBlocksConfig): Promise<Array<ConfirmedEvent>> {
+export async function confirmEventTiming<TLine: EventTextLine>(paragraphBlock: Array<TLine>, config: EventBlocksConfig): Promise<Array<ConfirmedEvent<TLine>>> {
   const { confirm /*, removeDateText */ } = config
-  const confirmedEventData = []
+  const confirmedEventData: Array<ConfirmedEvent<TLine>> = []
   for (let i = 0; i < paragraphBlock.length; i++) {
     const line = paragraphBlock[i]
     if (hasCalendarLink(line.content) || line.type === 'title' || line.content === '') {
@@ -232,14 +242,14 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
 /**
  * Take in a array of TParagraphs (block of lines), loop through and create events for the ones that should be events
  * Make changes to the paragraph lines and return all changed paragraphs as an array so they can be updated in one go
- * @param {Array<TParagraph>} block
+ * @param {Array<TLine>} block
  * @param {{[string]:any}} config
  * @param {string} calendar - the calendar to use for the events or blank to ask
- * @returns {{paragraph:{TParagraph}, time:{Range++ object with start, end | null}}}
+ * @returns {Promise<Array<TLine>>} - the lines that were turned into events, with their content rewritten
  */
-export async function processTimeLines(paragraphBlock: Array<TParagraph>, config: EventBlocksConfig, calendar?: string = ''): Promise<Array<TParagraph>> {
+export async function processTimeLines<TLine: EventTextLine>(paragraphBlock: Array<TLine>, config: EventBlocksConfig, calendar?: string = ''): Promise<Array<TLine>> {
   // parseDateTextChecker()
-  const timeLines = []
+  const timeLines: Array<TLine> = []
   try {
     // First, we need to get all the data necessary to create this event, including user input
     // before we can show a status bar
@@ -315,7 +325,6 @@ export async function createEventPrompt(_heading?: string) {
       // parse event text
       const config = getPluginSettings()
       config.confirm = true
-      // $FlowIgnore
       const timeLines = await processTimeLines([{ content: eventText, type: 'text' }], config)
       if (timeLines.length) {
         // Editor.updateParagraphs(timeLines)

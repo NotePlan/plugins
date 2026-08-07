@@ -19,6 +19,7 @@ import type {
   TActionButton,
   TActionOnReturn,
   TBridgeClickHandlerResult,
+  TDashboardPluginSettings,
   TDashboardSettings,
   TDashboardLoggingConfig,
   TItemType,
@@ -28,7 +29,7 @@ import type {
   TSection,
   TSectionCode,
   TSectionItem,
-  TSettingItem,
+  TDialogSettingItem,
 } from './types'
 import { getNestedValue, setNestedValue, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
@@ -143,7 +144,6 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
       const defaults = getDashboardSettingsDefaults()
       parsedDashboardSettings = { ...defaults, showSearchSection: true }
       // Save the defaults back to DataStore so they persist
-      // $FlowFixMe[prop-missing] showSearchSection is included in defaults
       await saveDashboardSettings(parsedDashboardSettings)
     } else {
       // Merge with defaults to ensure any new settings are added (existing settings take precedence)
@@ -182,8 +182,8 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
       clvt(parsedDashboardSettings.newTaskSectionHeadingLevel, `getDashboardSettings - parsedDashboardSettings.newTaskSectionHeadingLevel:`)
     }
 
-    // $FlowFixMe[prop-missing] showSearchSection is included in defaults and merged above
-    // $FlowFixMe[incompatible-return] parsedDashboardSettings is treated as TDashboardSettings at runtime
+    // Cast: parsedDashboardSettings is the loose indexed TAnyObject shape needed for the dynamic
+    // showTagSection_* keys, but it holds a full TDashboardSettings after the merge with defaults above.
     return (parsedDashboardSettings: any)
   } catch (err) {
     logError('getDashboardSettings', `${err.name}: ${err.message}`)
@@ -223,13 +223,14 @@ export async function getLogSettings(): Promise<TDashboardLoggingConfig> {
   // logDebug(pluginJson, `Start of getLogSettings()`)
   try {
     // Get plugin settings
-    const config: TDashboardSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    const config: TDashboardPluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
 
     if (config == null || Object.keys(config).length === 0) {
       throw new Error(`Cannot find settings for the '${pluginID}' plugin from original plugin preferences. Please make sure you have installed it from the Plugin Settings pane.`)
     }
-    const logBits = Object.fromEntries(Object.entries(config).filter(([key]) => key.startsWith('_log')))
-    // $FlowIgnore
+    // Cast: Object.fromEntries() always widens to { [string]: mixed }, so the only way to recover the
+    // real TDashboardLoggingConfig shape here would be to build the object key-by-key.
+    const logBits: TDashboardLoggingConfig = (Object.fromEntries(Object.entries(config).filter(([key]) => key.startsWith('_log'))): any)
     return logBits
   } catch (err) {
     logError('getLogSettings', `Error: ${err.message}\nNote: will use default of INFO / no timing.`)
@@ -799,32 +800,33 @@ export function getDefaultHeadingForNewTask(config: TDashboardSettings): string 
  * Build form fields for add-task / add-checklist dialogs (task input + optional heading dropdown).
  * @param {Array<string>} headings
  * @param {TDashboardSettings} config
- * @returns {Array<TSettingItem>}
+ * @returns {Array<TDialogSettingItem>}
  */
-export function buildAddTaskFormFields(headings: Array<string>, config: TDashboardSettings): Array<TSettingItem> {
-  const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
+export function buildAddTaskFormFields(headings: Array<string>, config: TDashboardSettings): Array<TDialogSettingItem> {
+  const formFieldsBase: Array<TDialogSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
   if (!headings.length) return formFieldsBase
   const defaultHeadingToAddTo = getDefaultHeadingForNewTask(config)
-  // $FlowIgnore[incompatible-return] concat() widens to the literal's own type; the literal is a valid TSettingItem at runtime
-  return formFieldsBase.concat([
-    {
-      type: 'dropdown-select',
-      label: 'Under Heading:',
-      key: 'heading',
-      // Cast: TSettingItem.options (in helpers/react/DynamicDialog) is Array<TOptionObject>, but
-      // dropdown-select also accepts a plain Array<string>. Arrays are invariant so this can't be widened here.
-      options: (headings: any),
-      noWrapOptions: true,
-      value: defaultHeadingToAddTo,
-    },
-  ])
+  return formFieldsBase.concat(
+    ([
+      {
+        type: 'dropdown-select',
+        label: 'Under Heading:',
+        key: 'heading',
+        // Cast: TSettingItem.options (in helpers/react/DynamicDialog) is Array<TOptionObject>, but
+        // dropdown-select also accepts a plain Array<string>. Arrays are invariant so this can't be widened here.
+        options: (headings: any),
+        noWrapOptions: true,
+        value: defaultHeadingToAddTo,
+      },
+    ]: Array<TDialogSettingItem>),
+  )
 }
 
 /**
  * Build addTask + addChecklist action buttons for a calendar note.
  * @param {{
  *   filename: string,
- *   formFields: Array<TSettingItem>,
+ *   formFields: Array<TDialogSettingItem>,
  *   colorClass: string,
  *   taskTooltip: string,
  *   checklistTooltip: string,
@@ -835,7 +837,7 @@ export function buildAddTaskFormFields(headings: Array<string>, config: TDashboa
  */
 export function buildAddTaskChecklistButtons(opts: {
   filename: string,
-  formFields: Array<TSettingItem>,
+  formFields: Array<TDialogSettingItem>,
   colorClass: string,
   taskTooltip: string,
   checklistTooltip: string,
@@ -1101,8 +1103,9 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
       }
       return acc
     }, [])
-    // $FlowIgnore[unsafe-arithmetic]
-    logTimer('makeDashboardParas', timer, `- done for ${origParas.length} paras (i.e. average ${((new Date() - timer) / origParas.length).toFixed(1)}ms/para)`)
+    // Cast: JS coerces both Dates to numbers here, but Flow has no type for "Date used as a number",
+    // so `Date - Date` is always unsafe-arithmetic unless one side is cast.
+    logTimer('makeDashboardParas', timer, `- done for ${origParas.length} paras (i.e. average ${(((new Date(): any) - timer) / origParas.length).toFixed(1)}ms/para)`)
     return dashboardParas
   } catch (error) {
     logError('makeDashboardParas', error.message)
@@ -1375,23 +1378,22 @@ export function filterParasByExcludedCalendarSections(
  * Extend the paragraph objects with a .startTime property which comes from the start time of a time block, or else 'none' (which will then sort after times).
  * Copes with 'AM' and 'PM' suffixes. Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js
- * @param {Array<TParagraph | TParagraphForDashboard>} paras to extend
- * @returns {Array<TParagraph | TParagraphForDashboard>} paras extended by .startTime
+ * Note: only TParagraphForDashboard declares a `.startTime` field, so that (not TParagraph) is the input type.
+ * @param {Array<TParagraphForDashboard>} paras to extend
+ * @returns {Array<TParagraphForDashboard>} paras extended by .startTime
  */
-export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphForDashboard>): Array<TParagraph | TParagraphForDashboard> {
+export function extendParasToAddStartTimes(paras: Array<TParagraphForDashboard>): Array<TParagraphForDashboard> {
   try {
     // logDebug('extendParaToAddStartTime', `starting with ${String(paras.length)} paras`)
-    const extendedParas = []
+    const extendedParas: Array<TParagraphForDashboard> = []
     for (const p of paras) {
       const thisTimeStr = getTimeBlockString(p.content)
       const extendedPara = p
       if (thisTimeStr !== '') {
         const startTimeStr = normalizeTimeBlockStartToHHMM(thisTimeStr.split(/[-–~]/)[0])
         // logDebug('extendParaToAddStartTime', `found timeStr: ${thisTimeStr} from timeblock ${thisTimeStr}`)
-        // $FlowIgnore(prop-missing)
         extendedPara.startTime = startTimeStr
       } else {
-        // $FlowIgnore(prop-missing)
         extendedPara.startTime = 'none'
       }
       extendedParas.push(extendedPara)
@@ -1541,14 +1543,14 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
  *
  * @param {string} id - The ID of the sectionItem.
  * @param {string} sectionCode - The section code of the sectionItem.
- * @param {TParagraph | TParagraphForDashboard} p - The paragraph data for the sectionItem.
+ * @param {TParagraphForDashboard} p - The paragraph data for the sectionItem.
  * @param {string?} theType - The type of the sectionItem (if not given, will use the para's type)
  * @returns {SectionItem} A sectionItem object.
  */
 export function createSectionItemObject(
   id: string,
   sectionCode: string,
-  p: TParagraph | TParagraphForDashboard,
+  p: TParagraphForDashboard,
   theType?: TItemType
 ): TSectionItem {
   try {
@@ -1557,10 +1559,14 @@ export function createSectionItemObject(
     } else if (!p.filename || !p.type) {
       throw new Error(`In ID ${id}, para is missing filename or type`)
     }
-    const itemObj = {
+    const itemObj: TSectionItem = {
       ID: id,
-      sectionCode: sectionCode,
-      itemType: theType ?? p.type,
+      // Cast: createSectionItemsFromParas() also passes the '<CODE>_REF' referenced-section variants
+      // (e.g. 'DT_REF'), which TSectionCode does not list. Widening TSectionCode is the real fix.
+      sectionCode: (sectionCode: any),
+      // Cast: p.type is the full NotePlan ParagraphType ('title', 'text', 'done', ...), which is wider
+      // than TItemType. Only open/checklist paras reach here, but narrowing needs a runtime guard.
+      itemType: theType ?? (p.type: any),
       para: p,
       teamspaceTitle: '',
     }
@@ -1574,13 +1580,11 @@ export function createSectionItemObject(
     } else {
       logWarn('createSectionItemObject', `- cannot get note from para {${p.content}} -- probably a Teamspace API problem`)
     }
-    // $FlowIgnore - we are not using all the types in TParagraph
     return itemObj
   } catch (error) {
     logError('createSectionItemObject', `${error.message} from {${p?.content}}`)
-    // $FlowIgnore[incompatible-return]
-    // $FlowIgnore[incompatible-exact] - we are not using all the types in TParagraphForDashboard
-    return { ID: id, sectionCode: sectionCode ?? '', itemType: theType ?? p.type ?? 'error', para: p }
+    // Casts as above: sectionCode may be a '<CODE>_REF' variant, and p.type is the wider ParagraphType.
+    return { ID: id, sectionCode: (sectionCode ?? '': any), itemType: theType ?? (p.type: any) ?? 'error', para: p }
   }
 }
 

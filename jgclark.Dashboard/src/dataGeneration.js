@@ -206,8 +206,9 @@ export async function getSomeSectionsData(
       // clo(tagSections, 'getSomeSectionsData tagSections')
       let index = 0
       for (const tagSection of tagSections) {
-        // $FlowIgnore[invalid-computed-prop]
-        const showSettingForTag = config[tagSection.showSettingName]
+        // Cast: showSettingName is a dynamic `showTagSection_<tag>` key, so it can only be read through
+        // an indexed type. TDashboardSettings deliberately has no indexer, to keep its keys checked.
+        const showSettingForTag = (config: TAnyObject)[tagSection.showSettingName]
         // logDebug('getSomeSectionsData', `💚 sectionDetail.sectionName=${tagSection.sectionName} showSettingForTag=${showSettingForTag}`)
         if (typeof showSettingForTag === 'undefined' || showSettingForTag) {
           const newSection = await getTaggedSectionData(config, useDemoData, tagSection, index)
@@ -217,17 +218,13 @@ export async function getSomeSectionsData(
       }
     }
     if (wantOD) {
-      sections.push(
-        await getOverdueSectionData(
-          config,
-          useDemoData,
-          placement.forOVERDUE,
-          yesterdaySpillTaskParas,
-          yesterdayParasForOverdueDedupe,
-        ),
-      )
+      const overdueSection = await getOverdueSectionData(config, useDemoData, placement.forOVERDUE, yesterdaySpillTaskParas, yesterdayParasForOverdueDedupe)
+      if (overdueSection) sections.push(overdueSection)
     }
-    if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
+    if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) {
+      const prioritySection = await getPrioritySectionData(config, useDemoData)
+      if (prioritySection) sections.push(prioritySection)
+    }
 
     // Note: The WINS section is generated separately in the front end after the other sections are generated.
 

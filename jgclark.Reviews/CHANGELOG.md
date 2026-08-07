@@ -1,9 +1,14 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.0.5] - 2026-08-07
+- Change: Turn back on saving of updated window size & position when resizing/moving it
+- Change: New Progress comments write date as `@YYYY-MM-DD` again (compact `@YYYYMMDD` lines still parse)
+- dev: More changes from flow suppression cleanup
+
 ## [2.0.4] - 2026-08-03
 - Change: when running **finish project review** command on a note that doesn't have a combined project-type frontmatter key, explain that, let the user pick a project type tag from **Hashtags to Review** settings (or Cancel), then write that `project:` key, before continuing to finish the review as usual. You can also Cancel to leave the note unchanged.
-- Fixes from flow cleanup
+- dev: Fixes from flow change cleanup
 
 ## [2.0.3] - 2026-07-17
 - Fix: Project lists no longer include notes from `@Archive` (also always excludes `@Templates` and `@Trash`, as documented for Folders to Exclude).

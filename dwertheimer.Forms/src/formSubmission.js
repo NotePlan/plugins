@@ -373,12 +373,8 @@ function executeTemplateJSBlock(field: Object, code: string, context: Object, bl
     // CRITICAL: Use the original context directly from np.Templating to preserve prototype chains and methods.
     // Shallow copying breaks objects like `date` that have methods on their prototype (e.g., date.now()).
     // We'll enumerate keys for variable declarations, but pass the original context object to the function.
-    const contextKeys: string[] = []
-    for (const key in context) {
-      // $FlowFixMe[method-unbinding] - safe use for own-property check
-      if (!Object.prototype.hasOwnProperty.call(context, key)) continue
-      contextKeys.push(key)
-    }
+    // Object.keys() is exactly the own+enumerable set the old for...in + hasOwnProperty() filter produced
+    const contextKeys: Array<string> = Object.keys(context)
     // Use the original context directly - don't create a copy
     const contextToUse = context
 
@@ -400,8 +396,9 @@ function executeTemplateJSBlock(field: Object, code: string, context: Object, bl
       ${sanitizedCode}
     `
 
-    // $FlowIgnore[prop-missing] - Function constructor is safe here as code comes from form definition
-    const fn = Function.apply(null, ['params', functionBody])
+    // The Function constructor is safe here as the code comes from the form definition
+    // eslint-disable-next-line no-new-func
+    const fn: (params: Object) => any = (new Function('params', functionBody): any) // cast: Flow types `new Function()` as a non-callable Function instance
     
     // Execute the function with the original context to preserve prototype chains and methods
     let result
@@ -462,13 +459,11 @@ async function executeTemplateJSBlocks(blocks: Array<{ field: Object, code: stri
   // But we'll still pass the original context to the function to preserve methods
   let context: { [string]: any } = {}
   try {
-    // Use for...in to get all enumerable properties (not just own)
-    for (const k in initialContext) {
-      // $FlowFixMe[method-unbinding] - safe use for own-property check
-      if (!Object.prototype.hasOwnProperty.call(initialContext, k)) continue
+    // Object.keys() is exactly the own+enumerable set the old for...in + hasOwnProperty() filter produced
+    for (const k of Object.keys(initialContext)) {
       if (!templatejsBlockKeys.has(k)) {
         // Still build context object for key enumeration, but we'll use original context when calling fn
-        context[k] = (initialContext: any)[k]
+        context[k] = initialContext[k]
       }
     }
   } catch (e) {

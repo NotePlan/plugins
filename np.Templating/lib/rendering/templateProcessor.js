@@ -663,9 +663,11 @@ export async function preProcessCalendar(tag: string = ''): Promise<string> {
       const noteName = noteNameWithPossibleDashes.replace(/-/g, '')
       logDebug(pluginJson, `preProcessCalendar: Looking up calendar note for: ${noteName} (original: ${noteNameWithPossibleDashes})`)
       const calendarNote = await DataStore.calendarNoteByDateString(noteName)
-      if (typeof calendarNote !== 'undefined') {
-        // $FlowIgnore
-        return calendarNote.content
+      // Note: `calendarNoteByDateString()` returns `?TNote` and `TNote.content` is `string | void`, so both have to be
+      // checked; the previous `typeof calendarNote !== 'undefined'` guard missed `null` and threw a TypeError.
+      const calendarNoteContent = calendarNote?.content
+      if (calendarNoteContent != null) {
+        return calendarNoteContent
       } else {
         return `**An error occurred loading note "${noteName}"**`
       }
@@ -1840,8 +1842,8 @@ export async function execute(templateData: string = '', sessionData: any, templ
           result = await templatingEngine.render(executeCodeBlock, processedSessionData)
           processedTemplateData = processedTemplateData.replace(codeBlock, result)
         } else {
-          // $FlowIgnore
-          const fn = Function.apply(null, ['params', executeCodeBlock])
+          // Flow's `Function` libdef has no call signature on its statics, so `Function.apply` cannot be described
+          const fn = (Function: any).apply(null, ['params', executeCodeBlock])
           result = fn(processedSessionData)
 
           if (typeof result === 'object') {

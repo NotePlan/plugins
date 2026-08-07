@@ -3,7 +3,7 @@
 
 import NPTemplating from '../lib/NPTemplating'
 import { processPrompts, processPromptTag, registerPromptType, getRegisteredPromptNames, cleanVarName } from '../lib/support/modules/prompts/PromptRegistry'
-import type { TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
+import type { PromptType, TProcessPromptsSuccess } from '../lib/support/modules/prompts/PromptRegistry'
 import { getTags } from '../lib/core'
 import '../lib/support/modules/prompts' // Import to register all prompt handlers
 import BasePromptHandler from '../lib/support/modules/prompts/BasePromptHandler'
@@ -179,8 +179,8 @@ describe('PromptRegistry Pattern Generation', () => {
     ]
 
     testCases.forEach(({ name, validTags, invalidTags }) => {
-      // Register a prompt type without a pattern
-      const promptType = {
+      // Register a prompt type without a pattern (registerPromptType() fills `pattern` in, hence the PromptType annotation)
+      const promptType: PromptType = {
         name,
         parseParameters: (tag: string) => BasePromptHandler.getPromptParameters(tag),
         process: async (_tag: string, _sessionData: any, _params: any) => {
@@ -192,14 +192,12 @@ describe('PromptRegistry Pattern Generation', () => {
 
       // Test valid tags
       validTags.forEach((tag) => {
-        // $FlowFixMe - We know pattern exists after registration
         const pattern = promptType.pattern
         expect(pattern && pattern.test(tag)).toBe(true)
       })
 
       // Test invalid tags
       invalidTags.forEach((tag) => {
-        // $FlowFixMe - We know pattern exists after registration
         const pattern = promptType.pattern
         expect(pattern && pattern.test(tag)).toBe(false)
       })

@@ -4,25 +4,29 @@ import get from 'lodash/get'
 import { isScheduled } from './dateTime'
 import { clo, logDebug, logError } from './dev'
 
-export interface SortableParagraphSubset {
-  content: string;
-  index: number;
-  raw: string;
-  hashtags: Array<string>;
-  mentions: Array<string>;
-  exclamations: Array<string>;
-  parensPriority: Array<string>;
-  due: ?Date;
-  heading: ?string;
-  priority?: number;
-  type?: string;
-  filename: string;
-  indents: number;
-  children: Array<SortableParagraphSubset>;
-  paragraph: ?TParagraph;
-  calculatedType: ?string;
-  blockId?: string;
-  note?: TNote;
+// Note: an object type, not an `interface`, so it can be spread (`{ ...t, duration: 0 }`).
+// Kept INEXACT (trailing `...`) because .flowconfig sets exact_by_default=true and callers
+// routinely carry extra fields; an exact type here would reject them.
+export type SortableParagraphSubset = {
+  content: string,
+  index: number,
+  raw: string,
+  hashtags: Array<string>,
+  mentions: Array<string>,
+  exclamations: Array<string>,
+  parensPriority: Array<string>,
+  due: ?Date,
+  heading: ?string,
+  priority?: number,
+  type?: string,
+  filename: string,
+  indents: number,
+  children: Array<SortableParagraphSubset>,
+  paragraph: ?TParagraph,
+  calculatedType: ?string,
+  blockId?: string,
+  note?: TNote,
+  ...
 }
 
 export type GroupedTasks = {
@@ -86,8 +90,11 @@ export const fieldSorter =
         if (aValue === bValue) return 0
         if (aValue == null || aValue === 'NaN') return isDesc ? -dir : dir //null or undefined always come last
         if (bValue == null || bValue === 'NaN') return isDesc ? dir : -dir
-        // $FlowIgnore - flow complains about comparison of non-identical types, but I am trapping for that
-        return typeof aValue === typeof bValue ? (aValue > bValue ? dir : -dir) : 0
+        // `aValue`/`bValue` are string | number here (nulls returned above, and non-numeric strings are the only non-numbers
+        // that survive the Number() conversion). Compare only like with like; mixed types are treated as equal, as before.
+        if (typeof aValue === 'number' && typeof bValue === 'number') return aValue > bValue ? dir : -dir
+        if (typeof aValue === 'string' && typeof bValue === 'string') return aValue > bValue ? dir : -dir
+        return 0
       })
       .reduce((p, n) => (p ? p : n), 0)
 
@@ -204,7 +211,9 @@ export function addPriorityToParagraphs(paras: Array<TParagraph>): Array<any> {
   // Temporarily extend TParagraph with the task's priority
   for (let c = 0; c < paras.length; c++) {
     const thisPriority = getNumericPriorityFromPara(paras[c])
-    // $FlowIgnore[prop-missing] - needed as we're extending TParagraph type
+    // Deliberately monkey-patches an extra field onto TParagraph (see comment above); no real type can describe that,
+    // which is why the return type is Array<any>. The typed alternative is SortableParagraphSubset.
+    // $FlowIgnore[prop-missing]
     paras[c].priority = thisPriority
   }
   return paras

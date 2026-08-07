@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
+// Last updated 2026-08-06 for v2.4.0.b62 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
@@ -25,7 +25,7 @@ import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from '.
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData, TSection } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
-import { isHTMLWindowOpen } from '@helpers/NPWindows'
+import { isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
 
 /**
  * TAG names that appear more than once in the section list.
@@ -139,6 +139,10 @@ export async function incrementallyRefreshSomeSections(
       logInfo('incrementallyRefreshSomeSections', `- my window is not visible, so not refreshing`)
       return handlerResult(false, [], { errorMsg: 'Dashboard window not visible, so not refreshing', errorMessageLevel: 'INFO' })
     }
+
+    // Opportunistic window size/position save (no WebView JS). Captures pure moves while open; closes the gap if
+    // onViewWillDisappear never delivers windowResized (common for floating HTML windows).
+    storeWindowRect(WEBVIEW_WINDOW_ID)
 
     logDebug('incrementallyRefreshSomeSections', `Starting incremental refresh for sections [${String(sectionCodes)}]`)
     await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
@@ -262,6 +266,10 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
     }
 
     logDebug('refreshSomeSections', `Starting for ${String(sectionCodesToRefresh)}`)
+    // Save window size and position first, before any WebView JS - this is often the last successful plugin entry while still open.
+    if (isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
+      storeWindowRect(WEBVIEW_WINDOW_ID)
+    }
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     if (!reactWindowData?.pluginData) {
       logDebug('refreshSomeSections', 'Dashboard shared data not ready yet (no pluginData); cannot refresh')

@@ -71,9 +71,13 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
     includeAllTodos: 'boolean',
   }
   try {
-    // $FlowIgnore
-    const validatedConfig = validateConfigProperties(config, configTypeCheck)
-    if (validatedConfig.checkedItemChecksOriginal && (validatedConfig.todoChar !== '+' || validatedConfig.includeLinks !== 'Pretty Links')) {
+    // validateConfigProperties() throws if anything fails and otherwise returns the very object it was handed, so
+    // the typed `config` *is* the validated config. It is declared as taking/returning `{ [string]: mixed }`, and
+    // AutoTimeBlockingConfig's typed props are invariant against that `mixed` indexer value, so pass a dictionary
+    // copy for validation and keep using the typed object afterwards.
+    const configAsDict: { [string]: mixed } = { ...config }
+    validateConfigProperties(configAsDict, configTypeCheck)
+    if (config.checkedItemChecksOriginal && (config.todoChar !== '+' || config.includeLinks !== 'Pretty Links')) {
       throw new Error(
         `To use the checklist check to check the original, your timeblock character must be + and the 'Include links to task location in time blocks' setting must be set to 'Pretty Links'`,
       )
@@ -83,8 +87,7 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
         `Your AutoTimeBlocking Tag must be different from your NotePlan Preferences 'Timeblock Must Contain' setting. /ATB has to be able to identify the items that were created previously by the plugin so it can delete and re-generate them.`,
       )
     }
-    // $FlowIgnore
-    return validatedConfig
+    return config
   } catch (error) {
     // console.log(`NPTimeblocking::validateAutoTimeBlockingConfig: ${String(error)}\nInvalid config:\n${JSON.stringify(config)}`)
     throw new Error(`${String(error)}`)

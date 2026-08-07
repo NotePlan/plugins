@@ -168,7 +168,6 @@ const onMessageReceived = (event) => {
     return
   }
   try {
-    // $FlowFixMe
     const { type, payload } = event.data // remember: data exists even though event is not JSON.stringify-able (like NP objects)
     if (!type) throw (`Received a message, but the 'type' was undefined`, event.data)
     if (!payload) throw (`Received a message but 'payload' was undefined`, event.data)

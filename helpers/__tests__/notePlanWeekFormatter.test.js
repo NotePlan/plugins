@@ -92,8 +92,10 @@ describe('NotePlan Week Formatter', () => {
     })
 
     it('should use default format when null format provided', () => {
-      // $FlowFixMe[incompatible-call] - Testing edge case with null format
-      const result = formatWithNotePlanWeeks('2023-06-15', null)
+      // The implementation handles null (`format != null ? ... : 'YYYY-MM-DD'`) but the param is declared
+      // `format?: string`, i.e. `string | void`. The real type would be `format?: ?string`; that change
+      // belongs in helpers/notePlanWeekFormatter.js, which is outside this sweep's scope.
+      const result = formatWithNotePlanWeeks('2023-06-15', (null: any))
       expect(result).toBe('2023-06-15') // Should use default YYYY-MM-DD format
     })
 

@@ -211,7 +211,8 @@ export async function generateRepeatForPara(
     }
     let lineWithoutDoneTime = ''
     let completedDate = ''
-    let noteContainingNewPara: CoreNoteFields
+    // Maybe-typed: one branch assigns DataStore.calendarNoteByDateString(), which returns ?TNote and is null-checked below
+    let noteContainingNewPara: ?CoreNoteFields
 
     const syncCopyParas: Array<TParagraph> = DataStore.referencedBlocks(origPara)
     const origParaIsSynced = syncCopyParas.length >= 1
@@ -305,7 +306,6 @@ export async function generateRepeatForPara(
       if (newRepeatDateStr.match(RE_ISO_DATE)) {
         newRepeatDateStr = convertISODateFilenameToNPDayFilename(newRepeatDateStr)
       }
-      // $FlowIgnore[incompatible-type] TNote vs CoreNoteFields
       noteContainingNewPara = await DataStore.calendarNoteByDateString(newRepeatDateStr)
       if (noteContainingNewPara != null) {
         logDebug('generateRepeatForPara', `- adding repeat to FUTURE calendar note for ${newRepeatDateStr}`)
@@ -413,9 +413,7 @@ export async function generateRepeatForCancelledPara(
       await Editor.insertParagraphBeforeParagraph(`${newRepeatContent} >${newRepeatDateStr}`, origPara, 'open')
       newPara = Editor.paragraphs[origPara.lineIndex]
     } else {
-      // $FlowIgnore[prop-missing] noteToUse is a TNote when not using Editor
       await noteToUse.insertParagraphBeforeParagraph(`${newRepeatContent} >${newRepeatDateStr}`, origPara, 'open')
-      // $FlowIgnore[prop-missing] noteToUse is a TNote when not using Editor
       newPara = noteToUse.paragraphs[origPara.lineIndex]
     }
 
@@ -424,7 +422,6 @@ export async function generateRepeatForCancelledPara(
       if (noteIsOpenInEditor) {
         Editor.updateParagraph(newPara)
       } else {
-        // $FlowIgnore[prop-missing] noteToUse is a TNote when not using Editor
         noteToUse.updateParagraph(newPara)
       }
     }

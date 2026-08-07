@@ -177,6 +177,12 @@ function findReadyProjects(projects: Array<Project>, maxCount: number = 0): Arra
  * @private
  */
 function getLeadingProjectTag(project: Project | any): string {
+  // Flow limitation, not something a real type can express: duck-typing a *class method* (`typeof x.method === 'function'`) always trips
+  // [method-unbinding], and re-typing `project` as a structural object/interface only moves the same error to every call site (rows read
+  // back from allProjectsList.json are plain objects, so the method genuinely may be absent).
+  // Measured: replacing this param with `?{ +getLeadingProjectTag?: () => string, +allProjectTags?: mixed, ... }` turns this 1 suppressed
+  // error into 6 real ones (2 each at the Project-instance call sites, lines ~510/952/1071) - a class method cannot flow into a
+  // function-typed property slot. The suppression here is the narrowest available form.
   // $FlowIgnore[method-unbinding]
   if (project != null && typeof project.getLeadingProjectTag === 'function') {
     return project.getLeadingProjectTag()
@@ -849,9 +855,9 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
  * Get the Project object instance from JSON list that matches by filename.
  * @author @jgclark
  * @param {string} filename
- * @returns {Project}
+ * @returns {?Project}
  */
-export async function getSpecificProjectFromList(filename: string): Promise<Project | null> {
+export async function getSpecificProjectFromList(filename: string): Promise<?Project> {
   try {
     logDebug('getSpecificProjectFromList', `Starting with filename '${filename}' ...`)
     const allProjects = await getAllProjectsFromList() ?? []
@@ -860,7 +866,6 @@ export async function getSpecificProjectFromList(filename: string): Promise<Proj
     // find the Project with matching filename
     const projectInstance: ?Project = allProjects.find((project) => project.filename === filename)
     logDebug(`getSpecificProjectFromList`, `- read ${String(allProjects.length)} Projects from allProjects list`)
-    // $FlowFixMe[incompatible-return]
     return projectInstance
   }
   catch (error) {
@@ -945,9 +950,8 @@ export function sortProjectsList(
   // logDebug('sortProjectsList', `Starting with input sortingOrder: [${String(sortingOrder)}]`)
   const projectTypeTagsForOrder =
     config.projectTypeTags != null && typeof config.projectTypeTags === 'string' ? [config.projectTypeTags] : (config.projectTypeTags ?? [])
-  // Extend Project with projectTagOrder (sort key for firstTag mode: order matches config.projectTypeTags)
+  // Set projectTagOrder (sort key for firstTag mode: order matches config.projectTypeTags); now declared on the Project class
   projectInstances.forEach((pi) => {
-    // $FlowIgnore[prop-missing] deliberate temporary extension to Project class
     pi.projectTagOrder = projectTypeTagsForOrder.indexOf(getLeadingProjectTag(pi))
   })
 
@@ -955,7 +959,6 @@ export function sortProjectsList(
   const sortingSpecification = (sortingOrder.length > 0) ? sortingOrder : buildSortingSpecification(config)
   // logDebug('sortProjectsList', `- sorting by ${String(sortingSpecification)}`)
   const sortedProjectInstances = sortListBy(projectInstances, sortingSpecification)
-  // $FlowIgnore[prop-missing] deliberate temporary extension to Project class
   // sortedProjectInstances.forEach(pi => console.log(`${pi.projectTagOrder}\t[${String(pi.allProjectTags)}]\t${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
   return sortedProjectInstances
 }

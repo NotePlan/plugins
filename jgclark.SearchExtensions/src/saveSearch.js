@@ -393,8 +393,8 @@ export async function saveSearch(
     CommandBar.showLoading(true, `${commandNameToDisplay} ...`)
     await CommandBar.onAsyncThread()
 
-    // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const resultsProm: resultOutputType = runExtendedSearches(validatedSearchTerms, config, searchOptions)
+    // Note: deliberately no await: this is resolved later. The annotation must therefore be the Promise, not its resolved type.
+    const resultsProm: Promise<resultOutputType> = runExtendedSearches(validatedSearchTerms, config, searchOptions)
 
     await CommandBar.onMainThread()
 
@@ -484,7 +484,6 @@ export async function saveSearch(
           const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Refresh results for ${searchTermsRepStr}](${xCallbackURL})` : ''
           resultOutputLines.unshift(xCallbackLine)
 
-          // $FlowIgnore[prop-missing]
           replaceSection(currentNote, searchTermsRepStr, thisResultHeading, config.headingLevel, resultOutputLines.join('\n'))
 
           logDebug('saveSearch', `saveSearch() finished writing to current note.`)

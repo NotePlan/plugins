@@ -41,9 +41,14 @@ export type AppContextType = {
   dispatchPerspectiveSettings: (action: TPerspectiveSettingsAction) => void,
 }
 
+// Object-type spread, not an intersection: under exact_by_default `{ children?: Node } & AppContextType`
+// is uninhabited (nothing can be exactly {children} AND exactly AppContextType at the same time).
+// The two dispatchers are Omit-ed because AppProvider creates them itself with useReducer() below, so
+// callers neither pass nor can pass them.
 type Props = {
+  ...Omit<AppContextType, 'dispatchDashboardSettings' | 'dispatchPerspectiveSettings'>,
   children?: Node,
-} & AppContextType
+}
 
 /****************************************************************************************************************************
  *                             DEFAULT CONTEXT VALUE

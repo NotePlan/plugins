@@ -368,7 +368,6 @@ const provideConfig = async (): Promise<any> => {
     const fromSettings: Config = DataStore.settings
 
     if (fromSettings) {
-      // $FlowIgnoreMe[incompatible-call]
       clo(fromSettings, `loaded config from settings:`)
     } else {
       throw new Error(`Cannot find settings for Expenses plugin`)

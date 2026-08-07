@@ -254,6 +254,9 @@ export function filterItems(items: Array<string>, includePattern: string = '', e
   return filtered
 }
 
+/** What `chooseOptionWithModifiers()` resolves to: the chosen option plus the modifier keys held while choosing. */
+type ChosenOptionWithModifiers = { value: string, label: string, index: number, keyModifiers: Array<string> }
+
 /**
  * Generic prompt function for both hashtags and mentions
  * @param {string} promptMessage - The prompt message to display.
@@ -289,8 +292,7 @@ export async function promptForItem(
     const options = filteredItems.map((item) => ({ label: `${prefix}${item}`, value: item }))
 
     // Show options to user
-    // $FlowFixMe - We know this will return an object with value property
-    const response: { value: string, label: string, index: number } = await chooseOptionWithModifiers(promptMessage || `Select a ${itemType}`, options, allowCreate)
+    const response: ChosenOptionWithModifiers = await chooseOptionWithModifiers(promptMessage || `Select a ${itemType}`, options, allowCreate)
 
     // Return the selected value (safely)
     return response.value || ''

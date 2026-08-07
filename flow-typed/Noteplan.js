@@ -1233,7 +1233,13 @@ declare class CommandBar {
   static showForm(formConfig: {|
     +title: string,
     +submitText: string,
-    +fields: $ReadOnlyArray<{|
+    // Note: deliberately INEXACT. The help page documents only a subset of the accepted field
+    // properties (it omits `choices` and `boxHeight`, both of which are listed below and work),
+    // and number fields additionally accept `min`/`max`. Since this is a native-bridge object
+    // whose documentation is known to be incomplete, an exact type would reject properties the
+    // API genuinely honours -- which is what forced a `prop-missing` suppression on the callers in
+    // jgclark.Reviews. Known properties stay listed so they are still type-checked.
+    +fields: $ReadOnlyArray<{
       +type: string,
       +key: string,
       +title: string,
@@ -1245,7 +1251,10 @@ declare class CommandBar {
       format?: string,
       choices?: $ReadOnlyArray<string>,
       boxHeight?: number,
-    |}>,
+      min?: number,
+      max?: number,
+      ...
+    }>,
   |}): Promise<CommandBarFormResult>;
 }
 
@@ -2159,6 +2168,12 @@ declare interface CoreNoteFields {
    */
   content: string | void;
   /**
+   * [Editor|Note].contentWithAbsoluteAttachmentPaths
+   * As .content, but with relative attachment/file links rewritten to absolute paths.
+   * Read-only. Used by helpers/content.js getContentWithLinks().
+   */
+  +contentWithAbsoluteAttachmentPaths: string | void;
+  /**
    * [Editor|Note].paragraphs
    * Get or set the array of paragraphs contained in this note, such as tasks, bullets, etc.
    * If you set the paragraphs, the content of the note will be updated.
@@ -2213,7 +2228,10 @@ declare interface CoreNoteFields {
    * WARNING: In mid-Dec 2025 @jgclark realised that this does not work for private or teamspace calendar notes. Use helper function getFrontmatterAttributes() instead, which works around this.
    * WARNING: The setter only works with macOS >= 14 and iOS >= 16, since below these versions, the frontmatter editor is not supported and the raw frontmatter is shown (if a user still calls this, a warning is logged).
    */
-  +frontmatterAttributes: Object;
+  // Not read-only: the doc comment above explicitly documents the setter ("You can also use the
+  // setter, but you will need to first read the complete frontmatter object..."). The `+` was
+  // wrong and forced a `cannot-write` suppression on every legitimate assignment.
+  frontmatterAttributes: Object;
   /**
    * [Editor|Note].updateFrontmatterAttributes()
    * Updates multiple frontmatter attributes at once in a single operation.
@@ -2755,7 +2773,11 @@ static + htmlWindows: Array < HTMLView >;
   * @returns {string} weather.location.asnOrganization - ASN organization name (only when using IP-based detection)
   * @returns {boolean} weather.location.isProxy - Whether the IP is a proxy (only when using IP-based detection)
   */
-  static getWeather(units: string, latitude: number, longitude: number): Promise < Object >;
+  // Params are optional/nullable: omitting the coordinates triggers the API's own location
+  // lookup (hence the "only when using IP-based detection" fields documented above).
+  // np.Templating/lib/support/modules/notePlanWeather.js deliberately passes `undefined` rather
+  // than 0 because 0 did not trigger the lookup.
+  static getWeather(units?: ?string, latitude?: ?number, longitude?: ?number): Promise < Object >;
 }
 
 declare class HTMLView {

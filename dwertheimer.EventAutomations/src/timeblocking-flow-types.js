@@ -1,5 +1,7 @@
 // @flow
 
+import type { SortableParagraphSubset } from '@helpers/sorting'
+
 export type IntervalMap = Array<{ start: string, busy: string | boolean, index: number }>
 export type OpenBlock = { start: string, end: string, minsAvailable: number, title?: string }
 export type BlockArray = Array<OpenBlock>
@@ -34,8 +36,15 @@ export type PartialCalendarItem = {
   availability: number,
 }
 
-export interface ParagraphWithDuration extends TParagraph {
-  duration: number;
+// Note: built by addDurationToTasks() (timeblocking-helpers.js) by spreading a
+// SortableParagraphSubset and adding `duration` -- NOT from a TParagraph. It previously declared
+// `extends TParagraph`, which was untrue: the objects have no `constructor` and none of
+// Paragraph's methods. That lie was invisible only because the spread was suppressed with
+// a `cannot-spread-interface` suppression, which degraded the result to `any`.
+export type ParagraphWithDuration = {
+  ...SortableParagraphSubset,
+  duration: number,
+  ...
 }
 
 export type Tags = {

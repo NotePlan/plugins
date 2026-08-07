@@ -199,7 +199,7 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
     complete: false,
   }
 
-  // Remove comments/headers $FlowIgnore
+  // Remove comments/headers
   strToBeParsed = removeComments(strToBeParsed, currentData, selectedRow)
 
   // let preProcessedValue = null

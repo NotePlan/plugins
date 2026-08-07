@@ -98,11 +98,9 @@ async function copyLineForTags(typ: 'hashtags' | 'mentions'): Promise<void> {
         if (i > 0) {
           // cast: .shift() is typed `string | void`, but the `length <= 1` guard above means there is always an element here
           tagsInQuestion.push((tagsInQuestion.shift(): any))
-          const updatedText = appendTagsToText(contentWithoutTheseTags, {
-            ...existingTags,
-            //$FlowIgnore
-            ...{ [typ]: tagsInQuestion },
-          })
+          // Flow only allows a single literal computed key, so branch on `typ` and write the key literally
+          const rotatedTags: TagsList = typ === 'hashtags' ? { ...existingTags, hashtags: tagsInQuestion } : { ...existingTags, mentions: tagsInQuestion }
+          const updatedText = appendTagsToText(contentWithoutTheseTags, rotatedTags)
           if (updatedText) {
             Editor.insertParagraphAfterParagraph(updatedText, thisParagraph, thisParagraph.type)
           }

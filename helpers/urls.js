@@ -59,20 +59,22 @@ export function findURLsInText(text: string, removeSubdomain: boolean = false): 
 
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i]
-      let match
 
       // Process markdown URLs first and replace them with placeholders in the line.
-      while ((match = markdownURLPattern.exec(line)) !== null) {
-        // $FlowIgnore[incompatible-use]
-        links.push(processURL(match[2], match[1], i, removeSubdomain))
-        // $FlowIgnore[incompatible-use]
-        line = line.replace(match[0], 'MARKDOWN_LINK_PLACEHOLDER')
+      // Note: the match is assigned before the loop and re-assigned at the end of the body (rather than in the
+      // `while` condition) so that Flow's `!== null` refinement survives for the whole body.
+      let markdownMatch = markdownURLPattern.exec(line)
+      while (markdownMatch !== null) {
+        links.push(processURL(markdownMatch[2], markdownMatch[1], i, removeSubdomain))
+        line = line.replace(markdownMatch[0], 'MARKDOWN_LINK_PLACEHOLDER')
+        markdownMatch = markdownURLPattern.exec(line)
       }
 
       // Process bare URLs.
-      while ((match = bareURLPattern.exec(line)) !== null) {
-        // $FlowIgnore[incompatible-use]
-        links.push(processURL(match[1], null, i, removeSubdomain))
+      let bareMatch = bareURLPattern.exec(line)
+      while (bareMatch !== null) {
+        links.push(processURL(bareMatch[1], null, i, removeSubdomain))
+        bareMatch = bareURLPattern.exec(line)
       }
     }
 

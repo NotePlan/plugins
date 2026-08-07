@@ -21,7 +21,7 @@ export default class BasePromptHandler {
    * ensures the name starts with a valid character (letter, _, $ or Unicode letter),
    * prefixes JavaScript reserved keywords, and defaults to 'unnamed' if empty or null.
    *
-   * @param {string} varName - The variable name to clean.
+   * @param {?string} varName - The variable name to clean (null/undefined are accepted and return 'unnamed').
    * @returns {string} The cleaned variable name.
    * @example
    * BasePromptHandler.cleanVarName("My Variable?") // "My_Variable"
@@ -31,7 +31,7 @@ export default class BasePromptHandler {
    * BasePromptHandler.cleanVarName(null)           // "unnamed"
    * BasePromptHandler.cleanVarName("variable_1")   // "variable_1"
    */
-  static cleanVarName(varName: string): string {
+  static cleanVarName(varName: ?string): string {
     // If varName is null, undefined, or empty string, return 'unnamed'
     if (!varName || (typeof varName === 'string' && varName.trim() === '')) return 'unnamed'
 

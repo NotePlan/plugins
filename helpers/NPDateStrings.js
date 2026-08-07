@@ -9,7 +9,7 @@
 import moment from 'moment/min/moment-with-locales'
 import * as dt from './dateTime'
 import { logDebug, logError, logWarn } from './dev'
-import { getNPWeekData, type NotePlanWeekInfo } from './NPdateTime'
+import { getNPWeekData } from './NPdateTime'
 
 export type RelativeDateWithNote = {
   relName: string,
@@ -20,6 +20,37 @@ export type RelativeDateWithNote = {
 export type RelativeDate = {
   relName: string,
   dateStr: string,
+}
+
+/**
+ * Get the relative week names and their NotePlan week strings, relative to today.
+ * Note: NP weeks can count differently from ISO/moment weeks, so this has to go via getNPWeekData().
+ * Note: getNPWeekData() can return null, in which case that single week is logged and skipped, rather than failing the whole list.
+ * @returns {Array<RelativeDate>} relative week name + NP week string (e.g. '2025-W01') for each week
+ */
+function getRelativeWeekDates(): Array<RelativeDate> {
+  const weeksWanted: Array<{ offset: number, relName: string }> = [
+    { offset: 0, relName: 'this week' },
+    { offset: -1, relName: 'last week' },
+    { offset: 1, relName: 'next week' },
+  ]
+  for (let i = -11; i < -1; i++) {
+    weeksWanted.push({ offset: i, relName: `${-i} weeks ago` })
+  }
+  for (let i = 2; i < 11; i++) {
+    weeksWanted.push({ offset: i, relName: `${i} weeks' time` })
+  }
+
+  const relativeWeekDates: Array<RelativeDate> = []
+  for (const { offset, relName } of weeksWanted) {
+    const thisNPWeekInfo = getNPWeekData(new Date(), offset)
+    if (!thisNPWeekInfo) {
+      logWarn('NPDateStrings::getRelativeWeekDates', `getNPWeekData() returned null for week offset ${offset}, so skipping '${relName}'.`)
+      continue
+    }
+    relativeWeekDates.push({ relName, dateStr: thisNPWeekInfo.weekString })
+  }
+  return relativeWeekDates
 }
 
 /**
@@ -63,33 +94,8 @@ export function getRelativeDatesWithNotes(useISODailyDates: boolean = false): Ar
     }
 
     // Weeks: NP weeks count differently from ISO/moment
-    // $FlowIgnore[incompatible-type]
-    let thisNPWeekInfo: NotePlanWeekInfo = getNPWeekData(new Date())
-    thisDateStr = thisNPWeekInfo.weekString
-    relativeDates.push({ relName: 'this week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    // $FlowIgnore[incompatible-type]
-    thisNPWeekInfo = getNPWeekData(new Date(), -1)
-    // $FlowIgnore[incompatible-use]
-    thisDateStr = thisNPWeekInfo.weekString
-    relativeDates.push({ relName: 'last week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    // $FlowIgnore[incompatible-type]
-    thisNPWeekInfo = getNPWeekData(new Date(), 1)
-    // $FlowIgnore[incompatible-use]
-    thisDateStr = thisNPWeekInfo.weekString
-    relativeDates.push({ relName: 'next week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    for (let i = -11; i < -1; i++) {
-      // $FlowIgnore[incompatible-type]
-      thisNPWeekInfo = getNPWeekData(new Date(), i)
-      // $FlowIgnore[incompatible-use]
-      thisDateStr = thisNPWeekInfo.weekString
-      relativeDates.push({ relName: `${-i} weeks ago`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    }
-    for (let i = 2; i < 11; i++) {
-      // $FlowIgnore[incompatible-type]
-      thisNPWeekInfo = getNPWeekData(new Date(), i)
-      // $FlowIgnore[incompatible-use]
-      thisDateStr = thisNPWeekInfo.weekString
-      relativeDates.push({ relName: `${i} weeks' time`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    for (const relativeWeekDate of getRelativeWeekDates()) {
+      relativeDates.push({ ...relativeWeekDate, note: DataStore.calendarNoteByDateString(relativeWeekDate.dateStr) })
     }
 
     // Months
@@ -127,8 +133,7 @@ export function getRelativeDatesWithNotes(useISODailyDates: boolean = false): Ar
     return relativeDates
   } catch (err) {
     logError('NPDateStrings::getRelativeDatesWithNotes', `${err.name}: ${err.message}`)
-    // $FlowIgnore[prop-missing]
-    return [{}]
+    return []
   }
 }
 
@@ -172,34 +177,7 @@ export function getRelativeDatesUsingNPAPI(useISODailyDates: boolean = false): A
     }
 
     // Weeks: NP weeks count differently from ISO/moment
-    // $FlowIgnore[incompatible-type]
-    let thisNPWeekInfo: NotePlanWeekInfo = getNPWeekData(new Date())
-    thisDateStr = thisNPWeekInfo.weekString
-    relativeDates.push({ relName: 'this week', dateStr: thisDateStr })
-    // $FlowIgnore[incompatible-type]
-    thisNPWeekInfo = getNPWeekData(new Date(), -1)
-    // $FlowIgnore[incompatible-use]
-    thisDateStr = thisNPWeekInfo.weekString
-    relativeDates.push({ relName: 'last week', dateStr: thisDateStr })
-    // $FlowIgnore[incompatible-type]
-    thisNPWeekInfo = getNPWeekData(new Date(), 1)
-    // $FlowIgnore[incompatible-use]
-    thisDateStr = thisNPWeekInfo.weekString
-    relativeDates.push({ relName: 'next week', dateStr: thisDateStr })
-    for (let i = -11; i < -1; i++) {
-      // $FlowIgnore[incompatible-type]
-      thisNPWeekInfo = getNPWeekData(new Date(), i)
-      // $FlowIgnore[incompatible-use]
-      thisDateStr = thisNPWeekInfo.weekString
-      relativeDates.push({ relName: `${-i} weeks ago`, dateStr: thisDateStr })
-    }
-    for (let i = 2; i < 11; i++) {
-      // $FlowIgnore[incompatible-type]
-      thisNPWeekInfo = getNPWeekData(new Date(), i)
-      // $FlowIgnore[incompatible-use]
-      thisDateStr = thisNPWeekInfo.weekString
-      relativeDates.push({ relName: `${i} weeks' time`, dateStr: thisDateStr })
-    }
+    relativeDates.push(...getRelativeWeekDates())
 
     // Months
     for (let i = -12; i < -1; i++) {

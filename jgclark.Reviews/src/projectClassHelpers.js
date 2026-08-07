@@ -35,7 +35,6 @@ export function getNoteChangedDateMs(note: TNote): ?number {
   if (cd instanceof Date) {
     return cd.getTime()
   }
-  // $FlowFixMe[prop-missing] runtime may expose numeric timestamps
   if (typeof cd === 'number') {
     return cd
   }
@@ -249,9 +248,6 @@ export async function promptAddProgressLineInputs(
       const raw = await CommandBar.showForm({
         title: message1,
         submitText: 'OK',
-        // Safe: the number field below carries `min`/`max`/`optional`, which CommandBar.showForm accepts at runtime but which are not in the exact
-        // `fields` element type in flow-typed/Noteplan.js. Extra props only; nothing here is unsound.
-        // $FlowIgnore[prop-missing]
         fields: [
           { type: 'string', key: 'comment', title: 'Comment (optional)', description: 'Leave blank if no progress comment is needed', placeholder: 'Optional comment', required: false },
           { type: 'date', key: 'progressDate', title: 'Date', description: 'Date of comment', default: todaysDateISOString, required: false },

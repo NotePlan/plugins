@@ -84,8 +84,9 @@ export function useRequestWithRetry({
   const paramsKeyForIdentifier = useMemo(() => JSON.stringify(requestParams), [requestParams])
 
   // Make request function (recursive for retries)
-  // $FlowFixMe[recursive-definition] - Function calls itself for retries
-  const makeRequest = useCallback(
+  // Annotated because the callback refers to itself when it schedules a retry, and Flow cannot infer a
+  // type for a self-referential definition (this is exactly the annotation the error message asks for).
+  const makeRequest: (currentRetry?: number) => Promise<void> = useCallback(
     async (currentRetry: number = 0): Promise<void> => {
       if (!requestFromPlugin || !enabled) {
         return

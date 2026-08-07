@@ -43,6 +43,7 @@ import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { validateDateRangeAndConvertToISODateStrings } from '@helpers/dateTime'
 import { getLocale, saveSettings } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getPeriodStartEndDates } from '@helpers/NPdateTime'
+import type { TPeriodCode } from '@helpers/NPdateTime'
 
 const pluginID = 'jgclark.Summaries'
 
@@ -354,7 +355,7 @@ async function computeChartDateRangeForPeriod(
   config: SummariesConfig,
   periodIn: string,
 ): Promise<{ fromDateStr: string, toDateStr: string, periodString: string, rawDates: Array<string>, selectedPeriod: string }> {
-  const allowedPeriods = [
+  const allowedPeriods: Array<TPeriodCode> = [
     'wtd',
     'userwtd',
     'last7d',
@@ -364,16 +365,17 @@ async function computeChartDateRangeForPeriod(
     'qtd',
     'last3m',
   ]
-  const configDefaultPeriod = (config.progressPeriod && typeof config.progressPeriod === 'string')
+  const configDefaultPeriod: TPeriodCode = (config.progressPeriod && typeof config.progressPeriod === 'string')
     ? config.progressPeriod
     : 'last4w'
-  const selectedPeriod = allowedPeriods.includes(periodIn) ? periodIn : configDefaultPeriod
+  // The includes() test proves periodIn is one of allowedPeriods (so a TPeriodCode), but Flow can't refine a string from Array.includes().
+  // The cast is confined to that one validated point, so selectedPeriod is properly typed from here on.
+  const selectedPeriod: TPeriodCode = allowedPeriods.includes(periodIn) ? ((periodIn: any): TPeriodCode) : configDefaultPeriod
 
   let fromDateStr = ''
   let toDateStr = ''
   let periodString = ''
 
-  // $FlowIgnore[incompatible-call] - TPeriodCode is more specific than string; rely on runtime guard above
   const [fromDate, toDate, _periodType, computedPeriodString, _periodAndPartStr] = await getPeriodStartEndDates('', config.excludeToday, selectedPeriod)
   const validated = validateDateRangeAndConvertToISODateStrings(fromDate, toDate, 'chart summary')
   fromDateStr = validated.fromDateStr

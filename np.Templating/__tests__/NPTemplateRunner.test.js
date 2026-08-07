@@ -185,8 +185,7 @@ describe('NPTemplateRunner', () => {
     DataStore.calendarNoteByDate.mockReturnValue(mockNote)
 
     // Setup @helpers/note mock
-    const noteHelpers = require('@helpers/note')
-    // $FlowFixMe - Mock function
+    const noteHelpers: any = require('@helpers/note')
     noteHelpers.getNote = jest.fn()
     DataStore.calendarNoteByDateString.mockReturnValue(mockNote)
     Editor.note = mockNote
@@ -194,38 +193,29 @@ describe('NPTemplateRunner', () => {
     Editor.note.addParagraphBelowHeadingTitle = jest.fn()
 
     // Setup NPTemplating mocks
-    const NPTemplating = require('../lib/NPTemplating')
-    // $FlowFixMe - Mock functions
+    const NPTemplating: any = require('../lib/NPTemplating')
     NPTemplating.renderFrontmatter.mockResolvedValue({
       frontmatterBody: 'template body',
       frontmatterAttributes: { key1: 'value1' },
     })
-    // $FlowFixMe - Mock functions
     NPTemplating.render.mockResolvedValue('rendered content')
 
     // Setup helper mocks
-    const NPnote = require('@helpers/NPnote')
-    // $FlowFixMe - Mock functions
+    const NPnote: any = require('@helpers/NPnote')
     NPnote.getNoteFromIdentifier.mockResolvedValue(mockNote)
-    // $FlowFixMe - Mock functions
     NPnote.getOrMakeRegularNoteInFolder.mockResolvedValue(mockNote)
-    // $FlowFixMe - Mock functions
     NPnote.getOrMakeCalendarNote.mockResolvedValue(mockNote)
-    // $FlowFixMe - Mock functions
     NPnote.chooseNoteV2.mockResolvedValue({ title: 'Chosen Note' })
-    const userInput = require('@helpers/userInput')
+    const userInput: any = require('@helpers/userInput')
     ;(userInput.chooseHeading: any).mockResolvedValue('Test Heading')
 
-    const NPdateTime = require('@helpers/NPdateTime')
-    // $FlowFixMe - Mock functions
+    const NPdateTime: any = require('@helpers/NPdateTime')
     NPdateTime.getNPWeekData.mockReturnValue({ weekYear: 2024, weekNumber: 3, weekString: '2024-W03' })
 
-    const dateTime = require('@helpers/dateTime')
-    // $FlowFixMe - Mock functions
+    const dateTime: any = require('@helpers/dateTime')
     dateTime.isValidCalendarNoteTitleStr.mockReturnValue(false)
 
-    const NPParagraph = require('@helpers/NPParagraph')
-    // $FlowFixMe - Mock functions
+    const NPParagraph: any = require('@helpers/NPParagraph')
     NPParagraph.findHeading.mockReturnValue({
       lineIndex: 0,
       type: 'title',
@@ -270,8 +260,7 @@ describe('NPTemplateRunner', () => {
   describe('getTemplateData', () => {
     test('should get template data when template exists', async () => {
       const mockTemplateNote = { content: 'template content', title: 'Template 1' }
-      // $FlowFixMe - Mock functions
-      require('@helpers/NPnote').getNoteFromIdentifier.mockResolvedValue(mockTemplateNote)
+      ;(require('@helpers/NPnote'): any).getNoteFromIdentifier.mockResolvedValue(mockTemplateNote)
 
       const result = await NPTemplateRunner.getTemplateData('template1', false)
 
@@ -281,8 +270,7 @@ describe('NPTemplateRunner', () => {
     })
 
     test('should handle missing template', async () => {
-      // $FlowFixMe - Mock functions
-      require('@helpers/NPnote').getNoteFromIdentifier.mockResolvedValue(null)
+      ;(require('@helpers/NPnote'): any).getNoteFromIdentifier.mockResolvedValue(null)
 
       const result = await NPTemplateRunner.getTemplateData('template1', false)
 
@@ -306,8 +294,7 @@ describe('NPTemplateRunner', () => {
         frontmatterBody: 'template body',
         frontmatterAttributes: { key1: 'value1' },
       }
-      const NPTemplating = require('../lib/NPTemplating')
-      // $FlowFixMe - Mock functions
+      const NPTemplating: any = require('../lib/NPTemplating')
       NPTemplating.renderFrontmatter.mockResolvedValue(mockFrontmatterResult)
 
       const result = await NPTemplateRunner.processFrontmatter('template content', { arg1: 'value1' }, false, null, { frontmatterAttributes: { originalKey: 'originalValue' } })
@@ -348,8 +335,7 @@ describe('NPTemplateRunner', () => {
 
   describe('renderTemplate', () => {
     test('should render template successfully', async () => {
-      const NPTemplating = require('../lib/NPTemplating')
-      // $FlowFixMe - Mock functions
+      const NPTemplating: any = require('../lib/NPTemplating')
       NPTemplating.render.mockResolvedValue('rendered content')
 
       const result = await NPTemplateRunner.renderTemplate('template body', { key1: 'value1' })
@@ -358,8 +344,7 @@ describe('NPTemplateRunner', () => {
     })
 
     test('should throw error when template rendering fails', async () => {
-      const NPTemplating = require('../lib/NPTemplating')
-      // $FlowFixMe - Mock functions
+      const NPTemplating: any = require('../lib/NPTemplating')
       NPTemplating.render.mockRejectedValue(new Error('Template Rendering Error: Something went wrong'))
 
       await expect(NPTemplateRunner.renderTemplate('template body', { key1: 'value1' })).rejects.toThrow('Template Rendering Error: Something went wrong')
@@ -375,8 +360,7 @@ describe('NPTemplateRunner', () => {
 
     test('should handle choose placeholder', async () => {
       const mockChosenNote = { title: 'Chosen Note' }
-      // $FlowFixMe - Mock functions
-      require('@helpers/NPnote').chooseNoteV2.mockResolvedValue(mockChosenNote)
+      ;(require('@helpers/NPnote'): any).chooseNoteV2.mockResolvedValue(mockChosenNote)
 
       const result = await NPTemplateRunner.handleNoteSelection('<choose>')
 
@@ -385,8 +369,7 @@ describe('NPTemplateRunner', () => {
 
     test('should handle select placeholder', async () => {
       const mockChosenNote = { title: 'Selected Note' }
-      // $FlowFixMe - Mock functions
-      require('@helpers/NPnote').chooseNoteV2.mockResolvedValue(mockChosenNote)
+      ;(require('@helpers/NPnote'): any).chooseNoteV2.mockResolvedValue(mockChosenNote)
 
       const result = await NPTemplateRunner.handleNoteSelection('<select>')
 
@@ -394,8 +377,7 @@ describe('NPTemplateRunner', () => {
     })
 
     test('should throw error when chosen note has no title', async () => {
-      // $FlowFixMe - Mock functions
-      require('@helpers/NPnote').chooseNoteV2.mockResolvedValue({ title: '' })
+      ;(require('@helpers/NPnote'): any).chooseNoteV2.mockResolvedValue({ title: '' })
 
       await expect(NPTemplateRunner.handleNoteSelection('<choose>')).rejects.toThrow("Selected note has no title and can't be used")
     })
@@ -716,8 +698,7 @@ describe('NPTemplateRunner', () => {
   describe('handleWeeklyNote', () => {
     test('should handle this week note', async () => {
       const mockWeekData = { weekYear: 2024, weekNumber: 3, weekString: '2024-W03' }
-      // $FlowFixMe - Mock functions
-      require('@helpers/NPdateTime').getNPWeekData.mockReturnValue(mockWeekData)
+      ;(require('@helpers/NPdateTime'): any).getNPWeekData.mockReturnValue(mockWeekData)
 
       const writeOptions = {
         shouldOpenInEditor: false,
@@ -733,8 +714,7 @@ describe('NPTemplateRunner', () => {
 
     test('should handle next week note', async () => {
       const mockWeekData = { weekYear: 2024, weekNumber: 4, weekString: '2024-W04' }
-      // $FlowFixMe - Mock functions
-      require('@helpers/NPdateTime').getNPWeekData.mockReturnValue(mockWeekData)
+      ;(require('@helpers/NPdateTime'): any).getNPWeekData.mockReturnValue(mockWeekData)
 
       const writeOptions = {
         shouldOpenInEditor: true,
@@ -797,8 +777,7 @@ describe('NPTemplateRunner', () => {
 
   describe('handleRegularNote', () => {
     test('should handle regular note with folder path', async () => {
-      // $FlowFixMe - Mock functions
-      require('@helpers/NPnote').getOrMakeRegularNoteInFolder.mockResolvedValue(mockNote)
+      ;(require('@helpers/NPnote'): any).getOrMakeRegularNoteInFolder.mockResolvedValue(mockNote)
 
       const writeOptions = {
         shouldOpenInEditor: false,
@@ -813,10 +792,8 @@ describe('NPTemplateRunner', () => {
     })
 
     test('should handle calendar note title', async () => {
-      // $FlowFixMe - Mock functions
-      require('@helpers/dateTime').isValidCalendarNoteTitleStr.mockReturnValue(true)
-      // $FlowFixMe - Mock functions
-      require('@helpers/NPnote').getOrMakeCalendarNote.mockResolvedValue(mockNote)
+      ;(require('@helpers/dateTime'): any).isValidCalendarNoteTitleStr.mockReturnValue(true)
+      ;(require('@helpers/NPnote'): any).getOrMakeCalendarNote.mockResolvedValue(mockNote)
 
       const writeOptions = {
         shouldOpenInEditor: false,
@@ -831,8 +808,7 @@ describe('NPTemplateRunner', () => {
     })
 
     test('should open note in editor when requested', async () => {
-      // $FlowFixMe - Mock functions
-      require('@helpers/NPnote').getOrMakeRegularNoteInFolder.mockResolvedValue(mockNote)
+      ;(require('@helpers/NPnote'): any).getOrMakeRegularNoteInFolder.mockResolvedValue(mockNote)
       Editor.openNoteByTitle.mockResolvedValue(mockNote)
 
       const writeOptions = {
@@ -850,13 +826,11 @@ describe('NPTemplateRunner', () => {
 
   describe('templateRunnerExecute calendar note routing', () => {
     test('should treat rendered ISO 8601 getNoteTitled value as a calendar note', async () => {
-      const NPTemplating = require('../lib/NPTemplating')
-      // $FlowFixMe - Mock functions
+      const NPTemplating: any = require('../lib/NPTemplating')
       NPTemplating.renderFrontmatter.mockResolvedValue({
         frontmatterBody: 'template body',
         frontmatterAttributes: { getNoteTitled: "<%- date.tomorrow('YYYY-MM-DD') %>" },
       })
-      // $FlowFixMe - Mock functions
       NPTemplating.render.mockResolvedValueOnce('rendered content').mockResolvedValueOnce('2024-01-16')
 
       await NPTemplateRunner.templateRunnerExecute('template1', false, '')
@@ -866,13 +840,11 @@ describe('NPTemplateRunner', () => {
     })
 
     test('should treat rendered quarter getNoteTitled value as a calendar note', async () => {
-      const NPTemplating = require('../lib/NPTemplating')
-      // $FlowFixMe - Mock functions
+      const NPTemplating: any = require('../lib/NPTemplating')
       NPTemplating.renderFrontmatter.mockResolvedValue({
         frontmatterBody: 'template body',
         frontmatterAttributes: { getNoteTitled: '<%- periodTitle %>' },
       })
-      // $FlowFixMe - Mock functions
       NPTemplating.render.mockResolvedValueOnce('rendered content').mockResolvedValueOnce('2024-Q3')
 
       await NPTemplateRunner.templateRunnerExecute('template1', false, '')
@@ -882,13 +854,11 @@ describe('NPTemplateRunner', () => {
     })
 
     test('should treat tomorrow token as a calendar note', async () => {
-      const NPTemplating = require('../lib/NPTemplating')
-      // $FlowFixMe - Mock functions
+      const NPTemplating: any = require('../lib/NPTemplating')
       NPTemplating.renderFrontmatter.mockResolvedValue({
         frontmatterBody: 'template body',
         frontmatterAttributes: { getNoteTitled: '<tomorrow>' },
       })
-      // $FlowFixMe - Mock functions
       NPTemplating.render.mockResolvedValue('rendered content')
 
       await NPTemplateRunner.templateRunnerExecute('template1', false, '')
@@ -898,13 +868,11 @@ describe('NPTemplateRunner', () => {
     })
 
     test('should treat larger calendar tokens as calendar notes', async () => {
-      const NPTemplating = require('../lib/NPTemplating')
-      // $FlowFixMe - Mock functions
+      const NPTemplating: any = require('../lib/NPTemplating')
       NPTemplating.renderFrontmatter.mockResolvedValue({
         frontmatterBody: 'template body',
         frontmatterAttributes: { getNoteTitled: '<nextquarter>' },
       })
-      // $FlowFixMe - Mock functions
       NPTemplating.render.mockResolvedValue('rendered content')
 
       await NPTemplateRunner.templateRunnerExecute('template1', false, '')
@@ -929,8 +897,7 @@ describe('NPTemplateRunner', () => {
     })
 
     test('should handle replaceHeading option', async () => {
-      const NPParagraph = require('@helpers/NPParagraph')
-      // $FlowFixMe - Mock function
+      const NPParagraph: any = require('@helpers/NPParagraph')
       NPParagraph.findHeading.mockReturnValue({
         lineIndex: 1,
         type: 'title',
@@ -951,7 +918,6 @@ describe('NPTemplateRunner', () => {
       if (!NPParagraph.replaceContentUnderHeading) {
         NPParagraph.replaceContentUnderHeading = jest.fn()
       }
-      // $FlowFixMe - Mock function
       NPParagraph.replaceContentUnderHeading.mockResolvedValue(undefined)
 
       await NPTemplateRunner.writeNoteContents(mockNote, 'New heading content', 'Test Heading', 'replace', { replaceHeading: true })
@@ -992,8 +958,7 @@ describe('NPTemplateRunner', () => {
           ],
         }
 
-        // $FlowFixMe - Mock function
-        require('@helpers/paragraph').findStartOfActivePartOfNote.mockReturnValue(1)
+        ;(require('@helpers/paragraph'): any).findStartOfActivePartOfNote.mockReturnValue(1)
 
         await NPTemplateRunner.replaceNoteContents(mockNoteWithParagraphs, 'New content')
 
@@ -1008,8 +973,7 @@ describe('NPTemplateRunner', () => {
       })
 
       test('should call chooseHeading for interactive templates', async () => {
-        const userInput = require('@helpers/userInput')
-        // $FlowFixMe - Mock function
+        const userInput: any = require('@helpers/userInput')
         userInput.chooseHeading.mockResolvedValue('Selected Heading')
 
         const result = await NPTemplateRunner.handleHeadingSelection(mockNote, '<choose>')
@@ -1019,8 +983,7 @@ describe('NPTemplateRunner', () => {
       })
 
       test('should handle select tag for interactive templates', async () => {
-        const userInput = require('@helpers/userInput')
-        // $FlowFixMe - Mock function
+        const userInput: any = require('@helpers/userInput')
         userInput.chooseHeading.mockResolvedValue('Selected Heading')
 
         const result = await NPTemplateRunner.handleHeadingSelection(mockNote, '<select>')
@@ -1088,8 +1051,7 @@ describe('NPTemplateRunner', () => {
 
     describe('writeWithoutHeading', () => {
       test('should append content when location is append', async () => {
-        // $FlowFixMe - Mock function
-        require('@helpers/paragraph').findStartOfActivePartOfNote.mockReturnValue(1)
+        ;(require('@helpers/paragraph'): any).findStartOfActivePartOfNote.mockReturnValue(1)
 
         await NPTemplateRunner.writeWithoutHeading(mockNote, 'New content', 'append', false)
 
@@ -1105,8 +1067,7 @@ describe('NPTemplateRunner', () => {
       })
 
       test('should prepend content when location is not append or cursor', async () => {
-        // $FlowFixMe - Mock function
-        require('@helpers/paragraph').findStartOfActivePartOfNote.mockReturnValue(1)
+        ;(require('@helpers/paragraph'): any).findStartOfActivePartOfNote.mockReturnValue(1)
 
         await NPTemplateRunner.writeWithoutHeading(mockNote, 'New content', 'prepend', false)
 
@@ -1125,8 +1086,7 @@ describe('NPTemplateRunner', () => {
         ],
       }
 
-      const noteHelpers = require('@helpers/note')
-      // $FlowFixMe - Mock function
+      const noteHelpers: any = require('@helpers/note')
       noteHelpers.getNote.mockResolvedValue(mockTemplateNote)
 
       await NPTemplateRunner.addFrontmatterToTemplate('template1', false)
@@ -1147,8 +1107,7 @@ describe('NPTemplateRunner', () => {
         ],
       }
 
-      const noteHelpers = require('@helpers/note')
-      // $FlowFixMe - Mock function
+      const noteHelpers: any = require('@helpers/note')
       noteHelpers.getNote.mockResolvedValue(mockTemplateNote)
 
       await NPTemplateRunner.addFrontmatterToTemplate('template1', true)

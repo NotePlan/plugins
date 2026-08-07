@@ -2,6 +2,24 @@
 
 import json5 from 'json5'
 
+/**
+ * A `$`-prefixed query object written in a ```javascript code block in the current note. `json5.parse()` returns
+ * `mixed`, so the individual keys this renderer understands (`$title`, `$showAs`, `$select`) are refined below rather
+ * than asserted here.
+ */
+type DataQuery = { +[key: string]: mixed }
+
+/**
+ * Reads a query key as a string, returning '' when the key is absent or not a string.
+ * @param {DataQuery} query - the parsed query object
+ * @param {string} key - the key to read
+ * @returns {string} the string value, or '' if absent/non-string
+ */
+function readQueryString(query: DataQuery, key: string): string {
+  const value = query[key]
+  return typeof value === 'string' ? value : ''
+}
+
 export async function openTestHTML() {
   //   await CommandBar.onAsyncThread()
 
@@ -39,15 +57,23 @@ export async function openTestHTML() {
   }
 
   queryString = queryString.slice(0, -4)
-  const query: $FlowFixMe = json5.parse(queryString)
+  const parsed = json5.parse(queryString)
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    await CommandBar.textPrompt('Error', 'Query code block did not parse to an object', 'OK')
+    return
+  }
+  const query: DataQuery = parsed
+  const title = readQueryString(query, '$title')
+  const showAs = readQueryString(query, '$showAs')
+  const select = readQueryString(query, '$select')
 
   let html = ''
-  if (query.$title) {
-    html += `<h1>${query.$title}</h1>`
+  if (title) {
+    html += `<h1>${title}</h1>`
   }
-  if (query.$showAs === 'List') {
+  if (showAs === 'List') {
     html += `<ul>`
-    if (query.$select === 'Files') {
+    if (select === 'Files') {
       const files = (await DataStore.projectNotes) ?? []
       for (const file of files) {
         html += `<li><a href="noteplan://x-callback-url/openNote?filename=${encodeURIComponent(file.filename)}">${file.title ?? file.filename}</a></li>`

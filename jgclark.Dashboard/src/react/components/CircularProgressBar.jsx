@@ -10,7 +10,9 @@
 import React, { type Node } from 'react'
 
 type ProgressBarProps = {
-  size: number,
+  // Both call sites pass a CSS length string ('0.9rem' / '1.0rem'), which is what actually renders;
+  // `size` is only ever used as a CSS width/height, plus the numeric `size < 100` test below.
+  size: number | string,
   progress: number,
   backgroundColor: string,
   trackWidth: number,
@@ -45,7 +47,9 @@ function CircularProgressBar(props: ProgressBarProps): Node {
   const trackRadius = (100 - trackWidth) / 2
   const dashArray = 2 * Math.PI * indicatorRadius
   const dashOffset = dashArray * ((100 - progress) / 100)
-  const hideLabel = (size < 100 || !label.length || spinnerMode) ? true : false
+  // Cast: `size` can be a CSS length string, and JS makes any `'0.9rem' < 100` comparison false;
+  // this test is only meaningful for the numeric form, which is the pre-existing behaviour.
+  const hideLabel = ((size: any) < 100 || !label.length || spinnerMode) ? true : false
 
   return (
     <>

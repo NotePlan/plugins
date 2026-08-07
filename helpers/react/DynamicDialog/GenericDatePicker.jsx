@@ -231,7 +231,6 @@ const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = fals
     const current = inputRef.current
     if (current instanceof HTMLInputElement) {
       try {
-        // $FlowFixMe[prop-missing] $FlowFixMe[method-unbinding] - showPicker is a modern browser API
         const inputAny: any = current
         if (inputAny.showPicker && typeof inputAny.showPicker === 'function') {
           inputAny.showPicker()

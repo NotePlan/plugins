@@ -479,8 +479,9 @@ export async function getFilenamesOfNotesWithTagOrMentions(
 
     // 3. Find matching notes from cache
     const matchingNoteFilenamesFromCache = findMatchingNotesFromCache(tagOrMentions, cache)
-    // $FlowIgnore[unsafe-arithmetic]
-    const cacheLookupTime = new Date() - startTime
+    // Cast: JS coerces both Dates to numbers here, but Flow has no type for "Date used as a number",
+    // so `Date - Date` is always unsafe-arithmetic unless one side is cast.
+    const cacheLookupTime = (new Date(): any) - startTime
     logTimer(
       'getFilenamesOfNotesWithTagOrMentions',
       startTime,
@@ -590,8 +591,8 @@ export async function generateTagMentionCache(
     const creg = regResult.matchingNoteCount
     const totalFoundItems = calResult.totalFoundItems + regResult.totalFoundItems
     const totalMatchingNotes = ccal + creg
-    // $FlowIgnore[unsafe-arithmetic]
-    const elapsedSecs = Math.max((new Date() - startTime) / 1000, 0.001)
+    // Cast: as above -- Flow has no numeric type for a Date operand.
+    const elapsedSecs = Math.max(((new Date(): any) - startTime) / 1000, 0.001)
     const notesPerSec = ((allCalNotes.length + allRegularNotes.length - calResult.notesSkippedByPrefilter - regResult.notesSkippedByPrefilter) / elapsedSecs).toFixed(3)
     logInfo('generateTagMentionCache', `-> found ${String(ccal)} calendar + ${String(creg)} regular notes with wanted items (${String(totalFoundItems)} matching open items)`)
     logTimer('generateTagMentionCache', startTime, `-> finished cache generation at ${String(notesPerSec)} checked notes/second`)
@@ -1046,8 +1047,8 @@ function compareCacheWithAPI(
   logInfo('compareCacheWithAPI', `- getting matching notes from API ready for comparison`)
   const thisStartTime = new Date()
   const matchingNotesFromAPI = getDeduplicatedNotesFromAPI(tagOrMentions)
-  // $FlowIgnore[unsafe-arithmetic]
-  const APILookupTime = new Date() - thisStartTime
+  // Cast: as above -- Flow has no numeric type for a Date operand.
+  const APILookupTime = (new Date(): any) - thisStartTime
   logTimer('compareCacheWithAPI', thisStartTime, `-> found ${matchingNotesFromAPI.length} notes from API with wanted tags/mentions [${String(tagOrMentions)}]`)
 
   logInfo('compareCacheWithAPI', `- CACHE took ${percent(cacheLookupTime, APILookupTime)} compared to API (${String(APILookupTime)}ms)`)

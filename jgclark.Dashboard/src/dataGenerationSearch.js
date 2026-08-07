@@ -275,7 +275,6 @@ export async function getSavedSearchResults(
     }
 
     if (useDemoData) {
-      // $FlowFixMe[prop-missing]
       items.push(...savedSearch1.items)
       itemCount = items.length
       searchTermsStr = savedSearch1.name

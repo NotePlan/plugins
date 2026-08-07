@@ -134,8 +134,10 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         Editor.note.backlinks = [{ subItems: [{ content: 'line1' }] }]
         const spy = jest.spyOn(CommandBar, 'prompt')
         await mainFile.insertTodosAsTimeblocks()
-        // $FlowIgnore - jest doesn't know about this param
-        expect(spy.mock.lastCall[1]).toEqual(`No todos/references marked for >today`)
+        // `mock.lastCall` exists at runtime (jest >= 26) but is absent from the `mock` object type in
+        // flow-typed/npm/jest_v27.x.x.js, so read the last entry of `mock.calls` (which is the same thing) instead
+        const lastCall = spy.mock.calls[spy.mock.calls.length - 1]
+        expect(lastCall[1]).toEqual(`No todos/references marked for >today`)
         spy.mockRestore()
       })
     })

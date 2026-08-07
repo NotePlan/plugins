@@ -46,8 +46,10 @@ export async function showNoteCount(): Promise<void> {
 
       display.push(`🧑‍🤝‍🧑 Teamspaces: include ${teamspaceCalendarNotes.length} calendar notes and ${teamspaceRegularNotes.length} regular notes`)
       for (const teamspace of teamspaces) {
-        // $FlowIgnore[incompatible-type]
-        display.push(`\t- '${teamspace.title}'`)
+        // TNote.title is `string | void` (calendar notes have no title) and Flow forbids implicitly
+        // coercing void in a template literal. Teamspace notes always have a title, but that cannot be
+        // expressed in the type, so cast the single expression rather than suppress the whole line.
+        display.push(`\t- '${(teamspace.title: any)}'`)
       }
     }
     console.log(`# Note Stats:\n${display.join('\n')}`)

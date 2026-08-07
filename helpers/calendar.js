@@ -68,7 +68,9 @@ export function keepTodayPortionOnly(input: Array<TCalendarItem>, whatDate: Date
         eventCopy.date = startOfDay(whatDate)
         eventCopy.endDate = endOfDay(whatDate)
       }
-      // $FlowFixMe[prop-missing]
+      // `eventCopy` is a deliberate partial copy of the event, so it cannot satisfy the full TCalendarItem interface
+      // (which also declares methods such as create()). A real type needs a TCalendarItemFields subset in the libdef.
+      // $FlowIgnore[prop-missing]
       return eventCopy
     }
   })

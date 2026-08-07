@@ -8,6 +8,7 @@
 import pluginJson from '../plugin.json'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { addTaskToNote } from './requestHandlers/addTaskToNote'
+import { doWindowResized } from './clickHandlers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
 import { logDebug, logError } from '@helpers/dev'
@@ -63,11 +64,23 @@ async function routeRequest(actionType: string, data: any): Promise<RequestRespo
  */
 async function handleNonRequestAction(actionType: string, data: any): Promise<any> {
   try {
-    // For non-REQUEST actions, use the existing bridgeClickDashboardItem pattern
-    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
-    if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     const dataToSend = { ...data }
     if (!dataToSend.actionType) dataToSend.actionType = actionType
+
+    // Window size/position save: do NOT call getGlobalSharedData / sendToHTMLWindow. On hide/close the WebView is
+    // already null (NP logs "The web view is null..."), so the usual router preamble would throw and
+    // skip doWindowResized entirely. Plugin-side storeWindowRect only needs the HTMLWindow / customId.
+    if (actionType === 'windowResized' || dataToSend.actionType === 'windowResized') {
+      logDebug(pluginJson, `[Dashboard/routeRequestsFromReact] windowResized short-path (reason=${String(dataToSend.reason ?? '')})`)
+      doWindowResized()
+      return {}
+    }
+
+    // For other non-REQUEST actions, use the existing bridgeClickDashboardItem pattern
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
+    if (data.passThroughVars && reactWindowData) {
+      reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
+    }
     switch (actionType) {
       case 'SHOW_BANNER': {
         await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', dataToSend)

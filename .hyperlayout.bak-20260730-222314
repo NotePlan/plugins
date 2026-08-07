@@ -1,0 +1,147 @@
+{
+"COMMENT": "https://github.com/timolins/hyperlayout",
+"e-desc": "Everything",
+"e": [
+ [
+   [
+    "npm run autowatch",
+    "./node_modules/.bin/jest ./**/*.test.js --silent --watchAll"
+   ],
+   ""
+ ]
+],
+"t-desc": "Templating",
+"t": [
+ [
+   [
+    "npm run autowatch np.Templating np.MeetingNotes -- --minify",
+    "jest np.Templating/__tests__/**/*.test.js"
+   ],
+   ""
+ ]
+],
+"c-desc": "EventAutomations with coverage report",
+"c": [
+ [
+    "npm run autowatch dwertheimer.EventAutomations",
+    "jest --watchAll dwertheimer.EventAutomations/**/*.test.js",
+   "open file:///Users/dwertheimer/Developer/Noteplan/plugins-main-repo/coverage/lcov-report/dwertheimer.EventAutomations/src/NPTimeblocking.js.html && tail -f \"/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/np-out.log\" | grep JSLog"
+ ]
+],
+"v-desc": "FaVorites",
+"v": [
+  [
+    "node '/Users/dwertheimer/Developer/np-plugins-current/dwertheimer.Favorites/src/support/performRollup.node.js' --watch",
+    "npm run autowatch dwertheimer.Favorites -COMPACT",
+    "cd '/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins';live-server --open=dwertheimer.Favorites/favorites_browser_output.html"
+  ],
+  [
+    "nplog"
+  ]
+],
+"r-desc": "React dev - TaskAutomations",
+"r": [
+ [
+    "npm run autowatch dwertheimer.TaskAutomations np.Shared",
+    "node '/Users/dwertheimer/Developer/np-plugins-current/dwertheimer.TaskAutomations/src/react/support/performRollup.node.js' --watch",
+    "node '/Users/dwertheimer/Developer/np-plugins-current/np.Shared/src/react/support/performRollup.node.js' --watch",
+    "cd '/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins';live-server --open=dwertheimer.TaskAutomations/reactLocal.html",
+    "jest **/*.test.js --reporters jest-silent-reporter --reporters ./jest.customSummaryReporter.js"
+ ],
+ [
+    "open \"/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/np-out.log\"; tail -f \"/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/np-out.log\" | grep 'JSLog' | grep -v 'WebView Log'",
+    "tail -f \"/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/np-out.log\" | grep 'JSLog' | grep 'WebView Log'"
+]
+],
+"p-desc": "test-plugin-scratch",
+"p": [
+  [
+    "npm run autowatch dwertheimer.test-plugin-scratch",
+    "cursor '/Users/dwertheimer/Developer/np-plugins-current/dwertheimer.test-plugin-scratch/src/testPluginScratch.js'"
+  ],
+  [
+    "open \"/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/np-out.log\"; tail -f \"/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/np-out.log\" | grep 'JSLog' | grep -v 'WebView Log'",
+    "tail -f \"/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/np-out.log\" | grep 'JSLog' | grep 'WebView Log'"
+ ]
+],
+"d-desc": "Dashboard",
+"d": [
+ [
+    "node '/Users/dwertheimer/Developer/np-plugins-current/np.Shared/src/react/support/performRollup.node.js' --watch",
+    "node '/Users/dwertheimer/Developer/np-plugins-current/jgclark.Dashboard/src/react/support/performRollup.node.js' --watch",
+    "npm run autowatch jgclark.Dashboard np.Shared -COMPACT"
+ ],
+ [
+    "jestall",
+    "cd '/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins';live-server --open=jgclark.Dashboard/dashboard-react.html"
+ ],
+ [
+    "nplog"
+]
+],
+"s-desc": "np.Shared",
+"s": [
+ [
+    "node '/Users/dwertheimer/Developer/np-plugins-current/np.Shared/src/react/support/performRollup.node.js' --watch",
+    "npm run autowatch np.Shared -COMPACT"
+ ],
+ [
+    "jestall",
+    "cd '/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins';live-server --open=np.Shared/form_output.html"
+ ],
+ [
+    "nplog"
+]
+],
+"f-desc": "Forms",
+"f": [
+ [
+    "node '/Users/dwertheimer/Developer/np-plugins-current/np.Shared/src/react/support/performRollup.node.js' --watch",
+    "node '/Users/dwertheimer/Developer/np-plugins-current/dwertheimer.Forms/src/support/performRollup.node.js' --watch",
+    "npm run autowatch dwertheimer.Forms np.Shared -COMPACT",
+    "cd '/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins';live-server --open=dwertheimer.Forms"
+ ],
+ [
+    "nplog"
+ ]
+],
+"l-desc": "Dialog Testing",
+"l": [
+ [
+  "node '/Users/dwertheimer/Developer/np-plugins-current/np.Shared/src/react/support/performRollup.node.js' --watch",
+    "npm run autowatch np.Shared np.Templating"
+ ],
+ [
+    "cd '/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins';live-server --open=np.Shared/form_output.html"
+ ],
+ [
+    "nplog"
+]
+],
+"a-desc": "Event Automations",
+"a": [
+ [
+   [
+    "npm run autowatch dwertheimer.EventAutomations",
+    "./node_modules/.bin/jest ./helpers/**/*.test.js ./dwertheimer.EventAutomations/**/*.test.js --silent --watchAll"
+   ],
+   [
+    "tail -f \"/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/np-out.log\" | grep JSLog",
+    ""
+   ]
+ ]
+],
+"x-desc": "Quad split, TBD items",
+"x": [
+ [
+   [
+    "echo 'nra'",
+    "echo 'jest'"
+   ],
+   [
+    "open \"/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/np-out.log\"; tail -f \"/Users/dwertheimer/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/np-out.log\" | grep JSLog",
+    "echo 'shell'"
+   ]
+ ]
+]
+}

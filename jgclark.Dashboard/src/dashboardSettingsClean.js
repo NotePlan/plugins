@@ -208,8 +208,9 @@ export function syncTagSectionsWithSettings(sections: Array<TSection>, dashboard
     const tagDetails = getTagSectionDetails(dashboardSettings)
     const enabledByTagName: Map<string, boolean> = new Map(
       tagDetails.map((detail) => {
-        // $FlowIgnore[invalid-computed-prop]
-        const showSettingValue = dashboardSettings[detail.showSettingName]
+        // Cast: showSettingName is a dynamic `showTagSection_<tag>` key, so it can only be read through
+        // an indexed type. TDashboardSettings deliberately has no indexer, to keep its keys checked.
+        const showSettingValue = (dashboardSettings: $ReadOnly<TAnyObject>)[detail.showSettingName]
         return [detail.sectionName, showSettingValue !== false]
       }),
     )
@@ -276,7 +277,6 @@ export function prepareDashboardSettingsForSave(
   }
   prepared = normaliseDashboardNumberSettings(prepared)
   prepared.preferredWindowType = normalizePreferredWindowType(prepared.preferredWindowType)
-  // $FlowIgnore[incompatible-call] runtime settings object may include dynamic keys before tag cleanup
   prepared = removeInvalidTagSections((prepared: any))
   // Cast: applyDerivedDashboardSettings() declares a writable indexer, but only reads priorSettings; $ReadOnly<TAnyObject> is rejected on variance alone.
   prepared = applyDerivedDashboardSettings((priorSettings: any), prepared)

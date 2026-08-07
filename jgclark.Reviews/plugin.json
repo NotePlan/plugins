@@ -11,7 +11,7 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
   "plugin.version": "2.0.4",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "2.0.4: code quality improvements.\n2.0.3: Bug fixes and icon   updates.\n2.0.2: New help text when no projects are shown, to help new users get started.\n2.0.1: New setting: 'Project progress string'. When converting an existing note to being a Project, user is now asked for optional starting comment and %.\n2.0.0: Significantly modernised layout for Rich project list.\nFrontmatter metadata support, including configurable combined key and migration from body.\nSee the CHANGELOG for lots of other improvements and fixes.\n1.3.1: Fixed edge case with adding progress updates and frontmatter.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
+  "plugin.lastUpdateInfo": "2.0.4: Turn on saving of updated window size & position when resizing/moving it.\n2.0.3: Bug fixes and icon   updates.\n2.0.2: New help text when no projects are shown, to help new users get started.\n2.0.1: New setting: 'Project progress string'. When converting an existing note to being a Project, user is now asked for optional starting comment and %.\n2.0.0: Significantly modernised layout for Rich project list.\nFrontmatter metadata support, including configurable combined key and migration from body.\nSee the CHANGELOG for lots of other improvements and fixes.\n1.3.1: Fixed edge case with adding progress updates and frontmatter.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {

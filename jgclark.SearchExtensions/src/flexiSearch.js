@@ -368,15 +368,13 @@ export async function showFlexiSearchDialog(
     // Look up the 5 preferences from local store
     // Note: extra commas aren't typos
     const saveType = String(DataStore.preference(`${pluginID}.saveType`)) ?? 'quick'
-    const caseSensitiveSearching = DataStore.preference(`${pluginID}.caseSensitiveSearching`) ?? false
-    const fullWordSearching = DataStore.preference(`${pluginID}.fullWordSearching`) ?? false
+    const caseSensitiveSearching = String(DataStore.preference(`${pluginID}.caseSensitiveSearching`) ?? false)
+    const fullWordSearching = String(DataStore.preference(`${pluginID}.fullWordSearching`) ?? false)
     const noteTypesStr = String(DataStore.preference(`${pluginID}.noteTypesStr`)) ?? 'notes,calendar,'
     const paraTypesStr = String(DataStore.preference(`${pluginID}.paraTypesStr`)) ?? 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
-      // $FlowIgnore[incompatible-call] not pretty, but works
       .replace('%%CASESENSPREF%%', caseSensitiveSearching)
-      // $FlowIgnore[incompatible-call] not pretty, but works
       .replace('%%FULLWORDPREF%%', fullWordSearching)
       .replace('%%NOTETYPESSTRPREF%%', noteTypesStr)
       .replace('%%PARATYPESSTRPREF%%', paraTypesStr)

@@ -20,6 +20,9 @@ type OrderingPanelProps = {
   onSave: (newOrder: ?Array<TSectionCode>) => void,
 }
 
+// The name of a dashboard setting, as carried at runtime by `TSection.showSettingName`.
+type SettingKey = $Keys<TDashboardSettings>
+
 type DraggableSection = {
   sectionCode: TSectionCode,
   name: string,
@@ -82,8 +85,11 @@ const OrderingPanel = ({
             sectionCode: 'TAG',
             name: 'Tag/Mention sections',
             isVisible: tagSections.some((s) => {
-              const settingName = s.showSettingName
-              // $FlowIgnore[invalid-computed-prop]
+              // `TSection.showSettingName` is declared `string`, but every value is really a key of
+              // TDashboardSettings (see allSectionDetails in jgclark.Dashboard/src/constants.js), or ''
+              // for sections with no visibility setting - which the `!settingName ||` guard handles.
+              // Narrowing here (rather than suppressing) keeps the settings lookup itself type-checked.
+              const settingName: SettingKey = (s.showSettingName: any)
               return !settingName || dashboardSettings[settingName] !== false
             }),
             isTag: true,
@@ -95,8 +101,7 @@ const OrderingPanel = ({
         const section = sectionMap.get(code)
         const sectionDetail = allSectionDetails.find((sd) => sd.sectionCode === code)
         if (section || sectionDetail) {
-          const settingName = section?.showSettingName || sectionDetail?.showSettingName || ''
-          // $FlowIgnore[invalid-computed-prop]
+          const settingName: SettingKey = (section?.showSettingName || sectionDetail?.showSettingName || '': any)
           const isVisible = !settingName || dashboardSettings[settingName] !== false
 
           result.push({
@@ -112,8 +117,7 @@ const OrderingPanel = ({
     // Add any sections that exist but aren't in default order (excluding SEARCH and TAG)
     sections.forEach((section) => {
       if (!processedCodes.has(section.sectionCode) && section.sectionCode !== 'TAG' && section.sectionCode !== 'SEARCH') {
-        const settingName = section.showSettingName
-        // $FlowIgnore[invalid-computed-prop]
+        const settingName: SettingKey = (section.showSettingName: any)
         const isVisible = !settingName || dashboardSettings[settingName] !== false
         result.push({
           sectionCode: section.sectionCode,
@@ -181,8 +185,9 @@ const OrderingPanel = ({
       const dragImage = e.target.cloneNode(true)
       if (dragImage instanceof HTMLElement) {
         dragImage.style.opacity = '0.5'
-        // $FlowIgnore[incompatible-use]
-        document.body.appendChild(dragImage)
+        // `document.body` is `HTMLElement | null`, and the guard above is invalidated by the intervening
+        // `cloneNode()` call, so Flow can no longer see the refinement. Cast the receiver only.
+        ;((document.body: any): HTMLElement).appendChild(dragImage)
         e.dataTransfer.setDragImage(dragImage, 0, 0)
         setTimeout(() => {
           if (document.body && dragImage.parentNode) {

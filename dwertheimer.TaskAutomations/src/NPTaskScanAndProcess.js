@@ -502,20 +502,16 @@ function dedupeSyncedLines(notesWithTasks: Array<Array<TParagraph>>): Array<Arra
  * @author @dwertheimer
  */
 export function createArrayOfNotesAndTasks(tasks: Array<TParagraph>): Array<Array<TParagraph>> {
-  const notes = tasks.reduce((acc: { [string]: Array<TParagraph> }, r) => {
-    if (r.note?.filename) {
-      // $FlowIgnore[incompatible-use] r.note is non-null inside this guard; the acc.hasOwnProperty() call invalidates Flow's refinement
-      if (r.note.filename && !acc.hasOwnProperty(r.note.filename)) acc[r.note.filename] = []
-      if (r.note?.filename) acc[r.note.filename].push(r)
+  const notes: { [string]: Array<TParagraph> } = tasks.reduce((acc: { [string]: Array<TParagraph> }, r) => {
+    const filename = r.note?.filename
+    if (filename) {
+      if (!acc[filename]) acc[filename] = []
+      acc[filename].push(r)
     }
     return acc
   }, {})
   // generate an array for each note (key)
-  return Object.keys(notes).reduce((acc, k) => {
-    // `notes` comes back from reduce() typed as the bare {} seed, which has no indexer
-    acc.push((notes: any)[k])
-    return acc
-  }, [])
+  return Object.keys(notes).map((k) => notes[k])
 }
 
 /**

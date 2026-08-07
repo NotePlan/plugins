@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-07-31 for v2.4.0.b58 by @CursorAI & @jgclark
+// Last updated 2026-08-07 for v2.4.0.b62 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -380,8 +380,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'windowResized': {
-        result = await doWindowResized()
-        break
+        // Note: Do not run processActionOnReturn - that calls themeHasChanged / getGlobalSharedData on the WebView,
+        // which is already null when this fires from onViewWillDisappear.
+        result = doWindowResized()
+        return
       }
       case 'showNoteInEditorFromFilename': {
         result = await doShowNoteInEditorFromFilename(data)

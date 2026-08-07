@@ -193,11 +193,11 @@ export async function scheduleYesterdayOpenToToday(
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p && p.note) {
+            // Note: hold onto p.note before writing to p.content, as the write invalidates Flow's refinement of p.note
+            const thisNote = p.note
             p.content = replaceArrowDatesInString(p.content, `>${newDateStr}`)
-            // $FlowIgnore[incompatible-use]
-            p.note.updateParagraph(p)
-            // $FlowIgnore[incompatible-call]
-            DataStore.updateCache(p.note, false)
+            thisNote.updateParagraph(p)
+            DataStore.updateCache(thisNote, false)
             numberScheduled++
           } else {
             logWarn('scheduleYesterdayOpenToToday', `Couldn't find calendar note para matching this dashboardPara to reschedule:`)
@@ -372,11 +372,11 @@ export async function scheduleTodayToTomorrow(
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p && p.note) {
+            // Note: hold onto p.note before writing to p.content, as the write invalidates Flow's refinement of p.note
+            const thisNote = p.note
             p.content = replaceArrowDatesInString(p.content, `>${tomorrowISODateStr}`)
-            // $FlowIgnore[incompatible-use]
-            p.note.updateParagraph(p)
-            // $FlowIgnore[incompatible-call]
-            DataStore.updateCache(p.note, false)
+            thisNote.updateParagraph(p)
+            DataStore.updateCache(thisNote, false)
             numberScheduled++
           } else {
             logWarn('scheduleTodayToTomorrow', `Couldn't find calendar note para matching this dashboardPara to reschedule:`)
@@ -545,11 +545,11 @@ export async function scheduleAllOverdueOpenToToday(
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p && p.note) {
+            // Note: hold onto p.note before writing to p.content, as the write invalidates Flow's refinement of p.note
+            const thisNote = p.note
             p.content = replaceArrowDatesInString(p.content, `>${newDateStr}`)
-            // $FlowIgnore[incompatible-use]
-            p.note.updateParagraph(p)
-            // $FlowIgnore[incompatible-call]
-            DataStore.updateCache(p.note, false)
+            thisNote.updateParagraph(p)
+            DataStore.updateCache(thisNote, false)
             numberChanged++
           } else {
             logWarn('scheduleAllOverdueOpenToToday', `Couldn't find calendar note para matching this dashboardPara to reschedule:`)

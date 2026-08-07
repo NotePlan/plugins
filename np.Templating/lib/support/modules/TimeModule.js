@@ -34,9 +34,7 @@ export default class TimeModule {
 
     // If no locale specified or set to '<system>', get from NotePlan environment
     if (!configLocale || configLocale === '' || configLocale === '<system>') {
-      // $FlowFixMe[prop-missing] NotePlan.environment exists at runtime
       const envRegion = typeof NotePlan !== 'undefined' && NotePlan?.environment?.regionCode ? NotePlan.environment.regionCode : ''
-      // $FlowFixMe[prop-missing] NotePlan.environment exists at runtime
       const envLanguage = typeof NotePlan !== 'undefined' && NotePlan?.environment?.languageCode ? NotePlan.environment.languageCode : ''
 
       if (envRegion !== '' && envLanguage !== '') {

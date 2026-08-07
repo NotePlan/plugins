@@ -209,7 +209,7 @@ The settings relating to Progress calculations and comments are:
 - Progress Heading level: heading level (1–5) used when the Progress heading is created (default `2`).
 - Also write most recent Progress line to frontmatter?: (from v1.3) When on, the current progress line is also written to frontmatter so it can be used in Folder Views (default: off).
 
-Note: from v2, progress comments use the more compact `@YYYYMMDD` style of date, but it still reads older style `@YYYY-MM-DD`.
+Note: Progress comments are written as `@YYYY-MM-DD`. Compact `@YYYYMMDD` lines from earlier versions still parse.
 
 ## Other Plugin settings
 - Open 'Rich' Project List in what sort of window?: Choose how the Rich project list opens on NotePlan v3.20+. The options are `New Window` (default — separate window), `Main Window` (take over the main window), or `Split View` (a split view in the main window).

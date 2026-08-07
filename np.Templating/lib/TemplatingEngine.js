@@ -473,8 +473,9 @@ export default class TemplatingEngine {
     log(pluginJson, 'FIXME: TemplatingEngine.getDefaultFormat')
     log(pluginJson, 'This method should never be called, all references have been removed but leaving for backwards compatability')
     try {
-      // $FlowFixMe
-      const templateConfig = await this.getTemplateConfig()
+      // Note: there is no `getTemplateConfig()` method on this class (the config lives in `this.templateConfig`); the
+      // previous call to it threw a TypeError on every invocation.
+      const templateConfig = this.templateConfig
       let format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
       if (templateConfig?.templates?.defaultFormats?.[formatType]) {
         format = templateConfig?.templates?.defaultFormats?.[formatType]

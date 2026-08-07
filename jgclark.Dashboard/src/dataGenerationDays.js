@@ -6,7 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
+import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TDialogSettingItem } from './types'
 import { getDoneCountsForToday, getNumCompletedTasksFromCalendarNote } from './countDoneTasks'
 import {
   buildAddTaskChecklistButtons,
@@ -75,9 +75,10 @@ export function getTodaySectionData(
       // Note: parentID already supplied
       const sortedItems = config.separateSectionForReferencedNotes ? openTodayItems : openTodayItems.concat(refTodayItems)
       sortedItems.map((item) => {
-        // $FlowIgnore[prop-missing]
-        // $FlowFixMe[incompatible-call]
-        if (isOpen(item.para)) {
+        // Cast: isOpen() in helpers/utils.js takes a full TParagraph (a NotePlan class instance), but only
+        // reads .type. TSectionItem.para is the reduced TParagraphForDashboard, which can never satisfy it.
+        // Making isOpen() accept { type: ParagraphType } is the real fix; it lives outside this plugin.
+        if (isOpen((item.para: any))) {
           if (item.para) {
             setTimeFieldsOnDashboardPara(item.para)
           }
@@ -114,8 +115,8 @@ export function getTodaySectionData(
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const todayHeadings: Array<string> = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, false) : []
     const tomorrowHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, false) : []
-    const todayFormFields: Array<TSettingItem> = buildAddTaskFormFields(todayHeadings, config)
-    const tomorrowFormFields: Array<TSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
+    const todayFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(todayHeadings, config)
+    const tomorrowFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
 
     let sectionDescription = `{closedOrOpenTaskCount}` // ` ` from ${todayDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
@@ -286,19 +287,18 @@ export function getTimeBlockSectionData(
         // Includes valid timeblocks in paragraphs of type 'title', 'open', 'list', and 'checklist'
         const allDemoItems = openTodayItems.concat(refTodayItems)
         for (const item of allDemoItems) {
-          // $FlowIgnore[prop-missing]
-          // $FlowIgnore[incompatible-call]
-          if (item.para && isActiveOrFutureTimeBlockPara(item.para, mustContainString)) {
+          // Cast: isActiveOrFutureTimeBlockPara() in helpers/timeblocks.js takes a full TParagraph (a
+          // NotePlan class instance) but only reads .content/.type. TSectionItem.para is the reduced
+          // TParagraphForDashboard, which can never satisfy it. Widening that helper is the real fix.
+          if (item.para && isActiveOrFutureTimeBlockPara((item.para: any), mustContainString)) {
             const thisID = `${TBsectionCode}-${itemCounter}`
-            const para = item.para
-            // $FlowIgnore[incompatible-use] - item.para is checked above and guaranteed to exist
+            // Cast: the `item.para &&` guard above is invalidated by the call in the same condition.
+            const para: TParagraphForDashboard = (item.para: any)
             const paraType = para.type
             logDebug('getTimeBlockSectionData', `+ TB ${thisID}: {${para?.content ?? '(error)'} (type: ${paraType}) from ${para?.filename ?? '(error)'}`)
             // For title paragraphs with timeblocks, set itemType to 'timeblock' for consistent display
             const itemType = paraType === 'title' ? 'timeblock' : undefined
-            // $FlowIgnore[prop-missing]
-            // $FlowIgnore[incompatible-call]
-            const thisSectionItemObject = createSectionItemObject(thisID, 'TB', item.para, itemType)
+            const thisSectionItemObject = createSectionItemObject(thisID, 'TB', (item.para: any), itemType)
             timeBlockItems.push(thisSectionItemObject)
             itemCounter++
           }
@@ -640,7 +640,7 @@ export function getTomorrowSectionData(
 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const tomorrowHeadings: Array<string> = tomorrowsNote ? getHeadingsFromNote(tomorrowsNote, false, true, true, false) : []
-    const tomorrowFormFields: Array<TSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
+    const tomorrowFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
 
     let sectionDescription = `{count}` // ` ` from ${tomorrowDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`

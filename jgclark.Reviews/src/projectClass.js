@@ -134,13 +134,15 @@ export class Project {
   isCancelled: boolean = false
   isPaused: boolean = false
   percentComplete: number = NaN
-  lastProgressComment: string = '' // e.g. "Progress: 60@20220809: comment
+  lastProgressComment: string = '' // e.g. "Progress: 60@2022-08-09 comment
   mostRecentProgressLineIndex: number = NaN
   nextActionsRawContent: Array<string> = []
   ID: string // required when making HTML views
   icon: ?string // icon from frontmatter (optional)
   iconColor: ?string // iconColor from frontmatter (optional)
   allProjectTags: Array<string> = [] // projectTag(s), #sequential if applicable, and all hashtags from metadata line and frontmatter 'project' (for column 3) **See below**
+  /** Sort key set by sortProjectsList(): index of the leading project tag in config.projectTypeTags. Declaration only (no initialiser), so nothing is emitted. */
+  projectTagOrder: number
   /** Epoch ms of `note.changedDate` after a full parse; used to skip re-parsing when regenerating allProjectsList */
   noteChangedAtMs: ?number
   /**
@@ -238,8 +240,7 @@ export class Project {
         if (migrateMetadataNowIfNeeded) {
           logInfo('ProjectConstructor', `Both frontmatter and body metadata exist for '${this.title}'. Keeping frontmatter values and migrating/cleaning body metadata block.`)
           const bodyMigrationDetail = usingEditor
-            ? // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
-              migrateProjectMetadataLineInEditor(Editor)
+            ? migrateProjectMetadataLineInEditor(Editor)
             : migrateProjectMetadataLineInNote(this.note)
           this.migrationLogDetailFromConstructor = mergeConstructorMigrationLogDetail(this.migrationLogDetailFromConstructor, bodyMigrationDetail)
           DataStore.updateCache(this.note, true)
@@ -250,8 +251,7 @@ export class Project {
         if (migrateMetadataNowIfNeeded) {
           logInfo('ProjectConstructor', `Only body metadata exists for '${this.title}'. Migrating metadata block to frontmatter.`)
           const bodyMigrationDetail = usingEditor
-            ? // $FlowFixMe[incompatible-call] this.note is Editor.note when usingEditor is true
-              migrateProjectMetadataLineInEditor(Editor)
+            ? migrateProjectMetadataLineInEditor(Editor)
             : migrateProjectMetadataLineInNote(this.note)
           this.migrationLogDetailFromConstructor = mergeConstructorMigrationLogDetail(this.migrationLogDetailFromConstructor, bodyMigrationDetail)
           DataStore.updateCache(this.note, true)
@@ -1281,11 +1281,9 @@ const newProgressLine = `${progressFieldName}: ${newProgressLineForFrontmatter}`
             
             // Insert heading above first Progress line
             if (possibleThisEditor) {
-              // $FlowFixMe[incompatible-call]
               possibleThisEditor.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
               await possibleThisEditor.save()
             } else {
-              // $FlowFixMe[incompatible-call]
               this.note.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
               await DataStore.updateCache(this.note, true)
             }

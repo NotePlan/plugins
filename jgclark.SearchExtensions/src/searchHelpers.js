@@ -151,11 +151,12 @@ export async function getSearchSettings(): Promise<any> {
  * @returns {Array<ParagraphType>}
  */
 export function getParaTypesFromString(paraTypesAsStr: string): Array<ParagraphType> {
+  // Cast, not a suppression: the setting/argument is free text, so the real element type (ParagraphType, a union of string literals)
+  // can only be asserted here. Splitting a string can never produce it without a runtime validation step.
   const paraTypesToInclude: Array<ParagraphType> = (Array.isArray(paraTypesAsStr))
     ? paraTypesAsStr
     : (typeof paraTypesAsStr === 'string')
-      // $FlowFixMe[incompatible-type]
-      ? stringListOrArrayToArray(paraTypesAsStr, ',')
+      ? ((stringListOrArrayToArray(paraTypesAsStr, ','): any): Array<ParagraphType>)
       : []
   logDebug('getParaTypesFromString', `'${paraTypesAsStr ?? '(null)'}' -> para types [${paraTypesToInclude.toString()}]`)
   return paraTypesToInclude
@@ -974,9 +975,11 @@ export async function runExtendedSearch(
   }
   catch (err) {
     logError('runExtendedSearch', err.message)
-    // const emptyResultObject = { searchTerm: '', resultsLines: [], resultCount: 0 }
-    // $FlowFixMe[incompatible-return]
-    return null // for completeness
+    // Note: this used to `return null`, which the caller could not survive: runExtendedSearches() assigns the result to
+    // `const resultObject: resultObjectType` and immediately reads `resultObject.resultCount`, turning any error caught here into a
+    // TypeError on null one line later. Re-throwing lets runExtendedSearches()'s own catch report the *real* error and return its
+    // empty resultOutputType, which is the same end state the TypeError used to produce, but without the misleading log line.
+    throw err
   }
 }
 
@@ -1241,7 +1244,9 @@ export async function makeAnySyncs(input: resultOutputType): Promise<resultOutpu
   }
   catch (err) {
     logError('makeAnySyncs', err.message)
-    // $FlowFixMe[incompatible-return]
-    return null
+    // Note: this used to `return null`, which runExtendedSearches() passed straight on as its `Promise<resultOutputType>`, so the null
+    // escaped to saveSearch()/flexiSearch(), which immediately read `resultSet.resultCount` and threw a TypeError there.
+    // Returning the unmodified input instead means a failure to add blockIDs costs only the sync links, not the whole result set.
+    return input
   }
 }

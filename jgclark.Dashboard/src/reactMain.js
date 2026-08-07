@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2026-07-27 for v2.4.0.b55 by @jgclark + @CursorAI
+// Last updated 2026-07-06 for v2.4.0.b62 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,6 +29,7 @@ import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/
 import { getGlobalSharedData, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { usersVersionHas } from '@helpers/NPVersions'
+import { isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
 //------------------------------------------------------------------------------
@@ -300,25 +301,24 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
     const dashboardSettings: TDashboardSettings = (await getDashboardSettings()) || {}
     // set everything off to begin with
     const keys = Object.keys(dashboardSettings).filter((key) => key.startsWith('show') && key.endsWith('Section'))
+    // Casts: every write below uses a key only known at runtime (showSettingName / showTagSection_<tag>),
+    // so they can only go through an indexed type. TDashboardSettings deliberately has no indexer, so that
+    // its statically-known keys stay checked everywhere else.
     allSectionDetails.forEach((section) => {
       const key = section.showSettingName
-      // $FlowIgnore[prop-missing]
-      if (key) dashboardSettings[key] = false
+      if (key) (dashboardSettings: TAnyObject)[key] = false
     })
 
     // also turn off the specific tag sections (e.g. "showTagSection_@home")
-    // $FlowIgnore[incompatible-type]
-    keys.forEach((key) => (dashboardSettings[key] = false))
+    keys.forEach((key) => ((dashboardSettings: TAnyObject)[key] = false))
     const sectionsToShow = limitToSections.split(',')
     sectionsToShow.forEach((sectionCode) => {
       const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
       if (showSectionKey) {
-        // $FlowIgnore
-        dashboardSettings[showSectionKey] = true
+        (dashboardSettings: TAnyObject)[showSectionKey] = true
       } else {
         if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
-          // $FlowIgnore
-          dashboardSettings[`showTagSection_${sectionCode}`] = true
+          (dashboardSettings: TAnyObject)[`showTagSection_${sectionCode}`] = true
         } else {
           logWarn(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails. Continuing with others.`)
         }
@@ -347,6 +347,12 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
 export async function showDashboardReact(callMode: string = 'full', perspectiveName: string = '', useDemoData: boolean = false): Promise<void> {
   try {
     logInfo(pluginJson, `showDashboardReact starting up (mode '${callMode}') with perpsectiveName '${perspectiveName}' ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
+    // Persist live position/size before we re-open/rebuild (covers pure moves while the window stayed open).
+    // Dashboard goes through np.Shared openReactWindow, so we do not rely solely on showHTMLV2's save-if-open path.
+    if (isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
+      logDebug('showDashboardReact', `Window already open - saving live Rect for '${WEBVIEW_WINDOW_ID}' before re-show`)
+      storeWindowRect(WEBVIEW_WINDOW_ID)
+    }
     // clo(DataStore.settings, `showDashboardReact: DataStore.settings=`)
     const startTime = new Date()
 
@@ -361,6 +367,10 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
 
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindow(perspectiveName, useDemoData)
+    if (!data) {
+      logError('showDashboardReact', `Couldn't assemble the initial data for the React Window, so stopping.`)
+      return
+    }
     // logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
     const preferredWindowType = config?.preferredWindowType
     const { showInMainWindow, splitView } = windowOptionsFromPreferredWindowType(preferredWindowType)
@@ -461,9 +471,9 @@ export async function reactWindowInitialisedSoStartGeneratingData(): Promise<voi
 /**
  * Because perspectiveSettings may need to be created on first run, we need to get the dashboardSettings from the perspectiveSettings
  * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns {TDashboardSettings}
+ * @returns {?TDashboardSettings} the new settings, or null if they couldn't be worked out
  */
-async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspectiveSettings): Promise<TDashboardSettings> {
+async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspectiveSettings): Promise<?TDashboardSettings> {
   try {
     const activeDef = getActivePerspectiveDef(perspectiveSettings)
     if (!activeDef) throw new Error(`getDashboardSettingsFromPerspective: getActivePerspectiveDef failed`)
@@ -490,8 +500,8 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
     return newDashboardSettings
   } catch (error) {
     logError('getDashboardSettingsFromPerspective', error.message)
-    // $FlowFixMe[prop-missing]
-    return {}
+    // Return null (not {}) so the caller can keep using the settings it already has.
+    return null
   }
 }
 
@@ -499,9 +509,9 @@ async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspec
  * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin.
  * @param {string?} perspectiveName - the name of the Perspective to use, or blank to mean use the current one
  * @param {boolean?} useDemoData - whether to use demo data
- * @returns {PassedData} the React Data Window object
+ * @returns {?PassedData} the React Data Window object, or null if it couldn't be assembled
  */
-export async function getInitialDataForReactWindow(perspectiveName: string = '', useDemoData: boolean = false): Promise<PassedData> {
+export async function getInitialDataForReactWindow(perspectiveName: string = '', useDemoData: boolean = false): Promise<?PassedData> {
   try {
     logDebug('getInitialDataForReactWindow', `>>>>> Starting`)
     const startTime = new Date()
@@ -511,7 +521,12 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
     if (perspectiveName) {
       logDebug('getInitialDataForReactWindow', `will use perspective '${perspectiveName}'`)
       perspectiveSettings = (await switchToPerspective(perspectiveName, perspectiveSettings)) || perspectiveSettings
-      dashboardSettings = await getDashboardSettingsFromPerspective(perspectiveSettings)
+      const settingsForPerspective = await getDashboardSettingsFromPerspective(perspectiveSettings)
+      if (settingsForPerspective) {
+        dashboardSettings = settingsForPerspective
+      } else {
+        logWarn('getInitialDataForReactWindow', `couldn't get dashboardSettings for perspective '${perspectiveName}', so will carry on with the existing settings`)
+      }
     }
     // clo(dashboardSettings, `getInitialDataForReactWindow: dashboardSettings=`)
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
@@ -540,8 +555,8 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
     return dataToPass
   } catch (error) {
     logError(pluginJson, error.message)
-    // $FlowFixMe[prop-missing]
-    return {}
+    // Return null (not {}) so the caller doesn't hand a hollow payload to the React window.
+    return null
   }
 }
 

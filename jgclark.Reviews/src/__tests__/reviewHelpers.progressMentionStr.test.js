@@ -1,6 +1,7 @@
 // @flow
 /* globals describe, expect, test, jest, beforeEach, afterEach */
 
+import { getTodaysDateHyphenated } from '@helpers/dateTime'
 import {
   formatProgressCommentString,
   getProgressFieldNameForBodyLines,
@@ -14,14 +15,6 @@ global.DataStore = {
 }
 
 describe('reviewHelpers progressStr helpers', () => {
-  beforeEach(() => {
-    jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-05-23T12:00:00').getTime())
-  })
-
-  afterEach(() => {
-    jest.restoreAllMocks()
-  })
-
   test('uses default progress key and capitalised body prefix when preference is unset', () => {
     delete preferenceValues.progressStr
     expect(getProgressFieldNameForBodyLines()).toBe('Progress')
@@ -46,6 +39,12 @@ describe('reviewHelpers progressStr helpers', () => {
       expect(parsed.comment).toBe('Body comment')
     })
 
+    test('parses body line with ISO date (preferred write form)', () => {
+      const parsed = parseProgressValueString('Progress: 40@2026-05-23 Body comment')
+      expect(parsed.percentComplete).toBe(40)
+      expect(parsed.comment).toBe('Body comment')
+    })
+
     test('returns NaN percent when value has date and comment only', () => {
       const parsed = parseProgressValueString('@20260523 Started')
       expect(parsed.percentComplete).toBeNaN()
@@ -54,20 +53,22 @@ describe('reviewHelpers progressStr helpers', () => {
   })
 
   describe('formatProgressCommentString', () => {
-    test('formats comment with percent and today as YYYYMMDD by default', () => {
-      expect(formatProgressCommentString('On track', 50)).toBe('50@20260523 On track')
+    test('formats comment with percent and today as YYYY-MM-DD by default', () => {
+      const today = getTodaysDateHyphenated()
+      expect(formatProgressCommentString('On track', 50)).toBe(`50@${today} On track`)
     })
 
     test('formats comment without percent when omitted', () => {
-      expect(formatProgressCommentString('Started')).toBe('@20260523 Started')
+      const today = getTodaysDateHyphenated()
+      expect(formatProgressCommentString('Started')).toBe(`@${today} Started`)
     })
 
-    test('normalises ISO override date to YYYYMMDD', () => {
-      expect(formatProgressCommentString('Midpoint', 25, '2026-01-15')).toBe('25@20260115 Midpoint')
+    test('keeps ISO override date unchanged', () => {
+      expect(formatProgressCommentString('Midpoint', 25, '2026-01-15')).toBe('25@2026-01-15 Midpoint')
     })
 
-    test('accepts YYYYMMDD override date unchanged', () => {
-      expect(formatProgressCommentString('Done', 100, '20260101')).toBe('100@20260101 Done')
+    test('normalises YYYYMMDD override date to ISO', () => {
+      expect(formatProgressCommentString('Done', 100, '20260101')).toBe('100@2026-01-01 Done')
     })
   })
 })

@@ -17,18 +17,17 @@ type MatchResult = {
  */
 export function findLineLinks(inputString: string): Array<MatchResult> {
   let regex = /(?:\[(.*?)\]\()?(noteplan:\/\/x-callback-url\/openNote\?noteTitle=((?:\d{4}-\d{2}-\d{2}|[^\%]+))%5Ep{1}([a-zA-Z0-9]{6}))/g
-  let matches
+  // Flow does not refine an assignment-expression used as a condition, so `!== null` below does not
+  // narrow `matches`. Inside the loop body the real type is always RegExp$matchResult, so declare it
+  // as that and cast only the nullable exec() result at the single point of assignment.
+  let matches: RegExp$matchResult
   let results: Array<MatchResult> = []
 
-  while ((matches = regex.exec(inputString)) !== null) {
+  while ((matches = (regex.exec(inputString): any)) !== null) {
     let result: MatchResult = {
-      // $FlowIgnore[incompatible-use]
       fullMatch: matches[0],
-      // $FlowIgnore[incompatible-use]
       linkText: matches[1] || null,
-      // $FlowIgnore[incompatible-use]
       noteTitle: matches[3],
-      // $FlowIgnore[incompatible-use]
       blockID: matches[4]
     }
     results.push(result)
