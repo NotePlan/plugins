@@ -3,16 +3,16 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "np.Preview",
   "plugin.name": "🖥️ Preview",
-  "plugin.description": "Shows HTML preview of the current note, including Mermaid diagrams and MathJax equations. Requires NP v3.9.2.",
+  "plugin.description": "Shows HTML preview of a note, including Mermaid diagrams and MathJax equations. Runs on current Editor, or a specified note via x-callback. Requires NP v3.9.2.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.Preview/",
-  "plugin.version": "0.4.5",
-  "plugin.lastUpdateInfo": "v0.4.5: updated to use Mermaid v11.\nv0.4.4: added embed images to preview, fixed some bugs",
+  "plugin.version": "0.5.0",
+  "plugin.lastUpdateInfo": "v0.5.0: Add basic table styling (bold thead/tfoot only; left/top-aligned cells; grey borders).\nDon't show title twice when frontmatter title and first H1 match.\nAdd support for x-callback to preview a specified note, rather than just the current note.\nv0.4.6: Update offline support for Mermaid to v11.16.1 (latest).\n",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Preview/CHANGELOG.md",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
-    "mermaid@10.1.0.min.mjs",
+    "mermaid@11.16.1.min.js",
     "tex-chtml.js"
   ],
   "plugin.requiredSharedFiles": [],
@@ -24,7 +24,7 @@
       "alias": [
         "pn"
       ],
-      "description": "Preview note in HTML window",
+      "description": "Preview current (or specified) note in HTML window",
       "jsFunction": "previewNote"
     },
     {

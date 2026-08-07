@@ -34,7 +34,7 @@ import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { getFieldParagraphsFromNote } from '@helpers/paragraph'
 import { escapeRegExp } from '@helpers/regex'
 import { getHashtagsFromString } from '@helpers/stringTransforms'
-import { showMessage } from '@helpers/userInput'
+import { chooseOption, showMessage } from '@helpers/userInput'
 
 //------------------------------
 // Constants
@@ -993,6 +993,200 @@ export function migrateProjectMetadataLineInNote(noteToUse: CoreNoteFields): ?st
 // Other helpers (metadata mutation + delete)
 
 /**
+ * Parse updated metadata mention strings into separate frontmatter key writes / removals.
+ * Shared by frontmatter rewrite paths (combined key + separate-keys-only fallback).
+ * @param {Array<string>} updatedMetadataArr - full mention strings (e.g. 'reviewed(2023-06-23)' or '@reviewed(2023-06-23)')
+ * @returns {{ fmAttrs: { [string]: any }, keysToRemove: Array<string>, unmappedMentions: Array<string> }}
+ * @private
+ */
+function parseMetadataMentionsToSeparateFrontmatterKeys(
+  updatedMetadataArr: Array<string>,
+): {| fmAttrs: { [string]: any }, keysToRemove: Array<string>, unmappedMentions: Array<string> |} {
+  const metadataMentionToFrontmatterKeyMap = getMetadataMentionNameToFrontmatterKeyMap()
+  const fmAttrs: { [string]: any } = {}
+  const keysToRemove: Array<string> = []
+  const unmappedMentions: Array<string> = []
+
+  for (const item of updatedMetadataArr) {
+    const mentionName = item.split('(', 1)[0]
+    const mentionParamMatch = item.match(/\(([^)]*)\)$/)
+    const mentionParam = mentionParamMatch && mentionParamMatch[1] != null ? mentionParamMatch[1].trim() : ''
+    // Prefer exact map key; also try with/without leading @ so localised prefs still match.
+    const separateMetadataKey =
+      metadataMentionToFrontmatterKeyMap[mentionName] ||
+      metadataMentionToFrontmatterKeyMap[mentionName.replace(/^@/, '')] ||
+      metadataMentionToFrontmatterKeyMap[`@${mentionName.replace(/^@/, '')}`]
+    if (separateMetadataKey) {
+      if (mentionParam !== '') {
+        fmAttrs[separateMetadataKey] = mentionParam
+      } else {
+        keysToRemove.push(separateMetadataKey)
+      }
+    } else {
+      unmappedMentions.push(item)
+    }
+  }
+  return { fmAttrs, keysToRemove, unmappedMentions }
+}
+
+/**
+ * Configured combined project frontmatter key name (e.g. 'project'), without trailing colon.
+ * @returns {string}
+ */
+export function getCombinedProjectFrontmatterKeyName(): string {
+  return checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+}
+
+/**
+ * True when the note already has the combined project-type frontmatter key (e.g. `project:`).
+ * @param {CoreNoteFields | TEditor} noteLike
+ * @returns {boolean}
+ */
+export function noteHasCombinedProjectFrontmatterKey(noteLike: CoreNoteFields | TEditor): boolean {
+  try {
+    const combinedKey = getCombinedProjectFrontmatterKeyName()
+    // $FlowFixMe[incompatible-call]
+    const raw = getFrontmatterAttribute((noteLike: any), combinedKey)
+    return typeof raw === 'string' && raw.trim() !== ''
+  } catch (error) {
+    logError('noteHasCombinedProjectFrontmatterKey', error.message)
+    return false
+  }
+}
+
+/**
+ * When finishing a review and the note has no combined project-type frontmatter key,
+ * explain that, then offer projectTypeTags from settings (plus Cancel).
+ * @param {ReviewConfig} config
+ * @param {string} noteTitle
+ * @returns {Promise<?string>} selected tag (e.g. '#project'), or null if cancelled / no choices
+ */
+export async function promptForMissingProjectTypeTag(config: ReviewConfig, noteTitle: string): Promise<?string> {
+  try {
+    const combinedKey = getCombinedProjectFrontmatterKeyName()
+    const tagChoices: Array<string> =
+      Array.isArray(config.projectTypeTags) && config.projectTypeTags.length > 0
+        ? config.projectTypeTags.map((t) => checkString(t).trim()).filter((t) => t !== '')
+        : ['#project']
+
+    await showMessage(
+      `Note '${noteTitle}' has no '${combinedKey}' frontmatter key for its project type tag(s).\nPlease choose a project type tag from your settings to add. Cancel leaves the note unchanged (reviewed date will not be updated).`,
+      'OK',
+      'Finish project review',
+    )
+
+    const options = [
+      ...tagChoices.map((tag) => ({ label: tag, value: tag })),
+      { label: 'Cancel', value: '__CANCEL__' },
+    ]
+    const selection = await chooseOption(
+      `Select a project type tag for '${noteTitle}'`,
+      options,
+      '__CANCEL__',
+    )
+    if (selection == null || selection === '__CANCEL__') {
+      logInfo('promptForMissingProjectTypeTag', `User cancelled project type tag selection for '${noteTitle}'`)
+      return null
+    }
+    const selectedTag = checkString(selection).trim()
+    if (selectedTag === '') {
+      logWarn('promptForMissingProjectTypeTag', `Empty tag selected for '${noteTitle}'`)
+      return null
+    }
+    logDebug('promptForMissingProjectTypeTag', `User chose project type tag '${selectedTag}' for '${noteTitle}'`)
+    return selectedTag
+  } catch (error) {
+    logError('promptForMissingProjectTypeTag', error.message)
+    return null
+  }
+}
+
+/**
+ * Write the combined project-type frontmatter key (tags only) plus any separate date keys from mention strings.
+ * Used when finishing a review on a note that lacked a `project:` / combined key and body metadata line.
+ * @param {CoreNoteFields | TEditor} noteLike
+ * @param {string} projectTypeTag - e.g. '#project' (hashtags only; extra tokens are stripped)
+ * @param {Array<string>} updatedMetadataArr - e.g. ['reviewed(2026-08-03)']
+ * @param {string} [logContext]
+ * @returns {void}
+ */
+export function writeCombinedProjectTagAndReviewedMentions(
+  noteLike: CoreNoteFields | TEditor,
+  projectTypeTag: string,
+  updatedMetadataArr: Array<string>,
+  logContext: string = 'writeCombinedProjectTagAndReviewedMentions',
+): void {
+  try {
+    const combinedKey = getCombinedProjectFrontmatterKeyName()
+    const { fmAttrs, keysToRemove, unmappedMentions } = parseMetadataMentionsToSeparateFrontmatterKeys(updatedMetadataArr)
+    if (unmappedMentions.length > 0) {
+      logWarn(logContext, `No separate frontmatter key for mention(s) [${unmappedMentions.join(', ')}] on '${displayTitle(noteLike)}'`)
+    }
+    fmAttrs[combinedKey] = extractTagsOnly(projectTypeTag)
+    if (fmAttrs[combinedKey] === '') {
+      // Keep a raw hashtag-shaped value if extractTagsOnly rejected it (e.g. missing #)
+      const trimmed = projectTypeTag.trim()
+      fmAttrs[combinedKey] = trimmed.startsWith('#') ? trimmed : `#${trimmed}`
+    }
+    // $FlowFixMe[incompatible-call]
+    const success = updateFrontMatterVars(noteLike, fmAttrs)
+    if (!success) {
+      logError(logContext, `Failed to write ${combinedKey} + separate keys for '${displayTitle(noteLike)}'`)
+    } else {
+      logDebug(logContext, `- Wrote frontmatter: ${Object.keys(fmAttrs).map((k) => `${k}=${String(fmAttrs[k])}`).join(', ')}`)
+    }
+    const noteForRemoval = getNoteFromNoteLike(noteLike)
+    for (const keyToRemove of keysToRemove) {
+      removeFrontMatterField(noteForRemoval, keyToRemove)
+    }
+  } catch (error) {
+    logError(logContext, error.message)
+  }
+}
+
+/**
+ * Write project metadata mentions as separate frontmatter keys when there is no combined
+ * `project:` / `metadata:` line and no body metadata line to mutate.
+ * Covers notes that only have separate FM keys (e.g. `review: 2w`) and no `reviewed` yet.
+ * Prefer writeCombinedProjectTagAndReviewedMentions when finishing a review (so project type is also set).
+ * @param {CoreNoteFields | TEditor} noteLike
+ * @param {Array<string>} updatedMetadataArr - full mention strings (e.g. 'reviewed(2026-08-03)')
+ * @param {string} logContext
+ * @private
+ */
+function applySeparateFrontmatterMetadataMentions(
+  noteLike: CoreNoteFields | TEditor,
+  updatedMetadataArr: Array<string>,
+  logContext: string,
+): void {
+  try {
+    const { fmAttrs, keysToRemove, unmappedMentions } = parseMetadataMentionsToSeparateFrontmatterKeys(updatedMetadataArr)
+    if (unmappedMentions.length > 0) {
+      logWarn(logContext, `No separate frontmatter key for mention(s) [${unmappedMentions.join(', ')}] on '${displayTitle(noteLike)}'`)
+    }
+    if (Object.keys(fmAttrs).length === 0 && keysToRemove.length === 0) {
+      logDebug(logContext, `Nothing to write for separate frontmatter metadata on '${displayTitle(noteLike)}'`)
+      return
+    }
+    if (Object.keys(fmAttrs).length > 0) {
+      // $FlowFixMe[incompatible-call]
+      const success = updateFrontMatterVars(noteLike, fmAttrs)
+      if (!success) {
+        logError(logContext, `Failed to write separate frontmatter keys [${Object.keys(fmAttrs).join(', ')}] for '${displayTitle(noteLike)}'`)
+      } else {
+        logDebug(logContext, `- Wrote separate frontmatter keys: ${Object.keys(fmAttrs).map((k) => `${k}=${String(fmAttrs[k])}`).join(', ')}`)
+      }
+    }
+    const noteForRemoval = getNoteFromNoteLike(noteLike)
+    for (const keyToRemove of keysToRemove) {
+      removeFrontMatterField(noteForRemoval, keyToRemove)
+    }
+  } catch (error) {
+    logError(logContext, error.message)
+  }
+}
+
+/**
  * Core helper to update project metadata @mentions in a metadata line.
  * Shared by updateMetadataInEditor and updateMetadataInNote.
  * @param {TNote | TEditor} noteLike - the note/editor to update
@@ -1027,7 +1221,6 @@ function updateMetadataCore(
 
     if (isFrontmatterLine) {
       let valueOnly = origLine.replace(frontmatterPrefixRe, '')
-      const metadataMentionToFrontmatterKeyMap = getMetadataMentionNameToFrontmatterKeyMap()
       const fmAttrs: { [string]: any } = {}
       const keysToRemove: Array<string> = []
 
@@ -1035,22 +1228,20 @@ function updateMetadataCore(
       // This ensures they aren't lost when we rewrite the combined key tags-only.
       populateSeparateDateKeysFromCombinedValue(valueOnly, fmAttrs, keysToRemove)
 
+      const { fmAttrs: mentionFmAttrs, keysToRemove: mentionKeysToRemove, unmappedMentions } = parseMetadataMentionsToSeparateFrontmatterKeys(updatedMetadataArr)
       for (const item of updatedMetadataArr) {
         const mentionName = item.split('(', 1)[0]
-        const mentionParamMatch = item.match(/\(([^)]*)\)$/)
-        const mentionParam = mentionParamMatch && mentionParamMatch[1] != null ? mentionParamMatch[1].trim() : ''
-        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
+        const RE_THIS_MENTION_ALL = new RegExp(`${escapeRegExp(mentionName)}\\([\\w\\-\\.]+\\)`, 'gi')
         valueOnly = valueOnly.replace(RE_THIS_MENTION_ALL, '')
-        const separateMetadataKey = metadataMentionToFrontmatterKeyMap[mentionName]
-        if (separateMetadataKey) {
-          if (mentionParam !== '') {
-            fmAttrs[separateMetadataKey] = mentionParam
-          } else {
-            keysToRemove.push(separateMetadataKey)
-          }
-        } else {
-          valueOnly += ` ${item}`
-        }
+      }
+      Object.keys(mentionFmAttrs).forEach((key) => {
+        fmAttrs[key] = mentionFmAttrs[key]
+      })
+      for (const keyToRemove of mentionKeysToRemove) {
+        keysToRemove.push(keyToRemove)
+      }
+      for (const item of unmappedMentions) {
+        valueOnly += ` ${item}`
       }
       fmAttrs[singleMetadataKeyName] = extractTagsOnly(valueOnly)
       const success = updateFrontMatterVars(noteLike, fmAttrs)
@@ -1066,7 +1257,7 @@ function updateMetadataCore(
     } else {
       for (const item of updatedMetadataArr) {
         const mentionName = item.split('(', 1)[0]
-        const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
+        const RE_THIS_MENTION_ALL = new RegExp(`${escapeRegExp(mentionName)}\\([\\w\\-\\.]+\\)`, 'gi')
         updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
         updatedLine += ` ${item}`
       }
@@ -1082,6 +1273,7 @@ function updateMetadataCore(
 /**
  * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the note in the Editor.
  * It takes each mention in the array (e.g. '@reviewed(2023-06-23)') and all other versions of it will be removed first, before that string is appended.
+ * When there is no body metadata line and no combined frontmatter project key, writes separate frontmatter keys instead.
  * @author @jgclark
  * @param {TEditor} thisEditor - the Editor window to update
  * @param {Array<string>} mentions to update:
@@ -1099,7 +1291,9 @@ export function updateBodyMetadataInEditor(thisEditor: TEditor, updatedMetadataA
 
     const metadataLineIndex = getProjectMetadataLineIndex(thisEditor)
     if (metadataLineIndex === false) {
-      logDebug('updateBodyMetadataInEditor', `No project metadata line found (body or frontmatter) for '${displayTitle(thisEditor)}'`)
+      // Separate-keys-only frontmatter (e.g. only `review: 2w`) has no combined project line or body metadata line.
+      logDebug('updateBodyMetadataInEditor', `No project metadata line found for '${displayTitle(thisEditor)}'; writing separate frontmatter keys`)
+      applySeparateFrontmatterMetadataMentions(thisEditor, updatedMetadataArr, 'updateBodyMetadataInEditor')
       return
     }
     updateMetadataCore(thisEditor, metadataLineIndex, updatedMetadataArr, 'updateBodyMetadataInEditor')
@@ -1112,6 +1306,8 @@ export function updateBodyMetadataInEditor(thisEditor: TEditor, updatedMetadataA
  * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the given note.
  * It takes each mention in the array (e.g. '@reviewed(2023-06-23)') and all other versions of @reviewed will be removed first, before that string is appended.
  * Note: additional complexity as '@review' starts the same as '@reviewed'
+ * When there is no body metadata line and no combined frontmatter project key, writes separate frontmatter keys instead
+ * (e.g. `reviewed: YYYY-MM-DD` for a finish-review on a note that only has `review: 2w`).
  * @author @jgclark
  * @param {TNote} noteToUse
  * @param {Array<string>} mentions to update:
@@ -1126,7 +1322,9 @@ export function updateBodyMetadataInNote(note: TNote | TEditor, updatedMetadataA
 
     const metadataLineIndex = getProjectMetadataLineIndex(note)
     if (metadataLineIndex === false) {
-      logDebug('updateBodyMetadataInNote', `No project metadata line found (body or frontmatter) for '${displayTitle(note)}'`)
+      // Separate-keys-only frontmatter (e.g. only `review: 2w`) has no combined project line or body metadata line.
+      logDebug('updateBodyMetadataInNote', `No project metadata line found for '${displayTitle(note)}'; writing separate frontmatter keys`)
+      applySeparateFrontmatterMetadataMentions(note, updatedMetadataArr, 'updateBodyMetadataInNote')
       return
     }
     updateMetadataCore(note, metadataLineIndex, updatedMetadataArr, 'updateBodyMetadataInNote')
