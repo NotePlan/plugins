@@ -96,12 +96,9 @@ export function buildReadwiseMetadataHeading(source: any): string {
  */
 function formatTag(tag: string): string {
   const prefix = DataStore.settings.tagPrefix ?? ''
-  if (prefix === '') {
-    return `#${tag}`
-  } else {
-    return `#${prefix}/${tag}`
-  }
-}
+  return `#${prefix ? `${prefix}/` : ''}${tag}`
+    .replace(/ /g, '_')
+    .replace(/&/g, 'and')}
 
 /**
  * Remove all newline characters from a string
