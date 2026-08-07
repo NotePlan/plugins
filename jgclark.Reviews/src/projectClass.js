@@ -134,7 +134,7 @@ export class Project {
   isCancelled: boolean = false
   isPaused: boolean = false
   percentComplete: number = NaN
-  lastProgressComment: string = '' // e.g. "Progress: 60@20220809: comment
+  lastProgressComment: string = '' // e.g. "Progress: 60@2022-08-09 comment
   mostRecentProgressLineIndex: number = NaN
   nextActionsRawContent: Array<string> = []
   ID: string // required when making HTML views

@@ -1,8 +1,9 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
-## [2.0.4] - 2026-08-06
-- Fix: Turn back on saving of updated window size & position when resizing/moving it
+## [2.0.4] - 2026-08-07
+- Change: Turn back on saving of updated window size & position when resizing/moving it
+- Change: New Progress comments write date as `@YYYY-MM-DD` again (compact `@YYYYMMDD` lines still parse)
 - dev: Fixes from flow cleanup
 
 ## [2.0.3] - 2026-07-17

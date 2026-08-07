@@ -22,7 +22,7 @@ import {
   getJSDateStartOfToday,
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
-  getTodaysDateUnhyphenated,
+  getTodaysDateHyphenated,
   todaysDateISOString,
   toISODateString,
 } from '@helpers/dateTime'
@@ -421,21 +421,21 @@ export function isProjectNoteIsMarkedSequential(note: TNote, sequentialTag: stri
 }
 
 /**
- * Normalise a progress date to YYYYMMDD, defaulting to today when missing or unrecognised.
+ * Normalise a progress date to YYYY-MM-DD, defaulting to today when missing or unrecognised.
  * @param {?string} progressDateStr
  * @returns {string}
  */
-function normalizeProgressDateToYYYYMMDD(progressDateStr?: ?string): string {
+function normalizeProgressDateToISO(progressDateStr?: ?string): string {
   const raw = checkString(progressDateStr ?? '').trim()
-  if (raw === '') return getTodaysDateUnhyphenated()
+  if (raw === '') return getTodaysDateHyphenated()
   if (new RegExp(`^${RE_ISO_DATE}$`).test(raw)) {
-    return raw.replace(/-/g, '')
-  }
-  if (new RegExp(`^${RE_YYYYMMDD_DATE}$`).test(raw)) {
     return raw
   }
-  logWarn('normalizeProgressDateToYYYYMMDD', `Unrecognised progress date '${raw}', so will use today's date`)
-  return getTodaysDateUnhyphenated()
+  if (new RegExp(`^${RE_YYYYMMDD_DATE}$`).test(raw)) {
+    return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
+  }
+  logWarn('normalizeProgressDateToISO', `Unrecognised progress date '${raw}', so will use today's date`)
+  return getTodaysDateHyphenated()
 }
 
 /**
@@ -456,10 +456,10 @@ function formatProgressPercentForOutput(percentComplete?: ?number | ?string): st
 
 /**
  * Format a canonical progress comment value string ready for body lines or frontmatter.
- * Form: [N]@YYYYMMDD comment (N = optional 0-100 completion %; date defaults to today as YYYYMMDD).
+ * Form: [N]@YYYY-MM-DD comment (N = optional 0-100 completion %; date defaults to today as YYYY-MM-DD).
  * @param {string} comment - progress comment text (required)
  * @param {?number | ?string} [percentComplete] - optional completion percentage
- * @param {?string} [progressDateStr] - optional date (ISO or YYYYMMDD); defaults to today as YYYYMMDD
+ * @param {?string} [progressDateStr] - optional date (ISO or YYYYMMDD); defaults to today as YYYY-MM-DD
  * @returns {string}
  */
 export function formatProgressCommentString(
@@ -468,7 +468,7 @@ export function formatProgressCommentString(
   progressDateStr?: ?string,
 ): string {
   const trimmedComment = checkString(comment).trim()
-  const dateStr = normalizeProgressDateToYYYYMMDD(progressDateStr)
+  const dateStr = normalizeProgressDateToISO(progressDateStr)
   const percentStr = formatProgressPercentForOutput(percentComplete)
   return `${percentStr}@${dateStr} ${trimmedComment}`
 }
