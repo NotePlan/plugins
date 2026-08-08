@@ -10,7 +10,9 @@
  *
  * Usage:
  *   node scripts/flow-report.js                    # print the per-plugin table vs the baseline
- *   node scripts/flow-report.js --check            # exit 1 if any plugin regressed (for CI)
+ *   node scripts/flow-report.js --check            # exit 1 if any plugin regressed vs a baseline
+ *                                                  # NOTE: CI no longer uses this -- the repo is at zero
+ *                                                  # errors and .github/workflows gates on `npx flow check`.
  *   node scripts/flow-report.js --update-baseline  # rewrite scripts/flow-baseline.json
  *   node scripts/flow-report.js --json-file <path> # reuse a saved `flow check --json` output
  *   node scripts/flow-report.js --plugin <name>    # list the individual sites for one plugin
