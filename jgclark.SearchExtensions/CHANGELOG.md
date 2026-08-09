@@ -2,6 +2,10 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b6] - 2026-08-09
+### Fixed
+- Plugin (non-native) path for `/searchInPeriod` now uses dates already on searchOptions / x-callback args instead of always re-prompting the user
+
 ## [3.0.0.b5] - 2026-08-09
 ### Fixed
 - `/searchOpenTasks` and NotePlan-style results now run makeAnySyncs on the native search path (previously only the plugin extended path)

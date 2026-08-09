@@ -8,7 +8,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getDateRangeFromUser } from './dateRanges'
+import { getDateRangeFromSearchOptions, getDateRangeFromUser } from './dateRanges'
 import type { resultOutputV3Type, SearchConfig, TSearchOptions } from './searchHelpers'
 import {
   applySearchOperatorsToOptions,
@@ -368,11 +368,24 @@ export async function saveSearch(
     
       searchTermsRepStr = `'${validatedSearchTerms.map(term => term.termRep).join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
 
-      // Work out time period to cover (if wanted)
+      // Work out time period to cover (if wanted). Prefer dates already on searchOptions
+      // (e.g. from /searchInPeriod args or refresh x-callback); only prompt if missing.
       if (('fromDateStr' in searchOptions) || ('toDateStr' in searchOptions)) {
-        [fromDateStr, toDateStr, periodString, periodAndPartStr] = await getDateRangeFromUser()
-        logDebug('saveSearch', `Time period for search: ${periodAndPartStr}`)
-        if (fromDateStr > toDateStr) {
+        const hasFrom = Boolean(searchOptions.fromDateStr)
+        const hasTo = Boolean(searchOptions.toDateStr)
+        if (hasFrom || hasTo) {
+          [fromDateStr, toDateStr, periodString, periodAndPartStr] = getDateRangeFromSearchOptions(searchOptions)
+          // Keep options in sync for runPluginExtendedSyntaxSearches date filtering
+          searchOptions.fromDateStr = fromDateStr
+          searchOptions.toDateStr = toDateStr
+          logDebug('saveSearch', `Time period from searchOptions: ${periodAndPartStr}`)
+        } else {
+          [fromDateStr, toDateStr, periodString, periodAndPartStr] = await getDateRangeFromUser()
+          searchOptions.fromDateStr = fromDateStr
+          searchOptions.toDateStr = toDateStr
+          logDebug('saveSearch', `Time period for search (user): ${periodAndPartStr}`)
+        }
+        if (fromDateStr && toDateStr && fromDateStr > toDateStr) {
           throw new Error(`Stopping: fromDate ${fromDateStr} is after toDate ${toDateStr}`)
         }
       }
