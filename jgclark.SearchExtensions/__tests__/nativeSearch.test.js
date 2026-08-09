@@ -89,9 +89,9 @@ describe('nativeSearch.js tests', () => {
       expect(filtered.map((p) => p.filename)).toEqual(['a.md'])
     })
 
-    test('reducedFieldSetsToNoteAndLines maps filename, index, line', () => {
+    test('reducedFieldSetsToNoteAndLines maps filename, index, line, and content', () => {
       const nals = s.reducedFieldSetsToNoteAndLines([sample[0]])
-      expect(nals).toEqual([{ noteFilename: 'a.md', index: 1, line: '* findme here' }])
+      expect(nals).toEqual([{ noteFilename: 'a.md', index: 1, line: '* findme here', content: 'findme here' }])
     })
   })
 })

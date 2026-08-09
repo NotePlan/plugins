@@ -28,10 +28,12 @@ export { buildRefreshCallbackArgs, getSearchCommandName } from './searchCommandR
 // Note: named before needing to add the 'type' item
 export type noteAndLine = {
   noteFilename: string,
-  line: string,  // contents of the paragraph
+  line: string,  // raw line as shown in results (task markers etc.)
   index: number, // index number of the paragraph, to do any necessary further lookups
+  content?: string, // paragraph.content when captured (for replace identity; not the display line)
 }
 
+// Note: until v3.0.0.b18 was resultOutputV3Type
 export type TSearchResultSet = {
   searchTermsStr: string;
   searchOperatorsStr: string;

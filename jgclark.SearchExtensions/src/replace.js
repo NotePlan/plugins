@@ -68,14 +68,19 @@ function doReplaceForAResult(nal: noteAndLine, replaceRegex: RegExp, replacement
       logWarn('replace', `Couldn't find note for filename ${nal.noteFilename}`)
       return
     }
-    // Now get this paragraph; first by lineIndex, with a backup of searching for the original content, in case the note has changed.
+    // Prefer paragraph.content captured at search time for identity; fall back to stripping display line
+    const contentForMatch = nal.content != null && nal.content !== ''
+      ? nal.content
+      : nal.line
+
+    // Resolve paragraph by lineIndex first; if stale, search by content (not raw display line)
     // $FlowFixMe[incompatible-type]
     let thisPara = thisNote.paragraphs[nal.index] ?? null
-    if (!thisPara || thisPara.content !== nal.line) {
-      // go look for the paragraph that matches the original search result line
-      thisPara = findParaFromStringAndFilename(nal.noteFilename, nal.line)
+    if (!thisPara || thisPara.content !== contentForMatch) {
+      thisPara = findParaFromStringAndFilename(nal.noteFilename, contentForMatch)
       if (!thisPara) {
-        logWarn('replace', `Couldn't find paragraph matching original content '${nal.line}' in note '${nal.noteFilename}'. Will try to continue, but it may not be correct.`)
+        // Titles are stored as **title** in line display; try content match via findPara on raw title
+        logWarn('replace', `Couldn't find paragraph matching original content '${contentForMatch}' in note '${nal.noteFilename}'. Will try to continue, but it may not be correct.`)
         return
       }
     }

@@ -199,6 +199,7 @@ export function reducedFieldSetsToNoteAndLines(resultReducedParas: Array<reduced
       noteFilename: resultReducedParas[i].filename ?? '<error>',
       index: resultReducedParas[i].lineIndex,
       line: resultReducedParas[i].rawContent,
+      content: resultReducedParas[i].content,
     })
   }
   return noteAndLineArr
