@@ -248,7 +248,7 @@ export async function replace(
       logBasicResultLines(searchResults, config)
 
       const res = await showMessageYesNo(`There are ${searchResults.resultCount} matches in ${searchResults.resultNoteCount} notes (see plugin log for the details).\nAre you sure you want to continue and replace with '${replacementText}'?\n\nNote: This is no way to easily undo this.`, ['Yes', 'Cancel'], 'Confirm Replace', false)
-      if (res === 'No') {
+      if (res !== 'Yes') {
         logDebug('replace', `User has cancelled operation.`)
         return
       }
