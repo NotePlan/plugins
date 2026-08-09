@@ -2,6 +2,10 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b5] - 2026-08-09
+### Fixed
+- `/searchOpenTasks` and NotePlan-style results now run makeAnySyncs on the native search path (previously only the plugin extended path)
+
 ## [3.0.0.b4] - 2026-08-09
 ### Fixed
 - resultStyle default is now `NotePlan` (was mismatched `NotePlan-style`) so sync-open-tasks works on fresh installs

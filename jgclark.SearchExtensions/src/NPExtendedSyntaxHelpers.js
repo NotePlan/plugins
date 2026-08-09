@@ -8,7 +8,7 @@
 
 // import pluginJson from '../plugin.json'
 import type { noteAndLine, resultOutputV3Type, reducedFieldSet, SearchConfig, TSearchOptions } from './searchHelpers'
-import { numberOfUniqueFilenames, SORT_MAP } from './searchHelpers'
+import { makeAnySyncs, numberOfUniqueFilenames, SORT_MAP } from './searchHelpers'
 import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getLocale } from '@helpers/NPConfiguration'
@@ -273,6 +273,11 @@ export async function runNPExtendedSyntaxSearches(
       resultCount: resultCount,
       resultNoteCount: numberOfUniqueFilenames(noteAndLineArr),
       fullResultCount: preLimitResultCount
+    }
+    // For open tasks, add line sync with blockIDs (same as plugin extended path)
+    if (config.resultStyle === 'NotePlan' && config.syncOpenResultItems) {
+      const syncdResultSet = await makeAnySyncs(returnObject)
+      return syncdResultSet
     }
     return returnObject
   }
