@@ -22,9 +22,12 @@ function coalesceNullFrontmatterValue(val: mixed): mixed {
 }
 
 export default class FrontmatterModule {
+  // Set only when a caller passes the NPTemplating class in; nothing in this module reads it back, so `any` (the
+  // constructor's own param type) is as specific as it can honestly be.
+  templatingInstance: any
+
   constructor(NPTemplating: any = null) {
     if (NPTemplating) {
-      // $FlowIgnore
       this.templatingInstance = NPTemplating
     }
   }

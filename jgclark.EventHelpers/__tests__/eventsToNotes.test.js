@@ -66,12 +66,14 @@ describe('eventsToNotes.js tests', () => {
   })
 
   describe('replaceFormatPlaceholderStringWithActualValues()', () => {
-    // This function's tests use Partial<...> to use a subset of large objects without causing errors
-    const config: Partial<EventsConfig> = {
+    // TCalendarItem and EventsConfig are large API types (TCalendarItem also carries methods), so Partial<> can't describe these plain
+    // object literals: Flow still reports every member the literal omits. Casting the literal and annotating the binding states the real
+    // type once per object, instead of a line suppression that would hide any other error on the same line too.
+    const config: EventsConfig = ({
       calendarNameMappings: [],
       locale: 'se-SE',
       timeOptions: '',
-    }
+    }: any)
     const format1 = '- (*|CAL|*) *|TITLE|**| URL|**|\n> NOTES|*\n*|ATTENDEES|*' // simpler
     const format2 = '### (*|CAL, |**|START|**|-END|*) *|TITLE|**|\nEVENTLINK|**| URL|**| with ATTENDEENAMES|**|\n> NOTES|*\n---\n' // more complex
     const format3 = '### [*|START|*] *|TITLE|*\n- \n \n*****\n' // for @EasyTarget test
@@ -81,8 +83,7 @@ describe('eventsToNotes.js tests', () => {
     const endDT = new Date(2021, 0, 23, 22, 0, 0)
     const attendeesArray: Array<string> = ['✓ Jonathan Clark', '? James Bond', 'x Martha', '? bob@example.com']
     const attendeeNamesArray: Array<string> = ['Jonathan Clark', 'Martha Clark', 'bob@example.com']
-    // $FlowFixMe[prop-missing] the Type has functions
-    const event1: Partial<TCalendarItem> = {
+    const event1: TCalendarItem = ({
       calendar: 'Jonathan',
       title: 'title of event1',
       url: 'https://example.com/easy',
@@ -91,9 +92,8 @@ describe('eventsToNotes.js tests', () => {
       notes: 'a few notes',
       attendees: attendeesArray,
       attendeeNames: attendeeNamesArray,
-    } // simple case
-    // $FlowFixMe[prop-missing] the Type has functions
-    const event2: Partial<TCalendarItem> = {
+    }: any) // simple case
+    const event2: TCalendarItem = ({
       calendar: 'Us',
       title: 'title of event2 with <brackets> & more',
       url: 'https://example.com/bothersomeURL/example',
@@ -102,10 +102,8 @@ describe('eventsToNotes.js tests', () => {
       notes: 'a few notes with TITLE and URL',
       attendees: attendeesArray,
       attendeeNames: attendeeNamesArray,
-    } // case with inclusion
-    // $FlowIgnore[incompatible-call] only sending through what we need
+    }: any) // case with inclusion
     const replacements1 = e.getReplacements(event1, config)
-    // $FlowIgnore[incompatible-call] only sending through what we need
     const replacements2 = e.getReplacements(event2, config)
 
     test('event 1 format 1 easy', () => {

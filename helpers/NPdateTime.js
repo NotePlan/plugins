@@ -80,7 +80,6 @@ export type NotePlanYearInfo = {
 
 export type TPeriodCode = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'all' | 'lw' | 'last7d' | 'last2w' | 'last4w' | 'last3m' | 'wtd' | 'userwtd' | 'ow' | 'lm' | 'mtd' | 'om' | 'lq' | 'qtd' | 'oq' | 'ly' | 'ytd' | 'oy'
 
-
 //--------------------------------------------------------------------------------
 // Functions
 
@@ -319,12 +318,12 @@ export async function getPeriodStartEndDates(
   excludeToday: boolean = true /* currently only used when a date is passed through as periodShortCode */,
   periodShortCodeArg?: TPeriodCode,
 ): Promise<[Date, Date, TPeriodCode, string, string, number]> {
-  let periodShortCode: TPeriodCode
+  // Note: typed `string`, not TPeriodCode, because (as documented above) a YYYY-MM-DD date is also accepted here,
+  // and the `default:` branch of the switch below relies on that.
+  let periodShortCode: string
   // If we're passed the period, then use that, otherwise ask user
-  // $FlowFixMe[incompatible-type]
-  if (periodShortCodeArg && periodShortCodeArg !== '') {
+  if (periodShortCodeArg) {
     // It may come with surrounding quotes, so remove those
-    // $FlowFixMe[incompatible-type]
     periodShortCode = trimAnyQuotes(periodShortCodeArg)
   } else {
     // Ask user what date interval to do tag counts for
@@ -610,7 +609,9 @@ export async function getPeriodStartEndDates(
     toDate = toDateMom.toDate()
   }
   logDebug('getPeriodStartEndDates', `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString} / ${periodAndPartStr}`)
-  // $FlowFixMe[incompatible-return]
+  // Note: index 2 is declared TPeriodCode, but a YYYY-MM-DD date can also be passed in and is passed back out here.
+  // That can't be expressed without widening the exported TPeriodCode type to plain `string` for all its other users.
+  // $FlowIgnore[incompatible-return] see above
   return [fromDate, toDate, periodShortCode, periodString, periodAndPartStr, periodNumber]
 }
 
@@ -1511,12 +1512,13 @@ export function getDueDateOrStartOfCalendarDate(p: TParagraph, useISOFormatOutpu
       }
     } else {
       // If this is from a calendar note, then use that date instead
-      if (!p.note) {
+      // Note: hoisted to a local const, so the null check below survives the later property reads
+      const thisNote = p.note
+      if (!thisNote) {
         throw new Error(`No note found for para {${p.content}}`)
       }
-      if (p.note.type === 'Calendar') {
-        // $FlowIgnore[incompatible-call]
-        const dueDate = getFirstDateInPeriod(p.note.title)
+      if (thisNote.type === 'Calendar' && thisNote.title) {
+        const dueDate = getFirstDateInPeriod(thisNote.title)
         if (dueDate) {
           dueDateStr = dueDate
         }

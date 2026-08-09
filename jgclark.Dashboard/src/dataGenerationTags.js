@@ -201,8 +201,10 @@ export async function getTaggedSectionData(
           // const beforeFilterCount = filteredTagParas.length
           // Note: this is a quick operation
           const preDedupeCount = filteredTagParas.length
-          // $FlowIgnore[class-object-subtyping]
-          filteredTagParas = removeDuplicates(filteredTagParas, ['content', 'filename'])
+          // Casts: removeDuplicates() in helpers/utils.js is typed Array<{ [string]: any }> instead of
+          // generic <T>, and NotePlan's Paragraph is a class, so neither the argument nor the result can be
+          // related to Array<TParagraph>. Making removeDuplicates generic is the real fix; it is out of scope.
+          filteredTagParas = (removeDuplicates((filteredTagParas: any), ['content', 'filename']): any)
           const postDedupeCount = filteredTagParas.length
 
           // TODO: remove this logging once we find cause of DBW seeing dupes
@@ -217,7 +219,6 @@ export async function getTaggedSectionData(
 
           // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
           // Note: this is a pretty quick operation (3-4ms / item)
-          // $FlowIgnore[class-object-subtyping]
           const dashboardParas = makeDashboardParas(filteredTagParas)
           logTimer('getTaggedSectionData', thisStartTime, `- after eliminating dupes -> ${dashboardParas.length}`)
 

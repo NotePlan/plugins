@@ -1,6 +1,17 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [1.1.0] - 2026-08-07
+After a very long period in beta, I'm now releasing new command **Chart Summary Stats**.  This shows your configured items as lovely **Habit & Summary Charts**: bar charts, heatmaps and summary statistics in a window (also available from the NotePlan sidebar). It was first prototyped by @grdn and then re-impemented here.
+
+It uses the same tag lists and the same "What time period should the Progress update cover?" setting as earlier command '/progress summary'. The period selector is shown at the top of the window; changing it updates that setting so Reload keeps your choice. There is also a "Custom range…" option at the top of the period list for an ad-hoc from/to date range.
+
+Other Changes:
+- Re-ordered settings
+- Renamed older commands **/period stats** (/periodStats) and **/progress update** (was: /appendProgressUpdate).
+- **Time durations** of `H:MM` are now supported, as well as decimal numbers. This is useful for tracking sleep: e.g. `@sleep(7:42)` as well as `@sleep(7.7)`.
+
+<!--
 ## [1.1.0.b12] - 2026-07-25
 - fix: changing the Period dropdown in Habit & Summary Charts now saves that choice to the "What time period should the Progress update cover?" setting, so Reload keeps the selected period.
 
@@ -14,7 +25,7 @@
 - switch to using window and sidebar title "Habit & Summary Charts"
 
 ## [1.1.0.b9] - 2026-03-07
-- add demo mode for JGC, controlled by hidden 'useDemoData' boolean setting, and when true picking up from `demoData.json` file in the same folder as settings.
+- add demo mode for JGC, controlled by hidden 'useDemoData' boolean setting, and when true _picking up from `demoData.json` file in the same folder as `settings.json`_.
 - dev: shared the AnyChart heatmap HTML/JS pattern with the Reviews plugin for its weekly Area/Project progress heatmaps.
 
 ## [1.1.0.b8] - 2026-03-07
@@ -76,6 +87,7 @@
 -  yes/no habits can be specified in a calendar note as either:
   - the habit as a completed task or checklist item;
   - For #hashtag or @mention: does it appear anywhere in the note?
+-->
 
 ## [1.0.3] - 2026-01-30 (unreleased)
 - worked around a new bug in the API for getting hashtags and mentions that meant some were being ignored, affecting the accuracy of the plugin's output.

@@ -12,10 +12,8 @@ import '../lib/support/modules/prompts' // Import to register all prompt handler
 jest.mock(
   '@helpers/userInput',
   () => ({
-    // $FlowFixMe - Flow doesn't handle Jest mocks well
-    datePicker: jest.fn().mockResolvedValue('2023-01-01'),
-    // $FlowFixMe - Flow doesn't handle Jest mocks well
-    askDateInterval: jest.fn().mockResolvedValue({
+    datePicker: jest.fn<[string | Object, { [string]: ?mixed } | void], string | false>().mockResolvedValue('2023-01-01'),
+    askDateInterval: jest.fn<[string], { startDate: string, endDate: string, stringValue: string }>().mockResolvedValue({
       startDate: '2023-01-01',
       endDate: '2023-01-31',
       stringValue: '2023-01-01 to 2023-01-31',
@@ -313,7 +311,6 @@ describe('Prompt Safety Checks', () => {
       ]
 
       testCases.forEach(({ input, expected }) => {
-        // $FlowFixMe - We're deliberately testing with null/undefined
         const result = BasePromptHandler.cleanVarName(input)
         expect(result).toBe(expected)
       })

@@ -104,7 +104,6 @@ export async function moveItemToRegularNote(
     logDebug('moveItemToRegularNote', `- coreAddRawContentToNoteHeading() -> {${newPara.rawContent}} in filename ${newPara.note?.filename ?? '?'}`)
 
     // Get the destination note again from DataStore and refresh cache
-    // $FlowIgnore[incompatible-type] checked above
     const noteAfterChanges: ?TNote = DataStore.noteByFilename(destNote.filename, destNote.type)
     if (noteAfterChanges) {
       DataStore.updateCache(noteAfterChanges, false)

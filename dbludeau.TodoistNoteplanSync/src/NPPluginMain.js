@@ -46,15 +46,16 @@ const setup: {
   teamAccount: boolean,
   addUnassigned: boolean,
   header: string,
-  newFolder: any,
-  newToken: any,
+  // the following are write-only aliases: each is backed by a setter that normalises the value into one of the fields above
+  newFolder: string,
+  newToken: string,
   // useTeamAccount is not in the object literal below; it is created on first write by the teamAccount setter
-  useTeamAccount?: any,
-  syncDates: any,
-  syncPriorities: any,
-  syncTags: any,
-  syncUnassigned: any,
-  newHeader: any,
+  useTeamAccount?: boolean,
+  syncDates: boolean,
+  syncPriorities: boolean,
+  syncTags: boolean,
+  syncUnassigned: boolean,
+  newHeader: string,
 } = {
   token: '',
   folder: 'Todoist',
@@ -79,8 +80,9 @@ const setup: {
     // remove leading and tailing slashes
     passedFolder = passedFolder.replace(/\/+$/, '')
     passedFolder = passedFolder.replace(/^\/+/, '')
-    // $FlowIgnore[object-this-reference] this setter is only ever reached as `setup.newFolder = x`, so `this` is `setup`
-    this.folder = passedFolder
+    // Note: written as `setup.folder` (not `this.folder`) to match the other setters in this object. Flow bans `this` in object-literal
+    // methods outright, and this setter is only ever reached as `setup.newFolder = x`, so `this` was always `setup` anyway.
+    setup.folder = passedFolder
   },
   /**
    * @param {boolean} passedSyncDates
@@ -91,7 +93,7 @@ const setup: {
   /**
    * @param {boolean} passedSyncPriorities
    */
-  set syncPriorities(passedSyncPriorities: true) {
+  set syncPriorities(passedSyncPriorities: boolean) {
     setup.addPriorities = passedSyncPriorities
   },
   /**
@@ -104,15 +106,15 @@ const setup: {
    * @param {boolean} passedTeamAccount
    */
   set teamAccount(passedTeamAccount: boolean) {
-    // $FlowIgnore[object-this-reference] this setter is only ever reached as `setup.teamAccount = x`, so `this` is `setup`
-    this.useTeamAccount = passedTeamAccount
+    // Note: `setup` rather than `this`; see the newFolder setter above.
+    setup.useTeamAccount = passedTeamAccount
   },
   /**
    * @param {boolean} passedSyncUnassigned
    */
   set syncUnassigned(passedSyncUnassigned: boolean) {
-    // $FlowIgnore[object-this-reference] this setter is only ever reached as `setup.syncUnassigned = x`, so `this` is `setup`
-    this.addUnassigned = passedSyncUnassigned
+    // Note: `setup` rather than `this`; see the newFolder setter above.
+    setup.addUnassigned = passedSyncUnassigned
   },
   /**
    * @param {string} passedHeader

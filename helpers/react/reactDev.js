@@ -69,6 +69,11 @@ function adjustBrightness(_r: number, _g: number, _b: number): { r: number, g: n
   return { r, g, b }
 }
 
+// Flow's core libdef gives `console` no indexer, so picking a log method by a runtime string
+// ('log' / 'warn' / 'error' / ...) cannot be expressed against `typeof console`. This is the
+// narrowest description of the part of console these helpers use.
+type LoggableConsole = { [methodName: string]: (...args: Array<any>) => void }
+
 /**
  * Logs information to the console.
  * @param {string} logType - The type of log (e.g., DEBUG, ERROR).
@@ -81,11 +86,9 @@ export const log = (logType: string, componentNameAndInfo: string, ...args: any[
   if (!componentNameAndInfo || componentNameAndInfo === '') throw `Logs should always have some identifier to help us find them later ==> ${componentNameAndInfo}`
   if (shouldOutputForLogLevel(logType)) {
     const consoleType = logType === 'DEBUG' ? 'log' : logType.toLowerCase()
-    // $FlowIgnore
-    if (consoleType && typeof consoleType === 'string' && console && console[consoleType]) {
+    if (consoleType && typeof consoleType === 'string' && console && ((console: any): LoggableConsole)[consoleType]) {
       const timeAndType = getLogDateAndTypeString(logType)
-      // $FlowIgnore
-      console[consoleType](`${timeAndType} ${componentNameAndInfo}`, ...args)
+      ;((console: any): LoggableConsole)[consoleType](`${timeAndType} ${componentNameAndInfo}`, ...args)
     } else {
       console.log(`${getLogDateAndTypeString(logType)} Could not find console[${consoleType}]; ${componentNameAndInfo}`)
     }
@@ -116,8 +119,7 @@ const logWithColorConsole = (logType: string, componentName: string, detail?: st
       arg2 = `color: #000; background: ${stringToColor(componentName)}`
       const consoleType = logType.toLowerCase()
       if (consoleType && typeof consoleType === 'string') {
-        // $FlowIgnore
-        console[consoleType](arg1, arg2, ...args)
+        ;((console: any): LoggableConsole)[consoleType](arg1, arg2, ...args)
       }
     }
   }

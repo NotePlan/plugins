@@ -253,10 +253,9 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
       return {}
     }
 
-    // eslint-disable-next-line
-    let [format, ...contents] = block.split('\n')
-    // $FlowFixMe[incompatible-type]
-    contents = contents.join('\n')
+    // eslint-disable-next-line no-unused-vars
+    const [format, ...contentLines] = block.split('\n')
+    const contents = contentLines.join('\n')
 
     const value: any = json5.parse(contents)
     return value

@@ -301,7 +301,6 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
 
     // Highlight if we expanded to a block (not a user selection)
     if (lastSelLineIndex === firstSelLineIndex) {
-      // $FlowIgnore[incompatible-call] just a readonly array issue
       highlightSelectionInEditor(parasInBlock)
     }
 
@@ -389,7 +388,6 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
 
     // Highlight if we expanded to a block (not a user selection)
     if (lastSelLineIndex === firstSelLineIndex) {
-      // $FlowIgnore[incompatible-call] just a readonly array issue
       highlightSelectionInEditor(parasInBlock)
     }
 

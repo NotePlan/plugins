@@ -5,7 +5,6 @@
 
 // @flow
 
-// $FlowFixMe
 export async function getDailyQuote(): Promise<string> {
   const response = await fetch(`https://zenquotes.io/api/random`, { timeout: 3000 })
   if (response) {
@@ -14,7 +13,8 @@ export async function getDailyQuote(): Promise<string> {
       const data = quoteLines[0]
       return `${data.q} - *${data.a}*`
     }
-  } else {
-    return `**quote() web service did not respond**`
+    // Previously fell out of the bottom here and resolved `undefined` out of a `Promise<string>`
+    return `**quote() web service returned no quotes**`
   }
+  return `**quote() web service did not respond**`
 }

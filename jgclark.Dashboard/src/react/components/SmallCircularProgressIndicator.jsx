@@ -22,7 +22,6 @@ function SmallCircularProgressIndicator({ item }: Props): Node {
   // using custom component adapted from https://blog.logrocket.com/build-svg-circular-progress-component-react-hooks/
   return (
     <CircularProgressBar
-      // $FlowIgnore[incompatible-type] - this only works as "1.0rem" despite number being expected
       size="1.0rem"
       progress={percentComplete}
       backgroundColor="var(--bg-sidebar-color)"

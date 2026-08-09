@@ -13,6 +13,24 @@ const PLUGIN_NAME = `np.Tidy`
 const FILENAME = `topLevelTasks.js`
 let globalNote // use this to test with semi-real Note+paragraphs
 
+// Shape of the hand-built paragraph fixtures below. This cannot be `TParagraph`: the API interface
+// declares `children()` as a (read-only) method, and these fixtures assign `children` as a plain
+// writable property. Inexact (`...`) on purpose so the fixtures may carry extra keys without Flow
+// reporting one error per missing TParagraph member at every call site.
+type MockParagraph = {
+  content: string,
+  rawContent: string,
+  type: string,
+  heading: string,
+  headingLevel: number,
+  lineIndex: number,
+  isRecurring: boolean,
+  indents: number,
+  noteType: string,
+  children?: () => Array<MockParagraph>,
+  ...
+}
+
 beforeAll(() => {
   global.Calendar = Calendar
   global.Clipboard = Clipboard
@@ -25,7 +43,7 @@ beforeAll(() => {
 })
 
 beforeEach(() => {
-  const paragraphs = [
+  const paragraphs: Array<MockParagraph> = [
     {
       content: 'Call Allianz 1-800-334-7525',
       rawContent: '* Call Allianz 1-800-334-7525',
@@ -104,19 +122,12 @@ beforeEach(() => {
       noteType: 'Calendar',
     },
   ]
-  // $FlowIgnore[prop-missing]
   paragraphs[0].children = () => []
-  // $FlowIgnore[prop-missing]
   paragraphs[1].children = () => []
-  // $FlowIgnore[prop-missing]
   paragraphs[2].children = () => [paragraphs[3], paragraphs[4], paragraphs[5]]
-  // $FlowIgnore[prop-missing]
   paragraphs[3].children = () => [paragraphs[4], paragraphs[5]]
-  // $FlowIgnore[prop-missing]
   paragraphs[4].children = () => []
-  // $FlowIgnore[prop-missing]
   paragraphs[5].children = () => []
-  // $FlowIgnore[prop-missing]
   paragraphs[6].children = () => []
   globalNote = new Note({ paragraphs })
 })
@@ -157,24 +168,22 @@ describe(`${PLUGIN_NAME}`, () => {
   describe(`${FILENAME}`, () => {
     describe('getTopLevelTasks', () => {
       it('should return top-level task paragraphs', () => {
-        const mockNote = {
+        const mockNote: CoreNoteFields = ({
           paragraphs: [
             { headingLevel: -1, type: 'open', content: 'Task 1' },
             { headingLevel: 0, type: 'open', content: 'Task 2' },
           ],
-        }
-        // $FlowIgnore[prop-missing]
+        }: any)
         const result = f.getTopLevelTasks(mockNote)
 
         expect(result).toEqual([mockNote.paragraphs[0]])
       })
 
       it('should return an empty array if no top-level tasks found', () => {
-        const mockNote = {
+        const mockNote: CoreNoteFields = ({
           paragraphs: [{ headingLevel: 1, type: 'open', content: 'Task 1' }],
-        }
+        }: any)
 
-        // $FlowIgnore[prop-missing]
         const result = f.getTopLevelTasks(mockNote)
 
         expect(result).toEqual([])
@@ -184,8 +193,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result.length).toEqual(5)
       })
       it('should work with empty note', () => {
-        // $FlowIgnore[prop-missing]
-        const result = f.getTopLevelTasks({ paragraphs: [] })
+        const result = f.getTopLevelTasks(({ paragraphs: [] }: any))
         expect(result.length).toEqual(0)
       })
       it('should work with realworld and titles', () => {
@@ -224,8 +232,9 @@ describe(`${PLUGIN_NAME}`, () => {
       // Mock getParagraphParentsOnly to ensure results are consistent
       // it is tested elsewhere
       beforeEach(() => {
-        jest.spyOn(ParentsAndChildren, 'getParagraphParentsOnly').mockImplementation((paragraphs: TParagraph[]) => {
-          // $FlowIgnore[method-unbinding]
+        // Typed as MockParagraph[], not TParagraph[]: the fixtures carry `children` as a plain property,
+        // and reading it off a TParagraph would be an unbound method reference.
+        jest.spyOn(ParentsAndChildren, 'getParagraphParentsOnly').mockImplementation((paragraphs: Array<MockParagraph>) => {
           return paragraphs.map((para) => ({ parent: para, children: para.children || [] }))
         })
       })
@@ -239,28 +248,23 @@ describe(`${PLUGIN_NAME}`, () => {
       })
 
       it('should handle single parent without children', () => {
-        const parent = { id: 1, content: 'Parent', children: () => [] }
-        // $FlowIgnore[prop-missing]
+        const parent: TParagraph = ({ id: 1, content: 'Parent', children: () => [] }: any)
         expect(f.getFlatArrayOfParentsAndChildren([parent])).toEqual([parent])
       })
 
       it('should handle single parent with children', () => {
-        const child1 = { lineIndex: 2, content: 'Child 1', children: () => [] }
-        const child2 = { lineIndex: 3, content: 'Child 2', children: () => [] }
-        const parent = { lineIndex: 1, content: 'Parent', children: () => [child1, child2] }
-        // $FlowIgnore[prop-missing]
-        // $FlowIgnore[incompatible-call]
+        const child1: TParagraph = ({ lineIndex: 2, content: 'Child 1', children: () => [] }: any)
+        const child2: TParagraph = ({ lineIndex: 3, content: 'Child 2', children: () => [] }: any)
+        const parent: TParagraph = ({ lineIndex: 1, content: 'Parent', children: () => [child1, child2] }: any)
         expect(f.getFlatArrayOfParentsAndChildren([parent])).toEqual([parent, child1, child2])
       })
 
       it('should handle multiple parents with and without children', () => {
-        const child1 = { lineIndex: 2, content: 'Child 1', children: () => [] }
-        const parent1 = { lineIndex: 1, content: 'Parent 1', children: () => [child1] }
-        const parent2 = { lineIndex: 3, content: 'Parent 2', children: () => [] }
-        const child2 = { lineIndex: 4, content: 'Child 2', children: () => [] }
-        const parent3 = { lineIndex: 5, content: 'Parent 3', children: () => [child2] }
-        // $FlowIgnore[prop-missing]
-        // $FlowIgnore[incompatible-call]
+        const child1: TParagraph = ({ lineIndex: 2, content: 'Child 1', children: () => [] }: any)
+        const parent1: TParagraph = ({ lineIndex: 1, content: 'Parent 1', children: () => [child1] }: any)
+        const parent2: TParagraph = ({ lineIndex: 3, content: 'Parent 2', children: () => [] }: any)
+        const child2: TParagraph = ({ lineIndex: 4, content: 'Child 2', children: () => [] }: any)
+        const parent3: TParagraph = ({ lineIndex: 5, content: 'Parent 3', children: () => [child2] }: any)
         expect(f.getFlatArrayOfParentsAndChildren([parent1, parent2, parent3])).toEqual([parent1, child1, parent2, parent3, child2])
       })
       it('should deal with real-world example', () => {

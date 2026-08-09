@@ -78,11 +78,12 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
         allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content.includes(sectionHeading) && n.headingLevel !== 1)
     }
     let numToRemove = allMatchedParas.length
-    const allMatchedNotes = allMatchedParas.map((p) => p.note)
+    // `TParagraph.note` is declared `?TNote`, but every paragraph here came from `DataStore.search()` and so
+    // belongs to a note. Typing the array once here is what lets `notesToProcess` below be a real Array<TNote>.
+    const allMatchedNotes: Array<TNote> = (allMatchedParas.map((p) => p.note): any)
     logDebug('removeSectionFromRecentNotes', `- ${String(numToRemove)} matches of '${sectionHeading}' as heading from ${String(allMatchedNotes.length)} notes`)
 
     // Now keep only those changed recently (or all if numDays === 0)
-    // $FlowFixMe[incompatible-type]
     let notesToProcess: Array<TNote> = numDays > 0 ? getNotesChangedInIntervalFromList(allMatchedNotes.filter(Boolean), numDays) : allMatchedNotes
     numToRemove = notesToProcess.length
 

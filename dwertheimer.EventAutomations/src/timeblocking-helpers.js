@@ -619,7 +619,6 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: AutoTime
 
 export const addDurationToTasks = (tasks: Array<SortableParagraphSubset>, config: { [key: string]: any }): Array<ParagraphWithDuration> => {
   const dTasks = tasks.map((t) => {
-    // $FlowIgnore - Flow doesn't like spreading interfaces
     const copy = { ...t, duration: 0 }
     copy.duration = getDurationFromLine(t.content, config.durationMarker) || config.defaultDuration
     return copy

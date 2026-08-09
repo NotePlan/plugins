@@ -33,7 +33,7 @@ import { isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
-export async function getPrioritySectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
+export async function getPrioritySectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<?TSection> {
   try {
     const thisSectionCode = 'PRIORITY'
     let totalPriority = 0
@@ -132,7 +132,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
     return section
   } catch (error) {
     logError(pluginJson, JSP(error))
-    // $FlowFixMe[incompatible-return]
+    // Returns null on error; the caller (getSomeSectionsData in dataGeneration.js) skips it.
     return null
   }
 }
@@ -193,11 +193,12 @@ async function getRelevantPriorityTasks(config: TDashboardSettings): Promise<Arr
     // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
     // Note: not fully accurate, as it doesn't check the filename is identical, but this catches sync copies, which saves a lot of time
     // Note: this is a quick operation
-    // $FlowFixMe[class-object-subtyping]
-    filteredPriorityParas = removeDuplicates(filteredPriorityParas, ['content'])
+    // Casts: removeDuplicates() in helpers/utils.js is typed Array<{ [string]: any }> instead of generic
+    // <T>, and NotePlan's Paragraph is a class, so neither the argument nor the result can be related to
+    // Array<TParagraph>. Making removeDuplicates generic is the real fix; it lives outside this plugin.
+    filteredPriorityParas = (removeDuplicates((filteredPriorityParas: any), ['content']): any)
     logTimer('getRelevantPriorityTasks', thisStartTime, `- after deduping -> ${filteredPriorityParas.length}`)
 
-    // $FlowFixMe[class-object-subtyping]
     return filteredPriorityParas
   } catch (error) {
     logError('getRelevantPriorityTasks', error.message)

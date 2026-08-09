@@ -27,17 +27,17 @@ import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
  */
 function getUrlParams(query: string): { [key: string]: string } {
   const search = /([^&=]+)=?([^&]*)/g
-  let match: RegExp$matchResult | null
   const decode = function (s: string) {
     // Regex for replacing addition symbol with a space
     return decodeURIComponent(s.replace(/\+/g, " "))
   }
   const urlParams: { [key: string]: string } = {}
-  while ((match = search.exec(query)) !== null) {
-    // $FlowIgnore[incompatible-use] safe: the while condition only enters the body when exec() returned a non-null match, but Flow doesn't refine assignment-in-condition here
+  // Note: assignment is done before the test (rather than inside the while condition) so that Flow can refine `match` to non-null in the body.
+  let match: RegExp$matchResult | null = search.exec(query)
+  while (match !== null) {
     urlParams[decode(match[1])] = decode(match[2])
-    // $FlowIgnore[incompatible-use] safe: same as above
     console.log(`Found param: ${decode(match[1])} / ${decode(match[2])}`)
+    match = search.exec(query)
   }
   clo(urlParams)
   return urlParams

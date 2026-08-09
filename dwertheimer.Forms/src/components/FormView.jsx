@@ -33,7 +33,7 @@ type Props = {
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, type Node } from 'react'
 import { createPortal } from 'react-dom'
-import { type PassedData } from '../shared/types.js'
+import { type PassedData, type PassThroughVars } from '../shared/types.js'
 import { AppProvider } from './AppContext.jsx'
 import FormErrorBanner from './FormErrorBanner.jsx'
 import DynamicDialog from '@helpers/react/DynamicDialog'
@@ -887,8 +887,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
    */
   const addPassthroughVars = (data: PassedData): PassedData => {
     const newData = { ...data }
-    if (!newData.passThroughVars) newData.passThroughVars = {}
-    // $FlowIgnore
+    if (!newData.passThroughVars) newData.passThroughVars = ({}: PassThroughVars)
     newData.passThroughVars.lastWindowScrollTop = window.scrollY
     return newData
   }
@@ -912,12 +911,20 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
    * In that case, don't call this directly, use sendActionToPlugin() instead
    * @param {[command:string,data:any,additionalDetails:string]} param0
    */
-  // $FlowIgnore
-  const sendToPlugin = ([command: string, data: any, additionalDetails: string = '']) => {
+  const sendToPlugin = ([command, data, additionalDetails = '']: [string, any, string | void]) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')
     dispatch('SEND_TO_PLUGIN', [command, data], `WebView: sendToPlugin: ${String(command)} ${additionalDetails}`)
+  }
+
+  /**
+   * AppContext declares sendToPlugin as (command, dataToSend) positional args (which is how FormBrowserView and
+   * FormBuilderView fill the slot), while the local sendToPlugin above takes a single tuple. Adapt, so that a
+   * consumer calling context.sendToPlugin('foo', data) does not end up array-destructuring the command string.
+   */
+  const sendToPluginFromContext = (command: string, dataToSend: any, additionalDetails: string = '') => {
+    sendToPlugin([command, dataToSend, additionalDetails])
   }
 
   /**
@@ -1009,7 +1016,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings, onSu
     <>
       <AppProvider
         sendActionToPlugin={sendActionToPlugin}
-        sendToPlugin={sendToPlugin}
+        sendToPlugin={sendToPluginFromContext}
         requestFromPlugin={requestFromPlugin}
         dispatch={dispatch}
         pluginData={pluginData}

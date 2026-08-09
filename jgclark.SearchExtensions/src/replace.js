@@ -235,8 +235,8 @@ function buildSearchOptionsForReplace(
   logDebug('replace', `arg2 -> note types '${noteTypesToInclude.toString()}'`)
 
   // Get the paraTypes to include
-  // $FlowFixMe[incompatible-type]
-  const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg && paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : []
+  // Cast, not a suppression: arg3 is free text, so the real element type (ParagraphType, a union of string literals) can only be asserted here.
+  const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg && paraTypeFilterArg !== '') ? ((paraTypeFilterArg.split(','): any): Array<ParagraphType>) : []
   logDebug('replace', `arg3 -> para types '${paraTypesToInclude.toString()}'`)
 
   // Form TSearchOptions object
@@ -343,8 +343,8 @@ export async function replace(
     // Search using search() API, extended to make case-sensitive
     CommandBar.showLoading(true, `${commandNameToDisplay} ...`)
     await CommandBar.onAsyncThread()
-    // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const searchResultsProm: resultOutputType = runExtendedSearches([searchTerm], config, searchOptions)
+    // Note: deliberately no await: this is resolved later. The annotation must therefore be the Promise, not its resolved type.
+    const searchResultsProm: Promise<resultOutputType> = runExtendedSearches([searchTerm], config, searchOptions)
     await CommandBar.onMainThread()
 
     //----------------------------------------------------------------------------

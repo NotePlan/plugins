@@ -1,7 +1,7 @@
 // @flow
 
 import React, { useState, useEffect, useRef } from 'react'
-import type { TestGroup, Results, LogEntry } from './DebugPanel'
+import type { Test, TestGroup, Results, LogEntry, PatchableConsole } from './DebugPanel'
 import { timer } from '@helpers/dev'
 import './TestingPane.css'
 
@@ -51,8 +51,9 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
       const methodsToOverride = ['log', 'error', 'info']
       methodsToOverride.forEach((methodName) => {
         const originalMethod = console[methodName]
-        // $FlowIgnore
-        console[methodName] = (...args) => {
+        // console's methods are declared read-only (method syntax) and it has no indexer, so the
+        // monkey-patch cannot be typed against `typeof console` - see PatchableConsole in DebugPanel.
+        ;((console: any): PatchableConsole)[methodName] = (...args) => {
           logListener()
           originalMethod.apply(console, args)
         }
@@ -149,7 +150,11 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
    *
    * @param {Array<{ name: string }>} tests - The tests to reset.
    */
-  const resetTestResults = (tests: Array<{ name: string, skip?: boolean, test?: Function }>) => {
+  // `$ReadOnlyArray<Test>`: every caller passes a `TestGroup.tests` (i.e. `Array<Test>`), and this only
+  // reads `test.name`. The old hand-rolled `Array<{ name, skip?, test?: Function }>` was wrong twice over -
+  // exact-by-default made `test?: Function` invariantly incompatible with `Test.test`, and the invariant
+  // `Array<>` blocked the read-only use - which is what both call sites were suppressing.
+  const resetTestResults = (tests: $ReadOnlyArray<Test>) => {
     setResults((prevResults) => {
       const newResults = { ...prevResults }
       tests.forEach((test) => {
@@ -167,7 +172,6 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
    * @param {TestGroup} group - The group of tests to run.
    */
   const runAllTestsInGroup = async (group: TestGroup) => {
-    // $FlowIgnore
     resetTestResults(group?.tests ?? []) // Reset results for the specific group
     if (runningGroups.has(group.groupName)) return
     setRunningGroups((prev) => new Set(prev).add(group.groupName))
@@ -193,7 +197,6 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
    * Runs all tests across all groups.
    */
   const runAllTests = async () => {
-    // $FlowIgnore
     testGroups.forEach((group) => resetTestResults(group.tests)) // Reset results for all groups
     for (const group of testGroups) {
       await runAllTestsInGroup(group)

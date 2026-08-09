@@ -10,7 +10,7 @@ import { reminderItems } from './demoData'
 import { bucketReminderItems } from './reminderBuckets'
 import { createReminderSectionItem, getReminderListsForConfig, mapCalendarItemToReminderForDashboard } from './reminderMapping'
 import { placeReminderBuckets, type TReminderPlacement } from './reminderPlacement'
-import type { TActionButton, TDashboardSettings, TSection, TSectionItem, TSettingItem } from './types'
+import type { TActionButton, TDashboardSettings, TSection, TSectionItem, TDialogSettingItem } from './types'
 import { logDebug, logError, logTimer, timer } from '@helpers/dev'
 import { usersVersionHas } from '@helpers/NPVersions'
 
@@ -132,13 +132,13 @@ export async function getRemindersGeneratedData(
 
     // Adding Reminders only supported on NotePlan >= 3.21.2 (macOS build 1525)
     // Form fields for the heading add-Reminder button (CommandButton -> showDialog)
-    const reminderFormFields: Array<TSettingItem> = [
+    const reminderFormFields: Array<TDialogSettingItem> = [
       { type: 'input', label: 'Reminder:', key: 'text', focus: true },
       {
         type: 'dropdown-select',
         label: 'Reminder List:',
         key: 'list',
-        // Cast: TSettingItem.options (in helpers/react/DynamicDialog) is Array<TOptionObject>, but
+        // Cast: TDialogSettingItem.options (in helpers/react/DynamicDialog) is Array<TOptionObject>, but
         // dropdown-select also accepts a plain Array<string>. Arrays are invariant so this can't be widened here.
         options: (listTitlesForAdd: any),
         noWrapOptions: true,

@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-07-30 for v2.4.0.b57 by @jgclark + @CursorAI
+// Last updated 2026-08-06 for v2.4.0.b62 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -194,9 +194,10 @@ async function clearReminderDueDateAfterCreate(reminderId: string, fallbackListN
 
   // Plain object update (same pattern as HTML-view Calendar APIs). Do not assign reminder.date = null
   // on the CalendarItem first -- that setter has historically turned null into epoch before update ran.
-  // $FlowIgnore[incompatible-call] Calendar.update accepts a reminder-shaped object with date: null (v3.21.2+)
-  // $FlowIgnore[prop-missing] the object literal deliberately omits TCalendarItem fields (attendeeNames etc) that the reminder update path does not use
-  await Calendar.update({
+  // Cast: Calendar.update() is declared to take a full TCalendarItem class instance, but the reminder
+  // update path documented above needs the plain-object form with date: null, which omits attendeeNames,
+  // availability, the create()/update() methods and so on. Only a flow-typed/Noteplan.js overload would fix it.
+  await Calendar.update(({
     id: reminder.id,
     title: reminder.title,
     date: null,
@@ -207,7 +208,7 @@ async function clearReminderDueDateAfterCreate(reminderId: string, fallbackListN
     notes: reminder.notes || '',
     url: reminder.url || '',
     ...(typeof reminder.priority === 'number' ? { priority: reminder.priority } : {}),
-  })
+  }: any))
 
   const after = await Calendar.reminderByID(reminderId)
   // Any non-null date (including epoch) means the due date was not cleared
@@ -302,8 +303,9 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
       if (applePriority != null) {
         undatedPayload.priority = applePriority
       }
-      // $FlowIgnore[incompatible-call] plain object form of Calendar.add (v3.21+)
-      created = await resolveCalendarAddResult(Calendar.add(undatedPayload))
+      // Cast: as with Calendar.update() above, Calendar.add() is declared to take a TCalendarItem class
+      // instance, so the plain-object form (the only way to create an undated reminder) cannot be typed.
+      created = await resolveCalendarAddResult(Calendar.add((undatedPayload: any)))
       if (!created || !created.id) {
         throw new Error('doAddReminder: Calendar.add failed for undated reminder (returned undefined / no id)')
       }
@@ -776,16 +778,25 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
   }
 }
 
+/**
+ * Persist the live floating-window Rect for the Dashboard (size and position).
+ * Invoked from WebView after a debounced resize or onViewWillDisappear, and from plugin-side
+ * show/refresh paths so pure moves still save even when the WebView is already null.
+ * @returns {TBridgeClickHandlerResult}
+ */
 export function doWindowResized(): TBridgeClickHandlerResult {
-  logDebug('doWindowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
+  logDebug('doWindowResized', `windowResized triggered on plugin side for '${windowCustomId}'`)
   const thisWin = getWindowFromCustomId(windowCustomId)
   if (thisWin !== false) {
     const rect = getLiveWindowRectFromWin(thisWin)
     if (rect) {
-      logDebug('doWindowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
+      logDebug('doWindowResized', `-> saving rect: ${rectToString(rect)} to pref`)
       storeWindowRect(windowCustomId)
-      return handlerResult(rect ? true : false)
+      return handlerResult(true)
     }
+    logWarn('doWindowResized', `-> no live rect for '${windowCustomId}', not saving`)
+  } else {
+    logWarn('doWindowResized', `-> could not find window '${windowCustomId}'`)
   }
   return handlerResult(false, [], { errorMsg: 'Could not get window from customId', errorMessageLevel: 'ERROR' })
 }
@@ -831,8 +842,6 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
   // const { filename, content, modifierKey } = validateAndFlattenMessageObject(data)
   // const note = await Editor.openNoteByFilename(filename, modifierKey === 'meta', 0, 0, modifierKey === 'alt')
   // if (note) {
-  //   // $FlowIgnore[prop-missing]
-  //   // $FlowIgnore[incompatible-call]
   //   const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
   //   logDebug('doShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph`,)
   //   return handlerResult(true)
@@ -964,9 +973,9 @@ function planSectionRefreshAfterDashboardSettingsChange(
   const resultsToHandle: Array<TActionOnReturn> = ['CLOSE_UNNEEDED_SECTIONS']
   let resultExtra: { sectionCodes?: Array<TSectionCode>, dashboardThemeName?: string } = {}
   const defaults = getDashboardSettingsDefaults()
-  // $FlowIgnore[prop-missing]
-  // $FlowIgnore[cannot-spread-indexer]
-  const prevMerged: { [string]: any } = { ...defaults, ...priorDashboardSettingsSnapshot }
+  // Cast: spreading an indexed object ({ [string]: any }) last into an object literal is a known Flow
+  // limitation -- it can't prove which explicit keys survive, so the literal gets no inferrable type.
+  const prevMerged: { [string]: any } = { ...defaults, ...(priorDashboardSettingsSnapshot: any) }
   const nextMerged: { [string]: any } = { ...defaults, ...(settingsToSave || {}) }
   const oldTheme = String(prevMerged.dashboardTheme ?? '')
   const newTheme = String(nextMerged.dashboardTheme ?? '')
@@ -1038,8 +1047,9 @@ function planSectionRefreshAfterDashboardSettingsChange(
 export async function doSaveDashboardSettingsFromBridge(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
   try {
     // clo(data, `doSaveDashboardSettingsFromBridge() starting with data = `)
-    // $FlowFixMe[incompatible-type]
-    const settingsFromBridge: Partial<TDashboardSettings> = data.settings
+    // Cast: MessageDataObject.settings is `TDashboardSettings | TPerspectiveSettings` (one message type
+    // carries either), and only this handler knows which arm the bridge actually sent.
+    const settingsFromBridge: Partial<TDashboardSettings> = (data.settings: any)
     // DataStore.settings is not reliable in HTMLView JSContexts; use the settings helpers instead.
     if (!settingsFromBridge) {
       throw new Error(`settingsFromBridge is null or undefined.`)
@@ -1098,7 +1108,6 @@ export async function doSaveDashboardSettingsFromBridge(data: MessageDataObject,
     }
     const pluginDataPatch: { [string]: any } = { [settingName]: settingsToSave, pushFromServer }
     if (perspectivesToSave) {
-      // FlowFixMe(incompatible-type)
       pluginDataPatch.perspectiveSettings = perspectivesToSave
     }
     await setPluginData(pluginDataPatch, `_Updated ${settingName} in global pluginData`)

@@ -655,8 +655,7 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
   }
 }
 
-// $FlowIgnore
-export async function templateWeather(): Promise<string> {
+export async function templateWeather(): Promise<void> {
   try {
     let templateConfig = DataStore.settings
     let weatherFormat = (templateConfig && templateConfig.weatherFormat) || ''
@@ -671,8 +670,7 @@ export async function templateWeather(): Promise<string> {
   }
 }
 
-// $FlowIgnore
-export async function templateAdvice(): Promise<string> {
+export async function templateAdvice(): Promise<void> {
   try {
     const advice: string = await getAdvice()
 
@@ -682,8 +680,7 @@ export async function templateAdvice(): Promise<string> {
   }
 }
 
-// $FlowIgnore
-export async function templateAffirmation(): Promise<string> {
+export async function templateAffirmation(): Promise<void> {
   try {
     const affirmation: string = await getAffirmation()
 
@@ -693,8 +690,7 @@ export async function templateAffirmation(): Promise<string> {
   }
 }
 
-// $FlowIgnore
-export async function templateVerse(): Promise<string> {
+export async function templateVerse(): Promise<void> {
   try {
     const verse: string = await getVersePlain()
 
@@ -704,8 +700,7 @@ export async function templateVerse(): Promise<string> {
   }
 }
 
-// $FlowIgnore
-export async function templateQuote(): Promise<string> {
+export async function templateQuote(): Promise<void> {
   try {
     const verse: string = await getDailyQuote()
 

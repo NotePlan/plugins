@@ -5,9 +5,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
   New sections
 
-- Active Projects – open projects from Projects & Reviews, with next actions; existing Projects section renamed to Projects to Review
-- Wins – optional section for top-priority tasks (default >>) drawn from enabled Calendar sections
-- Apple Reminders – open reminders across relevant sections; complete / delete / add; click to open in Reminders; priorities supported
+- Active Projects - open projects from Projects & Reviews, with next actions; existing Projects section renamed to Projects to Review
+- Wins - optional section for top-priority tasks (default >>) drawn from enabled Calendar sections
+- Apple Reminders - open reminders across relevant sections; complete / delete / add; click to open in Reminders; priorities supported
 
   Projects & Reviews integration
 
@@ -18,7 +18,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
   Calendar / time
 
-- Timed Items – timeblocks and timed reminders in one section (title adapts)
+- Timed Items - timeblocks and timed reminders in one section (title adapts)
 - Headings can appear in the current time-block / timed-items area
 - Neater time and scheduled-date chips (clock / calendar lozenges)
 
@@ -30,7 +30,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
   Spaces & windowing
 
-- (Team)Spaces awareness – include Private and/or Spaces per Perspective; clearer Space display in note links
+- (Team)Spaces awareness - include Private and/or Spaces per Perspective; clearer Space display in note links
 - Open Dashboard in the main window or a split view (as well as a separate window)
 - Better iOS / iPad support (main window where available, sidebar plugin preference)
 
@@ -41,13 +41,18 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Tag/mention cache used by default (faster TAG sections)
 
 
+## [2.4.0.b62] 2026-08-07 (unreleased)
+- Fix: Project title chips in Project Sections reverted to full normal font size; compact size remains for task context note links.
+- Fix: Window size + position is saved again when resizing/moving it
+- Fix: Projects Sections caption "first N of M" now counts projects only (not next-action child rows).
+
 ## [2.4.0.b61] 2026-08-01
 - Change: Reminder time chip now matches NotePlan's new native style (from 3.20.2): pale lozenge with bell icon and colored text, placed after the title (was white-on-fill clock lozenge before the title).
 - Change: Reminder items now only apply priority coloring to the title, not to any location/date/time chips.
 
 ## [2.4.0.b60] 2026-08-01
 - Fix: when the **Yesterday** section is off, open tasks from yesterday's note (and items scheduled to yesterday) now appear in **Overdue**, matching how yesterday reminders already spill. dev: Routing lives in the section orchestrator so DY and OVERDUE share one fetch.
-- Fix: Overdue **All → Today** now honors **Hide lower-priority items?** / **Move all… only move shown** like Today, Yesterday, and Week bulk buttons (becomes **All shown → Today** and only moves items at/above the visible priority threshold).
+- Fix: Overdue **All -> Today** now honors **Hide lower-priority items?** / **Move all... only move shown** like Today, Yesterday, and Week bulk buttons (becomes **All shown -> Today** and only moves items at/above the visible priority threshold).
 - Fix: Overdue (and other section) section descriptions (and buttons) when only row/ info messages remain.
 - Change: Filters "Show Reminders" is again a single master toggle: when off, reminders appear in no section. "Show Undated/Overdue Reminders" and "Reminder Lists to Include" move to Dashboard Settings under "Reminders Section", along with new "Hide timed reminders until their due time?" (default on). dev: "Show Current Reminders" stays as a hidden setting (forced on for now).
 - dev: when Yesterday and Overdue are both on, overdue generation now receives yesterday paras for content dedupe (React Hide Duplicates remains the display safety net).
@@ -58,7 +63,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Fix: **Overdue** section counted reminders it did not display. dev: When `maxItemsToShowInSection` left fewer slots than there were reminders, the surplus was sliced off the list but still added to the total, so the header claimed more items than the section held. Now counts only what was added, and warns when some do not fit.
 - Fix: **Overdue** (and other) section descriptions showed a stale total after duplicate removal.
 - Change: tweaks to **Reminders** section description line
-- Fix: **Reminders** whose own section was switched off were discarded silently. Overdue, yesterday and untimed today reminders now fall back to the Reminders section (own section → Overdue → Reminders), so nothing disappears just because a section is hidden. Both fallbacks stay subject to "Show Reminders" / "Show Undated/Overdue Reminders", so an item you deliberately hid is not resurrected.
+- Fix: **Reminders** whose own section was switched off were discarded silently. Overdue, yesterday and untimed today reminders now fall back to the Reminders section (own section -> Overdue -> Reminders), so nothing disappears just because a section is hidden. Both fallbacks stay subject to "Show Reminders" / "Show Undated/Overdue Reminders", so an item you deliberately hid is not resurrected.
 - Fix: **(Team)Spaces**: Edge cases with no-longer valid "Spaces to Include" in settings. dev: When holding only unreachable teamspace IDs hid every task. Private notes are read only when `private` is in that list, so a list of stale IDs (e.g. after signing out of Spaces) filtered out every note before any task could be read - reminders still appeared, which made it look like tasks had vanished. Unreachable IDs are now discarded, falling back to private notes with a warning. Deliberate configurations are untouched.
 - dev: log when reminders or notes are dropped - reminder buckets with no visible host section, reminder lists disabled in NP, and overdue reminders that did not fit the section limit.
 - dev: add compact logging one line per reminder + bucket assignment etc.
@@ -67,7 +72,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Fix: **Overdue** section counted reminders it did not display. dev: When `maxItemsToShowInSection` left fewer slots than there were reminders, the surplus was sliced off the list but still added to the total, so the header claimed more items than the section held. Now counts only what was added, and warns when some do not fit.
 - Fix: **Overdue** (and other) section descriptions showed a stale total after duplicate removal.
 - Change: tweaks to **Reminders** section description line
-- Fix: **Reminders** whose own section was switched off were discarded silently. Overdue, yesterday and untimed today reminders now fall back to the Reminders section (own section → Overdue → Reminders), so nothing disappears just because a section is hidden. Both fallbacks stay subject to "Show Current Reminders" / "Show Undated/Overdue Reminders", so an item you deliberately hid is not resurrected.
+- Fix: **Reminders** whose own section was switched off were discarded silently. Overdue, yesterday and untimed today reminders now fall back to the Reminders section (own section -> Overdue -> Reminders), so nothing disappears just because a section is hidden. Both fallbacks stay subject to "Show Current Reminders" / "Show Undated/Overdue Reminders", so an item you deliberately hid is not resurrected.
 - Fix: **(Team)Spaces**: Edge cases with no-longer valid "Spaces to Include" in settings. dev: When holding only unreachable teamspace IDs hid every task. Private notes are read only when `private` is in that list, so a list of stale IDs (e.g. after signing out of Spaces) filtered out every note before any task could be read - reminders still appeared, which made it look like tasks had vanished. Unreachable IDs are now discarded, falling back to private notes with a warning. Deliberate configurations are untouched.
 - dev: log when reminders or notes are dropped - reminder buckets with no visible host section, reminder lists disabled in NP, and overdue reminders that did not fit the section limit.
 - dev: add compact logging one line per reminder + bucket assignment etc.
@@ -82,7 +87,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.4.0.b56] 2026-07-29
 - Change: Filters **Show Reminders** is now two toggles: **Show Current Reminders** (today / yesterday / tomorrow, including timed) and **Show Undated/Overdue Reminders** (undated REM section + past-dated reminders in Overdue). Upgrade forces both on and removes the old key.
-- Change: Reminder bucketing - past-dated → **Overdue**; undated → **Reminders**; yesterday falls back to Overdue when Yesterday is off; tomorrow is ignored when Tomorrow is off.
+- Change: Reminder bucketing - past-dated -> **Overdue**; undated -> **Reminders**; yesterday falls back to Overdue when Yesterday is off; tomorrow is ignored when Tomorrow is off.
 - Fix: restore 1pt `divider-color` border on Filters and Feature Flags dropdown menus
 - Change: Reminder open-circle icons always now use the same color as Apple Reminders does.
 
@@ -100,12 +105,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Docs: README now explains Hide Duplicates priority order and how Wins / Calendar note terms change it.
 - Change: the count of completed items is now more consistent. (Calendar section "closed" progress now follows period identity - **Today** counts tasks for today completed today; **Yesterday** / Week / Month / Quarter / Year count `@done` dates inside that period in the calendar note. Header "done today" total remains all completions anywhere today. Also tracks completed wins (`>>` / configured marker) for Wins congrats.)
 - dev: New test command: **log Done Counts** (alias `ldc`) dumps the today's done-count map to the Plugin Console.
-- Fix: moving / rescheduling **indented** tasks and checklists no longer fails to find the paragraph. Matching now allows leading-indent differences (NotePlan backlinks return indent-stripped rawContent), and referenced paras are resolved back to the real note paragraph so "Move All → ..." and dialog actions keep correct indent.
-- Fix: saying **No** to the bulk-move confirmation (e.g. Move All This Week → Next Week) no longer shows a "something's gone wrong" banner; it only logs that the user cancelled.
+- Fix: moving / rescheduling **indented** tasks and checklists no longer fails to find the paragraph. Matching now allows leading-indent differences (NotePlan backlinks return indent-stripped rawContent), and referenced paras are resolved back to the real note paragraph so "Move All -> ..." and dialog actions keep correct indent.
+- Fix: saying **No** to the bulk-move confirmation (e.g. Move All This Week -> Next Week) no longer shows a "something's gone wrong" banner; it only logs that the user cancelled.
 
 ## [2.4.0.b53] 2026-07-21
 - Fix to layout that was pushing the notelinks down to a third line in some cases
-- Change: mid-task and source note links now show a shorter label -- use NotePlan `[alias]([[title]])` when present, drop `#heading`, and truncate titles over 50 characters with `…`
+- Change: mid-task and source note links now show a shorter label -- use NotePlan `[alias]([[title]])` when present, drop `#heading`, and truncate titles over 50 characters with `...`
 - Tweak arrow icons in "All..." buttons
 - Use the note icons+colors from frontmatter in mid-task note links, as we do elsewhere in the UI
 
@@ -135,7 +140,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dev: Reminder flagged status commented out for now as confirmed that `CalendarItem.flagged` is not in the plugin API. Asked for it to be extended to cover this.
 - dev: Invalid item payloads no longer become fake `'(error)'` filenames; validation failures abort cleanly with an error banner (and section refresh when possible).
 - dev: fix: x-callback `setSetting` / `setSettings` can now change `show*Section` keys (and `showTagSection_*`), not only filter/settings-dialog keys.
-- dev: fix: `onUpdateOrInstall` no longer crashes if stored `dashboardSettings` JSON is missing or invalid (`parseSettings` → `{}`).
+- dev: fix: `onUpdateOrInstall` no longer crashes if stored `dashboardSettings` JSON is missing or invalid (`parseSettings` -> `{}`).
 - dev: Quick-win refactor of data generation: shared `isRemindersSectionEnabled` + add-task form/button helpers; Month/Quarter/Year moved to `dataGenerationPeriods.js`; fixed inconsistent log function names.
 
 ## [2.4.0.b50] 2026-07-14
@@ -172,13 +177,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.4.0.b46] 2026-06-13
 - Turning "Show chosen 'Wins' priority marker as a separate section?" off or on now also turns the **Wins** section visibility off or on, so the Wins section is removed or generated immediately.
-- dev: **Derived dashboard settings** — coupled settings (e.g. `treatTopPriorityAsWins` → `showWinsSection`) registered once in `DASHBOARD_DERIVED_SETTING_RULES`; applied via `applyDerivedDashboardSettings` (React reducer) and `prepareDashboardSettingsForSave` (plugin persistence).
+- dev: **Derived dashboard settings** -- coupled settings (e.g. `treatTopPriorityAsWins` -> `showWinsSection`) registered once in `DASHBOARD_DERIVED_SETTING_RULES`; applied via `applyDerivedDashboardSettings` (React reducer) and `prepareDashboardSettingsForSave` (plugin persistence).
 - dev: Circular import fix: `getDashboardSettingsDefaults()` moved to new `dashboardSettingsDefaults.js`.
 
 ## [2.4.0.b45] 2026-05-29
 - speed up **tag/mention cache build performance**. dev: new pre-filter notes before full scan; single-pass extraction on open/checklist/scheduled paragraphs; O(1) wanted-item lookup via precomputed Sets. Removed unused `TAG_CACHE_FOR_ALL_TAGS` / blacklist code.
-- dev: **tag/mention cache generation** — run full rebuild on the main thread (not async thread) so external commands complete and `tagMentionCache.json` is saved; fix completion timer rate calculation.
-- dev: **tag/mention cache timestamps** — `generateTagMentionCache` now updates `lastTimeThisWasRunPref` in sync with `cache.lastUpdated`; incremental update uses the newer of file vs pref; timestamps stored as ISO UTC in JSON.
+- dev: **tag/mention cache generation** -- run full rebuild on the main thread (not async thread) so external commands complete and `tagMentionCache.json` is saved; fix completion timer rate calculation.
+- dev: **tag/mention cache timestamps** -- `generateTagMentionCache` now updates `lastTimeThisWasRunPref` in sync with `cache.lastUpdated`; incremental update uses the newer of file vs pref; timestamps stored as ISO UTC in JSON.
 - Fix to TAG sections after saving perspective. dev: the tagMentionsCache's  joint `wantedTagMentionsList.json` was not getting updated correctly when a Perspective was saved.
 - Fix edge case where **TAG/WINS section could be shown twice during refresh/close flows**. dev: TAG rows are now synced by current settings (`tagsToShow` + `showTagSection_*`), deduped by tag name, and synthetic sections (for example `WINS`) are stripped from pluginData before merge/close to prevent client-only duplicates from persisting.
 - dev: Added calling info to the tagMentionCache log file
@@ -186,29 +191,29 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.4.0.b44] 2026-05-23
 ### Fixed
-- **Feature Flags (`FFlag_*`)** — all flags from the menu are written to top-level `dashboardSettings` in `settings.json`; closing via the header icon no longer resets toggles before save; dashboard-global saves always run through `doSaveDashboardSettingsFromBridge` so `setPluginData` and the plugin cache match React immediately.
-- **Tag/mention cache progress banner** — "Generating tag/mention cache …" banner is now dismissed on success or failure (was left visible because progress messages had no timeout and the completion banner was sent from the async thread).
+- **Feature Flags (`FFlag_*`)** -- all flags from the menu are written to top-level `dashboardSettings` in `settings.json`; closing via the header icon no longer resets toggles before save; dashboard-global saves always run through `doSaveDashboardSettingsFromBridge` so `setPluginData` and the plugin cache match React immediately.
+- **Tag/mention cache progress banner** -- "Generating tag/mention cache ..." banner is now dismissed on success or failure (was left visible because progress messages had no timeout and the completion banner was sent from the async thread).
 ### Changed
-- **Tag/Mention cache on by default** — tag cache is used unless `FFlag_UseTagCache: false` is set in top-level `dashboardSettings`.
-- **Feature Flags menu** — shown only in DEV logging mode, or when hidden `showFeatureFlagMenu: true` is set in `dashboardSettings` (not when individual FFlags are on).
+- **Tag/Mention cache on by default** -- tag cache is used unless `FFlag_UseTagCache: false` is set in top-level `dashboardSettings`.
+- **Feature Flags menu** -- shown only in DEV logging mode, or when hidden `showFeatureFlagMenu: true` is set in `dashboardSettings` (not when individual FFlags are on).
 - Updating Dashboard settings will now not refresh the display unless it needs to. dev: Added more settings to DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH
 ### Dev
 - Dashboard-global settings (`FFlag_*`, `showFeatureFlagMenu`) are stripped from perspective defs on save and no longer override live globals on perspective switch.
 - Set `"showFeatureFlagMenu": true` in `dashboardSettings` in settings.json to expose the FF menu outside DEV mode.
 
 ## [2.4.0.b43] 2026-05-23
-- dev: improvements to **Diagnostics note** — title as H1 after frontmatter; 🔄 Refresh pseudo-button at top; new Tag/Mention Cache section (settings, definitions, cache stats) before Current Perspective.
-- fix: **Stale tag sections after changing `tagsToShow`** — refresh and `CLOSE_UNNEEDED_SECTIONS` no longer keep old TAG rows (e.g. `@father` after switching a perspective to `@friend`); Save Perspective now syncs live dashboard settings to disk and triggers section cleanup/refresh. (Thanks, @Ryan.)
+- dev: improvements to **Diagnostics note** -- title as H1 after frontmatter; 🔄 Refresh pseudo-button at top; new Tag/Mention Cache section (settings, definitions, cache stats) before Current Perspective.
+- fix: **Stale tag sections after changing `tagsToShow`** -- refresh and `CLOSE_UNNEEDED_SECTIONS` no longer keep old TAG rows (e.g. `@father` after switching a perspective to `@friend`); Save Perspective now syncs live dashboard settings to disk and triggers section cleanup/refresh. (Thanks, @Ryan.)
 
 ## [2.4.0.b42] 2026-05-23
-- dev: **Perspective settings cleaning** — `cleanDashboardSettingsInAPerspective()` runs once per perspective def on save/repair (`saveDashboardPluginSettings`); removed redundant pre-save cleans in save/switch handlers. `switchToPerspective` returns sanitized defs from cache after save so React matches disk.
+- dev: **Perspective settings cleaning** -- `cleanDashboardSettingsInAPerspective()` runs once per perspective def on save/repair (`saveDashboardPluginSettings`); removed redundant pre-save cleans in save/switch handlers. `switchToPerspective` returns sanitized defs from cache after save so React matches disk.
 
 ## [2.4.0.b41] 2026-05-23
-- dev: fix: **Spaces to Include setting** — when no Team Spaces are enabled, Settings no longer logs repeated `MultiSelectSpaces :: No teamspaces available` errors or hides the field; shows "You are not a member of any Spaces." instead (Private space remains the implicit default).
-- fix: **Timeblock must-contain preference (emoji marker)** — React item rendering no longer calls `DataStore.preference('timeblockTextMustContainString')` from the WebView (which returned a non-JSON-serializable bridged String and could halt Dashboard load). Plugin reads the preference once via `getPlainPreferenceString()` and passes it through `notePlanSettings`; `isTimeBlockLine()` only reads the preference when the arg is omitted, not when `''` is passed explicitly. (Thanks, @dwertheimer for the PR.)
+- dev: fix: **Spaces to Include setting** -- when no Team Spaces are enabled, Settings no longer logs repeated `MultiSelectSpaces :: No teamspaces available` errors or hides the field; shows "You are not a member of any Spaces." instead (Private space remains the implicit default).
+- fix: **Timeblock must-contain preference (emoji marker)** -- React item rendering no longer calls `DataStore.preference('timeblockTextMustContainString')` from the WebView (which returned a non-JSON-serializable bridged String and could halt Dashboard load). Plugin reads the preference once via `getPlainPreferenceString()` and passes it through `notePlanSettings`; `isTimeBlockLine()` only reads the preference when the arg is omitted, not when `''` is passed explicitly. (Thanks, @dwertheimer for the PR.)
 
 ## [2.4.0.b40] 2026-05-23
-- fix: **Modified perspective asterisk** — toggling section visibility (e.g. `showQuarterSection`) on a named perspective sets `isModified` again; `CLOSE_UNNEEDED_SECTIONS` no longer overwrites `perspectiveSettings` from a stale WebView snapshot. Shared `isNamedPerspectiveModified()` drives the `*` label, **Save Perspective**, and `doSavePerspective` when live settings differ from the saved def (not only the `isModified` flag). After switching perspectives, `*` uses a `dashboardSettingsBaseline` snapshot so merge carryover from the previous perspective does not show as modified when `isModified` is false on disk. **Save Perspective** uses `forSave` (live-vs-def OR live-vs-baseline), WebView `dashboardSettings`, and optional `settings` from React so save is not blocked when carryover matches baseline but the saved def is still stale. (Thanks, @Ryan for help debugging this.)
+- fix: **Modified perspective asterisk** -- toggling section visibility (e.g. `showQuarterSection`) on a named perspective sets `isModified` again; `CLOSE_UNNEEDED_SECTIONS` no longer overwrites `perspectiveSettings` from a stale WebView snapshot. Shared `isNamedPerspectiveModified()` drives the `*` label, **Save Perspective**, and `doSavePerspective` when live settings differ from the saved def (not only the `isModified` flag). After switching perspectives, `*` uses a `dashboardSettingsBaseline` snapshot so merge carryover from the previous perspective does not show as modified when `isModified` is false on disk. **Save Perspective** uses `forSave` (live-vs-def OR live-vs-baseline), WebView `dashboardSettings`, and optional `settings` from React so save is not blocked when carryover matches baseline but the saved def is still stale. (Thanks, @Ryan for help debugging this.)
 
 ## Summary from [2.4.0.b19] (through [2.4.0.b39])
 ### New
@@ -262,7 +267,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - fix: x-callback `setSettings` / `updateSectionFlagsToShowOnly` no longer double-`JSON.stringify` `dashboardSettings`.
 - dev: rename "getPerspectiveSettings()` as `loadPerspectiveDefsFromPluginSettings` to make it a little clearer.
 - dev: @CursorAI updated the ARCHITECTURE... doc to align it with reality for perspectives and timers.
-- fix: **Copy settings to…** (`doCopyPerspective`) now calls `savePerspectiveSettings()` so copied perspective defs persist in `settings.json`, not only in the React window via `setPluginData`.
+- fix: **Copy settings to...** (`doCopyPerspective`) now calls `savePerspectiveSettings()` so copied perspective defs persist in `settings.json`, not only in the React window via `setPluginData`.
 - fix: **Edit All Perspectives / JSON bulk save** (`doSavePerspectiveSettingsFromBridge`) no longer builds live `dashboardSettings` by spreading the entire plugin `getSettings()` object (which incorrectly injected `perspectiveSettings` and other top-level keys). Uses new `mergeDashboardSettingsForPerspectiveDef()` with the same merge rules as perspective switch.
 - fix: **Save Perspective As / add new perspective** (`addNewPerspective`) now updates top-level `dashboardSettings` in `settings.json` and pushes both `dashboardSettings` and `perspectiveSettings` to the WebView with `pushFromServer`, so reopening the Dashboard matches the new active perspective.
 - fix: **Save+Switch** in the perspective dropdown uses a single bridge command `savePerspectiveAndSwitch` (`doSavePerspectiveAndSwitchToPerspective`) so save completes before switch; avoids race where `switchToPerspective` cleared `isModified` before save finished.
@@ -310,7 +315,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dev: turn down more logging
 
 ## [2.4.0.b30] 2026-04-17
-- fix: "Add Task → Note": choosing **All spaces** now loads notes from every space via np.Shared `getNotes` (`space: '__all__'`). Previously the UI could send no space filter and the handler only returned Private notes, so the chooser looked “stuck” at ~25 items and search could not find teamspace notes.
+- fix: "Add Task -> Note": choosing **All spaces** now loads notes from every space via np.Shared `getNotes` (`space: '__all__'`). Previously the UI could send no space filter and the handler only returned Private notes, so the chooser looked "stuck" at ~25 items and search could not find teamspace notes.
 
 ## [2.4.0.b29] 2026-04-17
 - fix: **SpaceChooser / getTeamspaces**: `unwrapPluginRequestData` plus `@helpers/react/routerUtils` `normalizeSharedInvokeResult` (peel extra `invokePluginCommandByName` wrapper around np.Shared `RequestResponse`) so the WebView receives a teamspace **array**, not a nested `{ success, data }` - fixes `[DIAG] loadSpaces: Invalid response format`
@@ -333,7 +338,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - perf: After saving header dropdown settings, refresh only Wins / Priority / Overdue when the user changed calendar section visibility only (Time Blocks section is also refreshed when enabled, same as other post-action paths). Otherwise close unused sections only without those incremental refreshes. INFO logs describe the chosen plan. Max priority is recalculated when dashboard settings change.
 
 ## [2.4.0.b24] 2026-04-14
-- Active Projects: next actions and progress comments now use the same rich-text display as other Dashboard task rows (hashtags, @mentions, links, dates, etc.), including the same “hide scheduled dates” and “hide priority markers” settings.
+- Active Projects: next actions and progress comments now use the same rich-text display as other Dashboard task rows (hashtags, @mentions, links, dates, etc.), including the same "hide scheduled dates" and "hide priority markers" settings.
 
 ## [2.4.0.b23] 2026-04-13
 - new **Wins** Section which shows any top-priority tasks (with the `>>` prefix) from as many of the current Calendar sections are turned on. You need to turn this on through the new setting **Show '>>' priority marker as a separate section**.  It has a subtly different background color.
@@ -469,7 +474,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dev: height/width/sticky fixes to use the new `var(--noteplan-toolbar-height, 0px)` for mainWindow running
 
 ## [2.4.0.b4] 2026-01-01
-- added support for opening the Dashboard in the main app window or a split view, as well as in a separate window. This is controlled in a new setting in the plugin's original settings screen (NotePlan > Settings… > AI & Plugins > Dashboard > ⚙️)
+- added support for opening the Dashboard in the main app window or a split view, as well as in a separate window. This is controlled in a new setting in the plugin's original settings screen (NotePlan > Settings... > AI & Plugins > Dashboard > ⚙️)
 - fix to Week section which (depending on settings) could be a year out when the week number has already ticked over to `W01` of the next year.
 - fix to some Header element sizes which mysteriously shrunk
 - another attempt to fix the tooltips getting clipped. Possibly improved some of them, but definitely not all, sorry.
@@ -536,7 +541,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 <!-- 
 ## [2.3.0.b16] 2025-11-29
-- the move "All → ..." buttons now support tasks in (Team)Space notes
+- the move "All -> ..." buttons now support tasks in (Team)Space notes
 - update documentation to refer to (Team)Spaces now, as NP has changed its language
 - improve layout in Settings heading area (for @dwertheimer)
 - tweak some itemIcon colour/position/cursor
@@ -568,7 +573,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Tweak to icon positioning in display of icons in edit buttons and noteTitles
 
 ## [2.3.0.b13] 2025-11-11
-- When lower-priority items filter is turned on, change the move "All → ..." buttons to show "All shown → ..." instead.  Added new setting "Do "Move all items" buttons only move shown items when filtering?" to control this. 
+- When lower-priority items filter is turned on, change the move "All -> ..." buttons to show "All shown -> ..." instead.  Added new setting "Do "Move all items" buttons only move shown items when filtering?" to control this. 
 
 ## [2.3.0.b12] 2025-10-10
 - Improve /backupSettings command
@@ -613,13 +618,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.3.0.b7] 2025-08-18
 - When using the top bar '+' button to add a new task anywhere, improved display of list of notes and headings when adding a new task (when running NP 3.18+). Also improved support for adding new tasks to Teamspace notes.
-- Fix to the move "All →  X" buttons ignoring indented tasks, or leaving duplicate tasks. (Hopefully ... do report if you still see this happening.)
+- Fix to the move "All ->  X" buttons ignoring indented tasks, or leaving duplicate tasks. (Hopefully ... do report if you still see this happening.)
 - Fix calendar links sometimes being rendered oddly (reported by @Clay)
 - Fix display of particular @mentions
 
 ## [2.3.0.b6] 2025-07-19
 - The Overdue section now shows the number of overdue beyond the 'lookback N days' setting limit, if that's applied (requested by @tastapod)
-- Fix to the 'All →  ...' move operations failing randomly
+- Fix to the 'All ->  ...' move operations failing randomly
 - Fix to display of hashtags and mentions with included hyphens or underscores (reported by @chrismetcalf)
 - When using "Move to Note" task action, if the note starts in a Calendar note, and is moved to a Regular note, then that >date is added.
 
@@ -703,13 +708,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
   - ISO end date for calendar notes (optional, default is empty)
 - add easier x-callback 'showDashboard' command alias
 - allow CalendarPicker to be opened when ⌘-clicking the task edit or project edit icon
-- add ⌘-click option to 'All → Tomorrow' and similar buttons which temporarily toggles between what is your normal set mode ('move' or 'schedule').
+- add ⌘-click option to 'All -> Tomorrow' and similar buttons which temporarily toggles between what is your normal set mode ('move' or 'schedule').
 ### Changed
 - the 'add task to any date' button in the Today section area has moved to the Header bar and is now an 'add task to any (calendar or regular) note'.
 - many small improvements to display, layout and tooltips
 - removed '<<carry forward>>' as a possible heading from the 'add a new task/checklist' dialog
 ### Fixed
-- when using 'All → Tomorrow' and similar buttons, stop trying to move child tasks, which raises errors, as they've already been moved with their parents
+- when using 'All -> Tomorrow' and similar buttons, stop trying to move child tasks, which raises errors, as they've already been moved with their parents
 - workaround for child tasks not behaving correctly on iOS
 - Made workaround for `undefined` value of NP timeblockTextMustContainString preference 
 -->
@@ -853,13 +858,13 @@ A major effort by @jgclark and @dwertheimer over the last 5 months. There are lo
 - new "/Add new Perspective", "/Delete Perspective" and "/Update current Perspective" commands
 - new `setPerspective` x-callback to use from outside NP
 - new 'Current Time Block' section at the top of the window, that only shows if the current time is within a time block defined in your daily note.  (Note: This honours the 'Text must contain' setting in the main NP Todo settings pane.)
-- new 'Last Week' section and related 'All → This Week' button
+- new 'Last Week' section and related 'All -> This Week' button
 - new 'Add a new task to future note' button on Today Section, which allows you to pick any date for the future task
 - added support for 'child' items of tasks:
   - child items are now indented like in the NP Editor
   - an item with children is now shown with a new 'ellipsis' indicator at the end of the item
   - when moving/scheduling items, any child items are moved/scheduled as well.
-  - the 'All → Today' and 'All → Tomorrow' buttons now don't try to move child items on their own, but only as part of the block with their parent.
+  - the 'All -> Today' and 'All -> Tomorrow' buttons now don't try to move child items on their own, but only as part of the block with their parent.
 - child tasks are now ordered following their parents, when sorted by priority
 - now there is a 'Show completed task count?' setting which can be turned off.
 - now uses the user's 'Editor Font Size' setting to determine the base font size for the Dashboard -- and so can be changed up and down quite easily -- rather than only using what the Theme defines.
@@ -945,7 +950,7 @@ A major effort by @jgclark and @dwertheimer over the last 5 months. There are lo
 - tidied up other z-index-ing
 
 ## [2.0.2] 2024-07-16
-- fixed 'All Overdue → Today' button not working (thanks for the report, @Oldielajolla)
+- fixed 'All Overdue -> Today' button not working (thanks for the report, @Oldielajolla)
 - fix to auto-refresh
 - fix to stop 5s refresh in DEV mode
 - improve wording around number of open items in section descriptions
@@ -1014,3 +1019,4 @@ Note: I intend to remove the "Add dashboard auto-update trigger when dashboard o
 
 ## [1.2.1] - 2024-04-18 by @SirTristam
 - Add option to use the current date instead of '>today' to schedule tasks for today
+

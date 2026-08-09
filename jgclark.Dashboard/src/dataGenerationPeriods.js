@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
+import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TDialogSettingItem } from './types'
 import { getNumCompletedTasksFromCalendarNote } from './countDoneTasks'
 import {
   buildAddTaskChecklistButtons,
@@ -74,8 +74,8 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const thisMonthHeadings: Array<string> = currentMonthlyNote ? getHeadingsFromNote(currentMonthlyNote, false, true, true, true) : []
     const nextMonthHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
-    const thisMonthFormFields: Array<TSettingItem> = buildAddTaskFormFields(thisMonthHeadings, config)
-    const nextMonthFormFields: Array<TSettingItem> = buildAddTaskFormFields(nextMonthHeadings, config)
+    const thisMonthFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(thisMonthHeadings, config)
+    const nextMonthFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(nextMonthHeadings, config)
 
     let sectionDescription = `{closedOrOpenTaskCount} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
@@ -216,8 +216,8 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const thisQuarterHeadings: Array<string> = currentQuarterlyNote ? getHeadingsFromNote(currentQuarterlyNote, false, true, true, true) : []
     const nextQuarterHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
-    const thisQuarterFormFields: Array<TSettingItem> = buildAddTaskFormFields(thisQuarterHeadings, config)
-    const nextQuarterFormFields: Array<TSettingItem> = buildAddTaskFormFields(nextQuarterHeadings, config)
+    const thisQuarterFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(thisQuarterHeadings, config)
+    const nextQuarterFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(nextQuarterHeadings, config)
 
     let sectionDescription = `{countWithLimit} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
@@ -352,8 +352,8 @@ export function getThisYearSectionData(config: TDashboardSettings, useDemoData: 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const thisYearHeadings: Array<string> = currentYearlyNote ? getHeadingsFromNote(currentYearlyNote, false, true, true, true) : []
     const nextYearHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
-    const thisYearFormFields: Array<TSettingItem> = buildAddTaskFormFields(thisYearHeadings, config)
-    const nextYearFormFields: Array<TSettingItem> = buildAddTaskFormFields(nextYearHeadings, config)
+    const thisYearFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(thisYearHeadings, config)
+    const nextYearFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(nextYearHeadings, config)
 
     let sectionDescription = `{countWithLimit} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`

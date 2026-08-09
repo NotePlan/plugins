@@ -9,8 +9,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "1.1.0.b12",
-  "plugin.releaseStatus": "beta",
+  "plugin.version": "1.1.0",
+  "plugin.releaseStatus": "full",
   "plugin.lastUpdateInfo": "1.1.0: significant new command '/chart progress summary'.\n1.0.3: worked around a new bug in the API affecting stats for hashtags and mentions.\n1.0.1: under-the-hood changes to progressUpdate.\n1.0.0: add support for 'all' time period in stats command. Allow override of settings for periodStats when called from x-callbacks. Other improvements and fixes.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -121,9 +121,10 @@
       "jsFunction": "showTaskCompletionHeatmap"
     },
     {
-      "name": "Habits+Summaries: update plugin settings",
-      "description": "Settings interface (even for iOS)",
-      "jsFunction": "updateSettings"
+      "hidden": true,
+      "name": "Habits+Summaries: open plugin settings",
+      "description": "Open Habits and Summaries plugin preferences pane",
+      "jsFunction": "openSettings"
     },
     {
       "name": "Habits+Summaries: onUpdateOrInstall",
@@ -183,7 +184,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Habits and Summaries common settings"
+      "title": "Habits and Summaries: Common Settings"
     },
     {
       "key": "foldersToExclude",
@@ -194,22 +195,6 @@
         "Summaries",
         "Saved Searches"
       ],
-      "required": false
-    },
-    {
-      "key": "headingLevel",
-      "title": "Heading level",
-      "description": "Heading level (1-5) to use when writing headings to notes",
-      "type": "number",
-      "default": 3,
-      "required": true
-    },
-    {
-      "key": "progressYesNoChars",
-      "title": "Yes/No characters",
-      "description": "Pair of characters to use as Yes and No in output of Yes/No progress items. The first is for Yes, the second for No.\nHere are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□.\nYou can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.\nDo NOT but a comma between them: this is just the two characters.",
-      "type": "string",
-      "default": "✓·",
       "required": false
     },
     {
@@ -225,7 +210,7 @@
     },
     {
       "type": "heading",
-      "title": "'/progress update' command settings"
+      "title": "What progress items to summarize? (used in '/chart progress summary' and '/progress summary' commands)"
     },
     {
       "key": "progressPeriod",
@@ -243,35 +228,6 @@
         "last3m"
       ],
       "default": "last7d",
-      "required": true
-    },
-    {
-      "key": "progressDestination",
-      "title": "Where to write the progress update?",
-      "description": "Append to 'current' note, or to the current 'daily' or 'weekly' note.\n(If the progress update section already exists, it will be updated, rather than be repeated.)",
-      "type": "string",
-      "choices": [
-        "current",
-        "daily",
-        "weekly"
-      ],
-      "default": "current",
-      "required": true
-    },
-    {
-      "key": "progressHeading",
-      "title": "Progress heading",
-      "description": "Heading to go before this output, to which is added the period that's covered. However, if it contains the string {{PERIOD}}, then the covered period will be inserted in place of this string wherever you want in the heading. If this is left blank, then no heading will be added.",
-      "type": "string",
-      "default": "Progress Update",
-      "required": false
-    },
-    {
-      "key": "showSparklines",
-      "title": "Include sparkline graphs?",
-      "description": "Where appropriate, this adds basic ASCII-art sparklines for each item, reflecting each day's data in the period.\nNote: Sparklines won't be shown where the summarised time period is more than a month.",
-      "type": "bool",
-      "default": true,
       "required": true
     },
     {
@@ -343,12 +299,12 @@
     },
     {
       "type": "heading",
-      "title": "'/chart progress summary' command settings"
+      "title": "'/Chart progress summary' display settings"
     },
     {
       "key": "chartHeight",
-      "title": "Chart height (px)",
-      "description": "Height in pixels for numeric-tag charts.",
+      "title": "Chart height",
+      "description": "Height in pixels for numeric-tag charts (in pixels).",
       "type": "number",
       "default": 180,
       "required": true
@@ -389,6 +345,58 @@
       ],
       "default": "weekly",
       "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "'/progress update' command settings"
+    },
+    {
+      "key": "progressDestination",
+      "title": "Where to write the progress update?",
+      "description": "Append to 'current' note, or to the current 'daily' or 'weekly' note.\n(If the progress update section already exists, it will be updated, rather than be repeated.)",
+      "type": "string",
+      "choices": [
+        "current",
+        "daily",
+        "weekly"
+      ],
+      "default": "current",
+      "required": true
+    },
+    {
+      "key": "progressHeading",
+      "title": "Progress heading",
+      "description": "Heading to go before this output, to which is added the period that's covered. However, if it contains the string {{PERIOD}}, then the covered period will be inserted in place of this string wherever you want in the heading. If this is left blank, then no heading will be added.",
+      "type": "string",
+      "default": "Progress Update",
+      "required": false
+    },
+    {
+      "key": "headingLevel",
+      "title": "Heading level",
+      "description": "Heading level (1-5) to use when writing headings to notes",
+      "type": "number",
+      "default": 3,
+      "required": true
+    },
+    {
+      "key": "showSparklines",
+      "title": "Include sparkline graphs?",
+      "description": "Where appropriate, this adds basic ASCII-art sparklines for each item, reflecting each day's data in the period.\nNote: Sparklines won't be shown where the summarised time period is more than a month.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "progressYesNoChars",
+      "title": "Yes/No characters",
+      "description": "Pair of characters to use as Yes and No in output of Yes/No progress items. The first is for Yes, the second for No.\nHere are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□.\nYou can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.\nDo NOT but a comma between them: this is just the two characters.",
+      "type": "string",
+      "default": "✓·",
+      "required": false
     },
     {
       "type": "separator"

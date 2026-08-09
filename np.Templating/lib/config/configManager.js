@@ -89,6 +89,30 @@ export async function getDefaultTemplateConfig(): Promise<typeof DEFAULT_TEMPLAT
 }
 
 /**
+ * The pre-2022 shape of the templating config, which nested values under `date` and `tagValue`.
+ * `TEMPLATE_CONFIG_BLOCK()` still reads those legacy paths so an old `_configuration` note can be migrated;
+ * they are all optional because the current `DEFAULT_TEMPLATE_CONFIG` has none of them.
+ * Inexact on purpose: the value it is applied to also carries all the current (non-legacy) keys.
+ */
+type LegacyTemplateConfig = {
+  date?: {
+    locale?: string,
+    dateStyle?: string,
+    timeStyle?: string,
+    ...
+  },
+  tagValue?: {
+    me?: {
+      firstName?: string,
+      lastName?: string,
+      ...
+    },
+    ...
+  },
+  ...
+}
+
+/**
  * Generates a string block representing the template configuration,
  * suitable for inclusion in a settings file (e.g., _configuration note).
  * It attempts to migrate some values from potentially older config structures if found in `DEFAULT_TEMPLATE_CONFIG`.
@@ -96,7 +120,10 @@ export async function getDefaultTemplateConfig(): Promise<typeof DEFAULT_TEMPLAT
  * @returns {Promise<string>} A promise that resolves to the formatted configuration string.
  */
 export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
-  const config = DEFAULT_TEMPLATE_CONFIG // Start with the current default configuration
+  // The cast is unavoidable: `DEFAULT_TEMPLATE_CONFIG` is an *exact* object type, and Flow rejects an exact source that
+  // provably lacks a property the target declares - even an optional one. Casting once here is still worth it, because
+  // every legacy read below (`config?.date?.locale`, ...) is then type-checked against `LegacyTemplateConfig`.
+  const config: LegacyTemplateConfig = (DEFAULT_TEMPLATE_CONFIG: any) // Start with the current default configuration
 
   // Attempt to migrate legacy configuration values if they were structured differently.
   // These lookups (e.g., config?.date?.locale) are speculative and depend on how
@@ -104,22 +131,16 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
   // or if it's dynamically augmented elsewhere (unlikely for this constant).
   // For DEFAULT_TEMPLATE_CONFIG, these legacy paths (?.date?.locale) will likely be undefined.
 
-  // $FlowFixMe - Accessing potentially non-existent nested properties.
   const locale = config?.date?.locale || '' // Legacy: config.date.locale
-  // $FlowFixMe
   const first = config?.tagValue?.me?.firstName || '' // Legacy: config.tagValue.me.firstName
-  // $FlowFixMe
   const last = config?.tagValue?.me?.lastName || '' // Legacy: config.tagValue.me.lastName
 
-  // $FlowFixMe
   const dateFormatToUse = config?.date?.dateStyle || DEFAULT_TEMPLATE_CONFIG.dateFormat
-  // $FlowFixMe
   const timeFormatToUse = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.timeFormat
 
   // timestampFormat seems to be derived from date.timeStyle or defaults to 'now' format.
   // This specific migration for 'timestampFormat' seems to be mapping a legacy 'timeStyle' to it,
   // or defaulting to the 'now' format from default settings if not found.
-  // $FlowFixMe[prop-missing] - `date` is a legacy config shape, same as the suppressed reads above
   const timestampFormat = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.defaultFormats.now
 
   // Construct the configuration string using current and potentially migrated values.

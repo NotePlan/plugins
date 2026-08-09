@@ -7,14 +7,14 @@
  *
  * Note: definitions of tags, habits, etc. are now taken from the settings for Progress Updates command.
  *
- * Last updated: 2026-07-25 for v1.1.0.b12 by @jgclark
+ * Last updated: 2026-08-07 for v1.1.0 by @jgclark and @CursorAI
  */
 
 // =====================================================================
 // Ideas
 
 /**
- * Chart.js doesn’t ship a dedicated “sparkline” type, but you can get sparkline-style charts in two ways:
+ * Chart.js doesn't ship a dedicated "sparkline" type, but you can get sparkline-style charts in two ways:
 
 1. Line (or radar) chart as a sparkline
 Use a normal line (or radar) chart and make it look like a sparkline by:
@@ -25,7 +25,9 @@ Optionally using fill: true and tension for a smooth, minimal line.
 
 2. Plugin: chartjs-chart-sparkline
 For a ready-made sparkline type (and sometimes extra options), you can use the chartjs-chart-sparkline plugin, which adds a sparkline chart type and related options on top of Chart.js.
-In short: Chart.js doesn’t have a built-in “sparkline” type, but you can create sparklines with a line chart and the right options, or use the sparkline plugin.
+In short: Chart.js doesn't have a built-in "sparkline" type, but you can create sparklines with a line chart and the right options, or use the sparkline plugin.
+
+3. Use special 'DataType' font to render sparklines as text. See https://franktisellano.github.io/datatype/integrations.html
  */
 
 // =====================================================================
@@ -43,6 +45,7 @@ import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { validateDateRangeAndConvertToISODateStrings } from '@helpers/dateTime'
 import { getLocale, saveSettings } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getPeriodStartEndDates } from '@helpers/NPdateTime'
+import type { TPeriodCode } from '@helpers/NPdateTime'
 
 const pluginID = 'jgclark.Summaries'
 
@@ -354,7 +357,7 @@ async function computeChartDateRangeForPeriod(
   config: SummariesConfig,
   periodIn: string,
 ): Promise<{ fromDateStr: string, toDateStr: string, periodString: string, rawDates: Array<string>, selectedPeriod: string }> {
-  const allowedPeriods = [
+  const allowedPeriods: Array<TPeriodCode> = [
     'wtd',
     'userwtd',
     'last7d',
@@ -364,16 +367,17 @@ async function computeChartDateRangeForPeriod(
     'qtd',
     'last3m',
   ]
-  const configDefaultPeriod = (config.progressPeriod && typeof config.progressPeriod === 'string')
+  const configDefaultPeriod: TPeriodCode = (config.progressPeriod && typeof config.progressPeriod === 'string')
     ? config.progressPeriod
     : 'last4w'
-  const selectedPeriod = allowedPeriods.includes(periodIn) ? periodIn : configDefaultPeriod
+  // The includes() test proves periodIn is one of allowedPeriods (so a TPeriodCode), but Flow can't refine a string from Array.includes().
+  // The cast is confined to that one validated point, so selectedPeriod is properly typed from here on.
+  const selectedPeriod: TPeriodCode = allowedPeriods.includes(periodIn) ? ((periodIn: any): TPeriodCode) : configDefaultPeriod
 
   let fromDateStr = ''
   let toDateStr = ''
   let periodString = ''
 
-  // $FlowIgnore[incompatible-call] - TPeriodCode is more specific than string; rely on runtime guard above
   const [fromDate, toDate, _periodType, computedPeriodString, _periodAndPartStr] = await getPeriodStartEndDates('', config.excludeToday, selectedPeriod)
   const validated = validateDateRangeAndConvertToISODateStrings(fromDate, toDate, 'chart summary')
   fromDateStr = validated.fromDateStr
@@ -639,7 +643,7 @@ function buildYesNoDataFromOccurrences(
 }
 
 // ==================================================================
-// DISPLAY STATISTICS (count/total/average) – computed on plugin side for Flow typing
+// DISPLAY STATISTICS (count/total/average) - computed on plugin side for Flow typing
 
 /**
  * Format a number to a given number of significant figures (for display).
@@ -723,7 +727,7 @@ export function getLastPeriodAverage(data: Array<number>, periodSize?: number): 
 export function computeTagDisplayStats(tagData: Object, tags: Array<string>, config: SummariesConfig): Array<TagDisplayStat> {
   const toNum = (v: mixed) => Number(v) || 0
   const sigFigs = config.chartSignificantFigures ?? 3
-  // Config uses 'period'; client uses 'weekly' for the same behaviour — normalize here
+  // Config uses 'period'; client uses 'weekly' for the same behaviour -- normalize here
   const rawAverageType = config.chartAverageType
   const averageType = (rawAverageType === 'none' || rawAverageType === 'moving' || rawAverageType === 'period')
     ? (rawAverageType === 'period' ? 'weekly' : rawAverageType)
@@ -771,7 +775,7 @@ export function computeTagDisplayStats(tagData: Object, tags: Array<string>, con
       totalDisplay = formatToSigFigs(total, sigFigs)
     }
 
-    let avgLineText = '—'
+    let avgLineText = '--'
     if (averageType !== 'none') {
       let avg: number
       if (averageType === 'weekly') {
@@ -1152,8 +1156,9 @@ async function makeChartSummaryHTML(
 
     <div class="controls-wrapper">
       <div class="config-section">
-        <!-- <div class="section-title">Configuration</div> -->
-        <div class="section-title">Period</div>
+        <div class="config-section-main">
+          <!-- <div class="section-title">Configuration</div> -->
+          <div class="section-title">Period</div>
 
           <!-- Legacy numeric 'Days to show' control kept for reference
           <div class="days-input-group">
@@ -1196,6 +1201,18 @@ async function makeChartSummaryHTML(
               <button class="update-btn" onclick="generateCustomRange()">Generate</button>
             </span>
           </div>
+        </div>
+        <button
+          type="button"
+          class="settings-cog-button"
+          title="Open plugin settings"
+          aria-label="Open plugin settings"
+          onclick="openPluginSettings()"
+        >
+          <svg class="settings-cog-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.83 14.52a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.43.34.7.22l2.39-.96c.5.4 1.05.72 1.63.94l.36 2.54c.05.24.25.42.49.42h3.8c.24 0 .44-.18.49-.42l.36-2.54c.58-.23 1.12-.54 1.63-.94l2.39.96c.27.11.56.02.7-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/>
+          </svg>
+        </button>
         </div>
 
           <!--
@@ -1276,3 +1293,4 @@ ${chartsHTML}
   
   return body
 }
+

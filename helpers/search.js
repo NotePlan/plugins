@@ -12,11 +12,11 @@ import { RE_NP_HASHTAG_G, RE_NP_MENTION_G, RE_SYNC_MARKER } from '@helpers/regex
  * Case insensitive array.includes() match
  * @author @jgclark
  * @param {string} searchTerm
- * @param {Array<string>} arrayToSearch
+ * @param {$ReadOnlyArray<string>} arrayToSearch
  * @returns {boolean}
  * @tests available in jest file
  */
-export function caseInsensitiveArrayIncludes(searchTerm: string, arrayToSearch: Array<string>): boolean {
+export function caseInsensitiveArrayIncludes(searchTerm: string, arrayToSearch: $ReadOnlyArray<string>): boolean {
   try {
     if (searchTerm === '') return false
     const matches = arrayToSearch.filter((h) => {
@@ -224,7 +224,6 @@ export function fullWordMatch(searchTerm: string, textToSearch: string, caseSens
 export function getCorrectedHashtagsFromNote(note: TNote): Array<string> {
   // First get the hashtags from the note (using the API)
   // V1
-  // $FlowFixMe[incompatible-type] note.hashtags is read-only
   // const reportedHashtags: Array<string> = note.hashtags ?? []
   // Then dedupe the shorter versions of longer ones
   // const correctedHashtagsV1 = getFullLengthHashtagsFromList(reportedHashtags)
@@ -232,7 +231,6 @@ export function getCorrectedHashtagsFromNote(note: TNote): Array<string> {
   // V2
   const correctedHashtags: Array<string> = []
   // Read whole note text, and then look for all hashtags in it.
-  // $FlowFixMe[incompatible-type] note.rawContent is read-only
   const noteText: string = note.content ?? ''
   // Correct regex to match every valid hashtag, including multi-part hashtags like #one/two/three or #one-two/three-four
   // - Valid hashtags start with #, then at least one word character, and can include word chars, digits, / or - (but not spaces)
@@ -279,7 +277,6 @@ export function getFullLengthHashtagsFromList(hashtagsIn: Array<string>): Array<
 export function getCorrectedMentionsFromNote(note: TNote): Array<string> {
   // First get the mentions from the note (using the API)
   // V1
-  // $FlowFixMe[incompatible-type] note.mentions is read-only
   // const reportedMentions: Array<string> = note.mentions ?? []
   // Then dedupe the shorter versions of longer ones
   // const dedupedMentions = getFullLengthMentionsFromList(reportedMentions)
@@ -287,7 +284,6 @@ export function getCorrectedMentionsFromNote(note: TNote): Array<string> {
   // V2
   const correctedMentions: Array<string> = []
   // Read whole note text, and then look for all mentions in it.
-  // $FlowFixMe[incompatible-type] note.rawContent is read-only
   const noteText: string = note.content ?? ''
   // Correct regex to match every valid mention, including multi-part mentions like @one/two/three or @one-two/three-four
   // - Valid mentions start with @, then at least one word character, and can include word chars, digits, / or - (but not spaces)

@@ -587,8 +587,10 @@ async function newNoteWithFolder(content: string, _folder?: string): Promise<?st
     }
 
     logDebug(pluginJson, `creating a new note in folder: "${folder || ''}"`)
-    // $FlowFixMe
-    const filename = DataStore.newNoteWithContent(content, folder)
+    // `folder` is `string | void` here: the `_folder` param is optional and `NotePlan.selectedSidebarFolder`
+    // is declared `?: string`. No annotation can make it a plain string without adding a fallback (a
+    // behaviour change), so cast just the argument instead of suppressing the whole call.
+    const filename = DataStore.newNoteWithContent(content, (folder: any))
 
     logDebug(pluginJson, `opening the created note: "${filename}"`)
     Editor.openNoteByFilename(filename)

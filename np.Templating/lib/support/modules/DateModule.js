@@ -92,9 +92,7 @@ export default class DateModule {
 
     // If no locale specified or set to '<system>', get from NotePlan environment
     if (!configLocale || configLocale === '' || configLocale === '<system>') {
-      // $FlowFixMe[prop-missing] NotePlan.environment exists at runtime
       const envRegion = typeof NotePlan !== 'undefined' && NotePlan?.environment?.regionCode ? NotePlan.environment.regionCode : ''
-      // $FlowFixMe[prop-missing] NotePlan.environment exists at runtime
       const envLanguage = typeof NotePlan !== 'undefined' && NotePlan?.environment?.languageCode ? NotePlan.environment.languageCode : ''
 
       if (envRegion !== '' && envLanguage !== '') {
@@ -379,7 +377,6 @@ export default class DateModule {
       dateToCheck = dateValue
     }
 
-    // $FlowFixMe[prop-missing] Calendar will exist inside NotePlan
     // For test environment, fall back to utility function for NotePlan week calculation
     if (typeof Calendar !== 'undefined' && Calendar.weekNumber) {
       return Calendar.weekNumber(dateToCheck)
@@ -461,7 +458,6 @@ export default class DateModule {
     }
 
     let result
-    // $FlowFixMe[prop-missing] Calendar will exist inside NotePlan
     if (typeof Calendar !== 'undefined' && Calendar.startOfWeek) {
       // Use NotePlan's native startOfWeek which respects user's week start preference
       result = Calendar.startOfWeek(dateToProcess)
@@ -495,7 +491,6 @@ export default class DateModule {
     }
 
     let result
-    // $FlowFixMe[prop-missing] Calendar will exist inside NotePlan
     if (typeof Calendar !== 'undefined' && Calendar.endOfWeek) {
       // Use NotePlan's native endOfWeek which respects user's week start preference
       result = Calendar.endOfWeek(dateToProcess)

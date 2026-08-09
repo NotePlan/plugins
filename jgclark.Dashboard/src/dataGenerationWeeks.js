@@ -6,7 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
+import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TDialogSettingItem } from './types'
 import { getNumCompletedTasksFromCalendarNote } from './countDoneTasks'
 import {
   buildAddTaskChecklistButtons,
@@ -81,8 +81,8 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     // Set up formFields for the 'add buttons' (applied in Section.jsx)
     const thisWeekHeadings: Array<string> = currentWeeklyNote ? getHeadingsFromNote(currentWeeklyNote, false, true, true, true) : []
     const nextWeekHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
-    const thisWeekFormFields: Array<TSettingItem> = buildAddTaskFormFields(thisWeekHeadings, config)
-    const nextWeekFormFields: Array<TSettingItem> = buildAddTaskFormFields(nextWeekHeadings, config)
+    const thisWeekFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(thisWeekHeadings, config)
+    const nextWeekFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(nextWeekHeadings, config)
     let sectionDescription = `{countWithLimit} {itemType} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 

@@ -16,8 +16,11 @@ import { getParagraphBlock } from '@helpers/blocks'
 import { removeSection, getNote } from '@helpers/note'
 import { getFlatListOfBacklinks } from '@helpers/NPnote'
 export default class NoteModule {
+  // Declared so `this.config` type-checks; the templating config is a free-form settings object (`{}` from
+  // globals.js/WebModule.js, `this.templateConfig` from TemplatingEngine), so `any` is the honest type here.
+  config: any
+
   constructor(config: any) {
-    // $FlowFixMe
     this.config = config
   }
 
@@ -149,12 +152,12 @@ export default class NoteModule {
       return result
     }
 
-    paragraphs.forEach((item) => {
+    paragraphs.forEach((item: interface { +[string]: mixed }) => {
       let keys = getAllPropertyNames(item)
       keys.forEach((key) => {
-        // $FlowIgnore
         if (typeof item[key] === 'string' || typeof item[key] === 'boolean' || Array.isArray(item[key])) {
-          result.push({ key, value: item[key] })
+          // the guard above proves the type, but Flow cannot refine a computed member expression, so restate it
+          result.push({ key, value: ((item[key]: any): string | boolean | Array<any>) })
         }
       })
     })
@@ -220,12 +223,12 @@ export default class NoteModule {
       return result
     }
 
-    backlinks.forEach((item) => {
+    backlinks.forEach((item: interface { +[string]: mixed }) => {
       let keys = getAllPropertyNames(item)
       keys.forEach((key) => {
-        // $FlowIgnore
         if (typeof item[key] === 'string' || typeof item[key] === 'boolean' || Array.isArray(item[key])) {
-          result.push({ key, value: item[key] })
+          // the guard above proves the type, but Flow cannot refine a computed member expression, so restate it
+          result.push({ key, value: ((item[key]: any): string | boolean | Array<any>) })
         }
       })
     })
@@ -240,12 +243,12 @@ export default class NoteModule {
       return result
     }
 
-    linkedItems.forEach((item) => {
+    linkedItems.forEach((item: interface { +[string]: mixed }) => {
       let keys = getAllPropertyNames(item)
       keys.forEach((key) => {
-        // $FlowIgnore
         if (typeof item[key] === 'string' || typeof item[key] === 'boolean' || Array.isArray(item[key])) {
-          result.push({ key, value: item[key] })
+          // the guard above proves the type, but Flow cannot refine a computed member expression, so restate it
+          result.push({ key, value: ((item[key]: any): string | boolean | Array<any>) })
         }
       })
     })
@@ -260,12 +263,12 @@ export default class NoteModule {
       return result
     }
 
-    datedTodos.forEach((item) => {
+    datedTodos.forEach((item: interface { +[string]: mixed }) => {
       let keys = getAllPropertyNames(item)
       keys.forEach((key) => {
-        // $FlowIgnore
         if (typeof item[key] === 'string' || typeof item[key] === 'boolean' || Array.isArray(item[key])) {
-          result.push({ key, value: item[key] })
+          // the guard above proves the type, but Flow cannot refine a computed member expression, so restate it
+          result.push({ key, value: ((item[key]: any): string | boolean | Array<any>) })
         }
       })
     })

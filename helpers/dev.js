@@ -903,8 +903,9 @@ export function logDebug(pluginInfo: any, message: any = '', ...args: Array<any>
 export function timer(startTime: Date): string {
   const timeStart = startTime ?? new Date()
   const timeEnd = new Date()
-  // $FlowIgnore[unsafe-arithmetic]
-  const difference = timeEnd - timeStart
+  // `Number()` is exactly what the `-` operator does to each operand, so this is identical at runtime to `timeEnd - timeStart`
+  // (including for callers that pass a `Date.now()` number rather than a Date), but Flow can type it.
+  const difference = Number(timeEnd) - Number(timeStart)
   const diffText = `${difference.toLocaleString()}ms`
   return diffText
 }
@@ -922,8 +923,8 @@ export function timer(startTime: Date): string {
  * @param {number} warningThreshold - optional duration in milliseconds: if the timer is more than this it will log with added warning symbol.
  */
 export function logTimer(functionName: string, startTime: Date, explanation: string = '', warningThreshold?: number): void {
-  // $FlowIgnore[unsafe-arithmetic]
-  const difference = new Date() - startTime
+  // `Number()` is exactly what the `-` operator does to each operand: identical at runtime to `new Date() - startTime`.
+  const difference = Number(new Date()) - Number(startTime)
   const diffTimeText = `${difference.toLocaleString()}ms`
   const output = `${diffTimeText} ${explanation}`
   if (warningThreshold && difference > warningThreshold) {

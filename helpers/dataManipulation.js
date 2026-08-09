@@ -322,13 +322,17 @@ export function getArrayValue(input: string | Array<mixed>, defaultValue: Array<
  * @param {string} separator - Separator to use for string splitting (default: ',')
  * @returns {Array<string>} The array value with string elements
  */
-export function getStringArrayValue(input: ?(string | Array<mixed>), defaultValue: Array<string> = [], separator: string = ','): Array<string> {
+export function getStringArrayValue(input: ?(string | $ReadOnlyArray<mixed>), defaultValue: Array<string> = [], separator: string = ','): Array<string> {
   if (input == null) {
     return defaultValue
   }
+  // Accepts $ReadOnlyArray so callers can pass an Array<string> (Flow arrays are invariant, so a
+  // plain Array<mixed> param rejects it). getArrayValue still wants a mutable array and returns its
+  // input as-is, so copy here -- free in practice, since the .map() below allocates anyway.
+  const asMutable = Array.isArray(input) ? [...input] : input
   // Cast: getArrayValue takes Array<mixed> and only ever returns defaultValue unchanged, but
   // arrays are invariant so Array<string> is not accepted as Array<mixed>.
-  const raw = getArrayValue(input, (defaultValue: any), separator)
+  const raw = getArrayValue(asMutable, (defaultValue: any), separator)
   return raw.map((item) => (typeof item === 'string' ? item : String(item ?? '')))
 }
 

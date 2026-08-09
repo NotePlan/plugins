@@ -1,6 +1,15 @@
 # What's Changed in 🖥️ Previews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/np.Preview), and how to configure it.
 
+## [0.5.0] - 2026-08-04
+- tables: 1px solid grey borders; left- and top-aligned cells; bold thead and tfoot only (not tbody)
+- fix: do not show the title twice when frontmatter `title:` matches the first body H1
+- Preview can be called for a specified note (filename, title, relative date, or calendar identifier) via x-callback / other plugins; Command Bar still previews the open Editor note
+- Mermaid theme auto-selects light/dark from the NotePlan theme unless overridden as arg1
+
+## [0.4.6] - 2026-08-04
+- Mermaid loads latest 11.x from CDN when online; falls back to shipped offline UMD snapshot (11.16.1)
+
 ## [0.4.5] - 2025-03-14
 - upgraded to use Mermaid v11.x
 

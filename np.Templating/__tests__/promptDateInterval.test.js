@@ -17,8 +17,10 @@ jest.mock('@helpers/userInput', () => ({
   }),
 }))
 
-// Get the mocked function
-const { askDateInterval } = require('@helpers/userInput')
+// Get the mocked function. jest.mock() above swaps the real export for a jest mock, so Flow's view of
+// `@helpers/userInput` (the real async function) is not what this binding holds at runtime; `any` is what makes the
+// .mockClear()/.mockResolvedValueOnce() calls below type-check without a suppression on each one.
+const { askDateInterval }: any = require('@helpers/userInput')
 
 describe('PromptDateIntervalHandler', () => {
   beforeEach(() => {
@@ -61,9 +63,7 @@ describe('PromptDateIntervalHandler', () => {
 
   test('Should handle multiple promptDateInterval calls', async () => {
     // Reset the mock and set up multiple responses
-    // $FlowIgnore - jest mocked function
     askDateInterval.mockClear()
-    // $FlowIgnore - jest mocked function
     askDateInterval.mockResolvedValueOnce('2023-01-01 to 2023-01-31').mockResolvedValueOnce('2023-02-01 to 2023-02-28')
 
     const templateData = `

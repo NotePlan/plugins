@@ -49,7 +49,9 @@ export function promiseRace(promises: Array<Promise<any>>): Promise<any> {
     }
     for (let i = 0; i < promises.length; i++) {
       const p = promises[i]
-      // $FlowFixMe[method-unbinding] - typeof/.then used for thenable check and subscribe; thenable contract does not use this
+      // Deliberate duck-type test on a possibly-foreign thenable; Flow's method-unbinding check cannot be satisfied
+      // without changing the call shape.
+      // $FlowIgnore[method-unbinding]
       if (p != null && typeof p.then === 'function') {
         p.then(onFulfill, onReject)
       } else {
@@ -200,17 +202,18 @@ export function initPromisePolyfills(): void {
   if (typeof Promise !== 'undefined') {
     // Add Promise.resolve if it doesn't exist
     if (typeof Promise.resolve !== 'function') {
-      // $FlowIgnore - we're adding a polyfill
+      // This whole function exists to patch the built-ins, whose statics the libdef declares read-only.
+      // $FlowIgnore[cannot-write]
       Promise.resolve = promiseResolve
     }
     // Add Promise.all if it doesn't exist
     if (typeof Promise.all !== 'function') {
-      // $FlowIgnore - we're adding a polyfill
+      // $FlowIgnore[cannot-write] see above: deliberate polyfill assignment
       Promise.all = promiseAll
     }
     // Add Promise.race if it doesn't exist
     if (typeof Promise.race !== 'function') {
-      // $FlowIgnore - we're adding a polyfill
+      // $FlowIgnore[cannot-write] see above: deliberate polyfill assignment
       Promise.race = promiseRace
     }
   }

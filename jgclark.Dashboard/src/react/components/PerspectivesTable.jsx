@@ -16,7 +16,7 @@ import '../css/PerspectivesTable.css' // Import CSS for styling
 import type { TPerspectiveSettings, TPerspectiveDef } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import { renderItem } from '@helpers/react/DynamicDialog/dialogElementRenderer.js'
-import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
+import type { TSettingItem } from '../../types.js'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { clo, logDebug } from '@helpers/dev'
 import { getDiff } from '@helpers/dev'
@@ -243,6 +243,7 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
                         <td key={`cell-${settingIndex}-${perspectiveIndex}`} className="setting-cell">
                           {renderItem({
                             index: settingIndex,
+                            // $FlowIgnore[incompatible-call] item.type can be one of the Dashboard-only values ('header' | 'perspectiveList' | 'teamspace-multiselect') that DynamicDialog's TSettingItemType doesn't list yet -- see TODO in types.js
                             item: item,
                             labelPosition: labelPosition,
                             handleFieldChange: (key, val) => handleFieldChange(perspectiveIndex, key, val),

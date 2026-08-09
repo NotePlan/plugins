@@ -349,7 +349,9 @@ function insertTodos(
 
   let linesForContent: $ReadOnlyArray<InsertTodoLine>
   if (subHeadingCategory) {
-    const leadingDigit = {
+    // indexed below by `subHeadingCategory`, which is a plain string, so this needs a dictionary type
+    // rather than the exact sealed literal Flow would otherwise infer
+    const leadingDigit: { [string]: string } = {
       hashtags: '#',
       mentions: '@',
       priority: '',
@@ -364,9 +366,7 @@ function insertTodos(
       const categoryValue = (todoRow: any)[subHeadingCategory]
       const shcZero = (Array.isArray(categoryValue) ? categoryValue[0] : categoryValue) ?? `<none>`
       // logDebug(`InsertTodos: shcZero=${shcZero} typeof=${typeof shcZero} todos[lineIndex][subHeadingCategory]=${todos[lineIndex][subHeadingCategory]}`)
-      const subCat =
-        /* $FlowIgnore - complaining about -priority being missing. */
-        (leadingDigit[subHeadingCategory] ? leadingDigit[subHeadingCategory] : '') + shcZero || categoryValue || ''
+      const subCat = (leadingDigit[subHeadingCategory] ? leadingDigit[subHeadingCategory] : '') + shcZero || categoryValue || ''
       // logDebug(
       //   `lastSubcat[${subHeadingCategory}]=${subCat} check: ${JSON.stringify(
       //     todos[lineIndex],
@@ -1135,8 +1135,11 @@ export async function sortTasks(
  */
 export async function sortTasksUnderHeading(
   _heading: string | null,
-  _sortOrder: ?(string | Array<mixed>) = null,
-  _noteOverride: TNote | typeof Editor | null = null,
+  // $ReadOnlyArray so callers can pass an Array<string> (Flow arrays are invariant, so the old
+  // Array<mixed> rejected it); CoreNoteFields covers both TNote and TEditor, which is all the body needs.
+  _sortOrder: ?(string | $ReadOnlyArray<mixed>) = null,
+  _noteOverride: CoreNoteFields | null = null,
+  // `null` default (not `true`) so the "Combine Related Task Types?" setting is consulted -- see #770.
   _interleaveTaskTypes: string | boolean | null = null,
 ): Promise<void> {
   try {

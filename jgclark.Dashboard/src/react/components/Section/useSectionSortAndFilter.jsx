@@ -456,8 +456,8 @@ export function itemSort(a: TSectionItem, b: TSectionItem): number {
  */
 export function reorderChildrenAfterParents(data: Array<Object>): Array<Object> {
   const orderedData = []
-  // $FlowFixMe[underconstrained-implicit-instantiation] reason for suppression
-  const map = new Map()
+  // Explicit type arguments: the values are the buckets pushed to below, keyed by parentID.
+  const map: Map<string, Array<Object>> = new Map()
 
   // Create a map to store objects by parent
   data.forEach((obj) => {
@@ -465,8 +465,9 @@ export function reorderChildrenAfterParents(data: Array<Object>): Array<Object> 
     if (!map.has(parent)) {
       map.set(parent, [])
     }
-    // $FlowFixMe[incompatible-use]
-    map.get(parent).push(obj)
+    // Cast: Map.get() is typed V | void, and the map.has(parent) guard above is invalidated by the
+    // intervening map.set() call, so Flow can't see the bucket exists.
+    ;(map.get(parent): any).push(obj)
   })
 
   // Recursive function to build the sorted array

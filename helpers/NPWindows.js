@@ -770,6 +770,46 @@ export function closeWindowFromId(windowId: string): void {
 }
 
 /**
+ * Coerce a preference / bridge value to a finite number.
+ * NotePlan sometimes persists rect edges as numeric strings (e.g. `"-0"`), and live windowRect values can
+ * arrive as non-plain number-like values; both should still be usable.
+ * @param {mixed} value
+ * @returns {number | null} finite number, or null if not coercible
+ */
+function finiteNumberFromPref(value: mixed): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value)
+    if (Number.isFinite(n)) {
+      return n
+    }
+  }
+  return null
+}
+
+/**
+ * Build a plain Rect from mixed x/y/width/height values, or null if any edge is missing/invalid.
+ * Always returns a plain object (not a native bridge Rect) so setPreference can serialize it.
+ * @param {mixed} x
+ * @param {mixed} y
+ * @param {mixed} width
+ * @param {mixed} height
+ * @returns {Rect | null}
+ */
+function plainRectFromParts(x: mixed, y: mixed, width: mixed, height: mixed): Rect | null {
+  const nx = finiteNumberFromPref(x)
+  const ny = finiteNumberFromPref(y)
+  const nw = finiteNumberFromPref(width)
+  const nh = finiteNumberFromPref(height)
+  if (nx == null || ny == null || nw == null || nh == null) {
+    return null
+  }
+  return { x: nx, y: ny, width: nw, height: nh }
+}
+
+/**
  * Save the Rect (x/y/w/h) of the given window, given by its ID, to the local device's NP preferences store.
  * @param {string} customId
  */
@@ -780,15 +820,20 @@ export function storeWindowRect(customId: string): void {
   }
   // Find the window by its customId
   const thisWindow = getWindowFromCustomId(customId)
-  if (thisWindow) {
-    // Get its Rect from the live window
-    const windowRect: Rect = thisWindow.windowRect
-    const prefName = `WinRect_${customId}`
-    DataStore.setPreference(prefName, windowRect)
-    logDebug('storeWindowRect', `Saved Rect ${rectToString(windowRect)} to ${prefName}`)
-  } else {
+  if (!thisWindow) {
     logWarn('storeWindowRect', `Couldn't save Rect for '${customId}'`)
+    return
   }
+  // Copy into a plain object: passing a native windowRect bridge object into setPreference can persist as {}.
+  const live = thisWindow.windowRect
+  const windowRect = plainRectFromParts(live?.x, live?.y, live?.width, live?.height)
+  if (!windowRect) {
+    logWarn('storeWindowRect', `Couldn't save Rect for '${customId}': live windowRect is not numeric (${rectToString(live)})`)
+    return
+  }
+  const prefName = `WinRect_${customId}`
+  DataStore.setPreference(prefName, windowRect)
+  logDebug('storeWindowRect', `Saved Rect ${rectToString(windowRect)} to ${prefName}`)
 }
 
 /**
@@ -799,10 +844,18 @@ export function storeWindowRect(customId: string): void {
 export function getStoredWindowRect(customId: string): Rect | false {
   try {
     const prefName = `WinRect_${customId}`
-    // $FlowFixMe[incompatible-type]
-    const windowRect: Rect = DataStore.preference(prefName)
-    if (!windowRect) {
+    // DataStore.preference() is untyped (`mixed`), so the stored value has to be validated at runtime before it can be
+    // treated as a Rect. Anything malformed takes the same "couldn't retrieve it" path as a missing pref.
+    const storedPref = DataStore.preference(prefName)
+    if (!storedPref || typeof storedPref !== 'object') {
       logWarn('getWindowRect', `Couldn't retrieve Rect from saved pref ${prefName}`)
+      return false
+    }
+    // Prefs may hold numbers or numeric strings; empty historical prefs (e.g. {} from bridge serialisation) fail here.
+    const raw: any = storedPref
+    const windowRect = plainRectFromParts(raw.x, raw.y, raw.width, raw.height)
+    if (!windowRect) {
+      logWarn('getWindowRect', `Saved pref ${prefName} isn't a valid Rect (x/y/width/height must all be numbers); got ${JSON.stringify(storedPref)}`)
       return false
     }
     logDebug('getWindowRect', `Retrieved Rect ${rectToString(windowRect)} from saved ${prefName}`)
@@ -909,7 +962,7 @@ export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: numbe
  * @returns {EditorWinDetails | HTMLWinDetails} constrained winDetails
  */
 // export function constrainWindowSizeAndPosition(winDetails: EditorWinDetails | HTMLWinDetails): EditorWinDetails | HTMLWinDetails {
-export function constrainWindowSizeAndPosition<T: { x: number, y: number, width: number, height: number, ... }>(winDetails: T): T {
+export function constrainWindowSizeAndPosition<T: { x: number, y: number, width: number, height: number, +title?: string, ... }>(winDetails: T): T {
   try {
     const screenHeight = NotePlan.environment.screenHeight // remember bottom edge is y=0
     const screenWidth = NotePlan.environment.screenWidth
@@ -917,8 +970,7 @@ export function constrainWindowSizeAndPosition<T: { x: number, y: number, width:
     const right = winDetails.x + winDetails.width
     const top = winDetails.y + winDetails.height
     const bottom = winDetails.y
-    // $FlowIgnore[prop-missing]
-    const title = winDetails.title ?? 'n/a'
+    const title = winDetails.title ?? 'n/a' // only used for logging; a plain Rect has no title
     if (winDetails.x < 0) {
       logDebug('constrainWS+P', `  - window '${title}' has left edge at ${String(left)}px; moving right to 0px`)
       winDetails.x = 0

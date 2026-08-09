@@ -1,5 +1,5 @@
 # 🖥️ Preview Plugin
-This plugin provides the **/preview note** and **/start live preview** commands that renders the current note to HTML including:
+This plugin provides the **/preview note** and **/start live preview** commands that render a note to HTML including:
 - standard Markdown conversion (including referenced images)
 - [Mermaid diagrams](https://mermaid.js.org) (e.g. flowcharts, gantt charts, sequence diagrams ...)
 - [MathJax](https://www.mathjax.org/) fragments or lines (for mathematical equations and notation)
@@ -24,6 +24,27 @@ triggers: onEditorWillSave => np.Preview.updatePreview
 
 It deliberately updates the Preview window without giving it focus, so that you can continue editing.
 
+## Preview a specified note (x-callback / other plugins)
+
+From the Command Bar, **/preview note** always previews the **currently open Editor note**.
+
+Other plugins and automations can **preview any note** (without opening it in the Editor first) by passing a note identifier as `arg0`:
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=np.Preview&command=preview%20note&arg0=<encoded filename or identifier>
+```
+
+Examples of `arg0`:
+
+- Filename: `Projects/My%20Note.md`
+- Note title: `My%20Note`
+- Relative date: `today`, `yesterday`, `this%20week`
+- Calendar date string: `20260804`
+
+Optional `arg1` sets the Mermaid theme (e.g. `default`, `dark`, `forest`). If omitted, the plugin picks `default` or `dark` from the current NotePlan theme.
+
+If the specified note is open in the Editor, unsaved Editor content is used. Live preview (**start live preview**) still applies only to the note that has the trigger in the open Editor.
+
 ## Mermaid charts
 <img src="kanban-mermaid@2x.png" alt="Example of Kanban board in Mermaid charts" />
 Mermaid is a third-party library that makes a wide variety of diagrams (including Flowcharts, Gantt, Kanban, state transition etc.) and some simple charts, using markdown-ish definitions. These definitions are placed in one or more fenced code blocks, like this:
@@ -38,11 +59,14 @@ lines  ...
 
 Please see [Mermaid's own Tutorials](https://mermaid.js.org/config/Tutorials.html).
 
-Note: The current version of Mermaid it uses is v11.x, and is loaded each time from the CDN that Mermaid uses.  _It may therefore not work if you are offline._
+Note: When online, Mermaid loads the latest **v11.x** from jsDelivr (`mermaid@11`). When offline (or if the CDN fails), the plugin falls back to a shipped official UMD snapshot in `requiredFiles` (currently **11.16.1**). The offline file can lag behind the CDN until the next plugin release.
 
-Note: If and when Mermaid releases v12, you can search the plugin's `script.js` file, and modify the line that includes
-`"https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs"`
-to be whatever the new URL is.
+Developer's note: To refresh the offline snapshot for a release:
+1. Bump the root `package.json` `mermaid` dependency (or download from [jsDelivr](https://www.jsdelivr.com/package/npm/mermaid)).
+2. Copy `node_modules/mermaid/dist/mermaid.min.js` to `np.Preview/requiredFiles/mermaid@VERSION.min.js`.
+3. Update that filename in `plugin.json` `plugin.requiredFiles` and the `MERMAID_OFFLINE_FILENAME` constant in `src/previewMain.js`.
+
+If/when Mermaid releases v12, change the CDN URL major in `src/previewMain.js` (search for `mermaid@11`) and rebuild the plugin.
 
 ### Theming Mermaid
 The plugin automatically sets the Mermaid chart to use their 'default' or 'dark' theme according to the type of the current NotePlan theme. But you can [override the theme](https://mermaid.js.org/config/theming.html) for individual diagrams by including the following directive at the start of a Mermaid definition:

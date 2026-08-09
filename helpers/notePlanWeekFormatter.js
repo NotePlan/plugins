@@ -59,10 +59,11 @@ export function formatWithNotePlanWeeks(dateInput?: mixed, format?: string): str
   if (fmt === '') return '' // vanilla behaviour
   if (!fmt.includes('w')) {
     // Fast path - no week tokens, just format normally
-    let momentInstance
+    let momentInstance: moment$Moment
     if (dateInput && typeof dateInput === 'object' && dateInput.format) {
-      // Already a moment instance
-      momentInstance = dateInput
+      // Already a moment instance. `dateInput` is `mixed`, so the duck-type check above only refines it to an
+      // object with a `format` property; Flow has no way to turn that into moment$Moment, hence the cast.
+      momentInstance = ((dateInput: any): moment$Moment)
     } else if (dateInput && typeof dateInput === 'string' && dateInput.trim().length > 0) {
       // Date string provided
       momentInstance = momentLib(dateInput.trim())
@@ -70,15 +71,14 @@ export function formatWithNotePlanWeeks(dateInput?: mixed, format?: string): str
       // null, undefined, or empty/whitespace string - use today
       momentInstance = momentLib()
     }
-    // $FlowFixMe[not-a-function] momentInstance is a moment object
     return momentInstance.format(fmt)
   }
 
   // Create moment instance from various input types
-  let momentInstance
+  let momentInstance: moment$Moment
   if (dateInput && typeof dateInput === 'object' && dateInput.format) {
-    // Already a moment instance - use as is
-    momentInstance = dateInput
+    // Already a moment instance - use as is. See the note above: the duck-type check cannot produce moment$Moment.
+    momentInstance = ((dateInput: any): moment$Moment)
   } else if (dateInput && typeof dateInput === 'string' && dateInput.trim().length > 0) {
     // Date string provided
     momentInstance = momentLib(dateInput.trim())
@@ -152,24 +152,19 @@ export function formatWithNotePlanWeeks(dateInput?: mixed, format?: string): str
   }
 
   if (!replacedWeek) {
-    // $FlowFixMe[not-a-function] momentInstance is a moment object
     return momentInstance.format(out) // nothing to patch
   }
 
   /* ------------------------------------------------------- */
   /*  Compute NotePlan week and patch placeholders           */
   /* ------------------------------------------------------- */
-  // $FlowFixMe[prop-missing] Calendar will exist inside NotePlan
   // For test environment, fall back to moment's ISO week calculation with Sunday adjustment
   let wk
   if (typeof Calendar !== 'undefined' && Calendar.weekNumber) {
-    // $FlowFixMe[not-a-function] momentInstance is a moment object
     wk = Calendar.weekNumber(momentInstance.toDate())
   } else {
     // Fallback for test environment: use moment's ISO week with adjustment for Sunday start
-    // $FlowFixMe[not-a-function] momentInstance is a moment object
     wk = parseInt(momentInstance.format('W'))
-    // $FlowFixMe[not-a-function] momentInstance is a moment object
     if (momentInstance.day() === 0) {
       wk++
     }
@@ -179,7 +174,6 @@ export function formatWithNotePlanWeeks(dateInput?: mixed, format?: string): str
 
   const finalFmt = out.replace(/\[\[NP_W_SINGLE]]/g, `[${wk}]`).replace(/\[\[NP_W_DOUBLE]]/g, `[${wk2}]`)
 
-  // $FlowFixMe[not-a-function] momentInstance is a moment object
   return momentInstance.format(finalFmt)
 }
 

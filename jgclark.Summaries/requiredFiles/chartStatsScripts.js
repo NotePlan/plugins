@@ -7,7 +7,7 @@
  * 
  * Note: this file is run as a script in an HTMLView window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
  * 
- * Last updated: 2026-03-20 for v1.1.0.b10 by @jgclark
+ * Last updated: 2026-08-07 for v1.1.0 by @jgclark
  */
 //-----------------------------------------------------------
 
@@ -71,6 +71,24 @@
     const command = 'chartSummaryStats'
     const periodArg = 'customRange|' + fromDate + '|' + toDate
     const url = 'noteplan://x-callback-url/runPlugin?pluginID=' + encodeURIComponent(pluginID) + '&command=' + encodeURIComponent(command) + '&arg0=' + encodeURIComponent(periodArg)
+    const link = document.createElement('a')
+    link.href = url
+    link.style.display = 'none'
+    document.body.appendChild(link)
+    link.click()
+    setTimeout(function() {
+      document.body.removeChild(link)
+    }, 100)
+  }
+
+  /**
+   * Open Habits and Summaries plugin preferences via hidden command.
+   * Same x-callback pattern as period reload (works in HTMLView without the Reviews bridge).
+   */
+  window.openPluginSettings = function() {
+    const pluginID = 'jgclark.Summaries'
+    const command = 'Habits+Summaries: open plugin settings'
+    const url = 'noteplan://x-callback-url/runPlugin?pluginID=' + encodeURIComponent(pluginID) + '&command=' + encodeURIComponent(command)
     const link = document.createElement('a')
     link.href = url
     link.style.display = 'none'

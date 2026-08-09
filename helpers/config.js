@@ -33,9 +33,12 @@ export function validateConfigProperties(config: { [string]: mixed }, validation
   const propsToValidate = Object.keys(validations)
   if (propsToValidate.length) {
     propsToValidate.forEach((v) => {
-      const isOptional = typeof validations[v] === 'object' && validations[v]?.optional
-      // $FlowIgnore
-      const requiredType = isOptional && validations[v]?.type ? validations[v].type : validations[v]
+      // A validation entry is either a bare type name / RegExp, or a `{ type, optional }` wrapper. Refine it once into a
+      // local so both `.optional` and `.type` can be read; a RegExp is also `typeof 'object'` but has neither property.
+      const validation = validations[v]
+      const validationObject = typeof validation === 'object' && validation !== null ? validation : null
+      const isOptional = Boolean(validationObject?.optional)
+      const requiredType = isOptional && validationObject?.type ? validationObject.type : validation
       const configFieldValue = config[v]
 
       if (configFieldValue === null || configFieldValue === undefined) {

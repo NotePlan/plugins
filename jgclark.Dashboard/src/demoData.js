@@ -337,7 +337,6 @@ export const openYesterdayParas: Array<TSectionItem> = [
       indents: 0,
     },
   },
-  // $FlowFixMe[prop-missing] children function is extra
   {
     ID: '2-3',
     sectionCode: 'DY',
@@ -417,7 +416,6 @@ export const refYesterdayParas: Array<TSectionItem> = [
       indents: 1,
     },
   },
-  // $FlowFixMe[prop-missing] children function is extra
   // {
   //   ID: '2-7',
   //   parentID: '',
@@ -526,7 +524,6 @@ export const refTomorrowParas: Array<TSectionItem> = []
 const weekDateStr = getNPWeekStr(today)
 thisFilename = `${weekDateStr}.md`
 export const openWeekParas: Array<TSectionItem> = [
-  // $FlowFixMe[prop-missing] children function is extra
   {
     ID: '6-0',
     sectionCode: 'W',
@@ -604,7 +601,6 @@ export const openWeekParas: Array<TSectionItem> = [
       indents: 1,
     },
   },
-  // $FlowFixMe[prop-missing] children function is extra
   {
     ID: '6-4',
     sectionCode: 'W',
@@ -727,8 +723,9 @@ export const refMonthParas: Array<TSectionItem> = [
 //-----------------------------------------------------------
 // Demo data for TagToShow section
 
-export const tagParasFromNote: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
+// Note: getTaggedSectionData() assigns the ID (`${sectionID}-${itemCount}`) as it copies each item,
+// so these fixtures really are TSectionItems minus their ID.
+export const tagParasFromNote: Array<Omit<TSectionItem, 'ID'>> = [
   {
     itemType: 'checklist',
     sectionCode: 'TAG',
@@ -744,7 +741,6 @@ export const tagParasFromNote: Array<TSectionItem> = [
       indents: 0,
     },
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'open',
     sectionCode: 'TAG',
@@ -760,7 +756,6 @@ export const tagParasFromNote: Array<TSectionItem> = [
       indents: 0,
     },
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'open',
     sectionCode: 'TAG',
@@ -845,8 +840,19 @@ export const savedSearch1 = {
 //-----------------------------------------------------------
 // Project Notes to review
 // Note: uses newer Project-based objects now, not the earlier TNote-based demo data
-export const nextProjectNoteItems: Array<Project> = [
-  // $FlowIgnore[incompatible-type]
+/**
+ * The fields of a Reviews `Project` that getProjectSectionData() / makeProjectRowItem() actually read.
+ * These fixtures are plain objects, not `Project` instances (they have none of the class's methods),
+ * so `Array<Project>` was never the right type for them.
+ */
+export type TDemoProjectItem = {
+  filename: $PropertyType<Project, 'filename'>,
+  title?: $PropertyType<Project, 'title'>,
+  reviewInterval?: $PropertyType<Project, 'reviewInterval'>,
+  percentComplete?: $PropertyType<Project, 'percentComplete'>,
+  lastProgressComment?: $PropertyType<Project, 'lastProgressComment'>,
+}
+export const nextProjectNoteItems: Array<TDemoProjectItem> = [
   {
     filename: 'CCC Projects/Facilities/Hearing Support.md',
     title: 'Hearing Support at CCC',
@@ -854,14 +860,12 @@ export const nextProjectNoteItems: Array<Project> = [
     percentComplete: 23,
     lastProgressComment: 'Checked our equipment and its OK; looking for acoustician',
   },
-  // $FlowIgnore[incompatible-type]
   {
     filename: 'Home 🏠 Projects/Streamdeck setup.md',
     title: 'Streaming Platform',
     reviewInterval: '1w',
     percentComplete: 82,
   },
-  // $FlowIgnore[incompatible-type]
   {
     filename: 'CCC Projects/Pastoral Cards.md',
     title: 'Pastoral Cards',

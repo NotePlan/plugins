@@ -81,8 +81,8 @@ export async function updateSettings() {
  * Assumes a note titled 'Quick Capture callback TESTs'
  */
 export async function smartCreateTest(): Promise<void> {
-  // $FlowIgnore[incompatible-use]
-  const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
+  // Cast, not a suppression: projectNoteByTitle() is declared `?$ReadOnlyArray<TNote>`, and this hidden test command assumes the note exists.
+  const note: TNote = ((DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false): any): $ReadOnlyArray<TNote>)[0]
   smartCreateSectionsAndPara(
     note,
     'test_text_added_below_heading by tempSmartCreateTest()',
@@ -98,8 +98,8 @@ export async function smartCreateTest(): Promise<void> {
  * Assumes a note titled 'Quick Capture callback TESTs'
  */
 export async function smartAppendParasTest(): Promise<void> {
-  // $FlowIgnore[incompatible-use]
-  const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
+  // Cast, not a suppression: projectNoteByTitle() is declared `?$ReadOnlyArray<TNote>`, and this hidden test command assumes the note exists.
+  const note: TNote = ((DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false): any): $ReadOnlyArray<TNote>)[0]
   smartAppendParas(
     note,
     ['test adding list by smartAppendParas()', 'test adding text by smartAppendParas()', 'test adding checklist by smartAppendParas()'],
@@ -112,8 +112,8 @@ export async function smartAppendParasTest(): Promise<void> {
  * Assumes a note titled 'Quick Capture callback TESTs'
  */
 export async function smartPrependParasTest(): Promise<void> {
-  // $FlowIgnore[incompatible-use]
-  const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
+  // Cast, not a suppression: projectNoteByTitle() is declared `?$ReadOnlyArray<TNote>`, and this hidden test command assumes the note exists.
+  const note: TNote = ((DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false): any): $ReadOnlyArray<TNote>)[0]
   smartPrependParas(
     note,
     ['test adding list by smartPrependParas()', 'test adding text by smartPrependParas()', 'test adding checklist by smartPrependParas()'],
@@ -126,8 +126,8 @@ export async function smartPrependParasTest(): Promise<void> {
  * Assumes a note titled 'Quick Capture callback TESTs'
  */
 export async function insertParasTest(): Promise<void> {
-  // $FlowIgnore[incompatible-use]
-  const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
+  // Cast, not a suppression: projectNoteByTitle() is declared `?$ReadOnlyArray<TNote>`, and this hidden test command assumes the note exists.
+  const note: TNote = ((DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false): any): $ReadOnlyArray<TNote>)[0]
   insertParas(
     note,
     4,

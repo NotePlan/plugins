@@ -20,7 +20,9 @@ type Props = {
   expandToShowHighlight?: boolean,
   filter?: boolean,
   useRegex?: boolean,
-  onReset?: (reset: () => void) => void,
+  // `mixed`, not `void`: the return value is discarded (it is called as a statement in the mount effect),
+  // so callers must be allowed to use a concise arrow body such as `(reset) => (ref.current = reset)`.
+  onReset?: (reset: () => void) => mixed,
   sortKeys?: boolean,
   scroll?: boolean,
   style?: Style,

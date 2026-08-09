@@ -7,8 +7,9 @@
 // Types for Settings
 
 import type { TReminder } from '@helpers/NPReminders'
-import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
-export type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
+import type { TSettingItem as TDialogSettingItem, TSettingItemType as TDialogSettingItemType } from '@helpers/react/DynamicDialog/DynamicDialog'
+// DynamicDialog's own (un-widened) setting item, for things that are handed straight to DynamicDialog, e.g. action button form fields.
+export type { TSettingItem as TDialogSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 
 export type TDashboardLoggingConfig = {
   _logLevel: string,
@@ -278,6 +279,11 @@ export type TParagraphForDashboard = {
   dueDate?: string, // ISO string of due date, or 'none', required for sorting items in display
   /** Icons for notes linked mid-content via [[title]] / [alias]([[title]]); keyed by title without #heading. */
   linkedNoteIcons?: { [string]: TLinkedNoteIconInfo },
+  /**
+   * Only ever set by demoData.js, which emulates the TParagraph.children() API on its fixture paras.
+   * makeDashboardParas() never copies it, so it is absent on every para built from a real note.
+   */
+  children?: () => $ReadOnlyArray<{ content: string, indents: number }>,
 }
 
 // a reminder item within a section (alias of shared TReminder from @helpers/NPReminders)
@@ -304,7 +310,7 @@ export type TActionButton = {
   actionParam: string /* NB: all have to be passed as a string for simplicity. For "move all" buttons when filtering is active, may contain '|onlyShown' suffix */,
   postActionRefresh?: Array<TSectionCode>,
   tooltip: string,
-  formFields?: Array<TSettingItem>,
+  formFields?: Array<TDialogSettingItem>,
   submitOnEnter?: boolean,
   submitButtonText?: string,
 }
@@ -413,6 +419,7 @@ export type MessageDataObject = {
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   toFilename?: string,
   newDimensions?: { width: number, height: number },
+  reason?: string /* why windowResized was requested (e.g. resize, willDisappear) */,
   settings?: TDashboardSettings | TPerspectiveSettings,
   perspectiveSettings?: TPerspectiveSettings,
   filename?: string /* only used when actionType = 'showNoteInEditorFromFilename', otherwise filename comes from the item */,
@@ -529,6 +536,15 @@ export type TPluginData = {
 
 // TODO: figure out how to make this superclass of TSettingItemType from DynamicDialog.jsx -- applies to teamspace-multiselect (and orderingPanel at the moment) which are Dashboard-specific items.
 export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList' | 'orderingPanel' | 'teamspace-multiselect'
+
+/**
+ * DynamicDialog's TSettingItem, but with `type` widened to also allow the Dashboard-only values above
+ * ('header', 'perspectiveList', 'teamspace-multiselect') that DynamicDialog's own TSettingItemType
+ * doesn't list. Everything inside the Dashboard imports TSettingItem from here, so it gets this
+ * widened version; only calls straight into DynamicDialog need a cast.
+ * TODO: remove this widening once those three values are added to TSettingItemType in DynamicDialog.jsx (see above).
+ */
+export type TSettingItem = { ...TDialogSettingItem, type: TDialogSettingItemType | TSettingItemType }
 
 export type TItemToProcess = {
   ...TSectionItem,

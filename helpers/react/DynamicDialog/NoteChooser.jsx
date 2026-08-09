@@ -22,15 +22,19 @@ import './NoteChooser.css'
 // This may change in the future as more relative note types become available in teamspaces
 const TEAMSPACES_INCLUDE_REGEX = /today|week/
 
+// Must stay field-for-field identical to `NoteOption` in helpers/NPnote.js, which is where the plugin side
+// builds these objects (and which is what getNoteDecorationForReact() accepts). The nullable fields below
+// were previously declared non-nullable here, which - because object properties are invariant - made every
+// NoteOption produced by the plugin unusable against the NPnote signature.
 export type NoteOption = {
   title: string,
   filename: string,
   type?: string, // 'Notes' or 'Calendar'
   frontmatterAttributes?: { [key: string]: any },
   isTeamspaceNote?: boolean,
-  teamspaceID?: string,
-  teamspaceTitle?: string,
-  changedDate?: number,
+  teamspaceID?: ?string,
+  teamspaceTitle?: ?string,
+  changedDate?: ?number,
 }
 
 export type NoteChooserProps = {
@@ -83,7 +87,6 @@ export type NoteChooserProps = {
  */
 const getNoteDecoration = (note: NoteOption): { icon: string, color: string, shortDescription: ?string } => {
   // Use the shared helper that works with both TNote and NoteOption
-  // $FlowFixMe[incompatible-call] - NoteOption is compatible with the union type TNote | NoteOption
   return getNoteDecorationForReact(note)
 }
 

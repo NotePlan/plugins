@@ -266,7 +266,6 @@ export async function getNotePlanWeather(
     const latitudeLabel: string = _latitude === null || _latitude === undefined ? 'auto' : String(_latitude)
     const longitudeLabel: string = _longitude === null || _longitude === undefined ? 'auto' : String(_longitude)
     logDebug('getNotePlanWeather', `Calling NotePlan.getWeather with units: "${unitsLabel}", latitude: "${latitudeLabel}", longitude: "${longitudeLabel}" format: "${format}"`)
-    // $FlowFixMe[incompatible-call] - NotePlan.getWeather accepts undefined/null values for auto-detection
     const weather = await NotePlan.getWeather(_units, _latitude, _longitude)
     const location = weather?.location ?? {}
     const cityName = weather?.cityName ?? location?.cityName ?? location?.locality ?? ''

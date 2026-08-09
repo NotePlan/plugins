@@ -1,9 +1,11 @@
 // @flow
 import { getEventsForDay } from '../../helpers/NPCalendar'
 import { getTodaysDateUnhyphenated, type HourMinObj, toLocaleTime } from '../../helpers/dateTime'
-import { chooseOption, chooseFolder } from '../../helpers/userInput'
+import { chooseOption, chooseFolder, showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
-import { logDebug } from '@helpers/dev'
+import { logDebug, logError } from '@helpers/dev'
+
+type EventSelection = { label: string, value: string, time: string, date: string }
 
 function getTimeOffset(offset: HourMinObj = { h: 0, m: 0 }) {
   const now = new Date()
@@ -39,17 +41,29 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   if (nowIshEvents && nowIshEvents.length > 0) {
     // events = [...nowIshEvents, ...[{ title: '---' }], ...allDaysEvents]
   }
-  // $FlowIgnore
-  const selections = allDaysEvents.map((event) => {
-    // $FlowIgnore
-    const time = toLocaleTime(event.date, [], { hour: '2-digit', minute: '2-digit', hour12: false })
-    // $FlowIgnore
-    if (event.title) return { label: `${time}: ${event.title}`, value: event.title, time, date: event.date.toLocaleDateString() }
-  })
-  // $FlowIgnore
-  const selectedEvent = await chooseOption('Choose an event to create a note for', selections, '')
+  // getEventsForDay() returns `Array<TCalendarItem> | null` (it returns null from its catch), so bail out loudly
+  // rather than throwing "cannot read property 'map' of null" further down.
+  if (!allDaysEvents) {
+    logError(pluginJson, `createNoteForCalendarItem: could not read today's (${date}) events; getEventsForDay() returned null.`)
+    await showMessage(`Sorry, I could not read today's events.`)
+    return
+  }
+  // Only keep events which have both a title and a date. TCalendarItem.date is `Date | null` because reminders may
+  // have no due date, and an untitled event has nothing to label the option with.
+  const selections: Array<EventSelection> = []
+  for (const event of allDaysEvents) {
+    const eventDate = event.date
+    if (!event.title || !eventDate) continue
+    const time = toLocaleTime(eventDate, [], { hour: '2-digit', minute: '2-digit', hour12: false })
+    selections.push({ label: `${time}: ${event.title}`, value: event.title, time, date: eventDate.toLocaleDateString() })
+  }
+  // Option<T> is exact, so pass only the {label, value} fields; the time/date payload is looked up below.
+  const selectedEvent = await chooseOption(
+    'Choose an event to create a note for',
+    selections.map(({ label, value }) => ({ label, value })),
+    '',
+  )
   // Override the quickTemplateNote title with the selected event
-  // $FlowIgnore
   const selEvent = selections.find((event) => event.value === selectedEvent)
   // const theTime = selEvent.time === '00:00' ? '' : selEvent.time
   logDebug(pluginJson, `Selected event: ${selectedEvent} ${String(JSON.stringify(selEvent))}`)

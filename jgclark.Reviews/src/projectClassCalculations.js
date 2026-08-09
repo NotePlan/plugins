@@ -33,7 +33,15 @@ type ProjectUpdates = {
  * @returns {Project} - New immutable Project-like object
  */
 function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = {}): Project {
-  // $FlowIgnore[incompatible-return] - Object literal has all Project properties, compatible for our use case
+  // No real type is possible while the declared return type is the `Project` *class*: an object literal is never a subtype of a class
+  // instance type, because it has none of the prototype methods. The proper fix is to split `Project` into a `ProjectFields` data type
+  // (which allProjectsList.json rows are too) plus the class that implements it, and return `ProjectFields` here.
+  // Note this cannot be done as a local change: `ProjectFields` would have to propagate out through syncProjectFinishedFlagsFromDates(),
+  // calcDurationsForProject() and calcReviewFieldsForProject() to `let np: Project` in allProjectsListHelpers.js, hence to the
+  // `Array<Project>` returned by getAllMatchingProjects()/getAllProjectsFromList(), which jgclark.Dashboard/src/dataGenerationProjects.js
+  // also consumes. It also has to keep the props mutable (callers assign `.nextReviewDateStr` / `.note` before calling) and omit
+  // `projectTagOrder` / `migrationLogDetailFromConstructor`, which this copy silently drops.
+  // $FlowIgnore[incompatible-return]
   return {
     note: project.note,
     filename: project.filename,

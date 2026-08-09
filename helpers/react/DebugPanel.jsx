@@ -48,6 +48,11 @@ type Props = {
   isVisible: boolean,
 }
 
+// Flow's core libdef declares console's methods with method syntax (so they are read-only) and gives the
+// object no indexer, so neither the computed read nor the monkey-patching below can be expressed against
+// `typeof console`. This is the narrowest honest description of what this component treats console as.
+export type PatchableConsole = { [methodName: string]: (...args: Array<any>) => void }
+
 const methodsToOverride = ['log', 'error', 'info', 'warn']
 
 const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isVisible }: Props): React.Node => {
@@ -74,12 +79,10 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
     console.log('DebugPanel: starting up before the console methods override')
 
     const overrideConsoleMethod = (methodName: string) => {
-      // $FlowIgnore
-      const originalMethod = console[methodName]
+      const originalMethod = ((console: any): PatchableConsole)[methodName]
       originalConsoleMethodsRef.current[methodName] = originalMethod
 
-      // $FlowIgnore
-      console[methodName] = (...args: Array<any>) => {
+      ;((console: any): PatchableConsole)[methodName] = (...args: Array<any>) => {
         const messageParts = []
         const dataObjects = []
 
@@ -111,8 +114,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
       methodsToOverride.forEach((methodName) => {
         if (console[methodName] === originalConsoleMethodsRef.current[methodName]) {
           console.log(`DebugPanel: console.${methodName} override is being removed`)
-          // $FlowIgnore
-          console[methodName] = originalConsoleMethodsRef.current[methodName]
+          ;((console: any): PatchableConsole)[methodName] = originalConsoleMethodsRef.current[methodName]
         }
       })
     }
@@ -170,7 +172,6 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
               highlightRegex={highlightRegex}
               expandToShowHighlight={expandToShow}
               filter={filter}
-              // $FlowIgnore
               onReset={(reset) => (resetViewerRef.current = reset)}
               useRegex={useRegex}
               scroll={true}

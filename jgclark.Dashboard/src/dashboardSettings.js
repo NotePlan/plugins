@@ -104,7 +104,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description:
       'Select which Spaces to include when searching for tasks and items. \'Private space\' includes all notes not in a Space. At least one must be selected.',
     handleDescriptionItself: true,
-    // $FlowIgnore[incompatible-type] see TODO in types.js which explains this
     type: 'teamspace-multiselect',
     default: ['private'],
     compactDisplay: true,
@@ -635,7 +634,6 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           description: setting.description || '',
           key: thisKey,
         }
-      // $FlowIgnore[incompatible-type] don't understand the error
       case 'header': // Note: deliberately the same as 'heading' above.
         return {
           type: 'heading',
@@ -694,10 +692,8 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           compactDisplay: setting.compactDisplay ?? false,
           dependsOnKey: setting.dependsOnKey,
         }
-      // $FlowIgnore[incompatible-type] see TODO in types.js which explains this
       case 'teamspace-multiselect':
         return {
-          // $FlowIgnore[incompatible-call] see TODO in types.js which explains this
           type: 'teamspace-multiselect',
           label: setting.label || '',
           key: thisKey,
@@ -707,20 +703,16 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           dependsOnKey: setting.dependsOnKey,
           handleDescriptionItself: setting.handleDescriptionItself ?? false,
         }
-      // $FlowIgnore[incompatible-type] see TODO in types.js which explains this
       case 'hidden':
         return {
-          //$FlowIgnore[incompatible-call] see TODO in types.js which explains this
           type: 'hidden',
           label: setting.label || '',
           key: thisKey,
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
         }
-      // $FlowIgnore[incompatible-type] see TODO in types.js which explains this
       case 'perspectiveList':
         return {
-          //$FlowIgnore[incompatible-call] see TODO in types.js which explains this
           type: 'perspectiveList',
           dependsOnKey: setting.dependsOnKey,
         }

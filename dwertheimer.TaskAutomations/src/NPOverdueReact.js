@@ -184,8 +184,15 @@ export function paragraphUpdateReceived(data: { rows: Array<any>, field: string 
       clo(row, `paragraphUpdateReceived getting row of ${rows.length} (${row.content})`)
       const para = getParagraphFromStaticObject(row)
       if (para) {
-        // $FlowFixMe
-        para[field] = row[field]
+        // NotePlan's Paragraph is a native class with no indexer, so a computed write cannot be typed. Only 'type'
+        // and 'content' are ever sent from the React side (see react/WebView.jsx), so write them explicitly.
+        if (field === 'type') {
+          para.type = row.type
+        } else if (field === 'content') {
+          para.content = row.content
+        } else {
+          logError(pluginJson, `paragraphUpdateReceived: unsupported field "${field}" - only 'type' and 'content' can be updated`)
+        }
         // const val = { action: 'set', changed: para }
         if (para && para.filename) {
           // writing one at a time will not work in the same note, so we need to save them and write them all at once

@@ -384,9 +384,7 @@ function writeAnswersToNote(output: string, config: JournalConfigType): void {
   // Add the finished review text to the current calendar note,
   // appending after the line found in config.reviewSectionHeading.
   // If this doesn't exist, then append it first.
-  // $FlowIgnore(incompatible-call) .note is a superset of CoreNoteFields
   const outputNote = Editor
-  // $FlowIgnore[incompatible-call] .note is a superset of CoreNoteFields
   logDebug(pluginJson, `Appending answers to heading '${config.reviewSectionHeading}' in note ${displayTitle(Editor.note)}`)
   const matchedHeading = findHeadingStartsWith(outputNote, config.reviewSectionHeading)
   outputNote.addParagraphBelowHeadingTitle(output,

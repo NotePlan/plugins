@@ -47,7 +47,6 @@ export function setTitle(note: CoreNoteFields, title: string): void {
       if (fmFields.hasOwnProperty('title')) {
         const newFmFields = { ...fmFields }
         newFmFields.title = title
-        // $FlowIgnore(incompatible-call)
         updateFrontMatterVars(note, newFmFields, true)
         titleIsChanged = true
       } else {
@@ -122,18 +121,17 @@ export function getNoteLinkForDisplay(filename: string, dateStyle: string): stri
   if (!note) {
     return '<error>'
   }
-  if (note.date != null) {
+  // Note: hoisted to a local const, so that the refinement survives the displayTitle() call in the first branch below.
+  const noteDate = note.date
+  if (noteDate != null) {
     return dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
       ? ` ([[${displayTitle(note)}]])`
       : dateStyle === 'scheduled'
-      ? // $FlowIgnore(incompatible-call)
-        ` >${hyphenatedDate(note.date)} `
+      ? ` >${hyphenatedDate(noteDate)} `
       : dateStyle === 'date'
-      ? // $FlowIgnore(incompatible-call)
-        ` (${toNPLocaleDateString(note.date)})`
+      ? ` (${toNPLocaleDateString(noteDate)})`
       : dateStyle === 'at'
-      ? // $FlowIgnore(incompatible-call)
-        ` @${hyphenatedDate(note.date)} `
+      ? ` @${hyphenatedDate(noteDate)} `
       : '?'
   } else {
     return `[[${note.title ?? ''}]]`
@@ -316,8 +314,7 @@ export function getUniqueNoteTitle(title: string): string {
     let newTitle = title
     while (++i === 1 || res.length > 0) {
       newTitle = i === 1 ? title : `${title} ${i}`
-      // $FlowFixMe(incompatible-type)
-      res = DataStore.projectNoteByTitle(newTitle, true, false)
+      res = DataStore.projectNoteByTitle(newTitle, true, false) ?? []
     }
     return newTitle
   } catch (err) {
@@ -336,8 +333,7 @@ export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Ar
   const projectNotes = getRegularNotesFromFilteredFolders(foldersToIgnore, true)
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
-  // $FlowIgnore(unsafe-arithmetic)
-  const allNotesSorted = allNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  const allNotesSorted = allNotes.sort((first, second) => Number(second.changedDate) - Number(first.changedDate)) // most recent first
   return allNotesSorted
 }
 
@@ -349,8 +345,7 @@ export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Ar
  */
 export function allRegularNotesSortedByChanged(foldersToIgnore: Array<string> = []): Array<TNote> {
   const regularNotes = getRegularNotesFromFilteredFolders(foldersToIgnore, true)
-  // $FlowIgnore(unsafe-arithmetic)
-  const regularNotesSorted = regularNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  const regularNotesSorted = regularNotes.sort((first, second) => Number(second.changedDate) - Number(first.changedDate)) // most recent first
   return regularNotesSorted
 }
 
@@ -374,8 +369,7 @@ export function allNotesSortedByTitle(foldersToIgnore: Array<string> = [], exclu
  * @return {Array<TNote>} array of notes
  */
 export function calendarNotesSortedByChanged(): Array<TNote> {
-  // $FlowIgnore(unsafe-arithmetic)
-  return DataStore.calendarNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
+  return DataStore.calendarNotes.slice().sort((first, second) => Number(second.changedDate) - Number(first.changedDate))
 }
 
 /**
@@ -435,8 +429,7 @@ export function pastCalendarNotes(): Array<TNote> {
  */
 export function weeklyNotesSortedByChanged(): Array<TNote> {
   const weeklyNotes = DataStore.calendarNotes.slice().filter((f) => f.filename.match(RE_WEEKLY_NOTE_FILENAME))
-  // $FlowIgnore(unsafe-arithmetic)
-  return weeklyNotes.sort((first, second) => second.changedDate - first.changedDate)
+  return weeklyNotes.sort((first, second) => Number(second.changedDate) - Number(first.changedDate))
 }
 
 /**
@@ -445,8 +438,7 @@ export function weeklyNotesSortedByChanged(): Array<TNote> {
  * @return {Array<TNote>} array of notes
  */
 export function projectNotesSortedByChanged(): Array<TNote> {
-  // $FlowIgnore(unsafe-arithmetic)
-  return DataStore.projectNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
+  return DataStore.projectNotes.slice().sort((first, second) => Number(second.changedDate) - Number(first.changedDate))
 }
 
 /**
@@ -544,16 +536,16 @@ export const clearNote = (note: TNote) => {
  * @param {string} newSectionContent Note: without Heading text!
  */
 export function replaceSection(
-  note: TNote,
+  note: CoreNoteFields,
   headingOfSectionToReplace: string,
   newSectionHeading: string,
   newSectionHeadingLevel: headingLevelType,
   newSectionContent: string,
 ): void {
   try {
-    // $FlowIgnore
-    const editorNote = note?.note
-    const isEditor = editorNote !== undefined
+    // Note: callers can pass the Editor here (it satisfies the TNote-shaped API we use). Identity-check it rather than
+    // duck-typing on a `.note` property that TNote doesn't have. Only used for the log line below.
+    const isEditor = note === Editor
     logDebug(
       'note / replaceSection',
       `Starting for note '${displayTitle(note)}' ${
@@ -587,7 +579,7 @@ export function replaceSection(
  * @param {string} headingOfSectionToRemove
  * @return {number} lineIndex of the found headingOfSectionToRemove, or if not found the last line of the note
  */
-export function removeSection(note: TNote, headingOfSectionToRemove: string): number {
+export function removeSection(note: CoreNoteFields, headingOfSectionToRemove: string): number {
   try {
     const paras = note.paragraphs ?? []
     const startOfActive = findStartOfActivePartOfNote(note)
@@ -824,6 +816,5 @@ export function setIconForNote(note: TNote, icon: string, iconColor: ?string, ic
   if (iconStyle) {
     noteFrontmatter['icon-style'] = iconStyle
   }
-  // $FlowIgnore[cannot-write] documentation says this particular usage *is* safe
   note.frontmatterAttributes = noteFrontmatter
 }

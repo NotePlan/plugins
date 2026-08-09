@@ -162,8 +162,9 @@ const SettingsDialog = ({
       }
 
       if (updatedSettings?.perspectiveSettings) {
-        // $FlowIgnore[incompatible-indexer] newSettings is the loose indexed TAnyObject copy of the settings; the callee only reads/spreads it
-        newSettings = setPerspectivesIfJSONChanged(newSettings, dashboardSettings, sendActionToPlugin, `Dashboard Settings updated`)
+        // Cast: newSettings is the loose indexed TAnyObject copy of the settings (it has to be, so the
+        // dynamic showTagSection_* keys can be written), and the callee takes an exact TDashboardSettingsIn.
+        newSettings = setPerspectivesIfJSONChanged((newSettings: any), dashboardSettings, sendActionToPlugin, `Dashboard Settings updated`)
       }
       onSaveChanges(newSettings)
     }
@@ -214,18 +215,15 @@ const SettingsDialog = ({
       setTimeout(() => {
         const targetElement = reactSettings?.settingsDialog?.scrollTarget ? document.querySelector(`[data-settings-key="${reactSettings?.settingsDialog.scrollTarget}"]`) : null
         if (targetElement) {
-          // Both suppressions are safe: the enclosing `if (reactSettings?.settingsDialog?.scrollTarget)` already
-          // proves settingsDialog and scrollTarget are set, and the value is only interpolated into a log line.
-          // $FlowIgnore[incompatible-use]
-          // $FlowIgnore[incompatible-type]
-          logDebug('SettingsDialog/useEffect', `Scrolling to element [${reactSettings?.settingsDialog.scrollTarget}]`)
+          // Cast: the enclosing `if (reactSettings?.settingsDialog?.scrollTarget)` proves both are set, but
+          // Flow drops that refinement across the setTimeout callback. Cast on `reactSettings` (not on
+          // `.settingsDialog`) so the optional chain, and therefore the runtime behaviour, is unchanged.
+          logDebug('SettingsDialog/useEffect', `Scrolling to element [${(reactSettings: any)?.settingsDialog.scrollTarget}]`)
           targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
         } else {
-          // Both suppressions are safe: the enclosing `if (reactSettings?.settingsDialog?.scrollTarget)` already
-          // proves settingsDialog and scrollTarget are set, and the value is only interpolated into a log line.
-          // $FlowIgnore[incompatible-use]
-          // $FlowIgnore[incompatible-type]
-          logDebug('SettingsDialog/useEffect', `No target element found for scrollTarget=${reactSettings?.settingsDialog.scrollTarget}`)
+          // Cast: as above -- refinement lost across the setTimeout callback; cast on `reactSettings` so the
+          // optional chain is preserved exactly.
+          logDebug('SettingsDialog/useEffect', `No target element found for scrollTarget=${(reactSettings: any)?.settingsDialog.scrollTarget}`)
           return
         }
         // Clear the scroll target after scrolling
@@ -374,9 +372,10 @@ const SettingsDialog = ({
                     handleFieldChange,
                     labelPosition,
                     showSaveButton: false, // Do not show save button
-                    // $FlowFixMe[incompatible-exact] reason for suppression
-                    // $FlowFixMe[incompatible-call] reason for suppression
-                    inputRef: item.type === 'dropdown-select' ? dropdownRef : undefined, // Assign ref to the dropdown input
+                    // Cast: renderItem()'s inputRef is typed { current: HTMLInputElement | null } (exact), but
+                    // dropdownRef is a React$RefObject holding the DropdownSelect's own element. Widening
+                    // renderItem's parameter is the real fix; it lives in helpers/react/DynamicDialog.
+                    inputRef: item.type === 'dropdown-select' ? (dropdownRef: any) : undefined, // Assign ref to the dropdown input
                     indent: !!item.dependsOnKey,
                     className: '', // for future use
                     showDescAsTooltips: false,

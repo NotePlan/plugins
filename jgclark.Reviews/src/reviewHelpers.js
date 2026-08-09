@@ -22,7 +22,7 @@ import {
   getJSDateStartOfToday,
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
-  getTodaysDateUnhyphenated,
+  getTodaysDateHyphenated,
   todaysDateISOString,
   toISODateString,
 } from '@helpers/dateTime'
@@ -87,7 +87,7 @@ export type ReviewConfig = {
   preferredWindowType: string, // "New Window" |"Main Window" | "Split View"
   autoUpdateAfterIdleTime?: number,
   progressHeading?: string,
-  progressHeadingLevel: number,
+  progressHeadingLevel: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8, // must match the levels NotePlan's insertHeading() accepts
   writeMostRecentProgressToFrontmatter?: boolean,
   projectMetadataFrontmatterKey?: string,
   _logLevel: string,
@@ -421,21 +421,21 @@ export function isProjectNoteIsMarkedSequential(note: TNote, sequentialTag: stri
 }
 
 /**
- * Normalise a progress date to YYYYMMDD, defaulting to today when missing or unrecognised.
+ * Normalise a progress date to YYYY-MM-DD, defaulting to today when missing or unrecognised.
  * @param {?string} progressDateStr
  * @returns {string}
  */
-function normalizeProgressDateToYYYYMMDD(progressDateStr?: ?string): string {
+function normalizeProgressDateToISO(progressDateStr?: ?string): string {
   const raw = checkString(progressDateStr ?? '').trim()
-  if (raw === '') return getTodaysDateUnhyphenated()
+  if (raw === '') return getTodaysDateHyphenated()
   if (new RegExp(`^${RE_ISO_DATE}$`).test(raw)) {
-    return raw.replace(/-/g, '')
-  }
-  if (new RegExp(`^${RE_YYYYMMDD_DATE}$`).test(raw)) {
     return raw
   }
-  logWarn('normalizeProgressDateToYYYYMMDD', `Unrecognised progress date '${raw}', so will use today's date`)
-  return getTodaysDateUnhyphenated()
+  if (new RegExp(`^${RE_YYYYMMDD_DATE}$`).test(raw)) {
+    return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
+  }
+  logWarn('normalizeProgressDateToISO', `Unrecognised progress date '${raw}', so will use today's date`)
+  return getTodaysDateHyphenated()
 }
 
 /**
@@ -456,10 +456,10 @@ function formatProgressPercentForOutput(percentComplete?: ?number | ?string): st
 
 /**
  * Format a canonical progress comment value string ready for body lines or frontmatter.
- * Form: [N]@YYYYMMDD comment (N = optional 0-100 completion %; date defaults to today as YYYYMMDD).
+ * Form: [N]@YYYY-MM-DD comment (N = optional 0-100 completion %; date defaults to today as YYYY-MM-DD).
  * @param {string} comment - progress comment text (required)
  * @param {?number | ?string} [percentComplete] - optional completion percentage
- * @param {?string} [progressDateStr] - optional date (ISO or YYYYMMDD); defaults to today as YYYYMMDD
+ * @param {?string} [progressDateStr] - optional date (ISO or YYYYMMDD); defaults to today as YYYY-MM-DD
  * @returns {string}
  */
 export function formatProgressCommentString(
@@ -468,7 +468,7 @@ export function formatProgressCommentString(
   progressDateStr?: ?string,
 ): string {
   const trimmedComment = checkString(comment).trim()
-  const dateStr = normalizeProgressDateToYYYYMMDD(progressDateStr)
+  const dateStr = normalizeProgressDateToISO(progressDateStr)
   const percentStr = formatProgressPercentForOutput(percentComplete)
   return `${percentStr}@${dateStr} ${trimmedComment}`
 }
@@ -484,13 +484,14 @@ export function parseProgressValueString(progressLine: string, lineIndex: number
   const isoMatch = progressLine.match(RE_ISO_DATE)
   const yyyymmddMatch = progressLine.match(RE_YYYYMMDD_DATE)
   const dateStr = isoMatch ? isoMatch[0] : yyyymmddMatch ? yyyymmddMatch[0] : null
+  // Note: getDateObjFromDateString() / getDateFromYYYYMMDDString() are declared `?Date` in helpers/dateTime.js, but the RE_ISO_DATE /
+  // RE_YYYYMMDD_DATE match above guarantees a parseable date string, so the null branch is unreachable. The real type is `Date`; it can
+  // only be written as a cast until those two helpers gain a non-maybe form.
   const thisDate: Date =
     isoMatch
-      ? // $FlowIgnore
-        getDateObjFromDateString(isoMatch[0])
+      ? ((getDateObjFromDateString(isoMatch[0]): any): Date)
       : yyyymmddMatch
-      ? // $FlowIgnore
-        getDateFromYYYYMMDDString(yyyymmddMatch[0])
+      ? ((getDateFromYYYYMMDDString(yyyymmddMatch[0]): any): Date)
       : new Date('0001-01-01')
   // Comment: support both "date: comment" and "date comment" by taking everything after the date and stripping optional colon
   let comment = ''
@@ -806,7 +807,6 @@ function migrateProjectMetadataLineCore(
 
     const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
     const primaryKey = singleMetadataKeyName
-    // $FlowFixMe[prop-missing] CoreNoteFields vs Note for NP frontmatter helpers
     const metadataAttr = getFrontmatterAttribute((note: any), primaryKey)
     const metadataStrSavedFromBodyOfNote = typeof metadataAttr === 'string' ? metadataAttr.trim() : ''
 
@@ -1189,13 +1189,13 @@ function applySeparateFrontmatterMetadataMentions(
 /**
  * Core helper to update project metadata @mentions in a metadata line.
  * Shared by updateMetadataInEditor and updateMetadataInNote.
- * @param {CoreNoteFields | TEditor} noteLike - the note/editor to update
+ * @param {TNote | TEditor} noteLike - the note/editor to update
  * @param {number} metadataLineIndex - index of the metadata line to use
  * @param {Array<string>} updatedMetadataArr - full @mention strings to apply (e.g. '@reviewed(2023-06-23)')
  * @param {string} logContext - name to use in log messages
  */
 function updateMetadataCore(
-  noteLike: CoreNoteFields | TEditor,
+  noteLike: TNote | TEditor,
   metadataLineIndex: number,
   updatedMetadataArr: Array<string>,
   logContext: string,
@@ -1244,7 +1244,6 @@ function updateMetadataCore(
         valueOnly += ` ${item}`
       }
       fmAttrs[singleMetadataKeyName] = extractTagsOnly(valueOnly)
-      // $FlowFixMe[incompatible-call]
       const success = updateFrontMatterVars(noteLike, fmAttrs)
       if (!success) {
         logError(logContext, `Failed to update frontmatter ${singleMetadataKeyName} for '${displayTitle(noteLike)}'`)
@@ -1313,7 +1312,7 @@ export function updateBodyMetadataInEditor(thisEditor: TEditor, updatedMetadataA
  * @param {TNote} noteToUse
  * @param {Array<string>} mentions to update:
  */
-export function updateBodyMetadataInNote(note: CoreNoteFields, updatedMetadataArr: Array<string>): void {
+export function updateBodyMetadataInNote(note: TNote | TEditor, updatedMetadataArr: Array<string>): void {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (note == null || note.type === 'Calendar' || note.paragraphs.length < 2) {
@@ -1338,13 +1337,13 @@ export function updateBodyMetadataInNote(note: CoreNoteFields, updatedMetadataAr
 /**
  * Internal helper to delete specific metadata mentions from a metadata line in a note-like object.
  * Shared by deleteMetadataMentionInEditor and deleteMetadataMentionInNote.
- * @param {CoreNoteFields | TEditor} noteLike - the note or editor to update
+ * @param {TNote | TEditor} noteLike - the note or editor to update
  * @param {number} metadataLineIndex - index of the metadata line to use
  * @param {Array<string>} mentionsToDeleteArr - mentions to delete (just the @mention name, not any bracketed date)
  * @param {string} logContext - name to use in log messages
  */
 function deleteMetadataMentionCore(
-  noteLike: CoreNoteFields | TEditor,
+  noteLike: TNote | TEditor,
   metadataLineIndex: number,
   mentionsToDeleteArr: Array<string>,
   logContext: string,
@@ -1384,7 +1383,6 @@ function deleteMetadataMentionCore(
         logDebug(logContext, `-> ${valueOnly}`)
       }
       fmAttrs[singleMetadataKeyName] = extractTagsOnly(valueOnly)
-      // $FlowFixMe[incompatible-call]
       const success = updateFrontMatterVars(noteLike, fmAttrs)
       if (!success) {
         logError(logContext, `Failed to update frontmatter ${singleMetadataKeyName} for '${displayTitle(noteLike)}'`)
@@ -1438,7 +1436,7 @@ export function deleteMetadataMentionInEditor(thisEditor: TEditor, metadataLineI
  * @param {number} metadataLineIndex - index of the metadata line to use
  * @param {Array<string>} mentions to update (just the @mention name, not and bracketed date)
  */
-export function deleteMetadataMentionInNote(noteToUse: CoreNoteFields, metadataLineIndex: number, mentionsToDeleteArr: Array<string>): void {
+export function deleteMetadataMentionInNote(noteToUse: TNote | TEditor, metadataLineIndex: number, mentionsToDeleteArr: Array<string>): void {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (noteToUse == null || noteToUse.type === 'Calendar' || noteToUse.paragraphs.length < 2) {

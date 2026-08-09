@@ -1,7 +1,7 @@
 /** ----------------------------------------------------------------------------
  * Chart Stats styles - loaded at runtime from requiredFiles/chartStats.css.
  * Originally written by AI prompted by @grdn, then significantly modified by @jgclark.
- * Last updated 2026-02-11 for v1.1.0, @jgclark
+ * Last updated 2026-08-07 for v1.1.0, @jgclark
  * ---------------------------------------------------------------------------- */
 
 * {
@@ -104,7 +104,49 @@ h1 {
   border: 1px solid var(--border-color);
   display: flex;
   gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.config-section-main {
+  display: flex;
+  gap: 1rem;
   align-items: baseline;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-cog-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: auto;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.settings-cog-button:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-color);
+}
+
+.settings-cog-button:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.settings-cog-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  display: block;
 }
 
 .period-select {

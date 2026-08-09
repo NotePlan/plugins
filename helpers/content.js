@@ -30,8 +30,8 @@ export function getContentWithLinks(note: CoreNoteFields | null | void): string 
   }
 
   if (noteHasFileLinks(note)) {
-    // $FlowIgnore - contentWithAbsoluteAttachmentPaths is not in the CoreNoteFields type definition yet, but exists at runtime
-    return note.contentWithAbsoluteAttachmentPaths ? note.contentWithAbsoluteAttachmentPaths : note.content || ''
+    const contentWithAbsolutePaths: ?string = note.contentWithAbsoluteAttachmentPaths
+    return contentWithAbsolutePaths || note.content || ''
   }
 
   return note.content || ''

@@ -508,8 +508,7 @@ const DropdownSelect = ({
    * @param {Object} customStyles - Custom styles for the indicator.
    * @returns {Object} Style object for the dot.
    */
-  const dot = (isVisible: boolean, customStyles: { [string]: mixed } = {}) =>
-    // $FlowFixMe[cannot-spread-indexer]
+  const dot = (isVisible: boolean, customStyles: { [string]: mixed } = {}): { [string]: mixed } =>
     ({
       backgroundColor: isVisible ? customStyles.color || 'black' : 'transparent',
       borderRadius: '50%',
@@ -518,7 +517,10 @@ const DropdownSelect = ({
       marginRight: 8,
       display: 'inline-block',
       flexShrink: 0,
-      ...customStyles,
+      // Cast: Flow refuses to spread an indexer object into a literal that also has explicit keys, because the
+      // indexer could overwrite them untrackably. The real type would need `Styles.indicator` to name its keys
+      // instead of being `{ [string]: mixed }` - but it is a public prop that callers fill with arbitrary CSS.
+      ...(customStyles: any),
     })
 
   return (

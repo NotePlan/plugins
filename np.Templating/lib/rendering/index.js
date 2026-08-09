@@ -16,9 +16,10 @@ export {
   preProcessCalendar,
   processFrontmatterTags,
   render,
-  // KNOWN BUG - `renderTemplate` does not exist in ./templateProcessor; it was renamed `renderTemplateByName`. This re-export resolves to undefined at runtime (latent only because nothing currently imports from this barrel). Fix: re-export `renderTemplateByName` instead, or alias it as `renderTemplateByName as renderTemplate`.
-  // $FlowIgnore[prop-missing] suppression is type-only; the underlying defect is described in the KNOWN BUG note above
-  renderTemplate,
+  // Note: `renderTemplate` was renamed `renderTemplateByName` in ./templateProcessor; the old name is kept as an alias
+  // here for backwards compatibility (it previously re-exported a non-existent binding, i.e. `undefined` at runtime).
+  renderTemplateByName,
+  renderTemplateByName as renderTemplate,
   importTemplates,
   execute,
   findCursors,

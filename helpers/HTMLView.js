@@ -132,17 +132,36 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
     // Change frontmatter for this note (if present)
     // In particular remove trigger line
     if (hasFrontmatter) {
-      let titleAsMD = ''
+      let fmTitleText = ''
       // look for 2nd '---' and double it, because of showdown bug
       for (let i = 1; i < lines.length; i++) {
-        if (lines[i].match(/^title:\s/)) {
-          titleAsMD = lines[i].replace('title:', '#')
+        const titleMatch = lines[i].match(/^title:\s*(.*)$/)
+        if (titleMatch) {
+          // Strip optional YAML quotes around the value
+          fmTitleText = titleMatch[1].trim().replace(/^["'](.*)["']$/, '$1').trim()
           logDebug('getNoteContentAsHTML', `removing title line ${String(i)}`)
           lines.splice(i, 1)
         }
-        if (lines[i].trim() === '---') {
+        if (lines[i] != null && lines[i].trim() === '---') {
           lines.splice(i, 0, '') // add a blank before second HR to stop it acting as an ATX header line
-          lines.splice(i + 2, 0, titleAsMD) // add the title (as MD)
+          // After this splice: blank at i, closing --- at i+1; body starts at i+2
+          // If the first H1 in the body already matches the frontmatter title, do not inject a second H1
+          let bodyHasSameTitleH1 = false
+          if (fmTitleText !== '') {
+            for (let j = i + 2; j < lines.length; j++) {
+              const h1Match = lines[j].match(/^#\s+(.+)$/)
+              if (h1Match) {
+                if (h1Match[1].trim() === fmTitleText) {
+                  bodyHasSameTitleH1 = true
+                  logDebug('getNoteContentAsHTML', `skipping frontmatter title injection; body already has matching first H1 '${fmTitleText}'`)
+                }
+                break
+              }
+            }
+          }
+          if (fmTitleText !== '' && !bodyHasSameTitleH1) {
+            lines.splice(i + 2, 0, `# ${fmTitleText}`) // add the title as an H1 once
+          }
           break
         }
       }
@@ -505,7 +524,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       let winOptions: HtmlWindowOptions = {}
 
       // First set to the values set in the opts object, using x/y/w/h if available, or if not, then use paddingWidth/paddingHeight to fill the screen other than this padding.
-      winOptions = {
+      winOptions = ({
         x: opts.x ?? (screenWidth - (screenWidth - (opts.paddingWidth ?? 0) * 2)) / 2,
         y: opts.y ?? (screenHeight - (screenHeight - (opts.paddingHeight ?? 0) * 2)) / 2,
         width: opts.width ?? screenWidth - (opts.paddingWidth ?? 0) * 2,
@@ -513,14 +532,14 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         shouldFocus: opts.shouldFocus,
         id: cId, // TODO: don't need both ... but trying to work out which is the current one for the API
         windowId: cId,
-      }
+      }: HtmlWindowOptions)
 
       // Now override with saved x/y/w/h for this window if wanted, and if available
       if (opts.reuseUsersWindowRect && cId) {
         // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
         const storedRect = getStoredWindowRect(cId)
         if (storedRect) {
-          winOptions = {
+          winOptions = ({
             x: storedRect.x,
             y: storedRect.y,
             width: storedRect.width,
@@ -528,7 +547,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
             shouldFocus: opts.shouldFocus,
             id: cId, // TODO: don't need both ... but trying to work out which is the current one for the API
             windowId: cId,
-          }
+          }: HtmlWindowOptions)
           logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
         }
       }
@@ -568,19 +587,12 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       }
       if (useMainWindow) {
         // Split window only available on macOS
-        // $FlowFixMe[prop-missing] - splitView is an optional property in HtmlWindowOptions, and flow doesn't like it
         winOptions.splitView = 'splitView' in opts && NotePlan.environment.platform === 'macOS' ? opts.splitView : false
-        // $FlowFixMe[prop-missing] - as above
         winOptions.icon = 'icon' in opts ? opts.icon : ''
-        // $FlowFixMe[prop-missing] - as above
         winOptions.iconColor = 'iconColor' in opts ? opts.iconColor : ''
-        // $FlowFixMe[prop-missing] - as above
         winOptions.autoTopPadding = 'autoTopPadding' in opts ? opts.autoTopPadding : true
-        // $FlowFixMe[prop-missing] - as above
         winOptions.showReloadButton = 'showReloadButton' in opts ? opts.showReloadButton : false
-        // $FlowFixMe[prop-missing] - as above
         winOptions.reloadPluginID = ("reloadPluginID" in opts) ? opts.reloadPluginID : ''
-        // $FlowFixMe[prop-missing] - as above
         winOptions.reloadCommandName = ("reloadCommandName" in opts) ? opts.reloadCommandName : ''
 
         logDebug('showHTMLV2', `- Showing in main window with options: ${JSON.stringify(winOptions)}`)

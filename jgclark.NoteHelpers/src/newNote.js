@@ -180,7 +180,9 @@ export async function newNoteFromSelection(): Promise<void> {
         logDebug(pluginJson, `- newNote's title: ${String(newNote.title)}`)
         logDebug(pluginJson, `- newNote's content: ${String(newNote.content)} ...`)
         const insertBackLink = res.index === 0
-        // $FlowFixMe[method-unbinding] - Flow thinks the function is being removed from the object, but it's not
+        // Flow limitation, not something a real type can express: testing for the existence of an API *method* trips [method-unbinding]
+        // whichever way it is written. Only declaring replaceSelectionWithText as a function-typed property in flow-typed/Noteplan.js would fix it.
+        // $FlowFixMe[method-unbinding]
         if (Editor.replaceSelectionWithText) {
           // for compatibility, make sure the function exists
           if (insertBackLink) {

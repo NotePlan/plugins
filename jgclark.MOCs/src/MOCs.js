@@ -176,9 +176,9 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
         logDebug('makeMOC', `- after matchWholeWords,  ${results.length} matches for [${searchTerm}]`)
       }
 
-      // Cast: TParagraph.note is nullable, but a search result always comes from a note.
-      // (The $FlowFixMe just below has long acknowledged the same assumption.)
-      const resultNotes: Array<TNote> = (results.map((r) => r.note): any)
+      // Cast: TParagraph.note is declared nullable, but a search result always comes from a note. Arrays are invariant, so the whole
+      // array has to be cast, not each element.
+      const resultNotes: Array<TNote> = ((results.map((r) => r.note): any): Array<TNote>)
       if (resultNotes.length > 0) {
         // dedupe results by making and unmaking it into a set
         let uniqNotes = resultNotes.filter((noteToUse, index, self) =>
