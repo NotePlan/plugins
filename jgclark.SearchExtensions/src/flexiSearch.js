@@ -13,6 +13,7 @@ import { getNoteTypesFromString, getParaTypesFromString, getSearchSettings } fro
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { type HtmlWindowOptions, showHTMLV2 } from '@helpers/HTMLView'
 import { closeWindowFromCustomId, logWindowsList } from '@helpers/NPWindows'
+import { isNPAdvancedSyntaxAvailable } from '@helpers/search'
 
 const pluginID = "jgclark.SearchExtensions"
 
@@ -55,7 +56,7 @@ const infoTooltipForNPExtendedSyntax = `
 const infoTooltipToUse = async (): Promise<string> => {
   // TODO(later): remove config check, and then can take out the async stuff
   const config = await getSearchSettings()
-  const useNPAdvancedSyntax = config.useNativeSearch && (NotePlan.environment.buildVersion >= 1429)
+  const useNPAdvancedSyntax = config.useNativeSearch && isNPAdvancedSyntaxAvailable()
   return useNPAdvancedSyntax ? infoTooltipForNPExtendedSyntax : infoTooltipForPluginExtendedSyntax
 }
 

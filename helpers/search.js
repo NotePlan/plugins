@@ -9,15 +9,16 @@ import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { RE_NP_HASHTAG_G, RE_NP_MENTION_G, RE_SYNC_MARKER } from '@helpers/regex'
 
 /**
- * Return whether NP advanced search syntax is available (build >= 1429)
+ * Return whether NP advanced search syntax is available.
+ * Build floors: macOS ~3.18.1 (>= 1344); iOS/other (>= 1426) where the syntax shipped later.
  * @returns {boolean}
  */
 export function isNPAdvancedSyntaxAvailable(): boolean {
   try {
-    // NP v3.18.1+
+    // Prefer explicit platform check (!==) - do not use `!platform === 'macOS'` (operator precedence bug)
     if (NotePlan?.environment?.platform !== 'macOS') {
       // $FlowFixMe[prop-missing]
-      return (NotePlan?.environment?.buildVersion ?? 0) >= 1426 
+      return (NotePlan?.environment?.buildVersion ?? 0) >= 1426
     } else {
       // $FlowFixMe[prop-missing]
       return (NotePlan?.environment?.buildVersion ?? 0) >= 1344 // approximately v3.18.1

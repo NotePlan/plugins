@@ -12,6 +12,7 @@ import { runPluginExtendedSyntaxSearches, validateAndTypeSearchTerms
 } from './pluginExtendedSyntaxHelpers'
 import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
+import { isNPAdvancedSyntaxAvailable } from '@helpers/search'
 
 /**
  * Entry point for extended search where all the parameters are supplied.
@@ -27,7 +28,7 @@ export async function extendedSearch(
     const config = await getSearchSettings()
     logDebug(pluginJson, `Starting extendedSearch() with searchString: '${searchString}'`)
     clo(searchOptions, 'extendedSearch searchOptions:')
-    const NPAdvancedSyntaxAvailable = NotePlan.environment.buildVersion >= 1429
+    const NPAdvancedSyntaxAvailable = isNPAdvancedSyntaxAvailable()
 
     // Add config settings if not given
     if (searchOptions.caseSensitiveSearching != null) {

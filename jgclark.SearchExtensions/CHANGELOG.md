@@ -2,6 +2,15 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b11] - 2026-08-09
+### Fixed
+- Use `isNPAdvancedSyntaxAvailable()` from flexiSearch and externalSearch (platform-aware macOS/iOS build floors) instead of hard-coded `>= 1429`
+- Document and unit-test correct platform branch for advanced search syntax availability
+
+## [3.0.0.b10] - 2026-08-09
+### Fixed
+- `/replace` confirmation: Cancel now aborts (was checking for response `No` while buttons are Yes/Cancel)
+
 ## [3.0.0.b9] - 2026-08-09
 ### Fixed
 - destination `newnote` (docs/x-callbacks) now maps to saved search note writer; no longer falls through to current note

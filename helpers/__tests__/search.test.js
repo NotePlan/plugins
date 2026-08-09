@@ -11,6 +11,28 @@ beforeAll(() => {
 })
 
 describe('search.js tests', () => {
+  describe('isNPAdvancedSyntaxAvailable()', () => {
+    const originalNotePlan = global.NotePlan
+
+    afterEach(() => {
+      global.NotePlan = originalNotePlan
+    })
+
+    test('macOS uses lower build floor (1344)', () => {
+      global.NotePlan = { environment: { platform: 'macOS', buildVersion: 1344 } }
+      expect(s.isNPAdvancedSyntaxAvailable()).toEqual(true)
+      global.NotePlan = { environment: { platform: 'macOS', buildVersion: 1343 } }
+      expect(s.isNPAdvancedSyntaxAvailable()).toEqual(false)
+    })
+
+    test('iOS uses higher build floor (1426), not mis-parsed as always macOS', () => {
+      global.NotePlan = { environment: { platform: 'iOS', buildVersion: 1426 } }
+      expect(s.isNPAdvancedSyntaxAvailable()).toEqual(true)
+      global.NotePlan = { environment: { platform: 'iOS', buildVersion: 1425 } }
+      expect(s.isNPAdvancedSyntaxAvailable()).toEqual(false)
+    })
+  })
+
   describe('caseInsensitiveArrayIncludes()', () => {
     test('should not match empty searchTerm to empty array', () => {
       const result = s.caseInsensitiveArrayIncludes('', [])
