@@ -5,7 +5,9 @@ import {
   type resultOutputV3Type,
   type SearchConfig,
   type typedSearchTerm,
+  buildRefreshCallbackArgs,
   createFormattedResultLines,
+  getSearchCommandName,
   numberOfUniqueFilenames,
   reduceNoteAndLineArray,
 } from '../src/searchHelpers'
@@ -232,6 +234,22 @@ describe('searchHelpers.js tests', () => {
       // $FlowFixMe[incompatible-call]
       const result = createFormattedResultLines(resultSet, config)
       expect(result).toEqual([])
+    })
+  })
+
+  describe('getSearchCommandName + buildRefreshCallbackArgs', () => {
+    test('maps originator jsFunction names to plugin command names', () => {
+      expect(getSearchCommandName('searchOverAll')).toEqual('search')
+      expect(getSearchCommandName('searchPeriod')).toEqual('searchInPeriod')
+      expect(getSearchCommandName('quickSearch')).toEqual('quickSearch')
+      expect(getSearchCommandName('search')).toEqual('search')
+    })
+
+    test('buildRefreshCallbackArgs uses paraTypes before noteTypes for searchInPeriod', () => {
+      const periodArgs = buildRefreshCallbackArgs('searchPeriod', 'tag', 'calendar', 'open', 'refresh', '20250101', '20250131')
+      expect(periodArgs).toEqual(['tag', 'open', 'calendar', 'refresh', '20250101', '20250131'])
+      const searchArgs = buildRefreshCallbackArgs('searchOverAll', 'hello', 'both', 'open,done', 'refresh')
+      expect(searchArgs).toEqual(['hello', 'both', 'open,done', 'refresh'])
     })
   })
 })

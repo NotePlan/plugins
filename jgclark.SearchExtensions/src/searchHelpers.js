@@ -99,6 +99,59 @@ export type TSearchOptions = {
 export const OPEN_PARA_TYPES = ['open', 'scheduled', 'checklist', 'checklistScheduled']
 export const SYNCABLE_PARA_TYPES = ['open', 'scheduled', 'checklist', 'checklistScheduled']
 
+// Map internal originatorCommand / jsFunction names to plugin.json command names (for x-callbacks).
+const ORIGINATOR_TO_COMMAND_NAME: { [string]: string } = {
+  searchOverAll: 'search',
+  searchPeriod: 'searchInPeriod',
+  search: 'search',
+  searchInPeriod: 'searchInPeriod',
+  quickSearch: 'quickSearch',
+  searchOverCalendar: 'searchOverCalendar',
+  searchOverNotes: 'searchOverNotes',
+  searchOpenTasks: 'searchOpenTasks',
+}
+
+/**
+ * Map an originatorCommand (often a JS function name) to the plugin command name used in x-callbacks.
+ * NotePlan resolve x-callbacks by command name, not jsFunction.
+ * @param {string} originatorCommand
+ * @returns {string} plugin.json command name
+ */
+export function getSearchCommandName(originatorCommand: string): string {
+  if (!originatorCommand) return ''
+  return ORIGINATOR_TO_COMMAND_NAME[originatorCommand] ?? originatorCommand
+}
+
+/**
+ * Build x-callback arg list for re-running a saved search, matching each command's parameter order.
+ * @param {string} originatorCommand - originator or command name
+ * @param {string} termsToMatchStr
+ * @param {string} noteTypesAsStr
+ * @param {string} paraTypesAsStr
+ * @param {string} destination - usually 'refresh'
+ * @param {string=} fromDateStr
+ * @param {string=} toDateStr
+ * @returns {Array<string>}
+ */
+export function buildRefreshCallbackArgs(
+  originatorCommand: string,
+  termsToMatchStr: string,
+  noteTypesAsStr: string,
+  paraTypesAsStr: string,
+  destination: string = 'refresh',
+  fromDateStr: string = '',
+  toDateStr: string = '',
+): Array<string> {
+  const commandName = getSearchCommandName(originatorCommand)
+  // searchInPeriod: terms, paraTypes, noteTypes, dest, from, to
+  if (commandName === 'searchInPeriod' || originatorCommand === 'searchPeriod') {
+    return [termsToMatchStr, paraTypesAsStr, noteTypesAsStr, destination, fromDateStr, toDateStr]
+  }
+  // Most commands: terms, noteTypes, paraTypes, dest
+  // (some ignore noteTypes or paraTypes; order still matches jsFunction signatures)
+  return [termsToMatchStr, noteTypesAsStr, paraTypesAsStr, destination]
+}
+
 // Look-up table for sort details
 export const SORT_MAP: Map<string, Array<string>> = new Map([
   ['note title', ['title', 'lineIndex']], // ascending

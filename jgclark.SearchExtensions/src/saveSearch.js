@@ -12,6 +12,7 @@ import { getDateRangeFromUser } from './dateRanges'
 import type { resultOutputV3Type, SearchConfig, TSearchOptions } from './searchHelpers'
 import {
   applySearchOperatorsToOptions,
+  buildRefreshCallbackArgs,
   createFormattedResultLines,
   formSearchResultsHeadingLine,
   formSearchResultsMetadataLine,
@@ -19,6 +20,7 @@ import {
   getNoteTypesAsString,
   getParaTypesFromString,
   getParaTypesAsString,
+  getSearchCommandName,
   getSearchSettings,
   insertOrReplaceMetadataLine,
   OPEN_PARA_TYPES,
@@ -303,8 +305,9 @@ export async function saveSearch(
     let searchTermsRepStr = ''
     let periodString = ''
     let periodAndPartStr = ''
-    let fromDateStr = ''
-    let toDateStr = ''
+    // Preserve period dates from searchOptions for refresh x-callbacks (native path does not re-prompt)
+    let fromDateStr = searchOptions.fromDateStr ?? ''
+    let toDateStr = searchOptions.toDateStr ?? ''
     let newerMethodResultsProm: resultOutputV3Type
     let olderMethodResultsProm: resultOutputV3Type
 
@@ -462,22 +465,19 @@ export async function saveSearch(
     // logDebug('saveSearch', 'reached do output stage')
     // const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
 
-    // Create the x-callback URL for the refresh action
-    const xCallbackURL = (originatorCommand === 'searchPeriod')
-      ? createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [
-        termsToMatchStr,
-        getNoteTypesAsString(noteTypesToInclude),
-        getParaTypesAsString(paraTypesToInclude),
-        'refresh',
-        fromDateStr,
-        toDateStr,
-      ])
-      : createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [
-        termsToMatchStr,
-        getNoteTypesAsString(noteTypesToInclude),
-        getParaTypesAsString(paraTypesToInclude),
-        'refresh',
-      ])
+    // Create the x-callback URL for the refresh action.
+    // Use plugin command name (not jsFunction) and per-command arg order.
+    const refreshCommandName = getSearchCommandName(originatorCommand)
+    const refreshArgs = buildRefreshCallbackArgs(
+      originatorCommand,
+      termsToMatchStr,
+      getNoteTypesAsString(noteTypesToInclude),
+      getParaTypesAsString(paraTypesToInclude),
+      'refresh',
+      fromDateStr,
+      toDateStr,
+    )
+    const xCallbackURL = createRunPluginCallbackUrl('jgclark.SearchExtensions', refreshCommandName, refreshArgs)
 
     switch (destination) {
       case 'searchSpecificNote': {

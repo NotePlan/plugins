@@ -2,6 +2,13 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b3] - 2026-08-09
+### Fixed
+- Re-run / onOpen refresh: match both "Re-run search" and older "Refresh" labels
+- x-callback refresh URLs now use plugin command names (`search`, `searchInPeriod`) not jsFunction names
+- Fix searchInPeriod refresh arg order (para types before note types)
+- Await search commands in onOpen trigger so loading state lasts for the full re-run
+
 ## [3.0.0.b2] - 2025-09-31
 ### Changes
 - '/replace' command now works with new search operators in the search string

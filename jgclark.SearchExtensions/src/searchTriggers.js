@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2025-10-05 for v3.0.0, @jgclark
+// Last updated 2026-08-09 for v3.0.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -17,6 +17,9 @@ import {
 } from './saveSearch'
 // import { searchPeriod } from './saveSearchPeriod'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
+
+// Match both current "Re-run search" label and older "Refresh ..." links
+const REFRESH_BUTTON_LABEL_RE = /(Re-run search|Refresh )/
 
 
 /**
@@ -81,24 +84,24 @@ export async function refreshSavedSearch(): Promise<void> {
     }
 
     logDebug(pluginJson, `refreshSavedSearch triggered for '${noteReadOnly.filename}'`)
-    // Does this note have a Refresh button from the Search Extensions plugin?
+    // Does this note have a Re-run / Refresh button from the Search Extensions plugin?
     const refreshButtonLines = noteReadOnly.paragraphs.filter(p =>
-      /Refresh /.test(p.content)
+      REFRESH_BUTTON_LABEL_RE.test(p.content)
       && /noteplan:\/\/x\-callback\-url\/runPlugin\?pluginID=jgclark\.SearchExtensions&/.test(p.content)
     )
     // Only proceed if we have a refresh button
     if (refreshButtonLines?.length === 0) {
-      logInfo(pluginJson, 'Note has no suitable Refresh button')
+      logInfo(pluginJson, 'Note has no suitable Re-run/Refresh button')
       return
     }
 
     const firstLine = refreshButtonLines[0].content
-    logDebug(pluginJson, `Note has a suitable Refresh button line: {${firstLine}}`)
+    logDebug(pluginJson, `Note has a suitable Re-run/Refresh button line: {${firstLine}}`)
 
     // V2: attempt to reconstruct the parameters to call the plugin's command directly.
     const matchArr = firstLine.match(/noteplan:\/\/[^\s\)]*/)
     if (!matchArr || matchArr.length === 0) {
-      logWarn(pluginJson, 'No noteplan callback URL found in the Refresh button line.')
+      logWarn(pluginJson, 'No noteplan callback URL found in the Re-run/Refresh button line.')
       return
     }
     const firstNPCallbackURLInLine = matchArr[0]
@@ -113,35 +116,44 @@ export async function refreshSavedSearch(): Promise<void> {
     const arg5 = params.arg5 ?? ''
 
     await CommandBar.showLoading(true, 'Refreshing search results ...')
-    await CommandBar.onAsyncThread()
-    switch (cmdName) {
-      case "search": { // -> searchOverAll()
-        searchOverAll(arg0, arg1, arg2, arg3)
-        break
+    try {
+      await CommandBar.onAsyncThread()
+      switch (cmdName) {
+        case 'search': // -> searchOverAll()
+        case 'searchOverAll': { // legacy URLs using jsFunction name
+          await searchOverAll(arg0, arg1, arg2, arg3)
+          break
+        }
+        case 'searchOverCalendar': {
+          await searchOverCalendar(arg0, arg1, arg2, arg3)
+          break
+        }
+        case 'searchOverNotes': {
+          await searchOverNotes(arg0, arg1, arg2, arg3)
+          break
+        }
+        case 'searchOpenTasks': {
+          await searchOpenTasks(arg0, arg1, arg2, arg3)
+          break
+        }
+        case 'searchInPeriod': // -> searchPeriod()
+        case 'searchPeriod': { // legacy URLs using jsFunction name
+          await searchPeriod(arg0, arg1, arg2, arg3, arg4, arg5)
+          break
+        }
+        case 'quickSearch': {
+          await quickSearch(arg0, arg1, arg2, arg3)
+          break
+        }
+        default: {
+          logWarn(pluginJson, `refreshSavedSearch: unrecognised command '${String(cmdName)}'`)
+          break
+        }
       }
-      case "searchOverCalendar": {
-        searchOverCalendar(arg0, arg1, arg2, arg3)
-        break
-      }
-      case "searchOverNotes": {
-        searchOverNotes(arg0, arg1, arg2, arg3)
-        break
-      }
-      case "searchOpenTasks": {
-        searchOpenTasks(arg0, arg1, arg2)
-        break
-      }
-      case "searchInPeriod": { // -> searchPeriod()
-        searchPeriod(arg0, arg1, arg2, arg3, arg4, arg5)
-        break
-      }
-      case "quickSearch": {
-        quickSearch(arg0, arg1, arg2, arg3)
-        break
-      }
+    } finally {
+      await CommandBar.onMainThread()
+      await CommandBar.showLoading(false)
     }
-    await CommandBar.onMainThread()
-    await CommandBar.showLoading(false)
   }
   catch (error) {
     logError(pluginJson, `${error.name}: ${error.message}`)
