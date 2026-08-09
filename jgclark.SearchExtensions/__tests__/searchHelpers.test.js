@@ -4,11 +4,14 @@ import {
   type noteAndLine,
   type resultOutputV3Type,
   type SearchConfig,
+  type TSearchOptions,
   buildRefreshCallbackArgs,
   createFormattedResultLines,
   getSearchCommandName,
+  mergeSearchOptionsWithConfig,
   normaliseDestination,
   numberOfUniqueFilenames,
+  prependDateOperatorsIfNeeded,
 } from '../src/searchHelpers'
 import { getCommandArgHelp } from '../src/searchCommandRegistry'
 import { sortListBy } from '@helpers/sorting'
@@ -217,6 +220,36 @@ describe('searchHelpers.js tests', () => {
       expect(normaliseDestination('quick')).toEqual('quick')
       expect(normaliseDestination('refresh')).toEqual('refresh')
       expect(normaliseDestination('current')).toEqual('current')
+    })
+  })
+
+  describe('mergeSearchOptionsWithConfig + prependDateOperatorsIfNeeded', () => {
+    const baseConfig: SearchConfig = // $FlowFixMe[prop-missing]
+    ({
+      caseSensitiveSearching: true,
+      fullWordSearching: false,
+      foldersToExclude: ['Archive'],
+    }: any)
+
+    test('mergeSearchOptionsWithConfig fills missing fields only', () => {
+      const opts: TSearchOptions = { noteTypesToInclude: ['notes'], fullWordSearching: true }
+      mergeSearchOptionsWithConfig(opts, baseConfig)
+      expect(opts.caseSensitiveSearching).toEqual(true)
+      expect(opts.fullWordSearching).toEqual(true)
+      expect(opts.foldersToExclude).toEqual(['Archive'])
+      expect(opts.foldersToInclude).toEqual([])
+      expect(opts.originatorCommand).toEqual('')
+      expect(opts.commandNameToDisplay).toEqual('Searching')
+    })
+
+    test('prependDateOperatorsIfNeeded prefixes range and open bounds', () => {
+      const both = prependDateOperatorsIfNeeded('tag', { fromDateStr: '20250101', toDateStr: '20250131' })
+      expect(both.terms).toEqual('date:20250101-20250131 tag')
+      expect(both.periodString).toEqual('20250101 - 20250131')
+      const fromOnly = prependDateOperatorsIfNeeded('x', { fromDateStr: '20250101' })
+      expect(fromOnly.terms).toEqual('date:20250101 x')
+      const toOnly = prependDateOperatorsIfNeeded('x', { toDateStr: '20250131' })
+      expect(toOnly.terms).toEqual('date:past-20250131 x')
     })
   })
 })

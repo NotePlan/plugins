@@ -11,7 +11,7 @@ import pluginJson from '../plugin.json'
 import { getDateRangeFromUser } from './dateRanges'
 import type { resultOutputV3Type, SearchConfig, TSearchOptions } from './searchHelpers'
 import {
-  applySearchOperatorsToOptions,
+  applyOperatorsFromSearchString,
   buildRefreshCallbackArgs,
   createFormattedResultLines,
   formSearchResultsHeadingLine,
@@ -23,8 +23,10 @@ import {
   getSearchCommandName,
   getSearchSettings,
   insertOrReplaceMetadataLine,
+  mergeSearchOptionsWithConfig,
   normaliseDestination,
   OPEN_PARA_TYPES,
+  prependDateOperatorsIfNeeded,
   writeSearchResultsToNote,
 } from './searchHelpers'
 import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
@@ -34,7 +36,6 @@ import { ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import { removeSection, replaceSection, setIconForNote } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPEditor'
-import { getSearchOperators } from '@helpers/search'
 import {
   chooseOption,
   getInputTrimmed,
@@ -237,31 +238,11 @@ export async function saveSearch(
     logDebug(pluginJson, `Starting saveSearch() with searchTermsArg '${searchTermsArg ?? '(not supplied)'}', on NP build version ${String(NotePlan.environment.buildVersion)}`)
     // clo(searchOptions, 'saveSearch starting with searchOptions:')
 
-    // destructure the searchOptions object, the long way
-    // Get the noteTypes to include
+    // Get the noteTypes to include (may be updated later from search operators)
     let noteTypesToInclude = searchOptions.noteTypesToInclude || ['calendar', 'notes']
-    // Note: may be updated later if searchOperators are present
-    
-    // Set other searchOptions
-    if (!('caseSensitiveSearching' in searchOptions)) {
-      searchOptions.caseSensitiveSearching = config.caseSensitiveSearching
-    }
-    if (!('fullWordSearching' in searchOptions)) {
-      searchOptions.fullWordSearching = config.fullWordSearching
-    }
-    if (!('foldersToInclude' in searchOptions)) {
-      searchOptions.foldersToInclude = []
-    }
-    if (!('foldersToExclude' in searchOptions)) {
-      searchOptions.foldersToExclude = config.foldersToExclude
-    }
-    if (!('originatorCommand' in searchOptions)) {
-      searchOptions.originatorCommand = ''
-    }
+
+    mergeSearchOptionsWithConfig(searchOptions, config)
     const originatorCommand = searchOptions.originatorCommand ?? ''
-    if (!('commandNameToDisplay' in searchOptions)) {
-      searchOptions.commandNameToDisplay = 'Searching'
-    }
     logDebug('saveSearch', `- originatorCommand = '${originatorCommand}'`)
 
     const commandNameToDisplay = searchOptions.commandNameToDisplay ?? 'Searching'
@@ -301,33 +282,17 @@ export async function saveSearch(
     //---------------------------------------------------------
     // NP advanced (native) search syntax only (requires NP 3.18.1+)
     logDebug('saveSearch', `Using NP advanced search syntax`)
-    const searchOperators = (termsToMatchStr)
-      ? getSearchOperators(termsToMatchStr) // Note: this will include any date: range operators
-      : []
+    applyOperatorsFromSearchString(termsToMatchStr, searchOptions)
+    noteTypesToInclude = searchOptions.noteTypesToInclude || noteTypesToInclude
 
-    if (searchOperators) {
-      logDebug('saveSearch', `- searchOperators: [${String(searchOperators)}]`)
-      applySearchOperatorsToOptions(searchOperators, searchOptions)
-      noteTypesToInclude = searchOptions.noteTypesToInclude || noteTypesToInclude
-    }
-    
-    // If we have a date range passed in (rather than specified as search operators in the search string), then add it to the search terms
+    // If we have a date range passed in (rather than only as search operators), prefix date: onto the terms
     logDebug('saveSearch', `- date range? ${String('fromDateStr' in searchOptions)} and ${String('toDateStr' in searchOptions)}`)
-    if (('fromDateStr' in searchOptions) && ('toDateStr' in searchOptions)) {
-      termsToMatchStr = `date:${String(searchOptions.fromDateStr)}-${String(searchOptions.toDateStr)} ${termsToMatchStr}`
-      if (searchOptions.fromDateStr && searchOptions.toDateStr) {
-        fromDateStr = searchOptions.fromDateStr
-        toDateStr = searchOptions.toDateStr
-        periodString = `${fromDateStr} - ${toDateStr}`
-        periodAndPartStr = periodString
-      }
-    } else if ('fromDateStr' in searchOptions) {
-      termsToMatchStr = `date:${String(searchOptions.fromDateStr)} ${termsToMatchStr}`
-      fromDateStr = searchOptions.fromDateStr ?? ''
-    } else if ('toDateStr' in searchOptions) {
-      termsToMatchStr = `date:past-${String(searchOptions.toDateStr)} ${termsToMatchStr}`
-      toDateStr = searchOptions.toDateStr ?? ''
-    }
+    const datePrep = prependDateOperatorsIfNeeded(termsToMatchStr, searchOptions)
+    termsToMatchStr = datePrep.terms
+    fromDateStr = datePrep.fromDateStr
+    toDateStr = datePrep.toDateStr
+    periodString = datePrep.periodString
+    periodAndPartStr = datePrep.periodAndPartStr
     searchTermsRepStr = termsToMatchStr
 
     CommandBar.showLoading(true, `${commandNameToDisplay} for [${searchTermsRepStr}] ...`)

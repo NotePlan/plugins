@@ -18,7 +18,7 @@ import { findFirstHeadingOfMinimumLevel, getNoteByFilename, getNoteLinkForDispla
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getOrMakeRegularNoteInFolder, getNoteTitleFromFilename } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
-import { trimAndHighlightTermInLine } from '@helpers/search'
+import { getSearchOperators, trimAndHighlightTermInLine } from '@helpers/search'
 import { showMessageYesNo } from '@helpers/userInput'
 
 // Re-export command registry helpers (used by saveSearch and tests)
@@ -511,6 +511,84 @@ export function applySearchOperatorsToOptions(searchOperators: Array<string>, se
   } catch (error) {
     logError('searchHelpers/applySearchOperatorsToOptions', error.message)
   }
+}
+
+/**
+ * Fill missing TSearchOptions fields from plugin config (mutates searchOptions).
+ * @param {TSearchOptions} searchOptions
+ * @param {SearchConfig} config
+ * @returns {TSearchOptions} same object for chaining
+ */
+export function mergeSearchOptionsWithConfig(searchOptions: TSearchOptions, config: SearchConfig): TSearchOptions {
+  if (!('caseSensitiveSearching' in searchOptions)) {
+    searchOptions.caseSensitiveSearching = config.caseSensitiveSearching
+  }
+  if (!('fullWordSearching' in searchOptions)) {
+    searchOptions.fullWordSearching = config.fullWordSearching
+  }
+  if (!('foldersToInclude' in searchOptions)) {
+    searchOptions.foldersToInclude = []
+  }
+  if (!('foldersToExclude' in searchOptions)) {
+    searchOptions.foldersToExclude = config.foldersToExclude
+  }
+  if (!('originatorCommand' in searchOptions)) {
+    searchOptions.originatorCommand = ''
+  }
+  if (!('commandNameToDisplay' in searchOptions)) {
+    searchOptions.commandNameToDisplay = 'Searching'
+  }
+  return searchOptions
+}
+
+/**
+ * If searchOptions carry fromDateStr/toDateStr, prefix native date: operators onto the search string.
+ * @param {string} termsToMatchStr
+ * @param {TSearchOptions} searchOptions
+ * @returns {{ terms: string, fromDateStr: string, toDateStr: string, periodString: string, periodAndPartStr: string }}
+ */
+export function prependDateOperatorsIfNeeded(
+  termsToMatchStr: string,
+  searchOptions: TSearchOptions,
+): { terms: string, fromDateStr: string, toDateStr: string, periodString: string, periodAndPartStr: string } {
+  let terms = termsToMatchStr
+  let fromDateStr = searchOptions.fromDateStr ?? ''
+  let toDateStr = searchOptions.toDateStr ?? ''
+  let periodString = ''
+  let periodAndPartStr = ''
+
+  if (('fromDateStr' in searchOptions) && ('toDateStr' in searchOptions)) {
+    terms = `date:${String(searchOptions.fromDateStr)}-${String(searchOptions.toDateStr)} ${terms}`
+    if (searchOptions.fromDateStr && searchOptions.toDateStr) {
+      fromDateStr = searchOptions.fromDateStr
+      toDateStr = searchOptions.toDateStr
+      periodString = `${fromDateStr} - ${toDateStr}`
+      periodAndPartStr = periodString
+    }
+  } else if ('fromDateStr' in searchOptions) {
+    terms = `date:${String(searchOptions.fromDateStr)} ${terms}`
+    fromDateStr = searchOptions.fromDateStr ?? ''
+  } else if ('toDateStr' in searchOptions) {
+    terms = `date:past-${String(searchOptions.toDateStr)} ${terms}`
+    toDateStr = searchOptions.toDateStr ?? ''
+  }
+
+  return { terms, fromDateStr, toDateStr, periodString, periodAndPartStr }
+}
+
+/**
+ * Apply any leading search operators found in termsToMatchStr onto searchOptions (mutates).
+ * @param {string} termsToMatchStr
+ * @param {TSearchOptions} searchOptions
+ * @returns {Array<string>} operators found
+ */
+export function applyOperatorsFromSearchString(termsToMatchStr: string, searchOptions: TSearchOptions): Array<string> {
+  const searchOperators = termsToMatchStr ? getSearchOperators(termsToMatchStr) : []
+  if (searchOperators.length > 0) {
+    logDebug('applyOperatorsFromSearchString', `- searchOperators: [${String(searchOperators)}]`)
+    applySearchOperatorsToOptions(searchOperators, searchOptions)
+  }
+  return searchOperators
 }
 
 /**

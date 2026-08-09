@@ -8,12 +8,17 @@
 
 import pluginJson from '../plugin.json'
 import type { noteAndLine, resultOutputV3Type, TSearchOptions } from './searchHelpers'
-import { applySearchOperatorsToOptions, getSearchSettings, logBasicResultLines, } from './searchHelpers'
+import {
+  applyOperatorsFromSearchString,
+  getSearchSettings,
+  logBasicResultLines,
+  mergeSearchOptionsWithConfig,
+} from './searchHelpers'
 import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
 import { logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { getNoteFromFilename } from '@helpers/NPnote'
-import { getSearchOperators, removeSearchOperators } from '@helpers/search'
+import { removeSearchOperators } from '@helpers/search'
 import {
   getInputTrimmed,
   showMessage,
@@ -143,22 +148,14 @@ export async function replace(
     const searchOptions: TSearchOptions = {
       noteTypesToInclude: noteTypesToInclude,
       foldersToInclude: [],
-      foldersToExclude: config.foldersToExclude,
       // $FlowFixMe[incompatible-type]
       paraTypesToInclude: paraTypesToInclude,
-      caseSensitiveSearching: config.caseSensitiveSearching,
     }
+    mergeSearchOptionsWithConfig(searchOptions, config)
 
     logDebug('replace', `Using NP advanced search syntax`)
-    const searchOperators = (searchStr)
-      ? getSearchOperators(searchStr) // Note: this will include any date: range operators
-      : []
+    applyOperatorsFromSearchString(searchStr, searchOptions)
     const searchStrWithoutOperators = removeSearchOperators(searchStr)
-
-    if (searchOperators) {
-      logDebug('replace', `- searchOperators: ${String(searchOperators)}`)
-      applySearchOperatorsToOptions(searchOperators, searchOptions)
-    }
 
     //---------------------------------------------------------
     // Search using search() API via NP advanced search helpers

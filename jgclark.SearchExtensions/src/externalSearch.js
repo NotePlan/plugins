@@ -7,7 +7,7 @@
 
 import pluginJson from '../plugin.json'
 import type { resultOutputV3Type, TSearchOptions } from './searchHelpers'
-import { getSearchSettings } from './searchHelpers'
+import { getSearchSettings, mergeSearchOptionsWithConfig } from './searchHelpers'
 import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
 import { clo, logDebug, logError } from '@helpers/dev'
 
@@ -30,14 +30,15 @@ export async function extendedSearch(
     logDebug(pluginJson, `Starting extendedSearch() with searchString: '${searchString}'`)
     clo(searchOptions, 'extendedSearch searchOptions:')
 
-    // Add config settings if not given
+    // Caller options take priority for case/full-word when set; then fill remaining gaps from config
     if (searchOptions.caseSensitiveSearching != null) {
       config.caseSensitiveSearching = searchOptions.caseSensitiveSearching
     }
     if (searchOptions.fullWordSearching != null) {
       config.fullWordSearching = searchOptions.fullWordSearching
     }
-    // Set syncOpenResultItems to false, as we don't want to sync open result items when just passing results back to the calling function
+    mergeSearchOptionsWithConfig(searchOptions, config)
+    // Do not sync open result items when just passing results back to the caller
     config.syncOpenResultItems = false
     logDebug('extendedSearch', `- config.syncOpenResultItems: ${String(config.syncOpenResultItems)}`)
 
