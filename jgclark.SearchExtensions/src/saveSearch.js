@@ -8,7 +8,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getDateRangeFromSearchOptions, getDateRangeFromUser } from './dateRanges'
+import { getDateRangeFromUser } from './dateRanges'
 import type { resultOutputV3Type, SearchConfig, TSearchOptions } from './searchHelpers'
 import {
   applySearchOperatorsToOptions,
@@ -27,7 +27,6 @@ import {
   OPEN_PARA_TYPES,
   writeSearchResultsToNote,
 } from './searchHelpers'
-import { runPluginExtendedSyntaxSearches, validateAndTypeSearchTerms } from './pluginExtendedSyntaxHelpers'
 import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
 import { stringToTailwindColorName } from '@helpers/colors'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
@@ -35,12 +34,11 @@ import { ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import { removeSection, replaceSection, setIconForNote } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPEditor'
-import { getSearchOperators, isNPAdvancedSyntaxAvailable } from '@helpers/search'
+import { getSearchOperators } from '@helpers/search'
 import {
   chooseOption,
   getInputTrimmed,
   showMessage,
-  showMessageYesNo
 } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
@@ -238,8 +236,7 @@ export async function saveSearch(
 ): Promise<void> {
   try {
     const config = await getSearchSettings()
-    const NPAdvancedSyntaxAvailable = isNPAdvancedSyntaxAvailable()
-    logDebug(pluginJson, `Starting saveSearch() with searchTermsArg '${searchTermsArg ?? '(not supplied)'}', on NP build version ${String(NotePlan.environment.buildVersion)} and useNativeSearch? ${String(config.useNativeSearch)}`)
+    logDebug(pluginJson, `Starting saveSearch() with searchTermsArg '${searchTermsArg ?? '(not supplied)'}', on NP build version ${String(NotePlan.environment.buildVersion)}`)
     // clo(searchOptions, 'saveSearch starting with searchOptions:')
 
     // destructure the searchOptions object, the long way
@@ -271,11 +268,6 @@ export async function saveSearch(
 
     const commandNameToDisplay = searchOptions.commandNameToDisplay ?? 'Searching'
 
-    // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether originatorCommand is not empty
-    // Note: now checking destinationArg instead (below)
-    // const calledNonInteractively = (originatorCommand === '')
-    // logDebug('saveSearch', `- called ${calledNonInteractively ? 'NON-' : ''}interactively`)
-
     // Get the search terms, either from argument supplied, or by asking user
     let termsToMatchStr = ''
     if (searchTermsArg) {
@@ -285,9 +277,7 @@ export async function saveSearch(
     }
     else {
       // ask user
-      const newTerms = (NPAdvancedSyntaxAvailable)
-        ? await getInputTrimmed(`Enter search term(s)`, 'OK', commandNameToDisplay, config.defaultSearchTerms)
-        : await getInputTrimmed(`Enter search term(s) separated by spaces or commas. (You can use +term, -term and !term as well, and search for phrases by enclosing them in double-quotes.)`, 'OK', commandNameToDisplay, config.defaultSearchTerms)
+      const newTerms = await getInputTrimmed(`Enter search term(s)`, 'OK', commandNameToDisplay, config.defaultSearchTerms)
       if (typeof newTerms === 'boolean') {
         // i.e. user has cancelled
         logInfo('saveSearch', `User has cancelled operation.`)
@@ -306,100 +296,49 @@ export async function saveSearch(
     let searchTermsRepStr = ''
     let periodString = ''
     let periodAndPartStr = ''
-    // Preserve period dates from searchOptions for refresh x-callbacks (native path does not re-prompt)
+    // Preserve period dates from searchOptions for refresh x-callbacks
     let fromDateStr = searchOptions.fromDateStr ?? ''
     let toDateStr = searchOptions.toDateStr ?? ''
-    let newerMethodResultsProm: resultOutputV3Type
-    let olderMethodResultsProm: resultOutputV3Type
 
-    // Now do the relevant processing for different versions of NP
-    if (config.useNativeSearch && NPAdvancedSyntaxAvailable) {
-      logDebug('saveSearch', `Will use newer NP extended syntax`)
-      const searchOperators = (termsToMatchStr)
-        ? getSearchOperators(termsToMatchStr) // Note: this will include any date: range operators
-        : []
+    //---------------------------------------------------------
+    // NP advanced (native) search syntax only (requires NP 3.18.1+)
+    logDebug('saveSearch', `Using NP advanced search syntax`)
+    const searchOperators = (termsToMatchStr)
+      ? getSearchOperators(termsToMatchStr) // Note: this will include any date: range operators
+      : []
 
-      if (searchOperators) {
-        logDebug('saveSearch', `- searchOperators: [${String(searchOperators)}]`)
-        applySearchOperatorsToOptions(searchOperators, searchOptions)
-        noteTypesToInclude = searchOptions.noteTypesToInclude || noteTypesToInclude
-      }
-    
-      // If we have a date range passed in (rather than specified as search operators in the search string), then add it to the search terms
-      logDebug('saveSearch', `- date range? ${String('fromDateStr' in searchOptions)} and ${String('toDateStr' in searchOptions)}`)
-      if (('fromDateStr' in searchOptions) && ('toDateStr' in searchOptions)) {
-        termsToMatchStr = `date:${String(searchOptions.fromDateStr)}-${String(searchOptions.toDateStr)} ${termsToMatchStr}`
-      } else if ('fromDateStr' in searchOptions) {
-        termsToMatchStr = `date:${String(searchOptions.fromDateStr)} ${termsToMatchStr}`
-      } else if ('toDateStr' in searchOptions) {
-        termsToMatchStr = `date:past-${String(searchOptions.toDateStr)} ${termsToMatchStr}`
-      }
-      searchTermsRepStr = termsToMatchStr
-
-      //---------------------------------------------------------
-      // Search using search() API via JGC modified search helpers to suit NP 3.18.1 extended search syntax
-      CommandBar.showLoading(true, `${commandNameToDisplay} for [${searchTermsRepStr}] ...`)
-      await CommandBar.onAsyncThread()
-
-      // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-      newerMethodResultsProm = runNPExtendedSyntaxSearches(termsToMatchStr, config, searchOptions)
-
-      await CommandBar.onMainThread()
+    if (searchOperators) {
+      logDebug('saveSearch', `- searchOperators: [${String(searchOperators)}]`)
+      applySearchOperatorsToOptions(searchOperators, searchOptions)
+      noteTypesToInclude = searchOptions.noteTypesToInclude || noteTypesToInclude
     }
-
-    if (!config.useNativeSearch || config._runComparison || !NPAdvancedSyntaxAvailable) {
-      // NP Advanced Syntax not available, or we want to compare results
-      logDebug('saveSearch', `Will use older Plugin extended syntax`)
-
-      // Validate the search terms: an empty return means failure. There is error logging in the function.
-      const validatedSearchTerms = await validateAndTypeSearchTerms(termsToMatchStr, true)
-      if (validatedSearchTerms == null || validatedSearchTerms.length === 0) {
-        await showMessage(`These search terms aren't valid. Please see Plugin Console for details.`)
-        return
-      }
-
-      // If we have a blank search term, then double-check user wants to do this
-      if (validatedSearchTerms.length === 1 && validatedSearchTerms[0].term === '') {
-        const res = await showMessageYesNo('No search terms specified. Are you sure you want to run a potentially very long search?')
-        if (res === 'No') {
-          logDebug('saveSearch', 'User has cancelled search')
-          return
-        }
-      }
     
-      searchTermsRepStr = `'${validatedSearchTerms.map(term => term.termRep).join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
-
-      // Work out time period to cover (if wanted). Prefer dates already on searchOptions
-      // (e.g. from /searchInPeriod args or refresh x-callback); only prompt if missing.
-      if (('fromDateStr' in searchOptions) || ('toDateStr' in searchOptions)) {
-        const hasFrom = Boolean(searchOptions.fromDateStr)
-        const hasTo = Boolean(searchOptions.toDateStr)
-        if (hasFrom || hasTo) {
-          [fromDateStr, toDateStr, periodString, periodAndPartStr] = getDateRangeFromSearchOptions(searchOptions)
-          // Keep options in sync for runPluginExtendedSyntaxSearches date filtering
-          searchOptions.fromDateStr = fromDateStr
-          searchOptions.toDateStr = toDateStr
-          logDebug('saveSearch', `Time period from searchOptions: ${periodAndPartStr}`)
-        } else {
-          [fromDateStr, toDateStr, periodString, periodAndPartStr] = await getDateRangeFromUser()
-          searchOptions.fromDateStr = fromDateStr
-          searchOptions.toDateStr = toDateStr
-          logDebug('saveSearch', `Time period for search (user): ${periodAndPartStr}`)
-        }
-        if (fromDateStr && toDateStr && fromDateStr > toDateStr) {
-          throw new Error(`Stopping: fromDate ${fromDateStr} is after toDate ${toDateStr}`)
-        }
+    // If we have a date range passed in (rather than specified as search operators in the search string), then add it to the search terms
+    logDebug('saveSearch', `- date range? ${String('fromDateStr' in searchOptions)} and ${String('toDateStr' in searchOptions)}`)
+    if (('fromDateStr' in searchOptions) && ('toDateStr' in searchOptions)) {
+      termsToMatchStr = `date:${String(searchOptions.fromDateStr)}-${String(searchOptions.toDateStr)} ${termsToMatchStr}`
+      if (searchOptions.fromDateStr && searchOptions.toDateStr) {
+        fromDateStr = searchOptions.fromDateStr
+        toDateStr = searchOptions.toDateStr
+        periodString = `${fromDateStr} - ${toDateStr}`
+        periodAndPartStr = periodString
       }
-
-      //---------------------------------------------------------
-      // Search using search() API via JGC extended search helpers in this plugin
-      CommandBar.showLoading(true, `${commandNameToDisplay} for [${searchTermsRepStr}]...`)
-      await CommandBar.onAsyncThread()
-
-      // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-      olderMethodResultsProm = runPluginExtendedSyntaxSearches(validatedSearchTerms, config, searchOptions)
-      await CommandBar.onMainThread()
+    } else if ('fromDateStr' in searchOptions) {
+      termsToMatchStr = `date:${String(searchOptions.fromDateStr)} ${termsToMatchStr}`
+      fromDateStr = searchOptions.fromDateStr ?? ''
+    } else if ('toDateStr' in searchOptions) {
+      termsToMatchStr = `date:past-${String(searchOptions.toDateStr)} ${termsToMatchStr}`
+      toDateStr = searchOptions.toDateStr ?? ''
     }
+    searchTermsRepStr = termsToMatchStr
+
+    CommandBar.showLoading(true, `${commandNameToDisplay} for [${searchTermsRepStr}] ...`)
+    await CommandBar.onAsyncThread()
+
+    // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
+    const resultsProm: Promise<resultOutputV3Type> = runNPExtendedSyntaxSearches(termsToMatchStr, config, searchOptions)
+
+    await CommandBar.onMainThread()
 
     //---------------------------------------------------------
     // While the search goes on, work out where to save this summary
@@ -417,7 +356,6 @@ export async function saveSearch(
     else {
       // else ask user
       const labelString = `🖊 Create/update note ${searchTermsRepStr} ${config.searchHeading} ${periodString ? `'${periodString}' ` : ' '}in folder '${config.folderToStore}'`
-      // destination = await chooseOption(
       destination = await chooseOption(
         `Where should I save the [${searchTermsRepStr}] search results${periodString ? ` for ${periodString}` : ''}?`,
         [
@@ -433,38 +371,10 @@ export async function saveSearch(
     logDebug('saveSearch', `destination = ${destination}, started with originatorCommand = ${originatorCommand ?? 'undefined'}`)
 
     //---------------------------------------------------------
-    // End of main work started above: resolve the promises
-    let resultSetToUse: ?resultOutputV3Type
-    let resultSetForComparison: ?resultOutputV3Type
-
-    logDebug('saveSearch', `before promises resolve`)
-    if (!NPAdvancedSyntaxAvailable) {
-      resultSetToUse = await olderMethodResultsProm
-    } else {
-      if (config.useNativeSearch) {
-        resultSetToUse = await newerMethodResultsProm
-        if (config._runComparison) {
-          resultSetForComparison = await olderMethodResultsProm
-        }
-      } else {
-        resultSetToUse = await olderMethodResultsProm
-      }
-    }
+    // End of main work started above: resolve the promise
+    logDebug('saveSearch', `before promise resolves`)
+    const resultSetToUse: ?resultOutputV3Type = await resultsProm
     CommandBar.showLoading(false)
-
-    // Run a comparison check, if wanted
-    if (config._runComparison) {
-      if (resultSetToUse && resultSetForComparison) {
-        if (resultSetToUse.resultCount === resultSetForComparison.resultCount) {
-          logInfo('', `✅ NP Extended (${resultSetToUse.resultCount}) === Plugin Extended (${resultSetForComparison.resultCount})`)
-        } else {
-          logWarn('saveSearch', `NP Extended (${resultSetToUse.resultCount}) !== Plugin Extended (${resultSetForComparison.resultCount})`)
-        }
-      } else {
-        logWarn('saveSearch', `We want to run a comparison check, but one or other method didn't return results.`)
-      }
-    }
-    logDebug('saveSearch', `after comparison check`)
 
     if (resultSetToUse) {
       if (resultSetToUse.resultCount === 0) {
@@ -477,9 +387,6 @@ export async function saveSearch(
 
     //---------------------------------------------------------
     // Do output
-    // logDebug('saveSearch', 'reached do output stage')
-    // const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
-
     // Create the x-callback URL for the refresh action.
     // Use plugin command name (not jsFunction) and per-command arg order.
     const refreshCommandName = getSearchCommandName(originatorCommand)

@@ -1,5 +1,5 @@
 {
-  "noteplan.minAppVersion": "3.6.0",
+  "noteplan.minAppVersion": "3.18.1",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.SearchExtensions",
   "plugin.name": "🔎 Search Extensions",
@@ -8,9 +8,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "3.0.0.b12",
-  "plugin.releaseStatus": "beta12",
-  "plugin.lastUpdateInfo": "3.0.0.b12: README updated for v3 (native search, re-run, destinations, x-callbacks).\nNote: this is a beta release, so please report any issues you find.",
+  "plugin.version": "3.0.0.b13",
+  "plugin.releaseStatus": "beta13",
+  "plugin.lastUpdateInfo": "3.0.0.b13: Requires NotePlan 3.18.1+; always uses native advanced search (removed plugin v2 engine path).\nNote: this is a beta release, so please report any issues you find.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -210,14 +210,6 @@
     {
       "type": "heading",
       "title": "Search Extensions settings"
-    },
-    {
-      "key": "useNativeSearch",
-      "title": "Use native search?",
-      "description": "If true, the plugin will use the native search capabilities in NotePlan, including many new 'search operators'.\nThis requires you running NotePlan v3.18.1 or later. If not set, or if you're running an older version of NotePlan, the plugin will use the old search capabilities (from Plugin v2).",
-      "type": "bool",
-      "default": true,
-      "required": true
     },
     {
       "key": "caseSensitiveSearching",
@@ -423,14 +415,6 @@
       "key": "_logTimer",
       "title": "Enable Timer logging?",
       "description": "For plugin authors to help optimise the plugin.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "_runComparison",
-      "title": "Run Comparison?",
-      "description": "If true, it will run a comparison between the old and new search capabilities, and log the results.",
       "type": "bool",
       "default": false,
       "required": true

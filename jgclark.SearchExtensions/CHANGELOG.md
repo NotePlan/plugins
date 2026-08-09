@@ -2,9 +2,15 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
-## [3.0.0.b12] - 2026-08-09
+## [3.0.0.b13] - 2026-08-09
+### Changed
+- Plugin now **requires NotePlan v3.18.1+** (`noteplan.minAppVersion` raised from 3.6.0)
+- dev: Now always uses NotePlan advanced (native) search; removed the plugin v2 extended-syntax engine and dual-path settings (`Use native search?`, `_runComparison`)
 ### Documentation
-- README rewritten for plugin v3: native vs plugin search, destinations, re-run/onOpen, replace, and correct x-callback command/arg table
+- README updated for native-only search and minimum NP version
+
+## [3.0.0.b12] - 2026-08-09
+- README rewritten for plugin v3
 
 ## [3.0.0.b11] - 2026-08-09
 ### Fixed

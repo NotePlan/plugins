@@ -1,6 +1,6 @@
 # Search Extensions – Critical Fixes Plan
 
-Status: planned (not started)  
+Status: **implemented on branch `SearchExtension-v3-2026`** (local commits; not pushed)  
 Source: code review of `jgclark.SearchExtensions` (2026-08-09)  
 Target: iterative fixes for items 1–9; after each item bump beta version and commit (do not push until asked)
 
@@ -297,15 +297,16 @@ For each fix N:
 
 ### Progress
 
-- [ ] Fix 1 – Re-run / onOpen refresh → b3
-- [ ] Fix 2 – Settings defaults → b4
-- [ ] Fix 3 – Native path sync open tasks → b5
-- [ ] Fix 4 – Period dates on legacy path → b6
-- [ ] Fix 5 – flexiSearch para types → b7
-- [ ] Fix 6 – flexiSearch prefs types → b8
-- [ ] Fix 7 – Destination aliases → b9
-- [ ] Fix 8 – Replace Cancel → b10
-- [ ] Fix 9 – isNPAdvancedSyntaxAvailable → b11
+- [x] Fix 1 – Re-run / onOpen refresh → b3 (`6581a27c`)
+- [x] Fix 2 – Settings defaults → b4 (`d0f32f18`)
+- [x] Fix 3 – Native path sync open tasks → b5 (`a8731b3b`)
+- [x] Fix 4 – Period dates on legacy path → b6 (`91903555`)
+- [x] Fix 5 – flexiSearch para types → b7 (`fff347f7`)
+- [x] Fix 6 – flexiSearch prefs types → b8 (`c426b50c`)
+- [x] Fix 7 – Destination aliases → b9 (`14ec32a1`)
+- [x] Fix 8 – Replace Cancel → b10 (`af942860`)
+- [x] Fix 9 – isNPAdvancedSyntaxAvailable consumers + tests → b11 (`67c0d7b1`)
+  - Note: helper already used `platform !== 'macOS'` on this branch; work was to unit-test floors and route flexiSearch/externalSearch through the helper.
 
 ---
 

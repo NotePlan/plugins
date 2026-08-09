@@ -62,7 +62,7 @@ import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
  * @param {Array<string>} searchStringIn
  * @param {SearchConfig} config object for various settings - Note: there are two overrides later in these parameters
  * @param {TSearchOptions} searchOptions object for various settings
- * @returns {resultObjectType} results optimised for output
+ * @returns {resultOutputV3Type} results optimised for output
  */
 export async function runNPExtendedSyntaxSearches(
   searchStringIn: string,
@@ -292,7 +292,7 @@ export async function runNPExtendedSyntaxSearches(
 /**
  * Create a string to display the number of results and notes: "[first N] from M results from P notes"
  * @author @jgclark
- * @param {resultOutputType} resultSet
+ * @param {resultOutputV3Type} resultSet
  * @returns {string}
  */
 export function resultCounts(resultSet: resultOutputV3Type): string {

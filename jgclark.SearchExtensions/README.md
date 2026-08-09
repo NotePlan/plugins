@@ -2,9 +2,7 @@
 
 This plugin extends NotePlan searching: **save results** to a note you can re-run in one click (or automatically on open), optionally **sync open tasks** into that note, and run **search-and-replace** across notes.
 
-From **plugin v3** (and NotePlan **v3.18.1+**), it uses [NotePlan’s advanced search syntax](https://help.noteplan.co/article/269-advanced-search) by default - operators such as `source:`, `is:`, `date:`, `path:`, `OR`, and grouped negatives - while still writing and managing saved result notes and refresh links for you.
-
-On older NotePlan builds (or if you turn off “Use native search?”), the plugin falls back to its v2-style extended syntax (`+term`, `-term`, `!term`, wildcards, and so on).
+**Requires NotePlan v3.18.1+.** It always uses [NotePlan’s advanced search syntax](https://help.noteplan.co/article/269-advanced-search) - operators such as `source:`, `is:`, `date:`, `path:`, `OR`, and grouped negatives - while writing and managing saved result notes and refresh links for you.
 
 ![demo](qs+refresh-demo.gif)
 
@@ -12,18 +10,20 @@ On older NotePlan builds (or if you turn off “Use native search?”), the plug
 
 | Area | Behaviour |
 |------|-----------|
-| Default engine | **Native** NotePlan search when available (`Use native search?` = on, NP ≥ ~3.18.1) |
-| Operators | Prefer NP syntax: `source:`, `is:`, `date:`, `path:`, `heading:`, `sort:`, `OR`, `-(a OR b)`, quotes for whole words |
-| Specialised commands | Still available as convenience wrappers (`/searchOpenTasks`, `/searchOverNotes`, …); on native search you can often do the same with operators alone |
+| Engine | **Native** NotePlan advanced search (minimum NP 3.18.1) |
+| Operators | NP syntax: `source:`, `is:`, `date:`, `path:`, `heading:`, `sort:`, `OR`, `-(a OR b)`, quotes for whole words |
+| Specialised commands | Still available as convenience wrappers (`/searchOpenTasks`, `/searchOverNotes`, …); you can often do the same with operators alone |
 | Re-run | Results include a **[🔄 Re-run search]** link under the metadata line |
 | Auto-refresh | `onOpen` trigger re-runs the search when you open the saved note |
 | Replace | Single **/replace** command (calendar/notes scope via `source:` in the search string) |
 | Destinations | `newnote`, `quick`, `current`, `log` (see [Destinations](#destinations)) |
 
-**Temporarily limited on the native path** (full v2 behaviour remains if native search is off or NP is too old):
+**Not supported** (older plugin-only features that are not part of NotePlan advanced search):
 
 - Plugin-only `!term` (must not appear **anywhere** in the note; not just the matching line)
-- Plugin wildcards `*` / `?` (not currently re-applied after the native search call)
+- Plugin wildcards `*` / `?` (not re-applied after the native search call)
+
+If you still have saved v2-style queries with `+term` or `!term`, rewrite them to NP syntax (table below).
 
 ## The Search commands
 
@@ -38,7 +38,7 @@ On older NotePlan builds (or if you turn off “Use native search?”), the plug
 - **/searchOpenTasks** (alias **/sot**) - search **open** tasks and checklists (and, with **NotePlan** result style, **sync** those lines with block IDs so you can tick them in the results note).
 - **/searchOverNotes** (alias **/son**) - regular (project) notes only.
 - **/searchOverCalendar** (alias **/soc**) - calendar notes only.
-- **/searchInPeriod** (alias **/sip**) - calendar notes over a **time period** you pick (or pass as dates / use `date:` when on the native path):
+- **/searchInPeriod** (alias **/sip**) - calendar notes over a **time period** you pick (or pass as dates / use `date:` operators):
 
   <img width="500px" alt="selecting a period" src="period-selection.png"/>
 
@@ -48,7 +48,7 @@ Optional **Default Search terms** pre-fill the search prompt; you can always ove
 
 ### Convenience commands vs native operators
 
-On NotePlan 3.18.1+ with native search enabled, the specialised commands remain useful shortcuts, but you can usually express the same scope in **/search** or **/flexiSearch**:
+The specialised commands remain useful shortcuts, but you can usually express the same scope in **/search** or **/flexiSearch**:
 
 | Instead of | You can use (native syntax) |
 |------------|-----------------------------|
@@ -107,11 +107,7 @@ To re-run whenever you open the note: **/add trigger**, choose **🔎 Search Ext
 
 ## Search syntax
 
-Depends on NotePlan version and the **Use native search?** setting.
-
-### NotePlan v3.18.1+ with native search (default)
-
-The plugin uses the [app advanced search article](https://help.noteplan.co/article/269-advanced-search). In short:
+The plugin always uses the [app advanced search article](https://help.noteplan.co/article/269-advanced-search). In short:
 
 - Terms may match **partial** words unless quoted for a full word: `"sun"` vs `sun`
 - Boolean-style: space = AND; `OR`; negative `-term` or `-(a OR b)`
@@ -120,31 +116,20 @@ The plugin uses the [app advanced search article](https://help.noteplan.co/artic
 - **Case sensitive searching** - global setting (and FlexiSearch); filter applied after the API search
 - **Match only on full words?** - setting (quotes all terms for the API), or put individual terms in `"…"` yourself
 
-Example migrations from plugin v2 terms:
+Example migrations from older plugin v2 terms:
 
-| Plugin v2 style | Native style (approx.) |
-|-----------------|-------------------------|
+| Plugin v2 style (no longer supported) | Native style (approx.) |
+|--------------------------------------|-------------------------|
 | `+must may could -cannot` | `must (may OR could) -cannot` |
 | `+meeting -work -meetup` | `meeting -(work meetup)` |
 
 Operators you type can override note-type / para-type filters from the command for that run (e.g. `source:calendar`).
 
-### Older NotePlan, or native search turned off
-
-Plugin extended syntax (v2):
-
-- `+term` must appear; `-term` must not appear **on the same line**; `!term` must not appear **anywhere in the note**
-- Spaces or commas separate terms; `"exact phrase"` for multi-word
-- Partial-word match by default; **Match only on full words?** and **Case sensitive** as settings
-- Wildcards: `*` (within a word), `?` (one character) - e.g. `pos*e`, `poli?e`
-- Empty query allowed in some flows (e.g. all open tasks via FlexiSearch) with a warning that it may be slow
-- Time period for **/searchInPeriod** is via date picker / x-callback dates (not necessarily `date:` operators)
-
 ## The Replace command
 
 **/replace** (aliases **/repl**, **/search and replace**):
 
-1. Enter (or pass) a search string - may include native **search operators** when native search is available (`source:calendar`, `is:open`, `path:…`, etc.).
+1. Enter (or pass) a search string - may include **search operators** (`source:calendar`, `is:open`, `path:…`, etc.).
 2. Enter (or pass) replacement text.
 3. Confirm after a count of matches (detail in the plugin log). **There is no easy multi-note undo** - use each note’s Versions menu if needed.
 
@@ -158,12 +143,11 @@ Case sensitivity follows the plugin setting. Prefer careful, narrow queries firs
 
 Highlights from settings:
 
-- Use native search?
 - Case sensitive / full word
 - Folders to exclude
 - Auto-save, folder, quick-search title, saved-search heading text
 - Result style, limit, heading level, sort, group, prefix, quote length, highlight, date style
-- Default search terms (debug section also has log level and optional old-vs-new comparison)
+- Default search terms (debug section also has log level)
 
 ## Results highlighting
 

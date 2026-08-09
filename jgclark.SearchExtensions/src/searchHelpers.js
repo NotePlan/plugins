@@ -32,27 +32,6 @@ export type noteAndLine = {
   index: number, // index number of the paragraph, to do any necessary further lookups
 }
 
-export type typedSearchTerm = {
-  term: string, // (e.g. 'fixed')
-  termRep: string, // short for termRepresentation (e.g. '-fixed')
-  type: 'must' | 'may' | 'not-line' | 'not-note' | 'regex',
-}
-
-export type resultObjectType = {
-  searchTerm: typedSearchTerm,
-  resultNoteAndLineArr: Array<noteAndLine>,
-  resultCount: number,
-}
-
-// Note: Deprecated; used before v3.
-export type resultOutputType = {
-  searchTermsRepArr: Array<string>;
-  resultNoteAndLineArr: Array<noteAndLine>;
-  resultCount: number;
-  resultNoteCount: number;
-  fullResultCount: number;
-}
-
 export type resultOutputV3Type = {
   searchTermsStr: string;
   searchOperatorsStr: string;
@@ -188,7 +167,6 @@ export const SORT_MAP: Map<string, Array<string>> = new Map([
 // Note: different from the settings for a particular search (above)
 
 export type SearchConfig = {
-  useNativeSearch: boolean,
   caseSensitiveSearching: boolean,
   fullWordSearching: boolean,
   includeArchive: boolean,
@@ -209,7 +187,6 @@ export type SearchConfig = {
   defaultSearchTerms: Array<string>,
   _logLevel: string,
   _logTimer: boolean,
-  _runComparison: boolean,
   // includeSpecialFolders: boolean, // can't remember when this was removed
   syncOpenResultItems: boolean, // Note: not in settings.json, but desrived in getSearchSettings() below
 }
@@ -344,7 +321,7 @@ export function reduceNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteA
 /**
  * Create a string to display the number of results and notes: "[first N] from M results from P notes"
  * @author @jgclark
- * @param {resultOutputType} resultSet
+ * @param {resultOutputV3Type} resultSet
  * @returns {string}
  */
 export function resultCounts(resultSet: resultOutputV3Type): string {
@@ -402,7 +379,7 @@ export function formSearchResultsMetadataLine(resultSet: resultOutputV3Type, xCa
  * @author @jgclark
  *
  * @param {SearchConfig} config
- * @param {resultOutputType} resultSet object
+ * @param {resultOutputV3Type} resultSet object
  * @param {string} requestedTitle requested note title to use/make
  * @param {string?} xCallbackURL URL to cause a 'refresh' of this command
  * @param {boolean?} justReplaceThisSection if set, will just replace this justReplaceThisSection's section, not replace the whole note (default: false)
@@ -645,8 +622,8 @@ export function applySearchOperatorsToOptions(searchOperators: Array<string>, se
 /**
  * Go through results, and if there are open task lines, then sync lines by adding a blockID (having checked there isn't one already).
  * @author @jgclark
- * @param {resultOutputType} input
- * @returns {resultOutputType}
+ * @param {resultOutputV3Type} input
+ * @returns {resultOutputV3Type}
  */
 export async function makeAnySyncs(input: resultOutputV3Type): Promise<resultOutputV3Type> {
   try {

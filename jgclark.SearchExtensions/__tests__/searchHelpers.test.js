@@ -4,7 +4,6 @@ import {
   type noteAndLine,
   type resultOutputV3Type,
   type SearchConfig,
-  type typedSearchTerm,
   buildRefreshCallbackArgs,
   createFormattedResultLines,
   getSearchCommandName,
@@ -26,18 +25,6 @@ beforeAll(() => {
   global.NotePlan = NotePlan
   DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
 })
-
-const searchTerms: Array<typedSearchTerm> = [
-  { term: 'TERM1', type: 'may', termRep: 'TERM1' },
-  { term: 'TERM2', type: 'not-line', termRep: '-TERM2' },
-  { term: 'TERM3', type: 'must', termRep: '+TERM3' },
-  { term: 'TERM2', type: 'not-note', termRep: '!TERM2' }, // alternative of 2nd one that is more restrictive
-  { term: 'TERM2', type: 'may', termRep: 'TERM2' }, // inverse of searchTerms[1]
-  { term: 'TERM1', type: 'must', termRep: '+TERM1' }, // alternative of 1st one for ++ test
-  { term: 'TERM2', type: 'must', termRep: '+TERM2' }, // alternative for ++ test
-]
-
-const emptyArr: Array<noteAndLine> = []
 
 const mayArr: Array<noteAndLine> = [
   // lines with TERM1, ordered by filename

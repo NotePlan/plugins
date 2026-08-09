@@ -13,24 +13,10 @@ import { getNoteTypesFromString, getParaTypesFromString, getSearchSettings } fro
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { type HtmlWindowOptions, showHTMLV2 } from '@helpers/HTMLView'
 import { closeWindowFromCustomId, logWindowsList } from '@helpers/NPWindows'
-import { isNPAdvancedSyntaxAvailable } from '@helpers/search'
 
 const pluginID = "jgclark.SearchExtensions"
 
 //-----------------------------------------------------------------------------
-const infoTooltipForPluginExtendedSyntax = `
-    <div class="tooltip">
-      <i class="fa-regular fa-circle-question"></i>
-      <div class="tooltipUnderLeft">
-      Searches match on whole or partial words.<br />
-      Separate search terms by spaces; surround an exact phrase in double quotes.<br />
-      Must find: <kbd>+term</kbd><br />
-      Must not find in same line: <kbd>-term</kbd><br />
-      Must not find in note: <kbd>!term</kbd><br />
-      <i class="fa-regular fa-globe"></i><a href="https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/" target="_blank">Full documentation</a>
-      <u></u> <!-- used to trigger extra bit that mimics speech bubble -->
-    </div>
-`
 const infoTooltipForNPExtendedSyntax = `
     <div class="tooltip">
       <i class="fa-regular fa-circle-question"></i>
@@ -53,20 +39,13 @@ const infoTooltipForNPExtendedSyntax = `
     </div>
 `
 
-const infoTooltipToUse = async (): Promise<string> => {
-  // TODO(later): remove config check, and then can take out the async stuff
-  const config = await getSearchSettings()
-  const useNPAdvancedSyntax = config.useNativeSearch && isNPAdvancedSyntaxAvailable()
-  return useNPAdvancedSyntax ? infoTooltipForNPExtendedSyntax : infoTooltipForPluginExtendedSyntax
-}
-
-// Dialog box, for use with plugin extended syntax (i.e. before NP extended syntax available in 3.18)
+// Dialog for NotePlan advanced search syntax (NP 3.18.1+)
 const flexiSearchDialogHTML = async () => `
 <div class="dialogBox">
  <form type="dialog" id="searchOptions">
   <div class="dialogSection">
 		<b>Search Terms</b><input type="text" id="searchTerms" name="searchTerms" size="40" value="" autofocus tabindex="1" />&nbsp;
-${await infoTooltipToUse()}
+${infoTooltipForNPExtendedSyntax}
 	</div>
 
 	<div class="dialogSection">

@@ -3,18 +3,17 @@
 //-----------------------------------------------------------------------------
 // Commands to search and replace over NP notes.
 // Jonathan Clark
-// Last updated 2025-12-26 for v3.0.0, @jgclark
+// Last updated 2026-08-09 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import type { noteAndLine,resultOutputV3Type, TSearchOptions, typedSearchTerm } from './searchHelpers'
+import type { noteAndLine, resultOutputV3Type, TSearchOptions } from './searchHelpers'
 import { applySearchOperatorsToOptions, getSearchSettings, logBasicResultLines, } from './searchHelpers'
 import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
-import { runPluginExtendedSyntaxSearches, validateAndTypeSearchTerms, } from './pluginExtendedSyntaxHelpers'
-import { clo, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
+import { logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { getNoteFromFilename } from '@helpers/NPnote'
-import { getSearchOperators, removeSearchOperators, isNPAdvancedSyntaxAvailable } from '@helpers/search'
+import { getSearchOperators, removeSearchOperators } from '@helpers/search'
 import {
   getInputTrimmed,
   showMessage,
@@ -25,66 +24,78 @@ import {
 // Private helper functions
 
 /**
- * Build a global RegExp for replace, honouring case sensitivity
- * It protects against regex operators in the pattern, by escaping them.
- * @param {string} pattern
+ * Build a regular expression for the search-and-replace.
+ * First need to escape any special characters in the search term (unless already part of a valid regex).
+ * Also match all instances of the search term in the line (g flag), and may include a case insensitive flag.
+ * @author @jgclark
+ * @param {string} searchTerm
  * @param {boolean} caseSensitive
  * @returns {RegExp}
  */
-function buildReplaceRegex(pattern: string, caseSensitive: boolean): RegExp {
-  // First escape any regex operators in the pattern
-  const escapedPattern = escapeRegexOperators(pattern)
-  return caseSensitive
-    ? new RegExp(escapedPattern, 'g')
-    : new RegExp(escapedPattern, 'gi')
+function buildReplaceRegex(searchTerm: string, caseSensitive: boolean = false): RegExp {
+  // First need to escape any special characters in the search term
+  // Leave * and ? alone now
+  // $FlowFixMe[incompatible-type]
+  const escapedSearchTerm: string = searchTerm.replace(/[\-\]\[{}()+.,\\^$|#]/g, '\\$&')
+  // Now turn into a regex which also:
+  // match all instances of the search term in the line (g flag)
+  // Include 'i' flag if not case-sensitive
+  // $FlowFixMe[incompatible-type]
+  // $FlowFixMe[invalid-constructor]
+  // $FlowFixMe[invalid-compare]
+  const re = caseSensitive
+    ? new RegExp(escapedSearchTerm, "g")
+    : new RegExp(escapedSearchTerm, "gi")
+  return re
 }
 
 /**
- * Escape any regex operators in the pattern
- * @param {string} pattern
- * @returns {string}
- */
-function escapeRegexOperators(pattern: string): string {
-  return pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-/**
- * Do the replace for a single result
- * @param {noteAndLine} nal
- * @param {RegExp} replaceRegex regular expression to use to identify the string to replace
- * @param {string} replaceExpression string to replace the identified string with
- * @returns {boolean} true if successful, false if not
- */
-function doReplaceForAResult(nal: noteAndLine, replaceRegex: RegExp, replaceExpression: string): boolean {
-  const thisFilename = nal.noteFilename
-  const thisNote = getNoteFromFilename(thisFilename)
-  if (!thisNote) {
-    logWarn('replace', `Couldn't find note for '${thisFilename}' to update`)
-    return false
-  }
-  const thisPara = findParaFromStringAndFilename(thisFilename, nal.line)
-  if (!thisPara) {
-    logWarn('replace', `Couldn't find paragraph {${nal.line}} in '${thisFilename}' to update`)
-    return false
-  }
-  // Note: JavaScript .replaceAll() is always case-sensitive with simple strings. So we need to use it via a regex.
-  const replacedContent = nal.line.replaceAll(replaceRegex, replaceExpression)
-  thisPara.content = replacedContent
-  logDebug('replace', `in ${thisFilename} -> ${replacedContent}`)
-  thisNote.updateParagraph(thisPara)
-  return true
-}
-
-/**------------------------------------------------------------------------
- * Run a search and replace over notes.
- * Works interactively (if no arguments given) or in the background (using supplied arguments).
+ * Do a search-and-replace for a single result item.
  * @author @jgclark
- *
- * @param {string?} searchStringArg optional search term to use (which can be regex)
- * @param {string?} replacementTextArg 
- * @param {string?} noteTypesToInclude either 'project','calendar' or 'both' -- as string not array
- * @param {string?} paraTypeFilterArg optional list of paragraph types to filter by
- * @param {string?} commandNameToDisplay optional title for dialog boxes
+ * @param {noteAndLine} nal noteAndLine object for this result item
+ * @param {RegExp} replaceRegex regular expression for the search-and-replace
+ * @param {string} replacementText replacement text
+ */
+function doReplaceForAResult(nal: noteAndLine, replaceRegex: RegExp, replacementText: string): void {
+  try {
+    const thisNote = getNoteFromFilename(nal.noteFilename)
+    if (!thisNote) {
+      logWarn('replace', `Couldn't find note for filename ${nal.noteFilename}`)
+      return
+    }
+    // Now get this paragraph; first by lineIndex, with a backup of searching for the original content, in case the note has changed.
+    // $FlowFixMe[incompatible-type]
+    let thisPara = thisNote.paragraphs[nal.index] ?? null
+    if (!thisPara || thisPara.content !== nal.line) {
+      // go look for the paragraph that matches the original search result line
+      thisPara = findParaFromStringAndFilename(nal.noteFilename, nal.line)
+      if (!thisPara) {
+        logWarn('replace', `Couldn't find paragraph matching original content '${nal.line}' in note '${nal.noteFilename}'. Will try to continue, but it may not be correct.`)
+        return
+      }
+    }
+    // now we have a matching paragraph, so replace
+    // Note: we can't use the replace() method, as it just takes a string: so let's use a RegExp instead
+    logDebug('replace', `will replace RE ${replaceRegex.toString()} with '${replacementText}' in '${thisPara.content}'`)
+    thisPara.content = thisPara.content.replace(replaceRegex, replacementText)
+    thisNote.updateParagraph(thisPara)
+    logDebug('replace', `-> now '${thisPara.content}'`)
+  }
+  catch (err) {
+    logError(pluginJson, err.message)
+  }
+}
+
+//-------------------------------------------------------------------------------
+/**
+ * Entry point for Search-and-Replace.
+ * Uses NotePlan advanced (native) search only (requires NP 3.18.1+).
+ * @author @jgclark
+ * @param {string?} searchStringArg optional search string
+ * @param {string?} replacementTextArg optional text to replace
+ * @param {string?} noteTypesToIncludeArg optional list of note types to include (default is 'both')
+ * @param {string?} paraTypeFilterArg optional list of paragraph types to include (default is empty)
+ * @param {string?} commandNameToDisplay optional name of the command to display (default is 'Search-and-replace')
 */
 export async function replace(
   searchStringArg?: string,
@@ -95,7 +106,6 @@ export async function replace(
 ): Promise<void> {
   try {
     const config = await getSearchSettings()
-    const NPAdvancedSyntaxAvailable = isNPAdvancedSyntaxAvailable()
 
     // Get the noteTypes to include, from arg2
     const noteTypesToInclude: Array<string> = (noteTypesToIncludeArg === 'both' || noteTypesToIncludeArg === '') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
@@ -104,8 +114,6 @@ export async function replace(
     // Get the paraTypes to include
     // $FlowFixMe[incompatible-type]
     const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg && paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : []
-    // logDebug('replace', `arg3 -> para types '${typeof paraTypeFilterArg}'`)
-    // logDebug('replace', `arg3 -> para types '${paraTypeFilterArg ?? '(null)'}'`)
     logDebug('replace', `arg3 -> para types '${paraTypesToInclude.toString()}'`)
 
     // Get the search term, either from arg0 supplied, or by asking user
@@ -141,64 +149,26 @@ export async function replace(
       caseSensitiveSearching: config.caseSensitiveSearching,
     }
 
-    // Set up variables for older method, that need function-wide scope
-    let searchTermsRepStr = ''
-    let validatedSearchTerms: Array<typedSearchTerm> = []
-    let olderMethodResultsProm: resultOutputV3Type
+    logDebug('replace', `Using NP advanced search syntax`)
+    const searchOperators = (searchStr)
+      ? getSearchOperators(searchStr) // Note: this will include any date: range operators
+      : []
+    const searchStrWithoutOperators = removeSearchOperators(searchStr)
 
-    // Set up variables for newer method, that need function-wide scope
-    let searchStrWithoutOperators = ''
-    let newerMethodResultsProm: resultOutputV3Type
-
-    // Now do the relevant processing for different versions of NP
-    if (config.useNativeSearch && NPAdvancedSyntaxAvailable) {
-      logDebug('replace', `Will use newer NP extended syntax`)
-      const searchOperators = (searchStr)
-        ? getSearchOperators(searchStr) // Note: this will include any date: range operators
-        : []
-      searchStrWithoutOperators = removeSearchOperators(searchStr)
-      
-      if (searchOperators) {
-        logDebug('replace', `- searchOperators: ${String(searchOperators)}`)
-        applySearchOperatorsToOptions(searchOperators, searchOptions)
-      }
-    
-      //---------------------------------------------------------
-      // Search using search() API via JGC modified search helpers to suit NP 3.18.1 extended search syntax
-      CommandBar.showLoading(true, `${commandNameToDisplay} for [${searchStr}] ...`)
-      await CommandBar.onAsyncThread()
-
-      // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-      newerMethodResultsProm = runNPExtendedSyntaxSearches(searchStr, config, searchOptions)
-
-      await CommandBar.onMainThread()
-
-    } else {
-      // NP Advanced Syntax not available, or not wanted
-      logDebug('replace', `Will use older Plugin extended syntax`)
-      
-      // Validate the search string: an empty return means failure. There is error logging in the function.
-      validatedSearchTerms = await validateAndTypeSearchTerms(searchStr, true)
-      if (validatedSearchTerms == null || validatedSearchTerms.length === 0) {
-        await showMessage(`These search terms aren't valid. Please see Plugin Console for details.`)
-        return
-      }
-
-      searchTermsRepStr = `'${validatedSearchTerms.map(term => term.termRep).join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
-    
-      // Update searchOptions (already created earlier, but may need operator adjustments)
-      // Note: searchOptions was already created at line 123, so we just update it here if needed
-
-      //----------------------------------------------------------------------------
-      // Search using search() API via JGC extended search helpers in this plugin
-      CommandBar.showLoading(true, `${commandNameToDisplay} for [${searchTermsRepStr}] ...`)
-      await CommandBar.onAsyncThread()
-
-      // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-      olderMethodResultsProm = runPluginExtendedSyntaxSearches(validatedSearchTerms, config, searchOptions)
-
-      await CommandBar.onMainThread()
+    if (searchOperators) {
+      logDebug('replace', `- searchOperators: ${String(searchOperators)}`)
+      applySearchOperatorsToOptions(searchOperators, searchOptions)
     }
+
+    //---------------------------------------------------------
+    // Search using search() API via NP advanced search helpers
+    CommandBar.showLoading(true, `${commandNameToDisplay} for [${searchStr}] ...`)
+    await CommandBar.onAsyncThread()
+
+    // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
+    const resultsProm: Promise<resultOutputV3Type> = runNPExtendedSyntaxSearches(searchStr, config, searchOptions)
+
+    await CommandBar.onMainThread()
 
     //----------------------------------------------------------------------------
     // While that's thinking ...
@@ -223,15 +193,9 @@ export async function replace(
     }
 
     //---------------------------------------------------------
-    // End of search Call started above: resolve the promises
-    let searchResults: ?resultOutputV3Type // ? to indicate may be undefined
-
-    logDebug('replace', `before promises resolve`)
-    if (config.useNativeSearch && NPAdvancedSyntaxAvailable) {
-      searchResults = await newerMethodResultsProm
-    } else {
-      searchResults = await olderMethodResultsProm
-    }
+    // End of search Call started above: resolve the promise
+    logDebug('replace', `before promise resolves`)
+    const searchResults: ?resultOutputV3Type = await resultsProm
     CommandBar.showLoading(false)
 
     if (!searchResults) {
@@ -258,22 +222,8 @@ export async function replace(
     // Do the replace
     const startTime = new Date() // for timing
     logDebug('replace', `------------ Will now replace with '${replacementText}' -------------`)
-    
-    // Build the search pattern for replace regex
-    // For newer method: use searchStrWithoutOperators (already set). 
-    // For older method: extract terms from validatedSearchTerms and join them.
-    let searchPatternForReplace = ''
-    if (config.useNativeSearch && NPAdvancedSyntaxAvailable) {
-      searchPatternForReplace = searchStrWithoutOperators
-    } else {
-      // Extract the actual search terms (not the negative ones) and join them
-      const positiveTerms = validatedSearchTerms
-        .filter(term => term.type === 'must' || term.type === 'may')
-        .map(term => term.term)
-      searchPatternForReplace = positiveTerms.join(' ')
-    }
-    
-    const replaceRegex = buildReplaceRegex(searchPatternForReplace, searchOptions.caseSensitiveSearching ?? false)
+
+    const replaceRegex = buildReplaceRegex(searchStrWithoutOperators, searchOptions.caseSensitiveSearching ?? false)
     logDebug('replace', `replaceRegex = ${replaceRegex.toString()} with caseSensitiveSearching = ${String(searchOptions.caseSensitiveSearching ?? false)}`)
 
     // Iterate through each result and do the replace
@@ -287,9 +237,7 @@ export async function replace(
 
     // Confirmatory check, if DEBUG logging is enabled: run search again and see if it is zero
     if (config._logLevel === 'DEBUG') {
-      const checkResults: resultOutputV3Type = (config.useNativeSearch && NPAdvancedSyntaxAvailable)
-        ? await runNPExtendedSyntaxSearches(searchStr, config, searchOptions)
-        : await runPluginExtendedSyntaxSearches(validatedSearchTerms, config, searchOptions)
+      const checkResults: resultOutputV3Type = await runNPExtendedSyntaxSearches(searchStr, config, searchOptions)
       if (checkResults.resultCount > 0) {
         logWarn('replace', `I've double-checked the replace, and found that there are ${checkResults.resultCount} unchanged copies of '${searchStr}'`)
       } else {

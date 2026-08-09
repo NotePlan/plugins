@@ -2,33 +2,33 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Entry point to the SearchExtensions plugin from other plugins.
-// Last updated 2025-10-03 for v3.0.0, @jgclark
+// Last updated 2026-08-09 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import type { resultOutputV3Type, TSearchOptions } from './searchHelpers'
 import { getSearchSettings } from './searchHelpers'
-import { runPluginExtendedSyntaxSearches, validateAndTypeSearchTerms
-} from './pluginExtendedSyntaxHelpers'
 import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
-import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
-import { isNPAdvancedSyntaxAvailable } from '@helpers/search'
+import { clo, logDebug, logError } from '@helpers/dev'
 
 /**
  * Entry point for extended search where all the parameters are supplied.
+ * Uses NotePlan advanced (native) search syntax only (requires NP 3.18.1+).
+ * Callers such as Dashboard must pass NP advanced syntax, not plugin v2 `+term` / `!term`.
+ *
  * @param {string} searchString as a string with items separated by spaces, to suit taking from a search box.
- * @param {SearchOptions} searchOptions object for various settings
+ * @param {TSearchOptions} searchOptions object for various settings
+ * @returns {Promise<?resultOutputV3Type>}
  */
 export async function extendedSearch(
   searchString: string,
   searchOptions: TSearchOptions,
-): Promise<resultOutputV3Type> {
+): Promise<?resultOutputV3Type> {
   try {
     // get relevant settings
     const config = await getSearchSettings()
     logDebug(pluginJson, `Starting extendedSearch() with searchString: '${searchString}'`)
     clo(searchOptions, 'extendedSearch searchOptions:')
-    const NPAdvancedSyntaxAvailable = isNPAdvancedSyntaxAvailable()
 
     // Add config settings if not given
     if (searchOptions.caseSensitiveSearching != null) {
@@ -42,22 +42,10 @@ export async function extendedSearch(
     logDebug('extendedSearch', `- config.syncOpenResultItems: ${String(config.syncOpenResultItems)}`)
 
     //---------------------------------------------------------
-    // Call main extended search function
-    // CommandBar.showLoading(true, `Searching ...`)
+    // Call main native advanced search
     await CommandBar.onAsyncThread()
 
-    let results: resultOutputV3Type
-    if (config.useNativeSearch && NPAdvancedSyntaxAvailable) {
-      results = await runNPExtendedSyntaxSearches(searchString, config, searchOptions)
-    } else {
-      // Validate the search terms: an empty return means failure. There is error logging in the function.
-      const validatedSearchTerms = await validateAndTypeSearchTerms(searchString, false)
-      if (validatedSearchTerms == null || validatedSearchTerms.length === 0) {
-        throw new Error(`These search terms aren't valid. Please see Plugin Console for details.`)
-      }
-
-      results = await runPluginExtendedSyntaxSearches(validatedSearchTerms, config, searchOptions)
-    }
+    const results: resultOutputV3Type = await runNPExtendedSyntaxSearches(searchString, config, searchOptions)
 
     await CommandBar.onMainThread()
 
@@ -65,7 +53,6 @@ export async function extendedSearch(
   }
   catch (err) {
     logError(pluginJson, err.message)
-    // $FlowFixMe[incompatible-return]
     return null
   }
 }

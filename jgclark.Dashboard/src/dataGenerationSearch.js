@@ -7,7 +7,7 @@
 import pluginJson from '../plugin.json'
 import { extendedSearch } from '../../jgclark.SearchExtensions/src/externalSearch'
 import { getSearchSettings } from '../../jgclark.SearchExtensions/src/searchHelpers'
-import type { noteAndLine, resultOutputType, TSearchOptions } from '../../jgclark.SearchExtensions/src/searchHelpers'
+import type { noteAndLine, resultOutputV3Type, TSearchOptions } from '../../jgclark.SearchExtensions/src/searchHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { savedSearch1 } from './demoData'
 import type { TDashboardSettings, TSection, TSectionItem } from './types'
@@ -31,7 +31,7 @@ import { getNoteByFilename } from '@helpers/note'
 
 /**
  * Start a new search and open its section. For use by x-callbacks or other plugins.
- * @param {string} searchTerms space-separated search terms, using the extended syntax as if entered in a search box
+ * @param {string} searchTerms space-separated search terms using NotePlan advanced search syntax (as in a search box)
  * @param {string?} noteTypesToIncludeStr (optional, default is 'notes, calendar')
  * @param {string?} fromDateStr start date for calendar notes as ISO string (optional, default is empty)
  * @param {string?} toDateStr end date for calendar notes as ISO string (optional, default is empty)
@@ -96,15 +96,13 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
     const startTime = new Date() // for timing only
     const maxInSection = config.maxItemsToShowInSection
 
-    // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
-    // Note: Handle both V2 (searchTermsRepArr) and V3 (searchTermsStr) return types. TEST: Works for v2.
-    const searchResultSet: any = await extendedSearch(searchTermsStr, searchOptions)
+    // Main search call to jgclark.SearchExtensions (NotePlan advanced/native syntax; NP 3.18.1+)
+    const searchResultSet: ?resultOutputV3Type = await extendedSearch(searchTermsStr, searchOptions)
     if (!searchResultSet) {
       logError('getSearchResults', 'extendedSearch returned null/undefined')
       return []
     }
-    // V3 uses searchTermsStr (string), V2 uses searchTermsRepArr (Array<string>)
-    const searchTermsRep = searchResultSet.searchTermsStr ?? (searchResultSet.searchTermsRepArr ? searchResultSet.searchTermsRepArr.join(' ') : searchTermsStr)
+    const searchTermsRep = searchResultSet.searchTermsStr ?? searchTermsStr
     const resultNALs: Array<noteAndLine> = searchResultSet.resultNoteAndLineArr ?? []
     logDebug('getSearchResults', `- found ${resultNALs.length} items from [${searchTermsRep}]`)
     logTimer('getSearchResults', startTime, `- finished search for [${searchTermsRep}]`)
@@ -299,7 +297,7 @@ export async function getSavedSearchResults(
       // // TODO: ...
 
       // // Main search call to jgclark.SearchExtensions, that includes Perspective folder-level filtering, and item-defeating, but it doesn't cover ignoring certain sections within a note.
-      // const searchResultSet: resultOutputType = await extendedSearch(extendedSearchTerms, searchOptions)
+      // const searchResultSet: resultOutputV3Type = await extendedSearch(extendedSearchTerms, searchOptions)
       // const searchTermsRep = searchResultSet.searchTermsRepArr.join(' ')
       // const resultNALs: Array<noteAndLine> = searchResultSet.resultNoteAndLineArr
       // logDebug('getSavedSearchResults', `- found ${resultNALs.length} items from [${searchTermsRep}]`)
