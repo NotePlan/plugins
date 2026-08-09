@@ -91,7 +91,7 @@ export async function refreshSavedSearch(): Promise<void> {
     const noteReadOnly: CoreNoteFields = Editor.note
 
     // Check to see if this has been called in the last 5000ms: if so don't proceed, as this could be a double call, which could lead to an infinite loop
-    const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
+    const timeSinceLastEdit: number = Number(Date.now()) - Number(noteReadOnly.versions[0].date)
     if (timeSinceLastEdit <= 5000) {
       logDebug(pluginJson, `refreshSavedSearch fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the note was last updated`)
       return

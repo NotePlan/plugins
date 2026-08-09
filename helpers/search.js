@@ -11,16 +11,15 @@ import { RE_NP_HASHTAG_G, RE_NP_MENTION_G, RE_SYNC_MARKER } from '@helpers/regex
 /**
  * Return whether NP advanced search syntax is available.
  * Build floors: macOS ~3.18.1 (>= 1344); iOS/other (>= 1426) where the syntax shipped later.
+ * Note: deprecated: now only used in test files.
  * @returns {boolean}
  */
 export function isNPAdvancedSyntaxAvailable(): boolean {
   try {
     // Prefer explicit platform check (!==) - do not use `!platform === 'macOS'` (operator precedence bug)
     if (NotePlan?.environment?.platform !== 'macOS') {
-      // $FlowFixMe[prop-missing]
       return (NotePlan?.environment?.buildVersion ?? 0) >= 1426
     } else {
-      // $FlowFixMe[prop-missing]
       return (NotePlan?.environment?.buildVersion ?? 0) >= 1344 // approximately v3.18.1
     }
   } catch (error) {

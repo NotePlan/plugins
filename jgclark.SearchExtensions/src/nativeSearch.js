@@ -15,7 +15,6 @@ import { getLocale } from '@helpers/NPConfiguration'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { caseSensitiveSubstringLocaleMatch, getSearchOperators, quoteTermsInSearchString, removeSearchOperators } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
-import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 
 //------------------------------------------------------------------------------
 // Notes
@@ -30,12 +29,34 @@ import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 // Pipeline stages (mostly pure; unit-test friendly)
 
 /**
- * @typedef {Object} TPreparedNativeSearch
+ * Prepared native search string and derived term lists.
  * @property {string} searchString - string passed to DataStore.search
  * @property {Array<string>} searchOperators
  * @property {Array<string>} searchTerms - non-operator tokens (for result metadata)
  * @property {Array<string>} searchTermsToHighlight
  */
+export type TPreparedNativeSearch = {
+  searchString: string,
+  searchOperators: Array<string>,
+  searchTerms: Array<string>,
+  searchTermsToHighlight: Array<string>,
+}
+
+/**
+ * Empty result set (used on error; consistent with other search helpers).
+ * @returns {TSearchResultSet}
+ */
+function emptySearchResultSet(): TSearchResultSet {
+  return {
+    searchTermsStr: '',
+    searchOperatorsStr: '',
+    searchTermsToHighlight: [],
+    resultNoteAndLineArr: [],
+    resultCount: 0,
+    resultNoteCount: 0,
+    fullResultCount: 0,
+  }
+}
 
 /**
  * Parse operators/terms and apply full-word quoting when configured.
@@ -63,10 +84,9 @@ export function prepareNativeSearchString(searchStringIn: string, fullWordSearch
  * @returns {Array<reducedFieldSet>}
  */
 export function mapParagraphsToReducedFieldSets(paragraphs: Array<TParagraph>): Array<reducedFieldSet> {
-  // $FlowIgnore[prop-missing]
   return paragraphs.map((p) => {
     const note = p.note
-    const fieldSet = {
+    const fieldSet: reducedFieldSet = {
       filename: note?.filename ?? '<error>',
       changedDate: note?.changedDate,
       createdDate: note?.createdDate,
@@ -78,9 +98,41 @@ export function mapParagraphsToReducedFieldSets(paragraphs: Array<TParagraph>): 
       lineIndex: p.lineIndex,
       // Work around possible API ignoring source:/note type filter - remove when API fixed
       noteType: note?.type,
+      blockId: p.blockId,
     }
     return fieldSet
   })
+}
+
+/**
+ * Dedupe synced-line copies among reduced field sets (most-recent note wins).
+ * Same intent as eliminateDuplicateParagraphs(keepWhich='most-recent', syncedLinesOnly=true),
+ * but uses top-level changedDate/blockId on reducedFieldSet (not nested note.*).
+ * @param {Array<reducedFieldSet>} resultsIn
+ * @returns {Array<reducedFieldSet>}
+ */
+export function eliminateDuplicateReducedFieldSets(resultsIn: Array<reducedFieldSet>): Array<reducedFieldSet> {
+  if (!resultsIn || resultsIn.length === 0) {
+    return resultsIn
+  }
+  // most-recent first (undefined changedDate sorts after defined ones via sortListBy)
+  const sortedParas = sortListBy([...resultsIn], ['-changedDate'])
+  const revisedParas: Array<reducedFieldSet> = []
+  sortedParas.forEach((e) => {
+    const matchingIndex = revisedParas.findIndex((t) => {
+      if (t.content === e.content) {
+        if (t.blockId !== undefined && e.blockId !== undefined && t.blockId === e.blockId) {
+          logDebug('eliminateDuplicateReducedFieldSets', `Duplicate synced line eliminated: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
+          return true
+        }
+      }
+      return false
+    })
+    if (matchingIndex === -1) {
+      revisedParas.push(e)
+    }
+  })
+  return revisedParas
 }
 
 /**
@@ -93,7 +145,6 @@ export function filterReducedSearchResults(
   resultsIn: Array<reducedFieldSet>,
   opts: {
     noteTypesToInclude: Array<string>,
-    // $FlowFixMe[value-as-type]
     paraTypesToInclude: Array<ParagraphType>,
     caseSensitive: boolean,
     searchStringIn: string,
@@ -109,7 +160,6 @@ export function filterReducedSearchResults(
   // TODO(later): remove after NP search API fix
   if (noteTypesToInclude && noteTypesToInclude.length === 1) {
     const preFilterCount = resultReducedParas.length
-    // $FlowFixMe[prop-missing]
     resultReducedParas = resultReducedParas.filter((p) => noteTypesToInclude.includes(p.noteType?.toLowerCase() ?? ''))
     if (resultReducedParas.length !== preFilterCount) {
       logWarn('filterReducedSearchResults', `- confirmatory noteType filter shows ${String(preFilterCount - resultReducedParas.length)} results not matching noteType [${String(noteTypesToInclude)}] (${String(preFilterCount)} / ${String(resultReducedParas.length)})`)
@@ -138,7 +188,7 @@ export function filterReducedSearchResults(
 
   if (caseSensitive) {
     logDebug('filterReducedSearchResults', `case-sensitive: before filtering for [${searchStringIn}]: ${String(resultReducedParas.length)}`)
-    // FIXME: this fails when it comes in as a double-quoted string
+    // searchTermsToHighlight already has surrounding double-quotes stripped (see getHighlightTermsFromNativeSearch)
     resultReducedParas = resultReducedParas.filter(p => caseSensitiveSubstringLocaleMatch(searchTermsToHighlight, p.content, userLocale))
   }
 
@@ -155,20 +205,16 @@ export function dedupeLimitAndSortReducedResults(
   resultsIn: Array<reducedFieldSet>,
   opts: { resultLimit: number, useNativeSortOrder: boolean, sortOrder: string },
 ): { results: Array<reducedFieldSet>, fullResultCount: number } {
-  let resultReducedParas = resultsIn
+  let resultReducedParas: Array<reducedFieldSet> = resultsIn
   const { resultLimit, useNativeSortOrder, sortOrder } = opts
 
   logDebug('dedupeLimitAndSortReducedResults', `- before dedupe = ${resultReducedParas.length} results`)
-  // $FlowFixMe[prop-missing]
-  // $FlowFixMe[incompatible-exact]
-  resultReducedParas = eliminateDuplicateParagraphs(resultReducedParas, 'most-recent', true)
+  resultReducedParas = eliminateDuplicateReducedFieldSets(resultReducedParas)
   logDebug('dedupeLimitAndSortReducedResults', `  - after dedupe = ${resultReducedParas.length} results`)
   const fullResultCount = resultReducedParas.length
 
   if (resultLimit > 0 && fullResultCount > resultLimit) {
     logWarn('dedupeLimitAndSortReducedResults', `We have more than ${resultLimit} results, so will discard all the ones beyond that limit.`)
-    // $FlowFixMe[prop-missing]
-    // $FlowFixMe[incompatible-exact]
     resultReducedParas = resultReducedParas.slice(0, resultLimit)
     logDebug('dedupeLimitAndSortReducedResults', `-> now ${resultReducedParas.length} results`)
   }
@@ -177,8 +223,6 @@ export function dedupeLimitAndSortReducedResults(
   if (!useNativeSortOrder) {
     const sortKeys = SORT_MAP.get(sortOrder) ?? ['title']
     logDebug('dedupeLimitAndSortReducedResults', `- Will use sortKeys: [${String(sortKeys)}] from ${sortOrder}`)
-    // $FlowFixMe[prop-missing]
-    // $FlowFixMe[incompatible-exact]
     resultReducedParas = sortListBy(resultReducedParas, sortKeys)
   } else {
     logDebug('dedupeLimitAndSortReducedResults', `- useNativeSortOrder set, so will not sort results`)
@@ -257,7 +301,6 @@ export async function runNativeSearch(
       let resultReducedParas = mapParagraphsToReducedFieldSets(initialResult)
       resultReducedParas = filterReducedSearchResults(resultReducedParas, {
         noteTypesToInclude,
-        // $FlowFixMe[incompatible-type]
         paraTypesToInclude,
         caseSensitive,
         searchStringIn,
@@ -297,9 +340,7 @@ export async function runNativeSearch(
   }
   catch (err) {
     logError('runNativeSearch', err.message)
-    // const emptyResultObject = { searchTerm: '', resultsLines: [], resultCount: 0 }
-    // $FlowFixMe[incompatible-return]
-    return null // for completeness
+    return emptySearchResultSet()
   }
 }
 
@@ -338,8 +379,14 @@ export function getHighlightTermsFromNativeSearch(searchString: string): Array<s
   const searchTerms = searchTermsStr.split(' ').filter((f) => f !== '')
   // Remove any terms that were in negative groups
   const mayOrMustTermsRep = searchTerms.filter((f) => f[0] !== '-')
-  // Take off leading + if necessary
-  const mayOrMustTerms = mayOrMustTermsRep.map((f) => (f.match(/^[\+]/)) ? f.slice(1) : f)
+  // Take off leading + if necessary, and strip surrounding double-quotes (full-word / phrase terms)
+  const mayOrMustTerms = mayOrMustTermsRep.map((f) => {
+    let term = (f.match(/^[\+]/)) ? f.slice(1) : f
+    if (term.length >= 2 && term.startsWith('"') && term.endsWith('"')) {
+      term = term.slice(1, -1)
+    }
+    return term
+  })
   const notEmptyMayOrMustTerms = mayOrMustTerms.filter((f) => f !== '')
   return notEmptyMayOrMustTerms
 }

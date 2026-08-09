@@ -24,7 +24,7 @@ import { getPeriodStartEndDates } from '@helpers/NPdateTime'
  */
 export async function getDateRangeFromUser(): Promise<[string, string, string, string]> {
   try {
-    const [fromDate, toDate, _periodType, periodString, periodAndPartStr, _periodNumber] = await getPeriodStartEndDates(`What period shall I search over?`, false, '', true)
+    const [fromDate, toDate, _periodType, periodString, periodAndPartStr, _periodNumber] = await getPeriodStartEndDates(`What period shall I search over?`, false, undefined, true)
     if (fromDate == null || toDate == null) {
       throw new Error('Dates could not be parsed for requested time period')
     }

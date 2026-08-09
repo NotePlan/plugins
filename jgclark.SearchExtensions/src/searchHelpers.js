@@ -46,14 +46,18 @@ export type TSearchResultSet = {
 
 // Reduced set of paragraph.* fields
 export type reducedFieldSet = {
-  filename: string;
-  changedDate?: Date;
-  createdDate?: Date;
-  title: string;
-  type: ParagraphType;
-  content: string;
-  rawContent: string;
-  lineIndex: number;
+  filename: string,
+  changedDate?: Date,
+  createdDate?: Date,
+  title: string,
+  type: ParagraphType,
+  content: string,
+  rawContent: string,
+  lineIndex: number,
+  // Work-around when API ignores source: / noteTypesToInclude (remove when API fixed)
+  noteType?: string,
+  // Present when paragraph has a blockID (for synced-line dedupe)
+  blockId?: ?string,
 }
 
 // Settings for a particular search
@@ -134,10 +138,9 @@ export type SearchConfig = {
   highlightResults: boolean,
   dateStyle: string,
   defaultSearchTerms: Array<string>,
+  syncOpenResultItems: boolean, // Note: not in settings.json, but derived in getSearchSettings() below
   _logLevel: string,
   _logTimer: boolean,
-  // includeSpecialFolders: boolean, // can't remember when this was removed
-  syncOpenResultItems: boolean, // Note: not in settings.json, but desrived in getSearchSettings() below
 }
 
 /**
@@ -186,17 +189,16 @@ export function getParaTypesFromString(paraTypesAsStr: string): Array<ParagraphT
   const paraTypesToInclude: Array<ParagraphType> = (Array.isArray(paraTypesAsStr))
     ? paraTypesAsStr
     : (typeof paraTypesAsStr === 'string')
-      // $FlowFixMe[incompatible-type]
-      ? stringListOrArrayToArray(paraTypesAsStr, ',')
+      ? (stringListOrArrayToArray(paraTypesAsStr, ','): any)
       : []
-  if (paraTypesAsStr.includes('non-task')) {
+  if (paraTypesToInclude.includes('non-task')) {
     paraTypesToInclude.push('quote')
     paraTypesToInclude.push('list')
     paraTypesToInclude.push('title')
     paraTypesToInclude.push('text')
     paraTypesToInclude.splice(paraTypesToInclude.indexOf('non-task'), 1)
   }
-  logDebug('getParaTypesFromString', `'${paraTypesAsStr ?? '(null)'}' -> para types [${paraTypesToInclude.toString()}]`)
+  logDebug('getParaTypesFromString', `${paraTypesAsStr ?? '(empty)'} -> para types [${paraTypesToInclude.toString()}]`)
   return paraTypesToInclude
 }
 
@@ -499,7 +501,6 @@ export function applySearchOperatorsToOptions(searchOperators: Array<string>, se
     // Handle 'is:' operator -> paraTypesToInclude
     const paraTypeOperator = searchOperators.find(op => op.startsWith('is:')) ?? ''
     if (paraTypeOperator.length > 0) {
-      // $FlowFixMe[incompatible-type]
       searchOptions.paraTypesToInclude = paraTypeOperator.replace('is:', '').split(',')
       logDebug('applySearchOperatorsToOptions', `- paraTypesToInclude: ${String(searchOptions.paraTypesToInclude)}`)
     }
@@ -651,7 +652,6 @@ export async function makeAnySyncs(input: TSearchResultSet): Promise<TSearchResu
   }
   catch (err) {
     logError('makeAnySyncs', err.message)
-    // $FlowFixMe[incompatible-return]
-    return null
+    return input // for completeness
   }
 }

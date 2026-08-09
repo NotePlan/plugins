@@ -3,8 +3,12 @@
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
 ## [3.0.0.b20] - 2026-08-09
+### Fixed
+- Case-sensitive filter: strip surrounding double-quotes from highlight terms (quoted full-word terms)
+
 ### Dev / maintainability
-- Living contract: unit test that `plugin.json` command `arguments` match `searchCommandRegistry`; README x-callback section points at the registry
+- dev: Living contract: unit test that `plugin.json` command `arguments` match `searchCommandRegistry`; README x-callback section points at the registry
+- Flow fixes and removing flow suppressions 
 
 ## [3.0.0.b19] - 2026-08-09
 ### Changed

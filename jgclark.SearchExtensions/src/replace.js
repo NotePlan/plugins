@@ -3,13 +3,14 @@
 //-----------------------------------------------------------------------------
 // Commands to search and replace over NP notes.
 // Jonathan Clark
-// Last updated 2026-08-09 for v3.0.0, @jgclark
+// Last updated 2026-08-09 for v3.0.0, @jgclark/@CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import type { noteAndLine, TSearchResultSet, TSearchOptions } from './searchHelpers'
 import {
   applyOperatorsFromSearchString,
+  getParaTypesFromString,
   getSearchSettings,
   logBasicResultLines,
   mergeSearchOptionsWithConfig,
@@ -40,14 +41,10 @@ import {
 function buildReplaceRegex(searchTerm: string, caseSensitive: boolean = false): RegExp {
   // First need to escape any special characters in the search term
   // Leave * and ? alone now
-  // $FlowFixMe[incompatible-type]
   const escapedSearchTerm: string = searchTerm.replace(/[\-\]\[{}()+.,\\^$|#]/g, '\\$&')
   // Now turn into a regex which also:
   // match all instances of the search term in the line (g flag)
   // Include 'i' flag if not case-sensitive
-  // $FlowFixMe[incompatible-type]
-  // $FlowFixMe[invalid-constructor]
-  // $FlowFixMe[invalid-compare]
   const re = caseSensitive
     ? new RegExp(escapedSearchTerm, "g")
     : new RegExp(escapedSearchTerm, "gi")
@@ -74,15 +71,15 @@ function doReplaceForAResult(nal: noteAndLine, replaceRegex: RegExp, replacement
       : nal.line
 
     // Resolve paragraph by lineIndex first; if stale, search by content (not raw display line)
-    // $FlowFixMe[incompatible-type]
-    let thisPara = thisNote.paragraphs[nal.index] ?? null
+    let thisPara: ?TParagraph = thisNote.paragraphs[nal.index] ?? null
     if (!thisPara || thisPara.content !== contentForMatch) {
-      thisPara = findParaFromStringAndFilename(nal.noteFilename, contentForMatch)
-      if (!thisPara) {
+      const foundPara: TParagraph | false = findParaFromStringAndFilename(nal.noteFilename, contentForMatch)
+      if (foundPara === false) {
         // Titles are stored as **title** in line display; try content match via findPara on raw title
         logWarn('replace', `Couldn't find paragraph matching original content '${contentForMatch}' in note '${nal.noteFilename}'. Will try to continue, but it may not be correct.`)
         return
       }
+      thisPara = foundPara
     }
     // now we have a matching paragraph, so replace
     // Note: we can't use the replace() method, as it just takes a string: so let's use a RegExp instead
@@ -121,9 +118,8 @@ export async function replace(
     const noteTypesToInclude: Array<string> = (noteTypesToIncludeArg === 'both' || noteTypesToIncludeArg === '') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
     logDebug('replace', `arg2 -> note types '${noteTypesToInclude.toString()}'`)
 
-    // Get the paraTypes to include
-    // $FlowFixMe[incompatible-type]
-    const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg && paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : []
+    // Get the paraTypes to include (maps non-task etc.)
+    const paraTypesToInclude: Array<ParagraphType> = getParaTypesFromString(paraTypeFilterArg || '')
     logDebug('replace', `arg3 -> para types '${paraTypesToInclude.toString()}'`)
 
     // Get the search term, either from arg0 supplied, or by asking user
@@ -153,7 +149,6 @@ export async function replace(
     const searchOptions: TSearchOptions = {
       noteTypesToInclude: noteTypesToInclude,
       foldersToInclude: [],
-      // $FlowFixMe[incompatible-type]
       paraTypesToInclude: paraTypesToInclude,
     }
     mergeSearchOptionsWithConfig(searchOptions, config)
@@ -167,7 +162,7 @@ export async function replace(
     CommandBar.showLoading(true, `${commandNameToDisplay} for [${searchStr}] ...`)
     await CommandBar.onAsyncThread()
 
-    // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
+    // Note: deliberately no await - start search, then collect replace text while it runs; resolved below
     const resultsProm: Promise<TSearchResultSet> = runNativeSearch(searchStr, config, searchOptions)
 
     await CommandBar.onMainThread()
@@ -197,12 +192,8 @@ export async function replace(
     //---------------------------------------------------------
     // End of search Call started above: resolve the promise
     logDebug('replace', `before promise resolves`)
-    const searchResults: ?TSearchResultSet = await resultsProm
+    const searchResults: TSearchResultSet = await resultsProm
     CommandBar.showLoading(false)
-
-    if (!searchResults) {
-      throw new Error(`Couldn't get results found for search [${searchStr}]. Please check the Plugin Console for details.`)
-    }
 
     //---------------------------------------------------------
     // Tell user results of search and double check they want to proceed

@@ -298,7 +298,7 @@ export async function saveSearch(
     CommandBar.showLoading(true, `${commandNameToDisplay} for [${searchTermsRepStr}] ...`)
     await CommandBar.onAsyncThread()
 
-    // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
+    // Note: deliberately no await: this is resolved below, after we have worked out where to save the results
     const resultsProm: Promise<TSearchResultSet> = runNativeSearch(termsToMatchStr, config, searchOptions)
 
     await CommandBar.onMainThread()
