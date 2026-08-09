@@ -208,6 +208,13 @@ export async function getSearchSettings(): Promise<any> {
     if (config == null || Object.keys(config).length === 0) {
       throw new Error(`Cannot find settings for '${pluginID}' plugin`)
     }
+    // Normalise legacy / mismatched default strings so existing installs recover
+    if (config.resultStyle === 'NotePlan-style' || config.resultStyle === 'NotePlan style') {
+      config.resultStyle = 'NotePlan'
+    }
+    if (config.sortOrder === 'updated (most recent first)') {
+      config.sortOrder = 'updated (most recent note first)'
+    }
     // Set syncOpenResultItems which is a special case. There's no separate setting for it (in SE), as is it is implied by resultStyle === 'NotePlan'
     // But it can be overridden by calls from other plugins.
     config.syncOpenResultItems = config.resultStyle === 'NotePlan'

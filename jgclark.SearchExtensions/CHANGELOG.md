@@ -2,6 +2,12 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b4] - 2026-08-09
+### Fixed
+- resultStyle default is now `NotePlan` (was mismatched `NotePlan-style`) so sync-open-tasks works on fresh installs
+- sortOrder default matches SORT_MAP label `updated (most recent note first)`
+- getSearchSettings normalises legacy values for existing installs
+
 ## [3.0.0.b3] - 2026-08-09
 ### Fixed
 - Re-run / onOpen refresh: match both "Re-run search" and older "Refresh" labels

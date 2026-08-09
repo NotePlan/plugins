@@ -8,9 +8,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "3.0.0.b3",
-  "plugin.releaseStatus": "beta3",
-  "plugin.lastUpdateInfo": "3.0.0.b3: Fix re-run / onOpen refresh callbacks (command names, arg order, Re-run label detection).\nNote: this is a beta release, so please report any issues you find.",
+  "plugin.version": "3.0.0.b4",
+  "plugin.releaseStatus": "beta4",
+  "plugin.lastUpdateInfo": "3.0.0.b4: Align resultStyle and sortOrder defaults with code choices; normalise legacy setting values.\nNote: this is a beta release, so please report any issues you find.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -302,7 +302,7 @@
         "NotePlan",
         "Simplified"
       ],
-      "default": "NotePlan-style",
+      "default": "NotePlan",
       "required": true
     },
     {
@@ -336,7 +336,7 @@
         "updated (most recent note first)",
         "updated (least recent note first)"
       ],
-      "default": "updated (most recent first)",
+      "default": "updated (most recent note first)",
       "required": true
     },
     {
