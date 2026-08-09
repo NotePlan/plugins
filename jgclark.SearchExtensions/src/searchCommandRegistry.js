@@ -6,6 +6,9 @@
 // Jonathan Clark
 // Last updated 2026-08-09 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
+// Dev note: plugin.commands[].arguments and README x-callback table should match
+// SEARCH_COMMAND_DEFS.argHelp / argLayout. Enforced by searchHelpers tests.
+// When adding a command: registry row + plugin.json + wrapper + triggers + README.
 
 export type TRefreshArgParts = {
   terms: string,

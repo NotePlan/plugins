@@ -197,6 +197,7 @@ Notes:
 
 - Argument **order** matters; encode every value (including the command name). Spaces → `%20`.
 - Use the **command name** below (not internal JS names like `searchOverAll` / `searchPeriod`).
+- The living contract for command names and arg order is `src/searchCommandRegistry.js` (kept in sync with `plugin.json` via unit test). Update both + this table when adding a search command.
 - **Note types:** `notes`, `calendar`, or `both` (where accepted).
 - **Paragraph types** (comma-separated, or empty for no filter):  
   `open`, `done`, `scheduled`, `cancelled`, `checklist`, `checklistDone`, `checklistScheduled`, `checklistCancelled`, `title`, `quote`, `list`, `text`, …  

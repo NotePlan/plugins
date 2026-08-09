@@ -2,6 +2,10 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b20] - 2026-08-09
+### Dev / maintainability
+- Living contract: unit test that `plugin.json` command `arguments` match `searchCommandRegistry`; README x-callback section points at the registry
+
 ## [3.0.0.b19] - 2026-08-09
 ### Changed
 - `noteAndLine` now carries optional `content` (paragraph.content) for replace identity; replace matches that instead of the display/raw line

@@ -13,7 +13,8 @@ import {
   numberOfUniqueFilenames,
   prependDateOperatorsIfNeeded,
 } from '../src/searchHelpers'
-import { getCommandArgHelp } from '../src/searchCommandRegistry'
+import { getCommandArgHelp, SEARCH_COMMAND_DEFS } from '../src/searchCommandRegistry'
+import pluginJson from '../plugin.json'
 import { sortListBy } from '@helpers/sorting'
 import { differenceByPropVal, differenceByObjectEquality } from '@helpers/dataManipulation'
 import { JSP, clo } from '@helpers/dev'
@@ -212,6 +213,15 @@ describe('searchHelpers.js tests', () => {
       expect(help.length).toEqual(6)
       expect(help[1]).toMatch(/paragraph types/)
       expect(help[2]).toMatch(/note types/)
+    })
+
+    test('plugin.json command arguments match searchCommandRegistry argHelp', () => {
+      const commands = pluginJson['plugin.commands'] || []
+      for (const def of SEARCH_COMMAND_DEFS) {
+        const cmd = commands.find((c) => c.name === def.commandName)
+        expect(cmd).toBeDefined()
+        expect(cmd.arguments || []).toEqual(def.argHelp)
+      }
     })
 
     test('normaliseDestination maps newnote alias to searchSpecificNote', () => {
