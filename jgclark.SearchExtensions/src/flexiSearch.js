@@ -108,7 +108,7 @@ ${await infoTooltipToUse()}
         <label for="taskOpen"><i class="fa-regular fa-circle"></i><b>Tasks</b> Open</label>
       </ul>
       <ul class="grid-item">
-        <input type="checkbox" id="taskScheduled" name="task" value="taskScheduled" />
+        <input type="checkbox" id="taskScheduled" name="task" value="scheduled" />
         <label for="taskScheduled"><i class="fa-regular fa-clock"></i>Scheduled</label>
       </ul>
       <ul class="grid-item">
@@ -116,7 +116,7 @@ ${await infoTooltipToUse()}
         <label for="taskDone"><i class="fa-regular fa-circle-check"></i>Complete</label>
       </ul>
       <ul class="grid-item">
-        <input type="checkbox" id="taskCancelled" name="task" value="taskCancelled" />
+        <input type="checkbox" id="taskCancelled" name="task" value="cancelled" />
         <label for="taskCancelled"><i class="fa-regular fa-circle-xmark"></i>Cancelled</label>
       </ul>
     </div>
@@ -124,7 +124,7 @@ ${await infoTooltipToUse()}
     <div class="dialogList">
       <ul class="grid-item">
         <input type="checkbox" id="checklistOpen" name="checklist"
-        value="checklistOpen" checked />
+        value="checklist" checked />
         <label for="checklistOpen"><i class="fa-regular fa-square"></i><b>Checklists</b> Open</label>
       </ul>
       <ul class="grid-item">
@@ -423,7 +423,13 @@ export async function showFlexiSearchDialog(
     const noteTypesStrPref = DataStore.preference(`${pluginID}.noteTypesStr`)
     const noteTypesStr = (noteTypesStrPref != null) ? String(noteTypesStrPref) : 'notes,calendar,'
     const paraTypesStrPref = DataStore.preference(`${pluginID}.paraTypesStr`)
-    const paraTypesStr = (paraTypesStrPref != null) ? String(paraTypesStrPref) : 'open,done,checklistOpen,checklistDone,other,'
+    // Migrate legacy flexiSearch values that did not match NotePlan ParagraphType strings
+    let paraTypesStr = (paraTypesStrPref != null) ? String(paraTypesStrPref) : 'open,done,checklist,checklistDone,non-task,'
+    paraTypesStr = paraTypesStr
+      .replace(/\btaskScheduled\b/g, 'scheduled')
+      .replace(/\btaskCancelled\b/g, 'cancelled')
+      .replace(/\bchecklistOpen\b/g, 'checklist')
+      .replace(/\bother\b/g, 'non-task')
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
       // $FlowIgnore[incompatible-call] not pretty, but works
