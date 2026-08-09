@@ -7,14 +7,14 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import type { noteAndLine, resultOutputV3Type, TSearchOptions } from './searchHelpers'
+import type { noteAndLine, TSearchResultSet, TSearchOptions } from './searchHelpers'
 import {
   applyOperatorsFromSearchString,
   getSearchSettings,
   logBasicResultLines,
   mergeSearchOptionsWithConfig,
 } from './searchHelpers'
-import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
+import { runNativeSearch } from './nativeSearch'
 import { logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { getNoteFromFilename } from '@helpers/NPnote'
@@ -163,7 +163,7 @@ export async function replace(
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const resultsProm: Promise<resultOutputV3Type> = runNPExtendedSyntaxSearches(searchStr, config, searchOptions)
+    const resultsProm: Promise<TSearchResultSet> = runNativeSearch(searchStr, config, searchOptions)
 
     await CommandBar.onMainThread()
 
@@ -192,7 +192,7 @@ export async function replace(
     //---------------------------------------------------------
     // End of search Call started above: resolve the promise
     logDebug('replace', `before promise resolves`)
-    const searchResults: ?resultOutputV3Type = await resultsProm
+    const searchResults: ?TSearchResultSet = await resultsProm
     CommandBar.showLoading(false)
 
     if (!searchResults) {
@@ -234,7 +234,7 @@ export async function replace(
 
     // Confirmatory check, if DEBUG logging is enabled: run search again and see if it is zero
     if (config._logLevel === 'DEBUG') {
-      const checkResults: resultOutputV3Type = await runNPExtendedSyntaxSearches(searchStr, config, searchOptions)
+      const checkResults: TSearchResultSet = await runNativeSearch(searchStr, config, searchOptions)
       if (checkResults.resultCount > 0) {
         logWarn('replace', `I've double-checked the replace, and found that there are ${checkResults.resultCount} unchanged copies of '${searchStr}'`)
       } else {

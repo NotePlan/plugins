@@ -32,7 +32,7 @@ export type noteAndLine = {
   index: number, // index number of the paragraph, to do any necessary further lookups
 }
 
-export type resultOutputV3Type = {
+export type TSearchResultSet = {
   searchTermsStr: string;
   searchOperatorsStr: string;
   searchTermsToHighlight: Array<string>;
@@ -246,10 +246,10 @@ export function numberOfUniqueFilenames(inArray: Array<noteAndLine>): number {
 /**
  * Create a string to display result counts for saved search notes
  * @author @jgclark
- * @param {resultOutputV3Type} resultSet
+ * @param {TSearchResultSet} resultSet
  * @returns {string}
  */
-export function resultCounts(resultSet: resultOutputV3Type): string {
+export function resultCounts(resultSet: TSearchResultSet): string {
   if (resultSet.resultCount === 0) {
     return `_No results_`
   }
@@ -261,10 +261,10 @@ export function resultCounts(resultSet: resultOutputV3Type): string {
 /**
  * Form the heading line for the search results note, using the representation of the search string in square brackets.
  * @author @jgclark
- * @param {resultOutputV3Type} resultSet
+ * @param {TSearchResultSet} resultSet
  * @returns {string}
  */
-export function formSearchResultsHeadingLine(resultSet: resultOutputV3Type): string {
+export function formSearchResultsHeadingLine(resultSet: TSearchResultSet): string {
   // const headingMarker = '#'.repeat(config.headingLevel)
   const searchTermsRepStr = resultSet.searchTermsStr ?? '?'
   return `[${searchTermsRepStr}]`
@@ -273,11 +273,11 @@ export function formSearchResultsHeadingLine(resultSet: resultOutputV3Type): str
 /**
  * Form the metadata line for the search results note.
  * @author @jgclark
- * @param {resultOutputV3Type} resultSet
+ * @param {TSearchResultSet} resultSet
  * @param {string} xCallbackURL
  * @returns {string}
  */
-export function formSearchResultsMetadataLine(resultSet: resultOutputV3Type, xCallbackURL: string): string {
+export function formSearchResultsMetadataLine(resultSet: TSearchResultSet, xCallbackURL: string): string {
   const resultCountsStr = resultCounts(resultSet)
   const searchOperatorsRepStr = resultSet.searchOperatorsStr ? `, with operators [${resultSet.searchOperatorsStr}]` : ''
   const xCallbackText = (xCallbackURL !== '') ? `[🔄 Re-run search](${xCallbackURL})` : ''
@@ -292,7 +292,7 @@ export function formSearchResultsMetadataLine(resultSet: resultOutputV3Type, xCa
  * @author @jgclark
  *
  * @param {SearchConfig} config
- * @param {resultOutputV3Type} resultSet object
+ * @param {TSearchResultSet} resultSet object
  * @param {string} requestedTitle requested note title to use/make
  * @param {string?} xCallbackURL URL to cause a 'refresh' of this command
  * @param {boolean?} justReplaceThisSection if set, will just replace this justReplaceThisSection's section, not replace the whole note (default: false)
@@ -301,7 +301,7 @@ export function formSearchResultsMetadataLine(resultSet: resultOutputV3Type, xCa
  */
 export async function writeSearchResultsToNote(
   config: SearchConfig,
-  resultSet: resultOutputV3Type,
+  resultSet: TSearchResultSet,
   requestedTitle: string,
   xCallbackURL: string = '',
   justReplaceThisSection: boolean = false,
@@ -399,11 +399,11 @@ export function insertOrReplaceMetadataLine(outputNote: TNote, config: SearchCon
 /**
  * Create nicely-formatted Markdown lines to display 'resultSet', using settings from 'config'
  * @author @jgclark
- * @param {resultOutputV3Type} resultSet
+ * @param {TSearchResultSet} resultSet
  * @param {SearchConfig} config
  * @returns {Array<string>} formatted search results
  */
-export function createFormattedResultLines(resultSet: resultOutputV3Type, config: SearchConfig): Array<string> {
+export function createFormattedResultLines(resultSet: TSearchResultSet, config: SearchConfig): Array<string> {
   try {
     const resultOutputLines: Array<string> = []
     const headingMarker = '#'.repeat(config.headingLevel + 1)
@@ -447,10 +447,10 @@ export function createFormattedResultLines(resultSet: resultOutputV3Type, config
 /**
  * Write to the log a basic display of 'resultSet', using settings from 'config'
  * @author @jgclark
- * @param {resultOutputV3Type} resultSet
+ * @param {TSearchResultSet} resultSet
  * @param {SearchConfig} config
  */
-export function logBasicResultLines(resultSet: resultOutputV3Type, config: SearchConfig): void {
+export function logBasicResultLines(resultSet: TSearchResultSet, config: SearchConfig): void {
   try {
     const resultOutputLines: Array<string> = []
     const simplifyLine = true
@@ -594,10 +594,10 @@ export function applyOperatorsFromSearchString(termsToMatchStr: string, searchOp
 /**
  * Go through results, and if there are open task lines, then sync lines by adding a blockID (having checked there isn't one already).
  * @author @jgclark
- * @param {resultOutputV3Type} input
- * @returns {resultOutputV3Type}
+ * @param {TSearchResultSet} input
+ * @returns {TSearchResultSet}
  */
-export async function makeAnySyncs(input: resultOutputV3Type): Promise<resultOutputV3Type> {
+export async function makeAnySyncs(input: TSearchResultSet): Promise<TSearchResultSet> {
   try {
     // Go through each line looking for open tasks
     const linesToSync = []

@@ -2,6 +2,11 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b18] - 2026-08-09
+### Dev / maintainability
+- Rename `NPExtendedSyntaxHelpers` → `nativeSearch`, `runNativeSearch`, `getHighlightTermsFromNativeSearch`
+- Rename `resultOutputV3Type` → `TSearchResultSet` (deprecated type alias retained); Dashboard imports updated
+
 ## [3.0.0.b17] - 2026-08-09
 ### Dev / maintainability
 - Decompose `runNPExtendedSyntaxSearches` into prepare / map / filter / dedupe-limit-sort / to-noteAndLine stages with unit tests

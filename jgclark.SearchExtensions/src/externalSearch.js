@@ -6,9 +6,9 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import type { resultOutputV3Type, TSearchOptions } from './searchHelpers'
+import type { TSearchResultSet, TSearchOptions } from './searchHelpers'
 import { getSearchSettings, mergeSearchOptionsWithConfig } from './searchHelpers'
-import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
+import { runNativeSearch } from './nativeSearch'
 import { clo, logDebug, logError } from '@helpers/dev'
 
 /**
@@ -18,12 +18,12 @@ import { clo, logDebug, logError } from '@helpers/dev'
  *
  * @param {string} searchString as a string with items separated by spaces, to suit taking from a search box.
  * @param {TSearchOptions} searchOptions object for various settings
- * @returns {Promise<?resultOutputV3Type>}
+ * @returns {Promise<?TSearchResultSet>}
  */
 export async function extendedSearch(
   searchString: string,
   searchOptions: TSearchOptions,
-): Promise<?resultOutputV3Type> {
+): Promise<?TSearchResultSet> {
   try {
     // get relevant settings
     const config = await getSearchSettings()
@@ -46,7 +46,7 @@ export async function extendedSearch(
     // Call main native advanced search
     await CommandBar.onAsyncThread()
 
-    const results: resultOutputV3Type = await runNPExtendedSyntaxSearches(searchString, config, searchOptions)
+    const results: TSearchResultSet = await runNativeSearch(searchString, config, searchOptions)
 
     await CommandBar.onMainThread()
 

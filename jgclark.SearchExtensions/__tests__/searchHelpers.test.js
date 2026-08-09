@@ -2,7 +2,7 @@
 // @flow
 import {
   type noteAndLine,
-  type resultOutputV3Type,
+  type TSearchResultSet,
   type SearchConfig,
   type TSearchOptions,
   buildRefreshCallbackArgs,
@@ -168,7 +168,7 @@ describe('searchHelpers.js tests', () => {
   // Just a no-result test -- rest too hard to mock up
   describe('createFormattedResultLines', () => {
     test('for empty result', () => {
-      const resultSet: resultOutputV3Type = {
+      const resultSet: TSearchResultSet = {
         searchTermsStr: 'TERM1 -TERM2',
         searchOperatorsStr: '',
         searchTermsToHighlight: ['TERM1', '-TERM2'],

@@ -9,7 +9,7 @@
 
 import pluginJson from '../plugin.json'
 import { getDateRangeFromUser } from './dateRanges'
-import type { resultOutputV3Type, SearchConfig, TSearchOptions } from './searchHelpers'
+import type { TSearchResultSet, SearchConfig, TSearchOptions } from './searchHelpers'
 import {
   applyOperatorsFromSearchString,
   buildRefreshCallbackArgs,
@@ -29,7 +29,7 @@ import {
   prependDateOperatorsIfNeeded,
   writeSearchResultsToNote,
 } from './searchHelpers'
-import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
+import { runNativeSearch } from './nativeSearch'
 import { stringToTailwindColorName } from '@helpers/colors'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { ensureFrontmatter } from '@helpers/NPFrontMatter'
@@ -299,7 +299,7 @@ export async function saveSearch(
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const resultsProm: Promise<resultOutputV3Type> = runNPExtendedSyntaxSearches(termsToMatchStr, config, searchOptions)
+    const resultsProm: Promise<TSearchResultSet> = runNativeSearch(termsToMatchStr, config, searchOptions)
 
     await CommandBar.onMainThread()
 
@@ -336,7 +336,7 @@ export async function saveSearch(
     //---------------------------------------------------------
     // End of main work started above: resolve the promise
     logDebug('saveSearch', `before promise resolves`)
-    const resultSetToUse: ?resultOutputV3Type = await resultsProm
+    const resultSetToUse: ?TSearchResultSet = await resultsProm
     CommandBar.showLoading(false)
 
     if (resultSetToUse) {
@@ -397,7 +397,7 @@ export async function saveSearch(
 }
 
 async function writeToSearchSpecificNote(
-  config: SearchConfig, resultSetToUse: resultOutputV3Type, periodAndPartStr: string, xCallbackURL: string
+  config: SearchConfig, resultSetToUse: TSearchResultSet, periodAndPartStr: string, xCallbackURL: string
 ): Promise<void> {
   // We will write an overarching title, as we need an identifying title for the note.
   // As this is likely to be a note just used for this set of search terms, just delete the whole note contents and re-write each search term's block.
@@ -425,7 +425,7 @@ async function writeToSearchSpecificNote(
 }
 
 async function writeToQuickSearchNote(
-  config: SearchConfig, resultSetToUse: resultOutputV3Type, xCallbackURL: string
+  config: SearchConfig, resultSetToUse: TSearchResultSet, xCallbackURL: string
 ): Promise<void> {
   // Write to the same 'Quick Search Results' note (or whatever the user's setting is)
   // Delete the note's contents and re-write each time.
@@ -444,7 +444,7 @@ async function writeToQuickSearchNote(
 }
 
 function writeToLog(
-  config: SearchConfig, resultSetToUse: resultOutputV3Type, searchTermsRepStr: string
+  config: SearchConfig, resultSetToUse: TSearchResultSet, searchTermsRepStr: string
 ): void {
   const headingMarker = '#'.repeat(config.headingLevel)
   const resultOutputLines: Array<string> = createFormattedResultLines(resultSetToUse, config)
@@ -458,11 +458,11 @@ function writeToLog(
  * @author @jgclark
  *
  * @param {SearchConfig} config
- * @param {resultOutputV3Type} resultSet object
+ * @param {TSearchResultSet} resultSet object
  * @param {string} xCallbackURL URL to cause a 'refresh' of this command
  */
 function writeSearchResultsToCurrentNote(
-  config: SearchConfig, resultSetToUse: resultOutputV3Type, xCallbackURL: string
+  config: SearchConfig, resultSetToUse: TSearchResultSet, xCallbackURL: string
 ): void {
   try {
     if (resultSetToUse.resultCount === 0) {

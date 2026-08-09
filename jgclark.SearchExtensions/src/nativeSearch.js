@@ -7,7 +7,7 @@
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
-import type { noteAndLine, resultOutputV3Type, reducedFieldSet, SearchConfig, TSearchOptions } from './searchHelpers'
+import type { noteAndLine, TSearchResultSet, reducedFieldSet, SearchConfig, TSearchOptions } from './searchHelpers'
 import { makeAnySyncs, numberOfUniqueFilenames, SORT_MAP } from './searchHelpers'
 import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
@@ -23,7 +23,7 @@ import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 // Use the whole searchString in one go (NP boolean/group syntax).
 // Leading operators: date:, path:, source:, is:, heading:, sort:, show|/hide:
 // Full-word: quote terms. Case-sensitive: post-filter after the API search.
-// Pipeline stages below keep runNPExtendedSyntaxSearches as orchestration only.
+// Pipeline stages below keep runNativeSearch as orchestration only.
 //
 
 //------------------------------------------------------------------------------
@@ -47,7 +47,7 @@ export function prepareNativeSearchString(searchStringIn: string, fullWordSearch
   let searchString = searchStringIn
   const searchOperators = getSearchOperators(searchString)
   const searchTerms = searchString.split(' ').filter((f) => !searchOperators.includes(f))
-  const searchTermsToHighlight = getNonNegativeSearchTermsFromNPExtendedSyntax(searchString)
+  const searchTermsToHighlight = getHighlightTermsFromNativeSearch(searchString)
 
   if (fullWordSearching) {
     searchString = (searchOperators.join(' ') + ' ' + quoteTermsInSearchString(searchTerms.join(' '))).trim()
@@ -215,17 +215,17 @@ export function reducedFieldSetsToNoteAndLines(resultReducedParas: Array<reduced
  * @param {string} searchStringIn
  * @param {SearchConfig} config object for various settings
  * @param {TSearchOptions} searchOptions object for various settings
- * @returns {resultOutputV3Type} results optimised for output
+ * @returns {TSearchResultSet} results optimised for output
  */
-export async function runNPExtendedSyntaxSearches(
+export async function runNativeSearch(
   searchStringIn: string,
   config: SearchConfig,
   searchOptions: TSearchOptions,
-): Promise<resultOutputV3Type> {
+): Promise<TSearchResultSet> {
   try {
-    // clo(searchOptions, 'runNPExtendedSyntaxSearches starting with searchOptions:')
+    // clo(searchOptions, 'runNativeSearch starting with searchOptions:')
     const noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
-    logDebug('runNPExtendedSyntaxSearches', `noteTypesToInclude: ${String(noteTypesToInclude)}`)
+    logDebug('runNativeSearch', `noteTypesToInclude: ${String(noteTypesToInclude)}`)
     const foldersToInclude = searchOptions.foldersToInclude || []
     const foldersToExclude = searchOptions.foldersToExclude || []
     const paraTypesToInclude = searchOptions.paraTypesToInclude || []
@@ -237,13 +237,13 @@ export async function runNPExtendedSyntaxSearches(
     const prepared = prepareNativeSearchString(searchStringIn, fullWordSearching)
     const { searchString, searchOperators, searchTerms, searchTermsToHighlight } = prepared
 
-    logDebug('runNPExtendedSyntaxSearches', `Starting for [${searchString}] / operators [${searchOperators.join(' ')}] and caseSensitive ${String(caseSensitive)} with locale ${userLocale}`)
-    logDebug('runNPExtendedSyntaxSearches', `searchTermsToHighlight: '${String(searchTermsToHighlight)}'`)
+    logDebug('runNativeSearch', `Starting for [${searchString}] / operators [${searchOperators.join(' ')}] and caseSensitive ${String(caseSensitive)} with locale ${userLocale}`)
+    logDebug('runNativeSearch', `searchTermsToHighlight: '${String(searchTermsToHighlight)}'`)
 
     //-------------------------------------------------------
     // Search API
     const response = await DataStore.search(searchString, noteTypesToInclude, foldersToInclude, foldersToExclude, false)
-    logInfo('runNPExtendedSyntaxSearches', `🔶 API response ${String(response.length)} results for [${searchString}] with params noteTypesToInclude: [${String(noteTypesToInclude)}], foldersToInclude: [${String(foldersToInclude)}], foldersToExclude: [${String(foldersToExclude)}]`)
+    logInfo('runNativeSearch', `🔶 API response ${String(response.length)} results for [${searchString}] with params noteTypesToInclude: [${String(noteTypesToInclude)}], foldersToInclude: [${String(foldersToInclude)}], foldersToExclude: [${String(foldersToExclude)}]`)
     const initialResult: Array<TParagraph> = response.slice() // to convert from $ReadOnlyArray to $Array
     //-------------------------------------------------------
 
@@ -251,7 +251,7 @@ export async function runNPExtendedSyntaxSearches(
     let preLimitResultCount = 0
 
     if (initialResult.length > 0) {
-      logDebug('runNPExtendedSyntaxSearches', `- Found ${initialResult.length} results for [${searchString}]`)
+      logDebug('runNativeSearch', `- Found ${initialResult.length} results for [${searchString}]`)
 
       let resultReducedParas = mapParagraphsToReducedFieldSets(initialResult)
       resultReducedParas = filterReducedSearchResults(resultReducedParas, {
@@ -276,9 +276,9 @@ export async function runNPExtendedSyntaxSearches(
     }
 
     const resultCount = noteAndLineArr.length
-    logDebug('runNPExtendedSyntaxSearches', `- end of runNPExtendedSyntaxSearches for [${searchString}]: ${resultCount} results from ${numberOfUniqueFilenames(noteAndLineArr)} notes`)
+    logDebug('runNativeSearch', `- end of runNativeSearch for [${searchString}]: ${resultCount} results from ${numberOfUniqueFilenames(noteAndLineArr)} notes`)
 
-    const returnObject: resultOutputV3Type = {
+    const returnObject: TSearchResultSet = {
       searchTermsStr: searchTerms.join(' '),
       searchOperatorsStr: searchOperators.join(' '),
       searchTermsToHighlight: searchTermsToHighlight,
@@ -295,7 +295,7 @@ export async function runNPExtendedSyntaxSearches(
     return returnObject
   }
   catch (err) {
-    logError('runNPExtendedSyntaxSearches', err.message)
+    logError('runNativeSearch', err.message)
     // const emptyResultObject = { searchTerm: '', resultsLines: [], resultCount: 0 }
     // $FlowFixMe[incompatible-return]
     return null // for completeness
@@ -312,8 +312,8 @@ export async function runNPExtendedSyntaxSearches(
  * @param {string} searchString string containing search terms and possibly operators
  * @returns {Array<string>} array of subset search terms that could be highlighted
  */
-export function getNonNegativeSearchTermsFromNPExtendedSyntax(searchString: string): Array<string> {
-  logDebug('getNonNegativeSearchTermsFromNPExtendedSyntax', `starting for [${searchString}]`)
+export function getHighlightTermsFromNativeSearch(searchString: string): Array<string> {
+  logDebug('getHighlightTermsFromNativeSearch', `starting for [${searchString}]`)
   let searchTermsStr = removeSearchOperators(searchString)
 
   // Remove all "-(A OR B ...)" patterns and collect the terms inside
