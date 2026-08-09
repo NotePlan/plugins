@@ -220,14 +220,12 @@ export async function searchPeriod(
  * Run a search over all notes, saving the results in one of several locations.
  * Works interactively (if no arguments given) or in the background (using supplied arguments).
  * Called by interactive 'save search' commands, by /searchInPeriod command, or by x-callback.
- * Note: operates differently depending whether we're on NP v3.18.1+ or not:
- * - with earlier versions then more of the Plugin's extended syntax is available
- * - with 3.18.1+ then quite a lot of the Plugin's extended syntax and processing is unavailable, as NP now handles much of it more efficiently.
+ * Uses NotePlan advanced (native) search only (requires NP 3.18.1+).
  * @author @jgclark
  *
  * @param {TSearchOptions} searchOptions an object holding a number of settings
- * @param {string?} searchTermsArg optional comma-separated list of search terms to search
- * @param {string?} destinationArg optional output desination indicator: 'current', 'searchSpecificNote', 'log'. (Default: 'searchSpecificNote' where relevant.)
+ * @param {string?} searchTermsArg optional search terms (native advanced syntax)
+ * @param {string?} destinationArg optional output destination: 'current', 'searchSpecificNote'/'newnote', 'quick', 'log'. (Default: 'searchSpecificNote' where relevant.)
 */
 export async function saveSearch(
   searchOptions: TSearchOptions,

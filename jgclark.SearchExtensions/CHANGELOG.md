@@ -2,6 +2,11 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b14] - 2026-08-09
+### Dev / maintainability
+- Remove dead helpers (`reduceNoteAndLineArray`, unused date-range mapper, duplicate `resultCounts`)
+- Trim dual-engine / v2 commentary now that only native search remains
+
 ## [3.0.0.b13] - 2026-08-09
 ### Changed
 - Plugin now **requires NotePlan v3.18.1+** (`noteplan.minAppVersion` raised from 3.6.0)

@@ -1,9 +1,9 @@
 /* eslint-disable prefer-template */
 // @flow
 //-----------------------------------------------------------------------------
-// Search Extensions helpers, for both older and newer methods of running searches.
+// Search Extensions helpers: settings, result formatting, destinations, sync.
 // Jonathan Clark
-// Last updated 2025-12-26 for v3.0.0, @jgclark
+// Last updated 2026-08-09 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -297,39 +297,12 @@ export function numberOfUniqueFilenames(inArray: Array<noteAndLine>): number {
 }
 
 /**
- * Take possibly duplicative array, and reduce to unique items, retaining order.
- * There's an almost-same solution at https://stackoverflow.com/questions/53452875/find-if-two-arrays-are-repeated-in-array-and-then-select-them/53453045#53453045
- * but I can't make it work, so I'm going to hack it by joining the two object parts together,
- * then deduping, and then splitting out again
- * @author @jgclark
- * @param {Array<noteAndLine>} inArray
- * @returns {Array<noteAndLine>} outArray
- * @tests in jest file
- */
-export function reduceNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteAndLine> {
-  const simplifiedArray = inArray.map((m) => m.noteFilename + ':::' + String(m.index) + ':::' + m.line)
-  // const sortedArray = simplifiedArray.sort()
-  const reducedArray = [... new Set(simplifiedArray)]
-  const outputArray: Array<noteAndLine> = reducedArray.map((m) => {
-    const parts = m.split(':::')
-    return { noteFilename: parts[0], index: Number(parts[1]), line: parts[2] }
-  })
-  // clo(outputArray, 'output')
-  return outputArray
-}
-
-/**
- * Create a string to display the number of results and notes: "[first N] from M results from P notes"
+ * Create a string to display result counts for saved search notes
  * @author @jgclark
  * @param {resultOutputV3Type} resultSet
  * @returns {string}
  */
 export function resultCounts(resultSet: resultOutputV3Type): string {
-  // V2:
-  // return (resultSet.resultCount < resultSet.fullResultCount)
-  //   ? `(first ${resultSet.resultCount} from ${resultSet.fullResultCount} results from ${resultSet.resultNoteCount} notes)`
-  //   : `(${resultSet.resultCount} results from ${resultSet.resultNoteCount} notes)`
-  // V3: TEST:
   if (resultSet.resultCount === 0) {
     return `_No results_`
   }
@@ -360,13 +333,6 @@ export function formSearchResultsHeadingLine(resultSet: resultOutputV3Type): str
 export function formSearchResultsMetadataLine(resultSet: resultOutputV3Type, xCallbackURL: string): string {
   const resultCountsStr = resultCounts(resultSet)
   const searchOperatorsRepStr = resultSet.searchOperatorsStr ? `, with operators [${resultSet.searchOperatorsStr}]` : ''
-
-  // V1
-  // const searchTermsRepStr = resultSet.searchTermsStr ?? '?'
-  // const xCallbackText = (xCallbackURL !== '') ? `[🔄 Refresh '${searchTermsRepStr}' search](${xCallbackURL})` : ''
-  // return `${resultCountsStr}${searchOperatorsRepStr} at ${nowLocaleShortDateTime()}\n${xCallbackText}`
-
-  // V2
   const xCallbackText = (xCallbackURL !== '') ? `[🔄 Re-run search](${xCallbackURL})` : ''
   return `${resultCountsStr}${searchOperatorsRepStr} at ${nowLocaleShortDateTime()} ${xCallbackText}`
 }
@@ -486,9 +452,9 @@ export function insertOrReplaceMetadataLine(outputNote: TNote, config: SearchCon
 /**
  * Create nicely-formatted Markdown lines to display 'resultSet', using settings from 'config'
  * @author @jgclark
- * @param {resultOutputTypeV2} resultSet
+ * @param {resultOutputV3Type} resultSet
  * @param {SearchConfig} config
- * @returns {Array<string>} formatted search reuslts
+ * @returns {Array<string>} formatted search results
  */
 export function createFormattedResultLines(resultSet: resultOutputV3Type, config: SearchConfig): Array<string> {
   try {
@@ -496,15 +462,7 @@ export function createFormattedResultLines(resultSet: resultOutputV3Type, config
     const headingMarker = '#'.repeat(config.headingLevel + 1)
     const simplifyLine = (config.resultStyle === 'Simplified')
 
-    // Get array of 'may' or 'must' search terms ready to display highlights
-    // const mayOrMustTermsRep = (resultSet.searchTermsRepArr)
-    //   ? resultSet.searchTermsRepArr.filter((f) => f[0] !== '-')
-    //   : resultSet.searchTermsStr.split(' ').filter((f) => f[0] !== '-')
-    // // Take off leading + or ! if necessary
-    // const mayOrMustTerms = mayOrMustTermsRep.map((f) => (f.match(/^[\+\!]/)) ? f.slice(1) : f)
-    // const notEmptyMayOrMustTerms = mayOrMustTerms.filter((f) => f !== '')
     const searchTermsToHighlight = resultSet.searchTermsToHighlight
-    // logDebug('createFormattedResultLines', `Starting with ${notEmptyMayOrMustTerms.length} notEmptyMayOrMustTerms (${String(notEmptyMayOrMustTerms)}) / simplifyLine? ${String(simplifyLine)} / groupResultsByNote? ${String(config.groupResultsByNote)} / config.resultQuoteLength = ${String(config.resultQuoteLength)}`)
     // Add each result line to output array
     let lastFilename: string
     let nc = 0
@@ -522,9 +480,6 @@ export function createFormattedResultLines(resultSet: resultOutputV3Type, config
         nc++
         lastFilename = thisFilename
       } else {
-        // Note: way back, suffixes were causing sync line problems. TEST: to see if this is still a problem.
-        // - do I need to remove this non-grouped option entirely?
-
         // Write the line, first transforming it to add context on the end, and make other changes according to what the user has configured
         let outputLine = trimAndHighlightTermInLine(rnal.line, searchTermsToHighlight, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength)
         outputLine += ` (${getNoteLinkForDisplay(rnal.noteFilename, config.dateStyle)})`
@@ -545,7 +500,7 @@ export function createFormattedResultLines(resultSet: resultOutputV3Type, config
 /**
  * Write to the log a basic display of 'resultSet', using settings from 'config'
  * @author @jgclark
- * @param {resultOutputTypeV2} resultSet
+ * @param {resultOutputV3Type} resultSet
  * @param {SearchConfig} config
  */
 export function logBasicResultLines(resultSet: resultOutputV3Type, config: SearchConfig): void {
@@ -553,15 +508,7 @@ export function logBasicResultLines(resultSet: resultOutputV3Type, config: Searc
     const resultOutputLines: Array<string> = []
     const simplifyLine = true
 
-    // Get array of 'may' or 'must' search terms ready to display highlights
-    // const mayOrMustTermsRep = resultSet.searchTermsRepArr
-    //   ? resultSet.searchTermsRepArr.filter((f) => f[0] !== '-')
-    //   : resultSet.searchTermsStr.split(' ').filter((f) => f[0] !== '-')
-    // // Take off leading + or ! if necessary
-    // const mayOrMustTerms = mayOrMustTermsRep.map((f) => (f.match(/^[\+\!]/)) ? f.slice(1) : f)
-    // const notEmptyMayOrMustTerms = mayOrMustTerms.filter((f) => f !== '')
     const searchTermsToHighlight = resultSet.searchTermsToHighlight
-    // logDebug(pluginJson, `${resultSet.resultCount} results [from ${notEmptyMayOrMustTerms.length} notEmptyMayOrMustTerms (${String(notEmptyMayOrMustTerms)}) / simplifyLine? ${String(simplifyLine)} / groupResultsByNote? ${String(config.groupResultsByNote)} / config.resultQuoteLength = ${String(config.resultQuoteLength)}]`)
     // Add each result line to output array
     let nc = 0
     for (const rnal of resultSet.resultNoteAndLineArr) {

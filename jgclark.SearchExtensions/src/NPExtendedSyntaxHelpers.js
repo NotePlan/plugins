@@ -1,9 +1,9 @@
 /* eslint-disable prefer-template */
 // @flow
 //-----------------------------------------------------------------------------
-// Helpers for NP Extended Syntax
+// Helpers for NotePlan advanced (native) search (NP 3.18.1+)
 // Jonathan Clark
-// Last updated 2025-09-29 for v3.0.0, @jgclark
+// Last updated 2026-08-09 for v3.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -20,47 +20,21 @@ import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 //------------------------------------------------------------------------------
 // Notes
 //
-// More complex boolean logic
+// Use the whole searchString in one go (NP boolean/group syntax).
+// Leading operators: date:, path:, source:, is:, heading:, sort:, show|/hide:
+// Full-word: quote terms. Case-sensitive: post-filter after the API search.
 //
-// My method in v2 was limited to simple and/or/not boolean logic.
-// NP extended syntax now gives a way to use those, and to have grouping of OR-d terms with parentheses. [e.g. (a OR b) c]
-// This is great but means the v2 method of having a simple-ish array of typed search terms is no longer good enough.
-// So, for v3 I now deal with the whole searchString in one go, not just the searchTerms.
-//
-// New NP search operators in v3
-//
-// v3.18.1 introduced the following search operators, which need to come at start of search string, and not have spaces after the colon (but can have value in double quotes).
-// - date:.. (search by date range ... see separate file for details)
-// - path:.. (search by path, e.g. path:Projects/Work)
-// - source:.. (one or more of calendar, dated-notes, notes, events, reminders, list-reminders)
-// - is:.. (one or more para types: open, done, scheduled, cancelled, not-task, checklist, checklist-done, checklist-scheduled, checklist-cancelled)
-// - heading:... (search under given heading)
-// - sort:asc|desc
-// - show:... & hide:... (view options for timeblocked, past-events, archive, teamspace)
-//
-// Dealing with multi-word (phrase) searches.
-// 
-// My method in v2 had been to handle this by asking for multi-word searches to be enclosed in double quotes. Then split the search terms and searching for each one, and then extra logic at the end to combine and format the results.
-// NP extended syntax does give a way to search for multiple words (phrases), by enclosing in double quotes.
-// 
-// Dealing with case-sensitive searching
-// 
-// NP doesn't appear to give a way to ask for this.
-// My method in v2 has been to try to do a further case-sensitive match of the search terms into the matched line.
-// Challenge is when the search terms are multi-word, or otherwise enclosed by double quotes, as we need to ignore the extra quotes.
 
 //------------------------------------------------------------------------------
 // Functions
 
 /**
- * Run an extended search over all search terms in 'searchTermsStr' over the set of notes determined by the parameters.
- * V4 of this function, which uses NP's extended search syntax available from 3.18.1.
- * Note: To get 'fullWord' matches, the syntax is now to surround a word with quotes. Example: "sun" returns lines where sun appears as a word, not as part of sunlight. So the fullWordSearching parameter is now ignored.
- * FIXME(Eduard): failing to run with "date:2025-01-02-2025-03-03 Gratitude" or "date:2025-12 #tag" when it comes through from /SIP. Reported as an API bug to Eduard.
- * Also failing to write results correctly with "date:2025-01-02-2025-03-03 Gratitude" when called from /SS.
+ * Run a search over notes using NotePlan advanced search syntax (NP 3.18.1+).
+ * Full-word setting quotes terms for the API. Case-sensitive setting filters after the API.
+ * FIXME(Eduard): API issues reported with some date: ranges plus terms (e.g. from /SIP).
  *
- * @param {Array<string>} searchStringIn
- * @param {SearchConfig} config object for various settings - Note: there are two overrides later in these parameters
+ * @param {string} searchStringIn
+ * @param {SearchConfig} config object for various settings
  * @param {TSearchOptions} searchOptions object for various settings
  * @returns {resultOutputV3Type} results optimised for output
  */
@@ -79,10 +53,6 @@ export async function runNPExtendedSyntaxSearches(
     // logDebug('runNPExtendedSyntaxSearches', `foldersToExclude: ${String(foldersToExclude)}`)
     const paraTypesToInclude = searchOptions.paraTypesToInclude || []
     // logDebug('runNPExtendedSyntaxSearches', `paraTypesToInclude: ${String(paraTypesToInclude)}`)
-    // const fromDateStr = searchOptions.fromDateStr || ''
-    // // logDebug('runNPExtendedSyntaxSearches', `fromDateStr: ${String(fromDateStr)}`)
-    // const toDateStr = searchOptions.toDateStr || ''
-    // logDebug('runNPExtendedSyntaxSearches', `toDateStr: ${String(toDateStr)}`)
     const fullWordSearching: boolean = config.fullWordSearching || false
     // logDebug('runNPExtendedSyntaxSearches', `fullWordSearching: ${String(fullWordSearching)}`)
     const resultLimit: number = config.resultLimit || 500
@@ -90,11 +60,6 @@ export async function runNPExtendedSyntaxSearches(
     const userLocale: string = getLocale(config)
     // logDebug('runNPExtendedSyntaxSearches', `userLocale: ${String(userLocale)}`)
 
-    // const headingMarker = '#'.repeat(config.headingLevel)
-    // let searchTerm = fullSearchTerm
-    // let multiWordSearch = false
-    // let resultParas: Array<TParagraph> = []
-    let wildcardedSearch = false
     const caseSensitive: boolean = config.caseSensitiveSearching
     let preLimitResultCount = 0
 
@@ -103,14 +68,6 @@ export async function runNPExtendedSyntaxSearches(
     const searchTerms = searchString.split(' ').filter((f) => !searchOperators.includes(f))
 
     logDebug('runNPExtendedSyntaxSearches', `Starting for [${searchString}] / operators [${searchOperators.join(' ')}] and caseSensitive ${String(caseSensitive)} with locale ${userLocale}`)
-
-    // TODO: update this to on terms with a longer string
-    // // if search term includes * or ? then we need to do further wildcard filtering: for now reduce search term to just the part before the wildcard. We will do more filtering later.
-    // if (searchString.includes("*") || searchString.includes("?")) {
-    //   searchTerm = searchTerm.split(/[\*\?]/, 1)[0]
-    //   wildcardedSearch = true
-    //   logDebug('runNPExtendedSyntaxSearches', `wildcard: will now use [${searchTerm}] for [${fullSearchTerm}]`)
-    // }
 
     const searchTermsToHighlight = getNonNegativeSearchTermsFromNPExtendedSyntax(searchString)
     logDebug('runNPExtendedSyntaxSearches', `searchTermsToHighlight: '${String(searchTermsToHighlight)}'`)
@@ -123,7 +80,6 @@ export async function runNPExtendedSyntaxSearches(
 
     //-------------------------------------------------------
     // And now, the actual Search API Call!
-    // const basicResponse = await DataStore.search(searchString, [], [], [], false)
     const response = await DataStore.search(searchString, noteTypesToInclude, foldersToInclude, foldersToExclude, false)
     logInfo('runNPExtendedSyntaxSearches', `🔶 API response ${String(response.length)} results for [${searchString}] with params noteTypesToInclude: [${String(noteTypesToInclude)}], foldersToInclude: [${String(foldersToInclude)}], foldersToExclude: [${String(foldersToExclude)}]`)
     const initialResult: Array<TParagraph> = response.slice() // to convert from $ReadOnlyArray to $Array
@@ -149,51 +105,34 @@ export async function runNPExtendedSyntaxSearches(
           // modify rawContent slightly by turning ## headings into **headings** to make output nicer
           rawContent: (p.type === 'title') ? `**${p.content}**` : p.rawContent,
           lineIndex: p.lineIndex,
-          // TODO: remove this after testing the source:calendar API bug below (and FlowIgnore line above)
+          // Work around possible API ignoring source:/note type filter - remove when API fixed
           noteType: note?.type,
         }
         return fieldSet
       })
 
-      // Drop out search results with the wrong note type (if any given), because of API bug that ignores 'source:' operator, it seems.
-      // Note: see https://discord.com/channels/763107030223290449/1431240275505713182
-      // TODO(later): remove me after testing a fix to API.
+      // Confirmatory note-type filter if API ignores source: / noteTypesToInclude (see Discord thread on source:calendar API)
+      // TODO(later): remove after NP search API fix
       if (noteTypesToInclude && noteTypesToInclude.length === 1) {
         const preFilterCount = resultReducedParas.length
-        // logDebug('runNPExtendedSyntaxSearches', `- before note types filter to [${String(noteTypesToInclude)}]`)
         // $FlowFixMe[prop-missing]
         resultReducedParas = resultReducedParas.filter((p) => noteTypesToInclude.includes(p.noteType?.toLowerCase() ?? ''))
-        // logDebug('runNPExtendedSyntaxSearches', `  - after note types filter = ${resultReducedParas.length} results`)
-        // TEST: Check whether the API is not doing the right thing
         if (resultReducedParas.length !== preFilterCount) {
           logWarn('runNPExtendedSyntaxSearches', `- confirmatory noteType filter shows ${String(preFilterCount-resultReducedParas.length)} results not matching noteType [${String(noteTypesToInclude)}] (${String(preFilterCount)} / ${String(resultReducedParas.length)})`)
         }
       }
 
       // Drop out search results with the wrong paragraph type (if any given)
-      // TODO(later): optimise by pulling this filtering in the search call?
       if (paraTypesToInclude && paraTypesToInclude.length > 0) {
         const preFilterCount = resultReducedParas.length
         logDebug('runNPExtendedSyntaxSearches', `- before para types filter (${paraTypesToInclude.length} = '${String(paraTypesToInclude)}'), ${resultReducedParas.length} results`)
         resultReducedParas = resultReducedParas.filter((p) => paraTypesToInclude.includes(p.type))
         logDebug('runNPExtendedSyntaxSearches', `  - after para types filter = ${resultReducedParas.length} results`)
 
-        // TEST: Check whether the API is not doing the right thing
         if (resultReducedParas.length !== preFilterCount) {
           logWarn('runNPExtendedSyntaxSearches', `- confirmatory para type filter shows ${String(preFilterCount-resultReducedParas.length)} results not matching para type [${String(noteTypesToInclude)}] (${String(preFilterCount)} / ${String(resultReducedParas.length)})`)
         }
       }
-
-      // TODO(later): update this for search phrases not single terms
-      // If search term includes * or ? then we need to do further wildcard filtering, using regex equivalent:
-      // - replace ? with .
-      // - replace * with [^\s]*? (i.e. any anything within the same 'word')
-      // if (wildcardedSearch) {
-      //   const regexSearchTerm = new RegExp('\\b' + searchString.replace(/\?/g, '.').replace(/\*/g, '[^\\s]*?') + '\\b')
-      //   logDebug('runNPExtendedSyntaxSearches', `- before wildcard filtering with [${String(regexSearchTerm)}] = ${String(resultReducedParas.length)}`)
-      //   resultReducedParas = resultReducedParas.filter(tr => regexSearchTerm.test(tr.content))
-      //   logDebug('runNPExtendedSyntaxSearches', `  - after wildcard filtering = ${String(resultReducedParas.length)}`)
-      // }
 
       // Drop out search results found only in a URL or the path of a [!][link](path)
       const preURLPathFilteringResultCount = resultReducedParas.length
@@ -290,26 +229,12 @@ export async function runNPExtendedSyntaxSearches(
 }
 
 /**
- * Create a string to display the number of results and notes: "[first N] from M results from P notes"
- * @author @jgclark
- * @param {resultOutputV3Type} resultSet
- * @returns {string}
- */
-export function resultCounts(resultSet: resultOutputV3Type): string {
-  return (resultSet.resultCount < resultSet.fullResultCount)
-    ? `(first ${resultSet.resultCount} from ${resultSet.fullResultCount} results from ${resultSet.resultNoteCount} notes)`
-    : `(${resultSet.resultCount} results from ${resultSet.resultNoteCount} notes)`
-}
-
-/**
- * Get array of non-blank non-negative (i.e.  not starting with '-') search terms in case we want to display highlights.
+ * Get non-blank terms suitable for highlighting (drops operators and negatives).
  * Copes with "(A OR B)" and "-(A OR B)" style search groups.
- * Ignores search operators.
- * Note: separate from getNonNegativeSearchTermsFromPluginExtendedSyntax() which does not cope with "-(A OR B)" style search groups.
- 
+ *
  * @author @jgclark
  * @tests in jest file
- * 
+ *
  * @param {string} searchString string containing search terms and possibly operators
  * @returns {Array<string>} array of subset search terms that could be highlighted
  */

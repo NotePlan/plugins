@@ -9,7 +9,6 @@ import {
   getSearchCommandName,
   normaliseDestination,
   numberOfUniqueFilenames,
-  reduceNoteAndLineArray,
 } from '../src/searchHelpers'
 import { sortListBy } from '@helpers/sorting'
 import { differenceByPropVal, differenceByObjectEquality } from '@helpers/dataManipulation'
@@ -75,42 +74,6 @@ describe('searchHelpers.js tests', () => {
     test('should return 4', () => {
       const result = numberOfUniqueFilenames(notArr)
       expect(result).toEqual(4)
-    })
-  })
-
-  describe('reduceNoteAndLineArray()', () => {
-    test('should return same as mustArr', () => {
-      const dupedMustArr: Array<noteAndLine> = [
-        // Note: tests will ignore 'index' term, so set to be all the same
-        { noteFilename: 'file4', line: '4.2 also has TERM3', index: 0 },
-        { noteFilename: 'file4', line: '4.3 also has TERM3', index: 0 },
-        { noteFilename: 'file5', line: '5.2 includes TERM3', index: 0 },
-        { noteFilename: 'file6', line: '6.3 has TERM3', index: 0 },
-        { noteFilename: 'file4', line: '4.3 also has TERM3', index: 0 },
-        { noteFilename: 'file6', line: '6.3 has TERM3', index: 0 },
-        { noteFilename: 'file6', line: '6.4 TERM3 has gone "(*$&(*%^" and with TERM1', index: 0 },
-        { noteFilename: 'file5', line: '5.2 includes TERM3', index: 0 },
-        { noteFilename: 'file7', line: '7.3 has TERM3', index: 0 },
-        { noteFilename: 'file7', line: '7.3 has TERM3', index: 0 },
-      ]
-      const result = reduceNoteAndLineArray(dupedMustArr)
-      expect(result).toEqual(mustArr)
-    })
-    test('as above, but reversed', () => {
-      const dupedReversedMustArr: Array<noteAndLine> = [
-        { noteFilename: 'file7', line: '7.3 has TERM3', index: 0 },
-        { noteFilename: 'file7', line: '7.3 has TERM3', index: 0 },
-        { noteFilename: 'file6', line: '6.4 TERM3 has gone "(*$&(*%^" and with TERM1', index: 0 },
-        { noteFilename: 'file6', line: '6.3 has TERM3', index: 0 },
-        { noteFilename: 'file5', line: '5.2 includes TERM3', index: 0 },
-        { noteFilename: 'file6', line: '6.3 has TERM3', index: 0 },
-        { noteFilename: 'file4', line: '4.3 also has TERM3', index: 0 },
-        { noteFilename: 'file5', line: '5.2 includes TERM3', index: 0 },
-        { noteFilename: 'file4', line: '4.3 also has TERM3', index: 0 },
-        { noteFilename: 'file4', line: '4.2 also has TERM3', index: 0 },
-      ]
-      const result = reduceNoteAndLineArray(dupedReversedMustArr)
-      expect(result).toEqual(mustArr.reverse())
     })
   })
 
