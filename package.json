@@ -108,6 +108,7 @@
     "lint-fix": "eslint . --fix",
     "format": "prettier -w ./**/*.js ./**/**/*.js ./**/**/**/*.js",
     "typecheck": "flow check",
+    "prepare": "git config core.hooksPath .githooks || true",
     "fix": "npm run lint-fix && npm run format",
     "test": "jest",
     "test:ci": "jest --ci --reporters=default --reporters='./github-actions-reporter'",

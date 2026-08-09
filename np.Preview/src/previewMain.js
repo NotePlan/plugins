@@ -59,8 +59,9 @@ function resolveNoteAndContent(noteSpec?: string | TNote | null): PreviewNoteAnd
   }
 
   // Prefer open Editor buffer when it is the same file (unsaved edits)
-  if (Editor.note?.filename === note.filename && Editor.content != null) {
-    return { note: Editor.note, content: Editor.content }
+  const editorNote = Editor.note
+  if (editorNote && editorNote.filename === note.filename && Editor.content != null) {
+    return { note: editorNote, content: Editor.content }
   }
 
   const content = note.content
