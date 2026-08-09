@@ -152,6 +152,25 @@ export function buildRefreshCallbackArgs(
   return [termsToMatchStr, noteTypesAsStr, paraTypesAsStr, destination]
 }
 
+/**
+ * Normalise destination tokens from plugin.json / docs / chooser UI.
+ * Accepts: current | newnote | searchSpecificNote | quick | log | cancel | refresh
+ * Internal writers use searchSpecificNote for "saved search note".
+ * @param {string} destinationArg
+ * @returns {string}
+ */
+export function normaliseDestination(destinationArg: string): string {
+  const d = (destinationArg || '').trim().toLowerCase()
+  if (d === 'newnote' || d === 'searchspecificnote' || d === 'search_specific_note') {
+    return 'searchSpecificNote'
+  }
+  if (d === 'quick' || d === 'current' || d === 'log' || d === 'cancel' || d === 'refresh') {
+    return d
+  }
+  // Empty / unknown → let callers apply their defaults
+  return destinationArg || ''
+}
+
 // Look-up table for sort details
 export const SORT_MAP: Map<string, Array<string>> = new Map([
   ['note title', ['title', 'lineIndex']], // ascending

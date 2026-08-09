@@ -2,6 +2,14 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b9] - 2026-08-09
+### Fixed
+- destination `newnote` (docs/x-callbacks) now maps to saved search note writer; no longer falls through to current note
+
+## [3.0.0.b8] - 2026-08-09
+### Fixed
+- flexiSearch case-sensitive and full-word toggles now share true/false prefs with plugin settings (and still accept legacy casesens/fullword tokens)
+
 ## [3.0.0.b7] - 2026-08-09
 ### Fixed
 - flexiSearch line-type checkboxes use real ParagraphType values (`scheduled`, `cancelled`, `checklist`, `non-task`) so filters work; migrate saved prefs from older tokens

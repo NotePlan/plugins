@@ -23,6 +23,7 @@ import {
   getSearchCommandName,
   getSearchSettings,
   insertOrReplaceMetadataLine,
+  normaliseDestination,
   OPEN_PARA_TYPES,
   writeSearchResultsToNote,
 } from './searchHelpers'
@@ -407,7 +408,7 @@ export async function saveSearch(
       destination = 'quick'
     }
     else if (destinationArg != null && destinationArg !== '') {
-      destination = destinationArg
+      destination = normaliseDestination(destinationArg)
     }
     else if (config.autoSave) {
       // Config asks to save automatically to 'searchSpecificNote'
@@ -427,6 +428,7 @@ export async function saveSearch(
         ],
         'searchSpecificNote',
       )
+      destination = normaliseDestination(destination)
     }
     logDebug('saveSearch', `destination = ${destination}, started with originatorCommand = ${originatorCommand ?? 'undefined'}`)
 

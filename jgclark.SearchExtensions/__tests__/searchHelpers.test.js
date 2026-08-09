@@ -8,6 +8,7 @@ import {
   buildRefreshCallbackArgs,
   createFormattedResultLines,
   getSearchCommandName,
+  normaliseDestination,
   numberOfUniqueFilenames,
   reduceNoteAndLineArray,
 } from '../src/searchHelpers'
@@ -250,6 +251,14 @@ describe('searchHelpers.js tests', () => {
       expect(periodArgs).toEqual(['tag', 'open', 'calendar', 'refresh', '20250101', '20250131'])
       const searchArgs = buildRefreshCallbackArgs('searchOverAll', 'hello', 'both', 'open,done', 'refresh')
       expect(searchArgs).toEqual(['hello', 'both', 'open,done', 'refresh'])
+    })
+
+    test('normaliseDestination maps newnote alias to searchSpecificNote', () => {
+      expect(normaliseDestination('newnote')).toEqual('searchSpecificNote')
+      expect(normaliseDestination('searchSpecificNote')).toEqual('searchSpecificNote')
+      expect(normaliseDestination('quick')).toEqual('quick')
+      expect(normaliseDestination('refresh')).toEqual('refresh')
+      expect(normaliseDestination('current')).toEqual('current')
     })
   })
 })
