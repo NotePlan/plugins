@@ -23,10 +23,189 @@ import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 // Use the whole searchString in one go (NP boolean/group syntax).
 // Leading operators: date:, path:, source:, is:, heading:, sort:, show|/hide:
 // Full-word: quote terms. Case-sensitive: post-filter after the API search.
+// Pipeline stages below keep runNPExtendedSyntaxSearches as orchestration only.
 //
 
 //------------------------------------------------------------------------------
-// Functions
+// Pipeline stages (mostly pure; unit-test friendly)
+
+/**
+ * @typedef {Object} TPreparedNativeSearch
+ * @property {string} searchString - string passed to DataStore.search
+ * @property {Array<string>} searchOperators
+ * @property {Array<string>} searchTerms - non-operator tokens (for result metadata)
+ * @property {Array<string>} searchTermsToHighlight
+ */
+
+/**
+ * Parse operators/terms and apply full-word quoting when configured.
+ * @param {string} searchStringIn
+ * @param {boolean} fullWordSearching
+ * @returns {TPreparedNativeSearch}
+ */
+export function prepareNativeSearchString(searchStringIn: string, fullWordSearching: boolean): TPreparedNativeSearch {
+  let searchString = searchStringIn
+  const searchOperators = getSearchOperators(searchString)
+  const searchTerms = searchString.split(' ').filter((f) => !searchOperators.includes(f))
+  const searchTermsToHighlight = getNonNegativeSearchTermsFromNPExtendedSyntax(searchString)
+
+  if (fullWordSearching) {
+    searchString = (searchOperators.join(' ') + ' ' + quoteTermsInSearchString(searchTerms.join(' '))).trim()
+    logInfo('prepareNativeSearchString', `fullWordSearching: updated searchString to [${searchString}]`)
+  }
+
+  return { searchString, searchOperators, searchTerms, searchTermsToHighlight }
+}
+
+/**
+ * Map full TParagraph results to the reduced field set used for filtering/sorting.
+ * @param {Array<TParagraph>} paragraphs
+ * @returns {Array<reducedFieldSet>}
+ */
+export function mapParagraphsToReducedFieldSets(paragraphs: Array<TParagraph>): Array<reducedFieldSet> {
+  // $FlowIgnore[prop-missing]
+  return paragraphs.map((p) => {
+    const note = p.note
+    const fieldSet = {
+      filename: note?.filename ?? '<error>',
+      changedDate: note?.changedDate,
+      createdDate: note?.createdDate,
+      title: displayTitle(note),
+      type: p.type,
+      content: p.content,
+      // modify rawContent slightly by turning ## headings into **headings** to make output nicer
+      rawContent: (p.type === 'title') ? `**${p.content}**` : p.rawContent,
+      lineIndex: p.lineIndex,
+      // Work around possible API ignoring source:/note type filter - remove when API fixed
+      noteType: note?.type,
+    }
+    return fieldSet
+  })
+}
+
+/**
+ * Post-API filters: confirmatory note type, para type, URL/path, case-sensitive.
+ * @param {Array<reducedFieldSet>} resultsIn
+ * @param {{ noteTypesToInclude: Array<string>, paraTypesToInclude: Array<ParagraphType>, caseSensitive: boolean, searchStringIn: string, searchStringForUrlFilter: string, searchTermsToHighlight: Array<string>, userLocale: string }} opts
+ * @returns {Array<reducedFieldSet>}
+ */
+export function filterReducedSearchResults(
+  resultsIn: Array<reducedFieldSet>,
+  opts: {
+    noteTypesToInclude: Array<string>,
+    // $FlowFixMe[value-as-type]
+    paraTypesToInclude: Array<ParagraphType>,
+    caseSensitive: boolean,
+    searchStringIn: string,
+    searchStringForUrlFilter: string,
+    searchTermsToHighlight: Array<string>,
+    userLocale: string,
+  },
+): Array<reducedFieldSet> {
+  let resultReducedParas = resultsIn
+  const { noteTypesToInclude, paraTypesToInclude, caseSensitive, searchStringIn, searchStringForUrlFilter, searchTermsToHighlight, userLocale } = opts
+
+  // Confirmatory note-type filter if API ignores source: / noteTypesToInclude (see Discord thread on source:calendar API)
+  // TODO(later): remove after NP search API fix
+  if (noteTypesToInclude && noteTypesToInclude.length === 1) {
+    const preFilterCount = resultReducedParas.length
+    // $FlowFixMe[prop-missing]
+    resultReducedParas = resultReducedParas.filter((p) => noteTypesToInclude.includes(p.noteType?.toLowerCase() ?? ''))
+    if (resultReducedParas.length !== preFilterCount) {
+      logWarn('filterReducedSearchResults', `- confirmatory noteType filter shows ${String(preFilterCount - resultReducedParas.length)} results not matching noteType [${String(noteTypesToInclude)}] (${String(preFilterCount)} / ${String(resultReducedParas.length)})`)
+    }
+  }
+
+  if (paraTypesToInclude && paraTypesToInclude.length > 0) {
+    const preFilterCount = resultReducedParas.length
+    logDebug('filterReducedSearchResults', `- before para types filter (${paraTypesToInclude.length} = '${String(paraTypesToInclude)}'), ${resultReducedParas.length} results`)
+    resultReducedParas = resultReducedParas.filter((p) => paraTypesToInclude.includes(p.type))
+    logDebug('filterReducedSearchResults', `  - after para types filter = ${resultReducedParas.length} results`)
+
+    if (resultReducedParas.length !== preFilterCount) {
+      logWarn('filterReducedSearchResults', `- confirmatory para type filter shows ${String(preFilterCount - resultReducedParas.length)} results not matching para type [${String(paraTypesToInclude)}] (${String(preFilterCount)} / ${String(resultReducedParas.length)})`)
+    }
+  }
+
+  // Drop results found only in a URL or the path of a [!][link](path)
+  const preURLPathFilteringResultCount = resultReducedParas.length
+  resultReducedParas = resultReducedParas
+    .filter((f) => !isTermInURL(searchStringForUrlFilter, f.content))
+    .filter((f) => !isTermInMarkdownPath(searchStringForUrlFilter, f.content))
+  if (preURLPathFilteringResultCount !== resultReducedParas.length) {
+    logDebug('filterReducedSearchResults', `  - URL/path filtering removed ${String(preURLPathFilteringResultCount - resultReducedParas.length)} results`)
+  }
+
+  if (caseSensitive) {
+    logDebug('filterReducedSearchResults', `case-sensitive: before filtering for [${searchStringIn}]: ${String(resultReducedParas.length)}`)
+    // FIXME: this fails when it comes in as a double-quoted string
+    resultReducedParas = resultReducedParas.filter(p => caseSensitiveSubstringLocaleMatch(searchTermsToHighlight, p.content, userLocale))
+  }
+
+  return resultReducedParas
+}
+
+/**
+ * Dedupe synced lines, apply resultLimit, then optional plugin sort.
+ * @param {Array<reducedFieldSet>} resultsIn
+ * @param {{ resultLimit: number, useNativeSortOrder: boolean, sortOrder: string }} opts
+ * @returns {{ results: Array<reducedFieldSet>, fullResultCount: number }}
+ */
+export function dedupeLimitAndSortReducedResults(
+  resultsIn: Array<reducedFieldSet>,
+  opts: { resultLimit: number, useNativeSortOrder: boolean, sortOrder: string },
+): { results: Array<reducedFieldSet>, fullResultCount: number } {
+  let resultReducedParas = resultsIn
+  const { resultLimit, useNativeSortOrder, sortOrder } = opts
+
+  logDebug('dedupeLimitAndSortReducedResults', `- before dedupe = ${resultReducedParas.length} results`)
+  // $FlowFixMe[prop-missing]
+  // $FlowFixMe[incompatible-exact]
+  resultReducedParas = eliminateDuplicateParagraphs(resultReducedParas, 'most-recent', true)
+  logDebug('dedupeLimitAndSortReducedResults', `  - after dedupe = ${resultReducedParas.length} results`)
+  const fullResultCount = resultReducedParas.length
+
+  if (resultLimit > 0 && fullResultCount > resultLimit) {
+    logWarn('dedupeLimitAndSortReducedResults', `We have more than ${resultLimit} results, so will discard all the ones beyond that limit.`)
+    // $FlowFixMe[prop-missing]
+    // $FlowFixMe[incompatible-exact]
+    resultReducedParas = resultReducedParas.slice(0, resultLimit)
+    logDebug('dedupeLimitAndSortReducedResults', `-> now ${resultReducedParas.length} results`)
+  }
+
+  // Sort unless useNativeSortOrder (e.g. when sort: operator present)
+  if (!useNativeSortOrder) {
+    const sortKeys = SORT_MAP.get(sortOrder) ?? ['title']
+    logDebug('dedupeLimitAndSortReducedResults', `- Will use sortKeys: [${String(sortKeys)}] from ${sortOrder}`)
+    // $FlowFixMe[prop-missing]
+    // $FlowFixMe[incompatible-exact]
+    resultReducedParas = sortListBy(resultReducedParas, sortKeys)
+  } else {
+    logDebug('dedupeLimitAndSortReducedResults', `- useNativeSortOrder set, so will not sort results`)
+  }
+
+  return { results: resultReducedParas, fullResultCount }
+}
+
+/**
+ * Build noteAndLine rows for display / replace.
+ * @param {Array<reducedFieldSet>} resultReducedParas
+ * @returns {Array<noteAndLine>}
+ */
+export function reducedFieldSetsToNoteAndLines(resultReducedParas: Array<reducedFieldSet>): Array<noteAndLine> {
+  const noteAndLineArr: Array<noteAndLine> = []
+  for (let i = 0; i < resultReducedParas.length; i++) {
+    noteAndLineArr.push({
+      noteFilename: resultReducedParas[i].filename ?? '<error>',
+      index: resultReducedParas[i].lineIndex,
+      line: resultReducedParas[i].rawContent,
+    })
+  }
+  return noteAndLineArr
+}
+
+//------------------------------------------------------------------------------
+// Orchestration
 
 /**
  * Run a search over notes using NotePlan advanced search syntax (NP 3.18.1+).
@@ -48,162 +227,57 @@ export async function runNPExtendedSyntaxSearches(
     const noteTypesToInclude = searchOptions.noteTypesToInclude || ['notes', 'calendar']
     logDebug('runNPExtendedSyntaxSearches', `noteTypesToInclude: ${String(noteTypesToInclude)}`)
     const foldersToInclude = searchOptions.foldersToInclude || []
-    // logDebug('runNPExtendedSyntaxSearches', `foldersToInclude: ${String(foldersToInclude)}`)
     const foldersToExclude = searchOptions.foldersToExclude || []
-    // logDebug('runNPExtendedSyntaxSearches', `foldersToExclude: ${String(foldersToExclude)}`)
     const paraTypesToInclude = searchOptions.paraTypesToInclude || []
-    // logDebug('runNPExtendedSyntaxSearches', `paraTypesToInclude: ${String(paraTypesToInclude)}`)
     const fullWordSearching: boolean = config.fullWordSearching || false
-    // logDebug('runNPExtendedSyntaxSearches', `fullWordSearching: ${String(fullWordSearching)}`)
     const resultLimit: number = config.resultLimit || 500
-    // logDebug('runNPExtendedSyntaxSearches', `resultLimit: ${String(resultLimit)}`)
     const userLocale: string = getLocale(config)
-    // logDebug('runNPExtendedSyntaxSearches', `userLocale: ${String(userLocale)}`)
-
     const caseSensitive: boolean = config.caseSensitiveSearching
-    let preLimitResultCount = 0
 
-    let searchString = searchStringIn
-    const searchOperators = getSearchOperators(searchString)
-    const searchTerms = searchString.split(' ').filter((f) => !searchOperators.includes(f))
+    const prepared = prepareNativeSearchString(searchStringIn, fullWordSearching)
+    const { searchString, searchOperators, searchTerms, searchTermsToHighlight } = prepared
 
     logDebug('runNPExtendedSyntaxSearches', `Starting for [${searchString}] / operators [${searchOperators.join(' ')}] and caseSensitive ${String(caseSensitive)} with locale ${userLocale}`)
-
-    const searchTermsToHighlight = getNonNegativeSearchTermsFromNPExtendedSyntax(searchString)
     logDebug('runNPExtendedSyntaxSearches', `searchTermsToHighlight: '${String(searchTermsToHighlight)}'`)
 
-    // If the settings say we want only full word matches, then update the searchString to surround the search term(s) with quotes
-    if (fullWordSearching) {
-      searchString = (searchOperators.join(" ") + " " + quoteTermsInSearchString(searchTerms.join(" "))).trim()
-      logInfo('runNPExtendedSyntaxSearches', `fullWordSearching: updated searchString to [${searchString}]`)
-    }
-
     //-------------------------------------------------------
-    // And now, the actual Search API Call!
+    // Search API
     const response = await DataStore.search(searchString, noteTypesToInclude, foldersToInclude, foldersToExclude, false)
     logInfo('runNPExtendedSyntaxSearches', `🔶 API response ${String(response.length)} results for [${searchString}] with params noteTypesToInclude: [${String(noteTypesToInclude)}], foldersToInclude: [${String(foldersToInclude)}], foldersToExclude: [${String(foldersToExclude)}]`)
     const initialResult: Array<TParagraph> = response.slice() // to convert from $ReadOnlyArray to $Array
     //-------------------------------------------------------
 
-    const noteAndLineArr: Array<noteAndLine> = []
+    let noteAndLineArr: Array<noteAndLine> = []
+    let preLimitResultCount = 0
 
     if (initialResult.length > 0) {
       logDebug('runNPExtendedSyntaxSearches', `- Found ${initialResult.length} results for [${searchString}]`)
 
-      // Try creating much smaller data sets, without full Note or Para. Use filename for disambig later.
-      // $FlowIgnore[prop-missing]
-      let resultReducedParas: Array<reducedFieldSet> = initialResult.map((p) => {
-        const note = p.note
-        // const tempDate = note ? toISOShortDateTimeString(note.createdDate) : '?'
-        const fieldSet = {
-          filename: note?.filename ?? '<error>',
-          changedDate: note?.changedDate,
-          createdDate: note?.createdDate,
-          title: displayTitle(note),
-          type: p.type,
-          content: p.content,
-          // modify rawContent slightly by turning ## headings into **headings** to make output nicer
-          rawContent: (p.type === 'title') ? `**${p.content}**` : p.rawContent,
-          lineIndex: p.lineIndex,
-          // Work around possible API ignoring source:/note type filter - remove when API fixed
-          noteType: note?.type,
-        }
-        return fieldSet
+      let resultReducedParas = mapParagraphsToReducedFieldSets(initialResult)
+      resultReducedParas = filterReducedSearchResults(resultReducedParas, {
+        noteTypesToInclude,
+        // $FlowFixMe[incompatible-type]
+        paraTypesToInclude,
+        caseSensitive,
+        searchStringIn,
+        searchStringForUrlFilter: searchString,
+        searchTermsToHighlight,
+        userLocale,
       })
 
-      // Confirmatory note-type filter if API ignores source: / noteTypesToInclude (see Discord thread on source:calendar API)
-      // TODO(later): remove after NP search API fix
-      if (noteTypesToInclude && noteTypesToInclude.length === 1) {
-        const preFilterCount = resultReducedParas.length
-        // $FlowFixMe[prop-missing]
-        resultReducedParas = resultReducedParas.filter((p) => noteTypesToInclude.includes(p.noteType?.toLowerCase() ?? ''))
-        if (resultReducedParas.length !== preFilterCount) {
-          logWarn('runNPExtendedSyntaxSearches', `- confirmatory noteType filter shows ${String(preFilterCount-resultReducedParas.length)} results not matching noteType [${String(noteTypesToInclude)}] (${String(preFilterCount)} / ${String(resultReducedParas.length)})`)
-        }
-      }
-
-      // Drop out search results with the wrong paragraph type (if any given)
-      if (paraTypesToInclude && paraTypesToInclude.length > 0) {
-        const preFilterCount = resultReducedParas.length
-        logDebug('runNPExtendedSyntaxSearches', `- before para types filter (${paraTypesToInclude.length} = '${String(paraTypesToInclude)}'), ${resultReducedParas.length} results`)
-        resultReducedParas = resultReducedParas.filter((p) => paraTypesToInclude.includes(p.type))
-        logDebug('runNPExtendedSyntaxSearches', `  - after para types filter = ${resultReducedParas.length} results`)
-
-        if (resultReducedParas.length !== preFilterCount) {
-          logWarn('runNPExtendedSyntaxSearches', `- confirmatory para type filter shows ${String(preFilterCount-resultReducedParas.length)} results not matching para type [${String(noteTypesToInclude)}] (${String(preFilterCount)} / ${String(resultReducedParas.length)})`)
-        }
-      }
-
-      // Drop out search results found only in a URL or the path of a [!][link](path)
-      const preURLPathFilteringResultCount = resultReducedParas.length
-      resultReducedParas = resultReducedParas
-        .filter((f) => !isTermInURL(searchString, f.content))
-        .filter((f) => !isTermInMarkdownPath(searchString, f.content))
-      if (preURLPathFilteringResultCount !== resultReducedParas.length) {
-        logDebug('runNPExtendedSyntaxSearches', `  - URL/path filtering removed ${String(preURLPathFilteringResultCount - resultReducedParas.length)} results`)
-      }
-      
-      // If we want case-sensitive searching, then filter the results to only those that contains the exact search string
-      // TEST: get this to work for multi-term searches
-      if (caseSensitive) {
-        logDebug('runNPExtendedSyntaxSearches', `case-sensitive: before filtering for [${searchStringIn}]: ${String(resultReducedParas.length)}`)
-        // FIXME: this fails when it comes in as a double-quoted string
-        resultReducedParas = resultReducedParas.filter(p => caseSensitiveSubstringLocaleMatch(searchTermsToHighlight, p.content, userLocale)) // Note: this is the unmodified searchStringIn, not the modified searchString which can have extra quotes
-        // TEST: display the results after filtering
-        // const rrpStrArray = resultReducedParas.map((p) => {
-        //   const truncatedRawContent = (p.rawContent.length > 100) ? p.rawContent.slice(0, 70) + '...' : p.rawContent
-        //   return `  ${truncatedRawContent} [${p.filename}]`
-        // })
-        // logDebug('runNPExtendedSyntaxSearches', `case-sensitive: after filtering: ${String(resultReducedParas.length)}:\n${rrpStrArray.join('\n')}`)
-      }
-
-      // Dedupe identical synced lines
-      logDebug('runNPExtendedSyntaxSearches', `- before dedupe = ${resultReducedParas.length} results`)
-      // $FlowFixMe[prop-missing]
-      // $FlowFixMe[incompatible-exact]
-      resultReducedParas = eliminateDuplicateParagraphs(resultReducedParas, 'most-recent', true)
-      logDebug('runNPExtendedSyntaxSearches', `  - after dedupe = ${resultReducedParas.length} results`)
-      preLimitResultCount = resultReducedParas.length
-
-      // Now check to see if we have more than config.resultLimit: if so only use the first amount to return
-      if (resultLimit > 0 && preLimitResultCount > resultLimit) {
-        // First make a note of the total (to display later)
-        logWarn('runNPExtendedSyntaxSearches', `We have more than ${resultLimit} results, so will discard all the ones beyond that limit.`)
-        // $FlowFixMe[prop-missing]
-        // $FlowFixMe[incompatible-exact]
-        resultReducedParas = resultReducedParas.slice(0, resultLimit)
-        logDebug('applySearchOperators', `-> now ${resultReducedParas.length} results`)
-      }
-
-      // Sort results, unless the searchOptions.useNativeSortOrder is set.
-      // Note: 'asc' and 'desc' refer to date of note (though the documentation doesn't say which date this is)
-      if (!searchOptions.useNativeSortOrder) {
-        const sortKeys = SORT_MAP.get(config.sortOrder) ?? ['title'] // get value, falling back to 'title'
-        logDebug('runNPExtendedSyntaxSearches', `- Will use sortKeys: [${String(sortKeys)}] from ${config.sortOrder}`)
-        // $FlowFixMe[prop-missing]
-        // $FlowFixMe[incompatible-exact]
-        resultReducedParas = sortListBy(resultReducedParas, sortKeys)
-      } else {
-        logDebug('runNPExtendedSyntaxSearches', `- useNativeSortOrder set, so will not sort results`)
-      }
-
-      // Form the return object from sortedFieldSets
-      for (let i = 0; i < resultReducedParas.length; i++) {
-        noteAndLineArr.push({
-          noteFilename: resultReducedParas[i].filename ?? '<error>',
-          index: resultReducedParas[i].lineIndex,
-          line: resultReducedParas[i].rawContent,
-        })
-      }
+      const afterDedupeLimitSort = dedupeLimitAndSortReducedResults(resultReducedParas, {
+        resultLimit,
+        useNativeSortOrder: Boolean(searchOptions.useNativeSortOrder),
+        sortOrder: config.sortOrder,
+      })
+      resultReducedParas = afterDedupeLimitSort.results
+      preLimitResultCount = afterDedupeLimitSort.fullResultCount
+      noteAndLineArr = reducedFieldSetsToNoteAndLines(resultReducedParas)
     }
+
     const resultCount = noteAndLineArr.length
     logDebug('runNPExtendedSyntaxSearches', `- end of runNPExtendedSyntaxSearches for [${searchString}]: ${resultCount} results from ${numberOfUniqueFilenames(noteAndLineArr)} notes`)
-    // const nalStrArray = noteAndLineArr.map((nal) => {
-    //   const truncatedRawContent = (nal.line.length > 100) ? nal.line.slice(0, 70) + '...' : nal.line
-    //   return `  ${truncatedRawContent}`
-    // })
-    // logDebug('runNPExtendedSyntaxSearches', `${String(nalStrArray.length)} nals:\n${nalStrArray.join('\n')}`)
-    
+
     const returnObject: resultOutputV3Type = {
       searchTermsStr: searchTerms.join(' '),
       searchOperatorsStr: searchOperators.join(' '),

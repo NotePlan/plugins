@@ -2,6 +2,10 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b17] - 2026-08-09
+### Dev / maintainability
+- Decompose `runNPExtendedSyntaxSearches` into prepare / map / filter / dedupe-limit-sort / to-noteAndLine stages with unit tests
+
 ## [3.0.0.b16] - 2026-08-09
 ### Dev / maintainability
 - Shared `mergeSearchOptionsWithConfig`, `prependDateOperatorsIfNeeded`, and `applyOperatorsFromSearchString` used by saveSearch, replace, and extendedSearch
