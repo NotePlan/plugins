@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# Pre-push: refuse to push code that has Flow type errors.
+#
+# CI enforces this too (.github/workflows/flow.yml), but catching it here means you find out in
+# seconds rather than after a round trip through GitHub Actions.
+#
+# This uses `flow` (i.e. `flow status`) rather than `flow check`: it reuses the background Flow
+# server, so it is near-instant once warm. The first run after a reboot starts the server and
+# takes longer. The errors reported are the same ones CI will report.
+#
+# To bypass in an emergency:  git push --no-verify
+# (CI will still fail, so this only defers the problem.)
+
+if ! command -v npx >/dev/null 2>&1; then
+  echo "pre-push: npx not found, skipping Flow check" >&2
+  exit 0
+fi
+
+echo "pre-push: running Flow type check..."
+
+if npx --no-install flow >/dev/null 2>&1; then
+  echo "pre-push: Flow clean."
+  exit 0
+fi
+
+# Re-run without swallowing output so the developer can actually see what is wrong.
+echo "" >&2
+echo "pre-push: BLOCKED -- Flow reported type errors:" >&2
+echo "" >&2
+npx --no-install flow >&2
+
+cat >&2 <<'MSG'
+
+------------------------------------------------------------------------------
+Push blocked because Flow found type errors.
+
+  node scripts/flow-report.js                 # per-plugin summary
+  node scripts/flow-report.js --plugin <name> # list the sites for one plugin
+
+If you genuinely need to push anyway:  git push --no-verify
+(CI will still fail on it.)
+------------------------------------------------------------------------------
+MSG
+exit 1

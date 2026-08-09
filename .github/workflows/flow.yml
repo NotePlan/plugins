@@ -1,0 +1,46 @@
+# Flow type checking.
+#
+# Deliberately a SEPARATE workflow from node.js.yml so it can run on every branch push, not just
+# on PRs into main. Type errors are cheapest to fix while the code is still fresh in your head --
+# waiting until PR time is what let them accumulate in the first place. Jest and the plugin builds
+# stay on the narrower trigger in node.js.yml, since those are far more expensive to run.
+#
+# The repo is at zero Flow errors and this gate keeps it there: any error fails the build.
+# For a readable breakdown locally, run `node scripts/flow-report.js`
+# (or `node scripts/flow-report.js --plugin <name>` to list the sites for one plugin).
+
+name: Flow
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+    branches: ['main']
+
+# Grouped PER EVENT, deliberately. Pushing again supersedes your own in-flight run, which is what
+# you want; but push and pull_request are NOT collapsed into each other, even though a PR-branch
+# push fires both on the same commit.
+#
+# Cancelling across events was tried and is worse: GitHub reports a cancelled run as a FAILING
+# check, so the PR showed `Flow-Check pass` next to `Flow-Check fail (2s)` -- misleading, and it
+# would block merging under branch protection. One duplicated 1m12s run is the cheaper problem.
+#
+# The pull_request trigger is kept despite `push` covering every branch here, because pushes from
+# forks do not run workflows in this repo -- only their PRs do.
+concurrency:
+  group: flow-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  Flow-Check:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+          cache: 'npm'
+      - run: npm ci
+      - name: Check for Flow errors
+        run: npx flow check
