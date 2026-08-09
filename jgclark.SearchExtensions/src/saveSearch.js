@@ -31,7 +31,7 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpe
 import { ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import { removeSection, replaceSection, setIconForNote } from '@helpers/note'
-import { noteOpenInEditor } from '@helpers/NPWindows'
+import { noteOpenInEditor } from '@helpers/NPEditor'
 import { getSearchOperators, isNPAdvancedSyntaxAvailable } from '@helpers/search'
 import {
   chooseOption,

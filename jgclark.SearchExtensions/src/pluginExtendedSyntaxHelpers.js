@@ -9,7 +9,7 @@
 
 import type { noteAndLine, typedSearchTerm, resultObjectType, resultOutputType, resultOutputV3Type, reducedFieldSet, SearchConfig, TSearchOptions } from './searchHelpers'
 import { makeAnySyncs, SORT_MAP } from './searchHelpers'
-import { getDateStrForStartofPeriodFromCalendarFilename, withinDateRange } from '@helpers/dateTime'
+import { withinDateRange } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import {
   displayTitle,
@@ -17,12 +17,13 @@ import {
 import {
   differenceByPropVal, differenceByObjectEquality,
 } from '@helpers/dataManipulation'
+import { getDateStrForStartofPeriodFromCalendarFilename } from '@helpers/NPdateTime'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import {
   fullWordMatch,
 } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
-import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 
 //------------------------------------------------------------------------------
 // Functions
@@ -776,7 +777,7 @@ export async function runPluginExtendedSearch(
       logDebug('runPluginExtendedSearch', `- Before dedupe, ${resultReducedParas.length} results for '${searchTerm}'`)
       // $FlowIgnore[incompatible-exact]
       // $FlowIgnore[prop-missing] only .content and .blockId are used from TParagraph
-      resultReducedParas = eliminateDuplicateSyncedParagraphs(resultReducedParas, 'most-recent', true)
+      resultReducedParas = eliminateDuplicateParagraphs(resultReducedParas, 'most-recent', true)
       logDebug('runPluginExtendedSearch', `- After dedupe, ${resultReducedParas.length} results for '${searchTerm}'`)
 
       // Sort results

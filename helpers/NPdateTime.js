@@ -78,12 +78,33 @@ export type NotePlanYearInfo = {
   endDate: Date,
 }
 
-export type TPeriodCode = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'all' | 'lw' | 'last7d' | 'last2w' | 'last4w' | 'last3m' | 'wtd' | 'userwtd' | 'ow' | 'lm' | 'mtd' | 'om' | 'lq' | 'qtd' | 'oq' | 'ly' | 'ytd' | 'oy'
+export type TPeriodCode = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'all' | 'custom' | 'lw' | 'last7d' | 'last2w' | 'last4w' | 'last3m' | 'wtd' | 'userwtd' | 'ow' | 'lm' | 'mtd' | 'om' | 'lq' | 'qtd' | 'oq' | 'ly' | 'ytd' | 'oy'
 
 //--------------------------------------------------------------------------------
 // Functions
 
 // TODO: work out how to test these next few functions
+
+/**
+ * Ask for an ISO-formatted date from user (YYYY-MM-DD)
+ * Note: Used to live in userInput.js, but local copy here to avoid a circular dependency.
+ * Ported from search-extensions-v3 for custom date ranges.
+ * @author @jgclark
+ *
+ * @param {string} question - string to put in the command bar
+ * @return {string} - the returned ISO date as a string, or empty if an invalid string given
+ */
+async function askForISODate(question: string): Promise<string> {
+  // logDebug('askForISODate', `starting ...`)
+  const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
+  const reply2 = reply.replace('>', '').trim() // remove any '>' and trim
+  if (reply2.match(dt.RE_DATE) == null) {
+    await CommandBar.prompt('Search', `Sorry: '${reply2}' isn't a valid date of form YYYY-MM-DD`, [`OK`])
+    return ''
+  }
+  return reply2
+}
+
 export function setMomentLocaleFromEnvironment(): void {
   // logDebug('NPdateTime', `NP reports languageCode = ${NotePlan.environment.languageCode ?? '<not set>'}`)
   // logDebug('NPdateTime', `NP reports regionCode   = ${NotePlan.environment.regionCode ?? '<not set>'}`)
@@ -311,12 +332,14 @@ export const periodTypesAndDescriptions = [
  * @param {string?} question to show user
  * @param {boolean?} excludeToday? (default true)
  * @param {TPeriodCode?} periodShortCodeArg? lm | mtd | om etc. | today | a YYYY-MM-DD date. If not provided ask user.
+ * @param {boolean?} offerCustomDateRange? (default: false) if true, offer a custom YYYY-MM-DD to YYYY-MM-DD range
  * @returns {[Date, Date, TPeriodCode, string, string, number]}
  */
 export async function getPeriodStartEndDates(
   question: string = 'Create stats for which period?',
   excludeToday: boolean = true /* currently only used when a date is passed through as periodShortCode */,
   periodShortCodeArg?: TPeriodCode,
+  offerCustomDateRange: boolean = false,
 ): Promise<[Date, Date, TPeriodCode, string, string, number]> {
   // Note: typed `string`, not TPeriodCode, because (as documented above) a YYYY-MM-DD date is also accepted here,
   // and the `default:` branch of the switch below relies on that.
@@ -326,8 +349,12 @@ export async function getPeriodStartEndDates(
     // It may come with surrounding quotes, so remove those
     periodShortCode = trimAnyQuotes(periodShortCodeArg)
   } else {
+    // Optionally offer a custom YYYY-MM-DD to YYYY-MM-DD range (do not mutate the shared options array)
+    const optionsForChooser = offerCustomDateRange
+      ? [{ label: 'Custom Date Range (YYYY-MM-DD to YYYY-MM-DD) …', value: 'custom' }, ...periodTypesAndDescriptions]
+      : periodTypesAndDescriptions
     // Ask user what date interval to do tag counts for
-    periodShortCode = await chooseOption(question, periodTypesAndDescriptions, 'mtd')
+    periodShortCode = await chooseOption(question, optionsForChooser, 'mtd')
   }
   let fromDateMom = new moment()
   let fromDate: Date = fromDateMom.toDate()
@@ -359,6 +386,24 @@ export async function getPeriodStartEndDates(
       toDateMom = moment(toDateMom).endOf('day')
       periodString = `all dates`
       periodAndPartStr = `all dates`
+      break
+    }
+    case 'custom': {
+      // Ask user for from date and to date
+      const fromReply: string = await askForISODate('Enter from date (YYYY-MM-DD)')
+      const toReply: string = await askForISODate('Enter to date (YYYY-MM-DD)')
+      if (fromReply === '' || toReply === '') {
+        throw new Error('No valid date range given')
+      }
+      const fromDateStr = fromReply
+      const toDateStr = toReply
+      if (fromDateStr > toDateStr) {
+        throw new Error('From date is after to date')
+      }
+      fromDate = moment(fromDateStr).toDate()
+      toDate = moment(toDateStr).toDate()
+      periodString = `${fromDateStr} - ${toDateStr}`
+      periodAndPartStr = `${fromDateStr} - ${toDateStr}`
       break
     }
     case 'ly': {

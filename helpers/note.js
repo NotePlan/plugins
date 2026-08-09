@@ -799,6 +799,30 @@ export function numberOfOpenItemsInNote(note: CoreNoteFields): number {
 }
 
 /**
+ * Find the first heading of at least the given level in the active part of the note.
+ * Ported from search-extensions-v3 for SearchExtensions.
+ * @author @jgclark
+ * @param {TNote} note
+ * @param {number} minSectionHeadingLevelToMatch (default: 2)
+ * @returns {number} lineIndex of the found heading, or -1 if not found
+ */
+export function findFirstHeadingOfMinimumLevel(note: TNote, minSectionHeadingLevelToMatch: number = 2): number {
+  const startOfActive = findStartOfActivePartOfNote(note)
+  const endOfActive = findEndOfActivePartOfNote(note)
+  const paras = note.paragraphs ?? []
+  let headingIndex: number = -1 // i.e. 'not found'
+
+  for (let i = startOfActive; i <= endOfActive; i++) {
+    const p = paras[i]
+    if (p.type === 'title' && p.headingLevel >= minSectionHeadingLevelToMatch) {
+      headingIndex = p.lineIndex
+      break
+    }
+  }
+  return headingIndex
+}
+
+/**
  * Set the icon for a note in the frontmatter.
  * @author @jgclark
  * @param {TNote} note

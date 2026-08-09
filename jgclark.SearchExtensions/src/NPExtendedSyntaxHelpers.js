@@ -15,7 +15,7 @@ import { getLocale } from '@helpers/NPConfiguration'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { caseSensitiveSubstringLocaleMatch, getSearchOperators, quoteTermsInSearchString, removeSearchOperators } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
-import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 
 //------------------------------------------------------------------------------
 // Notes
@@ -222,7 +222,7 @@ export async function runNPExtendedSyntaxSearches(
       logDebug('runNPExtendedSyntaxSearches', `- before dedupe = ${resultReducedParas.length} results`)
       // $FlowFixMe[prop-missing]
       // $FlowFixMe[incompatible-exact]
-      resultReducedParas = eliminateDuplicateSyncedParagraphs(resultReducedParas, 'most-recent', true)
+      resultReducedParas = eliminateDuplicateParagraphs(resultReducedParas, 'most-recent', true)
       logDebug('runNPExtendedSyntaxSearches', `  - after dedupe = ${resultReducedParas.length} results`)
       preLimitResultCount = resultReducedParas.length
 

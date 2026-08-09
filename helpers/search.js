@@ -9,6 +9,27 @@ import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { RE_NP_HASHTAG_G, RE_NP_MENTION_G, RE_SYNC_MARKER } from '@helpers/regex'
 
 /**
+ * Return whether NP advanced search syntax is available (build >= 1429)
+ * @returns {boolean}
+ */
+export function isNPAdvancedSyntaxAvailable(): boolean {
+  try {
+    // NP v3.18.1+
+    if (NotePlan?.environment?.platform !== 'macOS') {
+      // $FlowFixMe[prop-missing]
+      return (NotePlan?.environment?.buildVersion ?? 0) >= 1426 
+    } else {
+      // $FlowFixMe[prop-missing]
+      return (NotePlan?.environment?.buildVersion ?? 0) >= 1344 // approximately v3.18.1
+    }
+  } catch (error) {
+    logError('search/isNPAdvancedSyntaxAvailable', error.message)
+    return false
+  }
+}
+
+
+/**
  * Case insensitive array.includes() match
  * @author @jgclark
  * @param {string} searchTerm
@@ -91,6 +112,52 @@ export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: 
   }
   catch (error) {
     logError('search/caseInsensitiveSubstringMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
+    return false
+  }
+}
+
+/**
+ * Perform substring match, case-sensitively. Returns true if any of the needles is found in the haystack.
+ * Uses the Intl.Collator API to match the search term to the text to search, using the user's locale.
+ * Note: variant characters of the same case and be matched. E.g. a ≠ b, a = á, a ≠ A.
+ * @author @jgclark with help from ChatGPT
+ * @tests available in jest file
+ * 
+ * @param {Array<string>} needles one or more search terms
+ * @param {string} haystack the text content to search
+ * @param {string} userLocale? (default: "en-US")
+ * @returns {boolean}
+ */
+export function caseSensitiveSubstringLocaleMatch(
+  needles: string[],
+  haystack: string,
+  userLocale: string = "en-US"
+): boolean {
+  try {
+    if (!Array.isArray(needles) || needles.length === 0 || !haystack) {
+      return false
+    }
+    const collator = new Intl.Collator(userLocale, { sensitivity: "case", usage: "search" })
+    const H = haystack.normalize('NFC') // Normalize the haystack string to Unicode NFC form to ensure consistent character representation
+    const hay = Array.from(H)
+    const hayLen = hay.length
+
+    for (const needle of needles) {
+      if (!needle) continue
+      const N = needle.normalize('NFC')
+      const NLen = Array.from(N).length
+
+      for (let i = 0; i + NLen <= hayLen; i++) {
+        const segment = hay.slice(i, i + NLen).join('')
+        if (collator.compare(segment, N) === 0) return true
+      }
+    }
+    return false
+  } catch (error) {
+    logError(
+      'search/caseSensitiveSubstringLocaleMatch',
+      `Error matching '${String(needles)}' to '${haystack}': ${error.message}`
+    )
     return false
   }
 }
@@ -561,4 +628,228 @@ export function trimAndHighlightTermInLine(
     logError('trimAndHighlight...', error.message)
     return 'error' // for completeness
   }
+}
+
+/**
+ * Return true if the string is a search operator. These are the ones that are a string without a space that contains a non-escaped colon, and ignore search operators preceded by a backslash.
+ * Also includes values that are wrapped in double quotes (e.g. heading:"Project A"), but if so, the value is returned without the double quotes.
+ * Note: does not check validity of the search operators, just the form of the a:b string.
+ * @param {string} term to test
+ * @returns {boolean}
+ */
+export function isSearchOperator(term: string): boolean {
+  if (!term || term.startsWith('\\')) return false
+  // Match key:value where key has no spaces and value is either a quoted string (may include spaces)
+  // or an unquoted token with no spaces. Examples: date:2025-09-01, is:not-task, heading:"Project A"
+  const re = /^\w+:("[^"]+"|[^"\s]+)$/
+  return re.test(term)
+}
+
+/**
+ * Tokenize a search string by spaces while preserving quoted substrings
+ * @param {string} input
+ * @returns {Array<string>}
+ */
+function tokenizeRespectingQuotes(input: string): Array<string> {
+  return input.match(/(?:[^\s"]+|"[^"]*")+/g) || []
+}
+
+/**
+ * Normalize operator by unquoting value if wrapped in double quotes
+ * @param {string} op
+ * @returns {string}
+ */
+function normalizeOperator(op: string): string {
+  const idx = op.indexOf(':')
+  if (idx === -1) return op
+  const key = op.slice(0, idx)
+  const value = op.slice(idx + 1)
+  return (value.startsWith('"') && value.endsWith('"')) ? `${key}:${value.slice(1, -1)}` : op
+}
+
+/**
+ * Collect valid leading operators from token list
+ * @param {Array<string>} tokens
+ * @returns {Array<string>}
+ */
+function collectLeadingSearchOperators(tokens: Array<string>): Array<string> {
+  const ops = []
+  for (const term of tokens) {
+    if (isSearchOperator(term)) ops.push(term)
+    else break
+  }
+  return ops
+}
+
+/**
+ * Get array of search operators (e.g. date:2025-09-28 or is:open or heading:"Project A") from a search terms string. 
+ * Note: does not check validity of the search operators, just the form of the a:b string.
+ * But does ignore valid-looking operators after non-operators.
+ * Example: "term1:xxx (alpha OR beta) -gamma term2:"Holy Spirit"" returns just ["term1:xxx"]
+ * Suitable for use with extended search API from v3.18.1.
+ * @author @jgclark
+ * @tests in jest file
+ * @param {string} searchStr that may contain search operator(s) as well as search term(s)
+ * @returns {Array<string>} array of search operators
+ */
+export function getSearchOperators(searchStr: string): Array<string> {
+  const tokens = tokenizeRespectingQuotes(searchStr)
+  const leadingOps = collectLeadingSearchOperators(tokens)
+  return leadingOps.map(normalizeOperator)
+}
+
+/**
+ * Remove all search operators (e.g. date:2025-09-28 or is:open) from the start of a search terms string.
+ * Leaves search operators preceded by a backslash.
+ * Note: does not check validity of the search operators or remaining search terms, just the form of the a:b string.
+ * Suitable for use with extended search API from v3.18.1.
+ * @author @jgclark
+ * @tests in jest file
+ * @param {string} searchTermsStr string of search terms
+ * @returns {string} result
+ */
+export function removeSearchOperators(searchTermsStr: string): string {
+  const tokens = tokenizeRespectingQuotes(searchTermsStr)
+  let firstNonOperatorIndex = 0
+  for (const term of tokens) {
+    if (isSearchOperator(term)) firstNonOperatorIndex++
+    else break
+  }
+  const result = tokens.slice(firstNonOperatorIndex).join(' ')
+  logDebug('removeSearchOperators', `-> search terms without operators: '${result}'`)
+  return result
+}
+
+/**
+ * Apply supported search operators to mutate the given searchOptions
+ * Supports:
+ * - source:notes|calendar|notes,calendar
+ * - is:open|done|scheduled|cancelled|checklist|checklist-done|checklist-scheduled|checklist-cancelled|not-task
+ * @param {Array<string>} searchOperators
+ * @param {any} searchOptions
+ */
+// moved to jgclark.SearchExtensions/src/searchHelpers.js
+
+/**
+ * Return a searchString with each term surrounded by double-quotes.
+ * Treat -, ( and ) as punctuation not part of the terms.
+ * Leaves alone:
+ * - terms already surrounded by double-quotes
+ * - search operators
+ * Suitable for use with extended search API from v3.18.1.
+ * @author @Cursor guided by @jgclark
+ * @tests in jest file
+ * @param {string} searchString 
+ * @returns {string} searchString with terms surrounded by quotes
+ */
+export function quoteTermsInSearchString(searchString: string): string {
+  if (!searchString || searchString.trim() === '') return ''
+  
+  // Handle the case where the entire string is already quoted
+  if (searchString.startsWith('"') && searchString.endsWith('"')) {
+    return searchString
+  }
+  
+  let result = ''
+  let i = 0
+  
+  while (i < searchString.length) {
+    const char = searchString[i]
+    
+    if (char === '"') {
+      // Handle already quoted terms - find the closing quote
+      const start = i
+      i++ // skip opening quote
+      while (i < searchString.length && searchString[i] !== '"') {
+        i++
+      }
+      if (i < searchString.length) {
+        i++ // skip closing quote
+        result += searchString.slice(start, i)
+      } else {
+        // Unclosed quote, treat as regular text
+        result += searchString.slice(start)
+      }
+    } else if (char === '(') {
+      // Handle opening parenthesis
+      result += '('
+      i++
+      
+      // Process content inside parentheses
+      let parenContent = ''
+      let parenDepth = 1
+      while (i < searchString.length && parenDepth > 0) {
+        const nextChar = searchString[i]
+        if (nextChar === '(') {
+          parenDepth++
+        } else if (nextChar === ')') {
+          parenDepth--
+        }
+        if (parenDepth > 0) {
+          parenContent += nextChar
+        }
+        i++
+      }
+      
+      // Recursively quote the content inside parentheses
+      const quotedParenContent = quoteTermsInSearchString(parenContent)
+      result += quotedParenContent
+      result += ')'
+    } else if (char === '-') {
+      // Handle negation - check if it's followed by a parenthesis
+      if (i + 1 < searchString.length && searchString[i + 1] === '(') {
+        // Negated parentheses: -(content)
+        result += '-('
+        i += 2 // skip -(
+        
+        // Process content inside parentheses
+        let parenContent = ''
+        let parenDepth = 1
+        while (i < searchString.length && parenDepth > 0) {
+          const nextChar = searchString[i]
+          if (nextChar === '(') {
+            parenDepth++
+          } else if (nextChar === ')') {
+            parenDepth--
+          }
+          if (parenDepth > 0) {
+            parenContent += nextChar
+          }
+          i++
+        }
+        
+        // Recursively quote the content inside parentheses
+        const quotedParenContent = quoteTermsInSearchString(parenContent)
+        result += quotedParenContent
+        result += ')'
+      } else {
+        // Regular negation - find the term and quote it with the minus
+        let term = '-'
+        i++
+        while (i < searchString.length && searchString[i] !== ' ' && searchString[i] !== '(' && searchString[i] !== ')') {
+          term += searchString[i]
+          i++
+        }
+        result += `"${term}"`
+      }
+    } else if (char === ' ') {
+      result += ' '
+      i++
+    } else {
+      // Regular term - collect until space, parenthesis, or quote
+      let term = ''
+      while (i < searchString.length && searchString[i] !== ' ' && searchString[i] !== '(' && searchString[i] !== ')' && searchString[i] !== '"') {
+        term += searchString[i]
+        i++
+      }
+      
+      if (term === 'OR') {
+        result += 'OR'
+      } else {
+        result += `"${term}"`
+      }
+    }
+  }
+  
+  return result
 }

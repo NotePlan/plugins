@@ -515,3 +515,68 @@ export function colorToModernSpecWithOpacity(colorIn, opacity = 1) {
     return null
   }
 }
+
+/**
+ * Maps a string to a Tailwind CSS color name from a restricted palette of predefined colors.
+ * Uses a hash function to consistently select from the palette.
+ * See also:hashStringToRGBColor()
+ * @author Cursor AI guided by @jgclark
+ *
+ * @param {string} str - The input string to hash
+ * @returns {string} - Tailwind color name e.g. zinc-500
+ */
+export function stringToTailwindColorName(str) {
+  if (!str || typeof str !== 'string') {
+    return 'zinc-500' // Default color for invalid input
+  }
+
+  // Predefined color palette (Tailwind CSS inspired colors)
+  const colorPalette = [
+    'amber', // '#F59E0B'
+    'blue', // '#3B82F6'
+    'cyan', // '#06B6D4'
+    'emerald', // '#10B981'
+    'fuchsia', // '#D946EF'
+    'grey', // '#6B7280'
+    'indigo', // '#4F46E5'
+    'lime', // '#84CC16'
+    'orange', // '#F97316'
+    'pink', // '#EC4899'
+    'purple', // '#8B5CF6'
+    'red', // '#EF4444'
+    'rose', // '#F43F5E'
+    'sky', // '#0EA5E9'
+    'stone', // '#78716C'
+    'violet', // '#8B5CF6'
+    'teal', // '#14B8A6'
+    'yellow', // '#EAB308'
+    'zinc', // '#71717A'
+  ]
+
+  // Simple hash function to convert string to number
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32-bit integer
+  }
+
+  // Convert hash to positive number and map to palette index
+  const index = Math.abs(hash) % colorPalette.length
+  // convert to Tailwind CSS color name by adding "-500"
+  const tailwindColorName = `${colorPalette[index]}-500`
+  return tailwindColorName
+}
+
+/**
+ * Hash a string to an RGB color.
+ * See also: stringToTailwindColorName()
+ * @param {string} str
+ * @returns {string} RGB color as #RRGGBB
+ */
+export function hashStringToRGBColor(str) {
+  const hash = str.split('').reduce((acc, char) => {
+    return ((acc << 5) - acc) + char.charCodeAt(0)
+  }, 0)
+  return `#${hash.toString(16).padStart(6, '0')}`
+}

@@ -710,4 +710,221 @@ describe('search.js tests', () => {
       expect(output).toEqual('- ... ipsum dolor sit amet, ==sed== consectetur adipisicing ... elit, ==sed== do eiusmod tempor incididunt ...')
     })
   })
+
+  describe('caseSensitiveSubstringLocaleMatch', () => {
+    test('should not match empty array to ABCDEFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch([], 'ABCDEFG', 'en-GB')
+      expect(result).toEqual(false)
+    })
+    test('should not match empty string to ABCDEFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch([''], 'ABCDEFG', 'en-GB')
+      expect(result).toEqual(false)
+    })
+    test('should match ABC to ABCDEFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch(['ABC'], 'ABCDEFG', 'en-GB')
+      expect(result).toEqual(true)
+    })
+    test('should match EFG to ABCDEFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch(['EFG'], 'ABCDEFG', 'en-GB')
+      expect(result).toEqual(true)
+    })
+    test('should match CDE to ABCDEFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch(['CDE'], 'ABCDEFG', 'en-GB')
+      expect(result).toEqual(true)
+    })
+    test('should not match Abc to ABCDEFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch(['Abc'], 'ABCDEFG', 'en-GB')
+      expect(result).toEqual(false)
+    })
+    test('should match DÉF to ABCDEFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch(['DÉF'], 'ABCDEFG', 'en-GB')
+      expect(result).toEqual(true)
+    })
+    test('should match DEF to ABCDÉFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch(['DEF'], 'ABCDÉFG', 'en-GB')
+      expect(result).toEqual(true)
+    })
+    test('should match [BOB, CAT, DÉF] to ABCDEFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch(['BOB', 'CAT', 'DEF'], 'ABCDEFG', 'en-GB')
+      expect(result).toEqual(true)
+    })
+    test('should not match [BOB, CAT, FRED] to ABCDEFG', () => {
+      const result = s.caseSensitiveSubstringLocaleMatch(['BOB', 'CAT', 'FRED'], 'ABCDÉFG', 'en-GB')
+      expect(result).toEqual(false)
+    })
+  })
+
+
+  describe('isSearchOperator', () => {
+    test('should return false from empty input', () => {
+      const result = s.isSearchOperator('')
+      expect(result).toEqual(false)
+    })
+    test('should return false from input preceded by a backslash', () => {
+      const result = s.isSearchOperator('\\term1:xxx')
+      expect(result).toEqual(false)
+    })
+    test('should return true from input with a quoted value', () => {
+      const result = s.isSearchOperator('term1:"Holy Spirit"')
+      expect(result).toEqual(true)
+    })
+    test('should return false from input with an unquoted value', () => {
+      const result = s.isSearchOperator('term1:Holy Spirit')
+      expect(result).toEqual(false)
+    })
+    test('should return true from input with a quoted value', () => {
+      const result = s.isSearchOperator('term1:"Holy Spirit"')
+      expect(result).toEqual(true)
+    })
+    test('should return false from input with a dash in key', () => {
+      const result = s.isSearchOperator('key-1:this-and-that')
+      expect(result).toEqual(false)
+    })
+    test('should return false from input with a space in key', () => {
+      const result = s.isSearchOperator('key 1:this-and-that')
+      expect(result).toEqual(false)
+    })
+    test('should return true from input with a dash in value', () => {
+      const result = s.isSearchOperator('term1:this-and-that')
+      expect(result).toEqual(true)
+    })
+    test('should return true for underscore in key', () => {
+      const result = s.isSearchOperator('key_one:value')
+      expect(result).toEqual(true)
+    })
+    test('should return true for numeric value', () => {
+      const result = s.isSearchOperator('k1:2')
+      expect(result).toEqual(true)
+    })
+    test('should return false for unclosed quoted value', () => {
+      const result = s.isSearchOperator('term1:"Holy')
+      expect(result).toEqual(false)
+    })
+  })
+
+  
+  describe('getSearchOperators', () => {
+    test('should return empty array from empty input', () => {
+      const result = s.getSearchOperators('')
+      expect(result).toEqual([])
+    })
+    test('should return a single hyphenated operator', () => {
+      const result = s.getSearchOperators('date:2025-09-01-2025-09-30 term1')
+      expect(result).toEqual(['date:2025-09-01-2025-09-30'])
+    })
+    test('should return array of search operators from input', () => {
+      const result = s.getSearchOperators('term1:xxx term2:yyy')
+      expect(result).toEqual(['term1:xxx', 'term2:yyy'])
+    })
+    test('should return array of search operators from input ignoring the search terms', () => {
+      const result = s.getSearchOperators('term1:xxx term2:yyy term3:zzz term1 term2 OR term3 -term4')
+      expect(result).toEqual(['term1:xxx', 'term2:yyy', 'term3:zzz'])
+    })
+    test('ignore search operators preceded by a backslash', () => {
+      const result = s.getSearchOperators('term1:xxx \\term2:yyy')
+      expect(result).toEqual(['term1:xxx'])
+    })
+    test('should return array of search operators from input with double quotes', () => {
+      const result = s.getSearchOperators('term1:xxx term2:"Holy Spirit" term3:zzz')
+      expect(result).toEqual(['term1:xxx', 'term2:Holy Spirit', 'term3:zzz'])
+    })
+    test('should include operator with underscore in key', () => {
+      const result = s.getSearchOperators('key_one:val term')
+      expect(result).toEqual(['key_one:val'])
+    })
+    test('should handle quoted operator and normal operator order', () => {
+      const result = s.getSearchOperators('heading:"Project A" is:open')
+      expect(result).toEqual(['heading:Project A', 'is:open'])
+    })
+    test('should ignore escaped operator', () => {
+      const result = s.getSearchOperators('term1:xxx \\term2:yyy')
+      expect(result).toEqual(['term1:xxx'])
+    })
+    test('should handle multiple spaces between tokens', () => {
+      const result = s.getSearchOperators('term1:xxx   term2:yyy')
+      expect(result).toEqual(['term1:xxx', 'term2:yyy'])
+    })
+    test('should ignore valid-looking operators after non-operators', () => {
+      const result = s.getSearchOperators('term1:xxx (alpha OR beta) -gamma term2:"Holy Spirit"')
+      expect(result).toEqual(['term1:xxx'])
+    })
+  })
+
+  describe('removeSearchOperators', () => {
+    test('should return empty string from empty input', () => {
+      const result = s.removeSearchOperators('')
+      expect(result).toEqual('')
+    })
+    test('should return input string from single term', () => {
+      const result = s.removeSearchOperators('term1')
+      expect(result).toEqual('term1')
+    })
+    test('for multiple (AND) terms', () => {
+      const result = s.removeSearchOperators('term1 term2')
+      expect(result).toEqual('term1 term2')
+    })
+    test('should remove single leading search operator leaving search terms after it', () => {
+      const result = s.removeSearchOperators('operatorA:xxx term2 term3')
+      expect(result).toEqual('term2 term3')
+    })
+    test('should remove multiple leading search operators but leave one that is preceded by a backslash', () => {
+      const result = s.removeSearchOperators('operatorA:2025-09-01 is:not-task \\operatorC:zzz term4')
+      expect(result).toEqual('\\operatorC:zzz term4')
+    })
+    test('should remove single leading search operator and leave others after search terms', () => {
+      const result = s.removeSearchOperators('operatorA:xxx term2 operatorB:yyy operatorC:zzz')
+      expect(result).toEqual('term2 operatorB:yyy operatorC:zzz')
+    })
+    test('should leave escaped colon in operator at start untouched', () => {
+      const result = s.removeSearchOperators('\\term1:xxx term2')
+      expect(result).toEqual('\\term1:xxx term2')
+    })
+    test('should remove quoted operator at start', () => {
+      const result = s.removeSearchOperators('heading:"Project A" term')
+      expect(result).toEqual('term')
+    })
+    test('should not remove when first token is not operator', () => {
+      const result = s.removeSearchOperators('term operatorA:xxx')
+      expect(result).toEqual('term operatorA:xxx')
+    })
+  })
+  
+  describe('quoteTermsInSearchString', () => {
+    test('should return empty string from empty input', () => {
+      const result = s.quoteTermsInSearchString('')
+      expect(result).toEqual('')
+    })
+    test('should return input string from single term', () => {
+      const result = s.quoteTermsInSearchString('term1')
+      expect(result).toEqual('"term1"')
+    })
+    test('for multiple (AND) terms', () => {
+      const result = s.quoteTermsInSearchString('term1 term2')
+      expect(result).toEqual('"term1" "term2"')
+    })
+    test('For OR-d terms', () => {
+      const result = s.quoteTermsInSearchString('term1 OR term2')
+      expect(result).toEqual('"term1" OR "term2"')
+    })
+    test('for negated terms', () => {
+      const result = s.quoteTermsInSearchString('-term1 -term2')
+      expect(result).toEqual('"-term1" "-term2"')
+    })
+    test('for negated terms in parentheses', () => {
+      const result = s.quoteTermsInSearchString('-(term1 OR term2)')
+      expect(result).toEqual('-("term1" OR "term2")')
+    })
+    test('for quoted single-word terms, return as is', () => {
+      const result = s.quoteTermsInSearchString('"term1" "term2"')
+      expect(result).toEqual('"term1" "term2"')
+    })
+    test('for quoted multi-word terms, return as is', () => {
+      const result = s.quoteTermsInSearchString('"Holy Spirit"')
+      expect(result).toEqual('"Holy Spirit"')
+    })
+    test('For complex mix of terms', () => {
+      const result = s.quoteTermsInSearchString('term1 (term2 OR term3) -term4')
+      expect(result).toEqual('"term1" ("term2" OR "term3") "-term4"')
+    })
+  })
 })
