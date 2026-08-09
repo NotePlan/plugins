@@ -2,17 +2,32 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
-## [2.0.3] - 2026-02-18
-### Fixed
-- search terms with underscore(s) were being tokenized into two words, rather than being treated as a single word.
-- **/replace** command wasn't honouring the "Are you sure you want to continue?" dialog check.
+## [3.0.0.b2] - 2025-09-31
+### Changes
+- '/replace' command now works with new search operators in the search string
+- removed '/replace over Calendar' and '/replace over Notes' commands, as they can be handled by starting with the search operator `source:calendar` or `source:notes` instead.
+- added '/replace over all notes' as an alias of the '/replace' command.
+- the `sort:asc` and `sort:desc` operators are now taken into account in the output
+- fix for iOS not using newer syntax
 
-## [2.0.2] - 2026-01-30
-- align 'searchInPeriod' command x-callback parameters to what the documentation actually says ;-)
-- fixes to 'searchInPeriod' run interactively
+## [3.0.0.b1] - 2025-09-29
+### Main Changes
+The Plugin now supports the significant [new native search capabilities](https://help.noteplan.co/article/269-advanced-search) available from NotePlan v3.18.1. Compared to v2 the plugin is now much faster for multi-term searches. Unless you turn off the new setting "Use native search?", the plugin's previous extended syntax for boolean operators is turned off, and all the new NP syntax is supported instead.  For example: 
+- the previous search terms  `+must may could -cannot` is now expressed as `must (may OR could) -cannot`.
+- `+meeting -work -meetup` is now `meeting -(work meetup)`
 
-## [2.0.1] - 2026-01-24
-- bug fixes for 'replace' commands
+To get this version out more quickly, some previous functionality is temporarily removed for users running v3.18.1+. So the following are _not available_:
+- the extended syntax `!term` which means the term cannot appear anywhere in the note, not just on the same line
+- applying new sort operators `sort:asc` or `sort:desc`
+- the **replace** command has only been tested on single terms.
+
+Note: The existing functionality is retained for users not able to run v3.18.1 or later.
+### Other changes
+- added 2 new options for sorting results
+- now adds 🔍 icon to result notes
+- the trigger has been changed to **automatically refresh** a saved search when opening its note. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'onOpen'" from the list.  To turn off this trigger, just remove the line starting `triggers: onOpen` from the frontmatter. (Existing set triggers should still work.)
+### Dev notes
+- runExtendedSearches() now forked to runPluginExtendedSyntaxSearches() and runNPExtendedSyntaxSearches().
 
 ## [2.0.0] - 2025-03-21
 ### New
@@ -44,7 +59,7 @@ Under-the-hood changes, to support being called by other plugins:
 ### New
 - Adds a number of **replace** commands, that first search and then offer to replace with some new text. It always shows the number of occurrences found, and checks that you wish to proceed. **Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation**. You would have to use the Versions menu item in each note to roll it back.
 -->
-
+<!-- 
 ## [1.4.0] - 2025-01-18
 ### New
 - Adds ability to search matching the case of words ("**case sensitively**"). This is different to NotePlan which only allows case-insensitive searching. There is a new setting to turn this on or off. There is a new control for this on the flexiSearch dialog.
@@ -192,4 +207,4 @@ First release, with commands from earlier Summaries plugin.
 ### Changes
 - speeded up the **/saveSearchResults** and **/saveSearchResultsInPeriod** commands significantly. (Under the hood the plugin now uses an API that takes advantage of caching.)
 - now trims the display of matching results in search output, but still highlights the matched terms
-
+ -->

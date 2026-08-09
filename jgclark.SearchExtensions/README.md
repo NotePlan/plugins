@@ -1,10 +1,11 @@
 # 🔎 Search Extensions plugin
-NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.  This plugin adds some extra power and usability to searching. It:
-- lets you have keep special notes that lists all open tasks for @colleagueX that you can update in place!
-- extends the search syntax to allow much more control, including wildcards
+NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.  This plugin adds some extra power and usability to searching:
 - by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
-- these saved searches can be refreshed automatically when you open the note to consult it.
-- (v2) lets you **replace** as well as search.
+- this opens the possibility of having notes that lists all open tasks with a particular phrase, for example `@colleagueX`
+- further, this note can be automatically updated every time you access it
+- extends the search syntax to allow more control, including wildcards
+- allows you to set notes to ignore in particular folders
+- lets you **replace** as well as search.
 
 ![demo](qs+refresh-demo.gif)
 
@@ -14,7 +15,7 @@ NotePlan can search over your notes, but it is currently not very flexible or ea
 
   <img width="450px" alt="FlexiSearch" src="flexiSearch-dialog1@2x.png"/>
   
-  Note: when /flexiSearch is run on iPhone or iPad you will need to close the dialog box by pressing the X in the top right-hand corner after the search has run. (I'm trying to find a way around this limitation.)
+  Note: when /flexiSearch is run on iPhone or iPad, there's a limitation that means you will need to close the dialog box by pressing the X in the top right-hand corner after the search has run.
 
 - **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note. (Alias: **/qs**.)
 - **/search** searches across **all notes**  (both calendar and regular notes). (Alias: **/ss**.)
@@ -24,6 +25,16 @@ NotePlan can search over your notes, but it is currently not very flexible or ea
 - **/searchInPeriod**: searches over the **calendar (daily, weekly etc.) notes of the time period you select**:
 
   <img width="500px" alt="selecting a period" src="period-selection.png"/>
+
+All notes in the special Trash folder are ignored.  Others can be excluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
+
+You can also set default search terms in the 'Default Search terms' setting; if set you can still always override them on individual searches.
+
+### Major Changes from v2 to v3
+As there's a much richer search syntax to use in NotePlan v3.18.1, the following commands are now deprecated (and will be removed in time):
+- "/searchOpenTasks": Instead start your search term with `is:open` (or `is:open,checklist` etc.)
+- "/searchOverCalendar": Instead start your search term with `source:calendar`.
+- "/searchOverNotes": Instead start your search term with `source:notes`.
 
 ### Results Display
 The results are always **saved to a note** with the search terms as its title in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  You also are given the option of saving to the current note, or to the plugin console.  _The exception is /quickSearch, which always saves to the same "Quick Search Results" note._
@@ -48,14 +59,26 @@ There are further display options you can set:
 - the ordering of the results by the title, created date or changed date of the note the search term is found in.
 - the commands to automatically decides the name of the note to save the search results to based on the search term, which avoids the final prompt, by the 'Automatically save?' setting.
 
-### Refreshing Results
+### Refreshing Results manually
 Each results note has a ` [🔄 Refresh results for ...]` pseudo-button under the title of the note. Clicking that runs the search again, and replaces the earlier set of results:
 
 ![refresh results](highlight-refresh-in-search-results.png)
 
-A saved search can be **automatically refreshed when opening it**. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'refreshSavedSearch'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the note's properties.
+### Refreshing Results automatically
+A saved search can be refreshed **automatically when opening it**. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'refreshSavedSearch'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the note's properties.
 
 ## Extended search syntax
+NotePlan v3.18.1 added much new power and flexibility for its searches, now supporting some of what this plugin had provided. The Plugin now works differently depending which version of NotePlan you're running.
+
+### Using v3.18.1 onwards
+The Plugin now uses the [app's extended syntax](https://help.noteplan.co/article/269-advanced-search), with the following additions:
+- like the search in NotePlan, the searches default to ignoring the case of words (i.e. `SPIRIT` will match `spirit` or `Spirit` as well as `SPIRIT`). However, you can select "**Case Sensitive searching**" option in settings and the FlexiSearch dialog.
+<!-- - two **wildcard** operators:
+  -  `*` in a term means "match any number of characters (including none)" -- e.g. `pos*e` matches "possible", "posie" and "pose".
+  -  `?` in a term means "match any single character" -- e.g. `poli?e` matches "polite" and "police". -->
+
+### Using versions before 3.18.1
+The Plugin adds all the following search syntax:
 - put a `+`  and `-` search operator on the front of terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must_have_me !no_way_jose`. (thanks @dwertheimer for this suggestion)
 - to search for an exact multi-word phrases, put it in double quotes (e.g. `"Holy Spirit"`)
@@ -63,19 +86,18 @@ A saved search can be **automatically refreshed when opening it**. To enable thi
 - the searches are simple ones, matching on whole or partial words (e.g. `wind` matches `Windings` and `unwind`). This is what the search in NotePlan does. However, you set the "**Match only on full words?**" option in settings and the FlexiSearch dialog.
 - you can also use two **wildcard** operators:
   -  `*` in a term means "match any number of characters (including none)" -- e.g. `pos*e` matches "possible", "posie" and "pose".
-  -  `?` in a term means "match any single character" -- e.g. `poli?e` matches "polite" and "police".
-<!-- - normally, a search term must have at least two alphanumeric characters to be valid.  -->
-- you can use an empty search term (from v1.1), which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
-- all notes in the special Trash folder are ignored.  Others can be excluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
-- you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
+  -  `?` in a term means "match any single character" -- e.g. `poli?e` matches "police" and "polite".
+- you can use an empty search term, which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
 
-## The Replace commands
-v2.0 adds the following commands:
-- **/replace over all notes** does search and replaces across both calendar and regular notes. (Alias: **/repl**.)
-- **/replace over Regular notes** does search and replaces across all regular (non-calendar) notes. (Alias: **/replreg**.)
-- **/replace over Calendar notes** does search and replaces across calendar notes. (Alias: **/replcal**.)
+## The Replace command
+(From v3) use the **/replace** (alias: **/search and replace**) to enter a search term, and then a replace term. It first show the number of occurrences found (and writes the details of each to the Plugin console log), and checks that you wish to proceed. **Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation**. You would have to use the Versions menu item in each note to roll it back.
 
-All of them first show the number of occurrences found (and writes the details of each to the Plugin console log), and checks that you wish to proceed. **Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation**. You would have to use the Versions menu item in each note to roll it back.
+You can use search operators as part of the search string, as above. So for example you can narrow your replace to:
+- only Calendar notes by starting with `source:calendar`
+- just open tasks by starting with `is:open`
+- notes in a particular folder by starting with `path:/to/folder`.
+
+The searches also use the setting for case sensitivity (above).
 
 ## Settings
 To change the default **settings** on **macOS** click the gear button on the 'Search Extensions' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.
@@ -128,17 +150,17 @@ Notes:
 - the number and order of arguments you pass is important
 - where an argument isn't valid, don't include it
 - as with all x-callback URLs, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.
-- the available 'note  type' to include are `calendar`, `notes` or `both`.
-- the available 'paragraph types' are from the API: 'open', 'done', 'scheduled', 'cancelled', 'checklist', 'checklistDone', 'checklistScheduled', 'checklistCancelled', 'title', 'quote', 'list', 'empty', 'text', 'code', 'separator'. To not filter by type just pass the empty string, but otherwise the items need to be comma-separated.
+- the available 'note  type' to include are `calendar`, `notes` or `both`. If not specified, then it defaults to `both`.
+- the available 'paragraph types' are from the NotePlan API: `open`, `done`, `scheduled`, `cancelled`, `checklist`, `checklistDone`, `checklistScheduled`, `checklistCancelled`, `title`, `quote`, `list`, `empty`, `text`, `code`, `separator`. To not filter by type just pass the empty string, but otherwise the items need to be comma-separated.
 - where relevant 'destination' can be `quick` (Quick Search note), `newnote` (note specific to this search), `current` (to currently open note), or `log` (just send to console log).
 - **Tip**: use the Link Creator Plugin's "/Get x-callback-url" command to do the fiddly work for you ...
 - the callback parameters have changed since v1.x
 
 | Command | encoded command name | arg0 | arg1 | arg2 | arg3 | arg4 |
 |-----|-----------|----------|----------|----------|----------|----------|
-| /replace over ... | replace| search term | replacement text | note types (see above) | paragraph types (see above) | |
+| /replace | replace | search term | replacement text | note types (see above) | paragraph types (see above) | |
 | /flexiSearch | flexiSearch<br />(this takes no args: use this just to display the dialog box) | | | | | |
-| /quickSearch | quickSearch| search term(s) ¶ | note types | paragraph types (see above) | | |
+| /quickSearch | quickSearch | search term(s) ¶ | note types | paragraph types (see above) | | |
 | /search | searchOverAll | search term(s) | | paragraph types (see above) | destination (see above) | |
 | /searchOverCalendar | searchOverCalendar| search term(s) | | paragraph types (see above) | destination (see above) | |
 | /searchOverNotes | searchOverNotes| search term(s) | | paragraph types (see above) | destination (see above) | |
@@ -150,7 +172,7 @@ Notes:
 When commands are called this way, then it all works in the background without user interaction, except for the 'quickSearch' call, or when the destination type is 'quick'.
 
 ## Support
-If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues). Note that it's particularly difficult to test, so please give as much context as possible.
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues). Note that it's particularly difficult to test, so please give as much context as possible.
 
 I have spent at least 3.5 weeks of my time off on this plugin. If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
 
@@ -159,4 +181,4 @@ I have spent at least 3.5 weeks of my time off on this plugin. If you would like
 Thanks!
 
 ## History
-Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md).
+Please see the [CHANGELOG](CHANGELOG.md).
