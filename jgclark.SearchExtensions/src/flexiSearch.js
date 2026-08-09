@@ -207,6 +207,12 @@ const flexiSearchDialogPostBodyScripts = `
 
 		// Iterate over checkbox controls setting whether they're initially checked or not
     // Note additional complexity because 'list' is a substring of '...Checklist'
+    // Prefs may be boolean, 'true'/'false', or legacy 'casesens'/'fullword' checkbox values
+    function prefIsOn(raw) {
+      if (raw === true || raw === 1) return true
+      const s = String(raw).toLowerCase()
+      return s === 'true' || s === '1' || s === 'casesens' || s === 'fullword' || s === 'yes'
+    }
 		function initDialogState() {
 			console.log('initDialogState()')
       const paraTypesArr = paraTypesStr.replace(/,{2,}/g, ',').replace(/,$/, '').replace(/^,/, '').split(',')
@@ -219,11 +225,11 @@ const flexiSearchDialogPostBodyScripts = `
           console.log('- setting saveType "'+ val +'" to ' + String(saveType === val))
           inputs[i].checked = (saveType === val)
         } else if (inputs[i].name === "casesens") {
-          console.log('- setting caseSensitiveSearching "'+ val +'" to ' + String(caseSensitiveSearching === val))
-          inputs[i].checked = (caseSensitiveSearching === val)
+          console.log('- setting caseSensitiveSearching to ' + String(prefIsOn(caseSensitiveSearching)))
+          inputs[i].checked = prefIsOn(caseSensitiveSearching)
         } else if (inputs[i].name === "fullword") {
-          console.log('- setting fullWordSearching "'+ val +'" to ' + String(fullWordSearching === val))
-          inputs[i].checked = (fullWordSearching === val)
+          console.log('- setting fullWordSearching to ' + String(prefIsOn(fullWordSearching)))
+          inputs[i].checked = prefIsOn(fullWordSearching)
         } else if (inputs[i].type === "checkbox") {
           console.log('- setting paraTypesStr "'+ val +'" to ' + String(paraTypesArr.includes(val)))
           inputs[i].checked = paraTypesArr.includes(val)
@@ -253,13 +259,12 @@ const flexiSearchDialogPostBodyScripts = `
 					// Set this
 					saveType = inputs[i].value
 				}
-				if (inputs[i].checked && (inputs[i].name === "casesens")) {
-					// Set this
-					caseSens = inputs[i].value
+				if (inputs[i].name === "casesens") {
+					// Store as 'true'/'false' so prefs match plugin settings booleans
+					caseSens = inputs[i].checked ? 'true' : 'false'
 				}
-				if (inputs[i].checked && (inputs[i].name === "fullword")) {
-					// Set this
-					fullWord = inputs[i].value
+				if (inputs[i].name === "fullword") {
+					fullWord = inputs[i].checked ? 'true' : 'false'
 				}
 				if (inputs[i].checked && (inputs[i].name === "task" || inputs[i].name === "checklist" || inputs[i].name === "other")) {
 					// Add this checked value to a CSV string
@@ -336,8 +341,8 @@ const flexiSearchDialogPostBodyScripts = `
 
       // Read current form state (similar to saveDialogState but for immediate use)
       let currentSaveType = ''
-      let currentCaseSens = ''
-      let currentFullWord = ''
+      let currentCaseSens = 'false'
+      let currentFullWord = 'false'
       let currentNoteTypesStr = ''
       let currentParaTypesStr = ''
       for (let i = 0; i < inputs.length; i++) {
@@ -347,11 +352,11 @@ const flexiSearchDialogPostBodyScripts = `
         if (inputs[i].checked && (inputs[i].name === "savetype")) {
           currentSaveType = inputs[i].value
         }
-        if (inputs[i].checked && (inputs[i].name === "casesens")) {
-          currentCaseSens = inputs[i].value
+        if (inputs[i].name === "casesens") {
+          currentCaseSens = inputs[i].checked ? 'true' : 'false'
         }
-        if (inputs[i].checked && (inputs[i].name === "fullword")) {
-          currentFullWord = inputs[i].value
+        if (inputs[i].name === "fullword") {
+          currentFullWord = inputs[i].checked ? 'true' : 'false'
         }
         if (inputs[i].checked && (inputs[i].name === "task" || inputs[i].name === "checklist" || inputs[i].name === "other")) {
           currentParaTypesStr += inputs[i].value + ','
@@ -430,12 +435,21 @@ export async function showFlexiSearchDialog(
       .replace(/\btaskCancelled\b/g, 'cancelled')
       .replace(/\bchecklistOpen\b/g, 'checklist')
       .replace(/\bother\b/g, 'non-task')
+    // Pass stable string tokens into HTML (accept boolean or legacy casesens/fullword)
+    const caseSensPrefStr = (() => {
+      if (caseSensitiveSearching === true || caseSensitiveSearching === 1) return 'true'
+      const s = String(caseSensitiveSearching).toLowerCase()
+      return (s === 'true' || s === '1' || s === 'casesens' || s === 'yes') ? 'true' : 'false'
+    })()
+    const fullWordPrefStr = (() => {
+      if (fullWordSearching === true || fullWordSearching === 1) return 'true'
+      const s = String(fullWordSearching).toLowerCase()
+      return (s === 'true' || s === '1' || s === 'fullword' || s === 'yes') ? 'true' : 'false'
+    })()
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
-      // $FlowIgnore[incompatible-call] not pretty, but works
-      .replace('%%CASESENSPREF%%', caseSensitiveSearching)
-      // $FlowIgnore[incompatible-call] not pretty, but works
-      .replace('%%FULLWORDPREF%%', fullWordSearching)
+      .replace('%%CASESENSPREF%%', caseSensPrefStr)
+      .replace('%%FULLWORDPREF%%', fullWordPrefStr)
       .replace('%%NOTETYPESSTRPREF%%', noteTypesStr)
       .replace('%%PARATYPESSTRPREF%%', paraTypesStr)
 
@@ -466,10 +480,10 @@ export async function showFlexiSearchDialog(
  * Handle search request from the flexiSearch dialog.
  * @param {string} searchTerms 
  * @param {string} saveType 
- * @param {string} caseSensitiveSearchingAsStr Note: string due to limit of bridge to plugin. either 'casesens' or ''
- * @param {string} fullWordSearchingAsStr Note: string due to limit of bridge to plugin. either 'fullword' or ''
+ * @param {string} caseSensitiveSearchingAsStr Note: string due to bridge. 'true'|'false' or legacy 'casesens'|''
+ * @param {string} fullWordSearchingAsStr Note: string due to bridge. 'true'|'false' or legacy 'fullword'|''
  * @param {string} noteType 'notes' | 'calendar' | 'both'
- * @param {string} paraTypes 
+ * @param {string} paraTypes
  * @returns {any} but in practice empty object
  */
 export async function flexiSearchHandler(
@@ -492,9 +506,15 @@ export async function flexiSearchHandler(
           : (noteType === 'calendar') ? 'searchOverCalendar'
             : 'search' // which defaults to 'both'
 
-    // Set searchOptions
-    const caseSensitiveSearching: boolean = caseSensitiveSearchingAsStr === 'casesens'
-    const fullWordSearching: boolean = fullWordSearchingAsStr === 'fullword'
+    // Set searchOptions (accept boolean-like strings and legacy checkbox values)
+    const caseSensitiveSearching: boolean =
+      caseSensitiveSearchingAsStr === 'true' ||
+      caseSensitiveSearchingAsStr === 'casesens' ||
+      caseSensitiveSearchingAsStr === 'yes'
+    const fullWordSearching: boolean =
+      fullWordSearchingAsStr === 'true' ||
+      fullWordSearchingAsStr === 'fullword' ||
+      fullWordSearchingAsStr === 'yes'
     // saveSearch(searchTerms, noteType, originatorCommand, paraTypes, 'Searching', caseSensitiveSearching, fullWordSearching)
     const searchOptions: TSearchOptions = {
       noteTypesToInclude: getNoteTypesFromString(noteType),

@@ -48,12 +48,15 @@ export function init(): void {
 }
 
 export async function onSettingsUpdated(): Promise<void> {
-  // Read these new settings, and then set two preferences to be picked up by flexiSearch later
+  // Read these new settings, and then set two preferences to be picked up by flexiSearch later.
+  // Store as strings 'true'/'false' so the HTML dialog and boolean settings stay aligned.
   const updatedSettings = await getSearchSettings()
-  logDebug('onSettingsUpdated', `Setting caseSensitiveSearching pref to ${String(updatedSettings.caseSensitiveSearching ?? false)}`)
-  DataStore.setPreference(`${pluginID}.caseSensitiveSearching`, updatedSettings.caseSensitiveSearching ?? false)
-  logDebug('onSettingsUpdated', `Setting fullWordSearching pref to ${String(updatedSettings.fullWordSearching ?? false)}`)
-  DataStore.setPreference(`${pluginID}.fullWordSearching`, updatedSettings.fullWordSearching ?? false)
+  const caseSensStr = String(Boolean(updatedSettings?.caseSensitiveSearching ?? false))
+  const fullWordStr = String(Boolean(updatedSettings?.fullWordSearching ?? false))
+  logDebug('onSettingsUpdated', `Setting caseSensitiveSearching pref to ${caseSensStr}`)
+  DataStore.setPreference(`${pluginID}.caseSensitiveSearching`, caseSensStr)
+  logDebug('onSettingsUpdated', `Setting fullWordSearching pref to ${fullWordStr}`)
+  DataStore.setPreference(`${pluginID}.fullWordSearching`, fullWordStr)
 }
 
 export async function onUpdateOrInstall(): Promise<void> {
