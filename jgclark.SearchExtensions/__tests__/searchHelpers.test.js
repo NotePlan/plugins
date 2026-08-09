@@ -10,6 +10,7 @@ import {
   normaliseDestination,
   numberOfUniqueFilenames,
 } from '../src/searchHelpers'
+import { getCommandArgHelp } from '../src/searchCommandRegistry'
 import { sortListBy } from '@helpers/sorting'
 import { differenceByPropVal, differenceByObjectEquality } from '@helpers/dataManipulation'
 import { JSP, clo } from '@helpers/dev'
@@ -201,6 +202,13 @@ describe('searchHelpers.js tests', () => {
       expect(periodArgs).toEqual(['tag', 'open', 'calendar', 'refresh', '20250101', '20250131'])
       const searchArgs = buildRefreshCallbackArgs('searchOverAll', 'hello', 'both', 'open,done', 'refresh')
       expect(searchArgs).toEqual(['hello', 'both', 'open,done', 'refresh'])
+    })
+
+    test('getCommandArgHelp matches registry layout for searchInPeriod', () => {
+      const help = getCommandArgHelp('searchInPeriod')
+      expect(help.length).toEqual(6)
+      expect(help[1]).toMatch(/paragraph types/)
+      expect(help[2]).toMatch(/note types/)
     })
 
     test('normaliseDestination maps newnote alias to searchSpecificNote', () => {

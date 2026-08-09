@@ -8,9 +8,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "3.0.0.b14",
-  "plugin.releaseStatus": "beta14",
-  "plugin.lastUpdateInfo": "3.0.0.b14: Maintainability - remove dead dual-engine helpers and stale comments.\nNote: this is a beta release, so please report any issues you find.",
+  "plugin.version": "3.0.0.b15",
+  "plugin.releaseStatus": "beta15",
+  "plugin.lastUpdateInfo": "3.0.0.b15: Single command registry for re-run x-callbacks; aligned plugin.json argument docs.\nNote: this is a beta release, so please report any issues you find.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -35,10 +35,10 @@
       "description": "quick Search over all notes, showing results in a fixed Quick Search results note",
       "jsFunction": "quickSearch",
       "arguments": [
-        "search term(s) (separated by commas)",
-        "terms to filter by paragraph type (separated by commas)",
-        "noteTypesToInclude either 'project','calendar' or 'both'",
-        "(optional) destination: 'current', 'newnote' (alias searchSpecificNote), 'quick', or 'log'"
+        "search term(s)",
+        "note types: 'notes', 'calendar', or 'both'",
+        "paragraph types (comma-separated, optional)",
+        "(optional) destination: 'current', 'newnote' (alias searchSpecificNote), 'quick', 'log', or 'refresh'"
       ]
     },
     {
@@ -50,10 +50,10 @@
       "description": "Save results from a search over all notes",
       "jsFunction": "searchOverAll",
       "arguments": [
-        "search term(s) (separated by commas)",
-        "terms to filter by paragraph type (separated by commas)",
-        "ignored placeholder",
-        "(optional) destination: 'current', 'newnote' (alias searchSpecificNote), 'quick', or 'log'"
+        "search term(s)",
+        "note types (ignored; always both for this command)",
+        "paragraph types (comma-separated, optional)",
+        "(optional) destination: 'current', 'newnote' (alias searchSpecificNote), 'quick', 'log', or 'refresh'"
       ]
     },
     {
@@ -66,10 +66,10 @@
       "description": "Save results from a search over all open tasks in all notes",
       "jsFunction": "searchOpenTasks",
       "arguments": [
-        "search term(s) (separated by commas)",
-        "paragraph type filter terms (optional; separated by commas)",
-        "ignored placeholder",
-        "(optional) destination: 'current', 'newnote' (alias searchSpecificNote), 'quick', or 'log'"
+        "search term(s)",
+        "note types: 'notes', 'calendar', or 'both'",
+        "paragraph types (ignored; always open tasks/checklists)",
+        "(optional) destination: 'current', 'newnote' (alias searchSpecificNote), 'quick', 'log', or 'refresh'"
       ]
     },
     {
@@ -85,12 +85,12 @@
       "description": "Save results from a search of specified tags or mentions over Calendar notes from a time period",
       "jsFunction": "searchPeriod",
       "arguments": [
-        "search term(s) (separated by commas)",
-        "paragraph type filter terms (optional; separated by commas)",
-        "noteTypesToInclude either 'project','calendar' or 'both'",
-        "(optional) destination: 'current', 'newnote' (alias searchSpecificNote), 'quick', or 'log'",
-        "start date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to 3 months ago",
-        "end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today"
+        "search term(s)",
+        "paragraph types (comma-separated, optional)",
+        "note types (ignored; always calendar)",
+        "(optional) destination: 'current', 'newnote' (alias searchSpecificNote), 'quick', 'log', or 'refresh'",
+        "start date (YYYYMMDD or YYYY-MM-DD); optional",
+        "end date (YYYYMMDD or YYYY-MM-DD); optional"
       ]
     },
     {
@@ -106,10 +106,10 @@
       "description": "Save results from a search of specified tags or mentions over all Calendar notes",
       "jsFunction": "searchOverCalendar",
       "arguments": [
-        "search term(s) (separated by commas)",
-        "paragraph type filter terms (optional; separated by commas)",
-        "ignored placeholder",
-        "(optional) destination: 'current', 'newnote' (alias searchSpecificNote), 'quick', or 'log'"
+        "search term(s)",
+        "note types (ignored; always calendar)",
+        "paragraph types (comma-separated, optional)",
+        "(optional) destination: 'current', 'newnote' (alias searchSpecificNote), 'quick', 'log', or 'refresh'"
       ]
     },
     {
@@ -122,10 +122,10 @@
       "description": "Save results from a search over all project notes",
       "jsFunction": "searchOverNotes",
       "arguments": [
-        "search term(s) (separated by commas)",
-        "paragraph type filter terms (optional; separated by commas)",
-        "ignored placeholder",
-        "(optional) destination: 'current', 'newnote' (alias searchSpecificNote), 'quick', or 'log'"
+        "search term(s)",
+        "note types (ignored; always notes)",
+        "paragraph types (comma-separated, optional)",
+        "(optional) destination: 'current', 'newnote' (alias searchSpecificNote), 'quick', 'log', or 'refresh'"
       ]
     },
     {
@@ -149,9 +149,10 @@
       "description": "Search and Replace",
       "jsFunction": "replace",
       "arguments": [
-        "search term(s) (separated by commas)",
-        "replace expression",
-        "paragraph types (separated by commas)"
+        "search string (may include search operators)",
+        "replacement text",
+        "note types: 'notes', 'calendar', or 'both'",
+        "paragraph types (comma-separated, optional)"
       ]
     },
     {

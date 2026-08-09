@@ -2,6 +2,11 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b15] - 2026-08-09
+### Dev / maintainability
+- Add `searchCommandRegistry.js` as single source for command names, refresh arg order, and arg help
+- Simplify onOpen re-run dispatch; align `plugin.json` command argument descriptions with JS signatures
+
 ## [3.0.0.b14] - 2026-08-09
 ### Dev / maintainability
 - Remove dead helpers (`reduceNoteAndLineArray`, unused date-range mapper, duplicate `resultCounts`)
