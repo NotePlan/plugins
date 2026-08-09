@@ -2,6 +2,10 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b12] - 2026-08-09
+### Documentation
+- README rewritten for plugin v3: native vs plugin search, destinations, re-run/onOpen, replace, and correct x-callback command/arg table
+
 ## [3.0.0.b11] - 2026-08-09
 ### Fixed
 - Use `isNPAdvancedSyntaxAvailable()` from flexiSearch and externalSearch (platform-aware macOS/iOS build floors) instead of hard-coded `>= 1429`
