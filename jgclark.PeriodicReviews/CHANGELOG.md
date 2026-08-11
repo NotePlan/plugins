@@ -3,6 +3,10 @@ _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
+## [2.0.0.b15] - 2026-08-11
+- fix: template lines like `Programming: @prog(<number>) <string>` now pre-fill and write back free-text when the note only has the string portion (e.g. `Programming: Things I've already noted.`). Blank earlier @token fields no longer drop the line label from the output.
+- change: blank **Planned items heading** settings no longer fall back to built-in names; planned items are written to the next period note with no H2. Review-window planning labels fall back to generic "Planned" / "Planning for the next …" titles.
+
 ## [2.0.0.b14] - 2026-05-18
 - dev: cherry pick helper updates from main branch to allow for "IBM Plex Sans" fonts in displays
 - change: will now review the currently-open calendar note (if available), otherwise fall back to the current calendar note.

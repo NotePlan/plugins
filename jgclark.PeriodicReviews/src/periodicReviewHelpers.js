@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Helper functions for Journalling plugin for NotePlan
 // Jonathan Clark
-// last update 2026-05-18 for v2.0.0.b14 by @jgclark / @CursorAI
+// last update 2026-08-11 for v2.0.0.b15 by @jgclark / @CursorAI
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -315,7 +315,7 @@ export function shouldUseOpenEditorCalendarNote(
   return preferOpenSameKind || titlesMatch
 }
 
-/** Default plan-item labels when settings are missing or empty. */
+/** Default plan-item labels when the setting key is missing (not when intentionally blank). */
 // TODO: make this look at the plugin.json "default" for the "key" below
 const PLAN_ITEMS_NAME_DEFAULTS: { [string]: string } = {
   day: 'Big Rocks',
@@ -336,6 +336,8 @@ const PLAN_ITEMS_NAME_CONFIG_KEYS: { [string]: string } = {
 
 /**
  * Configured label for planned items for a calendar period (e.g. "Big 3 Rocks").
+ * Blank / whitespace means no heading name (planned items are written without an H2).
+ * Missing setting keys still use built-in defaults.
  * @tests in jest file
  * @param {JournalConfigType} config
  * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
@@ -347,11 +349,13 @@ export function getPlanItemsNameForPeriodType(config: PeriodicReviewConfigType, 
   if (key == null) {
     return fallback
   }
-  // $FlowFixM
-  // e[invalid-computed-prop]
+  // $FlowFixMe[invalid-computed-prop]
   const raw = (config: any)[key]
-  const s = typeof raw === 'string' ? raw.trim() : ''
-  return s !== '' ? s : fallback
+  // Explicit string wins (including blank). Only non-string / missing uses fallback.
+  if (typeof raw !== 'string') {
+    return fallback
+  }
+  return raw.trim()
 }
 
 /**
@@ -371,16 +375,18 @@ export function getPeriodNounForType(periodType: string): string {
 }
 
 /**
- * H2 / UI title for the **current** period’s plan in the review summary: `Planned: {planName}`.
+ * H2 / UI title for the **current** period’s plan in the review summary: `Planned: {planName}` (or `Planned` if blank).
  * @param {string} planName
  * @returns {string}
  */
 export function buildThisPlanSectionHeadingTitle(planName: string): string {
-  return `Planned: ${planName}`
+  const name = String(planName ?? '').trim()
+  return name !== '' ? `Planned: ${name}` : 'Planned'
 }
 
 /**
- * H2 / UI title for the planning textarea in the review HTML: `Planning: {planName} for the next {noun}`.
+ * H2 / UI title for the planning textarea in the review HTML: `Planning: {planName} for the next {noun}`
+ * (or `Planning for the next {noun}` if planName is blank).
  * @tests in jest file
  * @param {string} planName
  * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
@@ -388,11 +394,13 @@ export function buildThisPlanSectionHeadingTitle(planName: string): string {
  */
 export function buildNextPlanSectionHeadingTitle(planName: string, periodType: string): string {
   const noun = getPeriodNounForType(periodType)
-  return `Planning: ${planName} for the next ${noun}`
+  const name = String(planName ?? '').trim()
+  return name !== '' ? `Planning: ${name} for the next ${noun}` : `Planning for the next ${noun}`
 }
 
 /**
  * H2 written **on the next calendar note** when saving planned tasks: `{planName} for {periodString}`.
+ * Empty when `planName` is blank (items are written with no heading).
  * `periodString` must be that note’s calendar title (e.g. from `getNextNPPeriodString`).
  * @tests in jest file
  * @param {string} planName
@@ -400,7 +408,11 @@ export function buildNextPlanSectionHeadingTitle(planName: string, periodType: s
  * @returns {string}
  */
 export function buildNextPeriodNotePlanSectionHeadingTitle(planName: string, periodString: string): string {
-  return `${planName} for ${periodString}`
+  const name = String(planName ?? '').trim()
+  if (name === '') {
+    return ''
+  }
+  return `${name} for ${periodString}`
 }
 
 /**

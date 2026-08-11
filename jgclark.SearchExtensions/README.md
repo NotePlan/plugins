@@ -4,7 +4,7 @@ NotePlan can search over your notes, but it is currently not very flexible or ea
 - extends the search syntax to allow much more control, including wildcards
 - by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
 - these saved searches can be refreshed automatically when you open the note to consult it.
-- (v2) lets you **replace** as well as search.
+- you can also **replace** as well as search.
 
 ![demo](qs+refresh-demo.gif)
 
@@ -70,7 +70,6 @@ A saved search can be **automatically refreshed when opening it**. To enable thi
 - you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
 
 ## The Replace commands
-v2.0 adds the following commands:
 - **/replace over all notes** does search and replaces across both calendar and regular notes. (Alias: **/repl**.)
 - **/replace over Regular notes** does search and replaces across all regular (non-calendar) notes. (Alias: **/replreg**.)
 - **/replace over Calendar notes** does search and replaces across calendar notes. (Alias: **/replcal**.)
@@ -152,7 +151,7 @@ When commands are called this way, then it all works in the background without u
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues). Note that it's particularly difficult to test, so please give as much context as possible.
 
-I have spent at least 3.5 weeks of my time off on this plugin. If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
+I have spent at least 4 weeks building, improving and testing this plugin. If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg"/>](https://www.buymeacoffee.com/revjgc)
 

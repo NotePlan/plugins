@@ -164,6 +164,75 @@ function splitParsedSegmentAtTypeMarker(segment: string, questionType: string): 
 }
 
 /**
+ * Leading static label of a template segment before the first `@`, `#`, or `<…>` type marker.
+ * e.g. `"Programming: @prog(<number>)"` → `"Programming: "`.
+ * @param {string} segment
+ * @returns {string}
+ */
+export function extractLeadingStaticLabelFromSegment(segment: string): string {
+  const s = String(segment ?? '')
+  const idx = s.search(/[@#<]/)
+  if (idx <= 0) {
+    return ''
+  }
+  const label = s.slice(0, idx)
+  return label.trim() === '' ? '' : label
+}
+
+/**
+ * Strip a sibling field's token contribution from residual line text (used when extracting trailing free-text).
+ * @param {string} text
+ * @param {ParsedQuestionType} sibling
+ * @returns {string}
+ */
+function stripSiblingTokenFromResidualText(text: string, sibling: ParsedQuestionType): string {
+  const t = String(sibling.type ?? '').toLowerCase()
+  const token = String(sibling.question ?? '').trim()
+  if (t === 'boolean' && token !== '') {
+    return text.replace(new RegExp(`(?:^|\\s)${escapeRegExp(token)}(?=\\s|$)`, 'g'), ' ')
+  }
+  if (token.startsWith('@') || token.startsWith('#')) {
+    return text.replace(new RegExp(`${escapeRegExp(token)}\\s*\\([^)]*\\)`, 'gi'), ' ')
+  }
+  return text
+}
+
+/**
+ * Extract trailing free-text for a bare `<string>` segment that shares a template line with other fields.
+ * Example: template `Programming: @prog(<number>) <string>` and note line `Programming: Things I've already noted.`
+ * @param {string} line note line
+ * @param {ParsedQuestionType} stringQuestion
+ * @param {Array<ParsedQuestionType>} siblings all questions on the same template line (including stringQuestion)
+ * @returns {string}
+ */
+function extractResidualStringOnMixedLine(
+  line: string,
+  stringQuestion: ParsedQuestionType,
+  siblings: Array<ParsedQuestionType>,
+): string {
+  if (siblings.length <= 1) {
+    return ''
+  }
+  const firstSeg = String(siblings[0]?.originalLine ?? '')
+  const label = extractLeadingStaticLabelFromSegment(firstSeg)
+  let rest = line
+  if (label !== '') {
+    const idx = line.toLowerCase().indexOf(label.toLowerCase())
+    if (idx < 0) {
+      return ''
+    }
+    rest = line.slice(idx + label.length)
+  }
+  for (const sib of siblings) {
+    if (sib === stringQuestion) {
+      continue
+    }
+    rest = stripSiblingTokenFromResidualText(rest, sib)
+  }
+  return rest.replace(/\s+/g, ' ').trim()
+}
+
+/**
  * Normalize a line prefix used to match `<string>` answers against existing note content.
  * @param {string} input
  * @returns {string}
@@ -227,6 +296,7 @@ export function getStringQuestionMatchKeyFromOutputLine(outputLine: string, pars
 
 /**
  * Return stable match key for a parsed template line (lineIndex group), used by mixed-line upsert.
+ * Prefers the leading static line label (e.g. "programming:") so note lines without filled @tokens still match.
  * @tests in jest file
  * @param {Array<ParsedQuestionType>} parsedQuestions
  * @param {number} lineIndex
@@ -236,6 +306,10 @@ export function getTemplateLineUpsertKey(parsedQuestions: Array<ParsedQuestionTy
   const lineQuestions = parsedQuestions.filter((pq) => pq.lineIndex === lineIndex)
   if (lineQuestions.length === 0) {
     return ''
+  }
+  const labelKey = normalizeStringMatchKey(extractLeadingStaticLabelFromSegment(String(lineQuestions[0].originalLine ?? '')))
+  if (labelKey !== '') {
+    return labelKey
   }
   for (const pq of lineQuestions) {
     const key = getSegmentPrefixUpsertKey(pq)
@@ -316,9 +390,14 @@ export function getBooleanClearDirectivesFromAnswers(
  * Parse one line of note content for a single parsed question's answer (form-ready value). Match for question in case-insensitive way.
  * @param {ParsedQuestionType} parsedQuestion
  * @param {string} line
+ * @param {Array<ParsedQuestionType>} [siblingsOnLine] other questions that share the same template lineIndex (including self)
  * @returns {string} value for the HTML control, or '' if not found on this line
  */
-function extractExistingAnswerOnLine(parsedQuestion: ParsedQuestionType, line: string): string {
+function extractExistingAnswerOnLine(
+  parsedQuestion: ParsedQuestionType,
+  line: string,
+  siblingsOnLine: Array<ParsedQuestionType> = [],
+): string {
   const t = parsedQuestion.type.toLowerCase()
   const seg = parsedQuestion.originalLine.trim()
   const token = parsedQuestion.question
@@ -406,13 +485,28 @@ function extractExistingAnswerOnLine(parsedQuestion: ParsedQuestionType, line: s
   if (t === 'mood' || t === 'string') {
     if (suffix === '') {
       if (prefix === '') {
+        // Bare trailing `<string>` on a multi-field line (e.g. after `@prog(<number>)`).
+        if (t === 'string') {
+          return extractResidualStringOnMixedLine(line, parsedQuestion, siblingsOnLine)
+        }
         return ''
       }
       const idx = line.toLowerCase().indexOf(prefix.toLowerCase())
       if (idx < 0) {
         return ''
       }
-      return line.slice(idx + prefix.length).trim()
+      let rest = line.slice(idx + prefix.length).trim()
+      // When the segment prefix includes earlier @tokens (unusual), still strip siblings if provided.
+      if (t === 'string' && siblingsOnLine.length > 1) {
+        for (const sib of siblingsOnLine) {
+          if (sib === parsedQuestion) {
+            continue
+          }
+          rest = stripSiblingTokenFromResidualText(rest, sib)
+        }
+        rest = rest.replace(/\s+/g, ' ').trim()
+      }
+      return rest
     }
     const re = new RegExp(`${escapeRegExp(prefix)}(.*?)${escapeRegExp(suffix)}`, 'i')
     const m = line.match(re)
@@ -425,12 +519,18 @@ function extractExistingAnswerOnLine(parsedQuestion: ParsedQuestionType, line: s
  * Get first matching answer in the note for question
  * @param {ParsedQuestionType} parsedQuestion
  * @param {Array<string>} textLines
+ * @param {Array<ParsedQuestionType>} allParsedQuestions full parse list (to resolve same-line siblings)
  * @returns {string}
  */
-function extractExistingAnswerForReviewForm(parsedQuestion: ParsedQuestionType, textLines: Array<string>): string {
+function extractExistingAnswerForReviewForm(
+  parsedQuestion: ParsedQuestionType,
+  textLines: Array<string>,
+  allParsedQuestions: Array<ParsedQuestionType>,
+): string {
+  const siblingsOnLine = allParsedQuestions.filter((q) => q.lineIndex === parsedQuestion.lineIndex)
   for (let i = 0; i <= textLines.length - 1; i++) {
     const line = textLines[i]
-    const v = extractExistingAnswerOnLine(parsedQuestion, line)
+    const v = extractExistingAnswerOnLine(parsedQuestion, line, siblingsOnLine)
     if (v !== '') {
       return v
     }
@@ -452,7 +552,7 @@ export function buildInitialReviewAnswersByFieldName(
   const out: { [string]: string } = {}
   for (let i = 0; i < parsedQuestions.length; i++) {
     const pq = parsedQuestions[i]
-    const v = extractExistingAnswerForReviewForm(pq, textLines)
+    const v = extractExistingAnswerForReviewForm(pq, textLines, parsedQuestions)
     if (v !== '') {
       out[`q_${i}`] = v
     }
@@ -556,6 +656,41 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
 }
 
 /**
+ * Join per-segment answer strings for one template line.
+ * When earlier token segments are empty, keep the leading static label (e.g. `Programming: `) so trailing free-text is not orphaned.
+ * @param {Array<ParsedQuestionType>} lineQuestions
+ * @param {Array<string>} renderedSegments non-empty rendered segment strings in template order
+ * @param {boolean} firstSegmentRendered whether the first template segment produced output
+ * @returns {string}
+ */
+function joinRenderedLineSegments(
+  lineQuestions: Array<ParsedQuestionType>,
+  renderedSegments: Array<string>,
+  firstSegmentRendered: boolean,
+): string {
+  if (renderedSegments.length === 0) {
+    return ''
+  }
+  let combined = renderedSegments.join(' ')
+  if (!firstSegmentRendered && lineQuestions.length > 0) {
+    const label = extractLeadingStaticLabelFromSegment(String(lineQuestions[0].originalLine ?? ''))
+    if (label !== '') {
+      const labelNorm = normalizeStringMatchKey(label)
+      const combinedNorm = normalizeStringMatchKey(combined)
+      if (!combinedNorm.startsWith(labelNorm)) {
+        // label often already ends with a space (e.g. "Programming: ")
+        const joined = label.endsWith(' ') || label.endsWith(':') ? `${label}${combined}` : `${label} ${combined}`
+        combined = joined.replace(/\s+/g, ' ').trimEnd()
+      }
+    }
+  }
+  if (!combined.includes('\n')) {
+    combined = combined.replace(/\s+/g, ' ')
+  }
+  return combined.trimEnd()
+}
+
+/**
  * Build output from answers returned by single-window mode.
  * @tests in __tests__/periodReviews.test.js
  * @param {Array<ParsedQuestionType>} parsedQuestions
@@ -580,20 +715,23 @@ export function buildOutputFromReviewWindowAnswers(
   for (let lineIndex = 0; lineIndex < lineCount; lineIndex++) {
     const lineQuestions = questionsByLine[lineIndex] ?? []
     const lineAnswers: Array<string> = []
+    let firstSegmentRendered = false
     for (let i = 0; i < lineQuestions.length; i++) {
       const globalIndex = parsedQuestions.findIndex((q) => q === lineQuestions[i])
       const parsedQuestion = lineQuestions[i]
       const answer = answerFromReviewWindowPayload(parsedQuestion, answersByIndex[`q_${globalIndex}`] ?? '')
       if (answer !== '') {
+        if (i === 0) {
+          firstSegmentRendered = true
+        }
         lineAnswers.push(answer)
       }
     }
     if (lineAnswers.length > 0) {
       const hasMultiline = lineAnswers.some((a) => a.includes('\n'))
-      let combinedLine = hasMultiline ? lineAnswers.join('\n') : lineAnswers.join(' ')
-      if (!hasMultiline) {
-        combinedLine = combinedLine.replace(/\s+/g, ' ')
-      }
+      let combinedLine = hasMultiline
+        ? lineAnswers.join('\n')
+        : joinRenderedLineSegments(lineQuestions, lineAnswers, firstSegmentRendered)
       output += `${substituteReviewPeriodPlaceholders(combinedLine, periodString, periodType)}\n`
       continue
     }

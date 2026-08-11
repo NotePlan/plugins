@@ -548,6 +548,30 @@ Ship: <tasks>`,
       const initial = buildInitialReviewAnswersByFieldName(questions, lines)
       expect(initial.q_0).toBe('6.8')
     })
+
+    it('should extract free-text <string> after @token(<number>) when the note has only the string so far', () => {
+      // Template: first segment is "Programming: @prog(<number>)", second is bare "<string>" with no prefix.
+      // Note line may exist before the user ever filled @prog(...).
+      const config = { dailyReviewQuestions: 'Programming: @prog(<number>) <string>' }
+      const questions = parseQuestions(config.dailyReviewQuestions)
+      expect(questions).toHaveLength(2)
+      expect(questions[0].type).toBe('number')
+      expect(questions[1].type).toBe('string')
+
+      const lines = ["Programming: Things I've already noted."]
+      const initial = buildInitialReviewAnswersByFieldName(questions, lines)
+      expect(initial.q_0).toBeUndefined()
+      expect(initial.q_1).toBe("Things I've already noted.")
+    })
+
+    it('should extract both @prog number and trailing <string> from a combined Programming line', () => {
+      const config = { dailyReviewQuestions: 'Programming: @prog(<number>) <string>' }
+      const questions = parseQuestions(config.dailyReviewQuestions)
+      const lines = ["Programming: @prog(2.5) Things I've already noted."]
+      const initial = buildInitialReviewAnswersByFieldName(questions, lines)
+      expect(initial.q_0).toBe('2.5')
+      expect(initial.q_1).toBe("Things I've already noted.")
+    })
   })
 
   describe('buildOutputFromReviewWindowAnswers', () => {
@@ -604,6 +628,37 @@ Ship: <tasks>`,
         q_1: '3',
       })
       expect(out).toBe('Health: @sleep(7) @fruitveg(3)\n')
+    })
+
+    it('should keep line label and free-text string when @prog number is empty', () => {
+      const raw = 'Programming: @prog(<number>) <string>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', {
+        q_1: "Things I've already noted.",
+      })
+      expect(out).toBe("Programming: Things I've already noted.\n")
+    })
+
+    it('should combine @prog number and free-text string on the Programming line', () => {
+      const raw = 'Programming: @prog(<number>) <string>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', {
+        q_0: '2.5',
+        q_1: "Things I've already noted.",
+      })
+      expect(out).toBe("Programming: @prog(2.5) Things I've already noted.\n")
+    })
+
+    it('should keep line label when only a later @token segment is answered', () => {
+      const raw = 'Health: @sleep(<int>) @fruitveg(<int>)'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', {
+        q_1: '3',
+      })
+      expect(out).toBe('Health: @fruitveg(3)\n')
     })
 
     it('should substitute answers into <integer> segments like <int>', () => {
@@ -713,8 +768,10 @@ Ship: <tasks>`,
 
     it('should return template-line key for mixed typed lines', () => {
       const parsed = parseQuestions('Health: @sleep(<duration>) @fruitveg(<int>) || #waterlitre <boolean>')
-      expect(getTemplateLineUpsertKey(parsed, 0)).toBe('health: @sleep(')
-      expect(getTemplateLineUpsertKeyFromOutputLine('Health: @sleep(7:30) @fruitveg(5) #waterlitre', parsed)).toBe('health: @sleep(')
+      // Prefer the static line label so notes without every @token still match for upsert.
+      expect(getTemplateLineUpsertKey(parsed, 0)).toBe('health:')
+      expect(getTemplateLineUpsertKeyFromOutputLine('Health: @sleep(7:30) @fruitveg(5) #waterlitre', parsed)).toBe('health:')
+      expect(getTemplateLineUpsertKeyFromOutputLine("Programming: Things I've already noted.", parseQuestions('Programming: @prog(<number>) <string>'))).toBe('programming:')
     })
 
     it('should return boolean clear directives for unchecked booleans', () => {
@@ -725,7 +782,7 @@ Ship: <tasks>`,
         q_2: true,
       })
       expect(directives.length).toBe(1)
-      expect(directives[0].lineKey).toBe('health: @sleep(')
+      expect(directives[0].lineKey).toBe('health:')
       expect(directives[0].tokensToClear).toEqual(['#waterlitre'])
     })
 
@@ -736,7 +793,7 @@ Ship: <tasks>`,
         q_1: false,
       })
       expect(directives.length).toBe(1)
-      expect(directives[0].lineKey).toBe('health: @sleep(')
+      expect(directives[0].lineKey).toBe('health:')
       expect(directives[0].tokensToClear).toEqual(['Did stretches'])
     })
   })
@@ -868,20 +925,27 @@ Ship: <tasks>`,
       expect(buildNextPlanSectionHeadingTitle('Top 3 Wins', 'week')).toBe('Planning: Top 3 Wins for the next week')
       expect(buildNextPlanSectionHeadingTitle('Big 3 Rocks', 'day')).toBe('Planning: Big 3 Rocks for the next day')
       expect(buildNextPlanSectionHeadingTitle('Goals', 'quarter')).toBe('Planning: Goals for the next quarter')
+      expect(buildNextPlanSectionHeadingTitle('', 'day')).toBe('Planning for the next day')
+      expect(buildNextPlanSectionHeadingTitle('  ', 'week')).toBe('Planning for the next week')
     })
 
     it('buildNextPeriodNotePlanSectionHeadingTitle should use plan name and target period calendar title', () => {
       expect(buildNextPeriodNotePlanSectionHeadingTitle('Top 3 Wins', '2026-W14')).toBe('Top 3 Wins for 2026-W14')
       expect(buildNextPeriodNotePlanSectionHeadingTitle('Big Rocks', '2026-04-04')).toBe('Big Rocks for 2026-04-04')
       expect(buildNextPeriodNotePlanSectionHeadingTitle('Goals', '2026-Q2')).toBe('Goals for 2026-Q2')
+      expect(buildNextPeriodNotePlanSectionHeadingTitle('', '2026-04-04')).toBe('')
+      expect(buildNextPeriodNotePlanSectionHeadingTitle('  ', '2026-W14')).toBe('')
     })
 
-    it('getPlanItemsNameForPeriodType should use defaults when config keys missing or blank', () => {
+    it('getPlanItemsNameForPeriodType should use defaults when missing, blank when empty string', () => {
       const minimal = {}
       expect(getPlanItemsNameForPeriodType(minimal, 'day')).toBe('Big Rocks')
       expect(getPlanItemsNameForPeriodType(minimal, 'week')).toBe('Top Wins')
       const custom = { weekPlanItemsName: 'Wins' }
       expect(getPlanItemsNameForPeriodType(custom, 'week')).toBe('Wins')
+      expect(getPlanItemsNameForPeriodType({ dayPlanItemsName: '' }, 'day')).toBe('')
+      expect(getPlanItemsNameForPeriodType({ dayPlanItemsName: '  ' }, 'day')).toBe('')
+      expect(getPlanItemsNameForPeriodType({ weekPlanItemsName: '' }, 'week')).toBe('')
     })
 
     it('normalizePlanningTaskLinesFromForm should strip only the configured marker', () => {

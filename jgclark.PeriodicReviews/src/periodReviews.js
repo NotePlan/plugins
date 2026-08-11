@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2026-04-26 for v2.0.0.b13 by @jgclark + @Cursor
+// last update 2026-08-11 for v2.0.0.b15 by @jgclark / @CursorAI
 //---------------------------------------------------------------
 
 import strftime from 'strftime'
@@ -137,10 +137,11 @@ function removePlanSectionFromNoteIfPresent(note: TNote, headingTitle: string): 
 }
 
 /**
- * Insert plan heading and open tasks at the start of the active body.
+ * Insert optional plan heading and open tasks at the start of the active body.
+ * Blank `headingTitle` skips the H2 and writes only task lines.
  * Uses `insertParagraph(..., 'open')`, which adds the task `*` marker — pass full line text (prefix/suffix already applied), not a second task marker.
  * @param {TNote} note
- * @param {string} headingTitle
+ * @param {string} headingTitle empty string = no heading
  * @param {Array<string>} taskLines full paragraph content (not rawContent) per planned item (after prefix/suffix formatting)
  * @returns {void}
  */
@@ -150,9 +151,14 @@ function insertPlanSectionAtActiveStart(note: TNote, headingTitle: string, taskL
     logWarn(pluginJson, 'insertPlanSectionAtActiveStart: invalid start index')
     return
   }
-  note.insertHeading(headingTitle, startIdx, 2)
+  const title = String(headingTitle ?? '').trim()
+  let taskInsertIdx = startIdx
+  if (title !== '') {
+    note.insertHeading(title, startIdx, 2)
+    taskInsertIdx = startIdx + 1
+  }
   for (let i = 0; i < taskLines.length; i++) {
-    note.insertParagraph(taskLines[i], startIdx + 1 + i, 'open')
+    note.insertParagraph(taskLines[i], taskInsertIdx + i, 'open')
   }
 }
 
@@ -235,7 +241,9 @@ export function extractPlanSectionItems(
 }
 
 /**
- * Write or clear planned tasks on the **next** calendar note: replace existing H2 with same title, insert at active start.
+ * Write or clear planned tasks on the **next** calendar note.
+ * When a planned-items heading name is set: replace any existing H2 with that title, then insert heading + tasks at active start.
+ * When blank: write task lines only (no H2); does not remove a prior untitled block.
  * @param {PeriodicReviewConfigType} config
  * @param {string} periodString
  * @param {string} periodType
@@ -268,12 +276,19 @@ export async function writePlanningTasksToNextPeriodNote(
       return
     }
 
-    logDebug('writePlanningTasksToNextPeriodNote', `Note '${nextTitle}' opened; will now write (or replace) plan section heading '${headingTitle}'`)
+    const hasHeading = headingTitle !== ''
+    logDebug(
+      'writePlanningTasksToNextPeriodNote',
+      `Note '${nextTitle}' opened; will now write (or replace) plan section${hasHeading ? ` heading '${headingTitle}'` : ' (no heading)'}`,
+    )
     const plannedPrefix = getBigTaskMarkerFromConfig(config)
     const normalizedLines = normalizePlanningTaskLinesFromForm(planningFormText, plannedPrefix)
     const { suffix: plannedSuffix } = getEffectivePlannedItemAffixes(config)
     const formattedLines = normalizedLines.map((body) => formatPlannedItemLineForNextNote(body, plannedPrefix, plannedSuffix))
-    removePlanSectionFromNoteIfPresent(nextNote, headingTitle)
+    // Only replace an existing section when we have a named H2 to match.
+    if (hasHeading) {
+      removePlanSectionFromNoteIfPresent(nextNote, headingTitle)
+    }
     if (formattedLines.length > 0) {
       insertPlanSectionAtActiveStart(nextNote, headingTitle, formattedLines)
     }
