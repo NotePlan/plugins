@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.TaskSorting",
   "plugin.name": "🥷 Task Sorting & Tools",
-  "plugin.version": "1.3.0",
+  "plugin.version": "1.3.1",
   "plugin.lastUpdateInfo": "1.3.0: Indented subtasks are no longer flattened when sorting -- a task now keeps its whole nested subtree, at every depth. 'Sort tasks under heading' now respects the 'Combine Related Task Types?' setting (it was previously ignored by that command). NOTE: indent with TABS -- NotePlan does not report space-indentation to plugins, so space-indented subtasks cannot be preserved.",
   "plugin.description": "Commands for sorting tasks in a note",
   "plugin.releaseStatus": "",

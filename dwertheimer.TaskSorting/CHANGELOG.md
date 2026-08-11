@@ -4,6 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/README.md) for details on available commands and use case.
 
+## [1.3.1] - 2026-08-11 (@dwertheimer)
+
+### Fixed
+- **Tags and mentions containing accented, non-Latin or symbol characters were truncated when sorting** ([#776](https://github.com/NotePlan/plugins/issues/776)). The tag-matching regex only accepted `a-z`, `A-Z`, `0-9` and `/`, so `#Führung` was read as the tag `F` — which sorted wrongly and produced a `#### #F:` heading when *Include Primary Sort Key Heading in Output?* was on.
+- Tag and mention matching now follows the same rule NotePlan itself uses, verified case by case against the app's own `paragraph.hashtags` / `paragraph.mentions`: letters, combining marks and digits of **any** script, plus **any** Unicode symbol (`$ + = ~ ^ < | € £ ° →` and emoji), plus the three punctuation exceptions `-`, `_` and `/`. Every other punctuation character (`. , % & ' ! ? : ; ( ) [ ] { } * @ " \ #`) and any whitespace ends the tag, so ordinary sentence punctuation is not swallowed (`#shopping.` still sorts as `shopping`).
+- Consequences of the above, all matching NotePlan: `#my-tag` now sorts as `my-tag` rather than `my`; a trailing slash is trimmed (`#tag/` → `tag`); and a tag that is only digits and dashes (`#123`, `#2024-05`) is correctly not treated as a tag at all.
+- Mentions get the same treatment (`@Müller` no longer becomes `@M`). As in NotePlan, the trailing `(...)` is not part of the mention, so `@estimate(2)` and `@estimate(5)` still sort together under `@estimate`.
+
 ## [1.3.0] - 2026-08-02 (@dwertheimer)
 
 ### Fixed

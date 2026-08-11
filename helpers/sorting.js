@@ -52,8 +52,28 @@ export type GroupedTasks = {
 /** Sorted/grouped task buckets produced by TaskSorting (always SortableParagraphSubset elements). */
 export type ParagraphsGroupedByType = GroupedTasks
 
-const RE_HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
-const RE_MENTIONS: RegExp = /\B@([a-zA-Z0-9\/]+\b)/g
+// Tag/mention matching, deliberately mirroring how NotePlan itself parses `paragraph.hashtags` /
+// `paragraph.mentions`, so that sorting groups tasks under the same tag the app shows on the line.
+// The rule (verified against NotePlan's own parser) is: a tag may contain letters, combining marks and
+// digits of ANY script, plus ANY Unicode symbol ($ + = ~ ^ < | € £ ° → and emoji), plus the three
+// punctuation exceptions - _ / . Every other punctuation character (. , % & ' ! ? : ; ( ) [ ] { } * @ " \ #)
+// and any whitespace ends the tag.
+// The old class was /[a-zA-Z0-9\/]+/, which truncated "#Führung" to "F" (see issue #776).
+// Details:
+// - leading (?!...) drops tags that are only digits/-/_//, so "#123" and "#2024-05" are not tags, as in NotePlan
+// - the final character class excludes "/" so a trailing slash is trimmed ("#tag/" -> "tag"), again as in NotePlan
+// - no trailing \b: it is ASCII-only, so a tag ending in a non-ASCII character would backtrack to a truncated match
+//
+// Multi-level tags: we return the FULL path as a single value ("#project/alpha" -> "project/alpha"), which is
+// how this helper has behaved since 2022. Note that NotePlan's own `paragraph.hashtags` instead returns every
+// level ("#a/b/c" -> ["#a", "#a/b", "#a/b/c"]); we deliberately do not do that here, because the sort key is
+// `hashtags[0]` (see firstValue()), so emitting parents would collapse every "#project/*" task into one
+// "#project" group. Keeping the full path still sorts siblings adjacently and in tree order, since the key is
+// a plain string -- so the hierarchy reads correctly without losing the distinction between the leaves.
+const RE_HASHTAGS: RegExp = /\B(?:#|＃)((?![\p{N}\-_\/]+(?:$|[^\p{L}\p{M}\p{N}\p{S}\-_\/]))[\p{L}\p{M}\p{N}\p{S}\-_\/]{0,59}[\p{L}\p{M}\p{N}\p{S}\-_])/gu
+// Mentions follow the same rule. NotePlan reports "@estimate(2)" as the mention "@estimate", so the
+// trailing "(...)" is left out here too -- which also keeps @estimate(2) and @estimate(5) in one sort group.
+const RE_MENTIONS: RegExp = /\B@((?![\p{N}\-_\/]+(?:$|[^\p{L}\p{M}\p{N}\p{S}\-_\/]))[\p{L}\p{M}\p{N}\p{S}\-_\/]{0,59}[\p{L}\p{M}\p{N}\p{S}\-_])/gu
 const RE_LEADING_EXCLAMATIONS: RegExp = /^\s*(!+)/g // at start of content, though allowing for leading whitespace (as NP does)
 const RE_LEADING_PARENS_PRIORITY: RegExp = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
 export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled', 'checklist', 'checklistDone', 'checklistCancelled', 'checklistScheduled']

@@ -484,6 +484,76 @@ describe('sorting.js', () => {
       const result = s.getSortableTask(paragraph)
       expect(result).toHaveProperty('mentions', ['foo'])
     })
+    /**
+     * Tag/mention character set (issue #776).
+     * Every expectation below was read back from NotePlan's OWN parser (paragraph.hashtags /
+     * paragraph.mentions) on a probe note, so these lock our regex to the app's behaviour.
+     * The rule: letters/marks/digits of any script + any Unicode symbol + the three punctuation
+     * exceptions - _ / ; every other punctuation character and whitespace ends the tag.
+     */
+    describe('hashtag/mention character set (issue #776)', () => {
+      const hashtagsOf = (content) => s.getSortableTask(new Paragraph({ type: 'open', content, filename: 'testFile.md' })).hashtags
+      const mentionsOf = (content) => s.getSortableTask(new Paragraph({ type: 'open', content, filename: 'testFile.md' })).mentions
+
+      test('should keep accented characters in a hashtag (the reported bug)', () => {
+        expect(hashtagsOf('!!! #Führen #Roadmap → Priorisierung 1')).toEqual(['Führen', 'Roadmap'])
+      })
+      test('should keep non-Latin scripts, combining marks and emoji in a hashtag', () => {
+        expect(hashtagsOf('test #日本語 #Ålesund #café #a😀b')).toEqual(['日本語', 'Ålesund', 'café', 'a😀b'])
+      })
+      test('should keep the - _ / punctuation exceptions', () => {
+        expect(hashtagsOf('test #a-b #c_d #tag/sub #a/b/c #-lead #_lead #trail-')).toEqual(['a-b', 'c_d', 'tag/sub', 'a/b/c', '-lead', '_lead', 'trail-'])
+      })
+      test('should keep Unicode symbols ($ + = ~ ^ < | and currency)', () => {
+        expect(hashtagsOf('test #a$b #a+b #a=b #a~b #a^b #a<b #a|b #a€b #a£b #a°b #a→b')).toEqual([
+          'a$b',
+          'a+b',
+          'a=b',
+          'a~b',
+          'a^b',
+          'a<b',
+          'a|b',
+          'a€b',
+          'a£b',
+          'a°b',
+          'a→b',
+        ])
+      })
+      test('should stop at any other punctuation character', () => {
+        expect(hashtagsOf(`#a.b #a,b #a%b #a&b #a'b #a!b #a?b #a:b #a;b #a(b #a[b #a*b #a@b #a"b #a{b`)).toEqual(Array(15).fill('a'))
+      })
+      test('should trim trailing sentence punctuation', () => {
+        expect(hashtagsOf('buy milk #shopping. and #errands, and #chores)')).toEqual(['shopping', 'errands', 'chores'])
+      })
+      test('should trim a trailing slash', () => {
+        expect(hashtagsOf('test #tag/')).toEqual(['tag'])
+      })
+      test('should keep a multi-level tag as one full path, not split into levels', () => {
+        // Deliberate: NotePlan's own paragraph.hashtags returns every level (["#a", "#a/b", "#a/b/c"]),
+        // but the sort key is hashtags[0], so emitting parents would collapse all "#project/*" tasks into
+        // a single "#project" group. Full paths still sort adjacently and in tree order.
+        expect(hashtagsOf('test #project/alpha')).toEqual(['project/alpha'])
+        const tasks = ['#work', '#project/beta', '#project/alpha', '#project', '#zebra'].map((tag) => hashtagsOf(`task ${tag}`)[0])
+        expect([...tasks].sort()).toEqual(['project', 'project/alpha', 'project/beta', 'work', 'zebra'])
+      })
+      test('should not treat a digits-only tag as a hashtag', () => {
+        expect(hashtagsOf('test #123 #2024-05 #foo2 #a1b2')).toEqual(['foo2', 'a1b2'])
+      })
+      test('should not treat a # in the middle of a word as a hashtag', () => {
+        expect(hashtagsOf('word#nottag')).toEqual([])
+      })
+      test('should find a hashtag wrapped in parentheses', () => {
+        expect(hashtagsOf('(#parens) done')).toEqual(['parens'])
+      })
+      test('should apply the same rules to mentions', () => {
+        expect(mentionsOf('test @Müller @a-b @a_b @a/b @a$b @日本語')).toEqual(['Müller', 'a-b', 'a_b', 'a/b', 'a$b', '日本語'])
+        expect(mentionsOf('test @a.b @a%b')).toEqual(['a', 'a'])
+        expect(mentionsOf('test @123')).toEqual([])
+      })
+      test('should drop the parenthetical part of a mention, as NotePlan does, so siblings group together', () => {
+        expect(mentionsOf('test @estimate(2) @done(2026-08-11)')).toEqual(['estimate', 'done'])
+      })
+    })
     test('should not have exclamation mark priority', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
       const result = s.getSortableTask(paragraph)
