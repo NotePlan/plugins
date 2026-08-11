@@ -18,7 +18,7 @@ This plugin provides commands to help tidy up your notes:
 - **/Clean up note filenames** command: cleans encoded characters (e.g. `&#039;` `&mdash;`) and invalid path characters (e.g. `\\` `/` `:`) from note filenames in a chosen folder and its subfolders.
 - **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character. Note: this command cannot remove Teamspace notes (as of NotePlan v3.18.1), so it won't try.
 - **/Remove empty elements** (alias: "ree"): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information.
-- **/Remove empty elements from recent notes** (alias: "reeRecent"): as above, but for all recent notes. It uses the same "Smart heading preservation" setting as the command above.  **Note**: By default, this command only processes Calendar notes. Enable the "Also cover Regular notes?" setting to change this. **Note**: Template notes (those whose filename starts with '@Templates') are always excluded from processing.
+- **/Remove empty elements from recent notes** (alias: "reeRecent"): as above, but for all recent notes. It uses the same "Smart heading preservation" setting as the command above.  **Note**: By default, this command only processes Calendar notes (current and past only — future-dated calendar notes are always skipped). Enable the "Also cover Regular notes?" setting to change this. Template notes (those whose filename starts with '@Templates') are also always excluded from processing.
 - **/Remove empty lines**  (alias "rel"): Remove *all* empty lines from the open note.
 - **/Remove orphaned blockIDs** (alias "rob"): Remove blockIDs from lines that had been sync'd, but have become 'orphans' as the other copies of the blockID have since been deleted.
 - **/Remove section from recent notes** (alias "rsrn"): Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or x-callback.
@@ -60,6 +60,7 @@ The **/Remove empty blocks** command intelligently cleans up your notes while pr
 
 #### Note type coverage
 - **By default**: Only processes Calendar notes (daily, weekly, monthly, quarterly, yearly notes)
+- **Current/past only**: When using "/Remove empty elements from recent notes", future-dated calendar notes are always skipped; today's calendar note is included
 - **Project notes**: Can be included by enabling the "Also cover Project notes?" setting in plugin settings, or by passing `coverRegularNotesAsWell=true` as a parameter
 - **Template notes**: When using "/Remove empty elements from recent notes", Template notes (those whose filename starts with '@Templates') are automatically excluded from processing to preserve template structure which will frequently have empty sections.
 

@@ -1,11 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Remove empty blocks functionality for Tidy plugin
-// Last updated 2026-04-22 for v1.17.0+, @jgclark
+// Last updated 2025-11-22 for v1.20.2, @jgclark & @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getSettings } from './tidyHelpers'
+import { filenameIsInFuture } from '@helpers/dateTime'
 import { JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
 import { getAllNotesOfType, getNoteFromFilename, getNotesChangedInInterval } from '@helpers/NPnote'
@@ -388,8 +389,9 @@ function noteHasMeaningfulContent(note: TNote): boolean {
 }
 
 /**
- * Run removeEmptyElements on all recently-updated notes
- * Can be passed parameters to override defaults through an x-callback call
+ * Run removeEmptyElements on all recently-updated notes.
+ * Calendar notes are limited to current and past dates (future-dated calendar notes are never processed).
+ * Can be passed parameters to override defaults through an x-callback call.
  * Supported params: { numDays?: number, runSilently?: boolean, stripAllEmptyLines?: boolean, preserveHeadingStructure?: boolean }
  * @author @jgclark
  * @param {string?} params optional JSON string
@@ -426,6 +428,13 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
 
     if (originalCount > recentNotes.length) {
       logDebug('removeEmptyElementsFromRecentNotes', `- filtered out ${String(originalCount - recentNotes.length)} Template notes`)
+    }
+
+    // Filter out future-dated calendar notes (keep current/past calendar notes and any regular notes)
+    const countBeforeFutureFilter = recentNotes.length
+    recentNotes = recentNotes.filter((note) => note.type !== 'Calendar' || !filenameIsInFuture(note.filename))
+    if (countBeforeFutureFilter > recentNotes.length) {
+      logDebug('removeEmptyElementsFromRecentNotes', `- filtered out ${String(countBeforeFutureFilter - recentNotes.length)} future calendar notes`)
     }
 
     if (recentNotes.length === 0) {

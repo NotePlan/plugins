@@ -1,6 +1,10 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.20.2] - 2026-08-11 @jgclark
+### Changes
+- **Remove empty elements from recent notes** command now only processes current and past calendar notes. Future-dated calendar notes are always skipped (today's note is still included). Regular notes (if enabled) are unchanged.
+
 ## [1.20.1] - 2026-08-03 @jgclark
 - **generate @repeats...** command now picks up new "concrete dates" feature in extended `@repeat()`s (from Repeat Extensions plugin)
 - fix to '/Remove orphaned blockIDs' not honouring 'run silently?' setting
