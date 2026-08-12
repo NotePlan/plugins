@@ -936,9 +936,9 @@ export function setPerspectivesIfJSONChanged(
   // deletes a `perspectiveSettings` key, which is not part of the exact TDashboardSettings shape.
   const settingsToSave: TAnyObject = { ...dashboardSettings, ...updatedSettings }
   if (settingsToSave.perspectiveSettings) {
-    // this should only be true if we are coming from the settings panel with the JSON editor
-    // TODO(dwertheimer): I don't understand this log comment
-    logDebug(pluginJson, `BEWARE: adjustSettingsAndSave perspectiveSettings was set. this should only be true if we are coming from the settings panel with the JSON editor!`)
+    // Invariant: perspectiveSettings only appears on this object when the Settings JSON editor sent a bulk update.
+    // Strip it here and dispatch perspectiveSettingsChanged so defs are handled on the perspective path, not as dashboardSettings keys.
+    logDebug(pluginJson, `setPerspectivesIfJSONChanged: perspectiveSettings present (JSON editor path); dispatching perspectiveSettingsChanged and stripping from dashboard settings payload`)
     sendActionToPlugin(
       'perspectiveSettingsChanged',
       { settings: settingsToSave.perspectiveSettings, actionType: 'perspectiveSettingsChanged', logMessage: `JSON editor: ${logMessage}` },
