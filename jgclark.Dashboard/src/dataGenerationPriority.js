@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-07-24 for v2.4.0.b54 by @jgclark + @CursorAI
+// Last updated 2026-08-12 for v2.4.0.b63 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -98,7 +98,8 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
 
       // Apply limit to set of ordered results
       // Note: Apply some limiting here, in case there are hundreds of items. There is also display filtering in the Section component via useSectionSortAndFilter.
-      // Note: this doesn't attempt to calculate parentIDs. TODO: Should it?
+      // Do not calculate parentIDs here: items are re-sorted by priority/changedDate, which breaks note indent adjacency, so parent links would be wrong or orphaned after sort+limit. (It could be done, and I think it is caledar notes, but decided not to here for now.)
+      // Day/period sections use createSectionItemsFromParas (note order) instead. Parent/child display here would need pre-sort linking plus orphan filtering -- a separate feature.
       const priorityTaskParasLimited = totalPriority > maxInSection ? sortedPriorityTaskParas.slice(0, maxInSection) : sortedPriorityTaskParas
       logDebug('getPrioritySectionData', `- after limit, now ${priorityTaskParasLimited.length} items to show`)
       priorityTaskParasLimited.map((p) => {

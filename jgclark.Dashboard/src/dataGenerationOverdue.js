@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2026-08-01 for v2.4.0.b60, @jgclark + @CursorAI
+// Last updated 2026-08-12 for v2.4.0.b63, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -150,7 +150,8 @@ export async function getOverdueSectionData(
 
       // Apply limit to ordered tasks, leaving room for reserved reminder slots.
       // Note: There is also display filtering in the Section component via useSectionSortAndFilter.
-      // Note: this doesn't attempt to calculate parentIDs. TODO: Should it?
+      // Do not calculate parentIDs here: items are re-sorted (priority / earliest / due date / most recent), which breaks note indent adjacency, so parent links would be wrong or orphaned after sort+limit. (It could be done, and I think it is caledar notes, but decided not to here for now.)
+      // Day/period sections use createSectionItemsFromParas (note order) instead. Parent/child display here would need pre-sort linking plus orphan filtering -- a separate feature.
       const overdueTaskParasLimited = sortedOverdueTaskParas.length > taskSlots
         ? sortedOverdueTaskParas.slice(0, taskSlots)
         : sortedOverdueTaskParas

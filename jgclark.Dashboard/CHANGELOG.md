@@ -49,6 +49,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dev: Clarify JSON-editor log in `setPerspectivesIfJSONChanged` (perspectiveSettings key only arrives from that path).
 - dev: Document that clearing `sections: []` on Perspective switch is intentional for a reliable full refresh.
 - dev: Clarify that tagCache wanted-tags sync happens on perspective save paths (not inside replace/delete helpers themselves).
+- dev: Document why Overdue / Priority sections do not set `parentID` (sort breaks note-order parent/child adjacency).
 
 ## [2.4.0.b62] 2026-08-07
 - Change: Now hides inline `@remind(<UUID>)` text in tasks behind a bell icon, as NP does.
