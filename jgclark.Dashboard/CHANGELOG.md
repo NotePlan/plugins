@@ -45,6 +45,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Fix: Switching to a Perspective that was missing `dashboardSettings` now fills defaults and persists them so the hole does not keep recurring.
 - dev: Project Generation Log (when section-timing FFlag is on) now records the active Perspective name instead of `?`.
 - dev: Quiet Tag section de-dupe logging (no longer dumps every item when nothing was removed).
+- dev: Rename `switchToPerspective` helper to `activatePerspectiveInDefs` (bridge action name unchanged) to distinguish it from `doSwitchToPerspective`.
 - dev: Clarify that tagCache wanted-tags sync happens on perspective save paths (not inside replace/delete helpers themselves).
 
 ## [2.4.0.b62] 2026-08-07

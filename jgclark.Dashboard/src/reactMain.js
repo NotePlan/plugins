@@ -18,7 +18,7 @@ import {
   getActivePerspectiveDef,
   loadPerspectiveDefsFromPluginSettings,
   mergeDashboardSettingsForPerspectiveDef,
-  switchToPerspective,
+  activatePerspectiveInDefs,
 } from './perspectiveHelpers'
 import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
 import { onMessageFromHTMLView } from './routeRequestsFromReact'
@@ -520,7 +520,7 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
     let dashboardSettings: TDashboardSettings = await getDashboardSettings()
     if (perspectiveName) {
       logDebug('getInitialDataForReactWindow', `will use perspective '${perspectiveName}'`)
-      perspectiveSettings = (await switchToPerspective(perspectiveName, perspectiveSettings)) || perspectiveSettings
+      perspectiveSettings = (await activatePerspectiveInDefs(perspectiveName, perspectiveSettings)) || perspectiveSettings
       const settingsForPerspective = await getDashboardSettingsFromPerspective(perspectiveSettings)
       if (settingsForPerspective) {
         dashboardSettings = settingsForPerspective

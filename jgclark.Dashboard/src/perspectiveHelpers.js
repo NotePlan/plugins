@@ -51,7 +51,7 @@ Named perspectives
 
 - Read: through helper function loadPerspectiveDefsFromPluginSettings()
 
-- Applied: through calling function switchToPerspective()
+- Applied: through calling function activatePerspectiveInDefs()
   > JGC new thought: Before changing to any other perspective, I think we should check whether current one isModified, and if it is offer to update/save it first. DBW agrees.
   > dbw says: it sure would be nice if we had a dialog that opened up inside the window. It's kind of jarring to have the NP main window pop up on you. Are you up for trying to create a dialog?
 
@@ -635,18 +635,18 @@ export function mergeDashboardSettingsForPerspectiveDef(
 }
 
 /**
- * Switch to the perspective with the given name (updates isActive flag on that one)
- * Saves perspectiveSettings to DataStore.settings but does not update dashboardSettings or anything else
- * Does not send the new PerspectiveSettings to the front end. Returns the new PerspectiveSettings or false if not found.
+ * Mark the named perspective as active in the defs array and persist perspectiveSettings.
+ * Does not merge or update top-level dashboardSettings, and does not refresh the React window --
+ * callers such as doSwitchToPerspective handle that fuller switch flow.
  * @param {string} name
  * @param {Array<TPerspectiveDef>} allDefs
- * @returns {boolean}
+ * @returns {Promise<Array<TPerspectiveDef> | false>} saved defs, or false if the name was not found
  */
-export async function switchToPerspective(name: string, allDefs: Array<TPerspectiveDef>): Promise<Array<TPerspectiveDef> | false> {
+export async function activatePerspectiveInDefs(name: string, allDefs: Array<TPerspectiveDef>): Promise<Array<TPerspectiveDef> | false> {
   try {
     const startTime = new Date()
     // Check if perspective exists
-    logDebug('switchToPerspective', `Starting looking for name ${name} in ...`)
+    logDebug('activatePerspectiveInDefs', `Starting looking for name ${name} in ...`)
     // logPerspectives(allDefs)
 
     const newPerspectiveSettings = setActivePerspective(name, allDefs).map((p) => ({
@@ -654,14 +654,14 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
       isModified: false,
     }))
 
-    // logDebug('switchToPerspective', `New perspectiveSettings:`)
+    // logDebug('activatePerspectiveInDefs', `New perspectiveSettings:`)
     // logPerspectives(newPerspectiveSettings)
     const newPerspectiveDef = getPerspectiveNamed(name, newPerspectiveSettings)
     if (!newPerspectiveDef) {
-      logError('switchToPerspective', `Couldn't find definition for perspective "${name}"`)
+      logError('activatePerspectiveInDefs', `Couldn't find definition for perspective "${name}"`)
       return false
     }
-    logDebug('switchToPerspective', `Found '${name}'. Will save new perspectiveSettings: ${newPerspectiveDef.name} isModified=${String(newPerspectiveDef.isModified)} isActive=${String(newPerspectiveDef.isActive)}`)
+    logDebug('activatePerspectiveInDefs', `Found '${name}'. Will save new perspectiveSettings: ${newPerspectiveDef.name} isModified=${String(newPerspectiveDef.isModified)} isActive=${String(newPerspectiveDef.isActive)}`)
 
     // SAVE IT!
     const res = await saveDashboardPluginSettings({
@@ -671,17 +671,17 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
     if (!res) {
       throw new Error(`saveDashboardPluginSettings failed for perspective ${name}`)
     }
-    logDebug('switchToPerspective', `Saved new perspectiveSettings for ${name}`)
+    logDebug('activatePerspectiveInDefs', `Saved new perspectiveSettings for ${name}`)
 
     // Note: Reviews list refresh is now invoked from doSwitchToPerspective after merged dashboardSettings are saved, not here.
 
-    logTimer('switchToPerspective', startTime, `End of switchToPerspective`) // Note: never seems to get here?
+    logTimer('activatePerspectiveInDefs', startTime, `End of activatePerspectiveInDefs`) // Note: never seems to get here?
 
     const savedPluginSettings = await loadDashboardPluginSettings()
     const savedPerspectives = savedPluginSettings?.perspectiveSettings
     return Array.isArray(savedPerspectives) && savedPerspectives.length > 0 ? savedPerspectives : newPerspectiveSettings
   } catch (error) {
-    logError('switchToPerspective', `Error: ${error.message}`)
+    logError('activatePerspectiveInDefs', `Error: ${error.message}`)
     return false
   }
 }
@@ -821,16 +821,16 @@ export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
   logDebug('deleteAllNamedPerspectiveSettings', `New default list of available perspectives: [${String(updatedListOfPerspectives ?? [])}]`)
 
   // Set current perspective to default ("-")
-  const newPerspectiveSettings = await switchToPerspective('-', onlyDefaultPerspectiveDef)
+  const newPerspectiveSettings = await activatePerspectiveInDefs('-', onlyDefaultPerspectiveDef)
   if (newPerspectiveSettings) {
     await setPluginData({ perspectiveSettings: newPerspectiveSettings }, `_Deleted all named perspectives`)
   } else {
-    logWarn('deleteAllNamedPerspectiveSettings', `switchToPerspective("-") failed; not updating React window`)
+    logWarn('deleteAllNamedPerspectiveSettings', `activatePerspectiveInDefs("-") failed; not updating React window`)
   }
 
   // Update tagCache definition list json
   updateTagMentionCacheDefinitionsFromAllPerspectives(onlyDefaultPerspectiveDef)
-  logDebug('deleteAllNamedPerspectiveSettings', `Result of switchToPerspective("-"): ${String(newPerspectiveSettings)}`)
+  logDebug('deleteAllNamedPerspectiveSettings', `Result of activatePerspectiveInDefs("-"): ${String(newPerspectiveSettings)}`)
 }
 
 /**
@@ -876,7 +876,7 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
       logDebug('deletePerspective', `Deleting active perspective, so will need to switch to default Perspective ("-")`)
       const updatedDefs = deletePerspectiveDef(existingDefs, nameToUse)
       const res = await savePerspectiveSettings(updatedDefs)
-      const switchedDefs = await switchToPerspective('-', updatedDefs)
+      const switchedDefs = await activatePerspectiveInDefs('-', updatedDefs)
       const perspForPlugin = switchedDefs || updatedDefs
       // update/refresh PerspectiveSelector component (must use post-switch defs so isActive is correct)
       await setPluginData({ perspectiveSettings: perspForPlugin }, `after deleting active Perspective ${nameToUse}.`)
@@ -888,7 +888,7 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
       await setPluginData({ perspectiveSettings: updatedDefs }, `after deleting Perspective ${nameToUse}.`)
     }
 
-    // Note: tagCache wantedTagMentionsList.json is updated by savePerspectiveSettings above (and again if switchToPerspective saves)
+    // Note: tagCache wantedTagMentionsList.json is updated by savePerspectiveSettings above (and again if activatePerspectiveInDefs saves)
 
     clof(DataStore.settings, `deletePerspective at end DataStore.settings =`, ['name', 'isActive'], true) // ✅
   } catch (error) {

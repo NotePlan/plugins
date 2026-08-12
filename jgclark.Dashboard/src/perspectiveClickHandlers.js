@@ -20,7 +20,7 @@ import {
   loadPerspectiveDefsFromPluginSettings,
   logPerspectives,
   replacePerspectiveDef,
-  switchToPerspective,
+  activatePerspectiveInDefs,
   renamePerspective,
   savePerspectiveSettings,
   mergeDashboardSettingsForPerspectiveDef,
@@ -110,12 +110,12 @@ export async function doDeletePerspective(data: MessageDataObject): Promise<TBri
   let perspectiveSettings = await loadPerspectiveDefsFromPluginSettings()
   const activeDef = getActivePerspectiveDef(perspectiveSettings)
   if (!activeDef) {
-    const newPerspSettings = await switchToPerspective('-', perspectiveSettings)
+    const newPerspSettings = await activatePerspectiveInDefs('-', perspectiveSettings)
     if (newPerspSettings) {
       perspectiveSettings = newPerspSettings
     } else {
-      logError('doDeletePerspective', `switchToPerspective('-', perspectiveSettings) failed after deleting ${data.perspectiveName || ''}`)
-      return handlerResult(false, [], { errorMsg: `switchToPerspective('-', perspectiveSettings) failed` })
+      logError('doDeletePerspective', `activatePerspectiveInDefs('-', perspectiveSettings) failed after deleting ${data.perspectiveName || ''}`)
+      return handlerResult(false, [], { errorMsg: `activatePerspectiveInDefs('-', perspectiveSettings) failed` })
     }
   }
   const updatesToPluginData = { perspectiveSettings: perspectiveSettings, dashboardSettings: await getDashboardSettings() }
@@ -224,10 +224,9 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   }
   const ps = await loadPerspectiveDefsFromPluginSettings()
   // logPerspectiveNames(ps, 'doSwitchToPerspective: Persp settings before switch:')
-  // TODO: JGC thinks the following function could be more clearly named.
-  const revisedDefs = await switchToPerspective(switchToName, ps)
+  const revisedDefs = await activatePerspectiveInDefs(switchToName, ps)
   // logPerspectiveNames(revisedDefs || [], 'doSwitchToPerspective: Persp settings after switch:')
-  if (!revisedDefs) return handlerResult(false, [], { errorMsg: `switchToPerspective couldn't get def for perspective'${switchToName}'` })
+  if (!revisedDefs) return handlerResult(false, [], { errorMsg: `activatePerspectiveInDefs couldn't get def for perspective'${switchToName}'` })
   let activeDef = getActivePerspectiveDef(revisedDefs)
   if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
 
