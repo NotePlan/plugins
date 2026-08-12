@@ -24,6 +24,7 @@ import {
   renamePerspective,
   savePerspectiveSettings,
   mergeDashboardSettingsForPerspectiveDef,
+  ensurePerspectiveDefHasDashboardSettings,
   logPerspectiveNames,
   isNamedPerspectiveModified,
 } from './perspectiveHelpers'
@@ -209,8 +210,8 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
 }
 
 /**
- * Switch to a perspective and save the new perspective settings and dashboard settings
- * TODO: Add default dashboardSettings to the perspectiveDefs if they are missing.
+ * Switch to a perspective and save the new perspective settings and dashboard settings.
+ * Fills missing dashboardSettings on the active def with defaults before merge/save.
  * @param {MessageDataObject} data - the data object containing the perspective name
  * @returns {TBridgeClickHandlerResult} - the result of the switch to perspective
  */
@@ -227,7 +228,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   const revisedDefs = await switchToPerspective(switchToName, ps)
   // logPerspectiveNames(revisedDefs || [], 'doSwitchToPerspective: Persp settings after switch:')
   if (!revisedDefs) return handlerResult(false, [], { errorMsg: `switchToPerspective couldn't get def for perspective'${switchToName}'` })
-  const activeDef = getActivePerspectiveDef(revisedDefs)
+  let activeDef = getActivePerspectiveDef(revisedDefs)
   if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
 
   // get the previous dashboard settings
@@ -235,18 +236,27 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
 
   const dashboardSettingsDefaults = getDashboardSettingsDefaults()
+  // Repair older/corrupt defs that lack dashboardSettings so future switches do not keep re-filling
+  const { def: filledActiveDef, filled } = ensurePerspectiveDefHasDashboardSettings(activeDef, dashboardSettingsDefaults)
+  let defsForSave = revisedDefs
+  if (filled) {
+    logInfo('doSwitchToPerspective', `Perspective '${filledActiveDef.name}' was missing dashboardSettings; filled with defaults and will persist`)
+    defsForSave = replacePerspectiveDef(revisedDefs, filledActiveDef)
+    activeDef = filledActiveDef
+  }
+
   const newDashboardSettings = mergeDashboardSettingsForPerspectiveDef(
     activeDef,
     prevDashboardSettings,
     dashboardSettingsDefaults,
     `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,
   )
-  logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
+  logDebug(`doSwitchToPerspective`, `saving ${String(defsForSave.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
 
   // Use helper to save settings from now on, not unreliable `DataStore.settings = {...}`
   const res = await saveDashboardPluginSettings({
     ...(await loadDashboardPluginSettings()),
-    perspectiveSettings: revisedDefs,
+    perspectiveSettings: defsForSave,
     dashboardSettings: newDashboardSettings,
   })
   if (!res) {
@@ -254,7 +264,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   }
 
   const savedPerspectives = (await loadDashboardPluginSettings()).perspectiveSettings
-  const perspectiveSettingsForPlugin = Array.isArray(savedPerspectives) ? savedPerspectives : revisedDefs
+  const perspectiveSettingsForPlugin = Array.isArray(savedPerspectives) ? savedPerspectives : defsForSave
 
   // TODO: @jgclark resetting sections to [] on perspective switch forces a refresh of all enabled sections
   // You may or may not want to get fancy and try to delete the sections that are no longer enabled (e.g. tags)

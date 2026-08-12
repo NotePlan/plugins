@@ -340,6 +340,30 @@ function deletePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, name:
 const PERSPECTIVE_LIVE_VS_SAVED_COMPARE_OMIT: Array<string | RegExp> = ['lastModified', 'lastChange', 'usePerspectives']
 
 /**
+ * If a perspective def is missing dashboardSettings (or has an empty object), fill with cleaned defaults.
+ * Used when switching so older/corrupt defs do not keep shipping without settings.
+ * @param {TPerspectiveDef} perspectiveDef
+ * @param {TDashboardSettings} dashboardSettingsDefaults
+ * @returns {{ def: TPerspectiveDef, filled: boolean }}
+ */
+export function ensurePerspectiveDefHasDashboardSettings(
+  perspectiveDef: TPerspectiveDef,
+  dashboardSettingsDefaults: TDashboardSettings,
+): { def: TPerspectiveDef, filled: boolean } {
+  const existing = perspectiveDef.dashboardSettings
+  if (existing && typeof existing === 'object' && Object.keys(existing).length > 0) {
+    return { def: perspectiveDef, filled: false }
+  }
+  return {
+    def: {
+      ...perspectiveDef,
+      dashboardSettings: cleanDashboardSettingsInAPerspective({ ...dashboardSettingsDefaults }),
+    },
+    filled: true,
+  }
+}
+
+/**
  * Diff between a named perspective's saved def and live dashboard settings (null if equivalent).
  * Same rules as `resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload` (defaults, tag sections).
  * @param {TPerspectiveDef} perspectiveDef

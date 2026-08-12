@@ -2,11 +2,41 @@
 // Last updated 2026-05-23 for v2.4.0 by @CursorAI
 
 import { getDashboardSettingsDefaults } from '../dashboardHelpers.js'
-import { cleanDashboardSettingsInAPerspective, isNamedPerspectiveModified } from '../perspectiveHelpers.js'
+import { cleanDashboardSettingsInAPerspective, ensurePerspectiveDefHasDashboardSettings, isNamedPerspectiveModified } from '../perspectiveHelpers.js'
 
 const PLUGIN_NAME = 'jgclark.Dashboard'
 
 describe(`${PLUGIN_NAME}`, () => {
+  describe('ensurePerspectiveDefHasDashboardSettings', () => {
+    test('fills cleaned defaults when dashboardSettings is missing', () => {
+      const defaults = getDashboardSettingsDefaults()
+      // Incomplete fixture: older defs can lack dashboardSettings at runtime
+      const def: any = { name: 'Work', isActive: true, isModified: false }
+      const { def: filled, filled: didFill } = ensurePerspectiveDefHasDashboardSettings(def, defaults)
+      expect(didFill).toBe(true)
+      expect(filled.dashboardSettings).toBeDefined()
+      expect(Object.keys(filled.dashboardSettings || {}).length).toBeGreaterThan(0)
+    })
+
+    test('fills cleaned defaults when dashboardSettings is empty object', () => {
+      const defaults = getDashboardSettingsDefaults()
+      const def = { name: 'Work', isActive: true, isModified: false, dashboardSettings: {} }
+      const { def: filled, filled: didFill } = ensurePerspectiveDefHasDashboardSettings(def, defaults)
+      expect(didFill).toBe(true)
+      expect(Object.keys(filled.dashboardSettings || {}).length).toBeGreaterThan(0)
+    })
+
+    test('leaves existing dashboardSettings unchanged', () => {
+      const defaults = getDashboardSettingsDefaults()
+      const saved = cleanDashboardSettingsInAPerspective({ ...defaults, showQuarterSection: false })
+      const def = { name: 'Work', isActive: true, isModified: false, dashboardSettings: saved }
+      const { def: result, filled: didFill } = ensurePerspectiveDefHasDashboardSettings(def, defaults)
+      expect(didFill).toBe(false)
+      expect(result).toBe(def)
+      expect(result.dashboardSettings.showQuarterSection).toBe(false)
+    })
+  })
+
   describe('isNamedPerspectiveModified', () => {
     test('returns true when isModified flag is set', () => {
       const def = { name: 'Work', isModified: true, dashboardSettings: {} }
