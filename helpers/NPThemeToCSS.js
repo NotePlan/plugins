@@ -456,9 +456,14 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     output.push(makeCSSSelector('.scheduledDate', tempSel))
 
     // Reminder due-time chip colours (measured from NP 3.20.2+ native reminder time lozenge).
-    // Layout for .reminderTime lives in ReminderItem.css (Dashboard).
-    rootSel.push(`--fg-reminderTime: #26709e`)
-    rootSel.push(`--bg-reminderTime: #d7ebf8`)
+    // Layout for .reminderMarker lives in ReminderItem.css (Dashboard).
+    if (currentThemeMode === 'light') {
+      rootSel.push(`--fg-reminderMarker: #26709e`)
+      rootSel.push(`--bg-reminderMarker: #d7ebf8`)
+    } else {
+      rootSel.push(`--fg-reminderMarker: #75b6e1`)
+      rootSel.push(`--bg-reminderMarker: #1d3a4c`)
+    }
 
     // Now put the important info and rootSel at the start of the output
     output.unshift(makeCSSSelector(':root', rootSel))

@@ -188,6 +188,29 @@ describe(`${FILE}`, () => {
   })
 })
 
+describe('convertNPReminderIDToHTML()' /* function */, () => {
+  test('replaces @remind(UUID) with bell icon span', () => {
+    const uuid = '123e4567-e89b-12d3-a456-426614174000'
+    const input = `Do the thing @remind(:::${uuid}) now`
+    const out = h.convertNPReminderIDToHTML(input)
+    expect(out).toContain('fa-bell')
+    expect(out).not.toContain(`@remind(${uuid})`)
+  })
+
+  test('ignores malformed tokens', () => {
+    const input = 'Do @remind(123) nothing'
+    const out = h.convertNPReminderIDToHTML(input)
+    expect(out).toEqual(input)
+  })
+
+  test('ignores malformed tokens (missing colons)', () => {
+    const uuid = '123e4567-e89b-12d3-a456-426614174000'
+    const input = `Do the thing @remind(${uuid}) now`
+    const out = h.convertNPReminderIDToHTML(input)
+    expect(out).toEqual(input)
+  })
+})
+
 /*
  * replaceMarkdownLinkWithHTMLLink()
  */

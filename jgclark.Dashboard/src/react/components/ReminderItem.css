@@ -1,13 +1,13 @@
 /* CSS specific to ReminderItem.
-/* Last updated 2026-08-01 for v2.4.0.b61, @jgclark */
+/* Last updated 2026-08-12 for v2.4.0.b62, @jgclark */
 
-/* Reminder due-time chip: matches NP's native reminder time lozenge
+/* Reminder marker/chip (with or without due-time): matches NP's native reminder bell/bell+time lozenge
    (pale fill + colored text + bell), distinct from .timeBlock (white-on-fill + clock). */
 
-.reminderTime {
+.reminderMarker {
 	font-size: 84%;
-	color: var(--fg-reminderTime, #26709e);
-	background-color: var(--bg-reminderTime, #d7ebf8);
+	color: var(--fg-reminderMarker, #26709e);
+	background-color: var(--bg-reminderMarker, #d7ebf8);
 	border-radius: 6px;
 	padding-left: 2px;
 	padding-right: 3px;

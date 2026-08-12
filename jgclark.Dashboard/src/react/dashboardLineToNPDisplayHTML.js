@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Shared: turn a raw task line string into HTML matching NotePlan-style display
 // (hashtags, mentions, links, etc.) for TaskItem (via ItemContent) and ProjectItem.
-// Last updated 2026-07-21 for v2.4.0.b53 by @jgclark/@Cursor
+// Last updated 2026-08-12 for v2.4.0.b62 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 
 import type { TDashboardSettings, TLinkedNoteIconInfo, TSectionItem } from '../types.js'
@@ -22,6 +22,7 @@ import {
   convertHashtagsToHTML,
   convertHighlightsToHTML,
   convertMentionsToHTML,
+  convertNPReminderIDToHTML,
   convertNPBlockIDToHTML,
   convertPreformattedToHTML,
   convertStrikethroughToHTML,
@@ -134,6 +135,8 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
 
     output = simplifyNPEventLinksForHTML(output)
     output = simplifyInlineImagesForHTML(output)
+    // Convert any @remind(<UUID>) tokens -- needs to come before mention conversion
+    output = convertNPReminderIDToHTML(output)
 
     // Note links (including [alias]([[title]])) before markdown-link conversion so aliases are not treated as external URLs
     const noteLinks = findNoteLinksForDisplay(output)

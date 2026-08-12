@@ -137,6 +137,13 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
       const html = makeStringContentToLookLikeNPDisplayInReact('See [[2026-07-21]] today', { truncateLength: 0, taskPriority: 0 })
       expect(html).toContain('fa-calendar-star')
     })
+
+    test('replaces @remind(UUID) token with bell icon HTML', () => {
+      const uuid = '123e4567-e89b-12d3-a456-426614174000'
+      const html = makeStringContentToLookLikeNPDisplayInReact(`Finish report @remind(:::${uuid})`, { truncateLength: 0, taskPriority: 0 })
+      expect(html).toContain('fa-bell')
+      expect(html).not.toContain(`@remind(:::${uuid})`)
+    })
   })
 
   describe('applyDashboardSettingsToDisplayedItemHtml()', () => {

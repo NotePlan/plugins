@@ -8,7 +8,7 @@
 // On older builds that scheme is blocked by NotePlan.openURL.
 // See also ARCHITECTURE-How_Stuff_Works.md -> "Reminders section".
 //
-// Last updated 2026-08-01 for v2.4.0.b61 by @jgclark + @CursorAI
+// Last updated 2026-08-12 for v2.4.0.b62 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useCallback } from 'react'
@@ -87,7 +87,7 @@ function ReminderItem({ item, thisSection }: Props): Node {
   // NP shows reminder due-time as a chip with bell icon after the title (not the timeBlock clock style)
   if (showTimeChip && reminder.time) {
     contentParts.push(
-      <span key="time" className="reminderTime">
+      <span key="time" className="reminderMarker">
         <i className="fa-regular fa-fw fa-bell pad-right" />
         {reminder.time}
       </span>,

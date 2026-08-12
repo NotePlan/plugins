@@ -42,6 +42,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 
 ## [2.4.0.b62] 2026-08-07 (unreleased)
+- Change: Now hides inline `@remind(<UUID>)` text in tasks behind a bell icon, as NP does.
 - Fix: Project title chips in Project Sections reverted to full normal font size; compact size remains for task context note links.
 - Fix: Window size + position is saved again when resizing/moving it
 - Fix: Projects Sections caption "first N of M" now counts projects only (not next-action child rows).

@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2026-07-21 by @jgclark
+// Last updated 2026-08-12 by @jgclark
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
 import { hasFrontMatter } from '@helpers/NPFrontMatter'
@@ -1253,6 +1253,31 @@ export function convertNPBlockIDToHTML(input: string): string {
     }
   }
   return output
+}
+
+/**
+ * Replace @remind(<UUID>) tokens with a small bell icon on a light blue background.
+ * Designed to be reusable by other plugins. Matches strict UUIDs only.
+ * @param {string} input
+ * @returns {string}
+ */
+export function convertNPReminderIDToHTML(input: string): string {
+  try {
+    let output = input
+    // Strict UUID pattern: 8-4-4-4-12 hex
+    const RE_REMIND_UUID = /@remind\(:::([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\)/g
+    const captures = output.match(RE_REMIND_UUID)
+    if (captures) {
+      for (const capture of captures) {
+        const replacement = `<i class=\"reminderMarker fa-regular fa-bell\"></i>`
+        output = output.replace(capture, replacement)
+      }
+    }
+    return output
+  } catch (error) {
+    logError(pluginJson, `convertNPReminderIDToHTML: ${error.message}`)
+    return input
+  }
 }
 
 /**
