@@ -8,6 +8,7 @@ import { getNextProjectsToReview, getAllActiveProjects } from '../../jgclark.Rev
 import { Project } from '../../jgclark.Reviews/src/projectClass'
 import { getDashboardSettings, makeDashboardParas } from './dashboardHelpers'
 import { nextProjectNoteItems } from './demoData'
+import { getActivePerspectiveName, loadPerspectiveDefsFromPluginSettings } from './perspectiveHelpers'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import type { TDashboardSettings, TSection, TSectionCode, TSectionItem } from './types'
 import { logDebug, logInfo, logTimer, timer } from '@helpers/dev'
@@ -42,6 +43,32 @@ function makeProjectRowItem(sectionCode: TSectionCode, project: any, itemCount: 
     },
     teamspaceTitle: parsedPossibleTeamspace?.isTeamspace ? getTeamspaceTitleFromID(parsedPossibleTeamspace.teamspaceID ?? '') : undefined,
   }
+}
+
+/**
+ * When FFlag_ShowSectionTimings is on, prepend a timing line to the Project Generation Log note.
+ * @param {TDashboardSettings} config
+ * @param {string} sectionLabel - e.g. PROJREVIEW / PROJACT
+ * @param {number} projectCount
+ * @param {Date} startTime
+ * @returns {Promise<void>}
+ */
+async function logProjectGenerationTiming(
+  config: TDashboardSettings,
+  sectionLabel: string,
+  projectCount: number,
+  startTime: Date,
+): Promise<void> {
+  if (!config?.FFlag_ShowSectionTimings) return
+  const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
+  if (!logNote) return
+  let perspName = '_no_'
+  if (config?.usePerspectives) {
+    const defs = await loadPerspectiveDefsFromPluginSettings()
+    perspName = getActivePerspectiveName(defs)
+  }
+  const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Dashboard ${sectionLabel} for ${perspName} persp: ${projectCount} in ${timer(startTime)}`
+  smartPrependPara(logNote, newLogLine, 'list')
 }
 
 /**
@@ -170,17 +197,7 @@ export async function getProjectReviewSectionData(config: TDashboardSettings, us
   // console.log(JSON.stringify(section))
   logTimer('getProjectReviewSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
 
-  // TODO: remove this later.
-  // Log the start of the generation to a special log note, if we're running. 
-  if (config?.FFlag_ShowSectionTimings) {
-    const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
-    if (logNote) {
-      // TODO: finish this ...
-      const perspName = config?.usePerspectives ? "?" : '_no_'
-      const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Dashboard PROJREVIEW for ${perspName} persp: ${nextProjectsToReview.length} in ${timer(thisStartTime)}`
-      smartPrependPara(logNote, newLogLine, 'list')
-    }
-  }
+  await logProjectGenerationTiming(config, 'PROJREVIEW', nextProjectsToReview.length, thisStartTime)
 
   return section
 }
@@ -278,17 +295,7 @@ export async function getProjectActiveSectionData(config: TDashboardSettings, us
   // console.log(JSON.stringify(section))
   logTimer('getProjectActiveSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
 
-  // TODO: remove this later.
-  // Log the start of the generation to a special log note, if we're running. 
-  if (config?.FFlag_ShowSectionTimings) {
-    const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
-    if (logNote) {
-      // TODO: finish this ...
-      const perspName = config?.usePerspectives ? "?" : '_no_'
-      const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Dashboard PROJACT with ${perspName} persp: ${allActiveProjects.length} in ${timer(thisStartTime)}`
-      smartPrependPara(logNote, newLogLine, 'list')
-    }
-  }
+  await logProjectGenerationTiming(config, 'PROJACT', allActiveProjects.length, thisStartTime)
 
   return section
 }
