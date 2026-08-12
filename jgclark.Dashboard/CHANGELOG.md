@@ -46,6 +46,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dev: Project Generation Log (when section-timing FFlag is on) now records the active Perspective name instead of `?`.
 - dev: Quiet Tag section de-dupe logging (no longer dumps every item when nothing was removed).
 - dev: Rename `switchToPerspective` helper to `activatePerspectiveInDefs` (bridge action name unchanged) to distinguish it from `doSwitchToPerspective`.
+- dev: Clarify JSON-editor log in `setPerspectivesIfJSONChanged` (perspectiveSettings key only arrives from that path).
+- dev: Document that clearing `sections: []` on Perspective switch is intentional for a reliable full refresh.
 - dev: Clarify that tagCache wanted-tags sync happens on perspective save paths (not inside replace/delete helpers themselves).
 
 ## [2.4.0.b62] 2026-08-07

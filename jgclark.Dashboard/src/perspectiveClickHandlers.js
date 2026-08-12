@@ -265,10 +265,8 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   const savedPerspectives = (await loadDashboardPluginSettings()).perspectiveSettings
   const perspectiveSettingsForPlugin = Array.isArray(savedPerspectives) ? savedPerspectives : defsForSave
 
-  // TODO: @jgclark resetting sections to [] on perspective switch forces a refresh of all enabled sections
-  // You may or may not want to get fancy and try to delete the sections that are no longer enabled (e.g. tags)
-  // and only refresh the sections that are new
-  // But for now, the brute force way seems the most reliable :)
+  // Intentional: clear sections on perspective switch so React regenerates all enabled sections.
+  // Selective removal (e.g. only tags that disappeared) is more complex and less reliable; revisit only if switch latency becomes a measured problem.
   const updatesToPluginData = {
     perspectiveChanging: true,
     perspectiveSettings: perspectiveSettingsForPlugin,
