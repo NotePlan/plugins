@@ -519,6 +519,9 @@ export function getDisplayListOfPerspectiveNames(allDefs: Array<TPerspectiveDef>
 }
 /**
  * Get all folders that are allowed in the current Perspective.
+ * Takes perspective defs and uses the active def's folder filters.
+ * Kept separate from perspectivesShared::getCurrentlyAllowedFolders() (which takes TDashboardSettings)
+ * to avoid a circular dependency -- do not merge.
  * Note: used only by getReviewSettings() in Projects plugin.
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @returns {Array<string>}

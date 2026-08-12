@@ -12,10 +12,11 @@ import { logDebug } from '@helpers/dev'
 
 /**
  * Get all folders that are allowed in the current settings/Perspective.
- * Note: this almost a dupe of perspectiveHelpers::getAllowedFoldersInCurrentPerspective()
- * TODO: Probably could be refactored into a single function that accepts an array of perspective definitions or a TDashboardSettings object. Tried 23.1.2026 and it set up a circular dependency again.
+ * Takes live TDashboardSettings (includedFolders / excludedFolders already resolved for the active view).
+ * Kept separate from perspectiveHelpers::getAllowedFoldersInCurrentPerspective() (which takes perspective defs
+ * and reads the active def) to avoid a circular dependency between those modules -- do not merge.
  * @param {TDashboardSettings} dashboardSettings
- * @returns
+ * @returns {Array<string>}
  */
 export function getCurrentlyAllowedFolders(
   dashboardSettings: TDashboardSettings
