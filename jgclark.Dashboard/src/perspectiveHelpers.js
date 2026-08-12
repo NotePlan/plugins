@@ -279,7 +279,7 @@ export function replacePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef
   logDebug('replacePerspectiveDef', `Found perspective to update: ${newDef.name}. List is now:`)
   logPerspectives(perspectiveSettings)
 
-  // TODO: Update tagCache definition list json
+  // Note: tagCache wantedTagMentionsList.json is updated when callers persist via savePerspectiveSettings / saveDashboardPluginSettings
 
   return perspectiveSettings.map((s) => (s.name === newDef.name ? newDef : s))
 }
@@ -864,7 +864,7 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
       await setPluginData({ perspectiveSettings: updatedDefs }, `after deleting Perspective ${nameToUse}.`)
     }
 
-    // TODO: Update tagCache definition list json
+    // Note: tagCache wantedTagMentionsList.json is updated by savePerspectiveSettings above (and again if switchToPerspective saves)
 
     clof(DataStore.settings, `deletePerspective at end DataStore.settings =`, ['name', 'isActive'], true) // ✅
   } catch (error) {
