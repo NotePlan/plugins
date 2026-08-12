@@ -42,6 +42,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 
 ## [2.4.0.b63] 2026-08-12 (unreleased)
+- Fix: Priority section now removes sync-line duplicates before display (same approach as Tag sections).
 - Fix: Switching to a Perspective that was missing `dashboardSettings` now fills defaults and persists them so the hole does not keep recurring.
 - dev: Project Generation Log (when section-timing FFlag is on) now records the active Perspective name instead of `?`.
 - dev: Quiet Tag section de-dupe logging (no longer dumps every item when nothing was removed).

@@ -24,6 +24,7 @@ import { getRegularNotesFromFilteredFolders } from '@helpers/folders'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 import { pastCalendarNotes } from '@helpers/note'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
+import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 import { isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
 // ----------------------------------------------------------
@@ -80,14 +81,14 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
     const items: Array<TSectionItem> = []
 
     if (priorityParas.length > 0) {
+      // Remove possible dupes from sync'd lines before reduce/sort (same approach as Tag sections)
+      priorityParas = eliminateDuplicateParagraphs(priorityParas)
+      logTimer('getPrioritySectionData', thisStartTime, `- after sync lines dedupe -> ${priorityParas.length}`)
+
       // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
       // Note: this takes ~600ms for 1,000 items
       dashboardParas = makeDashboardParas(priorityParas)
       logDebug('getPrioritySectionData', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
-
-      // TODO(later): Remove possible dupes from sync'd lines
-      // priorityParas = eliminateDuplicateParagraphs(priorityParas)
-      // logTimer('getPrioritySectionData', thisStartTime, `- after sync lines dedupe -> ${priorityParas.length}`)
 
       totalPriority = dashboardParas.length
 
