@@ -206,15 +206,8 @@ export async function getTaggedSectionData(
           // related to Array<TParagraph>. Making removeDuplicates generic is the real fix; it is out of scope.
           filteredTagParas = (removeDuplicates((filteredTagParas: any), ['content', 'filename']): any)
           const postDedupeCount = filteredTagParas.length
-
-          // TODO: remove this logging once we find cause of DBW seeing dupes
           if (preDedupeCount !== postDedupeCount) {
             logDebug('getTaggedSectionData', `- de-duped from ${preDedupeCount} to ${postDedupeCount} items`)
-          } else {
-            logDebug('getTaggedSectionData', `- no de-duping done of items:`)
-            for (const p of filteredTagParas) {
-              logDebug('getTaggedSectionData', `  - {${p.content}} in ${p.filename} line ${p.lineIndex}`)
-            }
           }
 
           // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
@@ -259,7 +252,7 @@ export async function getTaggedSectionData(
     let sectionDescription = `{countWithLimit} open {itemType} ordered by ${config.overdueSortOrder}`
     if (config?.FFlag_ShowSectionTimings) {
       sectionDescription += ` [${timer(thisStartTime)}]`
-      // TODO(later): remove note about the tag cache
+      // Cache/API source note is only for timing diagnostics (not shown to end users otherwise)
       sectionDescription += `, ${source}`
       if (comparisonDetails !== '') sectionDescription += ` [${comparisonDetails}]`
     }
