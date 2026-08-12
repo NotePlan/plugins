@@ -91,7 +91,9 @@ export async function getSomeSectionsData(
     logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
     const config: TDashboardSettings = configOverride ?? (await getDashboardSettings())
 
-    // TODO: change generation order to suit the new custom section display order.  Note: Cursor's attempt on 24.1.2026 to do this broke generation of Project sections.
+    // Generation order is dependency-driven (Reminders / Yesterday / Overdue coupling, Projects, then slower sections).
+    // Display order is owned by React via customSectionDisplayOrder -- do not reorder generation to match display.
+    // An earlier attempt to generate in display order broke Project section generation (24.1.2026).
 
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('INFO')) sections.push(...(await getInfoSectionData(config, useDemoData)))
