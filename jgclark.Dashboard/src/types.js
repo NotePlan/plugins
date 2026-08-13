@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
+// Last updated 2026-08-12 for v2.4.0.b63 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -417,6 +417,7 @@ export type MessageDataObject = {
   newSettings?: string /* either reactSettings or dashboardSettings depending on actionType */,
   modifierKey?: any /* used when modifier key is pressed with an action */,
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
+  tagsToGenerate?: Array<string>, // optional subset of tag/mention names when refreshing TAG (exact match to tagsToShow entries)
   toFilename?: string,
   newDimensions?: { width: number, height: number },
   reason?: string /* why windowResized was requested (e.g. resize, willDisappear) */,

@@ -376,6 +376,34 @@ export function getShowTagSettingName(tag: string): string {
 }
 
 /**
+ * Stable section ID for a TAG section, keyed by tag/mention name (not generation order).
+ * Enables partial TAG refreshes to merge correctly via mergeSections().
+ * @param {string} tagName
+ * @returns {string}
+ */
+export function makeTagSectionID(tagName: string): string {
+  return `TAG:${tagName}`
+}
+
+/**
+ * Which tag section details to generate this pass.
+ * - When `tagsToGenerate` is null/undefined/empty: all tag sections (caller still applies showSettingName).
+ * - When set: only those whose sectionName is in the list (exact match after trim).
+ * @param {Array<TSectionDetails>} tagSections
+ * @param {?Array<string>} tagsToGenerate
+ * @returns {Array<TSectionDetails>}
+ */
+export function selectTagSectionsToGenerate(
+  tagSections: Array<TSectionDetails>,
+  tagsToGenerate: ?Array<string>,
+): Array<TSectionDetails> {
+  if (!tagsToGenerate || tagsToGenerate.length === 0) return tagSections
+  const wanted = new Set(tagsToGenerate.map((t) => t.trim()).filter((t) => t !== ''))
+  if (wanted.size === 0) return tagSections
+  return tagSections.filter((detail) => wanted.has(detail.sectionName))
+}
+
+/**
  * Get Section Details for all wanted tags/mentions in settings
  * @param {TDashboardSettingsIn} dashboardSettings - only `tagsToShow` is read
  * @returns {Array<TSectionDetails>} {sectionCode, sectionName, showSettingName}

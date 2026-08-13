@@ -724,6 +724,7 @@ export const refMonthParas: Array<TSectionItem> = [
 // Demo data for TagToShow section
 
 // Note: getTaggedSectionData() assigns the ID (`${sectionID}-${itemCount}`) as it copies each item,
+// where sectionID is now stable (`TAG:<tag>` via makeTagSectionID).
 // so these fixtures really are TSectionItems minus their ID.
 export const tagParasFromNote: Array<Omit<TSectionItem, 'ID'>> = [
   {

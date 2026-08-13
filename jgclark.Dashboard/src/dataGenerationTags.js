@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-06-16 for v2.4.0.b46 by @CursorAI
+// Last updated 2026-08-12 for v2.4.0.b63 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -9,6 +9,7 @@ import type { TDashboardSettings, TSection, TSectionItem, TSectionDetails } from
 import { createSectionItemObject, isLineDisallowedByIgnoreTerms, isNoteFromAllowedTeamspace, makeDashboardParas, resolveAllowedTeamspaceIDs } from './dashboardHelpers'
 import { tagParasFromNote } from './demoData'
 import { isTagCacheEnabled } from './dashboardSettingsClean'
+import { makeTagSectionID } from './react/components/Section/sectionHelpers'
 import {
   addTagMentionCacheDefinitions,
   getFilenamesOfNotesWithTagOrMentions,
@@ -35,26 +36,23 @@ import { isOpen, isOpenTask, removeDuplicates } from '@helpers/utils'
  * Only find paras with this *single* tag/mention which include open tasks, and that by default aren't scheduled in the future.
  * Uses all the 'ignore' settings, apart from 'ignoreItemsWithTerms' if it includes this particular tag/mention.
  * Now also implements noteTags feature to include all open items in a note, based on 'note-tag' attribute in frontmatter.
- * Note: TAG section IDs are currently index-based (`TAG_${index}`), where `index` is the generation order among currently generated/enabled tag sections in this refresh pass. 
- * They are therefore not stable across tag toggle/reorder changes; `syncTagSectionsWithSettings()` in `dashboardSettingsClean.js` now normalizes
- * persisted TAG sections (stale/disabled removal + dedupe by tag name) after refresh/close flows.
+ * Note: TAG section IDs are stable by tag name (`TAG:<tag>` via makeTagSectionID), so a partial refresh of one tag
+ * can merge correctly. `syncTagSectionsWithSettings()` still normalizes stale/disabled/duplicate TAG rows after refresh.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {TSectionDetails} sectionDetail
- * @param {number} index - generation order index for this TAG section in current pass
  * @returns {?TSection}
  */
 export async function getTaggedSectionData(
   config: TDashboardSettings,
   useDemoData: boolean = false,
   sectionDetail: TSectionDetails,
-  index: number,
 ): Promise<?TSection> {
   try {
     const thisStartTime = new Date()
-    const sectionID = `TAG_${String(index)}`
-    const thisSectionCode = 'TAG'
     const thisTag = sectionDetail.sectionName
+    const sectionID = makeTagSectionID(thisTag)
+    const thisSectionCode = 'TAG'
     logDebug('getTaggedSectionData', `------- Gathering Tag items for section ${sectionID}: ${thisTag} --------`)
     let itemCount = 0
     let totalCount = 0

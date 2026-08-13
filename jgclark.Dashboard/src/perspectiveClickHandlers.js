@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-06-13 for v2.4.0.b46 by @jgclark + @CursorAI
+// Last updated 2026-08-13 for v2.4.0.b63 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
@@ -29,7 +29,7 @@ import {
   isNamedPerspectiveModified,
 } from './perspectiveHelpers'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { getGlobalSharedData } from '@helpers/HTMLView'
+import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
 
 /**
  * Live dashboard settings for perspective save: prefer WebView state (what the user sees), then disk.
@@ -169,7 +169,18 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
 }
 
 /**
+ * True when save failed only because the active perspective had nothing to persist.
+ * Save+Switch should still switch in this case (React can show `*` from a stale isModified flag).
+ * @param {TBridgeClickHandlerResult} saveResult
+ * @returns {boolean}
+ */
+function isUnmodifiedPerspectiveSaveResult(saveResult: TBridgeClickHandlerResult): boolean {
+  return Boolean(!saveResult.success && saveResult.errorMsg && saveResult.errorMsg.includes('is not modified'))
+}
+
+/**
  * Save the active modified perspective, then switch to another (single bridge round-trip avoids save/switch race).
+ * If save is skipped because the perspective is not actually modified, still switch and keep the "not saving" banner.
  * @param {MessageDataObject} data - must include `switchToPerspectiveName` (target) and optional `perspectiveName` (active, for save)
  * @returns {Promise<TBridgeClickHandlerResult>}
  */
@@ -179,8 +190,13 @@ export async function doSavePerspectiveAndSwitchToPerspective(data: MessageDataO
     return handlerResult(false, [], { errorMsg: `doSavePerspectiveAndSwitchToPerspective: switchToPerspectiveName is required.` })
   }
   const saveResult = await doSavePerspective(data)
-  if (!saveResult.success) {
+  const saveSkippedAsUnmodified = isUnmodifiedPerspectiveSaveResult(saveResult)
+  if (!saveResult.success && !saveSkippedAsUnmodified) {
     return saveResult
+  }
+  if (saveSkippedAsUnmodified) {
+    logInfo('doSavePerspectiveAndSwitchToPerspective', `${saveResult.errorMsg || ''} Continuing with switch to "${switchToName}".`)
+    await sendBannerMessage(WEBVIEW_WINDOW_ID, saveResult.errorMsg || `Perspective is not modified. Not saving.`, saveResult.errorMessageLevel || 'WARN')
   }
   return doSwitchToPerspective({ ...data, perspectiveName: switchToName })
 }

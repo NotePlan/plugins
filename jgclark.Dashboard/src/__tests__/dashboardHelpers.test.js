@@ -10,6 +10,7 @@ import {
   filterParasByIncludedCalendarSections,
   filterParasByExcludedCalendarSections,
   isWinItem,
+  mergeSections,
 } from '../dashboardHelpers.js'
 import { DataStore, Editor, CommandBar, NotePlan, Paragraph, Note, simpleFormatter } from '@mocks/index'
 import * as timeblocks from '@helpers/timeblocks'
@@ -40,6 +41,37 @@ describe(`${PLUGIN_NAME}`, () => {
       // Mock logTimer and logDebug to avoid console output during tests
       jest.spyOn(dev, 'logTimer').mockImplementation(() => { })
       jest.spyOn(dev, 'logDebug').mockImplementation(() => { })
+    })
+
+    describe('mergeSections()', () => {
+      test('replaces by ID when IDs match', () => {
+        const existing = [{ ID: 'DT', sectionCode: 'DT', name: 'Today', sectionItems: [] }]
+        const incoming = [{ ID: 'DT', sectionCode: 'DT', name: 'Today', sectionItems: [{ ID: 'DT-0' }] }]
+        const merged = mergeSections(existing, incoming)
+        expect(merged).toHaveLength(1)
+        expect(merged[0].sectionItems).toHaveLength(1)
+      })
+
+      test('for TAG, replaces by name when ID scheme changed (TAG_0 -> TAG:#work)', () => {
+        const existing = [
+          { ID: 'TAG_0', sectionCode: 'TAG', name: '#work', sectionItems: [{ ID: 'old' }] },
+          { ID: 'DT', sectionCode: 'DT', name: 'Today', sectionItems: [] },
+        ]
+        const incoming = [{ ID: 'TAG:#work', sectionCode: 'TAG', name: '#work', sectionItems: [{ ID: 'new' }] }]
+        const merged = mergeSections(existing, incoming)
+        expect(merged).toHaveLength(2)
+        expect(merged.find((s) => s.name === '#work')?.ID).toBe('TAG:#work')
+        expect(merged.find((s) => s.name === '#work')?.sectionItems[0].ID).toBe('new')
+        expect(merged.find((s) => s.sectionCode === 'DT')).toBeTruthy()
+      })
+
+      test('appends TAG section when name is new', () => {
+        const existing = [{ ID: 'TAG:#work', sectionCode: 'TAG', name: '#work', sectionItems: [] }]
+        const incoming = [{ ID: 'TAG:@home', sectionCode: 'TAG', name: '@home', sectionItems: [] }]
+        const merged = mergeSections(existing, incoming)
+        expect(merged).toHaveLength(2)
+        expect(merged.map((s) => s.name)).toEqual(['#work', '@home'])
+      })
     })
 
     describe('filterToOpenParagraphs()', () => {

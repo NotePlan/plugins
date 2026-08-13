@@ -41,7 +41,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Tag/mention cache used by default (faster TAG sections)
 
 
-## [2.4.0.b63] 2026-08-12 (unreleased)
+## [2.4.0.b63] 2026-08-13 (unreleased)
+- Fix: Save+Switch from a starred Perspective (e.g. Home*) now switches when there is nothing to save; the "not modified" banner is still shown.
+- dev: TAG sections now use stable IDs (`TAG:<tag>`) and can be refreshed individually via `tagsToGenerate` (bulk `TAG` still regenerates all enabled tags).
 - Fix: Priority section now removes sync-line duplicates before display (same approach as Tag sections).
 - Fix: Switching to a Perspective that was missing `dashboardSettings` now fills defaults and persists them so the hole does not keep recurring.
 - dev: Project Generation Log (when section-timing FFlag is on) now records the active Perspective name instead of `?`.

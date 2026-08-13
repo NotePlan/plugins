@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
+// Last updated 2026-08-12 for v2.4.0.b63 by @CursorAI + @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -31,7 +31,7 @@ import { getSavedSearchResults } from './dataGenerationSearch'
 import { getTaggedSectionData } from './dataGenerationTags'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
 import type { TReminderPlacement } from './reminderPlacement'
-import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
+import { getTagSectionDetails, selectTagSectionsToGenerate } from './react/components/Section/sectionHelpers'
 import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
 import { logDebug, logError, logWarn } from '@helpers/dev'
 import { getLiveWindowRect, getStoredWindowRect, rectToString } from '@helpers/NPWindows'
@@ -79,6 +79,7 @@ export async function getAllSectionsData(
  * @param {boolean} useDemoData (default: false)
  * @param {boolean} useEditorWherePossible?
  * @param {?TDashboardSettings} configOverride - when set (e.g. open WebView live settings), used instead of disk-only `getDashboardSettings()`
+ * @param {?Array<string>} tagsToGenerate - when TAG is requested, optional subset of tag/mention names to generate (exact match to tagsToShow entries). Omit or empty = all enabled tags.
  * @returns {Array<TSection>} array of sections
  */
 export async function getSomeSectionsData(
@@ -86,9 +87,10 @@ export async function getSomeSectionsData(
   useDemoData: boolean = false,
   useEditorWherePossible: boolean,
   configOverride?: ?TDashboardSettings,
+  tagsToGenerate?: ?Array<string>,
 ): Promise<Array<TSection>> {
   try {
-    logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()} ...`)
+    logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()}${tagsToGenerate && tagsToGenerate.length > 0 ? ` tagsToGenerate=[${tagsToGenerate.join(',')}]` : ''} ...`)
     const config: TDashboardSettings = configOverride ?? (await getDashboardSettings())
 
     // Generation order is dependency-driven (Reminders / Yesterday / Overdue coupling, Projects, then slower sections).
@@ -138,11 +140,11 @@ export async function getSomeSectionsData(
     //            (listOverdueTasks does not return undated opens sitting in yesterday's note)
     // -------------------------------------------------------------------------
     const wantDY = sectionCodesToGet.includes('DY') && Boolean(config.showYesterdaySection)
-    const wantOD = sectionCodesToGet.includes('OVERDUE') && Boolean(config.showOverdueSection)
+    const wantOVERDUE = sectionCodesToGet.includes('OVERDUE') && Boolean(config.showOverdueSection)
 
     // Shared yesterday task fetch when either DY or OVERDUE needs those paras (skip demo: generators use demoData)
     let yesterdayOpenAndRef: ?[Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] = null
-    if (!useDemoData && (wantDY || wantOD)) {
+    if (!useDemoData && (wantDY || wantOVERDUE)) {
       yesterdayOpenAndRef = getYesterdayOpenItemParas(config, useEditorWherePossible)
     }
     const yesterdayFlatTasks: Array<TParagraphForDashboard> = yesterdayOpenAndRef
@@ -150,10 +152,10 @@ export async function getSomeSectionsData(
       : []
     // DY off + OVERDUE on -> spill yesterday open tasks into Overdue
     const yesterdaySpillTaskParas: Array<TParagraphForDashboard> =
-      !config.showYesterdaySection && wantOD ? yesterdayFlatTasks : []
+      !config.showYesterdaySection && wantOVERDUE ? yesterdayFlatTasks : []
     // DY on + OVERDUE on -> strip DY content from overdue (React Hide Duplicates is the display safety net)
     const yesterdayParasForOverdueDedupe: Array<TParagraphForDashboard> =
-      config.showYesterdaySection && wantOD ? yesterdayFlatTasks : []
+      config.showYesterdaySection && wantOVERDUE ? yesterdayFlatTasks : []
     if (yesterdaySpillTaskParas.length > 0) {
       logDebug('getSomeSectionsData', `- DY off: spilling ${String(yesterdaySpillTaskParas.length)} yesterday open task(s) into OVERDUE`)
     }
@@ -202,35 +204,33 @@ export async function getSomeSectionsData(
 
     // The rest can all be slow to generate
     if (sectionCodesToGet.includes('SAVEDSEARCH')) sections.push(...(await getSavedSearchResults(config, useDemoData)))
+
     if (sectionCodesToGet.includes('TAG') && config.tagsToShow) {
-      // TODO: change so that tags can be generated separately from each other, letting them be specified in the section order component.
-      const tagSections = getTagSectionDetails(config)
-      // clo(tagSections, 'getSomeSectionsData tagSections')
-      let index = 0
+      // Bulk TAG = all enabled tags; optional tagsToGenerate refreshes only those names (stable IDs allow merge).
+      // Display interleaving of individual tags among other section types remains React/tagsToShow order for now.
+      const tagSections = selectTagSectionsToGenerate(getTagSectionDetails(config), tagsToGenerate)
       for (const tagSection of tagSections) {
-        // Cast: showSettingName is a dynamic `showTagSection_<tag>` key, so it can only be read through
-        // an indexed type. TDashboardSettings deliberately has no indexer, to keep its keys checked.
+        // Cast: showSettingName is a dynamic `showTagSection_<tag>` key, so it can only be read through an indexed type.
+        // TDashboardSettings deliberately has no indexer, to keep its keys checked.
         const showSettingForTag = (config: TAnyObject)[tagSection.showSettingName]
-        // logDebug('getSomeSectionsData', `💚 sectionDetail.sectionName=${tagSection.sectionName} showSettingForTag=${showSettingForTag}`)
         if (typeof showSettingForTag === 'undefined' || showSettingForTag) {
-          const newSection = await getTaggedSectionData(config, useDemoData, tagSection, index)
+          const newSection = await getTaggedSectionData(config, useDemoData, tagSection)
           if (newSection) sections.push(newSection)
-          index++
         }
       }
     }
-    if (wantOD) {
+
+    if (wantOVERDUE) {
       const overdueSection = await getOverdueSectionData(config, useDemoData, placement.forOVERDUE, yesterdaySpillTaskParas, yesterdayParasForOverdueDedupe)
       if (overdueSection) sections.push(overdueSection)
     }
+
     if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) {
       const prioritySection = await getPrioritySectionData(config, useDemoData)
       if (prioritySection) sections.push(prioritySection)
     }
 
     // Note: The WINS section is generated separately in the front end after the other sections are generated.
-
-    // logDebug('getSomeSectionsData', `=> 🔹 sections ${getDisplayListOfSectionCodes(sections)} (unfiltered)`)
 
     // get rid of any nulls b/c just in case any the sections above could return null
     sections = sections.filter((s) => s) 

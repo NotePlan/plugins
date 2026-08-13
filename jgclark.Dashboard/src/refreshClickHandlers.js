@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-06 for v2.4.0.b62 by @jgclark + @CursorAI
+// Last updated 2026-08-12 for v2.4.0.b63 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
@@ -212,7 +212,7 @@ export async function batchRefreshSomeSections(data: MessageDataObject): Promise
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     const demoMode = reactWindowData?.pluginData?.demoMode ?? false
     const config = await getDashboardSettingsForOpenWebView(reactWindowData?.pluginData?.dashboardSettings)
-    const newSections = await getSomeSectionsData(sectionCodes, demoMode, false, config)
+    const newSections = await getSomeSectionsData(sectionCodes, demoMode, false, config, data.tagsToGenerate)
 
     await setPluginData(
       { sections: newSections, refreshing: false, firstRun: false },
@@ -319,7 +319,13 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
     existingSections = syncTagSectionsWithSettings(existingSections, config)
 
     // Force the wanted sections to refresh
-    const newSections = await getSomeSectionsData(sectionCodesToRefresh, pluginData.demoMode, calledByTrigger, config)
+    const newSections = await getSomeSectionsData(
+      sectionCodesToRefresh,
+      pluginData.demoMode,
+      calledByTrigger,
+      config,
+      data.tagsToGenerate,
+    )
     // logTimer('refreshSomeSections', startTime, `- after getSomeSectionsData(): [${getDisplayListOfSectionCodes(newSections)}]`)
     const mergedSections = mergeSections(existingSections, newSections)
     let mergedSectionsClean = mergedSections.filter((section) => !SYNTHETIC_SECTION_CODES.includes(section.sectionCode))

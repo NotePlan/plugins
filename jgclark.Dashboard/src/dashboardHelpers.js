@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
+// Last updated 2026-08-12 for v2.4.0.b63 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -1518,23 +1518,28 @@ export async function setPluginData(changeObject: TAnyObject, changeMessage: str
 }
 
 /**
- * Merge existing sections data with replacement data.
- * If the section existed before, it will be replaced with the new data.
- * If the section did not exist before, it will be added to the end of sections.
+ * Merge newSections into existingSections by section ID.
+ * For TAG sections, also match by tag name so a refresh that changed ID scheme (TAG_0 -> TAG:#work)
+ * or a partial per-tag refresh still replaces the right row.
  * @param {Array<TSection>} existingSections
  * @param {Array<TSection>} newSections
- * @returns {Array<TSection>} - merged sections
+ * @returns {Array<TSection>}
  */
 export function mergeSections(existingSections: Array<TSection>, newSections: Array<TSection>): Array<TSection> {
   newSections.forEach((newSection) => {
-    const existingIndex = existingSections.findIndex((existingSection) => existingSection.ID === newSection.ID)
+    let existingIndex = existingSections.findIndex((existingSection) => existingSection.ID === newSection.ID)
+    if (existingIndex < 0 && newSection.sectionCode === 'TAG') {
+      existingIndex = existingSections.findIndex(
+        (existingSection) => existingSection.sectionCode === 'TAG' && existingSection.name === newSection.name,
+      )
+    }
     if (existingIndex > -1) {
       existingSections[existingIndex] = newSection
     } else {
       existingSections.push(newSection)
     }
   })
-  
+
   return existingSections
 }
 

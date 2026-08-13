@@ -32,6 +32,38 @@ describe('sectionHelpers', () => {
     })
   })
 
+  describe('makeTagSectionID', () => {
+    test('prefixes TAG: to the tag/mention name', () => {
+      expect(sh.makeTagSectionID('#work')).toBe('TAG:#work')
+      expect(sh.makeTagSectionID('@home')).toBe('TAG:@home')
+    })
+  })
+
+  describe('selectTagSectionsToGenerate', () => {
+    const tagSections = [
+      { sectionCode: 'TAG', sectionName: '#work', showSettingName: 'showTagSection_#work' },
+      { sectionCode: 'TAG', sectionName: '@home', showSettingName: 'showTagSection_@home' },
+      { sectionCode: 'TAG', sectionName: '#later', showSettingName: 'showTagSection_#later' },
+    ]
+
+    test('returns all when tagsToGenerate is omitted or empty', () => {
+      expect(sh.selectTagSectionsToGenerate(tagSections, null)).toEqual(tagSections)
+      expect(sh.selectTagSectionsToGenerate(tagSections, undefined)).toEqual(tagSections)
+      expect(sh.selectTagSectionsToGenerate(tagSections, [])).toEqual(tagSections)
+    })
+
+    test('filters to exact matching tag names', () => {
+      expect(sh.selectTagSectionsToGenerate(tagSections, ['@home', '#later'])).toEqual([
+        tagSections[1],
+        tagSections[2],
+      ])
+    })
+
+    test('trims filter names and ignores blanks', () => {
+      expect(sh.selectTagSectionsToGenerate(tagSections, ['  #work  ', '', '  '])).toEqual([tagSections[0]])
+    })
+  })
+
   /**
    * Tests for sortSections
    */
