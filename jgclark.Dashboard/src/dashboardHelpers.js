@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-08-12 for v2.4.0.b63 by @jgclark + @CursorAI
+// Last updated 2026-08-14 for v2.4.0.b63 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -628,7 +628,7 @@ function getReferencedOpenParagraphs(
   // Filter out anything from 'ignoreItemsWithTerms' setting
   refOpenParas = filterParasByIgnoreTerms(refOpenParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
 
-  // TODO: now do any priority delta calculations if there is FM field 'note-priority-delta' set
+  // note-priority-delta is applied in makeDashboardParas() (via getNoteFromPara) when combineOrSeparateResults runs.
 
   // Log if content contains TEST
   if (refOpenParas.some((para) => para.content.includes('TEST'))) {
@@ -1014,7 +1014,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
       if (!p) {
         throw new Error(`p is undefined`)
       }
-      const note = p.note
+      const note = getNoteFromPara(p)
 
       // Derive a reliable indent level from rawContent to work around Paragraph.indents API bug
       const computedIndentLevel = getIndentLevelFromRawContent(p.rawContent ?? '')

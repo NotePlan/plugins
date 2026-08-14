@@ -10,6 +10,7 @@ import {
   filterParasByIncludedCalendarSections,
   filterParasByExcludedCalendarSections,
   isWinItem,
+  makeDashboardParas,
   mergeSections,
 } from '../dashboardHelpers.js'
 import { DataStore, Editor, CommandBar, NotePlan, Paragraph, Note, simpleFormatter } from '@mocks/index'
@@ -17,6 +18,9 @@ import * as timeblocks from '@helpers/timeblocks'
 import * as dateTime from '@helpers/dateTime'
 import * as dev from '@helpers/dev'
 import * as headings from '@helpers/headings'
+import * as NPFrontMatter from '@helpers/NPFrontMatter'
+import * as NPnote from '@helpers/NPnote'
+import * as parentsAndChildren from '@helpers/parentsAndChildren'
 import { clo, logDebug } from '@helpers/dev'
 
 // Make DataStore and Editor available globally for the source code
@@ -1104,6 +1108,22 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toHaveLength(2)
         expect(result[0]).toBe(para1)
         expect(result[1]).toBe(para3)
+      })
+    })
+
+    describe('makeDashboardParas()', () => {
+      test('applies note-priority-delta when para has filename but no .note (referenced/backlink shape)', () => {
+        const sourceNote = new Note({ filename: 'Taxes.md', title: 'Taxes', type: 'Notes' })
+        jest.spyOn(NPnote, 'getNoteFromFilename').mockReturnValue(sourceNote)
+        jest.spyOn(NPFrontMatter, 'getFrontmatterAttributes').mockReturnValue({ 'note-priority-delta': '2' })
+        jest.spyOn(parentsAndChildren, 'isAChildPara').mockReturnValue(false)
+        const para = new Paragraph({ type: 'open', content: 'Pay HMRC', filename: 'Taxes.md' })
+        para.note = undefined
+        para.children = () => []
+
+        const result = makeDashboardParas([para])
+        expect(result).toHaveLength(1)
+        expect(result[0].priority).toBe(2)
       })
     })
 
