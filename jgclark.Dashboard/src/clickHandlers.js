@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-06 for v2.4.0.b62 by @jgclark + @CursorAI
+// Last updated 2026-08-14 for v2.4.0.b63 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -29,6 +29,7 @@ import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dash
 import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
 import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } from './perspectiveSettingsOnDashboardSave'
+import { resolveEditorOpenTypeForDashboardClick } from './preferredWindowType'
 import { dashboardFolderFilterSettingsChanged } from './reviewsListSync'
 import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TSectionCode } from './types'
 import { getDateObjFromDateString, getDateObjFromDateTimeString, getDateStringFromCalendarFilename } from '@helpers/dateTime'
@@ -801,8 +802,8 @@ export function doWindowResized(): TBridgeClickHandlerResult {
   return handlerResult(false, [], { errorMsg: 'Could not get window from customId', errorMessageLevel: 'ERROR' })
 }
 
-/** 
- * Handle a show note call by opening the note in the main Editor, and returning success details.
+/**
+ * Handle a show note call by opening the note in the Editor (split when Dashboard is in main/split mode).
  * Note: use the showLine... variant of this (below) where possible
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
@@ -811,12 +812,15 @@ export async function doShowNoteInEditorFromFilename(data: MessageDataObject): P
   const validated = validateMessageDataForHandler(data, 'doShowNoteInEditorFromFilename')
   if (!validated.ok) return validated.result
   const { filename, modifierKey } = validated.data
-  const result = await smartOpenNoteInEditorFromFilename(filename, modifierKey === 'alt' ? 'split' : 'window')
+  const config = await getDashboardSettings()
+  const openType = resolveEditorOpenTypeForDashboardClick(modifierKey, config?.preferredWindowType)
+  logDebug('doShowNoteInEditorFromFilename', `opening '${filename}' as ${openType} (modifierKey=${String(modifierKey)}, preferredWindowType=${String(config?.preferredWindowType)})`)
+  const result = await smartOpenNoteInEditorFromFilename(filename, openType)
   return handlerResult(result)
 }
 
 /**
- * Handle a show note call simply by opening the note in the main Editor
+ * Handle a show note call by opening the note in the Editor (split when Dashboard is in main/split mode).
  * Note: use the showLine... variant of this (below) where possible
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
@@ -825,16 +829,19 @@ export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Prom
   const validated = validateMessageDataForHandler(data, 'doShowNoteInEditorFromTitle')
   if (!validated.ok) return validated.result
   const { filename } = validated.data
-  const result = await smartOpenNoteInEditorFromFilename(filename, 'window')
+  const config = await getDashboardSettings()
+  const openType = resolveEditorOpenTypeForDashboardClick(null, config?.preferredWindowType)
+  logDebug('doShowNoteInEditorFromTitle', `opening '${filename}' as ${openType} (preferredWindowType=${String(config?.preferredWindowType)})`)
+  const result = await smartOpenNoteInEditorFromFilename(filename, openType)
   return handlerResult(result)
 }
 
 /**
- * Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line.
- * If ⌘ (command) key is clicked, then open in a new floating window.
- * If option key is clicked, then open in a new split view.
+ * Handle a show line call by opening the note in the Editor, then finding and highlighting that line.
+ * If option (alt) is held, open in split view.
+ * When Dashboard is in Main Window or Split View mode, default to split (reuse existing split) so the Dashboard is not replaced.
+ * When Dashboard is in New Window (floating) mode, default to the main Editor.
  * Note: Handles Teamspace notes from b1375 (v3.17.0).
- * FIXME: Needs to work when running in the main/split window, as well as in a separate window.
  * @param {MessageDataObject} data with details of item
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
@@ -853,15 +860,20 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
   // V2
   const validated = validateMessageDataForHandler(data, 'doShowLineInEditorFromFilename')
   if (!validated.ok) return validated.result
-  const { filename, content, sectionCode, modifierKey } = validated.data
-  logDebug('doShowLineInEditorFromFilename', `starting for filename ${filename} with content {${content}} and modifierKey ${modifierKey}`)
-  const result = await smartShowLineInEditorFromFilename(filename, content, modifierKey === 'alt' ? 'split' : 'window')
+  const { filename, content, modifierKey } = validated.data
+  const config = await getDashboardSettings()
+  const openType = resolveEditorOpenTypeForDashboardClick(modifierKey, config?.preferredWindowType)
+  logDebug('doShowLineInEditorFromFilename', `starting for filename ${filename} with content {${content}}, modifierKey ${String(modifierKey)}, openType ${openType}`)
+  const result = await smartShowLineInEditorFromFilename(filename, content, openType)
   if (result) {
-    logDebug('doShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor, followed by ${result ? 'succesful' : 'unsuccessful'} call to highlight the paragraph`,)
+    logDebug('doShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor and highlighted the paragraph`)
     return handlerResult(true)
   } else {
-    logWarn('doShowLineInEditorFromFilename', `-> failed to open filename ${filename} in Editor.`)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `-> failed to open line in Editor for filename ${filename}. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
+    logWarn('doShowLineInEditorFromFilename', `-> could not open/highlight line in '${filename}'`)
+    return handlerResult(false, [], {
+      errorMsg: `Could not open or highlight that line in '${filename}'.`,
+      errorMessageLevel: 'INFO',
+    })
   }
 }
 

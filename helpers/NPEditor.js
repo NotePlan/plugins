@@ -5,7 +5,7 @@ import { getFolderFromFilename } from './folders'
 import { rangeToString } from './general'
 import { getOpenEditorFromFilename } from './NPEditorBasics'
 import { getNoteTitleFromTemplate } from './NPFrontMatter'
-import { findParagraph, getSelectedParagraphsWithCorrectLineIndex } from './NPParagraph'
+import { findParaFromRawContentAndFilename, findParaFromStringAndFilename, findParagraph, getSelectedParagraphsWithCorrectLineIndex } from './NPParagraph'
 import { openNoteInSplitViewIfNotOpenAlready } from './NPWindows'
 import { usersVersionHas } from './NPVersions'
 import { showMessageYesNo, showMessage, chooseFolder } from './userInput'
@@ -278,7 +278,7 @@ export function getFirstRegularNoteAmongOpenEditors(): ?TNote {
 
 /**
  * Show an existing note in an Editor window, identified by its filename.
- * Uses {@link getOrOpenEditorFromFilename} (split: reuseSplitView; window: main editor).
+ * Uses {@link getOrOpenEditorFromFilename} for main-window opens; for split, focuses if already open else triggers reuseSplitView x-callback (cannot await the pane).
  * Returns true if successful, false otherwise.
  * Note: only designed for macOS, but may work in a limited way on other platforms.
  * Note: Prefer the showLine... variant of this (below) where possible.
@@ -289,6 +289,19 @@ export function getFirstRegularNoteAmongOpenEditors(): ?TNote {
 export async function smartOpenNoteInEditorFromFilename(filename: string, newWindowType: 'window' | 'split' = 'window'): Promise<boolean> {
   try {
     if (!filename) throw 'No filename: stopping.'
+
+    if (newWindowType === 'split') {
+      const existing = resolveOpenEditorForFilename(filename)
+      if (existing) {
+        existing.focus()
+        logDebug('smartOpenNoteInEditorFromFilename', `Focused existing Editor '${existing.id}' for filename '${filename}'`)
+        return true
+      }
+      // Fire-and-forget x-callback; NotePlan JSContext cannot reliably await the new pane (Promise constructor broken).
+      openNoteInSplitViewIfNotOpenAlready(filename, 'smartOpenNoteInEditorFromFilename')
+      logDebug('smartOpenNoteInEditorFromFilename', `Triggered split open for filename '${filename}'`)
+      return true
+    }
 
     const thisEditor = await getOrOpenEditorFromFilename(filename, newWindowType)
     if (thisEditor) {
@@ -350,10 +363,22 @@ function resolveOpenEditorForFilename(filename: string): TEditor | false {
 }
 
 /**
+ * Resolve a paragraph from DataStore by content or rawContent (for highlight coords before opening).
+ * @param {string} filename
+ * @param {string} paraContentToTest
+ * @returns {TParagraph | false}
+ */
+function resolveParagraphForHighlight(filename: string, paraContentToTest: string): TParagraph | false {
+  const byContent = findParaFromStringAndFilename(filename, paraContentToTest)
+  if (byContent) return byContent
+  return findParaFromRawContentAndFilename(filename, paraContentToTest)
+}
+
+/**
  * Get the open Editor that matches a given filename.  [Related: getOpenEditorFromFilename(), getLastOpenedOpenEditorFromFilename()]
  * If the original Editor is still open, then return it, otherwise open the note and return the new Editor.
- * - `split`: uses {@link openNoteInSplitViewIfNotOpenAlready} (reuseSplitView / splitView x-callback); does not wait for the editor to appear (highlight may fail if the pane is not ready yet).
- * - `window`: uses `Editor.openNoteByFilename` in the main editor (sync).
+ * - `split`: uses {@link openNoteInSplitViewIfNotOpenAlready}. Cannot await the new pane (NotePlan JSContext Promise constructor is broken), so returns false after triggering a new split open — use {@link highlightParagraphInEditorByContent} / {@link smartOpenNoteInEditorFromFilename} instead when highlight or open-success matters.
+ * - `window`: uses `Editor.openNoteByFilename` in the main editor.
  * On failure, return false.
  * @param {string} filename - the filename of the note to find
  * @param {string} newWindowType - the type of window to open the note in ('window' or 'split')
@@ -380,13 +405,9 @@ export async function getOrOpenEditorFromFilename(filename: string, newWindowTyp
         return false
       }
 
-      // New split opened via x-callback; editor may not be registered yet — no wait/poll (caller accepts highlight may fail).
-      logDebug('getOrOpenEditorFromFilename', `Triggered split open for filename '${filename}'; checking once for Editor pane`)
-      thisEditor = resolveOpenEditorForFilename(filename)
-      if (thisEditor) {
-        return thisEditor
-      }
-      logDebug('getOrOpenEditorFromFilename', `Split open triggered for '${filename}' but Editor pane not visible yet (no wait)`)
+      // New split opened via x-callback. Do not waitForCondition here: NotePlan Beta's Promise constructor throws
+      // (JSPromiseConstructor is not a constructor), so a wait fails immediately and the editor is never resolved.
+      logDebug('getOrOpenEditorFromFilename', `Triggered split open for filename '${filename}' (Editor pane not awaited)`)
       return false
     }
 
@@ -457,14 +478,16 @@ export function highlightParagraphInEditorPane(
 }
 
 /**
- * Open (or focus) the note via {@link getOrOpenEditorFromFilename}, then highlight a paragraph matched by rawContent or content.
+ * Open (or focus) the note, then highlight a paragraph matched by rawContent or content.
+ * When opening a new split, highlight is requested via the openNote x-callback (highlightStart) because the Editor pane
+ * cannot be awaited reliably in NotePlan's JSContext.
  * @author @jgclark
  * @param {string} filename - the filename of the note
  * @param {string} paraContentToTest - the content or rawContent of the paragraph to highlight -- it will search for both
  * @param {boolean} thenStopHighlight? (default: false)
  * @param {boolean} andFocusEditor? (default: true)
  * @param {string} newWindowType - 'window' (main editor) or 'split' if not already open
- * @returns {boolean} true if the paragraph was highlighted
+ * @returns {boolean} true if the paragraph was highlighted, or a split open with highlight was triggered
  */
 export async function highlightParagraphInEditorByContent(
   filename: string,
@@ -474,10 +497,46 @@ export async function highlightParagraphInEditorByContent(
   newWindowType: 'window' | 'split' = 'window',
 ): Promise<boolean> {
   if (!filename) throw new Error('highlightParagraphInEditorByContent: No filename.')
-  const thisEditor = await getOrOpenEditorFromFilename(filename, newWindowType)
-  if (!thisEditor) {
-    logInfo('highlightParagraphInEditorByContent', `Cannot resolve Editor for filename '${filename}' (split may still be opening)`)
+
+  const existingEditor = resolveOpenEditorForFilename(filename)
+  if (existingEditor) {
+    logDebug('highlightParagraphInEditorByContent', `Using existing Editor '${existingEditor.id ?? '?'}' for filename '${filename}'`)
+    return highlightParagraphInEditorPane(existingEditor, paraContentToTest, thenStopHighlight, andFocusEditor)
+  }
+
+  const paraForCoords = resolveParagraphForHighlight(filename, paraContentToTest)
+  const highlightStart = paraForCoords?.contentRange?.start ?? null
+
+  if (newWindowType === 'split') {
+    if (highlightStart == null) {
+      logWarn('highlightParagraphInEditorByContent', `Opening split for '${filename}' without highlight coords (paragraph not found in DataStore)`)
+      openNoteInSplitViewIfNotOpenAlready(filename, 'highlightParagraphInEditorByContent')
+      return false
+    }
+    // Pass highlightLength 0 so NotePlan places the cursor at the line (same as highlightByIndex(start, 0)).
+    logDebug('highlightParagraphInEditorByContent', `Opening split for '${filename}' with highlightStart=${String(highlightStart)}`)
+    openNoteInSplitViewIfNotOpenAlready(filename, 'highlightParagraphInEditorByContent', highlightStart, 0)
+    return true
+  }
+
+  logDebug('highlightParagraphInEditorByContent', `Opening main Editor for '${filename}' with highlightStart=${String(highlightStart ?? 0)}`)
+  const openedNote = await Editor.openNoteByFilename(
+    filename,
+    false,
+    highlightStart ?? 0,
+    highlightStart ?? 0,
+    false,
+    false,
+  )
+  if (!openedNote) {
+    logInfo('highlightParagraphInEditorByContent', `Cannot open Editor for filename '${filename}'`)
     return false
+  }
+  const thisEditor = resolveOpenEditorForFilename(filename)
+  if (!thisEditor) {
+    // Native open already applied highlightStart/End when provided
+    logDebug('highlightParagraphInEditorByContent', `Opened '${filename}' in main Editor (pane not resolved for secondary highlight)`)
+    return highlightStart != null
   }
   logDebug('highlightParagraphInEditorByContent', `Using Editor '${thisEditor.id ?? '?'}' for filename '${filename}'`)
   return highlightParagraphInEditorPane(thisEditor, paraContentToTest, thenStopHighlight, andFocusEditor)

@@ -42,6 +42,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 
 ## [2.4.0.b63] 2026-08-14 (unreleased)
+- Fix: In Main Window / Split View mode, clicking a task (or its note link) opens the note in a split view (reusing an existing split when possible) instead of replacing the Dashboard.
+- Fix: Clicking a task to open it in a new split now works. dev: passes highlight coords on the openNote x-callback instead, so the line is selected as the note opens (NotePlan's JSContext cannot await the new Editor pane -- `waitForCondition` throws `JSPromiseConstructor is not a constructor`).
 - Fix: Referenced tasks scheduled into calendar notes (e.g. a daily task with `>2026-W33`) now honor **Calendar note terms to include** / heading ignore filters -- previously only in-note calendar paras were filtered, so Home's `includedCalendarSections` could still show those refs.
 - Fix: Calendar section include/exclude filters now resolve the source note via filename when the paragraph has no `.note` (typical backlink shape), so calendar tasks are not treated as non-calendar and kept by mistake.
 - Fix: Main Window / Split View title no longer falls back to empty (which NotePlan shows as "Untitled").

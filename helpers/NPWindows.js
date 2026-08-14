@@ -616,12 +616,22 @@ export async function openNoteInNewSplitIfNeeded(filename: string): Promise<bool
 /**
  * Open a note in a split view using x-callback-url, but only if it is not already open in any Editor window.
  * Uses the 'reuseSplitView' openType so that a single split view is reused where possible.
+ * Optional highlightStart/highlightLength are passed to the x-callback so NotePlan can jump/select as the note opens
+ * (needed because waiting for the Editor pane after NotePlan.openURL is unreliable in NotePlan's JSContext).
  * Note: This is in place of `await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)` which doesn't have reuseSplitView option. (Yet.)
  * @author @jgclark
  * @param {string} filename - filename of the note to open
+ * @param {string=} callingFunctionName - for logging
+ * @param {number | null=} highlightStart - character index to jump/select after opening
+ * @param {number | null=} highlightLength - selection length (0 = cursor only)
  * @returns {boolean} true if a new split view was opened, false if the note was already open
  */
-export function openNoteInSplitViewIfNotOpenAlready(filename: string, callingFunctionName?: string): boolean {
+export function openNoteInSplitViewIfNotOpenAlready(
+  filename: string,
+  callingFunctionName?: string,
+  highlightStart: number | null = null,
+  highlightLength: number | null = null,
+): boolean {
   try {
     const possibleEditor: TEditor | false = findEditorWindowByFilename(filename)
     if (possibleEditor !== false) {
@@ -630,14 +640,22 @@ export function openNoteInSplitViewIfNotOpenAlready(filename: string, callingFun
       return false
     }
 
-    // if (noteOpenInEditor(filename)) {
-    //   logDebug('openNoteInSplitViewIfNotOpenAlready', `(for ${callingFunctionName ?? '?'}) Note '${filename}' is already open in an Editor window. Skipping.`)
-    //   return false
-    // }
-
     const splitOpenType = usersVersionHas('reuseSplitView') ? 'reuseSplitView' : 'splitView'
-    const callbackUrl = createOpenOrDeleteNoteCallbackUrl(filename, 'filename', null, splitOpenType, false)
-    logDebug('openNoteInSplitViewIfNotOpenAlready', `(for ${callingFunctionName ?? '?'}) splitOpenType: ${splitOpenType} openNote in Editor callbackUrl: ${callbackUrl}`)
+    const callbackUrl = createOpenOrDeleteNoteCallbackUrl(
+      filename,
+      'filename',
+      null,
+      splitOpenType,
+      false,
+      '',
+      null,
+      highlightStart,
+      highlightLength,
+    )
+    logDebug(
+      'openNoteInSplitViewIfNotOpenAlready',
+      `(for ${callingFunctionName ?? '?'}) splitOpenType: ${splitOpenType} highlightStart=${String(highlightStart)} highlightLength=${String(highlightLength)} openNote callbackUrl: ${callbackUrl}`,
+    )
     NotePlan.openURL(callbackUrl)
     logDebug('openNoteInSplitViewIfNotOpenAlready', `(for ${callingFunctionName ?? '?'}) after x-callback call to openNote`)
     return true

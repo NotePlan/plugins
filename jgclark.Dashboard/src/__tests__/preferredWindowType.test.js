@@ -4,6 +4,7 @@
 import {
   normalizePreferredWindowType,
   PREFERRED_WINDOW_TYPE_DEFAULT,
+  resolveEditorOpenTypeForDashboardClick,
   windowOptionsFromPreferredWindowType,
 } from '../preferredWindowType.js'
 
@@ -52,6 +53,30 @@ describe(`${PLUGIN_NAME}`, () => {
       test('defaults missing or unknown to Main Window options', () => {
         expect(windowOptionsFromPreferredWindowType(null)).toEqual({ showInMainWindow: true, splitView: false })
         expect(windowOptionsFromPreferredWindowType('Floating')).toEqual({ showInMainWindow: true, splitView: false })
+      })
+    })
+
+    describe('resolveEditorOpenTypeForDashboardClick()', () => {
+      test('alt always forces split', () => {
+        expect(resolveEditorOpenTypeForDashboardClick('alt', 'New Window')).toBe('split')
+        expect(resolveEditorOpenTypeForDashboardClick('alt', 'Main Window')).toBe('split')
+        expect(resolveEditorOpenTypeForDashboardClick('alt', 'Split View')).toBe('split')
+      })
+
+      test('Main Window / Split View default to split so Dashboard is not replaced', () => {
+        expect(resolveEditorOpenTypeForDashboardClick(null, 'Main Window')).toBe('split')
+        expect(resolveEditorOpenTypeForDashboardClick(undefined, 'Main')).toBe('split')
+        expect(resolveEditorOpenTypeForDashboardClick(null, 'Split View')).toBe('split')
+        expect(resolveEditorOpenTypeForDashboardClick(null, 'Split')).toBe('split')
+      })
+
+      test('New Window (floating Dashboard) defaults to main editor', () => {
+        expect(resolveEditorOpenTypeForDashboardClick(null, 'New Window')).toBe('window')
+        expect(resolveEditorOpenTypeForDashboardClick(undefined, 'Window')).toBe('window')
+      })
+
+      test('missing preferredWindowType follows Main Window default (split)', () => {
+        expect(resolveEditorOpenTypeForDashboardClick(null, null)).toBe('split')
       })
     })
   })
