@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-02-08 for v2.4.0.b20 by @jgclark
+// Last updated 2026-08-14 for v2.4.0.b63 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -167,12 +167,14 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
     logDebug('doReviewFinished', `-> starting on item ID ${data.item?.ID ?? '<no ID found>'} in filename ${filename}`)
-    // update this to actually take a note to work on
-    finishReviewForNote(note)
-    logDebug('doReviewFinished', `-> after finishReview`)
-
-    // Now ask to update this line in the display
-    // TODO: ideally do 'REFRESH_SECTION_IN_JSON' as well, but this looks to have a race condition.
+    const finished = await finishReviewForNote(note, 0, { skipUpdateDashboardIfOpen: true })
+    if (!finished) {
+      logWarn('doReviewFinished', `-> couldn't finish review for filename ${filename} for some reason`)
+      return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'], errorMsg: `Couldn't finish review for filename ${filename}. I will refresh this section, then please try again.`, errorMessageLevel: 'WARN' })
+    }
+    logDebug('doReviewFinished', `-> after finishReview (finished=${String(finished)})`)
+    // REMOVE_LINE_FROM_JSON runs updateProjectsListIfProjectSection (in-process PROJ* refresh via refreshSectionsByCode).
+    // Do not also request REFRESH_SECTION_IN_JSON: a second PROJ* refresh races updateDashboardIfOpen from writeAllProjectsList.
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: ['PROJACT', 'PROJREVIEW'] })
   } else {
     logWarn('doReviewFinished', `-> couldn't get filename ${filename} to update the @reviewed() date.`)

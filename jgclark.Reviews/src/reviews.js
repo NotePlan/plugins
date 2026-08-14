@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2026-05-19 for v2.0.0.b39, @jgclark + @CursorAI
+// Last updated 2026-08-14 for v2.0.1+, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -822,9 +822,16 @@ async function applyFinishReviewMetadataUpdates(
 
 /**
  * Finish a project review -- private core logic used by 2 functions.
- * @param (TNote) note - The note to finish
+ * @param {TNote} note - The note to finish
+ * @param {number} scrollPos - scroll position for Rich project list refresh after list write
+ * @param {{ skipUpdateDashboardIfOpen?: boolean }} [options] - when true, skip Dashboard PROJ* invoke (Dashboard bridge refreshes in-process)
+ * @returns {Promise<boolean>} true when review metadata and project list were updated
  */
-async function finishReviewCoreLogic(note: TNote, scrollPos: number = 0): Promise<void> {
+async function finishReviewCoreLogic(
+  note: TNote,
+  scrollPos: number = 0,
+  options?: { skipUpdateDashboardIfOpen?: boolean }
+): Promise<boolean> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
@@ -893,21 +900,29 @@ async function finishReviewCoreLogic(note: TNote, scrollPos: number = 0): Promis
 
     if (!wroteMetadata) {
       logInfo('finishReviewCoreLogic', `- Stopped without updating project list (user cancelled or no write).`)
-      return
+      return false
     }
 
     // Rebuild this project from the updated note so progress comments and other note changes
     // are reflected in allProjectsList.json (patching the cached JSON row left lastProgressComment stale).
     logDebug('finishReviewCoreLogic', `- updating Project instance from note`)
-    await updateAllProjectsListAfterChange(note.filename, false, config, scrollPos)
+    await updateAllProjectsListAfterChange(
+      note.filename,
+      false,
+      config,
+      scrollPos,
+      options?.skipUpdateDashboardIfOpen ? { skipUpdateDashboardIfOpen: true } : undefined,
+    )
 
     // Ensure the Project List window (if open) no longer shows this project as being actively reviewed
     await clearProjectReviewingInHTML()
 
     logDebug('finishReviewCoreLogic', `- done`)
+    return true
   }
   catch (error) {
     logError('finishReviewCoreLogic', error.message)
+    return false
   }
 }
 
@@ -1053,19 +1068,27 @@ export async function finishReview(): Promise<void> {
  * Note: Used by Dashboard and Project List dialog
  * @author @jgclark
  * @param {TNote} noteIn
+ * @param {number} scrollPos - scroll position for Rich project list refresh after list write
+ * @param {{ skipUpdateDashboardIfOpen?: boolean }} [options] - when true, skip Dashboard PROJ* invoke (Dashboard bridge refreshes in-process)
+ * @returns {Promise<boolean>} true when review metadata and project list were updated
  */
-export async function finishReviewForNote(noteToUse: TNote, scrollPos: number = 0): Promise<void> {
+export async function finishReviewForNote(
+  noteToUse: TNote,
+  scrollPos: number = 0,
+  options?: { skipUpdateDashboardIfOpen?: boolean },
+): Promise<boolean> {
   try {
     if (!noteToUse || noteToUse.type !== 'Notes') {
       logWarn('finishReviewForNote', `- Not passed a valid project note to finish reviewing. Stopping.`)
-      return
+      return false
     }
 
     logInfo('finishReviewForNote', `Starting for passed note '${displayTitle(noteToUse)}'`)
-    await finishReviewCoreLogic(noteToUse, scrollPos)
+    return await finishReviewCoreLogic(noteToUse, scrollPos, options)
   }
   catch (error) {
     logError('finishReviewForNote', error.message)
+    return false
   }
 }
 

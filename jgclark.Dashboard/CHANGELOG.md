@@ -41,7 +41,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Tag/mention cache used by default (faster TAG sections)
 
 
-## [2.4.0.b63] 2026-08-13 (unreleased)
+## [2.4.0.b63] 2026-08-14 (unreleased)
+- Fix: Finish Project Review from Dashboard now awaits the Reviews write, skips the cross-plugin PROJ* invoke (avoids refresh race), and still refreshes Active Projects / Projects to Review via the existing in-process list sync on row removal.
 - Fix: Save+Switch from a starred Perspective (e.g. Home*) now switches when there is nothing to save; the "not modified" banner is still shown.
 - dev: TAG sections now use stable IDs (`TAG:<tag>`) and can be refreshed individually via `tagsToGenerate` (bulk `TAG` still regenerates all enabled tags).
 - Fix: Priority section now removes sync-line duplicates before display (same approach as Tag sections).
