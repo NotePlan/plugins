@@ -896,6 +896,30 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toContain(paraContent)
         expect(result).not.toContain(paraNeither)
       })
+
+      test('should filter calendar paras that only have filename (no .note) like backlink refs', () => {
+        // Referenced/scheduled items often arrive without .note; resolve via filename instead
+        const calendarNote = new Note({ filename: '20260701.md', type: 'Calendar' })
+        const para = new Paragraph({
+          type: 'open',
+          content: 'Tim & Cheryl Stone are new Officers coming in ^sifack >2026-W33',
+          filename: '20260701.md',
+        })
+        // Ensure .note is absent (backlink shape)
+        // $FlowFixMe[prop-missing]
+        para.note = undefined
+        const paras = [para]
+        const dashboardSettings = { includedCalendarSections: 'ZZZ' }
+        const startTime = new Date()
+        const functionName = 'testFunction'
+
+        jest.spyOn(NPnote, 'getNoteFromFilename').mockReturnValue(calendarNote)
+        jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockReturnValue(['1CB Leavers Breakfast for Pitts (Beach Arms, 08:00)'])
+
+        const result = filterParasByIncludedCalendarSections(paras, dashboardSettings, startTime, functionName)
+        expect(result).toHaveLength(0)
+        expect(result).not.toContain(para)
+      })
     })
 
     describe('filterParasByExcludedCalendarSections()', () => {

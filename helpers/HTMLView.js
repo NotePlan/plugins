@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2026-08-12 by @jgclark
+// Last updated 2026-08-14 by @jgclark + @CursorAI
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
 import { hasFrontMatter } from '@helpers/NPFrontMatter'
@@ -595,8 +595,12 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         winOptions.reloadPluginID = ("reloadPluginID" in opts) ? opts.reloadPluginID : ''
         winOptions.reloadCommandName = ("reloadCommandName" in opts) ? opts.reloadCommandName : ''
 
-        logDebug('showHTMLV2', `- Showing in main window with options: ${JSON.stringify(winOptions)}`)
+        // Title must be non-empty: an empty string becomes "Untitled" in NotePlan's main-window chrome.
+        // Pass both id and customId so the view reuses sidebarView.windowID when present.
+        const mainWindowTitle = opts.windowTitle || cId || 'NotePlan'
+        logDebug('showHTMLV2', `- Showing in main window titled '${mainWindowTitle}' with options: ${JSON.stringify(winOptions)}`)
         const mainWindowSpecificOptions = {
+          id: cId,
           customId: cId,
           splitView: opts.splitView,
           icon: opts.icon,
@@ -606,7 +610,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
           reloadPluginID: opts.reloadPluginID,
           reloadCommandName: opts.reloadCommandName,
         }
-        const mainWindowResult = await HTMLView.showInMainWindow(fullHTMLStr, opts.windowTitle ?? '', mainWindowSpecificOptions)
+        const mainWindowResult = await HTMLView.showInMainWindow(fullHTMLStr, mainWindowTitle, mainWindowSpecificOptions)
         if (mainWindowResult && mainWindowResult.success) {
           success = true
           logDebug('showHTMLV2', `- Main view window opened successfully with ID '${mainWindowResult.windowID || ''}'`)

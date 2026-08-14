@@ -274,7 +274,7 @@ export function showInMainWindow(globalData: any = null, windowOptions?: HtmlWin
       reloadCommandName: windowOptsAny.reloadCommandName || null,
       reloadCommandArgs: windowOptsAny.reloadCommandArgs || null,
     }
-    HTMLView.showInMainWindow(fullHTMLStr, windowOptions.windowTitle || 'React Window', mainWindowOptions)
+    HTMLView.showInMainWindow(fullHTMLStr, windowOptions.windowTitle || generatedOptions.customId || 'React Window', mainWindowOptions)
 
     // If wanted, also write this HTML to a file so we can work on it offline.
     // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for 2026-07-15 for v2.4.0.b51, @jgclark + @CursorAI
+// Last updated for 2026-08-14 for v2.4.0.b63, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -240,14 +240,18 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     runPluginCommand('reactWindowInitialisedSoStartGeneratingData', 'jgclark.Dashboard', [''])
   }, [])
 
-  // Change the title when the section data changes
+  // Keep the window/tab title in sync. In Main Window / Split View, NotePlan's chrome uses the
+  // title from showInMainWindow and does not reliably follow document.title changes that append
+  // item counts -- keep a stable "Dashboard" there (empty titles show as "Untitled").
   useEffect(() => {
-    const windowTitle = `Dashboard - ${totalSectionItems} items`
+    const preferred = dashboardSettings?.preferredWindowType
+    const isMainOrSplit = preferred === 'Main Window' || preferred === 'Split View' || preferred === 'Main' || preferred === 'Split'
+    const windowTitle = isMainOrSplit ? 'Dashboard' : `Dashboard - ${totalSectionItems} items`
     if (document.title !== windowTitle) {
       // logDebug('Dashboard', `in useEffect, setting title to: ${windowTitle}`)
       document.title = windowTitle
     }
-  }, [pluginData.sections, totalSectionItems])
+  }, [pluginData.sections, totalSectionItems, dashboardSettings?.preferredWindowType])
 
   // Update dialogData when pluginData changes, e.g. when the dialog is open for a task and you are changing things like priority
   useEffect(() => {

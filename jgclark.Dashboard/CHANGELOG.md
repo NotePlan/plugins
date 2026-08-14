@@ -42,6 +42,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 
 ## [2.4.0.b63] 2026-08-14 (unreleased)
+- Fix: Referenced tasks scheduled into calendar notes (e.g. a daily task with `>2026-W33`) now honor **Calendar note terms to include** / heading ignore filters -- previously only in-note calendar paras were filtered, so Home's `includedCalendarSections` could still show those refs.
+- Fix: Calendar section include/exclude filters now resolve the source note via filename when the paragraph has no `.note` (typical backlink shape), so calendar tasks are not treated as non-calendar and kept by mistake.
+- Fix: Main Window / Split View title no longer falls back to empty (which NotePlan shows as "Untitled").
 - Fix: Referenced tasks (scheduled into calendar notes from other notes) now honor `note-priority-delta` frontmatter when the resolved paragraph has `filename` but no `.note` (typical backlink shape).
 - Fix: Finish Project Review from Dashboard now awaits the Reviews write, skips the cross-plugin PROJ* invoke (avoids refresh race), and still refreshes Active Projects / Projects to Review via the existing in-process list sync on row removal.
 - Fix: Save+Switch from a starred Perspective (e.g. Home*) now switches when there is nothing to save; the "not modified" banner is still shown.

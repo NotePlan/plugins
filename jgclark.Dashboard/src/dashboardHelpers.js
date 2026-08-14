@@ -626,7 +626,12 @@ function getReferencedOpenParagraphs(
   logTimer('getReferencedOpenParagraphs', startTime, `- after 'eliminate sync dupes' filter: ${refOpenParas.length} para(s)`)
 
   // Filter out anything from 'ignoreItemsWithTerms' setting
-  refOpenParas = filterParasByIgnoreTerms(refOpenParas, dashboardSettings, startTime, 'getOpenItemPFCTP')
+  refOpenParas = filterParasByIgnoreTerms(refOpenParas, dashboardSettings, startTime, 'getReferencedOpenParagraphs')
+
+  // Referenced items can come from other calendar notes (e.g. daily → this week via >YYYY-Www).
+  // Apply the same calendar-section include/exclude filters used for in-note calendar paras.
+  refOpenParas = filterParasByIncludedCalendarSections(refOpenParas, dashboardSettings, startTime, 'getReferencedOpenParagraphs')
+  refOpenParas = filterParasByExcludedCalendarSections(refOpenParas, dashboardSettings, startTime, 'getReferencedOpenParagraphs')
 
   // note-priority-delta is applied in makeDashboardParas() (via getNoteFromPara) when combineOrSeparateResults runs.
 
@@ -1289,6 +1294,7 @@ export function filterParasByIgnoreTerms(
  * - any heading in its hierarchy matches a term as a case-insensitive prefix, or
  * - its content contains a term as a case-insensitive substring (so `#acme`, `@acme`, or `acme` all work).
  * Blank / unset setting keeps all paragraphs.
+ * Note: resolves the source note via filename when `para.note` is missing (typical backlink / referenced shape).
  * @tests in jest file
  * @param {Array<TParagraph>} paras - paragraphs to filter
  * @param {TDashboardSettings} dashboardSettings - dashboard settings containing included calendar sections/terms
@@ -1314,8 +1320,9 @@ export function filterParasByIncludedCalendarSections(
 
   // TEST: this is where TB defeat happens for headings
   const filteredParas = paras.filter((p) => {
-    // only apply to calendar notes
-    if (p.note?.type !== 'Calendar') return true
+    // only apply to calendar notes (resolve via filename when backlinks lack .note)
+    const note = getNoteFromPara(p)
+    if (!note || note.type !== 'Calendar') return true
 
     // Keep if task content contains any of the filter terms (e.g. #acme, @acme, or acme)
     const contentLower = (p.content || '').toLowerCase()
@@ -1356,8 +1363,9 @@ export function filterParasByExcludedCalendarSections(
   logDebug('filterParasByExcludedCalendarSections', `Starting for note ${thisNote?.filename ?? '(unknown)'}`)
 
   const filteredParas = paras.filter((p) => {
-    // only apply to calendar notes
-    if (p.note?.type !== 'Calendar') return true
+    // only apply to calendar notes (resolve via filename when backlinks lack .note)
+    const note = getNoteFromPara(p)
+    if (!note || note.type !== 'Calendar') return true
     // Apply to all H4/H3/H2 headings in the hierarchy for this para
     const theseHeadings = getHeadingHierarchyForThisPara(p)
     let isAllowed = true
