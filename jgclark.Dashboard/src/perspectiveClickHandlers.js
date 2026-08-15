@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-13 for v2.4.0.b63 by @jgclark + @CursorAI
+// Last updated 2026-08-15 for v2.4.0.b64 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
@@ -165,7 +165,9 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
     },
     `_Saved perspective ${activeDef.name}`,
   )
-  return handlerResult(true, ['CLOSE_UNNEEDED_SECTIONS', 'REFRESH_ALL_ENABLED_SECTIONS'])
+  // No section refresh: Save Perspective only persists already-live settings and clears isModified;
+  // setPluginData above is enough for the UI (e.g. * marker). Content already matches the screen.
+  return handlerResult(true, [])
 }
 
 /**
