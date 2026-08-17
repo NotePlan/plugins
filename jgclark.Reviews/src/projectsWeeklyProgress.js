@@ -7,7 +7,7 @@
 // Columns: successive week labels (e.g. 2026-W06)
 // Rows: folder names in alphabetical order
 //
-// Last updated 2026-08-03 for v2.0.4 by @jgclark (spec) + @cursor (implementation)
+// Last updated 2026-08-17 for v2.0.7 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -42,6 +42,12 @@ type WeekInfo = {
   label: string, // e.g. 2026-W06
   startDate: Date,
   endDate: Date,
+}
+
+type TWeeklyHeatmapChart = {
+  data: Array<{ x: string, y: string, heat: number }>,
+  chartTitle: string,
+  containerId: string,
 }
 
 //-----------------------------------------------------------------------------
@@ -366,38 +372,41 @@ function buildHeatmapDataFromCSVRows(rows: Array<string>): Array<{ x: string, y:
 }
 
 /**
- * Render a heatmap for the given per-folder / per-week CSV rows in an HTML window.
+ * Render one or more weekly-progress heatmaps in a single HTML window.
  * Uses AnyChart's heatMap chart in the same way as the Summaries plugin's heatmap generator.
- * @param {Array<string>} rows
+ * Each chart gets its own container id so two charts can draw in one document.
+ * @param {Array<TWeeklyHeatmapChart>} charts
  * @param {string} windowTitle
- * @param {string} chartTitle
- * @param {string} filenameToSave
- * @param {string} windowID
  * @returns {Promise<void>}
  */
-async function showProjectsWeeklyProgressHeatmap(
-  rows: Array<string>,
+async function showProjectsWeeklyProgressHeatmapWindow(
+  charts: Array<TWeeklyHeatmapChart>,
   windowTitle: string,
-  chartTitle: string,
-  filenameToSave: string,
-  windowID: string,
 ): Promise<void> {
   try {
-    const data = buildHeatmapDataFromCSVRows(rows)
-    if (data.length === 0) {
-      logInfo('showProjectsWeeklyProgressHeatmap', 'No heatmap data to display')
+    if (charts.length === 0) {
+      logInfo('showProjectsWeeklyProgressHeatmapWindow', 'No heatmap data to display')
       return
     }
 
-    const dataAsString = JSON.stringify(data)
-
-    const heatmapCSS = `html, body, #container {
+    const heatmapCSS = `html, body {
   width: 100%;
   height: 100%;
   margin: 0px;
   padding: 0px;
   color: var(--fg-main-color);
   background-color: var(--bg-main-color);
+}
+.heatmap-stack {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+.heatmap-container {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 `
 
@@ -406,26 +415,21 @@ async function showProjectsWeeklyProgressHeatmap(
 <script src="https://cdn.anychart.com/releases/8.7.1/js/anychart-heatmap.min.js"></script>
 `
 
+    const containerDivs = charts
+      .map((chart) => `<div id="${chart.containerId}" class="heatmap-container"></div>`)
+      .join('\n')
+
+    const drawCalls = charts
+      .map((chart) => `    drawHeatmap(${JSON.stringify(chart.data)}, ${JSON.stringify(chart.chartTitle)}, ${JSON.stringify(chart.containerId)});`)
+      .join('\n')
+
     const body = `
-<div id="container"></div>
+<div class="heatmap-stack">
+${containerDivs}
+</div>
 <script>
   anychart.onDocumentReady(function () {
-    var chart = anychart.heatMap(${dataAsString});
-
-    chart.title("${chartTitle}");
-
-    var customColorScale = anychart.scales.linearColor();
-    customColorScale.colors(["#F4FFF4", "#09B009"]);
-    chart.colorScale(customColorScale);
-
-    chart.container("container");
-    chart.labels().enabled(false);
-    chart.xAxis().orientation('bottom');
-
-    // Format x-axis labels to
-    // - normally drop the leading "YYYY-" and show "WNN"
-    // - but on the first week of a new year (W00/W01), drop the "-WNN" part and show just "YYYY"
-    chart.xAxis().labels().format(function () {
+    function formatWeekAxisLabel() {
       var v = this.value;
       if (!v || typeof v !== 'string') {
         return v;
@@ -440,25 +444,40 @@ async function showProjectsWeeklyProgressHeatmap(
         return year;
       }
       return 'W' + week;
-    });
-    <!-- Rotate x-axis labels to go (nearly) vertically upwards and center them vertically -->
-    chart.xAxis().labels().rotation(290); <!-- .hAlign('right').vAlign('center');-->
+    }
 
-    var tooltip = chart.tooltip();
-    tooltip.titleFormat('');
-    tooltip.padding().left(20);
-    tooltip.separator(false);
-    tooltip.format(function () {
-      if (this.heat != null && this.heat !== '' && !isNaN(this.heat)) {
-        return this.heat + ' items\\nFolder: ' + this.getData("y") + '\\nWeek: ' + this.getData("x");
-      } else {
-        return 'No data';
-      }
-    });
+    function drawHeatmap(data, title, containerId) {
+      var chart = anychart.heatMap(data);
+      chart.title(title);
+      var customColorScale = anychart.scales.linearColor();
+      customColorScale.colors(["#F4FFF4", "#09B009"]);
+      chart.colorScale(customColorScale);
+      chart.container(containerId);
+      chart.labels().enabled(false);
+      chart.xAxis().orientation('bottom');
+      // Format x-axis labels:
+      // - normally drop the leading "YYYY-" and show "WNN"
+      // - but on the first week of a new year (W00/W01), drop the "-WNN" part and show just "YYYY"
+      chart.xAxis().labels().format(formatWeekAxisLabel);
+      // Rotate x-axis labels to go (nearly) vertically upwards
+      chart.xAxis().labels().rotation(290);
+      var tooltip = chart.tooltip();
+      tooltip.titleFormat('');
+      tooltip.padding().left(20);
+      tooltip.separator(false);
+      tooltip.format(function () {
+        if (this.heat != null && this.heat !== '' && !isNaN(this.heat)) {
+          return this.heat + ' items\\nFolder: ' + this.getData("y") + '\\nWeek: ' + this.getData("x");
+        } else {
+          return 'No data';
+        }
+      });
+      chart.xScroller().enabled(true);
+      chart.legend(true);
+      chart.draw();
+    }
 
-    chart.xScroller().enabled(true);
-    chart.legend(true);
-    chart.draw();
+${drawCalls}
   });
 </script>
 `
@@ -466,28 +485,28 @@ async function showProjectsWeeklyProgressHeatmap(
     const winOpts = {
       windowTitle,
       width: 800,
-      height: 500,
+      height: charts.length > 1 ? 900 : 500,
       generalCSSIn: '',
       specificCSS: heatmapCSS,
       preBodyScript: preScript,
       postBodyScript: '',
-      customId: windowID,
-      savedFilename: filenameToSave,
+      customId: `${PLUGIN_ID}.projects-weekly-progress-heatmaps`,
+      savedFilename: 'projects-weekly-progress-heatmap.html',
       makeModal: false,
       reuseUsersWindowRect: true,
       shouldFocus: true,
     }
 
     await showHTMLV2(body, winOpts)
-    logInfo('showProjectsWeeklyProgressHeatmap', `Shown window titled '${windowTitle}'`)
+    logInfo('showProjectsWeeklyProgressHeatmapWindow', `Shown window titled '${windowTitle}' with ${String(charts.length)} chart(s)`)
   } catch (error) {
-    logError('showProjectsWeeklyProgressHeatmap', error.message)
+    logError('showProjectsWeeklyProgressHeatmapWindow', error.message)
   }
 }
 
 /**
  * Generate weekly Area/Project folder progress stats and display them
- * as two heatmaps:
+ * as heatmaps in one HTML window:
  * - Notes progressed per week
  * - Tasks completed per week
  * This reuses the HTML heatmap pattern from the Summaries plugin.
@@ -499,32 +518,41 @@ export async function showProjectsWeeklyProgressHeatmaps(): Promise<void> {
 
     const [notesRows, tasksRows] = await generateProjectsWeeklyProgressLines()
 
-    if (notesRows.length === 0 && tasksRows.length === 0) {
+    const charts: Array<TWeeklyHeatmapChart> = []
+    if (notesRows.length > 0) {
+      const notesData = buildHeatmapDataFromCSVRows(notesRows)
+      if (notesData.length > 0) {
+        charts.push({
+          data: notesData,
+          chartTitle: 'Area/Project Notes progressed per week',
+          containerId: 'notes-heatmap-container',
+        })
+      }
+    }
+    if (tasksRows.length > 0) {
+      const tasksData = buildHeatmapDataFromCSVRows(tasksRows)
+      if (tasksData.length > 0) {
+        charts.push({
+          data: tasksData,
+          chartTitle: 'Area/Project Tasks completed per week',
+          containerId: 'tasks-heatmap-container',
+        })
+      }
+    }
+
+    if (charts.length === 0) {
       logInfo('showProjectsWeeklyProgressHeatmaps', 'No weekly progress data available to visualise')
       await showMessage('No weekly progress data available to visualise', 'OK', 'Weekly Progress Heatmaps')
       return
     }
 
-    // FIXME: Why does this not work if the following chart is also shown?
-    if (notesRows.length > 0) {
-      await showProjectsWeeklyProgressHeatmap(
-        notesRows,
-        'Projects Weekly Progress – Notes',
-        'Area/Project Notes progressed per week',
-        'projects-notes-weekly-progress-heatmap.html',
-        `${PLUGIN_ID}.projects-notes-weekly-progress-heatmap`,
-      )
-    }
+    const windowTitle = charts.length === 2
+      ? 'Projects Weekly Progress'
+      : (charts[0].containerId === 'notes-heatmap-container'
+        ? 'Projects Weekly Progress - Notes'
+        : 'Projects Weekly Progress - Tasks')
 
-    if (tasksRows.length > 0) {
-      await showProjectsWeeklyProgressHeatmap(
-        tasksRows,
-        'Projects Weekly Progress – Tasks',
-        'Area/Project Tasks completed per week',
-        'projects-tasks-weekly-progress-heatmap.html',
-        `${PLUGIN_ID}.projects-tasks-weekly-progress-heatmap`,
-      )
-    }
+    await showProjectsWeeklyProgressHeatmapWindow(charts, windowTitle)
   } catch (error) {
     logError('showProjectsWeeklyProgressHeatmaps', error.message)
     throw error

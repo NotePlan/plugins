@@ -314,10 +314,10 @@ This scans your Area/Project folders and writes two CSV files into the plugin's 
 - one with the total number of completed tasks per folder per week
 
 ### "/heatmaps for weekly Projects Progress" command
-This first runs the same scan as `/weeklyProjectsProgress` (so the CSVs are kept fresh), and then shows a pair of heatmaps in new windows:
+This first runs the same scan as `/weeklyProjectsProgress` (so the CSVs are kept fresh), and then shows a pair of heatmaps in a new window:
 
 - notes progressed per week per folder of notes (where a project note counts as being progressed if one or more tasks are completed)
-- tasks completed per week per folder of notes
+- tasks completed per week per folder of notes.
 
 For those with lots of different projects or project groups, this is a handy way of seeing over time which of them are getting more or less attention.
 
