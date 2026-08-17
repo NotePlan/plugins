@@ -197,6 +197,44 @@ input, label {
   grid-template-columns: auto auto auto;
 }
 
+/* Perspective recalculation status (shown via SHOW_BANNER while Dashboard sync runs) */
+.project-list-status-banner {
+  display: grid;
+  grid-template-columns: fit-content(100%) 1fr;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+  border-style: solid;
+  border-width: 0 0 0 6px;
+  font-size: 0.95rem;
+  opacity: 0;
+  transform: translateY(-0.5rem);
+  transition: opacity 0.2s ease, transform 0.25s ease;
+}
+
+.project-list-status-banner--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.project-list-status-banner.color-info {
+  background-color: var(--bg-info-color, #dbeafe);
+  color: var(--fg-info-color, #1e40af);
+}
+
+.project-list-status-banner.border-info {
+  border-left-color: var(--fg-info-color, #3b82f6);
+}
+
+.project-list-status-banner-icon {
+  color: var(--fg-info-color, #3b82f6);
+}
+
+.project-list-status-banner-text {
+  white-space: pre-wrap;
+}
+
 .topbar-center-cluster {
   justify-self: center;
 }

@@ -49,7 +49,7 @@ import {
 import { JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
-import { showHTMLV2, sendToHTMLWindow } from '@helpers/HTMLView'
+import { sendBannerMessage, showHTMLV2, sendToHTMLWindow } from '@helpers/HTMLView'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getOrOpenEditorFromFilename, isNoteOpenInEditor } from '@helpers/NPEditor'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
@@ -191,6 +191,34 @@ async function toggleDisplayFilterKey(
 let renderProjectListsIfOpenInFlight: boolean = false
 
 /**
+ * User-facing banner text while recalculating the Rich project list after a Dashboard perspective change.
+ * @param {ReviewConfig} config
+ * @returns {string}
+ */
+function projectListPerspectiveRecalcBannerMessage(config: ReviewConfig): string {
+  const perspectiveName = config.perspectiveName
+  if (config.usePerspectives && perspectiveName != null && perspectiveName !== '') {
+    return `Checking all projects for the ${perspectiveName} perspective...`
+  }
+  return 'Checking all projects ready to display the new perspective...'
+}
+
+/**
+ * Show or remove the Rich list recalculation banner when that window is open.
+ * @param {ReviewConfig} config
+ * @param {'show' | 'remove'} action
+ * @returns {Promise<void>}
+ */
+async function setProjectListPerspectiveRecalcBanner(config: ReviewConfig, action: 'show' | 'remove'): Promise<void> {
+  if (!isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)) return
+  if (action === 'remove') {
+    await sendBannerMessage(RICH_PROJECT_LIST_WIN_ID, '', 'REMOVE')
+    return
+  }
+  await sendBannerMessage(RICH_PROJECT_LIST_WIN_ID, projectListPerspectiveRecalcBannerMessage(config), 'INFO')
+}
+
+/**
  * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
  * Now includes support for calling from x-callback, using full JSON '{"a":"b", "x":"y"}' version of settings and values that will override ones in the user's settings.
  * @param {string? | null} argsIn as JSON (optional)
@@ -262,6 +290,10 @@ export async function generateProjectListsAndRenderIfOpen(
     const htmlWindowSummary = NotePlan.htmlWindows.map((w) => `${w.customId ?? '-'}:${w.isVisible ? 'visible' : 'hidden'}`).join(', ')
     logInfo('generateProjectListsAndRenderIfOpen', `pre-render visibility: ${RICH_PROJECT_LIST_WIN_ID} open=${String(richWindowOpen)}; htmlWindows=[${htmlWindowSummary}]`)
 
+    if (richWindowOpen) {
+      await setProjectListPerspectiveRecalcBanner(config, 'show')
+    }
+
     // Re-calculate the allProjects list (in foreground). Skip Rich invoke from write - render once below (avoids double render per generate).
     await generateAllProjectsList(config, true, scrollPos, skipUpdateDashboardIfOpen, true)
     logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectListsIfOpen()`)
@@ -273,6 +305,9 @@ export async function generateProjectListsAndRenderIfOpen(
   } catch (error) {
     // Deliberately no rethrow: same rationale as the function-level note above.
     logError('generateProjectListsAndRenderIfOpen', JSP(error))
+    if (isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)) {
+      await sendBannerMessage(RICH_PROJECT_LIST_WIN_ID, '', 'REMOVE')
+    }
   }
 }
 

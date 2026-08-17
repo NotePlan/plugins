@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------
 //  HTMLWinCommsSwitchboard.js - in the HTMLWindow process data and logic to/from the plugin
-// Last updated: 2026-08-17 for v2.0.6 by @jgclark + @CursorAI
+// Last updated: 2026-08-17 for v2.0.7 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------------------
 /**
  * This file is loaded by the browser via <script> tag in the HTML file
@@ -30,6 +30,12 @@ function onMessageFromPlugin(type, data) {
       break
     case 'CLEAR_REVIEWING_PROJECT':
       clearReviewingProject(data)
+      break
+    case 'SHOW_BANNER':
+      showProjectListStatusBanner(data)
+      break
+    case 'REMOVE_BANNER':
+      removeProjectListStatusBanner()
       break
     // ...call other functions to process the data for other types of messages from the plugin
     default:
@@ -117,6 +123,52 @@ function clearReviewingProject(data) {
   }
 }
 
+/**
+ * Show or update the perspective-recalculation status banner below the sticky top bar.
+ * Payload matches sendBannerMessage from helpers/HTMLView.js: { type, msg, color, border, icon }.
+ * @param {{ type?: string, msg?: string, color?: string, border?: string, icon?: string }} data
+ */
+function showProjectListStatusBanner(data) {
+  const msg = data && data.msg != null ? String(data.msg) : ''
+  if (msg === '') {
+    removeProjectListStatusBanner()
+    return
+  }
+  console.log(`showProjectListStatusBanner: ${msg}`)
+  let banner = document.getElementById('projectListStatusBanner')
+  if (!banner) {
+    banner = document.createElement('div')
+    banner.id = 'projectListStatusBanner'
+    banner.className = 'project-list-status-banner'
+    const topbar = document.querySelector('.topbar')
+    if (topbar && topbar.parentNode) {
+      topbar.parentNode.insertBefore(banner, topbar.nextSibling)
+    } else {
+      document.body.insertBefore(banner, document.body.firstChild)
+    }
+  }
+  const colorClass = data.color || 'color-info'
+  const borderClass = data.border || 'border-info'
+  banner.className = `project-list-status-banner ${colorClass} ${borderClass}`
+  banner.innerHTML = `<div class="project-list-status-banner-icon"><i class="fa-solid fa-spinner fa-spin"></i></div><div class="project-list-status-banner-text">${escapeHtmlText(msg)}</div>`
+  requestAnimationFrame(function () {
+    banner.classList.add('project-list-status-banner--visible')
+  })
+}
+
+/**
+ * Remove the perspective-recalculation status banner.
+ */
+function removeProjectListStatusBanner() {
+  const banner = document.getElementById('projectListStatusBanner')
+  if (!banner) return
+  console.log('removeProjectListStatusBanner')
+  banner.classList.remove('project-list-status-banner--visible')
+  setTimeout(function () {
+    if (banner.parentNode) banner.parentNode.removeChild(banner)
+  }, 300)
+}
+
 /******************************************************************************
  *                       EVENT HANDLERS FOR THE HTML VIEW
  *****************************************************************************/
@@ -168,4 +220,17 @@ function showError(message) {
   if (div) {
     div.innerText = message
   }
+}
+
+/**
+ * Escape text for safe inclusion in banner HTML.
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeHtmlText(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
