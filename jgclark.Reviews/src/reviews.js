@@ -142,6 +142,43 @@ async function clearProjectReviewingInHTML(): Promise<void> {
 }
 
 /**
+ * If the note is open in an Editor pane, focus that pane and return it only when the global Editor
+ * is that note. Otherwise return null so callers use the DataStore note path (avoids NotePlan's
+ * "The editor is not open" warning when the Rich list HTML window or another pane has focus).
+ * @param {string} filename
+ * @param {string} logContext
+ * @returns {Promise<?TEditor>}
+ * @private
+ */
+async function getFocusedEditorForFilename(filename: string, logContext: string): Promise<?TEditor> {
+  try {
+    const possibleThisEditor = getOpenEditorFromFilename(filename)
+    if (!possibleThisEditor || possibleThisEditor === false) {
+      return null
+    }
+    if (!possibleThisEditor.note) {
+      logDebug(logContext, `Open editor for '${filename}' has no .note; using note path`)
+      return null
+    }
+    if (Editor?.filename === filename) {
+      return possibleThisEditor
+    }
+    if (typeof possibleThisEditor.focus === 'function') {
+      possibleThisEditor.focus()
+      logDebug(logContext, `Focused editor pane for '${filename}'`)
+    }
+    if (Editor?.filename === filename) {
+      return possibleThisEditor
+    }
+    logDebug(logContext, `After focus, Editor.filename is '${String(Editor?.filename)}' not '${filename}'; using note path`)
+    return null
+  } catch (error) {
+    logWarn(logContext, `getFocusedEditorForFilename failed: ${error.message}`)
+    return null
+  }
+}
+
+/**
  * Return a grouped folder display label, optionally hiding top-level path parts.
  * Handles both teamspace and standard folder names.
  * @param {string} folder
@@ -864,29 +901,18 @@ async function finishReviewCoreLogic(
     }
 
     let wroteMetadata = false
-    const possibleThisEditor = getOpenEditorFromFilename(note.filename)
-    if (possibleThisEditor && possibleThisEditor !== false) {
-      const thisEditorNote: ?CoreNoteFields = possibleThisEditor.note
-      if (!thisEditorNote) {
-        logDebug('finishReviewCoreLogic', `No editor note found for '${displayTitle(note)}'; falling back to datastore note update path.`)
-        migrateProjectMetadataLineInNote(note)
-        wroteMetadata = await applyFinishReviewMetadataUpdates(note, config, reviewedTodayString, 'note')
-        if (wroteMetadata) {
-          DataStore.updateCache(note, true)
-        }
-      } else {
-        logDebug('finishReviewCoreLogic', `Updating EDITOR note '${displayTitle(thisEditorNote)}' ...`)
-        // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
-        // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
-        // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
-        // FIXME: The following calls get "Warning: The editor is not open! 'Editor' values will be undefined and functions not working. Open a note to fix this." errors
-        migrateProjectMetadataLineInEditor(possibleThisEditor)
-        wroteMetadata = await applyFinishReviewMetadataUpdates(possibleThisEditor, config, reviewedTodayString, 'editor')
-        if (wroteMetadata) {
-          await possibleThisEditor.save()
-        }
-        // Note: no longer seem to need to update cache
+    const focusedEditor = await getFocusedEditorForFilename(note.filename, 'finishReviewCoreLogic')
+    if (focusedEditor) {
+      logDebug('finishReviewCoreLogic', `Updating EDITOR note '${displayTitle(focusedEditor)}' ...`)
+      // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
+      // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
+      // body metadata are present, we first migrate/merge them and then clean up @nextReview/@reviewed mentions once.
+      migrateProjectMetadataLineInEditor(focusedEditor)
+      wroteMetadata = await applyFinishReviewMetadataUpdates(focusedEditor, config, reviewedTodayString, 'editor')
+      if (wroteMetadata) {
+        await focusedEditor.save()
       }
+      // Note: no longer seem to need to update cache
     } else {
       logDebug('finishReviewCoreLogic', `Updating note '${displayTitle(note)}' ...`)
       // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
@@ -1166,20 +1192,17 @@ async function skipReviewCoreLogic(note: TNote | TEditor, skipIntervalOrDate: st
     const nextReviewMetadataStr = `${config.nextReviewMentionStr}(${newDateStr})`
     logDebug('skipReviewCoreLogic', `- nextReviewDateStr: ${newDateStr} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
 
-    const possibleThisEditor = getOpenEditorFromFilename(note.filename)
-    if (possibleThisEditor) {
+    const focusedEditor = await getFocusedEditorForFilename(note.filename, 'skipReviewCoreLogic')
+    if (focusedEditor) {
       // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
       // before we recalculate the metadata line index and update mentions. This ensures that when both frontmatter and
       // body metadata are present, we first migrate/merge them and then update @nextReview() in the canonical place.
-      migrateProjectMetadataLineInEditor(possibleThisEditor)
+      migrateProjectMetadataLineInEditor(focusedEditor)
 
-      // Update metadata in the current open note
+      // Update metadata in the focused Editor pane
       logDebug('skipReviewCoreLogic', `Updating Editor ...`)
-      updateBodyMetadataInEditor(possibleThisEditor, [nextReviewMetadataStr])
-
-      // Save Editor, so the latest changes can be picked up elsewhere
-      // Putting the Editor.save() here, rather than in the above functions, seems to work
-      await saveEditorIfNecessary()
+      updateBodyMetadataInEditor(focusedEditor, [nextReviewMetadataStr])
+      await focusedEditor.save()
       logDebug('skipReviewCoreLogic', `- done`)
     } else {
       // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
@@ -1189,6 +1212,7 @@ async function skipReviewCoreLogic(note: TNote | TEditor, skipIntervalOrDate: st
       // add/update metadata on the note
       logDebug('skipReviewCoreLogic', `Updating note ...`)
       updateBodyMetadataInNote(note, [nextReviewMetadataStr])
+      DataStore.updateCache(note, true)
     }
     logDebug('skipReviewCoreLogic', `- done`)
 
