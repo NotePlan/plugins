@@ -7,6 +7,7 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 - Change: **finish review** (manual) now asks which open Regular Note to use when the focused Editor is not a Notes pane and several Regular Notes are open in other panes. [dev: `getFirstRegularNoteAmongOpenEditors`]
 - Fix: Rich project list **Under Review** highlight now sticks after **Start** / **Next** / skip-to-next (open the note first, then highlight). Dialog Start, preferred window type, and skip's next note all go through the same start-review path.
 - Fix: **finish review** / **skip review** no longer hit NotePlan's "editor is not open" warning when the Rich list (or another pane) has focus - focus the matching Editor first, otherwise write via the DataStore note path.
+- dev: Split large `reviews.js` into `reviewsConstants.js`, `reviewsList.js`, `reviewsActions.js` (barrel `reviews.js` keeps the same public exports).
 
 ## [2.0.5] - 2026-08-07
 - Change: Turn back on saving of updated window size & position when resizing/moving it
