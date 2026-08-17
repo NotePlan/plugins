@@ -2,9 +2,11 @@
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
 ## [2.0.7] - 2026-08-17
+- Fix: **heatmaps for weekly Projects Progress** now shows notes and tasks charts in one window (the notes chart previously failed when both were shown).
 - Change: Rich project list control dialog is positioned from its measured size after it opens, instead of a fixed 505x120 estimate.
 - dev: Rich list Updated label uses locale relative phrases (e.g. "1 minute ago") via `Intl.RelativeTimeFormat`, with the previous compact buckets as fallback.
 - Change: Improved clipping of progress comments and next actions.
+- dev: Rich project list no longer warns when saving window size in **Main Window** / **Split View** (those panes have no floating windowRect).
 
 ## [2.0.6] - 2026-08-17
 - Fix: **finish review** / **skip review** no longer hit NotePlan's "editor is not open" warning when the Rich list (or another pane) has focus - focus the matching Editor first, otherwise write via the DataStore note path.

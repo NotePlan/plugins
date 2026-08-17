@@ -457,6 +457,7 @@ export async function renderProjectListsHTML(
       postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + displayFiltersDropdownScript + tagTogglesVisibilityScript + autoRefreshScript + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js" ></script>
       <script type="text/javascript" src="./projectListEvents.js"></script>
+      <script>window.__reviewsPersistFloatingRect = ${config.preferredWindowType === 'New Window' ? 'true' : 'false'};</script>
       ` + commsBridgeScripts + shortcutsScript + addToggleEvents + resizeListenerScript + windowCloseAndReopenScripts,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...

@@ -708,6 +708,36 @@ export function getWindowFromId(windowId: string): TEditor | HTMLView | false {
 }
 
 /**
+ * Embed type of an Editor or HTML window (`main` | `split` | `floating` | `unsupported`).
+ * Prefer `.windowType` (TEditor, and HTMLView in current NotePlan). `.type` on HTMLView is often the view kind (`html`), not the embed location, despite older API docs listing main|split|floating.
+ * @param {TEditor | HTMLView} win
+ * @returns {string}
+ */
+export function getWindowEmbedType(win: TEditor | HTMLView): string {
+  const anyWin: any = win
+  if (typeof anyWin.windowType === 'string' && anyWin.windowType !== '') {
+    return anyWin.windowType
+  }
+  // Older HTMLView docs claimed `.type` was the embed location; skip the view-kind value `html`.
+  if (typeof anyWin.type === 'string' && anyWin.type !== '' && anyWin.type !== 'html') {
+    return anyWin.type
+  }
+  return ''
+}
+
+/**
+ * True when the window is a pane of the main NotePlan window (`main` or `split`).
+ * Those are mutually exclusive with `floating`: a window cannot be both embedded and floating.
+ * HTMLView.showInMainWindow panes typically have an empty windowRect (`{}`).
+ * @param {TEditor | HTMLView} win
+ * @returns {boolean}
+ */
+export function isEmbeddedWindow(win: TEditor | HTMLView): boolean {
+  const embedType = getWindowEmbedType(win)
+  return embedType === 'main' || embedType === 'split'
+}
+
+/**
  * Get the TEditor or HTMLView object from the given custom ID
  * @param {string} windowCustomId
  * @returns {TEditor | HTMLView | false} the matching window object or false if not found
@@ -842,11 +872,19 @@ export function storeWindowRect(customId: string): void {
     logWarn('storeWindowRect', `Couldn't save Rect for '${customId}'`)
     return
   }
+  // Main Window / Split View HTML panes have no independent floating windowRect (API returns {}).
+  const embedType = getWindowEmbedType(thisWindow)
+  if (isEmbeddedWindow(thisWindow)) {
+    logDebug('storeWindowRect', `Skipping save for '${customId}': window type '${embedType}' has no independent windowRect`)
+    return
+  }
   // Copy into a plain object: passing a native windowRect bridge object into setPreference can persist as {}.
   const live = thisWindow.windowRect
   const windowRect = plainRectFromParts(live?.x, live?.y, live?.width, live?.height)
   if (!windowRect) {
-    logWarn('storeWindowRect', `Couldn't save Rect for '${customId}': live windowRect is not numeric (${rectToString(live)})`)
+    const anyWin: any = thisWindow
+    // Empty rect is expected for Main Window / Split View HTML panes (and when `.type` is just `html`).
+    logDebug('storeWindowRect', `Skipping save for '${customId}': type='${String(anyWin.type ?? '')}' windowType='${String(anyWin.windowType ?? '')}' live windowRect is not numeric (${rectToString(live)})`)
     return
   }
   const prefName = `WinRect_${customId}`
@@ -913,9 +951,15 @@ export function getLiveWindowRect(windowId: string): Rect | false {
  */
 export function getLiveWindowRectFromWin(win: Window): Rect | false {
   if (win) {
-    const windowRect: Rect = win.windowRect
-    clo(windowRect, `getLiveWindowRectFromWin(): Retrieved Rect ${rectToString(windowRect)}:`)
-    return windowRect
+    const live = win.windowRect
+    // Native bridge Rect can enumerate as {} with undefined x/y/w/h (typical for main/split HTML panes).
+    const windowRect = plainRectFromParts(live?.x, live?.y, live?.width, live?.height)
+    if (windowRect) {
+      clo(windowRect, `getLiveWindowRectFromWin(): Retrieved Rect ${rectToString(windowRect)}:`)
+      return windowRect
+    }
+    logDebug('getLiveWindowRectFromWin', `windowRect is not numeric (${rectToString(live)})`)
+    return false
   } else {
     logWarn('getLiveWindowRectFromWin', `Invalid window parameter`)
     return false

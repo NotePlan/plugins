@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-15 for v2.4.0.b64 by @jgclark + @CursorAI
+// Last updated 2026-08-17 for v2.4.0.b64+ by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -41,7 +41,7 @@ import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFrom
 import { mapNotePlanPriorityToAppleReminder, parseLeadingPriorityFromReminderText } from '@helpers/NPReminders'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { getWindowFromCustomId, getLiveWindowRectFromWin, rectToString, storeWindowRect } from '@helpers/NPWindows'
+import { getLiveWindowRectFromWin, getWindowEmbedType, getWindowFromCustomId, isEmbeddedWindow, rectToString, storeWindowRect } from '@helpers/NPWindows'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
 import { processChosenHeading } from '@helpers/userInput'
 
@@ -789,13 +789,19 @@ export function doWindowResized(): TBridgeClickHandlerResult {
   logDebug('doWindowResized', `windowResized triggered on plugin side for '${windowCustomId}'`)
   const thisWin = getWindowFromCustomId(windowCustomId)
   if (thisWin !== false) {
+    // Main Window / Split View panes have no independent windowRect (API returns {}).
+    if (isEmbeddedWindow(thisWin)) {
+      logDebug('doWindowResized', `-> skipping save: '${windowCustomId}' is '${getWindowEmbedType(thisWin)}' (embedded pane)`)
+      return handlerResult(true)
+    }
     const rect = getLiveWindowRectFromWin(thisWin)
     if (rect) {
       logDebug('doWindowResized', `-> saving rect: ${rectToString(rect)} to pref`)
       storeWindowRect(windowCustomId)
       return handlerResult(true)
     }
-    logWarn('doWindowResized', `-> no live rect for '${windowCustomId}', not saving`)
+    logDebug('doWindowResized', `-> no live rect for '${windowCustomId}' (type '${getWindowEmbedType(thisWin) || 'unknown'}'), not saving`)
+    return handlerResult(true)
   } else {
     logWarn('doWindowResized', `-> could not find window '${windowCustomId}'`)
   }

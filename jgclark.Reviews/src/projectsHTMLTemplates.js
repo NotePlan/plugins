@@ -458,6 +458,10 @@ export const resizeListenerScript: string = `
   var debounceTimeout = null;
   function notifyWindowGeometryChanged(reason) {
     try {
+      // Main Window / Split View panes have no independent floating windowRect to persist.
+      if (window.__reviewsPersistFloatingRect === false) {
+        return;
+      }
       console.log('Projects List window geometry change (' + reason + ') -> windowResized');
       sendMessageToPlugin('windowResized', { actionType: 'windowResized', reason: reason });
     } catch (e) {

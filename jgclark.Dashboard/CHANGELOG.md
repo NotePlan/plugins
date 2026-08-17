@@ -42,6 +42,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 
 ## [2.4.0.b64] 2026-08-15 (unreleased)
+- Fix: Do not try to persist a floating windowRect when Dashboard is in **Main Window** / **Split View** (those panes have no independent windowRect).
 - Change: a **Save Perspective** no longer refreshes all sections.
 - Change: Changing **Default Dashboard Window Type** (and other settings that do not affect section content) no longer triggers a section close/refresh flicker.  It also is now not shown in the "Edit All Perspectives" window.
 - docs: Clarify that the Priority section only lists **unscheduled** raised-priority items (scheduled ones belong in Calendar / Overdue).

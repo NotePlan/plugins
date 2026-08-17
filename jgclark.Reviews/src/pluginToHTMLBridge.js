@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Projects plugin (to/from HTML window)
-// Last updated 2026-08-17 for v2.0.6, @jgclark & @CursorAI
+// Last updated 2026-08-17 for v2.0.7, @jgclark & @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -27,7 +27,8 @@ import {
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
 import {
-  getLiveWindowRectFromWin, getWindowFromCustomId,
+  getLiveWindowRectFromWin, getWindowEmbedType, getWindowFromCustomId,
+  isEmbeddedWindow,
   logWindowsList,
   openNoteInSplitViewIfNotOpenAlready,
   rectToString,
@@ -394,13 +395,22 @@ export async function bridgeClickProjectListItem(data: MessageDataObject | any) 
         const reason = clickData.reason != null ? String(clickData.reason) : 'unknown'
         logDebug('bCPLI / windowResized', `windowResized (${reason}) for '${windowCustomId}'`)
         const thisWin = getWindowFromCustomId(windowCustomId)
+        if (!thisWin) {
+          logWarn('bCPLI / windowResized', `-> could not find window '${windowCustomId}'`)
+          break
+        }
+        // Main Window / Split View panes have no independent windowRect (API returns {}).
+        if (isEmbeddedWindow(thisWin)) {
+          logDebug('bCPLI / windowResized', `-> skipping save: '${windowCustomId}' is '${getWindowEmbedType(thisWin)}' (embedded pane)`)
+          break
+        }
         // Note: cast is safe because getLiveWindowRectFromWin() guards `if (win)` and returns false for a falsy window; its param is mis-typed as DOM `Window`
         const rect = getLiveWindowRectFromWin((thisWin: any))
         if (rect) {
           logDebug('bCPLI / windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
           storeWindowRect(windowCustomId)
         } else {
-          logWarn('bCPLI / windowResized', `-> no live rect for '${windowCustomId}', not saving`)
+          logDebug('bCPLI / windowResized', `-> no live rect for '${windowCustomId}' (type '${getWindowEmbedType(thisWin) || 'unknown'}'), not saving`)
         }
         break
       }
