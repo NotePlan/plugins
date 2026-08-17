@@ -135,8 +135,13 @@ function buildProjectListRowDiv(thisProject: Project, config: ReviewConfig, want
   // Start the row with the outer <div>, and inject the colour style for its left border
   parts.push(`\t<div class="project-grid-row projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}"${wantedTagsAttr}${extraStyle}>\n\t\t`)
 
-  // Edit button
-  const editButtonSpan = `\t\t\t\t\t<span class="pad-left dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodeRFC3986URIComponent(thisProject.title)}', encodedLastProgressComment:'${encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')}'})"><i class="fa-light fa-edit"></i></span>\n`
+  // Edit button: pass encodedFolderDisplay so the dialog can show Teamspace names (frontend cannot import helpers)
+  const encodedFilename = encodeRFC3986URIComponent(thisProject.filename)
+  const encodedTitle = encodeRFC3986URIComponent(thisProject.title)
+  const encodedLastProgress = encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')
+  const encodedFolderDisplay = encodeRFC3986URIComponent(projectFolderDisplayLabel(thisProject, config))
+  const dialogPayload = `{encodedFilename: '${encodedFilename}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodedTitle}', encodedLastProgressComment:'${encodedLastProgress}', encodedFolderDisplay:'${encodedFolderDisplay}'}`
+  const editButtonSpan = `\t\t\t\t\t<span class="pad-left dialogTrigger" onclick="showProjectControlDialog(${dialogPayload})"><i class="fa-light fa-edit"></i></span>\n`
 
   const projectTags = buildProjectTagLozengeSpans(thisProject).join('\n')
 

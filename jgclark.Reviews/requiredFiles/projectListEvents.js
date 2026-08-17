@@ -105,7 +105,9 @@ function showProjectControlDialog(dataObject) {
   // Set the dialog header from the folder name and note title
   const thisEncodedFilename = dataObject.encodedFilename // i.e. the "data-encoded-filename" element, with auto camelCase transposition
   const thisFilename = decodeRFC3986URIComponent(dataObject.encodedFilename)
-  const thisFolderName = getFolderFromFilename(thisFilename)
+  const thisFolderName = dataObject.encodedFolderDisplay
+    ? decodeRFC3986URIComponent(dataObject.encodedFolderDisplay)
+    : getFolderFromFilename(thisFilename)
   const thisTitle = decodeRFC3986URIComponent(dataObject.encodedTitle)
   const dialogNoteFolderElem = document.getElementById('dialogProjectFolder')
   dialogNoteFolderElem.innerHTML = thisFolderName !== '' ? `${thisFolderName}/` : ''
@@ -250,7 +252,7 @@ function showProjectControlDialog(dataObject) {
  * Get the folder name from the regular note filename, without leading or trailing slash.
  * Except for items in root folder -> ''.
  * Note: Copied, and tweaked slightly, from @helpers/folders.js to avoid imports.
- * TODO: Cope with Teamspace notes.
+ * Fallback for the project dialog when encodedFolderDisplay is missing. Does not decorate Teamspace names.
  * @param {string} fullFilename - full filename to get folder name part from
  * @returns {string} folder/subfolder name
  */

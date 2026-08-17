@@ -9,6 +9,7 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 - Fix: **heatmaps for weekly Projects Progress** now shows notes and tasks charts in one window (the notes chart previously failed when both were shown).
 - Change: folder group headings in the Rich list no longer fight theme `.h3` CSS.
 - Change: Rich list button hover uses `color-mix` instead of a commented `hsl()` relative-color attempt.
+- Fix: project control dialog folder label now matches the Rich list (Teamspace name instead of `%%NotePlanCloud%%/<id>/...`).
 
 ## [2.0.6] - 2026-08-17
 - Fix: **finish review** / **skip review** no longer hit NotePlan's "editor is not open" warning when the Rich list (or another pane) has focus - focus the matching Editor first, otherwise write via the DataStore note path.
