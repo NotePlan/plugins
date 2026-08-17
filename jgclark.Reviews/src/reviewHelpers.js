@@ -789,7 +789,7 @@ function findMetadataBodyBlock(paras: Array<TParagraph>, startIndex: number): ?M
  * @param {Array<TParagraph>} paras - paragraphs to scan (Editor or Note)
  * @param {(p: TParagraph) => void} updateParagraph - persist paragraph edits (Editor.updateParagraph / note.updateParagraph)
  * @param {string} logContext - log tag (migrateProjectMetadataLineInEditor | migrateProjectMetadataLineInNote)
- * @param {boolean} ensureFrontmatterFirst - if true, create empty frontmatter when missing (Note path)
+ * @param {boolean} ensureFrontmatterFirst - if true, create frontmatter when missing (Note path), including title
  * @returns {?string} detail string for migration_log when work ran or failed; null when nothing to migrate
  * @private
  */
@@ -802,7 +802,7 @@ function migrateProjectMetadataLineCore(
 ): ?string {
   try {
     if (ensureFrontmatterFirst && !noteHasFrontMatter(note)) {
-      ensureFrontmatter(note, false) // don't migrate title to frontmatter
+      ensureFrontmatter(note, true) // include title: from current note title when creating FM for the first time
     }
 
     const singleMetadataKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
@@ -1070,7 +1070,7 @@ export async function promptForMissingProjectTypeTag(config: ReviewConfig, noteT
         : ['#project']
 
     await showMessage(
-      `Note '${noteTitle}' has no '${combinedKey}' frontmatter key for its project type tag(s).\nPlease choose a project type tag from your settings to add. Cancel leaves the note unchanged (reviewed date will not be updated).`,
+      `Note '${noteTitle}' has no '${combinedKey}' frontmatter key for its project type tag(s).\n\nPlease choose a project type tag from your settings to add. Cancel leaves the note unchanged (reviewed date will not be updated).`,
       'OK',
       'Finish project review',
     )

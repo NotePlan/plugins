@@ -1026,12 +1026,42 @@ export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [st
     clo(newAttributes, `updateFrontMatterVars: newAttributes = `)
     logDebug('updateFrontMatterVars', `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs before ensureFrontmatter`)
     const isEditor = isEditorObject(note)
-    // Ensure the note has front matter (for both Editor and note cases)
-    if (!ensureFrontmatter(note, !isEditor)) {
+    // Ensure the note has front matter (for both Editor and note cases).
+    // For regular Notes, also write a title: key from the current note title when creating FM
+    // for the first time. (Previously skipped for Editor due to an H1-removal side-effect that is now fixed.)
+    // $FlowIgnore[prop-missing] Editor may expose .note; prefer that type when present
+    const typeForTitle = isEditor && note.note != null ? note.note.type : note.type
+    const alsoEnsureTitle = typeForTitle === 'Notes'
+    const hadFrontMatterBeforeEnsure = hasFrontMatter(note.content || '')
+    if (!ensureFrontmatter(note, alsoEnsureTitle)) {
       logError(pluginJson, `updateFrontMatterVars: Failed to ensure front matter for note "${note.filename || ''}".`)
       return false
     }
     logDebug('updateFrontMatterVars', `updateFrontMatterVars: note has ${note.paragraphs.length} paragraphs after ensureFrontmatter`)
+
+    // When first creating FM via Editor, also put title in attributes so the frontmatterAttributes
+    // setter cannot drop it (note.frontmatterAttributes can lag after insertParagraph).
+    // Note (non-Editor) path keeps the title line that ensureFrontmatter already wrote.
+    let attributesToWrite: { [string]: string } = newAttributes
+    if (isEditor && alsoEnsureTitle && !hadFrontMatterBeforeEnsure) {
+      const hasIncomingTitle = Object.keys(newAttributes).some((key) => key.toLowerCase() === 'title')
+      if (!hasIncomingTitle) {
+        const titleFromNote = String(note.title ?? '')
+          .replace(/`/g, '')
+          .trim()
+        let resolvedTitle = titleFromNote
+        if (resolvedTitle === '') {
+          const titlePara = (note.paragraphs || []).find((p) => p.type === 'title' && p.headingLevel === 1)
+          resolvedTitle = String(titlePara?.content ?? '')
+            .replace(/`/g, '')
+            .trim()
+        }
+        if (resolvedTitle !== '') {
+          attributesToWrite = { title: resolvedTitle, ...newAttributes }
+          logDebug('updateFrontMatterVars', `Injected title '${resolvedTitle}' into attributes for newly created frontmatter`)
+        }
+      }
+    }
 
     const existingAttributes = { ...getFrontmatterAttributes(note) } || {}
     const existingKeyByLowercase: { [string]: string } = {}
@@ -1058,10 +1088,10 @@ export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [st
     // Normalize newAttributes before comparison
     clo(existingAttributes, `updateFrontMatterVars: existingAttributes`)
     const normalizedNewAttributes: { [string]: any } = {}
-    clo(Object.keys(newAttributes), `updateFrontMatterVars: Object.keys(newAttributes) = ${JSON.stringify(Object.keys(newAttributes))}`)
-    Object.keys(newAttributes).forEach((rawKey: string) => {
+    clo(Object.keys(attributesToWrite), `updateFrontMatterVars: Object.keys(attributesToWrite) = ${JSON.stringify(Object.keys(attributesToWrite))}`)
+    Object.keys(attributesToWrite).forEach((rawKey: string) => {
       const canonicalKey = existingKeyByLowercase[rawKey.toLowerCase()] || rawKey
-      const value = newAttributes[rawKey]
+      const value = attributesToWrite[rawKey]
       logDebug('updateFrontMatterVars', `newAttributes key: ${rawKey}, value: ${value}`) // ✅
 
       // Handle null/undefined - skip them (they won't be in normalizedNewAttributes,

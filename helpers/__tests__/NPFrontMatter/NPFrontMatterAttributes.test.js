@@ -342,6 +342,27 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(barParagraph.content).toEqual('bar: newBaz')
       })
 
+      test('should include title from note title when creating frontmatter for the first time', () => {
+        const note = new Note({
+          content: '# My Project\nSome body\n',
+          paragraphs: [
+            { content: 'My Project', headingLevel: 1, type: 'title', lineIndex: 0 },
+            { content: 'Some body', type: 'text', lineIndex: 1 },
+          ],
+          title: 'My Project',
+          type: 'Notes',
+        })
+
+        const result = f.updateFrontMatterVars(note, { project: '#project', review: '2w' })
+        expect(result).toEqual(true)
+        expect(note.content).toMatch(/^---\ntitle: My Project\n/)
+        expect(note.content).toMatch(/project: #project/)
+        expect(note.content).toMatch(/review: 2w/)
+        // Body H1 text is retained (mock may normalize the leading '# ' when rebuilding content)
+        expect(note.content).toMatch(/My Project/)
+        expect(note.content).toMatch(/Some body/)
+      })
+
       test('should update existing key regardless of case and not add duplicate key', () => {
         const note = new Note({
           content: '---\ntitle: foo\nDue: 2026-03-01\n---\n',
