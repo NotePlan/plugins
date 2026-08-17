@@ -1114,19 +1114,36 @@ export async function finishReviewForNote(
 }
 
 /**
- * Complete current review, then open the next one to review in the Editor.
- * TODO: Update to get a note passed in, rather than using the current Editor note.
+ * Complete review of the current (or supplied) project note, then open the next one to review in the Editor.
  * @author @jgclark
+ * @param {TNote?} noteArg - optional note to finish; defaults to a Regular Note open in an Editor pane
+ * @param {number} scrollPos - scroll position for Rich project list refresh after list write
+ * @param {{ skipUpdateDashboardIfOpen?: boolean }} [options] - when true, skip Dashboard PROJ* invoke
  */
-export async function finishReviewAndStartNextReview(): Promise<void> {
+export async function finishReviewAndStartNextReview(
+  noteArg?: TNote,
+  scrollPos: number = 0,
+  options?: { skipUpdateDashboardIfOpen?: boolean },
+): Promise<void> {
   try {
     logDebug('finishReviewAndStartNextReview', `Starting`)
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
-    // Finish review of the current project
-    await finishReview()
-    logDebug('finishReviewAndStartNextReview', `- Returned from finishReview() and will now look for next review ...`)
+    const noteToFinish: ?TNote = noteArg ?? (await getFirstRegularNoteAmongOpenEditors())
+    if (!noteToFinish) {
+      logWarn('finishReviewAndStartNextReview', `- There's no project note in any open Editor pane to finish reviewing.`)
+      await showMessage(`No open editor pane has a project note to finish reviewing. Open the project note (or focus it) and try again.`, 'OK, thanks', 'Reviews')
+      return
+    }
+
+    logInfo('finishReviewAndStartNextReview', `Finishing review for '${displayTitle(noteToFinish)}'`)
+    const finished = await finishReviewForNote(noteToFinish, scrollPos, options)
+    if (!finished) {
+      logInfo('finishReviewAndStartNextReview', `- Finish did not complete; not starting next review.`)
+      return
+    }
+    logDebug('finishReviewAndStartNextReview', `- Returned from finishReviewForNote() and will now look for next review ...`)
 
     // Read review list to work out what's the next one to review
     const noteToReview: ?TNote = await getNextNoteToReview()
