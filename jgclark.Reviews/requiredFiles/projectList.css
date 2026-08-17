@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-05-18 for v2.0.0.b35, @jgclark + @CursorAI
+ * Last updated 2026-08-17 for v2.0.7, @jgclark + @CursorAI
  */
 
 /* ============================================================
@@ -344,6 +344,8 @@ input, label {
   border-radius: 6px;
   margin: 0.3rem 0.5rem;
   padding: 0.2rem;
+  min-width: 0;
+  overflow: hidden; /* bound children for CSS ellipsis, especially in multi-column */
   /* apply to a <div> to avoid column break part-way through item */
 	break-inside: avoid;
 
@@ -369,6 +371,7 @@ input, label {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
+  overflow: hidden;
 }
 
 .project-grid-cell--span-2 {
@@ -495,13 +498,17 @@ input, label {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
 }
-.progressText {
-  /* flex: 1; */
+.progressText,
+.progressOpenCount,
+.progressIcon {
+  flex-shrink: 0;
+}
+.progressCommentText {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
-  /* FIXME: ellipsis isn't working any more */
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
@@ -531,6 +538,7 @@ input, label {
   display: flex;
   align-items: baseline;
   gap: 0;
+  min-width: 0;
   /* overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis; */
@@ -545,10 +553,14 @@ input, label {
   color: inherit;
   text-decoration: none;
 }
+.nextActionIcon {
+  flex-shrink: 0;
+}
 .nextActionText {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 .nextActionText:hover {

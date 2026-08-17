@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-08-03 for v2.0.4, @CursorAI & @jgclark
+// Last updated 2026-08-17 for v2.0.7, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -16,7 +16,9 @@ import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/fold
 import { makePluginCommandButton, redToGreenInterpolation } from '@helpers/HTMLView'
 import { localeRelativeDateFromNumber, nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getLineMainContentPos } from '@helpers/search'
-import { encodeRFC3986URIComponent, prepAndTruncateMarkdownForDisplay } from '@helpers/stringTransforms'
+import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
+// Length truncation now handled in CSS (.nextActionText)
+// import { encodeRFC3986URIComponent, prepAndTruncateMarkdownForDisplay } from '@helpers/stringTransforms'
 
 //-----------------------------------------------------------------------------
 // Project Row HTML Generation
@@ -297,14 +299,14 @@ function buildProjectProgressRowDiv(thisProject: Project, _config: ReviewConfig)
   if (!thisProject.isCompleted && !thisProject.isCancelled && !thisProject.isPaused) {
     const itemCountsStr = formatOpenItemCountForProgressLine(thisProject)
     const openCountLabel = ignoreChecklistsInProgress ? pluralise('task', itemCountsStr) : pluralise('item', itemCountsStr)
-    statsString += `<span class="pad-left">${itemCountsStr} open ${openCountLabel}</span>`
+    statsString += `<span class="pad-left progressOpenCount">${itemCountsStr} open ${openCountLabel}</span>`
   }
 
   // If there is a progress comment, show it in the progress line row, otherwise show only stats
   // logDebug('buildProjectProgressRowDiv', `for ${thisProject.title}: lastProgressComment: ${thisProject.lastProgressComment}`)
   if (thisProject.lastProgressComment !== '') {
     statsString += `<span 
-    class="progressIcon pad-left-larger"><i class="fa-regular fa-circle-info"></i></span><span class="pad-left">${thisProject.lastProgressComment}</span>`
+    class="progressIcon pad-left-larger"><i class="fa-regular fa-circle-info"></i></span><span class="pad-left progressCommentText">${thisProject.lastProgressComment}</span>`
   // } else {
   //   //   return `${indent}<${tag} class="progress"><span class="progressText">${statsProgress}</span></${tag}>`
   //   return ''
@@ -314,7 +316,7 @@ function buildProjectProgressRowDiv(thisProject: Project, _config: ReviewConfig)
 }
 
 /**
- * Zero or more clickable '<div class="nextActionRow">' rows (plain text body), joined into one string. Truncates to 80 chars per line for display.
+ * Zero or more clickable '<div class="nextActionRow">' rows (plain text body), joined into one string. Long lines clip with CSS ellipsis.
  * @param {ReviewConfig} config
  * @param {string} encodedFilename - RFC3986-encoded project note filename (for bridge open/highlight)
  * @param {Array<string>} nextActionsRawContent - raw line content from Project (for highlight matching)
@@ -328,9 +330,11 @@ function buildNextActionRowDivs(config: ReviewConfig, encodedFilename: string, n
   for (const rawAction of nextActionsRawContent) {
     const encodedContent = encodeRFC3986URIComponent(rawAction)
     const displayAction = rawAction.slice(getLineMainContentPos(rawAction))
-    const truncatedNAContent = prepAndTruncateMarkdownForDisplay(displayAction, 80)
+    const displayNAContent = displayAction.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '[$1]')
+    // Length truncation now handled in CSS (.nextActionText)
+    // const truncatedNAContent = prepAndTruncateMarkdownForDisplay(displayAction, 80)
     parts.push(
-      `\n\t\t\t<div class="nextActionRow project-metadata-row" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><a class="nextActionLink" href="#"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="pad-left-larger nextActionText">${truncatedNAContent}</span></a></div>`,
+      `\n\t\t\t<div class="nextActionRow project-metadata-row" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><a class="nextActionLink" href="#"><span class="nextActionIcon"><i class="todo fa-regular fa-circle"></i></span><span class="pad-left-larger nextActionText">${displayNAContent}</span></a></div>`,
     )
   }
   return parts.join('')

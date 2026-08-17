@@ -218,9 +218,10 @@ function showProjectControlDialog(dataObject) {
   // Actually show the dialog
   dialog.showModal()
 
-  // Set place on the screen for dialog to appear
-  const approxDialogWidth = 505 // TODO: can we do better than this?
-  const approxDialogHeight = 120
+  // Measure after showModal so we can position with the real size; fall back if the rect is still 0
+  const dialogRect = dialog.getBoundingClientRect()
+  const approxDialogWidth = (dialogRect && dialogRect.width > 0) ? dialogRect.width : 505
+  const approxDialogHeight = (dialogRect && dialogRect.height > 0) ? dialogRect.height : 120
   setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event)
 
   // For clicking on dialog buttons
@@ -284,8 +285,7 @@ function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, eve
   // And, in Safari, it leaves quite a clear area around edge of window where it will not put the dialog.
   // Note: in the future the draft spec for CSS Anchor Positioning could be helpful for positioning this dialog relative to other things
   // Check if this is going to be outside available window width
-  // Note: accessing dialog.clientWidth doesn't work, as dialog is not yet drawn
-  // Note: not sure why window.clientWidth doesn't work either, so using inner... which then requires a fudge factor for scrollbars
+  // Note: not sure why window.clientWidth doesn't work, so using innerWidth/innerHeight which then requires a fudge factor for scrollbars
   console.log(`Window dimensions (approx): w${window.innerWidth} x h${window.innerHeight}`)
   console.log(`Mouse at x${mousex}, y${mousey}`)
   console.log(`Dialog dimensions: w${approxDialogWidth} x h${approxDialogHeight} / fudgeFactor ${String(fudgeFactor)}`)
