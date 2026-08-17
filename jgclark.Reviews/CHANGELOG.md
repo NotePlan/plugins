@@ -9,6 +9,7 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 - Change: when project metadata first creates frontmatter on a note, include a `title:` key set to the current note title (body H1 is kept).
 - dev: Split large `reviews.js` into `reviewsConstants.js`, `reviewsList.js`, `reviewsActions.js` (barrel `reviews.js` keeps the same public exports).
 - dev: Remove unused Dashboard leftover HTML switchboard helpers and stale TODO/FIXME comments.
+- Fix: Completing or cancelling a project and archiving it now refreshes the Rich list.
 
 ## [2.0.5] - 2026-08-07
 - Change: Turn back on saving of updated window size & position when resizing/moving it

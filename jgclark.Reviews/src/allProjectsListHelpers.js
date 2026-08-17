@@ -884,6 +884,39 @@ export async function getSpecificProjectFromList(filename: string): Promise<?Pro
 }
 
 /**
+ * Resolve a project note from a Rich-list filename without creating a new empty note.
+ * After complete/cancel + archive, the list can still hold the pre-move path; try that path,
+ * then the same path under `@Archive/`, then the note title (searching all folders).
+ * @param {string} filename - Filename from the Rich list click payload
+ * @returns {?TNote} Existing note, or null if it cannot be found
+ */
+export function resolveProjectNoteFromListFilename(filename: string): ?TNote {
+  if (!filename) {
+    return null
+  }
+  const direct = getNoteFromFilename(filename)
+  if (direct) {
+    return direct
+  }
+  if (!filename.startsWith('@Archive/')) {
+    const archived = getNoteFromFilename(`@Archive/${filename}`)
+    if (archived) {
+      return archived
+    }
+  }
+  const titleGuess = filename.replace(/\.md$/i, '').split('/').pop() ?? ''
+  if (titleGuess === '') {
+    return null
+  }
+  const byTitle = DataStore.projectNoteByTitle(titleGuess, true, true)
+  if (byTitle && byTitle.length > 0) {
+    const archivedMatch = byTitle.find((n) => (n.filename ?? '').startsWith('@Archive/'))
+    return archivedMatch ?? byTitle[0]
+  }
+  return null
+}
+
+/**
  * Filter the list of Projects by finished/paused/due according to config.
  * Used by filterAndSortProjectsList(); can be used when only filtering is needed.
  * @param {Array<Project>} projectInstancesIn projects to filter (e.g. from getAllProjectsFromList)

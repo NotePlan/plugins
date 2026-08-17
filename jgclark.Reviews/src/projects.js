@@ -3,16 +3,18 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 2026-08-03 for v2.0.4, @jgclark
+// Last updated 2026-08-17 for v2.0.6, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment'
-import { buildProjectLineForStyle } from './projectsHTMLGenerator'
-import { Project } from './projectClass'
-import { finishReviewForNote } from './reviews'
-import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
 import { updateAllProjectsListAfterChange } from './allProjectsListHelpers'
+import { Project } from './projectClass'
+import { buildProjectLineForStyle } from './projectsHTMLGenerator'
+import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
+import { finishReviewForNote } from './reviews'
+import { renderProjectListsIfOpen } from './reviewsList'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { getOpenEditorFromFilename } from '@helpers/NPEditor'
 import { archiveNoteUsingFolder } from '@helpers/NPnote'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { getInputTrimmed, showMessageYesNo } from '@helpers/userInput'
@@ -64,20 +66,49 @@ function validateAndGetNote(noteArg?: TNote, functionName: string = 'function'):
 }
 
 /**
- * Reload note, update project lists, and render outputs.
- * This is called by completeProject, cancelProject, togglePauseProject.
- * @param {TNote} note - Note to reload
+ * Update the allProjects list and re-render the Rich list in-process if it is open.
+ * Do not call Editor.openNoteByFilename here: when the Rich list is in the main window that replaces it,
+ * so the HTML refresh can miss the visible view, and a later archive can leave an empty note at the old path.
+ * @param {TNote} note - Note whose filename is currently in allProjectsList.json
  * @param {ReviewConfig} config - Review configuration
- * @param {boolean} shouldArchive - Whether note should be archived
+ * @param {boolean} simplyDelete - When true, remove this filename from the list (archived notes are always excluded)
+ * @param {number} scrollPos - Rich list scroll position (pixels)
+ * @param {string} filenameForList - Filename to match in allProjectsList.json (use the pre-archive path after a move)
  * @returns {Promise<void>}
  * @private
  */
-async function reloadAndUpdateLists(note: TNote, config: ReviewConfig, shouldArchive: boolean, scrollPos: number = 0): Promise<void> {
-  // Reload the note according to @Eduard
-  await Editor.openNoteByFilename(note.filename)
+async function reloadAndUpdateLists(
+  note: TNote,
+  config: ReviewConfig,
+  simplyDelete: boolean,
+  scrollPos: number = 0,
+  filenameForList: string = note.filename ?? ERROR_FILENAME_PLACEHOLDER,
+): Promise<void> {
+  DataStore.updateCache(note, true)
+  await updateAllProjectsListAfterChange(
+    filenameForList,
+    simplyDelete,
+    config,
+    scrollPos,
+    { skipRichProjectListIfOpen: true },
+  )
+  await renderProjectListsIfOpen(config, scrollPos)
+}
 
-  // Update the allProjects list (writeAllProjectsList refreshes Rich list + Dashboard when open; scrollPos preserved)
-  await updateAllProjectsListAfterChange(note.filename ?? ERROR_FILENAME_PLACEHOLDER, shouldArchive, config, scrollPos)
+/**
+ * If an Editor pane is still showing the pre-archive path (often empty after a move), open the moved note in that pane.
+ * @param {string} originalFilename
+ * @param {string} newFilename
+ * @returns {Promise<void>}
+ * @private
+ */
+async function retargetOpenEditorAfterArchive(originalFilename: string, newFilename: string): Promise<void> {
+  const openEditor = getOpenEditorFromFilename(originalFilename) || getOpenEditorFromFilename(newFilename)
+  if (!openEditor || typeof openEditor.openNoteByFilename !== 'function') {
+    return
+  }
+  logDebug('retargetOpenEditorAfterArchive', `Opening archived note '${newFilename}' in existing Editor pane`)
+  await openEditor.openNoteByFilename(newFilename, false, 0, 0, false, false)
 }
 
 type SummaryCalendarPeriod = 'quarter' | 'year'
@@ -274,7 +305,10 @@ function archiveNoteIfRequested(note: TNote, config: ReviewConfig, willArchive: 
 }
 
 /**
- * Handle post-processing after completing or cancelling a project: ask whether to move it to the @Archive, reload the note, update the review list, and add to the yearly note.
+ * Handle post-processing after completing or cancelling a project: optionally move it to the archive,
+ * then update the review list and Rich list from the post-move state.
+ * Archive runs first so the list/HTML never keep a stale pre-move filename.
+ * The Rich list is rendered in-process (not via same-plugin invoke) so the already-open window actually refreshes.
  * @param {Project} thisProject - Project instance
  * @param {TNote} note - Note being processed
  * @param {ReviewConfig} config - Review configuration
@@ -291,18 +325,24 @@ async function handleProjectCompletionOrCancellation(
   scrollPos: number = 0,
 ): Promise<void> {
   const { willArchive, summaryDestination } = closeoutInputs
+  const originalFilename = note.filename ?? ERROR_FILENAME_PLACEHOLDER
 
-  // Reload note and update lists
-  await reloadAndUpdateLists(note, config, willArchive, scrollPos)
+  // Archive first so allProjects / Rich list never keep the old path after a move
+  const newFilename = archiveNoteIfRequested(note, config, willArchive)
+  const didArchive = willArchive && Boolean(newFilename)
+  if (didArchive && newFilename) {
+    DataStore.updateCache(note, true)
+  }
 
-  // Add to chosen summary note
+  await reloadAndUpdateLists(note, config, didArchive, scrollPos, originalFilename)
+
   addToSummaryNote(thisProject, config, summaryDestination)
 
-  // Archive if requested
-  const newFilename = await archiveNoteIfRequested(note, config, willArchive)
-
-  if (willArchive) {
-    logInfo(`handleProjectCompletionOrCancellation`, `Project ${actionType} and moved to @Archive (at ${newFilename ?? ERROR_FILENAME_PLACEHOLDER}), review list updated, and window updated.`)
+  if (didArchive && newFilename) {
+    await retargetOpenEditorAfterArchive(originalFilename, newFilename)
+    logInfo(`handleProjectCompletionOrCancellation`, `Project ${actionType} and moved to @Archive (at ${newFilename}), review list updated, and window updated.`)
+  } else if (willArchive && !newFilename) {
+    logWarn(`handleProjectCompletionOrCancellation`, `Project ${actionType} but archive move did not return a new filename; list updated in place.`)
   } else {
     logInfo(`handleProjectCompletionOrCancellation`, `Project ${actionType}, review list updated, and window updated.`)
   }

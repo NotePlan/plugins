@@ -1,10 +1,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Projects plugin (to/from HTML window)
-// Last updated 2026-05-18 for v2.0.0.b35, @CursorAI & @jgclark
+// Last updated 2026-08-17 for v2.0.6, @jgclark & @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { resolveProjectNoteFromListFilename } from './allProjectsListHelpers'
+import {
+  addProgressUpdate,
+  cancelProject,
+  completeProject,
+  togglePauseProject,
+} from './projects'
 import {
   finishReviewForNote,
   displayProjectLists,
@@ -17,12 +24,6 @@ import {
   saveDisplayFilters,
   saveHiddenProjectTypeTags,
 } from './reviews'
-import {
-  addProgressUpdate,
-  cancelProject,
-  completeProject,
-  togglePauseProject,
-} from './projects'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
 import {
@@ -33,6 +34,7 @@ import {
   storeWindowRect,
 } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
+import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 // Data types + constants
@@ -408,11 +410,21 @@ export async function bridgeClickProjectListItem(data: MessageDataObject | any) 
           logWarn('bridgeClickProjectListItem', `-> showNoteInEditorFromFilename: empty filename after decode`)
           break
         }
-        const openedNewSplit = openNoteInSplitViewIfNotOpenAlready(filename, 'bridgeClickProjectListItem')
+        const noteToOpen = resolveProjectNoteFromListFilename(filename)
+        if (!noteToOpen) {
+          logWarn('bridgeClickProjectListItem', `-> showNoteInEditorFromFilename: no note found for filename ${filename} (not opening, to avoid creating an empty note)`)
+          await showMessage(`Couldn't find that project note (it may have been moved or archived). Refresh the project list and try again.`, 'OK', 'Projects + Reviews')
+          break
+        }
+        const filenameToOpen = noteToOpen.filename ?? filename
+        if (filenameToOpen !== filename) {
+          logInfo('bridgeClickProjectListItem', `-> showNoteInEditorFromFilename: list had '${filename}', opening current path '${filenameToOpen}'`)
+        }
+        const openedNewSplit = openNoteInSplitViewIfNotOpenAlready(filenameToOpen, 'bridgeClickProjectListItem')
         if (openedNewSplit) {
-          logDebug('bridgeClickProjectListItem', `-> opened or triggered split for filename ${filename}`)
+          logDebug('bridgeClickProjectListItem', `-> opened or triggered split for filename ${filenameToOpen}`)
         } else {
-          logDebug('bridgeClickProjectListItem', `-> focused existing editor or no-op for filename ${filename}`)
+          logDebug('bridgeClickProjectListItem', `-> focused existing editor or no-op for filename ${filenameToOpen}`)
         }
         break
       }
