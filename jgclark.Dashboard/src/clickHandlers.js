@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-14 for v2.4.0.b63 by @jgclark + @CursorAI
+// Last updated 2026-08-15 for v2.4.0.b64 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -1041,7 +1041,15 @@ function planSectionRefreshAfterDashboardSettingsChange(
         logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: folder filter settings changed; will ACTIVE_PERSPECTIVE_DEFINITION_CHANGED when Rich list is open`)
       }
       if (diffKeys.length > 0 && keysNeedingContentRefresh.length === 0) {
-        logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: settings changed but excluded from section refresh (keys: ${diffKeys.join(', ')}); incremental section refresh: none`)
+        // e.g. preferredWindowType / interactive-processing flags: no section layout or content change,
+        // so skip CLOSE_UNNEEDED_SECTIONS too (its UPDATE_DATA round-trip feels like a full refresh).
+        const keepTheme = resultsToHandle.includes('APPLY_THEME')
+        resultsToHandle.splice(0, resultsToHandle.length)
+        if (keepTheme) resultsToHandle.push('APPLY_THEME')
+        logInfo(
+          'doSaveDashboardSettingsFromBridge',
+          `Section refresh plan: settings changed but excluded from section refresh (keys: ${diffKeys.join(', ')}); no CLOSE_UNNEEDED or section refresh${keepTheme ? ' (APPLY_THEME kept)' : ''}`,
+        )
       }
     }
   }

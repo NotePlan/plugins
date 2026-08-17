@@ -41,6 +41,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Tag/mention cache used by default (faster TAG sections)
 
 
+## [2.4.0.b64] 2026-08-15 (unreleased)
+- Change: a **Save Perspective** no longer refreshes all sections.
+- Change: Changing **Default Dashboard Window Type** (and other settings that do not affect section content) no longer triggers a section close/refresh flicker.  It also is now not shown in the "Edit All Perspectives" window.
+- docs: Clarify that the Priority section only lists **unscheduled** raised-priority items (scheduled ones belong in Calendar / Overdue).
+- dev: `/Explain selected item filters` (alias `esif`) walks each enabled section's selection/filter steps for the current Editor line (or `arg0` filename + `arg1` lineIndex) and logs PASS/FAIL reasons to the Plugin Console. PRIORITY step wording clarifies exclusion when a `>date` is present.
+
 ## [2.4.0.b63] 2026-08-14 (unreleased)
 - Fix: In Main Window / Split View mode, clicking a task (or its note link) opens the note in a split view (reusing an existing split when possible) instead of replacing the Dashboard.
 - Fix: Clicking a task to open it in a new split now works. dev: passes highlight coords on the openNote x-callback instead, so the line is selected as the note opens (NotePlan's JSContext cannot await the new Editor pane -- `waitForCondition` throws `JSPromiseConstructor is not a constructor`).

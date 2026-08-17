@@ -30,7 +30,7 @@ import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 export type TPerspectiveOptionObject = { isModified?: boolean, isDefault?: boolean, label: string, value: string, type?: string }
 
 // Re-export for existing importers (PerspectiveSelector, perspectiveClickHandlers, etc.)
-export { cleanDashboardSettingsInAPerspective, removeInvalidTagSections } from './dashboardSettingsClean'
+export { cleanDashboardSettingsInAPerspective, isDashboardGlobalSettingKey, removeInvalidTagSections } from './dashboardSettingsClean'
 
 /* -----------------------------------------------------------------------------
    Design logic

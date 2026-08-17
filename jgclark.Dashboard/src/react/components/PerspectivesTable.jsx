@@ -3,7 +3,7 @@
 // PerspectivesTable Component
 // Displays a table of settings for multiple perspectives.
 // Users can edit settings for each perspective.
-// Last updated 2026-06-13 for v2.4.0.b45 by @jgclark + @CursorAI
+// Last updated 2026-08-15 for v2.4.0.b64 by @jgclark + @CursorAI
 //------------------------------------------------------------------------------
 
 // TODO: Something really strange happens if you "Apply" a perspective that has been modified but then click "Cancel".
@@ -20,6 +20,7 @@ import type { TSettingItem } from '../../types.js'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import { clo, logDebug } from '@helpers/dev'
 import { getDiff } from '@helpers/dev'
+import { isDashboardGlobalSettingKey } from '../../perspectiveHelpers'
 
 type PerspectivesTableProps = {
   perspectives: TPerspectiveSettings,
@@ -51,8 +52,13 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
   const [updatedPerspectives, setUpdatedPerspectives] = useState(perspectiveWithModifiedMaybe.sort((a, b) => a.name.localeCompare(b.name)))
   const [changesMade, setChangesMade] = useState(false) // Manage changesMade state here
 
-  // Filter out some settingDefs that are not relevant to the PerspectivesTable
-  const settingDefsForTable = settingDefs.filter((settingDef) => settingDef.key !== 'usePerspectives' && settingDef.label !== 'Perspectives' && settingDef.label !== 'Logging' && settingDef.label !== '' && settingDef.type !== "separator")
+  // Filter out defs that are not per-perspective (globals, Perspectives enablement, separators, empty labels)
+  const settingDefsForTable = settingDefs.filter((settingDef) => {
+    if (settingDef.type === 'separator') return false
+    if (settingDef.label === 'Perspectives' || settingDef.label === 'Logging' || settingDef.label === '') return false
+    if (settingDef.key && isDashboardGlobalSettingKey(settingDef.key)) return false
+    return true
+  })
 
   //----------------------------------------------------------------------
   // Handlers

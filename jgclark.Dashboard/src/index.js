@@ -39,6 +39,8 @@ export {
 
 export { generateDiagnosticsFile } from './diagnosticGenerator'
 
+export { explainSelectedItemFilters } from './explainSelectedItemFilters'
+
 export {
   addNewPerspective,
   deletePerspective,

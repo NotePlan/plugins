@@ -30,9 +30,12 @@ import { isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 // ----------------------------------------------------------
 
 /**
- * Generate data for a section of raised Priority tasks
+ * Generate data for the Priority section: open raised-priority tasks that are not scheduled.
+ * Scheduled items (those with a >date / >today) are excluded so they stay in Calendar / Overdue
+ * instead of overlapping here; Priority is the undated raised-priority backlog.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
+ * @returns {Promise<?TSection>}
  */
 export async function getPrioritySectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<?TSection> {
   try {
@@ -223,7 +226,8 @@ function getAllOpenPriorityParas(notesToCheck: Array<TNote>): Array<TParagraph> 
 }
 
 /**
- * Get all open items with Priority > 0 from the given note.
+ * Get all open items with Priority > 0 from the given note that are not scheduled.
+ * Uses isOpenNotScheduled so items with a >date belong in Calendar / Overdue, not Priority.
  * @param {TNote} note
  * @returns {Array<TParagraph>}
  */
