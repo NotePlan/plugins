@@ -111,6 +111,11 @@ function showProjectControlDialog(dataObject) {
   const thisTitle = decodeRFC3986URIComponent(dataObject.encodedTitle)
   const dialogNoteFolderElem = document.getElementById('dialogProjectFolder')
   dialogNoteFolderElem.innerHTML = thisFolderName !== '' ? `${thisFolderName}/` : ''
+  const dialogProjectIconElem = document.getElementById('dialogProjectIcon')
+  if (dialogProjectIconElem) {
+    const projectIcon = (dataObject.projectIcon != null && dataObject.projectIcon !== '') ? dataObject.projectIcon : 'file-lines'
+    dialogProjectIconElem.className = `pad-left pad-right fa-regular fa-${projectIcon}`
+  }
   const dialogItemNoteElem = document.getElementById('dialogProjectNote')
   dialogItemNoteElem.innerHTML = thisTitle == null ? thisFilename : thisTitle
 

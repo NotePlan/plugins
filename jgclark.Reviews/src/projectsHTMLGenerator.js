@@ -140,7 +140,8 @@ function buildProjectListRowDiv(thisProject: Project, config: ReviewConfig, want
   const encodedTitle = encodeRFC3986URIComponent(thisProject.title)
   const encodedLastProgress = encodeRFC3986URIComponent(thisProject.lastProgressComment ?? '')
   const encodedFolderDisplay = encodeRFC3986URIComponent(projectFolderDisplayLabel(thisProject, config))
-  const dialogPayload = `{encodedFilename: '${encodedFilename}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodedTitle}', encodedLastProgressComment:'${encodedLastProgress}', encodedFolderDisplay:'${encodedFolderDisplay}'}`
+  const projectIcon = thisProject.icon != null && thisProject.icon !== '' ? thisProject.icon : 'file-lines'
+  const dialogPayload = `{encodedFilename: '${encodedFilename}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodedTitle}', encodedLastProgressComment:'${encodedLastProgress}', encodedFolderDisplay:'${encodedFolderDisplay}', projectIcon:'${projectIcon.replace(/'/g, '')}'}`
   const editButtonSpan = `\t\t\t\t\t<span class="pad-left dialogTrigger" onclick="showProjectControlDialog(${dialogPayload})"><i class="fa-light fa-edit"></i></span>\n`
 
   const projectTags = buildProjectTagLozengeSpans(thisProject).join('\n')
@@ -759,7 +760,7 @@ export function buildProjectControlDialogHtml(): string {
   <dialog id="projectControlDialog" class="projectControlDialog" aria-labelledby="Actions Dialog"
     aria-describedby="Actions that can be taken on projects">
     <div class="dialogTitle">
-      <div><i class="pad-left pad-right fa-regular fa-file-lines"></i>
+      <div><i id="dialogProjectIcon" class="pad-left pad-right fa-regular fa-file-lines"></i>
         <span id="dialogProjectFolder" class="dialogProjectFolder"></span>
         <b><span id="dialogProjectNote" class="dialogProjectNoteLink">?</span></b>
         <span id="dialogProjectInterval" class="pad-left dialogProjectFolder">?</span>
