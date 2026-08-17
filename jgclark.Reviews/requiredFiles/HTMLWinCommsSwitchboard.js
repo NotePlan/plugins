@@ -104,11 +104,13 @@ function setReviewingProject(data) {
 
   // Then set 'reviewing' on the matching row
   const matchingRows = document.querySelectorAll('.project-grid-row.projectRow')
+  let foundMatch = false
   for (const row of matchingRows) {
     if (row.dataset.encodedFilename === encodedFilename) {
+      foundMatch = true
       console.log(`setReviewingProject: found match`)
       row.classList.add('reviewing')
-      // And add another child of span "projectTagsInline" as `<span class="metadata=lozenge lozenge-reviewing">Under Review</span>`
+      // And add another child of span "projectTagsInline" as `<span class="metadata-lozenge lozenge-reviewing">Under Review</span>`
       const projectTagsInline = row.querySelector('.projectTagsInline')
       if (projectTagsInline) {
         const newSpan = document.createElement('span')
@@ -117,6 +119,9 @@ function setReviewingProject(data) {
         projectTagsInline.appendChild(newSpan)
       }
     }
+  }
+  if (!foundMatch) {
+    console.warn(`setReviewingProject: no projectRow matched encodedFilename '${encodedFilename}' (filtered out of list, or stale filename)`)
   }
 }
 

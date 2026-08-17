@@ -105,8 +105,8 @@ type DisplayToggleKey = 'displayFinished' | 'displayOnlyDue' | 'displayNextActio
 
 /**
  * Tell the Project List HTML window which project is currently being reviewed (if the window is open).
- * Adds or removes the 'reviewing' class on the matching projectRow.
- * TODO: this is OK on 'start review' but not on 'next review'. Is it the wrong windowID?
+ * Adds the 'reviewing' class on the matching projectRow.
+ * Call this after opening/focusing the note so a list refresh from the open does not wipe the highlight.
  * @param {CoreNoteFields | TNote | any} note - note being reviewed
  */
 async function setReviewingProjectInHTML(note: any): Promise<void> {
@@ -116,6 +116,7 @@ async function setReviewingProjectInHTML(note: any): Promise<void> {
       return
     }
     if (!isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)) {
+      logDebug('setReviewingProjectInHTML', `- Rich project list window not open; skipping`)
       return
     }
     const encodedFilename = encodeRFC3986URIComponent(note.filename)
@@ -951,17 +952,12 @@ async function startReviewCoreLogic(
     }
   }
 
-  // Show that this project is now being reviewed, if the 'Rich' Project List is open
+  // Open/focus the note first, then highlight in the Rich list (highlight-before-open was wiped by list refresh / focus steal).
   logInfo(logContext, `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
-  await setReviewingProjectInHTML(noteToReview)
 
   // Check if note is already open in one of the Editor windows:
   // - If so, just focus it.
   // - Otherwise open it in the Editor (if running from 'New Window' or 'Split View' mode), or a new split view if not.
-  // V1
-  // const possibleEditor: TEditor | false = findEditorWindowByFilename(noteToReview.filename)
-  // etc.
-  // V2
   if (config.preferredWindowType === 'Main Window') {
     // Open in split view
     const res = openNoteInSplitViewIfNotOpenAlready(noteToReview.filename)
@@ -979,6 +975,9 @@ async function startReviewCoreLogic(
       logWarn(logContext, `- Note '${displayTitle(noteToReview)}' couldn't be opened in the main Editor window.`)
     }
   }
+
+  // Show that this project is now being reviewed, if the 'Rich' Project List is open
+  await setReviewingProjectInHTML(noteToReview)
   return true
 }
 
@@ -1008,8 +1007,8 @@ export async function startReviews(): Promise<void> {
 }
 
 /**
- * Start a single project review.
- * Note: Used by Project List dialog (and Dashboard in future?). So bypasses startReviewCoreLogic() but should remain very similar.
+ * Start a single project review for a known note (no confirm prompt).
+ * Note: Used by Project List dialog and Dashboard. Respects preferredWindowType via startReviewCoreLogic.
  * @param {TNote} noteToReview - the note to start reviewing
  * @author @jgclark
  */
@@ -1017,12 +1016,7 @@ export async function startReviewForNote(noteToReview: TNote): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
-
-    logInfo('startReviewForNote', `🔍 Opening '${displayTitle(noteToReview)}' note to review ...`)
-    await Editor.openNoteByFilename(noteToReview.filename)
-    // Highlight this project in the Project List window (if open)
-    await setReviewingProjectInHTML(noteToReview)
-  
+    await startReviewCoreLogic(noteToReview, config, false, 'startReviewForNote')
   } catch (error) {
     logError('startReviewForNote', error.message)
   }
@@ -1252,15 +1246,9 @@ export async function skipReview(): Promise<void> {
       return
     }
     else {
-      if (config.confirmNextReview) {
-        // Check whether to open that note in editor
-        const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
-        if (res !== 'OK') {
-          return
-        }
-      }
       logDebug('skipReview', `- opening '${displayTitle(noteToReview)}' as next note ...`)
-      await Editor.openNoteByFilename(noteToReview.filename)
+      // Reuse start path so preferredWindowType and Rich list "Under Review" highlight apply
+      await startReviewCoreLogic(noteToReview, config, true, 'skipReview')
     }
   } catch (error) {
     logError('skipReview', error.message)
