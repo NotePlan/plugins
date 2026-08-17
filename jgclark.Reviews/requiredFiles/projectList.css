@@ -66,9 +66,7 @@ a, a:visited, a:active {
 
     /* set backgrounds a little lighter on hover */
     &:hover {
-      /* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to this */
-      /* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
-      filter: brightness(103%);
+      background-color: color-mix(in srgb, var(--bg-mid-color) 88%, white);
     }
 	}
 }
@@ -99,7 +97,8 @@ button {
 
   /* set backgrounds a little lighter on hover */
   &:hover {
-    filter: brightness(103%);
+    background-color: color-mix(in srgb, var(--bg-alt-color) 88%, white);
+    filter: brightness(103%); /* brightness is a fallback if color-mix is unsupported  */
   }
 }
 
@@ -388,8 +387,8 @@ input, label {
 
 .folder-header {
   color: var(--h3-color);
-  font-size: 1.2rem !important; /* TODO: find better method for these than !important */
-  background-color: unset !important;
+  font-size: 1.2rem;
+  background-color: unset;
   padding: 0.9rem 0.3rem 0.1rem 1.3rem;
 }
 

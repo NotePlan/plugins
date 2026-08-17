@@ -646,7 +646,7 @@ export function buildProjectListTopBarHtml(config: any): string {
 export function buildFolderGroupHeaderHtml(folderPart: string): string {
   const parts: Array<string> = []
   parts.push(` <div class="folder-header-row">`)
-  parts.push(`  <div class="project-grid-cell project-grid-cell--span-2 folder-header h3">${folderPart}</div>`)
+  parts.push(`  <div class="project-grid-cell project-grid-cell--span-2 folder-header">${folderPart}</div>`)
   parts.push(` </div>`)
   return parts.join('')
 }
