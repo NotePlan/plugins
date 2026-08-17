@@ -36,6 +36,16 @@ const ERROR_READING_PLACEHOLDER = '<error reading'
 const SEQUENTIAL_TAG_DEFAULT = '#sequential'
 
 /**
+ * Options for writes to allProjectsList.json that may also refresh open windows.
+ * `skipUpdateDashboardIfOpen`: Dashboard PROJ* HTML actions refresh Dashboard in-process instead.
+ * `skipRichProjectListIfOpen`: caller will render the Rich list in-process (avoids same-plugin invoke of renderProjectListsIfOpen).
+ */
+export type AllProjectsListWriteOptions = {
+  skipUpdateDashboardIfOpen?: boolean,
+  skipRichProjectListIfOpen?: boolean,
+}
+
+/**
  * Special folders always excluded from project lists (matches foldersToIgnore setting description).
  * Other @folders (e.g. @Demo) may still be included when excludeSpecialFolders is false.
  */
@@ -492,7 +502,7 @@ export function isNoteInCurrentProjectSelection(note: TNote, config: ReviewConfi
  * @param {string} projectTypeTag
  * @param {ReviewConfig} config
  * @param {number} scrollPosForRichList
- * @param {{ skipUpdateDashboardIfOpen?: boolean }} options
+ * @param {AllProjectsListWriteOptions} options
  * @returns {Promise<boolean>} true when a row was written
  */
 export async function addNewProjectToAllProjectsListIfInScope(
@@ -500,7 +510,7 @@ export async function addNewProjectToAllProjectsListIfInScope(
   projectTypeTag: string,
   config: ReviewConfig,
   scrollPosForRichList: number = 0,
-  options?: { skipUpdateDashboardIfOpen?: boolean },
+  options?: AllProjectsListWriteOptions,
 ): Promise<boolean> {
   try {
     if (!isNoteInCurrentProjectSelection(note, config, projectTypeTag)) {
@@ -522,7 +532,7 @@ export async function addNewProjectToAllProjectsListIfInScope(
     )
     allProjects.push(newProject)
     logInfo('addNewProjectToAllProjectsListIfInScope', `- Added Project '${newProject.title ?? note.filename ?? '?'}' (${projectTypeTag}) to allProjects list`)
-    await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true, config)
+    await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true, config, options?.skipRichProjectListIfOpen === true)
     return true
   } catch (error) {
     logError('addNewProjectToAllProjectsListIfInScope', JSP(error))
@@ -686,8 +696,7 @@ export async function generateAllProjectsList(
     const projectInstances = await getAllMatchingProjects(configIn, runInForeground)
     logInfo('generateAllProjectsList', `enumerated ${projectInstances.length} project instance(s) to write`)
 
-    // Log the start this full generation to a special log note
-    // TODO: Remove when v2.1.0 is released
+    // Diagnostic: Project Generation Log (gated by _logTimer / DEV). Remove after v2.1.0.
     if (configIn?._logTimer === true || configIn?._logLevel === 'DEV') {
       const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
       if (logNote) {
@@ -955,11 +964,9 @@ export function sortProjectsList(
     pi.projectTagOrder = projectTypeTagsForOrder.indexOf(getLeadingProjectTag(pi))
   })
 
-  // TODO: Finish reviewing how allProjectTags is really being used, and remove this logging.
   const sortingSpecification = (sortingOrder.length > 0) ? sortingOrder : buildSortingSpecification(config)
   // logDebug('sortProjectsList', `- sorting by ${String(sortingSpecification)}`)
   const sortedProjectInstances = sortListBy(projectInstances, sortingSpecification)
-  // sortedProjectInstances.forEach(pi => console.log(`${pi.projectTagOrder}\t[${String(pi.allProjectTags)}]\t${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
   return sortedProjectInstances
 }
 
@@ -1007,14 +1014,14 @@ export async function filterAndSortProjectsList(
  * @param {boolean} simplyDelete the project line?
  * @param {ReviewConfig} config
  * @param {number} scrollPosForRichList - Rich list HTML scroll when list is refreshed after write (default 0)
- * @param {{ skipUpdateDashboardIfOpen?: boolean }} options - optional; use `skipUpdateDashboardIfOpen: true` only from Dashboard list-sync path after PROJ* line changes
+ * @param {AllProjectsListWriteOptions} options - optional; use `skipUpdateDashboardIfOpen: true` only from Dashboard list-sync path after PROJ* line changes. Use `skipRichProjectListIfOpen: true` when the caller will render the Rich list in-process.
  */
 export async function updateAllProjectsListAfterChange(
   filename: string,
   simplyDelete: boolean,
   config: ReviewConfig,
   scrollPosForRichList: number = 0,
-  options?: { skipUpdateDashboardIfOpen?: boolean },
+  options?: AllProjectsListWriteOptions,
 ): Promise<void> {
   try {
     if (filename === '') {
@@ -1089,7 +1096,7 @@ export async function updateAllProjectsListAfterChange(
       logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
     }
     // re-form the file
-    await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true, config)
+    await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true, config, options?.skipRichProjectListIfOpen === true)
     logInfo('updateAllProjectsListAfterChange', `- done writing ${allProjects.length} items to updated list 🔸`)
   }
   catch (error) {

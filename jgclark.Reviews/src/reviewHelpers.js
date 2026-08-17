@@ -282,11 +282,9 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     const singleMetadataKeyName: string = rawSingleMetadataKeyName !== '' ? rawSingleMetadataKeyName : 'project'
     config.projectMetadataFrontmatterKey = singleMetadataKeyName
     DataStore.setPreference('projectMetadataFrontmatterKey', singleMetadataKeyName)
-    // Set default for includedTeamspaces if not using Perspectives
-    // Note: This value is only used when Perspectives are enabled, so the default doesn't affect filtering when Perspectives are off
-    // TODO: Review if this still makes sense.
+    // Default when Perspectives are off. Callers already gate teamspace filtering on usePerspectives, so this value is unused in that path.
     if (!config.usePerspectives) {
-      config.includedTeamspaces = ['private'] // Default value (not used when Perspectives are off)
+      config.includedTeamspaces = ['private']
     }
 
     // If we want to use Perspectives, get all perspective settings from Dashboard plugin.

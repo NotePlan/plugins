@@ -253,6 +253,7 @@ export async function bridgeSaveHiddenProjectTypeTags(data: {
 
 /**
  * Somebody clicked on something in the HTML view; find out what, and action it.
+ * Project mutations below refresh the allProjects list (and Dashboard via updateDashboardIfOpen). Incremental Dashboard HTML updates are deferred.
  * @param {MessageDataObject} data - details of the item clicked
  */
 export async function bridgeClickProjectListItem(data: MessageDataObject | any) {
@@ -283,8 +284,6 @@ export async function bridgeClickProjectListItem(data: MessageDataObject | any) 
           await completeProject(note, scrollPos)
         }
         // The above handles refreshing the allProjects list and display
-        // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
-        // sendToHTMLWindow(windowId, 'updateItem', data)
         break
       }
       case 'cancelProject': {
@@ -295,8 +294,6 @@ export async function bridgeClickProjectListItem(data: MessageDataObject | any) 
           await cancelProject(note, scrollPos)
         }
         // The above handles refreshing the allProjects list and display
-        // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
-        // sendToHTMLWindow(windowId, 'updateItem', data)
         break
       }
       case 'togglePause': {
@@ -307,8 +304,6 @@ export async function bridgeClickProjectListItem(data: MessageDataObject | any) 
           await togglePauseProject(note, scrollPos)
         }
         // The above handles refreshing the allProjects list and display
-        // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
-        // sendToHTMLWindow(windowId, 'updateItem', data)
         break
       }
       case 'startReview': {
@@ -334,7 +329,6 @@ export async function bridgeClickProjectListItem(data: MessageDataObject | any) 
           logDebug('bCPLI / reviewFinished', `-> after finishReview`)
 
           // The above handles refreshing the allProjects list and display
-          // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
         } else {
           logWarn('bCPLI / reviewFinished', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
         }
@@ -350,7 +344,6 @@ export async function bridgeClickProjectListItem(data: MessageDataObject | any) 
           logDebug('bCPLI / setNextReviewDate', `-> after setNextReviewDate`)
 
           // The above handles refreshing the allProjects list and display
-          // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
         } else {
           logWarn('bCPLI / setNextReviewDate', `-> couldn't get filename ${filename} to add a @nextReview() date.`)
         }
@@ -364,7 +357,6 @@ export async function bridgeClickProjectListItem(data: MessageDataObject | any) 
           logDebug('bCPLI / setNewReviewInterval', `-> after setNewReviewInterval`)
 
           // The above handles refreshing the allProjects list and display
-          // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
         } else {
           logWarn('bCPLI / setNewReviewInterval', `-> couldn't get filename ${filename} to add a @nextReview() date.`)
         }
@@ -379,7 +371,6 @@ export async function bridgeClickProjectListItem(data: MessageDataObject | any) 
           logDebug('bCPLI / addProgress', `-> after addProgressUpdate`)
 
           // The above handles refreshing the allProjects list and display
-          // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
         } else {
           logWarn('bCPLI / addProgress', `-> couldn't get filename ${filename} to add progress command.`)
         }

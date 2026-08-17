@@ -2,12 +2,13 @@
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
 ## [2.0.6] - 2026-08-17
-- Change: when project metadata first creates frontmatter on a note, include a `title:` key set to the current note title (body H1 is kept).
-- Change: **finish project review and start next** accepts an optional note (same pattern as finish-for-note); if finish does not complete, it no longer jumps to the next review.
-- Change: **finish review** (manual) now asks which open Regular Note to use when the focused Editor is not a Notes pane and several Regular Notes are open in other panes. [dev: `getFirstRegularNoteAmongOpenEditors`]
-- Fix: Rich project list **Under Review** highlight now sticks after **Start** / **Next** / skip-to-next (open the note first, then highlight). Dialog Start, preferred window type, and skip's next note all go through the same start-review path.
 - Fix: **finish review** / **skip review** no longer hit NotePlan's "editor is not open" warning when the Rich list (or another pane) has focus - focus the matching Editor first, otherwise write via the DataStore note path.
+- Fix: Rich project list **Under Review** highlight now sticks after **Start** / **Next** / skip-to-next (open the note first, then highlight). Dialog Start, preferred window type, and skip's next note all go through the same start-review path.
+- Change: **finish review** (manual) now asks which open Regular Note to use when the focused Editor is not a Notes pane and several Regular Notes are open in other panes. [dev: `getFirstRegularNoteAmongOpenEditors`]
+- Change: **finish project review and start next** accepts an optional note (same pattern as finish-for-note); if finish does not complete, it no longer jumps to the next review.
+- Change: when project metadata first creates frontmatter on a note, include a `title:` key set to the current note title (body H1 is kept).
 - dev: Split large `reviews.js` into `reviewsConstants.js`, `reviewsList.js`, `reviewsActions.js` (barrel `reviews.js` keeps the same public exports).
+- dev: Remove unused Dashboard leftover HTML switchboard helpers and stale TODO/FIXME comments.
 
 ## [2.0.5] - 2026-08-07
 - Change: Turn back on saving of updated window size & position when resizing/moving it
