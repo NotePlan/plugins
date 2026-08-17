@@ -2,13 +2,13 @@
 
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import { getFolderFromFilename } from './folders'
-import { rangeToString } from './general'
+import { displayTitle, rangeToString } from './general'
 import { getOpenEditorFromFilename } from './NPEditorBasics'
 import { getNoteTitleFromTemplate } from './NPFrontMatter'
 import { findParaFromRawContentAndFilename, findParaFromStringAndFilename, findParagraph, getSelectedParagraphsWithCorrectLineIndex } from './NPParagraph'
 import { openNoteInSplitViewIfNotOpenAlready } from './NPWindows'
 import { usersVersionHas } from './NPVersions'
-import { showMessageYesNo, showMessage, chooseFolder } from './userInput'
+import { chooseFolder, chooseOption, showMessage, showMessageYesNo } from './userInput'
 
 export { getOpenEditorFromFilename, saveEditorIfNecessary } from './NPEditorBasics'
 
@@ -248,28 +248,55 @@ export function isNoteOpenInEditor(filename: string): boolean {
 }
 
 /**
- * Find a regular (folder) note that is open in some Editor pane — not only the focused one.
- * Prefers the globally focused `Editor` when its note is already type 'Notes'; otherwise scans
- * `NotePlan.editors` so split views with a calendar note focused still expose an open project note.
+ * Find a regular (non-Calendar) note that is open in an Editor window/split.
+ * Prefers the globally focused `Editor` when its note is already type 'Notes'. Otherwise collects
+ * regular notes from `NotePlan.editors` (so a focused calendar pane can still resolve a project note).
+ * If several distinct Regular Notes are open, asks the user to choose via the Command Bar.
  * @author @jgclark
- * @returns {?TNote} the note, or null if no Editor pane shows a regular note
+ * @returns {Promise<?TNote>} the note, or null if none / user cancels
  */
-export function getFirstRegularNoteAmongOpenEditors(): ?TNote {
+export async function getFirstRegularNoteAmongOpenEditors(): Promise<?TNote> {
   try {
     const focusedNote = Editor?.note
     if (focusedNote && focusedNote.type === 'Notes') {
       return focusedNote
     }
+
+    // Focused pane is not a Regular Note - gather distinct Notes-type panes (dedupe by filename)
+    const notesByFilename: Map<string, TNote> = new Map()
     const allEditorWindows = NotePlan.editors ?? []
     for (const thisEditorWindow of allEditorWindows) {
       const candidate = thisEditorWindow?.note
-      if (candidate && candidate.type === 'Notes') {
-        logDebug('getFirstRegularNoteAmongOpenEditors', `Using open editor pane for '${candidate.filename || candidate.title || '?'}' (focused pane was not a regular note)`)
-        return candidate
+      if (candidate && candidate.type === 'Notes' && candidate.filename) {
+        if (!notesByFilename.has(candidate.filename)) {
+          notesByFilename.set(candidate.filename, candidate)
+        }
       }
     }
-    logDebug('getFirstRegularNoteAmongOpenEditors', `No open Editor pane contains a regular (Notes) note`)
-    return null
+    const regularNotes: Array<TNote> = Array.from(notesByFilename.values())
+
+    if (regularNotes.length === 0) {
+      logDebug('getFirstRegularNoteAmongOpenEditors', `No open Editor pane contains a regular (Notes) note`)
+      return null
+    }
+    if (regularNotes.length === 1) {
+      const only = regularNotes[0]
+      logDebug('getFirstRegularNoteAmongOpenEditors', `Using open editor pane for '${only.filename || only.title || '?'}' (focused pane was not a regular note)`)
+      return only
+    }
+
+    logDebug('getFirstRegularNoteAmongOpenEditors', `Focused pane was not a regular note; ${String(regularNotes.length)} Regular Notes open - asking user to choose`)
+    const options = regularNotes.map((note) => ({
+      label: displayTitle(note),
+      value: note,
+    }))
+    const chosen: ?TNote = await chooseOption('Which Regular Note shall I work on?', options, null)
+    if (!chosen) {
+      logDebug('getFirstRegularNoteAmongOpenEditors', `User cancelled Regular Note choice`)
+      return null
+    }
+    logDebug('getFirstRegularNoteAmongOpenEditors', `User chose Regular Note '${chosen.filename || chosen.title || '?'}'`)
+    return chosen
   } catch (error) {
     logError('getFirstRegularNoteAmongOpenEditors', error.message)
     return null

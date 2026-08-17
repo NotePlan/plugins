@@ -1050,7 +1050,8 @@ export async function nextReview(): Promise<void> {
 export async function finishReview(): Promise<void> {
   try {
     // Prefer focused Editor when it is a project note; otherwise any open split with a regular note (calendar may have focus).
-    const currentNote = getFirstRegularNoteAmongOpenEditors()
+    // If several Regular Notes are open and focus is not on one, the helper asks which to use.
+    const currentNote = await getFirstRegularNoteAmongOpenEditors()
     if (!currentNote) {
       logWarn('finishReview', `- There's no project note in any open Editor pane to finish reviewing.`)
       await showMessage(`No open editor pane has a project note to finish reviewing. Open the project note (or focus it) and try again.`, 'OK, thanks', 'Reviews')

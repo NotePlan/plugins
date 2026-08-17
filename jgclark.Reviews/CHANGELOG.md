@@ -1,6 +1,9 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.0.6] - 2026-08-17
+- Change: **finish review** (manual) now asks which open Regular Note to use when the focused Editor is not a Notes pane and several Regular Notes are open in other panes. [dev: `getFirstRegularNoteAmongOpenEditors`]
+
 ## [2.0.5] - 2026-08-07
 - Change: Turn back on saving of updated window size & position when resizing/moving it
 - Change: New Progress comments write date as `@YYYY-MM-DD` again (compact `@YYYYMMDD` lines still parse)
