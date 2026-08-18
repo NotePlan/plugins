@@ -46,6 +46,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Change: Inline `@remind(<UUID>)` markers and reminder time chips now use the Apple Reminders list colour (not fixed blue). When a due time is set, the chip now shows bell + time.
 - Change: When an open Apple Reminder has been imported into NP, then they are now de-duplicated. The **task** is kept and the duplicate reminder row is hidden.
 - dev: Apple Reminder fetch, create/complete/delete, date classification, and display-map merge now live in `@helpers/NPReminders` for reuse by other plugins.
+- Change: Re-enable the 'Move to note' and 'Add task' buttons in the edit dialog on iOS.
 
 ## [2.4.0.b64] 2026-08-15 (unreleased)
 - Fix: Do not try to persist a floating windowRect when Dashboard is in **Main Window** / **Split View** (those panes have no independent windowRect).

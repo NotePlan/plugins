@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2026-05-04 for v2.4.0.b31 by @CursorAI
+// Last updated 2026-08-18 for v2.4.0.b65 by @CursorAI
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -236,7 +236,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // Now filter out some that cannot be shown:
   // - on iOS/iPadOS those requiring the CommandBar; this is not available while the window is open
-  // const buttonsToHideOnMobile: Array<string> = ['Move to', 'New Task']
+  // - it used to be ['Move to', 'New Task'], but now I'm doing these without the CommandBar, so it's now [].
   const buttonsToHideOnMobile: Array<string> = []
   let otherControlButtons: Array<DialogButtonProps> = initialOtherControlButtons.filter((button): boolean => (isDesktop ? true : !buttonsToHideOnMobile.includes(button.label)))
   // And 'unsched' button makes no sense on a calendar note
