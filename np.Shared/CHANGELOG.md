@@ -7,6 +7,7 @@ See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Sh
 ### Changed
 
 - Upgraded Font Awesome Pro assets from **6.0.0-alpha3** to **7.0.1**: `fontawesome.css`, `*.min.flat4NP.css` style loaders, and `fa-*.woff2` webfonts (Regular, Solid, Light, Duotone).
+- `getAvailableReminderLists` now uses `getAllAccessibleReminderLists()` from `@helpers/NPReminders` (same titles, plus NotePlan 3.20+ colour/enabled-list support in the helper).
 
 ## [1.0.10] 2026-05-11
 

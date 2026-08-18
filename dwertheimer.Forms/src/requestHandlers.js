@@ -26,6 +26,7 @@ import { showMessage } from '@helpers/userInput'
 import { getHeadingsFromNote, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { getNoteByFilename, getNote } from '@helpers/note'
 import { getNoteContentAsHTML } from '@helpers/HTMLView'
+import { getAllAccessibleReminderLists } from '@helpers/NPReminders'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
 import { updateFrontMatterVars, ensureFrontmatter, endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import { saveCodeBlockToNote, loadCodeBlockFromNote, replaceCodeBlockContent } from '@helpers/codeBlocks'
@@ -149,9 +150,9 @@ export function getAvailableReminderLists(_params: Object = {}): RequestResponse
   try {
     logDebug(pluginJson, `[DIAG] getAvailableReminderLists START`)
 
-    // NOTE: Calendar.availableReminderListTitles() may return an empty array if the user
+    // NOTE: getAllAccessibleReminderLists() may return no titles if the user
     // has no reminder lists configured in NotePlan. This is not an error condition.
-    const reminderLists = Calendar.availableReminderListTitles()
+    const reminderLists = getAllAccessibleReminderLists().titles
 
     const totalElapsed: number = Date.now() - startTime
     logDebug(pluginJson, `[DIAG] getAvailableReminderLists COMPLETE: totalElapsed=${totalElapsed}ms, found=${reminderLists.length} reminder lists`)

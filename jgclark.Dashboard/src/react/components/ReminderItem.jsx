@@ -19,7 +19,7 @@ import './ItemContent.css'
 import './ReminderItem.css'
 import './TaskItem.css'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
-import { getReminderMarkerColors } from '@helpers/NPReminders'
+import { getAppleRemindersOpenURL, getReminderMarkerColors } from '@helpers/NPReminders'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
 import { logDebug, logWarn } from '@helpers/dev'
 
@@ -43,7 +43,7 @@ function ReminderItem({ item, thisSection }: Props): Node {
       logWarn('ReminderItem', `Content clicked but cannot open reminder (available=${String(pluginData?.appleAppCallbacksAvailable)} id=${String(reminder?.id || '')})`)
       return
     }
-    const url = `x-apple-reminderkit://REMCDReminder/${reminder.id}`
+    const url = getAppleRemindersOpenURL(reminder.id)
     logDebug('ReminderItem', `Opening reminder in Reminders app: ${url}`)
     const messageObject: MessageDataObject = {
       actionType: 'openURL',

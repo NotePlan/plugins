@@ -1,11 +1,12 @@
 // @flow
 //----------------------------------------------------------------------------------------------------------------------
 // Helpers for Apple Reminders / NotePlan Calendar reminder APIs
-// Last updated 2026-08-01 for v2.4.0.b60, @jgclark + @CursorAI
+// Last updated 2026-08-18 for v2.4.0.b65, @jgclark + @CursorAI
 //----------------------------------------------------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
+import { getDateObjFromDateString, getDateObjFromDateTimeString } from '@helpers/dateTime'
 import { logDebug, logWarn } from '@helpers/dev'
 import { usersVersionHas } from '@helpers/NPVersions'
 
@@ -62,6 +63,24 @@ export type TReminderDisplayById = {
 }
 
 /**
+ * Relative-date bucket for a reminder vs today / yesterday / tomorrow.
+ * 'future' means dated after tomorrow (callers typically omit those).
+ */
+export type TReminderRelativeDateBucket = 'timedToday' | 'untimedToday' | 'yesterday' | 'tomorrow' | 'overdue' | 'undated' | 'future'
+
+/**
+ * Params for creating an Apple Reminder via Calendar.add.
+ * Blank / omitted date creates an undated reminder (NotePlan >= 3.21.2).
+ */
+export type TAddAppleReminderParams = {
+  title: string,
+  list: string,
+  date?: string, // YYYY-MM-DD; omit or blank = undated
+  time?: string, // HH:MM; ignored when undated
+  applePriority?: ?number, // EventKit 0 / 1 / 5 / 9; omit to leave unset
+}
+
+/**
  * Foreground/background colours for a reminder marker lozenge.
  * Uses the Apple Reminders list colour when provided; otherwise NP theme CSS variable fallbacks.
  * @param {?string} listColor - hex/list colour from the reminder list
@@ -98,6 +117,20 @@ export function buildReminderDisplayByIdFromReminders(reminders: Array<TReminder
 }
 
 /**
+ * Merge freshly fetched reminder display metadata into an existing map (preserves prior entries).
+ * Empty / missing patch leaves existing unchanged.
+ * @param {?TReminderDisplayById} existing
+ * @param {?TReminderDisplayById} patch
+ * @returns {?TReminderDisplayById}
+ */
+export function mergeReminderDisplayById(existing?: ?TReminderDisplayById, patch?: ?TReminderDisplayById): ?TReminderDisplayById {
+  if (!patch || Object.keys(patch).length === 0) {
+    return existing
+  }
+  return { ...(existing ?? {}), ...patch }
+}
+
+/**
  * Strict @remind(:::UUID) pattern in task/note content (global regex).
  */
 export const RE_REMIND_UUID_IN_CONTENT = /@remind\(:::([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\)/g
@@ -130,6 +163,29 @@ export function extractReminderIdsFromTaskContent(content: string): Array<string
  */
 export function reminderTitleListKey(listname: string, title: string): string {
   return `${listname}|${title}`
+}
+
+/**
+ * URL scheme prefix NotePlan.openURL accepts for Apple Reminders (NP >= 3.21.2).
+ */
+export const APPLE_REMINDERS_CALLBACK_SCHEME = 'x-apple-reminderkit:'
+
+/**
+ * Whether a URL uses the Apple Reminders callback scheme (x-apple-reminderkit:).
+ * @param {string} url
+ * @returns {boolean}
+ */
+export function isAppleRemindersCallbackURL(url: string): boolean {
+  return Boolean(url && url.startsWith(APPLE_REMINDERS_CALLBACK_SCHEME))
+}
+
+/**
+ * Open-in-Reminders URL for a reminder id (x-apple-reminderkit://REMCDReminder/{id}).
+ * @param {string} reminderId
+ * @returns {string}
+ */
+export function getAppleRemindersOpenURL(reminderId: string): string {
+  return `x-apple-reminderkit://REMCDReminder/${reminderId}`
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -405,6 +461,30 @@ export function mapCalendarItemToReminder(
   return reminder
 }
 
+/**
+ * Fetch reminders from the given lists, keep incomplete, and map to TReminder.
+ * Does not call Calendar.remindersByLists when listTitles is empty (that API returns ALL lists).
+ * @param {Array<string>} listTitles
+ * @param {{ [string]: string }} [colorByTitle]
+ * @returns {Promise<Array<TReminder>>}
+ */
+export async function fetchIncompleteRemindersByLists(
+  listTitles: Array<string>,
+  colorByTitle: { [string]: string } = {},
+): Promise<Array<TReminder>> {
+  if (listTitles.length === 0) {
+    logDebug('fetchIncompleteRemindersByLists', `- no reminder lists to query; returning empty`)
+    return []
+  }
+  const calendarItems = await Calendar.remindersByLists(listTitles)
+  const incomplete = calendarItems.filter((ci) => !ci.isCompleted)
+  logDebug(
+    'fetchIncompleteRemindersByLists',
+    `- fetched ${String(calendarItems.length)} reminders from ${String(listTitles.length)} list(s) via remindersByLists, ${String(incomplete.length)} incomplete`,
+  )
+  return incomplete.map((ci) => mapCalendarItemToReminder(ci, colorByTitle))
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 // Time / sort helpers
 
@@ -428,6 +508,37 @@ export function reminderTimeHasBeenReached(reminder: { time?: string, ... }): bo
   }
   const nowTime = moment().format('HH:mm')
   return reminder.time <= nowTime
+}
+
+/**
+ * Classify a reminder into a relative-date bucket vs today / yesterday / tomorrow.
+ * Dates after tomorrow are 'future' (callers typically omit those).
+ * @param {TReminder} reminder
+ * @param {{ todayISO: string, yesterdayISO: string, tomorrowISO: string }} dates
+ * @returns {TReminderRelativeDateBucket}
+ */
+export function classifyReminderRelativeDate(
+  reminder: TReminder,
+  dates: { todayISO: string, yesterdayISO: string, tomorrowISO: string },
+): TReminderRelativeDateBucket {
+  const date = reminder.date
+  const { todayISO, yesterdayISO, tomorrowISO } = dates
+  if (date === todayISO) {
+    return reminderHasTime(reminder) ? 'timedToday' : 'untimedToday'
+  }
+  if (date === yesterdayISO) {
+    return 'yesterday'
+  }
+  if (date === tomorrowISO) {
+    return 'tomorrow'
+  }
+  if (date && date > tomorrowISO) {
+    return 'future'
+  }
+  if (date && date < yesterdayISO) {
+    return 'overdue'
+  }
+  return 'undated'
 }
 
 /**
@@ -480,4 +591,193 @@ export function compareRemindersByTimePriorityDate(ra: ?TReminder, rb: ?TReminde
  */
 export function sortRemindersByTimePriorityDate(reminders: Array<TReminder>): Array<TReminder> {
   return reminders.slice().sort(compareRemindersByTimePriorityDate)
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Create / update / delete
+
+/**
+ * Resolve Calendar.add return value (sync CalendarItem, or Promise in newer NotePlan builds).
+ * @param {mixed} addResult
+ * @returns {Promise<?TCalendarItem>}
+ */
+export async function resolveCalendarAddResult(addResult: mixed): Promise<?TCalendarItem> {
+  if (addResult == null) return null
+  if (typeof addResult === 'object' && typeof (addResult: any).then === 'function') {
+    return await ((addResult: any): Promise<?TCalendarItem>)
+  }
+  return ((addResult: any): TCalendarItem)
+}
+
+/**
+ * Clear due date on an existing reminder (NotePlan >= 3.21.2).
+ * Must re-fetch via reminderByID after create -- mutating the object returned from Calendar.add is unreliable.
+ * Prefer plain-object Calendar.update so `date: null` is not coerced by CalendarItem setters (null -> epoch).
+ * @param {string} reminderId
+ * @param {string} fallbackListName
+ * @returns {Promise<void>}
+ */
+export async function clearReminderDueDateAfterCreate(reminderId: string, fallbackListName: string): Promise<void> {
+  const reminder = await Calendar.reminderByID(reminderId)
+  if (!reminder || !reminder.id) {
+    logWarn('clearReminderDueDateAfterCreate', `reminderByID returned nothing for id=${reminderId}`)
+    return
+  }
+  logDebug('clearReminderDueDateAfterCreate', `before update id=${reminderId} date=${String(reminder.date)}`)
+
+  // Plain object update (same pattern as HTML-view Calendar APIs). Do not assign reminder.date = null
+  // on the CalendarItem first -- that setter has historically turned null into epoch before update ran.
+  // Cast: Calendar.update() is declared to take a full TCalendarItem class instance, but the reminder
+  // update path documented above needs the plain-object form with date: null, which omits attendeeNames,
+  // availability, the create()/update() methods and so on. Only a flow-typed/Noteplan.js overload would fix it.
+  await Calendar.update(({
+    id: reminder.id,
+    title: reminder.title,
+    date: null,
+    type: 'reminder',
+    isAllDay: true,
+    calendar: reminder.calendar || fallbackListName,
+    isCompleted: Boolean(reminder.isCompleted),
+    notes: reminder.notes || '',
+    url: reminder.url || '',
+    ...(typeof reminder.priority === 'number' ? { priority: reminder.priority } : {}),
+  }: any))
+
+  const after = await Calendar.reminderByID(reminderId)
+  // Any non-null date (including epoch) means the due date was not cleared
+  const stillHasDate = Boolean(after && after.date != null)
+  logDebug(
+    'clearReminderDueDateAfterCreate',
+    `after update id=${reminderId} date=${String(after?.date)} occurences=${String((after?.occurences && after.occurences.length) || 0)} stillHasDate=${String(stillHasDate)}`,
+  )
+
+  // Fallback: docs pattern -- mutate fetched CalendarItem then update
+  if (stillHasDate && after) {
+    logWarn('clearReminderDueDateAfterCreate', `plain-object update left a date; retrying via reminder.date = null`)
+    after.date = null
+    await Calendar.update(after)
+    const verified = await Calendar.reminderByID(reminderId)
+    logDebug('clearReminderDueDateAfterCreate', `after property-assign retry date=${String(verified?.date)}`)
+  }
+}
+
+/**
+ * Create an Apple Reminder (dated or undated).
+ * Dated: CalendarItem.create + Calendar.add (null endDate so the native bridge does not shift later args).
+ * Undated (v3.21.2+): Calendar.add plain object with date: null, then confirm clear via Calendar.update.
+ * TODO(future): Enable flagged create/update if the API is extended to cover flagged status.
+ * @param {TAddAppleReminderParams} params
+ * @returns {Promise<TCalendarItem>}
+ */
+export async function addAppleReminder(params: TAddAppleReminderParams): Promise<TCalendarItem> {
+  const title = params.title.trim()
+  const listTrimmed = params.list.trim()
+  const trimmedDate = params.date ? params.date.trim() : ''
+  const trimmedTime = params.time ? params.time.trim() : ''
+  const applePriority = params.applePriority
+  const wantUndated = trimmedDate === ''
+
+  logDebug(
+    'addAppleReminder',
+    `- adding reminder "${title}" to list "${listTrimmed}" date=${trimmedDate || '(undated)'} time=${trimmedTime || '(none)'} wantUndated=${String(wantUndated)} applePriority=${String(applePriority ?? '(unset)')}`,
+  )
+
+  if (wantUndated) {
+    if (trimmedTime !== '') {
+      logWarn('addAppleReminder', `Time "${trimmedTime}" ignored because date field was blank (creating undated reminder)`)
+    }
+    // NP 3.21.2+: create undated via plain object with date: null (CalendarItem.create still requires a Date)
+    const undatedPayload: { [string]: mixed } = {
+      title,
+      date: null,
+      type: 'reminder',
+      isAllDay: true,
+      calendar: listTrimmed,
+      isCompleted: false,
+      notes: '',
+      url: '',
+    }
+    if (applePriority != null) {
+      undatedPayload.priority = applePriority
+    }
+    // Cast: Calendar.add() is declared to take a TCalendarItem class instance, so the plain-object form
+    // (the only way to create an undated reminder) cannot be typed.
+    const created = await resolveCalendarAddResult(Calendar.add((undatedPayload: any)))
+    if (!created || !created.id) {
+      throw new Error('addAppleReminder: Calendar.add failed for undated reminder (returned undefined / no id)')
+    }
+    // Always re-fetch and clear via update -- add(date:null) alone may still leave epoch in EventKit
+    await clearReminderDueDateAfterCreate(created.id, listTrimmed)
+    return created
+  }
+
+  let isAllDay = true
+  let dueDate: Date
+  if (trimmedTime !== '') {
+    dueDate = getDateObjFromDateTimeString(`${trimmedDate} ${trimmedTime}`)
+    isAllDay = false
+  } else {
+    const dateOnly = getDateObjFromDateString(trimmedDate)
+    if (!dateOnly) {
+      throw new Error(`addAppleReminder: Could not parse date "${trimmedDate}"`)
+    }
+    dueDate = dateOnly
+    isAllDay = true
+  }
+
+  const reminderItem: TCalendarItem = CalendarItem.create(
+    title,
+    dueDate,
+    (null: any), // endDate unused for reminders; use null not undefined (avoids bridge arg shift)
+    'reminder',
+    isAllDay,
+    listTrimmed,
+    false, // isCompleted
+    '', // notes
+    '', // url
+  )
+  // Re-assert after create: some NotePlan builds do not keep isAllDay from create() for reminders
+  reminderItem.isAllDay = isAllDay
+  if (applePriority != null) {
+    reminderItem.priority = applePriority
+  }
+
+  const created = await resolveCalendarAddResult(Calendar.add(reminderItem))
+  if (!created) {
+    throw new Error('addAppleReminder: Calendar.add failed (returned undefined)')
+  }
+  return created
+}
+
+/**
+ * Complete an Apple Reminder via Calendar.update (isCompleted = true).
+ * @param {string} reminderId
+ * @returns {Promise<?TCalendarItem>} the updated CalendarItem, or null if not found
+ */
+export async function completeReminderById(reminderId: string): Promise<?TCalendarItem> {
+  const calendarItem = await Calendar.reminderByID(reminderId)
+  if (!calendarItem || !calendarItem.id) {
+    logWarn('completeReminderById', `reminderByID returned nothing for id=${reminderId}`)
+    return null
+  }
+  calendarItem.isCompleted = true
+  await Calendar.update(calendarItem)
+  logDebug('completeReminderById', `done for id=${reminderId} ("${calendarItem.title || ''}")`)
+  return calendarItem
+}
+
+/**
+ * Delete an Apple Reminder via Calendar.remove.
+ * @param {string} reminderId
+ * @returns {Promise<?TCalendarItem>} the removed CalendarItem, or null if not found
+ */
+export async function deleteReminderById(reminderId: string): Promise<?TCalendarItem> {
+  const calendarItem = await Calendar.reminderByID(reminderId)
+  if (!calendarItem || !calendarItem.id) {
+    logWarn('deleteReminderById', `reminderByID returned nothing for id=${reminderId}`)
+    return null
+  }
+  await Calendar.remove(calendarItem)
+  logDebug('deleteReminderById', `done for id=${reminderId} ("${calendarItem.title || ''}")`)
+  return calendarItem
 }

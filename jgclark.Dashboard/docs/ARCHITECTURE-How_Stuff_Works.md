@@ -229,7 +229,7 @@ All three share the same tail behaviour: recalculate done-task counts (when `don
 
 Controlled by Filter **`showRemindersSection`** (master **Show Reminders** - when off, no reminders anywhere) plus Settings under **Reminders Section**: **`showUndatedOverdueReminders`** (undated REM section + past-dated → OVERDUE), **`includedReminderLists`**, and **`hideTimedRemindersUntilDue`** (default on). **`showCurrentReminders`** remains a hidden setting (forced on for now; injects into Timed / Today / Yesterday / Tomorrow when the master is on). Backend: `dataGenerationReminders.js` (`getRemindersGeneratedData()`). Frontend: `ReminderItem.jsx` via `ItemRow`.
 
-Live data comes from incomplete Apple Reminders on lists enabled in NotePlan (`Calendar.availableReminderLists({ enabledOnly: true })` then `Calendar.remindersByLists`), or Perspective override via `includedReminderLists`. Items are split into:
+Live data comes from incomplete Apple Reminders via `fetchIncompleteRemindersByLists()` in `@helpers/NPReminders` (lists from `getEnabledReminderLists()`, or Perspective override via `includedReminderLists`). Items are split into:
 - timed today → Time Blocks (`TB`); when `hideTimedRemindersUntilDue` is on (default), only those whose due time has been reached; when off, all timed-today reminders appear in TB immediately. When Current Reminders is enabled, TB is titled **Timed Reminders** if only reminders are present, or **Timed Items** if NotePlan timeblocks are also present (or only timeblocks). TB is generated when **either** Time Block or Current Reminders is enabled (NotePlan timeblocks only when Time Block is on).
 - untimed today → Today (`DT`); yesterday → Yesterday (`DY`) or Overdue if Yesterday is off; tomorrow → Tomorrow (`DO`) or ignored if Tomorrow is off
 - undated → the dedicated **Reminders** (`REM`) section
@@ -254,11 +254,11 @@ Implementation notes:
 
 When `TCalendarItem.priority` is present (Apple: 0 = none, 1 = high, 5 = medium, 9 = low), `mapAppleReminderPriorityToNotePlan()` (in `@helpers/NPReminders`) stores NotePlan-style 0 / 3 / 2 / 1 on `TReminderForDashboard.priority` and the UI uses theme classes `.priority1`–`.priority3` (same as tasks). Reminder lists sort by time, then priority desc, then date. Hide lower-priority items uses `reminder.priority` as well as `para.priority`.
 
-v1 UI: status icon click completes the reminder (`completeReminder` → `Calendar.update` with `isCompleted = true`); ctrl-click deletes it (`deleteReminder` → `Calendar.remove`). Both then `REMOVE_LINE_FROM_JSON` matched by stable `reminder.id` (REM row IDs are index-based, so a mid-list section-only refresh reused StatusIcon local state and left text-without-icon rows). Edit dialog still TODO.
+v1 UI: status icon click completes the reminder (`doCompleteReminder` -> `completeReminderById()` in `@helpers/NPReminders`); ctrl-click deletes it (`doDeleteReminder` -> `deleteReminderById()`). Both then `REMOVE_LINE_FROM_JSON` matched by stable `reminder.id` (REM row IDs are index-based, so a mid-list section-only refresh reused StatusIcon local state and left text-without-icon rows). Edit dialog still TODO.
 
 ### Opening a reminder in Apple Reminders
 
-From **NotePlan 3.21.2** (macOS build 1524; feature `appleRemindersCallbackAvailable`), content click is wired: bridge `openURL` → `NotePlan.openURL(\`x-apple-reminderkit://REMCDReminder/{id}\`)`. The flag is set once in `getPluginData()` and read in `ReminderItem`.
+From **NotePlan 3.21.2** (macOS build 1524; feature `appleAppCallbacksAvailable`), content click is wired: bridge `openURL` -> `NotePlan.openURL(getAppleRemindersOpenURL(id))`. The flag is set once in `getPluginData()` and read in `ReminderItem`.
 
 On older NotePlan builds, `NotePlan.openURL` only allows `http` / `https` / `mailto` / `noteplan`, so reminder content stays non-clickable (and the bridge rejects `x-apple-reminderkit` urls).
 

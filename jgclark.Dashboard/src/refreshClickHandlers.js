@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-12 for v2.4.0.b63 by @jgclark + @CursorAI
+// Last updated 2026-08-18 for v2.4.0.b65 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
@@ -24,7 +24,7 @@ import { getRemindersGeneratedData, type TRemindersGeneratedData } from './dataG
 import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
 import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from './tagMentionCache'
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData, TSection } from './types'
-import type { TReminderDisplayById } from '@helpers/NPReminders'
+import { mergeReminderDisplayById, type TReminderDisplayById } from '@helpers/NPReminders'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
 import { isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
@@ -57,19 +57,6 @@ function getDuplicateTagSectionNames(sections: Array<TSection>): Array<string> {
 - Types are defined in types.js
     - type TActionOnReturn = 'UPDATE_CONTENT' | 'REMOVE_LINE' | 'REFRESH_JSON' | 'START_DELAYED_REFRESH_TIMER' etc.
  *********************************************************************************/
-
-/**
- * Merge freshly fetched reminder display metadata into pluginData (preserves prior entries).
- * @param {?TReminderDisplayById} existing
- * @param {?TReminderDisplayById} patch
- * @returns {?TReminderDisplayById}
- */
-function mergeReminderDisplayById(existing?: ?TReminderDisplayById, patch?: ?TReminderDisplayById): ?TReminderDisplayById {
-  if (!patch || Object.keys(patch).length === 0) {
-    return existing
-  }
-  return { ...(existing ?? {}), ...patch }
-}
 
 /**
  * Tell the React window to update by re-generating all enabled Sections.

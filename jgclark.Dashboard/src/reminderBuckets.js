@@ -1,8 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Pure reminder date bucketing and section-merge helpers (Dashboard-specific)
-// Shared time/sort helpers live in @helpers/NPReminders
-// Last updated 2026-08-01 for v2.4.0.b60, @jgclark + @CursorAI
+// Shared date-classify / time / sort helpers live in @helpers/NPReminders
+// Last updated 2026-08-18 for v2.4.0.b65, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -10,8 +10,8 @@ import type { TSectionCode, TSectionItem } from './types'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
 import { logDebug } from '@helpers/dev'
 import {
+  classifyReminderRelativeDate,
   compareRemindersByTimePriorityDate,
-  reminderHasTime,
   reminderTimeHasBeenReached,
 } from '@helpers/NPReminders'
 
@@ -104,26 +104,31 @@ export function bucketReminderItems(allItems: Array<TSectionItem>): TReminderBuc
       undatedItems.push(item)
       continue
     }
-    const date = reminder.date
-    if (date === todayISO) {
-      if (reminderHasTime(reminder)) {
+    const bucket = classifyReminderRelativeDate(reminder, { todayISO, yesterdayISO, tomorrowISO })
+    switch (bucket) {
+      case 'timedToday':
         timedTodayItems.push(item)
-      } else {
+        break
+      case 'untimedToday':
         untimedTodayItems.push(item)
-      }
-    } else if (date === yesterdayISO) {
-      yesterdayItems.push(item)
-    } else if (date === tomorrowISO) {
-      tomorrowItems.push(item)
-    } else if (date && date > tomorrowISO) {
-      // Future beyond tomorrow: omit from Dashboard entirely
-      skippedFutureCount += 1
-    } else if (date && date < yesterdayISO) {
-      // Past-dated (before yesterday) → Overdue
-      overdueItems.push(item)
-    } else {
-      // Undated (no usable date)
-      undatedItems.push(item)
+        break
+      case 'yesterday':
+        yesterdayItems.push(item)
+        break
+      case 'tomorrow':
+        tomorrowItems.push(item)
+        break
+      case 'overdue':
+        overdueItems.push(item)
+        break
+      case 'undated':
+        undatedItems.push(item)
+        break
+      case 'future':
+        skippedFutureCount += 1
+        break
+      default:
+        undatedItems.push(item)
     }
   }
 

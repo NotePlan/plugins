@@ -1,24 +1,33 @@
 /* globals describe, expect, test, jest, beforeEach, afterEach */
-// Last updated 2026-08-01 for v2.4.0.b60 by @CursorAI
+// Last updated 2026-08-18 for v2.4.0.b65 by @CursorAI
 
 import { CustomConsole } from '@jest/console'
 import { DataStore, Editor, CommandBar, NotePlan, simpleFormatter } from '@mocks/index'
 import {
+  addAppleReminder,
   buildReminderDisplayByIdFromReminders,
+  classifyReminderRelativeDate,
+  completeReminderById,
   extractReminderIdsFromTaskContent,
   compareRemindersByTimePriorityDate,
   dedupeReminderListTitles,
+  deleteReminderById,
+  fetchIncompleteRemindersByLists,
   filterRemindersWhoseTimeHasBeenReached,
+  getAppleRemindersOpenURL,
   getEnabledReminderLists,
   getReminderMarkerColors,
   getAllAccessibleReminderLists,
   getReminderLocalDateAndTime,
+  isAppleRemindersCallbackURL,
   mapAppleReminderPriorityToNotePlan,
   mapCalendarItemToReminder,
   mapNotePlanPriorityToAppleReminder,
+  mergeReminderDisplayById,
   parseLeadingPriorityFromReminderText,
   reminderHasTime,
   reminderTimeHasBeenReached,
+  resolveCalendarAddResult,
   resolveReminderListsByNames,
   sortRemindersByTimePriorityDate,
 } from '../NPReminders.js'
@@ -76,11 +85,29 @@ describe(`${PLUGIN_NAME}`, () => {
         }),
         availableReminderListTitles: jest.fn(() => ALL_LISTS.map((l) => l.title)),
         remindersByLists: jest.fn(async () => []),
+        reminderByID: jest.fn(async () => null),
+        add: jest.fn(async (item) => ({ ...item, id: item.id || 'new-id' })),
+        update: jest.fn(async () => undefined),
+        remove: jest.fn(async () => undefined),
+      }
+      global.CalendarItem = {
+        create: jest.fn((title, date, endDate, type, isAllDay, calendar, isCompleted, notes, url) => ({
+          title,
+          date,
+          endDate,
+          type,
+          isAllDay,
+          calendar,
+          isCompleted: Boolean(isCompleted),
+          notes: notes || '',
+          url: url || '',
+        })),
       }
     })
 
     afterEach(() => {
       delete global.Calendar
+      delete global.CalendarItem
     })
 
     describe('dedupeReminderListTitles()', () => {
@@ -241,6 +268,159 @@ describe(`${PLUGIN_NAME}`, () => {
           'Untimed med',
         ])
         expect(compareRemindersByTimePriorityDate(reminders[1], reminders[2])).toBeLessThan(0)
+      })
+    })
+
+    describe('classifyReminderRelativeDate()', () => {
+      const dates = { todayISO: '2026-08-18', yesterdayISO: '2026-08-17', tomorrowISO: '2026-08-19' }
+
+      test('splits today timed/untimed, yesterday, tomorrow, overdue, undated, future', () => {
+        expect(classifyReminderRelativeDate(makeReminder('t', { date: '2026-08-18', time: '09:00' }), dates)).toBe('timedToday')
+        expect(classifyReminderRelativeDate(makeReminder('u', { date: '2026-08-18' }), dates)).toBe('untimedToday')
+        expect(classifyReminderRelativeDate(makeReminder('y', { date: '2026-08-17' }), dates)).toBe('yesterday')
+        expect(classifyReminderRelativeDate(makeReminder('tom', { date: '2026-08-19' }), dates)).toBe('tomorrow')
+        expect(classifyReminderRelativeDate(makeReminder('past', { date: '2026-08-10' }), dates)).toBe('overdue')
+        expect(classifyReminderRelativeDate(makeReminder('none'), dates)).toBe('undated')
+        expect(classifyReminderRelativeDate(makeReminder('later', { date: '2026-08-25' }), dates)).toBe('future')
+      })
+    })
+
+    describe('mergeReminderDisplayById() / getAppleRemindersOpenURL()', () => {
+      test('mergeReminderDisplayById preserves existing when patch is empty', () => {
+        const existing = { a: { color: '#111111', time: '09:00' } }
+        expect(mergeReminderDisplayById(existing, {})).toBe(existing)
+        expect(mergeReminderDisplayById(existing, null)).toBe(existing)
+      })
+
+      test('mergeReminderDisplayById overlays patch keys', () => {
+        const merged = mergeReminderDisplayById({ a: { color: '#111111' } }, { b: { color: '#222222', time: '10:00' } })
+        expect(merged).toEqual({
+          a: { color: '#111111' },
+          b: { color: '#222222', time: '10:00' },
+        })
+      })
+
+      test('getAppleRemindersOpenURL / isAppleRemindersCallbackURL', () => {
+        const url = getAppleRemindersOpenURL('abc-123')
+        expect(url).toBe('x-apple-reminderkit://REMCDReminder/abc-123')
+        expect(isAppleRemindersCallbackURL(url)).toBe(true)
+        expect(isAppleRemindersCallbackURL('https://example.com')).toBe(false)
+        expect(isAppleRemindersCallbackURL('')).toBe(false)
+      })
+    })
+
+    describe('fetchIncompleteRemindersByLists()', () => {
+      test('returns empty without calling remindersByLists when listTitles is empty', async () => {
+        const result = await fetchIncompleteRemindersByLists([])
+        expect(result).toEqual([])
+        expect(global.Calendar.remindersByLists).not.toHaveBeenCalled()
+      })
+
+      test('maps incomplete reminders and skips completed', async () => {
+        const dated = new Date(2026, 7, 18, 9, 0, 0)
+        global.Calendar.remindersByLists.mockResolvedValue([
+          {
+            id: 'open',
+            title: 'Open one',
+            calendar: 'Work',
+            isCompleted: false,
+            isAllDay: false,
+            date: dated,
+            occurences: [{ startDate: dated }],
+          },
+          {
+            id: 'done',
+            title: 'Done one',
+            calendar: 'Work',
+            isCompleted: true,
+            isAllDay: true,
+            date: dated,
+            occurences: [{ startDate: dated }],
+          },
+        ])
+        const result = await fetchIncompleteRemindersByLists(['Work'], { Work: '#007AFF' })
+        expect(result).toHaveLength(1)
+        expect(result[0].id).toBe('open')
+        expect(result[0].title).toBe('Open one')
+        expect(result[0].color).toBe('#007AFF')
+        expect(result[0].date).toBe('2026-08-18')
+        expect(result[0].time).toBe('09:00')
+      })
+    })
+
+    describe('resolveCalendarAddResult() / completeReminderById() / deleteReminderById()', () => {
+      test('resolveCalendarAddResult handles null, sync item, and thenable', async () => {
+        expect(await resolveCalendarAddResult(null)).toBeNull()
+        const item = { id: 'sync', title: 'S' }
+        expect(await resolveCalendarAddResult(item)).toEqual(item)
+        expect(await resolveCalendarAddResult(Promise.resolve({ id: 'async' }))).toEqual({ id: 'async' })
+      })
+
+      test('completeReminderById returns null when missing, else marks completed', async () => {
+        expect(await completeReminderById('missing')).toBeNull()
+        const item = { id: 'r1', title: 'Do it', isCompleted: false }
+        global.Calendar.reminderByID.mockResolvedValue(item)
+        const result = await completeReminderById('r1')
+        expect(result && result.isCompleted).toBe(true)
+        expect(global.Calendar.update).toHaveBeenCalledWith(item)
+      })
+
+      test('deleteReminderById returns null when missing, else removes', async () => {
+        global.Calendar.reminderByID.mockResolvedValue(null)
+        expect(await deleteReminderById('missing')).toBeNull()
+        const item = { id: 'r2', title: 'Gone' }
+        global.Calendar.reminderByID.mockResolvedValue(item)
+        const result = await deleteReminderById('r2')
+        expect(result).toBe(item)
+        expect(global.Calendar.remove).toHaveBeenCalledWith(item)
+      })
+    })
+
+    describe('addAppleReminder()', () => {
+      test('creates a dated all-day reminder via CalendarItem.create', async () => {
+        const created = await addAppleReminder({ title: 'Dated', list: 'Work', date: '2026-08-18' })
+        expect(global.CalendarItem.create).toHaveBeenCalled()
+        expect(created.id).toBe('new-id')
+        expect(created.isAllDay).toBe(true)
+        expect(created.calendar).toBe('Work')
+        expect(global.Calendar.add).toHaveBeenCalled()
+      })
+
+      test('creates a timed reminder with isAllDay false', async () => {
+        const created = await addAppleReminder({ title: 'Timed', list: 'Work', date: '2026-08-18', time: '14:30', applePriority: 1 })
+        expect(created.isAllDay).toBe(false)
+        expect(created.priority).toBe(1)
+      })
+
+      test('creates an undated reminder via plain-object add then clears date', async () => {
+        const stored = {
+          id: 'undated-1',
+          title: 'Undated',
+          calendar: 'Home',
+          date: new Date('1970-01-01T00:00:00.000Z'),
+          isCompleted: false,
+          notes: '',
+          url: '',
+        }
+        global.Calendar.add.mockResolvedValue({ ...stored })
+        global.Calendar.reminderByID
+          .mockResolvedValueOnce({ ...stored })
+          .mockResolvedValueOnce({ ...stored, date: null })
+        const created = await addAppleReminder({ title: 'Undated', list: 'Home' })
+        expect(created.id).toBe('undated-1')
+        expect(global.CalendarItem.create).not.toHaveBeenCalled()
+        expect(global.Calendar.add).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Undated',
+            date: null,
+            type: 'reminder',
+            calendar: 'Home',
+          }),
+        )
+        expect(global.Calendar.update).toHaveBeenCalled()
+        const updateArg = global.Calendar.update.mock.calls[0][0]
+        expect(updateArg.date).toBeNull()
+        expect(updateArg.id).toBe('undated-1')
       })
     })
   })

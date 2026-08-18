@@ -5,6 +5,7 @@
 //--------------------------------------------------------------------------
 
 import { logDebug, logError } from '@helpers/dev'
+import { getAllAccessibleReminderLists } from '@helpers/NPReminders'
 
 // RequestResponse type definition
 export type RequestResponse = {
@@ -24,9 +25,9 @@ export function getAvailableReminderLists(_params: Object = {}, pluginJson: any)
   try {
     logDebug(pluginJson, `[np.Shared/requestHandlers] getAvailableReminderLists START`)
 
-    // NOTE: Calendar.availableReminderListTitles() may return an empty array if the user
+    // NOTE: getAllAccessibleReminderLists() may return no titles if the user
     // has no reminder lists configured in NotePlan. This is not an error condition.
-    const reminderLists = Calendar.availableReminderListTitles()
+    const reminderLists = getAllAccessibleReminderLists().titles
 
     const totalElapsed: number = Date.now() - startTime
     logDebug(pluginJson, `[np.Shared/requestHandlers] getAvailableReminderLists COMPLETE: totalElapsed=${totalElapsed}ms, found=${reminderLists.length} reminder lists`)

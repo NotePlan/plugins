@@ -1,18 +1,18 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for REM (Reminders) Section via fetch -> map -> bucket -> place
-// Last updated 2026-08-01 for v2.4.0.b60, @jgclark + @CursorAI
+// Last updated 2026-08-18 for v2.4.0.b65, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { isCurrentRemindersEnabled, isUndatedOverdueRemindersEnabled } from './dashboardHelpers'
 import { reminderItems } from './demoData'
 import { bucketReminderItems } from './reminderBuckets'
-import { createReminderSectionItem, getReminderListsForConfig, mapCalendarItemToReminderForDashboard } from './reminderMapping'
+import { createReminderSectionItem, getReminderListsForConfig } from './reminderMapping'
 import { placeReminderBuckets, type TReminderPlacement } from './reminderPlacement'
 import type { TActionButton, TDashboardSettings, TSection, TSectionItem, TDialogSettingItem } from './types'
 import { logDebug, logError, logTimer, timer } from '@helpers/dev'
-import { buildReminderDisplayByIdFromReminders, type TReminderDisplayById } from '@helpers/NPReminders'
+import { buildReminderDisplayByIdFromReminders, fetchIncompleteRemindersByLists, type TReminderDisplayById } from '@helpers/NPReminders'
 import { usersVersionHas } from '@helpers/NPVersions'
 
 //-----------------------------------------------------------------------------
@@ -90,23 +90,11 @@ export async function getRemindersGeneratedData(
         }
       }
     } else {
-      // Resolve list titles for this Perspective (override or NotePlan-enabled), then fetch via remindersByLists
+      // Resolve list titles for this Perspective (override or NotePlan-enabled), then fetch incomplete reminders
       const { titles: listTitles, colorByTitle } = getReminderListsForConfig(config)
       listTitlesForAdd = listTitles
-      let calendarItems: Array<TCalendarItem> = []
-      if (listTitles.length === 0) {
-        logDebug('getRemindersGeneratedData', `- no reminder lists to query; buckets will be empty`)
-      } else {
-        // Always pass explicit list titles to remindersByLists (empty array would return ALL lists)
-        calendarItems = await Calendar.remindersByLists(listTitles)
-      }
-      const incomplete = calendarItems.filter((ci) => !ci.isCompleted)
-      logDebug('getRemindersGeneratedData', `- fetched ${String(calendarItems.length)} reminders from ${String(listTitles.length)} list(s) via remindersByLists, ${String(incomplete.length)} incomplete`)
-
-      allItems = incomplete.map((ci, index) => {
-        const reminder = mapCalendarItemToReminderForDashboard(ci, colorByTitle)
-        return createReminderSectionItem(`${thisSectionCode}-${index}`, reminder)
-      })
+      const reminders = await fetchIncompleteRemindersByLists(listTitles, colorByTitle)
+      allItems = reminders.map((reminder, index) => createReminderSectionItem(`${thisSectionCode}-${index}`, reminder))
     }
 
     const displayById = buildReminderDisplayByIdFromReminders(

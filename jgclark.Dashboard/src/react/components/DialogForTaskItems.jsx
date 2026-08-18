@@ -236,7 +236,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // Now filter out some that cannot be shown:
   // - on iOS/iPadOS those requiring the CommandBar; this is not available while the window is open
-  const buttonsToHideOnMobile: Array<string> = ['Move to', 'New Task']
+  // const buttonsToHideOnMobile: Array<string> = ['Move to', 'New Task']
+  const buttonsToHideOnMobile: Array<string> = []
   let otherControlButtons: Array<DialogButtonProps> = initialOtherControlButtons.filter((button): boolean => (isDesktop ? true : !buttonsToHideOnMobile.includes(button.label)))
   // And 'unsched' button makes no sense on a calendar note
   if (noteType === 'Calendar') {

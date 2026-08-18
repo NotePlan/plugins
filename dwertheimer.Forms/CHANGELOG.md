@@ -18,6 +18,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 ### Fixed
 - **SpaceChooser / getTeamspaces**: Form Builder, Form Browser, and DynamicDialog `space-chooser` fields rely on `@helpers/react/routerUtils` when calling np.Shared’s `handleSharedRequest` fallback. NotePlan’s `invokePluginCommandByName` can wrap the inner `RequestResponse`; that unwrap is fixed in `routerUtils` so teamspace lists load (not a nested `{ success, data }` after `unwrapPluginRequestData`). **Rebuild** FormView / FormBuilderView / FormBrowserView bundles after pulling helpers + np.Shared.
 
+### Changed
+- `getAvailableReminderLists` now uses `getAllAccessibleReminderLists()` from `@helpers/NPReminders`.
+
 ### Edited in this release
 - `dwertheimer.Forms/plugin.json`, `CHANGELOG.md`.
 

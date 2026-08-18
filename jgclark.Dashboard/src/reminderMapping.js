@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Dashboard-specific reminder list config and section-item helpers
 // Shared Calendar/priority/date logic lives in @helpers/NPReminders
-// Last updated 2026-08-01 for v2.4.0.b60, @jgclark + @CursorAI
+// Last updated 2026-08-18 for v2.4.0.b65, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import type { TDashboardSettings, TReminderForDashboard, TSectionItem } from './types'
@@ -11,7 +11,6 @@ import { logDebug } from '@helpers/dev'
 import {
   dedupeReminderListTitles,
   getEnabledReminderLists,
-  mapCalendarItemToReminder,
   resolveReminderListsByNames,
   type TReminderListsResult,
 } from '@helpers/NPReminders'
@@ -33,20 +32,6 @@ export function getReminderListsForConfig(config: TDashboardSettings): TReminder
   const result = resolveReminderListsByNames(configuredNames)
   logDebug('getReminderListsForConfig', `- Perspective override: ${String(result.titles.length)} of ${String(configuredNames.length)} configured list(s): ${result.titles.join(', ') || '(none)'}`)
   return result
-}
-
-/**
- * Map a NotePlan CalendarItem (reminder) into TReminderForDashboard.
- * Thin Dashboard alias for mapCalendarItemToReminder.
- * @param {TCalendarItem} calendarItem
- * @param {{ [string]: string }} [colorByTitle]
- * @returns {TReminderForDashboard}
- */
-export function mapCalendarItemToReminderForDashboard(
-  calendarItem: TCalendarItem,
-  colorByTitle: { [string]: string } = {},
-): TReminderForDashboard {
-  return mapCalendarItemToReminder(calendarItem, colorByTitle)
 }
 
 /**

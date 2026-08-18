@@ -2,10 +2,10 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2026-08-14 by @jgclark + @CursorAI
+// Last updated 2026-08-18 by @jgclark + @CursorAI
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
-import { getReminderMarkerColors } from '@helpers/NPReminders'
+import { getReminderMarkerColors, RE_REMIND_UUID_IN_CONTENT, type TReminderDisplayById } from '@helpers/NPReminders'
 import { hasFrontMatter } from '@helpers/NPFrontMatter'
 import { getFolderFromFilename } from '@helpers/folders'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
@@ -1290,11 +1290,10 @@ export function makeReminderMarkerHTML(listColor?: ?string, time?: ?string): str
  * @param {?TReminderDisplayById} reminderDisplayById - optional id -> { color, time } from fetched reminders
  * @returns {string}
  */
-export function convertNPReminderIDToHTML(input: string, reminderDisplayById?: ?{ [string]: { color?: string, time?: string } }): string {
+export function convertNPReminderIDToHTML(input: string, reminderDisplayById?: ?TReminderDisplayById): string {
   try {
-    // Strict UUID pattern: 8-4-4-4-12 hex
-    const RE_REMIND_UUID = /@remind\(:::([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\)/g
-    return input.replace(RE_REMIND_UUID, (_fullMatch, id) => {
+    const re = new RegExp(RE_REMIND_UUID_IN_CONTENT.source, 'g')
+    return input.replace(re, (_fullMatch, id) => {
       const info = reminderDisplayById?.[id]
       return makeReminderMarkerHTML(info?.color, info?.time)
     })

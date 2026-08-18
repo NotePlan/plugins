@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-08-07 for v2.4.0.b62 by @CursorAI & @jgclark
+// Last updated 2026-08-18 for v2.4.0.b65 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -86,6 +86,7 @@ import { clo, clof, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '
 import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
 import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { getNoteByFilename } from '@helpers/note'
+import { isAppleRemindersCallbackURL } from '@helpers/NPReminders'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { formatReactError } from '@helpers/react/reactDev'
 
@@ -404,7 +405,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           break
         }
         // x-apple-reminderkit requires NotePlan >= 3.21.2 (build 1524); older builds block the scheme
-        if (urlToOpen.startsWith('x-apple-reminderkit:') && !usersVersionHas('appleAppCallbacksAvailable')) {
+        if (isAppleRemindersCallbackURL(urlToOpen) && !usersVersionHas('appleAppCallbacksAvailable')) {
           logWarn('bridgeClickDashboardItem', `openURL blocked: x-apple-reminderkit needs NotePlan >= 3.21.2 (got ${NotePlan.environment.version})`)
           result = { success: false, errorMsg: 'Opening Apple Reminders requires NotePlan 3.21.2 or later.' }
           break
