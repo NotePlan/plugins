@@ -12,6 +12,7 @@ import { createReminderSectionItem, getReminderListsForConfig, mapCalendarItemTo
 import { placeReminderBuckets, type TReminderPlacement } from './reminderPlacement'
 import type { TActionButton, TDashboardSettings, TSection, TSectionItem, TDialogSettingItem } from './types'
 import { logDebug, logError, logTimer, timer } from '@helpers/dev'
+import { buildReminderDisplayByIdFromReminders, type TReminderDisplayById } from '@helpers/NPReminders'
 import { usersVersionHas } from '@helpers/NPVersions'
 
 //-----------------------------------------------------------------------------
@@ -23,6 +24,7 @@ import { usersVersionHas } from '@helpers/NPVersions'
 export type TRemindersGeneratedData = {
   placement: TReminderPlacement,
   remindersSection: ?TSection,
+  displayById: TReminderDisplayById,
 }
 
 //-----------------------------------------------------------------------------
@@ -44,6 +46,7 @@ function emptyRemindersGeneratedData(): TRemindersGeneratedData {
       homeless: [],
     },
     remindersSection: null,
+    displayById: {},
   }
 }
 
@@ -105,6 +108,10 @@ export async function getRemindersGeneratedData(
         return createReminderSectionItem(`${thisSectionCode}-${index}`, reminder)
       })
     }
+
+    const displayById = buildReminderDisplayByIdFromReminders(
+      allItems.map((item) => item.reminder).filter(Boolean),
+    )
 
     const buckets = bucketReminderItems(allItems)
     logDebug(
@@ -186,6 +193,7 @@ export async function getRemindersGeneratedData(
     return {
       placement,
       remindersSection,
+      displayById,
     }
   } catch (error) {
     logError('getRemindersGeneratedData', error.message)

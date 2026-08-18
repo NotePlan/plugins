@@ -32,9 +32,63 @@ import { getTaggedSectionData } from './dataGenerationTags'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
 import type { TReminderPlacement } from './reminderPlacement'
 import { getTagSectionDetails, selectTagSectionsToGenerate } from './react/components/Section/sectionHelpers'
+import type { TReminderDisplayById } from '@helpers/NPReminders'
 import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
 import { logDebug, logError, logWarn } from '@helpers/dev'
 import { getLiveWindowRect, getStoredWindowRect, rectToString } from '@helpers/NPWindows'
+
+//-----------------------------------------------------------------
+
+/**
+ * Result from getSomeSectionsData / getAllSectionsData: section payloads plus optional reminder display lookup.
+ */
+export type TSomeSectionsDataResult = {
+  sections: Array<TSection>,
+  reminderDisplayById?: TReminderDisplayById,
+}
+
+/**
+ * Whether generating any of the given section codes requires fetching Apple Reminders
+ * (for REM itself and/or injection into TB / day sections / Overdue).
+ * @param {Array<TSectionCode>} sectionCodesToGet
+ * @param {TDashboardSettings} config
+ * @returns {boolean}
+ */
+export function sectionCodesNeedRemindersFetch(sectionCodesToGet: Array<TSectionCode>, config: TDashboardSettings): boolean {
+  const currentRemindersEnabled = isCurrentRemindersEnabled(config)
+  const undatedOverdueRemindersEnabled = isUndatedOverdueRemindersEnabled(config)
+  const wantRemSection = sectionCodesToGet.includes('REM') && undatedOverdueRemindersEnabled
+  const wantRemForDaySections =
+    currentRemindersEnabled &&
+    (sectionCodesToGet.includes('DT') ||
+      sectionCodesToGet.includes('DY') ||
+      sectionCodesToGet.includes('DO') ||
+      sectionCodesToGet.includes('TB'))
+  const wantRemForOverdue =
+    undatedOverdueRemindersEnabled && sectionCodesToGet.includes('OVERDUE') && Boolean(config.showOverdueSection)
+  return wantRemSection || wantRemForDaySections || wantRemForOverdue
+}
+
+/**
+ * Empty reminders payload used when Reminders are off or not needed for this batch.
+ * @returns {TRemindersGeneratedData}
+ */
+function emptyRemindersGeneratedData(): TRemindersGeneratedData {
+  return {
+    placement: {
+      forDT: [],
+      forTB: [],
+      forDY: [],
+      forDO: [],
+      forOVERDUE: [],
+      forREM: [],
+      remBucketsLabel: '',
+      homeless: [],
+    },
+    remindersSection: null,
+    displayById: {},
+  }
+}
 
 //-----------------------------------------------------------------
 
@@ -44,30 +98,31 @@ import { getLiveWindowRect, getStoredWindowRect, rectToString } from '@helpers/N
  * @param {boolean} useDemoData? (default: false)
  * @param {boolean} useEditorWherePossible?
  * @param {?TDashboardSettings} configOverride - when set, used instead of disk-only settings (open WebView refresh)
- * @returns {Array<TSection>} array of sections
+ * @returns {TSomeSectionsDataResult}
  */
 export async function getAllSectionsData(
   useDemoData: boolean = false,
   forceLoadAll: boolean = false,
   useEditorWherePossible: boolean,
   configOverride?: ?TDashboardSettings,
-): Promise<Array<TSection>> {
+): Promise<TSomeSectionsDataResult> {
   try {
     const config: any = configOverride ?? (await getDashboardSettings())
-    // clo(config, 'getAllSectionsData config is currently',2)
 
     // V2
     // Work out which sections to show
     const sectionsToShow: Array<TSectionCode> = forceLoadAll ? allSectionCodes : getListOfEnabledSections(config)
     logDebug('getAllSectionsData', `>>>>> Starting with ${String(sectionsToShow.length)} sections to show: ${String(sectionsToShow)}`)
-    const sections: Array<TSection> = await getSomeSectionsData(sectionsToShow, useDemoData, useEditorWherePossible, config)
-    // logDebug('getAllSectionsData', `=> sections ${getDisplayListOfSectionCodes(sections)} (unfiltered)`)
+    const { sections, reminderDisplayById } = await getSomeSectionsData(sectionsToShow, useDemoData, useEditorWherePossible, config)
     logDebug('getAllSectionsData', `<<<<< Finished`)
 
-    return sections.filter((s) => s) //get rid of any nulls b/c some of the sections above could return null
+    return {
+      sections: sections.filter((s) => s),
+      reminderDisplayById,
+    }
   } catch (error) {
     logError('getAllSectionsData', error.message)
-    return []
+    return { sections: [] }
   }
 }
 
@@ -80,7 +135,8 @@ export async function getAllSectionsData(
  * @param {boolean} useEditorWherePossible?
  * @param {?TDashboardSettings} configOverride - when set (e.g. open WebView live settings), used instead of disk-only `getDashboardSettings()`
  * @param {?Array<string>} tagsToGenerate - when TAG is requested, optional subset of tag/mention names to generate (exact match to tagsToShow entries). Omit or empty = all enabled tags.
- * @returns {Array<TSection>} array of sections
+ * @param {?TRemindersGeneratedData} cachedRemindersData - when set (e.g. incremental startup prefetch), skips a repeat remindersByLists fetch for this batch
+ * @returns {TSomeSectionsDataResult}
  */
 export async function getSomeSectionsData(
   sectionCodesToGet: Array<TSectionCode> = allSectionCodes,
@@ -88,7 +144,8 @@ export async function getSomeSectionsData(
   useEditorWherePossible: boolean,
   configOverride?: ?TDashboardSettings,
   tagsToGenerate?: ?Array<string>,
-): Promise<Array<TSection>> {
+  cachedRemindersData?: ?TRemindersGeneratedData,
+): Promise<TSomeSectionsDataResult> {
   try {
     logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()}${tagsToGenerate && tagsToGenerate.length > 0 ? ` tagsToGenerate=[${tagsToGenerate.join(',')}]` : ''} ...`)
     const config: TDashboardSettings = configOverride ?? (await getDashboardSettings())
@@ -102,32 +159,17 @@ export async function getSomeSectionsData(
 
     // Generate Reminders first when needed for day/TB/OVERDUE injection and/or the REM section itself.
     // Reminder date bucketing + section placement lives in reminderPlacement.js (not here).
-    const currentRemindersEnabled = isCurrentRemindersEnabled(config)
     const undatedOverdueRemindersEnabled = isUndatedOverdueRemindersEnabled(config)
     const wantRemSection = sectionCodesToGet.includes('REM') && undatedOverdueRemindersEnabled
-    const wantRemForDaySections =
-      currentRemindersEnabled &&
-      (sectionCodesToGet.includes('DT') ||
-        sectionCodesToGet.includes('DY') ||
-        sectionCodesToGet.includes('DO') ||
-        sectionCodesToGet.includes('TB'))
-    const wantRemForOverdue =
-      undatedOverdueRemindersEnabled && sectionCodesToGet.includes('OVERDUE') && Boolean(config.showOverdueSection)
-    let remindersData: TRemindersGeneratedData = {
-      placement: {
-        forDT: [],
-        forTB: [],
-        forDY: [],
-        forDO: [],
-        forOVERDUE: [],
-        forREM: [],
-        remBucketsLabel: '',
-        homeless: [],
-      },
-      remindersSection: null,
-    }
-    if (wantRemSection || wantRemForDaySections || wantRemForOverdue) {
-      remindersData = await getRemindersGeneratedData(config, useDemoData)
+    const needRemindersFetch = sectionCodesNeedRemindersFetch(sectionCodesToGet, config)
+    let remindersData: TRemindersGeneratedData = emptyRemindersGeneratedData()
+    if (needRemindersFetch) {
+      if (cachedRemindersData) {
+        logDebug('getSomeSectionsData', `- using prefetched Reminders data for [${sectionCodesToGet.toString()}] (skipping remindersByLists)`)
+        remindersData = cachedRemindersData
+      } else {
+        remindersData = await getRemindersGeneratedData(config, useDemoData)
+      }
     }
     const placement: TReminderPlacement = remindersData.placement
 
@@ -233,12 +275,15 @@ export async function getSomeSectionsData(
     // Note: The WINS section is generated separately in the front end after the other sections are generated.
 
     // get rid of any nulls b/c just in case any the sections above could return null
-    sections = sections.filter((s) => s) 
+    sections = sections.filter((s) => s)
 
-    return sections
+    const reminderDisplayById =
+      needRemindersFetch && Object.keys(remindersData.displayById).length > 0 ? remindersData.displayById : undefined
+
+    return { sections, reminderDisplayById }
   } catch (error) {
     logError('getSomeSectionsData', error.message)
-    return []
+    return { sections: [] }
   }
 }
 

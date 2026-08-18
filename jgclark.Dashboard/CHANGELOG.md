@@ -41,6 +41,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Tag/mention cache used by default (faster TAG sections)
 
 
+## [2.4.0.b65] 2026-08-18??? (unreleased)
+- dev: Add Apple Reminders cache to reduce repeated calls in initial startup.
+
 ## [2.4.0.b64] 2026-08-15 (unreleased)
 - Fix: Do not try to persist a floating windowRect when Dashboard is in **Main Window** / **Split View** (those panes have no independent windowRect).
 - Change: a **Save Perspective** no longer refreshes all sections.

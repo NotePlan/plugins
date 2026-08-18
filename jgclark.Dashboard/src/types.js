@@ -6,7 +6,7 @@
 
 // Types for Settings
 
-import type { TReminder } from '@helpers/NPReminders'
+import type { TReminder, TReminderDisplayById } from '@helpers/NPReminders'
 import type { TSettingItem as TDialogSettingItem, TSettingItemType as TDialogSettingItemType } from '@helpers/react/DynamicDialog/DynamicDialog'
 // DynamicDialog's own (un-widened) setting item, for things that are handed straight to DynamicDialog, e.g. action button form fields.
 export type { TSettingItem as TDialogSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
@@ -524,6 +524,8 @@ export type TPluginData = {
   currentMaxPriorityFromAllVisibleSections: number, /* the highest priority seen in the current section (to help display filtering) */
   mainWindowModeSupported: boolean /* true if the current platform and version of NotePlan supports main window mode -- TODO(later): remove this when NP > 3.23 or so. */,
   appleAppCallbacksAvailable?: boolean /* true if NotePlan.openURL allows x-apple-reminderkit (NP >= 3.21.2 build 1524) */,
+  /** id -> { color, time } for @remind(UUID) markers in task rows; built when Reminders are fetched */
+  reminderDisplayById?: TReminderDisplayById,
 }
 
 /**

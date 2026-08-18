@@ -19,10 +19,12 @@ import {
   isTBSectionEnabled,
   isUndatedOverdueRemindersEnabled,
 } from './dashboardHelpers'
-import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
+import { getAllSectionsData, getSomeSectionsData, sectionCodesNeedRemindersFetch } from './dataGeneration'
+import { getRemindersGeneratedData, type TRemindersGeneratedData } from './dataGenerationReminders'
 import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
 import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from './tagMentionCache'
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData, TSection } from './types'
+import type { TReminderDisplayById } from '@helpers/NPReminders'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
 import { isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
@@ -57,6 +59,19 @@ function getDuplicateTagSectionNames(sections: Array<TSection>): Array<string> {
  *********************************************************************************/
 
 /**
+ * Merge freshly fetched reminder display metadata into pluginData (preserves prior entries).
+ * @param {?TReminderDisplayById} existing
+ * @param {?TReminderDisplayById} patch
+ * @returns {?TReminderDisplayById}
+ */
+function mergeReminderDisplayById(existing?: ?TReminderDisplayById, patch?: ?TReminderDisplayById): ?TReminderDisplayById {
+  if (!patch || Object.keys(patch).length === 0) {
+    return existing
+  }
+  return { ...(existing ?? {}), ...patch }
+}
+
+/**
  * Tell the React window to update by re-generating all enabled Sections.
  * Used from v2.4 for the 'Reload' button when run in a "main window".
  */
@@ -76,12 +91,15 @@ export async function refreshDashboard(): Promise<void> {
 
     const config = await getDashboardSettingsForOpenWebView(reactWindowData?.pluginData?.dashboardSettings)
     // refresh all sections' data
-    const newSections = await getAllSectionsData(reactWindowData.demoMode, false, false, config)
+    const { sections: newSections, reminderDisplayById } = await getAllSectionsData(reactWindowData.demoMode, false, false, config)
     const changedData = {
       refreshing: false,
       firstRun: false,
       sections: newSections,
       lastFullRefresh: new Date(),
+    }
+    if (reminderDisplayById) {
+      changedData.reminderDisplayById = mergeReminderDisplayById(reactWindowData?.pluginData?.reminderDisplayById, reminderDisplayById)
     }
     await setPluginData(changedData, 'Finished Refreshing all enabled sections')
     logTimer('refreshDashboard', startTime, `finished for all enabled sections`)
@@ -147,9 +165,21 @@ export async function incrementallyRefreshSomeSections(
     logDebug('incrementallyRefreshSomeSections', `Starting incremental refresh for sections [${String(sectionCodes)}]`)
     await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
 
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    const config = await getDashboardSettingsForOpenWebView(reactWindowData?.pluginData?.dashboardSettings)
+    const demoMode = reactWindowData?.pluginData?.demoMode ?? false
+
+    // Prefetch Reminders once for the whole batch. Each per-section refresh would otherwise call
+    // Calendar.remindersByLists again (TB, REM, DT, DY, DO, OVERDUE each trigger placement).
+    let cachedRemindersData: ?TRemindersGeneratedData = null
+    if (sectionCodesNeedRemindersFetch(sectionCodes, config)) {
+      logDebug('incrementallyRefreshSomeSections', `Prefetching Reminders once for incremental refresh of ${String(sectionCodes.length)} sections`)
+      cachedRemindersData = await getRemindersGeneratedData(config, demoMode)
+    }
+
     // loop through sectionCodes
     for (const sectionCode of sectionCodes) {
-      await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
+      await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger, cachedRemindersData)
     }
     const updates: any = { refreshing: false, firstRun: false }
     if (setFullRefreshDate) updates.lastFullRefresh = new Date()
@@ -212,10 +242,17 @@ export async function batchRefreshSomeSections(data: MessageDataObject): Promise
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     const demoMode = reactWindowData?.pluginData?.demoMode ?? false
     const config = await getDashboardSettingsForOpenWebView(reactWindowData?.pluginData?.dashboardSettings)
-    const newSections = await getSomeSectionsData(sectionCodes, demoMode, false, config, data.tagsToGenerate)
+    const { sections: newSections, reminderDisplayById } = await getSomeSectionsData(sectionCodes, demoMode, false, config, data.tagsToGenerate)
 
+    const pluginDataPatch: TAnyObject = { sections: newSections, refreshing: false, firstRun: false }
+    if (reminderDisplayById) {
+      pluginDataPatch.reminderDisplayById = mergeReminderDisplayById(
+        reactWindowData?.pluginData?.reminderDisplayById,
+        reminderDisplayById,
+      )
+    }
     await setPluginData(
-      { sections: newSections, refreshing: false, firstRun: false },
+      pluginDataPatch,
       `Finished batch refresh for [${String(sectionCodes)}] (${timer(start)})`,
     )
     logTimer('batchRefreshSomeSections', start, `- ${sectionCodes.length} sections: ${sectionCodes.toString()}`)
@@ -255,9 +292,14 @@ export async function batchRefreshSomeSections(data: MessageDataObject): Promise
  *
  * @param {MessageDataObject} data
  * @param {boolean} calledByTrigger? (default: false)
+ * @param {?TRemindersGeneratedData} cachedRemindersData? - prefetched Reminders payload reused across an incremental batch
  * @returns {TBridgeClickHandlerResult}
  */
-export async function refreshSomeSections(data: MessageDataObject, calledByTrigger: boolean = false): Promise<TBridgeClickHandlerResult> {
+export async function refreshSomeSections(
+  data: MessageDataObject,
+  calledByTrigger: boolean = false,
+  cachedRemindersData?: ?TRemindersGeneratedData,
+): Promise<TBridgeClickHandlerResult> {
   try {
     const startTime = new Date()
     let sectionCodesToRefresh = data.sectionCodes
@@ -319,12 +361,13 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
     existingSections = syncTagSectionsWithSettings(existingSections, config)
 
     // Force the wanted sections to refresh
-    const newSections = await getSomeSectionsData(
+    const { sections: newSections, reminderDisplayById } = await getSomeSectionsData(
       sectionCodesToRefresh,
       pluginData.demoMode,
       calledByTrigger,
       config,
       data.tagsToGenerate,
+      cachedRemindersData,
     )
     // logTimer('refreshSomeSections', startTime, `- after getSomeSectionsData(): [${getDisplayListOfSectionCodes(newSections)}]`)
     const mergedSections = mergeSections(existingSections, newSections)
@@ -337,6 +380,12 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
     // logTimer('refreshSomeSections', startTime, `- after mergeSections(): [${getDisplayListOfSectionCodes(mergedSectionsClean)}]`)
 
     const updates: TAnyObject = { sections: mergedSectionsClean }
+
+    if (reminderDisplayById) {
+      updates.reminderDisplayById = mergeReminderDisplayById(pluginData.reminderDisplayById, reminderDisplayById)
+    } else if (cachedRemindersData?.displayById) {
+      updates.reminderDisplayById = mergeReminderDisplayById(pluginData.reminderDisplayById, cachedRemindersData.displayById)
+    }
 
     // Update the total done counts. 
     // Note: this is being done somewhere else, so turning off here

@@ -602,7 +602,9 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
   // But if we don't then 2 things are needed:
   // - the getSomeSectionsData() for just the Today section(s)
   // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSomeSections to generate the others
-  const sections = dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true ? await getAllSectionsData(useDemoData, true, true) : []
+  const allSectionsResult =
+    dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true ? await getAllSectionsData(useDemoData, true, true) : { sections: [] }
+  const sections = allSectionsResult.sections
 
   const NPSettings = getNotePlanSettings()
 
@@ -627,6 +629,9 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
     currentMaxPriorityFromAllVisibleSections: 0,
     mainWindowModeSupported: NotePlan.environment.platform === 'macOS' ? usersVersionHas('showInMainWindow') : usersVersionHas('showInMainWindowOniOS'),
     appleAppCallbacksAvailable: usersVersionHas('appleAppCallbacksAvailable'),
+  }
+  if (allSectionsResult.reminderDisplayById) {
+    pluginData.reminderDisplayById = allSectionsResult.reminderDisplayById
   }
   logDebug('getPluginData', `After forming initial pluginData, firstRun = false`)
 
