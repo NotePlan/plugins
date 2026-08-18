@@ -34,9 +34,6 @@ export {
   // openNoteNewWindow,
   // openNoteNewSplit,
   openURLFromANote,
-  showMonth,
-  showQuarter,
-  showYear,
 } from './noteNavigation'
 export { findUnlinkedNotesInCurrentNote, findUnlinkedNotesInAllNotes, triggerFindUnlinkedNotes } from './unlinkedNoteFinder'
 export { writeModified } from './writeModified'

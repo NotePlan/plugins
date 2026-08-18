@@ -71,7 +71,7 @@ export function getSuggestedTitleFromContent(content: string): string {
 export async function newNote(): Promise<void> {
   try {
     // Get title for this note
-    const title = await getInputTrimmed('Title of new note', 'OK', 'New Note from Clipboard', '')
+    const title = await getInputTrimmed('Title of new note', 'OK', 'New Note', '')
     if (typeof title === 'string') {
       const currentFolder = await chooseFolder('Select folder to add note in:', false, true, '/', true)  // don't include @Archive as an option, but do allow creation of a new folder
       const content = `# ${title}\n`

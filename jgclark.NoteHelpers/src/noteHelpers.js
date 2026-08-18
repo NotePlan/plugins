@@ -129,7 +129,7 @@ export async function trashNote(): Promise<void> {
       if (NotePlan.environment.buildVersion < 1431) {
         throw new Error('Sorry, before NotePlan v3.18.2, I cannot move Teamspace notes to the Trash. You will need to do this manually.')
       } else {
-        showMessage('Note: currently Teamspaces have no trash folder, but a copy will be made inside the Operating System Trash, if you need to recover the note.')
+        await showMessage('Note: currently Teamspaces have no trash folder, but a copy will be made inside the Operating System Trash, if you need to recover the note.')
       }
     }
 

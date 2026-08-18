@@ -3,11 +3,12 @@ This plugin (now a Core Plugin bundled with NotePlan 3.16.1 onwards) provides co
 
 - **add number of days to dates**: looks for bullets in your current open note that end with `[[YYYY-MM-DD]]:` and adds the number of days to or since that date. Useful for making lists of important days and easily knowing number of days to (or since) that day.
 - **add trigger to note**: makes it easy to add a trigger to a particular note. It lists the functions from all plugins that it can work out are written for triggers, but also allows any function to be picked. (See [NotePlan help page on Triggers](https://help.noteplan.co/article/173-plugin-note-triggers).)
+- **add to frontmatter** (alias **addFM**): add a key:value pair to the frontmatter of the current note. Can also be run from x-callback with `arg0` (key) and `arg1` (value).
 - **add title to note body** (alias **atnb**): for a chosen folder and its subfolders, adds a missing H1 at the start of note body from the frontmatter `title:` field. If an H1 already exists but does not match `title:`, that H1 is updated. First logs the notes that will change (with a warning for updates) and asks for confirmation. Optional `folderToStart` parameter for template/callback. (Team)Space notes and special folders are skipped. Uses the 'Folders to ignore' setting.
 - **convert to frontmatter**: convert the current note to use frontmatter syntax, including optional default text that can be added in the Plugin's settings.
 - **delete note** (alias **dn**): delete the current note (moves to Trash). This is quicker than the current convoluted way through the NotePlan UI.
 - **duplicate note** (alias **dupe**): duplicates the currently-open note, and unlike the built-in command, it allows the user to specify a new title and folder for it. It also doesn't duplicate anything after any `## Done` section in the original note. It's particularly useful if you want to move notes to a (Team)Space, as drag-and-drop in the sidebar doesn't work.
-- **enable heading links**: converts Local links to headings (they start with the `#` character) to `x-callback-url` links that makes them work the way you expect them to. Note: They currently only support links to headings within the same note.  (by @nmn)
+- **enable heading links**: converts Local links to headings (they start with the `#` character) to `x-callback-url` links that call **jump to heading** with the heading in `arg0`. Note: they currently only support links to headings within the same note. (by @nmn)
 - **find and link unlinked notes in current note**: finds and creates links to existing notes in the current note (by @aaronpoweruser). See below for more details.
 - **index folders** (alias **index**): make/update indexes for all notes in a folder (and sub-folders if wanted). _Since the introduction of 'Folder Views' in the app, this command is no longer necessary. So it may be removed in a future release._ There are settings available to customise this:
   - Sort order for index items: 'alphabetical', 'createdDate' or 'updatedDate'
@@ -18,29 +19,25 @@ This plugin (now a Core Plugin bundled with NotePlan 3.16.1 onwards) provides co
 - **jump to note's heading** (alias **jn**): jump to a different note, and then to the selected heading
 - **jump to done** (alias **jd**): simply jumps the cursor to the `## Done` section of the current note (if it exists)
 - **list inconsistent note filenames**: lists the names of notes whose filenames are inconsistent with their titles. (Note: because of NP's architecture, this doesn't apply to notes in Teamspaces.)
-- **list published notes**: generates a list in the new 'Publlished Notes' note of all notes that have been published to the internet through NotePlan. The note is created in the root folder; after this it can be moved to a different folder if desired.
+- **list published notes**: generates a list in a 'Published Notes' note of all notes that have been published to the internet through NotePlan. The note is created in the root folder; after this it can be moved to a different folder if desired.
 - **log Editor Note**: logs the main details about the currently open note to the plugin console.
 - **log Editor Note (detailed)** command that does the same as **log Editor Note** but also logs line type and rawContents.
-- - **move note** (alias **mn**): which moves a note to a different folder the user selects
+- **move note** (alias **mn**): which moves a note to a different folder the user selects
 - **new note** (alias **nn**): creates a new (regular, not calendar) note with a title you give, and in a folder you can select. If the "Default Text to add to frontmatter" setting isn't blank, then the note will be created using that frontmatter.
 - **new note from clipboard** (alias **/nnc**): takes the current text in the clipboard to form the basis of a new note. The command asks for the note title and folder location.
 - **new note from selection** (alias **/nns**): takes the current selected text to form the basis of a new note. The command asks for the note title and folder location.
-- **open current note new split** (alias **ocns**): open the current note again in a new split of the main window (and places the cursor at what it judges to be the start of the main content)
-- **open note new window** (alias **onw**): open a user-selected note in a new window (and places the cursor at what it judges to be the start of the main content)
-- **open note new split** (alias **ons**): open a user-selected note in a new split of the main window (and places the cursor at what it judges to be the start of the main content)
 - **open url from a note**: asks for a note, and then presents a list of URLs found in that note. The selected one is then opened in your default browser. (There's a setting to ignore URLs in closed tasks.)
 - **rename note filename**: renames the currently open note to one you specify. Note: this changes the underlying _filename_ not the visible _title_. This has proved very helpful for people renaming notes who have imported them from other systems, including Obsidian. Note: because of NotePlan's architecture, this cannot work on Calendar notes, or those in Teamspaces.
 - **rename filename to title**: renames the current filename to the title of the note. Note: because of NotePlan's architecture, this cannot work on Calendar notes, or those in Teamspaces.
 - **rename inconsistent note filenames**: renames the files of notes whose filenames are inconsistent with their titles. When run it offers to rename all in one go, or to go one by one so you can choose which ones to rename. Note: because of NotePlan's architecture, this cannot work on Calendar notes, or those in Teamspaces.
-- **reset title to match filename**: resets the current note title to match its filename.
+- **reset title to match filename**: resets the current note title to match its filename. Updates the frontmatter `title:` field when present, and any body H1.
 - **reset caches**: this simply runs the command of that name in the NotePlan Help menu.
-- **Show This Month** (alias **/stm**)
-- **Show This Quarter** (alias **/stq**)
-- **Show This Year** (alias **/sty**)
 - **update all indexes** (alias **uai**): updates all the existing folder index notes
 - **Write changed/modified date to frontmatter** (alias **modified**): writes the modified date to frontmatter (on each save). Writes to 'modified' key. Also (optionally) writes the author's initials to the 'author' key (see plugin settings).
 
 **Tip**: some of these are even more helpful if you assign a keyboard shortcut to them, using macOS's Keyboard > Shortcuts > App Shortcuts system. For example I have mapped ⇧⌘H to `/jump to heading`.
+
+The **open note in new window/split** commands now live in the [Window Tools](https://github.com/NotePlan/plugins/tree/main/jgclark.WindowTools/) plugin. **Show This Month/Quarter/Year** are in NotePlan's own menus.
 
 (If these commands are useful to you, you'll probably find the [TidyUp plugin](https://github.com/NotePlan/plugins/blob/main/np.Tidy/) helpful too. It's rather arbitrary which commands live in which plugin.)
 
@@ -66,7 +63,7 @@ noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=<encode
 ```
 As with all x-callback-urls, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.  **Tip**: use @dwertheimer's Link Creator Plugin's "/Get x-callback-url" command to do the fiddly work for you.
 
-Additionally the **add trigger to note**, **add title to note body**, **index folders** and **jump to heading** commands can take arguments, which also need to be encoded. 
+Additionally the **add trigger to note**, **add to frontmatter**, **add title to note body**, **index folders**, **jump to heading** and **jump to note's heading** commands can take arguments, which also need to be encoded.
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=<encoded command name>&arg0=<encoded string>[&arg1=<encoded string>]
 ```
@@ -74,11 +71,14 @@ The arguments are:
 
 | Command | encoded command name | arg0 | arg1 |
 |-----|-------------|-----|-----|
-| add trigger to note | `...add%20trigger%20to%20note&` | "triggers: ..." line to add to frontmatter | - |
+| add trigger to note | `...add%20trigger%20to%20note&` | trigger string (e.g. `onEditorWillSave => plugin.id.commandName`) | - |
+| add to frontmatter | `...add%20to%20frontmatter&` | key | value |
 | Add title to note body | `...Add%20title%20to%20note%20body&` | parameters (JSON with optional folderToStart, runSilently) | - |
-| index folders | `...index%20folders&` | folder name | other args as a `key=value;key2=value` string.<br />Possible keys are displayOrder (`alphabetical` (default) or `updatedDate`, `createdDate`),  dateDisplayType (`none` (default) or `timeSince`, `updateDate`), includeSubfolders (`true` or `false`) |
+| index folders | `...index%20folders&` | folder name | other args as a `key=value;key2=value` string.<br />Possible keys are displayOrder (`alphabetical` (default) or `updatedDate`, `createdDate`),  dateDisplayType (`none` (default) or `timeSince`, `updatedDate`), includeSubfolders (`true` or `false`) |
 | jump to heading | `...jump%20to%20heading&` | heading to jump to | - |
-| jump to note heading | `...jump%20to%20note's%20heading&` | filename or title of note to jump to | - |
+| jump to note's heading | `...jump%20to%20note's%20heading&` | filename or title of note to jump to | - |
+
+**enable heading links** rewrites `[label](#heading)` links in the current note to x-callback URLs that run **jump to heading** with that heading in `arg0`.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).

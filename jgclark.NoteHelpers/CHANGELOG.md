@@ -16,6 +16,8 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 - **reset title to match filename** command could treat the opening `---` of a frontmatter note as the title
 - **add trigger to note** (command x-callback/template) replaced the whole `triggers:` field. It now parses the trigger string and appends.
 - **jump to note's heading** command opened notes by title, which could pick the wrong note when titles collide. It now opens by filename.
+- **delete note** command did not wait for the (Team)Space warning before moving the note.
+- **find and link unlinked notes** command skipped mixed-case title matches.
 - dev: `getSettings()` could return nothing, so later commands crashed on missing config. It now uses `DataStore.settings` (with a file fallback) and throws a clear error if settings cannot be loaded.
 
 ## [1.3.7] - 2026-08-03
