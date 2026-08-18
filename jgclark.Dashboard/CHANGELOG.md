@@ -43,6 +43,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.4.0.b65] 2026-08-18??? (unreleased)
 - dev: Add Apple Reminders cache to reduce repeated calls in initial startup.
+- Change: Inline `@remind(<UUID>)` markers and reminder time chips now use the Apple Reminders list colour (not fixed blue). When a due time is set, the chip now shows bell + time.
 
 ## [2.4.0.b64] 2026-08-15 (unreleased)
 - Fix: Do not try to persist a floating windowRect when Dashboard is in **Main Window** / **Split View** (those panes have no independent windowRect).

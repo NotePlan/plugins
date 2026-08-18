@@ -22,7 +22,7 @@ type Props = {
 }
 
 function ProjectItem({ item, thisSection }: Props): Node {
-  const { setReactSettings, dashboardSettings } = useAppContext()
+  const { setReactSettings, dashboardSettings, pluginData } = useAppContext()
 
   const progressText = item.project?.lastProgressComment ?? ''
 
@@ -58,7 +58,11 @@ function ProjectItem({ item, thisSection }: Props): Node {
   const progressHtml =
     progressText !== ''
       ? applyDashboardSettingsToDisplayedItemHtml(
-        makeStringContentToLookLikeNPDisplayInReact(progressText, { truncateLength: 0, taskPriority: 0 }),
+        makeStringContentToLookLikeNPDisplayInReact(progressText, {
+          truncateLength: 0,
+          taskPriority: 0,
+          reminderDisplayById: pluginData?.reminderDisplayById,
+        }),
         dashboardSettings,
       )
       : ''

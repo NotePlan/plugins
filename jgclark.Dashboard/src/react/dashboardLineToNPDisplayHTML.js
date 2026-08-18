@@ -6,6 +6,7 @@
 //--------------------------------------------------------------------------
 
 import type { TDashboardSettings, TLinkedNoteIconInfo, TSectionItem } from '../types.js'
+import type { TReminderDisplayById } from '@helpers/NPReminders'
 import { getNoteIconDisplayProps } from '../noteIconDisplay.js'
 import { replaceArrowDatesInString } from '@helpers/dateTime'
 import { logError } from '@helpers/react/reactDev.js'
@@ -42,6 +43,7 @@ export type TDashboardLineDisplayOptions = {
   timeblockTextMustContainString?: string,
   noteTitle?: string,
   linkedNoteIcons?: { [string]: TLinkedNoteIconInfo },
+  reminderDisplayById?: TReminderDisplayById,
 }
 
 /**
@@ -113,6 +115,7 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
   const timeblockTextMustContainString = options?.timeblockTextMustContainString ?? ''
   const noteTitle = options?.noteTitle ?? ''
   const linkedNoteIcons = options?.linkedNoteIcons
+  const reminderDisplayById = options?.reminderDisplayById
 
   try {
     if (content == null || content === '') {
@@ -135,8 +138,6 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
 
     output = simplifyNPEventLinksForHTML(output)
     output = simplifyInlineImagesForHTML(output)
-    // Convert any @remind(<UUID>) tokens -- needs to come before mention conversion
-    output = convertNPReminderIDToHTML(output)
 
     // Note links (including [alias]([[title]])) before markdown-link conversion so aliases are not treated as external URLs
     const noteLinks = findNoteLinksForDisplay(output)
@@ -155,6 +156,8 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
     output = changeMarkdownLinksToHTMLLink(output)
     output = changeBareLinksToHTMLLink(output, true, truncateLength)
     output = convertHashtagsToHTML(output)
+    // Convert @remind(<UUID>) after hashtags (hex in marker styles) but before @mentions (@remind looks like a mention)
+    output = convertNPReminderIDToHTML(output, reminderDisplayById)
     output = convertMentionsToHTML(output)
     output = convertPreformattedToHTML(output)
 
@@ -207,6 +210,7 @@ export function makeParaContentToLookLikeNPDisplayInReact(
   thisItem: TSectionItem,
   truncateLength: number = 0,
   timeblockTextMustContainString: string = '',
+  reminderDisplayById?: TReminderDisplayById,
 ): string {
   try {
     const { para } = thisItem
@@ -221,6 +225,7 @@ export function makeParaContentToLookLikeNPDisplayInReact(
       timeblockTextMustContainString,
       noteTitle: para.title ?? '',
       linkedNoteIcons: para.linkedNoteIcons,
+      reminderDisplayById,
     })
   } catch (error) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, error.message)

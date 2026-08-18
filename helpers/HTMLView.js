@@ -5,6 +5,7 @@
 // Last updated 2026-08-14 by @jgclark + @CursorAI
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
+import { getReminderMarkerColors } from '@helpers/NPReminders'
 import { hasFrontMatter } from '@helpers/NPFrontMatter'
 import { getFolderFromFilename } from '@helpers/folders'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
@@ -1101,7 +1102,7 @@ export function convertHashtagsToHTML(input: string): string {
           isTermInNotelinkOrURI(match, output) ||
           isTermInMarkdownPath(match, output) ||
           isTermInEventLinkHiddenPart(match, output) ||
-          isTermAColorStyleDefinition(match, output)
+          isTermInStyleAttribute(match, output)
         ) {
           continue
         }
@@ -1116,9 +1117,19 @@ export function convertHashtagsToHTML(input: string): string {
   }
 }
 
-function isTermAColorStyleDefinition(term: string, input: string): boolean {
-  const RE_CSS_STYLE_DEFINITION = new RegExp(`style="color:\\s*${term}"`, 'i')
-  return RE_CSS_STYLE_DEFINITION.test(input)
+/**
+ * Skip hashtag conversion when #term appears inside an HTML style="..." attribute
+ * (reminder marker lozenges, inline colour styles, var(..., #hex) fallbacks, etc.).
+ * @param {string} term - matched hashtag including leading #
+ * @param {string} input
+ * @returns {boolean}
+ */
+function isTermInStyleAttribute(term: string, input: string): boolean {
+  const styleAttrs = input.match(/style="[^"]*"/g)
+  if (!styleAttrs) {
+    return false
+  }
+  return styleAttrs.some((attr) => attr.includes(term))
 }
 
 /**
@@ -1260,24 +1271,33 @@ export function convertNPBlockIDToHTML(input: string): string {
 }
 
 /**
- * Replace @remind(<UUID>) tokens with a small bell icon on a light blue background.
- * Designed to be reusable by other plugins. Matches strict UUIDs only.
- * @param {string} input
+ * HTML for a reminder marker lozenge (bell, optionally with due time), matching NP native style.
+ * @param {?string} listColor - Apple Reminders list colour
+ * @param {?string} time - local HH:MM due time, when set
  * @returns {string}
  */
-export function convertNPReminderIDToHTML(input: string): string {
+export function makeReminderMarkerHTML(listColor?: ?string, time?: ?string): string {
+  const { color, backgroundColor } = getReminderMarkerColors(listColor)
+  const timePart = time && time.trim() !== '' ? ` ${time.trim()}` : ''
+  const bellClass = timePart ? 'fa-regular fa-fw fa-bell pad-right' : 'fa-regular fa-fw fa-bell'
+  return `<span class="reminderMarker" style="color:${color};background-color:${backgroundColor}"><i class="${bellClass}"></i>${timePart}</span>`
+}
+
+/**
+ * Replace @remind(<UUID>) tokens with a reminder marker lozenge (list-coloured bell, plus time when known).
+ * Designed to be reusable by other plugins. Matches strict UUIDs only.
+ * @param {string} input
+ * @param {?TReminderDisplayById} reminderDisplayById - optional id -> { color, time } from fetched reminders
+ * @returns {string}
+ */
+export function convertNPReminderIDToHTML(input: string, reminderDisplayById?: ?{ [string]: { color?: string, time?: string } }): string {
   try {
-    let output = input
     // Strict UUID pattern: 8-4-4-4-12 hex
     const RE_REMIND_UUID = /@remind\(:::([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\)/g
-    const captures = output.match(RE_REMIND_UUID)
-    if (captures) {
-      for (const capture of captures) {
-        const replacement = `<i class=\"reminderMarker fa-regular fa-bell\"></i>`
-        output = output.replace(capture, replacement)
-      }
-    }
-    return output
+    return input.replace(RE_REMIND_UUID, (_fullMatch, id) => {
+      const info = reminderDisplayById?.[id]
+      return makeReminderMarkerHTML(info?.color, info?.time)
+    })
   } catch (error) {
     logError(pluginJson, `convertNPReminderIDToHTML: ${error.message}`)
     return input

@@ -142,7 +142,33 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
       const uuid = '123e4567-e89b-12d3-a456-426614174000'
       const html = makeStringContentToLookLikeNPDisplayInReact(`Finish report @remind(:::${uuid})`, { truncateLength: 0, taskPriority: 0 })
       expect(html).toContain('fa-bell')
+      expect(html).toContain('class="reminderMarker"')
       expect(html).not.toContain(`@remind(:::${uuid})`)
+    })
+
+    test('replaces @remind(UUID) with list colour and time when lookup provided', () => {
+      const uuid = '123e4567-e89b-12d3-a456-426614174000'
+      const html = makeStringContentToLookLikeNPDisplayInReact(`Finish report @remind(:::${uuid})`, {
+        truncateLength: 0,
+        taskPriority: 0,
+        reminderDisplayById: { [uuid]: { color: '#34C759', time: '09:00' } },
+      })
+      expect(html).toContain('#34C759')
+      expect(html).toContain('09:00')
+      expect(html).not.toContain('class="hashtag"')
+    })
+
+    test('replaces @remind(UUID) without breaking marker HTML when no list colour (theme fallback hex)', () => {
+      const uuid = '123e4567-e89b-12d3-a456-426614174000'
+      const html = makeStringContentToLookLikeNPDisplayInReact(`TEST reminder @remind(:::${uuid})`, {
+        truncateLength: 0,
+        taskPriority: 0,
+      })
+      expect(html).toContain('TEST reminder')
+      expect(html).toContain('class="reminderMarker"')
+      expect(html).toContain('fa-bell')
+      expect(html).not.toContain('class="hashtag"')
+      expect(html).not.toContain('class="attag"')
     })
   })
 

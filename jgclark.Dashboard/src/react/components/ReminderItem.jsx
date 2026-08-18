@@ -19,6 +19,7 @@ import './ItemContent.css'
 import './ReminderItem.css'
 import './TaskItem.css'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
+import { getReminderMarkerColors } from '@helpers/NPReminders'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
 import { logDebug, logWarn } from '@helpers/dev'
 
@@ -86,8 +87,9 @@ function ReminderItem({ item, thisSection }: Props): Node {
   )
   // NP shows reminder due-time as a chip with bell icon after the title (not the timeBlock clock style)
   if (showTimeChip && reminder.time) {
+    const markerColors = getReminderMarkerColors(listColor)
     contentParts.push(
-      <span key="time" className="reminderMarker">
+      <span key="time" className="reminderMarker" style={markerColors}>
         <i className="fa-regular fa-fw fa-bell pad-right" />
         {reminder.time}
       </span>,

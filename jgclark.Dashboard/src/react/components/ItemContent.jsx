@@ -36,7 +36,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   }
 
   // compute the things we need later
-  let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140, timeblockMustContainString)
+  let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140, timeblockMustContainString, pluginData?.reminderDisplayById)
   mainContent = applyDashboardSettingsToDisplayedItemHtml(mainContent, dashboardSettings)
 
   // Note: This is how to remove tag/mention, if they match the item's sectionCode. Decided not to keep this, as it is doesn't suit some use cases for tags/mentions.

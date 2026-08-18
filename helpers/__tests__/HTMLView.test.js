@@ -194,7 +194,25 @@ describe('convertNPReminderIDToHTML()' /* function */, () => {
     const input = `Do the thing @remind(:::${uuid}) now`
     const out = h.convertNPReminderIDToHTML(input)
     expect(out).toContain('fa-bell')
+    expect(out).toContain('class="reminderMarker"')
     expect(out).not.toContain(`@remind(${uuid})`)
+  })
+
+  test('includes list colour and due time when display lookup is provided', () => {
+    const uuid = '123e4567-e89b-12d3-a456-426614174000'
+    const input = `Do the thing @remind(:::${uuid}) now`
+    const out = h.convertNPReminderIDToHTML(input, { [uuid]: { color: '#FF3B30', time: '14:30' } })
+    expect(out).toContain('#FF3B30')
+    expect(out).toContain('14:30')
+    expect(out).toContain('fa-bell pad-right')
+  })
+
+  test('bell-only marker omits pad-right on the icon', () => {
+    const uuid = '123e4567-e89b-12d3-a456-426614174000'
+    const input = `Do the thing @remind(:::${uuid}) now`
+    const out = h.convertNPReminderIDToHTML(input)
+    expect(out).toContain('fa-bell')
+    expect(out).not.toContain('fa-bell pad-right')
   })
 
   test('ignores malformed tokens', () => {
@@ -384,6 +402,13 @@ describe('convertHashtagsToHTML()' /* function */, () => {
     const expected = 'foo <span class="hashtag">#bar</span> <span class="hashtag">#baz</span> and <span class="hashtag">#nothing</span> else'
     const result = h.convertHashtagsToHTML(orig)
     expect(result).toEqual(expected)
+  })
+  test('does not treat hex colours inside style attributes as hashtags', () => {
+    const orig =
+      'TEST <span class="reminderMarker" style="color:var(--fg-reminderMarker, #26709e);background-color:var(--bg-reminderMarker, #d7ebf8)"><i class="fa-regular fa-fw fa-bell"></i></span>'
+    const result = h.convertHashtagsToHTML(orig)
+    expect(result).toEqual(orig)
+    expect(result).not.toContain('class="hashtag"')
   })
 })
 

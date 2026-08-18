@@ -5,6 +5,7 @@
 //----------------------------------------------------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
+import { colorToModernSpecWithOpacity } from '@helpers/colors'
 import { logDebug, logWarn } from '@helpers/dev'
 import { usersVersionHas } from '@helpers/NPVersions'
 
@@ -43,6 +44,57 @@ export type TReminder = {
 export type TReminderLocalDateTime = {
   date?: string,
   time?: string,
+}
+
+/**
+ * Display metadata for a reminder marker (list colour + optional due time).
+ */
+export type TReminderDisplayInfo = {
+  color?: string,
+  time?: string,
+}
+
+/**
+ * Map of reminder id -> display metadata for @remind(UUID) markers and reminder chips.
+ */
+export type TReminderDisplayById = {
+  [string]: TReminderDisplayInfo,
+}
+
+/**
+ * Foreground/background colours for a reminder marker lozenge.
+ * Uses the Apple Reminders list colour when provided; otherwise NP theme CSS variable fallbacks.
+ * @param {?string} listColor - hex/list colour from the reminder list
+ * @returns {{ color: string, backgroundColor: string }}
+ */
+export function getReminderMarkerColors(listColor?: ?string): { color: string, backgroundColor: string } {
+  if (listColor) {
+    return {
+      color: listColor,
+      backgroundColor: colorToModernSpecWithOpacity(listColor, 0.15) || `rgba(from ${listColor} r g b / 0.15)`,
+    }
+  }
+  return {
+    color: 'var(--fg-reminderMarker, #26709e)',
+    backgroundColor: 'var(--bg-reminderMarker, #d7ebf8)',
+  }
+}
+
+/**
+ * Build id -> display map from normalized reminders (for @remind token rendering).
+ * @param {Array<TReminder>} reminders
+ * @returns {TReminderDisplayById}
+ */
+export function buildReminderDisplayByIdFromReminders(reminders: Array<TReminder>): TReminderDisplayById {
+  const map: TReminderDisplayById = {}
+  for (const reminder of reminders) {
+    if (!reminder.id) continue
+    map[reminder.id] = {
+      color: reminder.color,
+      time: reminder.time,
+    }
+  }
+  return map
 }
 
 //----------------------------------------------------------------------------------------------------------------------

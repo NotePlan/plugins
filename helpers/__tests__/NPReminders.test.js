@@ -4,10 +4,12 @@
 import { CustomConsole } from '@jest/console'
 import { DataStore, Editor, CommandBar, NotePlan, simpleFormatter } from '@mocks/index'
 import {
+  buildReminderDisplayByIdFromReminders,
   compareRemindersByTimePriorityDate,
   dedupeReminderListTitles,
   filterRemindersWhoseTimeHasBeenReached,
   getEnabledReminderLists,
+  getReminderMarkerColors,
   getAllAccessibleReminderLists,
   getReminderLocalDateAndTime,
   mapAppleReminderPriorityToNotePlan,
@@ -239,6 +241,29 @@ describe(`${PLUGIN_NAME}`, () => {
         ])
         expect(compareRemindersByTimePriorityDate(reminders[1], reminders[2])).toBeLessThan(0)
       })
+    })
+  })
+
+  describe('getReminderMarkerColors() / buildReminderDisplayByIdFromReminders()', () => {
+    test('getReminderMarkerColors uses list colour when provided', () => {
+      const { color, backgroundColor } = getReminderMarkerColors('#FF3B30')
+      expect(color).toBe('#FF3B30')
+      expect(backgroundColor).toContain('255')
+    })
+
+    test('getReminderMarkerColors falls back to theme CSS vars without list colour', () => {
+      const { color, backgroundColor } = getReminderMarkerColors()
+      expect(color).toContain('--fg-reminderMarker')
+      expect(backgroundColor).toContain('--bg-reminderMarker')
+    })
+
+    test('buildReminderDisplayByIdFromReminders maps id to colour and time', () => {
+      const map = buildReminderDisplayByIdFromReminders([
+        { id: 'abc', title: 'One', listname: 'Home', color: '#34C759', time: '10:00' },
+        { title: 'No id', listname: 'Home' },
+      ])
+      expect(map.abc).toEqual({ color: '#34C759', time: '10:00' })
+      expect(Object.keys(map)).toHaveLength(1)
     })
   })
 })
