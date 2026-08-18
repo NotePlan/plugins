@@ -7,9 +7,9 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "1.3.7",
+  "plugin.version": "1.4.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "1.3.7: 'Generate @repeats' command now can use 'concrete dates' feature from Repeat Extensions.\nFix to 'inconsistent filenames' commands possibly not honouring 'folders to ignore' setting \n1.3.6: 'new note' commands now suggest title from frontmatter or first line of text.\n1.3.5: dev changes only.\n1.3.4: Allow 'jump to note heading' command to take an argument of the note title or filename, for use with callbacks or shortcuts.\n1.3.3: New 'add to frontmatter' command.\n1.3.2: Add more detail to /log Editor Note, to help flush out a long-standing API bug.\n1.3.1: Improvements and fixes to 'list inconsistent note filenames' command.\n1.3.0: New 'duplicate note' command.",
+  "plugin.lastUpdateInfo": "1.4.0: New '/Add title to note body' command: adds or updates a body H1 from the frontmatter 'title' field in a chosen folder.\n1.3.7: 'Generate @repeats' command now can use 'concrete dates' feature from Repeat Extensions.\nFix to 'inconsistent filenames' commands possibly not honouring 'folders to ignore' setting \n1.3.6: 'new note' commands now suggest title from frontmatter or first line of text.\n1.3.5: dev changes only.\n1.3.4: Allow 'jump to note heading' command to take an argument of the note title or filename, for use with callbacks or shortcuts.\n1.3.3: New 'add to frontmatter' command.\n1.3.2: Add more detail to /log Editor Note, to help flush out a long-standing API bug.\n1.3.1: Improvements and fixes to 'list inconsistent note filenames' command.\n1.3.0: New 'duplicate note' command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -45,6 +45,17 @@
       "parameters": [
         "key",
         "value"
+      ]
+    },
+    {
+      "name": "Add title to note body",
+      "alias": [
+        "atnb"
+      ],
+      "description": "Add a missing H1 at the start of the note body from the frontmatter title: field, or update an existing H1 that does not match. Prompts for a folder (includes subfolders).",
+      "jsFunction": "addTitleToNoteBody",
+      "arguments": [
+        "parameters (JSON with optional folderToStart and runSilently)"
       ]
     },
     {
@@ -334,12 +345,12 @@
     },
     {
       "type": "heading",
-      "title": "'inconsistent note filenames' command settings"
+      "title": "'inconsistent note filenames' and 'add title to note body' command settings"
     },
     {
       "key": "foldersToIgnore",
       "title": "Folders to ignore",
-      "description": "Comma-separated list of folders to ignore when looking for inconsistent note filenames. Leave blank to ignore no folders.",
+      "description": "Comma-separated list of folders to ignore when looking for inconsistent note filenames, or when adding titles to note bodies. Leave blank to ignore no folders.",
       "type": "string",
       "default": "Readwise 📚",
       "required": false

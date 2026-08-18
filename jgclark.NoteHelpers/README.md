@@ -3,6 +3,7 @@ This plugin (now a Core Plugin bundled with NotePlan 3.16.1 onwards) provides co
 
 - **add number of days to dates**: looks for bullets in your current open note that end with `[[YYYY-MM-DD]]:` and adds the number of days to or since that date. Useful for making lists of important days and easily knowing number of days to (or since) that day.
 - **add trigger to note**: makes it easy to add a trigger to a particular note. It lists the functions from all plugins that it can work out are written for triggers, but also allows any function to be picked. (See [NotePlan help page on Triggers](https://help.noteplan.co/article/173-plugin-note-triggers).)
+- **add title to note body** (alias **atnb**): for a chosen folder and its subfolders, adds a missing H1 at the start of note body from the frontmatter `title:` field. If an H1 already exists but does not match `title:`, that H1 is updated. First logs the notes that will change (with a warning for updates) and asks for confirmation. Optional `folderToStart` parameter for template/callback. (Team)Space notes and special folders are skipped. Uses the 'Folders to ignore' setting.
 - **convert to frontmatter**: convert the current note to use frontmatter syntax, including optional default text that can be added in the Plugin's settings.
 - **delete note** (alias **dn**): delete the current note (moves to Trash). This is quicker than the current convoluted way through the NotePlan UI.
 - **duplicate note** (alias **dupe**): duplicates the currently-open note, and unlike the built-in command, it allows the user to specify a new title and folder for it. It also doesn't duplicate anything after any `## Done` section in the original note. It's particularly useful if you want to move notes to a (Team)Space, as drag-and-drop in the sidebar doesn't work.
@@ -65,7 +66,7 @@ noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=<encode
 ```
 As with all x-callback-urls, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.  **Tip**: use @dwertheimer's Link Creator Plugin's "/Get x-callback-url" command to do the fiddly work for you.
 
-Additionally the **add trigger to note**, **index folders** and **jump to heading** commands can take arguments, which also need to be encoded. 
+Additionally the **add trigger to note**, **add title to note body**, **index folders** and **jump to heading** commands can take arguments, which also need to be encoded. 
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=<encoded command name>&arg0=<encoded string>[&arg1=<encoded string>]
 ```
@@ -74,6 +75,7 @@ The arguments are:
 | Command | encoded command name | arg0 | arg1 |
 |-----|-------------|-----|-----|
 | add trigger to note | `...add%20trigger%20to%20note&` | "triggers: ..." line to add to frontmatter | - |
+| Add title to note body | `...Add%20title%20to%20note%20body&` | parameters (JSON with optional folderToStart, runSilently) | - |
 | index folders | `...index%20folders&` | folder name | other args as a `key=value;key2=value` string.<br />Possible keys are displayOrder (`alphabetical` (default) or `updatedDate`, `createdDate`),  dateDisplayType (`none` (default) or `timeSince`, `updateDate`), includeSubfolders (`true` or `false`) |
 | jump to heading | `...jump%20to%20heading&` | heading to jump to | - |
 | jump to note heading | `...jump%20to%20note's%20heading&` | filename or title of note to jump to | - |

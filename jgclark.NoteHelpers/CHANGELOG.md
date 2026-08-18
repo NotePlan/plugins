@@ -2,6 +2,10 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 <!-- - **index folders** command: index notes created or updated now include frontmatter `icon: list-ul` and `icon-color: yellow-500` for sidebar display. -->
 
+## [1.4.0] - 2026-08-18 @jgclark
+### New
+- new **/Add title to note body** command: for a chosen folder and its subfolders, adds any missing H1 at the start of note body from the frontmatter `title:` field. If an H1 already exists but does not match `title:`, it is updated from the `title:` field. Dry-runs first (logs the notes that will change, with a warning for H1 updates) and asks for confirmation. Optional `folderToStart` parameter for template/callback. (Team)Space notes are skipped.
+
 ## [1.3.7] - 2026-08-03
 - Fix to **inconsistent filenames** commands possibly not honouring 'folders to ignore' setting
 
