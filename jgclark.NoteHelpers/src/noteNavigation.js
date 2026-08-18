@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Navigation functions for Note Helpers plugin for NotePlan
 // Jonathan Clark
-// Last updated 2026-03-06 for v1.3.3, @jgclark
+// Last updated 2026-08-18 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -96,7 +96,7 @@ export async function jumpToNoteHeading(noteTitleOrFilename?: string): Promise<v
  * NB: need to update to allow this to work with sub-windows, when EM updates API
  * @author @jgclark
  */
-export function jumpToDone(): void {
+export async function jumpToDone(): Promise<void> {
   try {
     const paras = Editor?.paragraphs
     if (paras == null) {
@@ -107,7 +107,7 @@ export function jumpToDone(): void {
     // Find the 'Done' heading of interest from all the paragraphs
     const matches = paras.filter((p) => p.headingLevel === 2).filter((q) => q.content.startsWith('Done')) // startsWith copes with Done section being folded
 
-    if (matches != null) {
+    if (matches.length > 0) {
       const startPos = matches[0].contentRange?.start ?? 0
       logDebug('jumpToDone()', `Jumping to '## Done' at position ${startPos}`)
       // Editor.renderedSelect(startPos, 0) // sometimes doesn't work
@@ -117,6 +117,7 @@ export function jumpToDone(): void {
       // Editor.highlight(p)
     } else {
       logWarn('jumpToDone()', "Couldn't find a '## Done' section. Stopping.")
+      await showMessage(`Couldn't find a '## Done' section.`, 'OK', 'Jump to Done')
     }
   } catch (e) {
     logError('jumpToDone()', e.message)

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2025-09-14 for v1.2.1 by @jgclark
+// Last updated 2026-08-18 for v1.4.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -262,6 +262,20 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
 }
 
 /**
+ * Rewrite markdown links to in-note headings (`[label](#heading)`) as x-callback-urls
+ * that call `jumpToHeading` with the heading in arg0.
+ * @author @nmn
+ * @param {string} content
+ * @returns {string}
+ */
+export function rewriteLocalHeadingMarkdownLinks(content: string): string {
+  return content.replace(/\[(.*?)\]\(\#(.*?)\)/g, (_match, label, link) => {
+    const newLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&arg0=${encodeURIComponent(link)}`
+    return `[${label}](${newLink})`
+  })
+}
+
+/**
  * Converts all links that start with a `#` symbol, i.e links to headings within a note,
  * to x-callback-urls that call the `jumpToHeading` plugin command to actually jump to that heading.
  * @author @nmn
@@ -278,10 +292,7 @@ export function convertLocalLinksToPluginLinks(): void {
   let changed = false
   for (const para of paragraphs) {
     const content = para.content
-    const newContent = content.replace(/\[(.*?)\]\(\#(.*?)\)/g, (_match, label, link) => {
-      const newLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&arg1=${encodeURIComponent(link)}`
-      return `[${label}](${newLink})`
-    })
+    const newContent = rewriteLocalHeadingMarkdownLinks(content)
     if (newContent !== content) {
       para.content = newContent
       changed = true
@@ -365,17 +376,14 @@ export async function addItemToFrontmatter(note: ?TNote, key: ?string, value: ?s
     } else {
       thisKey = key
     }
-    if (!thisValue || thisValue === '') {
+    if (!value || value === '') {
       const inputValue = await getInput(`Please enter the value for key '${thisKey}'`, 'OK', 'Add Item to Frontmatter', '')
       if (typeof inputValue !== 'string' || inputValue === '') {
         throw new Error(`Empty value supplied. Stopping.`)
       }
       thisValue = inputValue
     } else {
-      // WARNING: KNOWN BUG - this branch is unreachable. The guard on line 368 tests `thisValue`, which was just initialised to '' and never reassigned before here,
-      // so it is always true (cf. the `key` guard above, which correctly tests the *parameter*). The result is that a `value` passed by the caller is always
-      // ignored and the user is always prompted. The guard should read `if (!value || value === '')`. The cast below is type-only; see LEFT report.
-      thisValue = (value: any)
+      thisValue = value
     }
     const res = updateFrontMatterVars(thisNote, { [(thisKey: string)]: thisValue })
     if (res) {

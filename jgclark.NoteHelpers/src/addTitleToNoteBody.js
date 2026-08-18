@@ -12,6 +12,7 @@ import { displayTitle, getTagParamsFromString } from '@helpers/general'
 import { endOfFrontmatterLineIndex, getFrontmatterAttribute } from '@helpers/NPFrontMatter'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { chooseFolder, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { parseFoldersToIgnore } from './helpers/parseFoldersToIgnore'
 import { getSettings } from './noteHelpers'
 
 export type BodyH1Action = 'add' | 'update'
@@ -140,11 +141,7 @@ export function applyBodyH1FromFrontmatter(note: TNote, plan: BodyH1Plan): boole
 export async function addTitleToNoteBody(params: string = ''): Promise<void> {
   try {
     const config = await getSettings()
-    const foldersToIgnoreSetting = config?.foldersToIgnore ?? ''
-    const foldersToIgnore: Array<string> = foldersToIgnoreSetting
-      .split(',')
-      .map((folder) => folder.trim())
-      .filter(Boolean)
+    const foldersToIgnore: Array<string> = parseFoldersToIgnore(config?.foldersToIgnore)
 
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
 

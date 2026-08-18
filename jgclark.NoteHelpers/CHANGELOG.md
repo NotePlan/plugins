@@ -5,6 +5,14 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 ## [1.4.0] - 2026-08-18 @jgclark
 ### New
 - new **/Add title to note body** command: for a chosen folder and its subfolders, adds any missing H1 at the start of note body from the frontmatter `title:` field. If an H1 already exists but does not match `title:`, it is updated from the `title:` field. Dry-runs first (logs the notes that will change, with a warning for H1 updates) and asks for confirmation. Optional `folderToStart` parameter for template/callback. (Team)Space notes are skipped.
+### Fixed
+- **/new note** was always converting the new note to frontmatter, because it looked up the wrong setting key. dev: It now uses `defaultFMText` and only converts when that setting is not blank.
+- **enable heading links** wrote x-callback URLs with `arg1` instead of `arg0`, so they never jumped to the heading.
+- **list/rename inconsistent note filenames** treated a blank 'Folders to ignore' setting as "ignore every note". A blank setting now means ignore no folders.
+- **index folders** ignored the "this folder only" vs "include subfolders" choice and always followed the setting default.
+- **jump to done** threw error if the note had no `## Done` section; it now warns and stops.
+- **list published notes** refresh link did nothing.
+- **add to frontmatter** ignored a `value` passed by x-callback/template and always prompted.
 
 ## [1.3.7] - 2026-08-03
 - Fix to **inconsistent filenames** commands possibly not honouring 'folders to ignore' setting
