@@ -1064,7 +1064,7 @@ function render() {
   // "^G runs" became "^G rules" once ←/→ existed -- with run *navigation* on
   // the same bar, "runs" read as though ^G moved between them.
   const full = ` TAB: context (match+N lines)   ←/→ prev/next run   ^T times   ^G rules   ^L clear display   ^B/^F page   ^P/^N line   ^A/^E top/end   ^C quit`
-  const compact = ` TAB: context   ←/→ run   ^T times   ^G rules   ^B/^F page   ^A/^E top/end   ^C quit`
+  const compact = ` TAB: context   ←/→ run   ^T times   ^G rules   ^B/^F page   ^A/^E top/end   ^L clear  ^C quit`
   const help = full.length <= cols ? full : compact
   buf += `${ESC}[${termRows};1H${ESC}[2K${ESC}[2m${pad(state.status || help, cols)}${ESC}[0m`
 
