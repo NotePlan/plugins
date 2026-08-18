@@ -97,6 +97,41 @@ export function buildReminderDisplayByIdFromReminders(reminders: Array<TReminder
   return map
 }
 
+/**
+ * Strict @remind(:::UUID) pattern in task/note content (global regex).
+ */
+export const RE_REMIND_UUID_IN_CONTENT = /@remind\(:::([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\)/g
+
+/**
+ * Extract Apple Reminder ids referenced by @remind(:::UUID) tokens in task content.
+ * @param {string} content
+ * @returns {Array<string>}
+ */
+export function extractReminderIdsFromTaskContent(content: string): Array<string> {
+  if (!content) {
+    return []
+  }
+  const ids: Array<string> = []
+  const re = new RegExp(RE_REMIND_UUID_IN_CONTENT.source, 'g')
+  let match
+  while ((match = re.exec(content)) !== null) {
+    if (match[1]) {
+      ids.push(match[1])
+    }
+  }
+  return ids
+}
+
+/**
+ * Build a stable list|title key for matching reminder rows to linked tasks.
+ * @param {string} listname
+ * @param {string} title
+ * @returns {string}
+ */
+export function reminderTitleListKey(listname: string, title: string): string {
+  return `${listname}|${title}`
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 // List helpers
 

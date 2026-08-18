@@ -5,6 +5,7 @@ import { CustomConsole } from '@jest/console'
 import { DataStore, Editor, CommandBar, NotePlan, simpleFormatter } from '@mocks/index'
 import {
   buildReminderDisplayByIdFromReminders,
+  extractReminderIdsFromTaskContent,
   compareRemindersByTimePriorityDate,
   dedupeReminderListTitles,
   filterRemindersWhoseTimeHasBeenReached,
@@ -264,6 +265,12 @@ describe(`${PLUGIN_NAME}`, () => {
       ])
       expect(map.abc).toEqual({ color: '#34C759', time: '10:00' })
       expect(Object.keys(map)).toHaveLength(1)
+    })
+
+    test('extractReminderIdsFromTaskContent finds strict @remind(UUID) tokens', () => {
+      const uuid = '123e4567-e89b-12d3-a456-426614174000'
+      expect(extractReminderIdsFromTaskContent(`Buy milk @remind(:::${uuid})`)).toEqual([uuid])
+      expect(extractReminderIdsFromTaskContent('No reminder link')).toEqual([])
     })
   })
 })

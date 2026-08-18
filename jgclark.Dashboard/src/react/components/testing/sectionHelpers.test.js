@@ -417,4 +417,61 @@ describe('sectionHelpers', () => {
       expect(wins.totalCount).toBe(1)
     })
   })
+
+  describe('removeRemindersDuplicatedByLinkedTasks()', () => {
+    const reminderUuid = '123e4567-e89b-12d3-a456-426614174000'
+
+    test('drops reminder row when a task links the same reminder via @remind(UUID)', () => {
+      const sections = [
+        {
+          sectionCode: 'REM',
+          name: 'Reminders',
+          sectionItems: [
+            {
+              ID: 'REM-0',
+              itemType: 'reminder',
+              reminder: { id: reminderUuid, title: 'TEST reminder', listname: 'Church' },
+            },
+          ],
+          totalCount: 1,
+        },
+        {
+          sectionCode: 'DT',
+          name: 'Today',
+          sectionItems: [
+            {
+              ID: 'DT-0',
+              itemType: 'open',
+              para: {
+                filename: '20260818.md',
+                content: `TEST reminder @remind(:::${reminderUuid})`,
+              },
+            },
+          ],
+        },
+      ]
+      const out = sh.removeRemindersDuplicatedByLinkedTasks(sections)
+      expect(out.find((s) => s.sectionCode === 'REM').sectionItems).toHaveLength(0)
+      expect(out.find((s) => s.sectionCode === 'DT').sectionItems).toHaveLength(1)
+      expect(out.find((s) => s.sectionCode === 'REM').totalCount).toBe(0)
+    })
+
+    test('keeps reminder when no linked task exists', () => {
+      const sections = [
+        {
+          sectionCode: 'REM',
+          name: 'Reminders',
+          sectionItems: [
+            {
+              ID: 'REM-0',
+              itemType: 'reminder',
+              reminder: { id: reminderUuid, title: 'Standalone', listname: 'Church' },
+            },
+          ],
+        },
+      ]
+      const out = sh.removeRemindersDuplicatedByLinkedTasks(sections)
+      expect(out[0].sectionItems).toHaveLength(1)
+    })
+  })
 })

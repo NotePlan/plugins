@@ -6,6 +6,7 @@
 
 import type { TSection, TSectionItem, TDashboardSettings, TDashboardSettingsIn, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
 import { allSectionDetails, CAN_HAVE_EMPTY_SECTION_MESSAGES, sectionsPriorityBeforeTagWhenCalendarFocus, treatSingleItemTypesAsZeroItems } from '../../../constants'
+import { extractReminderIdsFromTaskContent, reminderTitleListKey } from '@helpers/NPReminders'
 import { logTimer } from '@helpers/dev.js'
 import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/reactDev'
 
@@ -211,6 +212,93 @@ export function adjustDedupPriorityForCalendarFocus(
   const restAfter = afterTag.filter((code) => !preferBeforeTag.includes(code))
 
   return [...restBefore, ...preferredInOrder, 'TAG', ...restAfter]
+}
+
+/**
+ * When a NotePlan task row links to an Apple Reminder via @remind(:::UUID), drop the matching
+ * reminder row(s) from all sections so only the task is shown.
+ * Matches by reminder id and by list name + title (same text as the Reminder).
+ * @param {Array<TSection>} _sections
+ * @returns {Array<TSection>}
+ */
+export function removeRemindersDuplicatedByLinkedTasks(_sections: Array<TSection>): Array<TSection> {
+  try {
+    if (!_sections || _sections.length === 0) {
+      return _sections
+    }
+
+    const sections: Array<TSection> = JSON.parse(JSON.stringify(_sections))
+    const linkedReminderIds: Set<string> = new Set()
+    const linkedTitleListKeys: Set<string> = new Set()
+    const reminderMetaById: Map<string, { listname: string, title: string }> = new Map()
+
+    for (const section of sections) {
+      for (const item of section.sectionItems || []) {
+        if (item.itemType === 'reminder' && item.reminder?.id) {
+          reminderMetaById.set(item.reminder.id, {
+            listname: item.reminder.listname || '',
+            title: item.reminder.title || '',
+          })
+        }
+      }
+    }
+
+    for (const section of sections) {
+      for (const item of section.sectionItems || []) {
+        const content = item.para?.content
+        if (!content) {
+          continue
+        }
+        const ids = extractReminderIdsFromTaskContent(content)
+        for (const id of ids) {
+          linkedReminderIds.add(id)
+          const meta = reminderMetaById.get(id)
+          if (meta) {
+            linkedTitleListKeys.add(reminderTitleListKey(meta.listname, meta.title))
+          }
+        }
+      }
+    }
+
+    if (linkedReminderIds.size === 0 && linkedTitleListKeys.size === 0) {
+      return sections
+    }
+
+    for (const section of sections) {
+      const itemCountBefore = section.sectionItems.length
+      section.sectionItems = section.sectionItems.filter((item) => {
+        if (item.itemType !== 'reminder' || !item.reminder) {
+          return true
+        }
+        const reminder = item.reminder
+        if (reminder.id && linkedReminderIds.has(reminder.id)) {
+          return false
+        }
+        const titleListKey = reminderTitleListKey(reminder.listname || '', reminder.title || '')
+        if (linkedTitleListKeys.has(titleListKey)) {
+          return false
+        }
+        return true
+      })
+
+      const removedCount = itemCountBefore - section.sectionItems.length
+      if (removedCount > 0) {
+        const realItemsRemaining = section.sectionItems.filter(
+          (item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType),
+        ).length
+        if (typeof section.totalCount === 'number') {
+          section.totalCount = Math.max(realItemsRemaining, section.totalCount - removedCount)
+        } else {
+          section.totalCount = realItemsRemaining
+        }
+      }
+    }
+
+    return sections
+  } catch (error) {
+    logError('removeRemindersDuplicatedByLinkedTasks', `Error: ${error}. Returning unchanged sections instead.`)
+    return _sections
+  }
 }
 
 /**

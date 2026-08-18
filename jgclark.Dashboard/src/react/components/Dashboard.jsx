@@ -20,7 +20,7 @@ import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettin
 import type { TActionButton, TSettingItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
-import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, countSectionsThatWouldDisplay, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
+import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, countSectionsThatWouldDisplay, sortSections, showSectionSettingItems, removeRemindersDuplicatedByLinkedTasks } from './Section/sectionHelpers.js'
 import { calculateMaxPriorityAcrossAllSections } from './Section/useSectionSortAndFilter.jsx'
 import Header from './Header'
 import IdleTimer from './IdleTimer.jsx'
@@ -109,6 +109,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     let workingSections = origSections.slice()
     // If wanted, inject the synthetic Wins section built from priority-4 items in current calendar sections
     workingSections = injectSyntheticWinsSection(workingSections, dashboardSettings)
+    // Drop Apple Reminder rows when the same item is already shown as a NotePlan task (@remind link)
+    workingSections = removeRemindersDuplicatedByLinkedTasks(workingSections.slice())
     if (workingSections.length >= 1 && dashboardSettings?.hideDuplicates) {
       // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
 
