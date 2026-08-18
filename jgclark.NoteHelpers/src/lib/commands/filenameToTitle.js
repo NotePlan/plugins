@@ -4,7 +4,7 @@ import { makeNoteTitleMatchFilename } from '../../helpers/makeNoteTitleMatchFile
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 
 /**
- * Renames the current note to match its title.
+ * Reset the current note's title to match its filename.
  * @returns void
  */
 export async function filenameToTitle(): Promise<void> {

@@ -5,7 +5,7 @@ import { CustomConsole } from '@jest/console'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, Note, NotePlan, simpleFormatter } from '@mocks/index'
 import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { getInput } from '@helpers/userInput'
-import { addItemToFrontmatter, rewriteLocalHeadingMarkdownLinks } from '../src/noteHelpers'
+import { addItemToFrontmatter, getSettings, parseTriggerString, rewriteLocalHeadingMarkdownLinks } from '../src/noteHelpers'
 
 jest.mock('@helpers/NPFrontMatter', () => {
   const actual = jest.requireActual('@helpers/NPFrontMatter')
@@ -64,5 +64,30 @@ describe('addItemToFrontmatter', () => {
     expect(res).toEqual(true)
     expect(getInput).not.toHaveBeenCalled()
     expect(updateFrontMatterVars).toHaveBeenCalledWith(note, { status: 'active' })
+  })
+})
+
+describe('parseTriggerString', () => {
+  test('parses a frontmatter-style trigger string', () => {
+    expect(parseTriggerString('onEditorWillSave => jgclark.DashboardReact.decideWhetherToUpdateDashboard')).toEqual({
+      triggerName: 'onEditorWillSave',
+      pluginID: 'jgclark.DashboardReact',
+      commandName: 'decideWhetherToUpdateDashboard',
+    })
+  })
+
+  test('returns null for empty or malformed strings', () => {
+    expect(parseTriggerString('')).toEqual(null)
+    expect(parseTriggerString('onEditorWillSave')).toEqual(null)
+    expect(parseTriggerString('onEditorWillSave => onlyonepart')).toEqual(null)
+  })
+})
+
+describe('getSettings', () => {
+  test('returns live DataStore.settings when present', async () => {
+    DataStore.settings = { _logLevel: 'none', defaultFMText: 'author: test', authorID: 'JC', dateFormat: 'ISO' }
+    const config = await getSettings()
+    expect(config.defaultFMText).toEqual('author: test')
+    expect(config.authorID).toEqual('JC')
   })
 })

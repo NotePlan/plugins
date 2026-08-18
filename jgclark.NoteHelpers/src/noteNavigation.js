@@ -52,6 +52,43 @@ export async function jumpToHeading(heading?: string): Promise<void> {
 }
 
 /**
+ * How to open a note in the Editor: prefer filename so duplicate titles cannot open the wrong note.
+ * @author @jgclark
+ * @param {TNote} note
+ * @returns {{ by: 'filename' | 'title', value: string } | null}
+ */
+export function getNoteOpenIdentifier(note: TNote): { by: 'filename' | 'title', value: string } | null {
+  const filename = note.filename
+  if (filename && filename !== '') {
+    return { by: 'filename', value: filename }
+  }
+  const title = note.title
+  if (title && title !== '') {
+    return { by: 'title', value: title }
+  }
+  return null
+}
+
+/**
+ * Open a note in the current Editor, preferring filename over title.
+ * @author @jgclark
+ * @param {TNote} note
+ * @returns {Promise<boolean>}
+ */
+async function openNoteInEditor(note: TNote): Promise<boolean> {
+  const target = getNoteOpenIdentifier(note)
+  if (!target) {
+    return false
+  }
+  if (target.by === 'filename') {
+    await Editor.openNoteByFilename(target.value)
+  } else {
+    await Editor.openNoteByTitle(target.value)
+  }
+  return true
+}
+
+/**
  * Jumps the cursor to the heading of the current note that the user selects (or the note specified by the noteTitle parameter)
  * @author @jgclark
  * @param {string?} noteTitleOrFilename optional title or filename of the note to jump to
@@ -60,27 +97,16 @@ export async function jumpToNoteHeading(noteTitleOrFilename?: string): Promise<v
   try {
     if (noteTitleOrFilename != null && noteTitleOrFilename !== '') {
       const note = await getNote(noteTitleOrFilename)
-      if (note != null && note.title != null) {
-        await Editor.openNoteByTitle(note.title)
-      } else {
-        logError("Couldn't open selected note")
+      if (!note || !(await openNoteInEditor(note))) {
+        logError('jumpToNoteHeading()', "Couldn't open selected note")
         return
       }
     } else {
       // first jump to the note of interest, then to the heading
-      // const notesList = allNotesSortedByChanged()
-      // const re = await CommandBar.showOptions(
-      //   notesList.map((n) => displayTitle(n)),
-      //   'Select note to jump to',
-      // )
-      // const note = notesList[re.index]
       const note = await chooseNoteV2(`Select note to jump to`, allRegularNotesSortedByChanged(), true, true, false, true)
 
-      // Open the note in the Editor
-      if (note != null && note.title != null) {
-        await Editor.openNoteByTitle(note.title)
-      } else {
-        logError("Couldn't open selected note")
+      if (!note || !(await openNoteInEditor(note))) {
+        logError('jumpToNoteHeading()', "Couldn't open selected note")
         return
       }
     }

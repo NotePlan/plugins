@@ -6,13 +6,17 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 ### New
 - new **/Add title to note body** command: for a chosen folder and its subfolders, adds any missing H1 at the start of note body from the frontmatter `title:` field. If an H1 already exists but does not match `title:`, it is updated from the `title:` field. Dry-runs first (logs the notes that will change, with a warning for H1 updates) and asks for confirmation. Optional `folderToStart` parameter for template/callback. (Team)Space notes are skipped.
 ### Fixed
-- **/new note** was always converting the new note to frontmatter, because it looked up the wrong setting key. dev: It now uses `defaultFMText` and only converts when that setting is not blank.
-- **enable heading links** wrote x-callback URLs with `arg1` instead of `arg0`, so they never jumped to the heading.
+- **new note** command was always converting the new note to frontmatter, because it looked up the wrong setting key. dev: It now uses `defaultFMText` and only converts when that setting is not blank.
+- **enable heading links** command wrote x-callback URLs with `arg1` instead of `arg0`, so they never jumped to the heading.
 - **list/rename inconsistent note filenames** treated a blank 'Folders to ignore' setting as "ignore every note". A blank setting now means ignore no folders.
-- **index folders** ignored the "this folder only" vs "include subfolders" choice and always followed the setting default.
-- **jump to done** threw error if the note had no `## Done` section; it now warns and stops.
-- **list published notes** refresh link did nothing.
-- **add to frontmatter** ignored a `value` passed by x-callback/template and always prompted.
+- **index folders** command ignored the "this folder only" vs "include subfolders" choice and always followed the setting default.
+- **jump to done** command threw error if the note had no `## Done` section; it now warns and stops.
+- **list published notes** command refresh link did nothing.
+- **add to frontmatter** command ignored a `value` passed by x-callback/template and always prompted.
+- **reset title to match filename** command could treat the opening `---` of a frontmatter note as the title
+- **add trigger to note** (command x-callback/template) replaced the whole `triggers:` field. It now parses the trigger string and appends.
+- **jump to note's heading** command opened notes by title, which could pick the wrong note when titles collide. It now opens by filename.
+- dev: `getSettings()` could return nothing, so later commands crashed on missing config. It now uses `DataStore.settings` (with a file fallback) and throws a clear error if settings cannot be loaded.
 
 ## [1.3.7] - 2026-08-03
 - Fix to **inconsistent filenames** commands possibly not honouring 'folders to ignore' setting

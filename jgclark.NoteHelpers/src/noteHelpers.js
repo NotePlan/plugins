@@ -9,7 +9,7 @@ import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { convertNoteToFrontmatter, printNote } from '@helpers/NPnote' // Note: not the one in 'NPTemplating'
-import { addTrigger, noteHasFrontMatter, updateFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
+import { addTrigger, updateFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
 import { getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
 import {chooseFolder,chooseOption,getInput,showMessage} from '@helpers/userInput'
 
@@ -26,27 +26,33 @@ export type noteHelpersConfigType = {
   includeSubfolders: boolean,
   indexTitle: string,
   foldersToIgnore: string,
+  dateFormat: string,
+  authorID: string,
+  _logLevel?: string,
 }
 
 /**
- * Get config settings
+ * Get config settings. Prefers live `DataStore.settings`, falling back to the plugin settings file.
+ * Always returns an object or throws. Callers must not assume a void return.
  * @author @jgclark
+ * @returns {Promise<noteHelpersConfigType>}
  */
-export async function getSettings(): Promise<any> {
+export async function getSettings(): Promise<noteHelpersConfigType> {
   try {
-    // Get settings
-    const config: noteHelpersConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-
-    if (config == null || Object.keys(config).length === 0) {
-      await showMessage(`Cannot find settings for the 'NoteHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
-      return
-    } else {
-      // clo(config, `settings`)
-      return config
+    const fromDataStore: any = await DataStore.settings
+    if (fromDataStore && typeof fromDataStore === 'object' && Object.keys(fromDataStore).length > 0) {
+      return fromDataStore
     }
+
+    const config: noteHelpersConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    if (config == null || Object.keys(config).length === 0) {
+      throw new Error(`Cannot find settings for the 'NoteHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+    }
+    return config
   } catch (err) {
     logError(pluginJson, JSP(err))
     await showMessage(err.message)
+    throw err
   }
 }
 
@@ -146,6 +152,41 @@ export async function trashNote(): Promise<void> {
 
 //-----------------------------------------------------------------
 
+export type ParsedTrigger = {
+  triggerName: string,
+  pluginID: string,
+  commandName: string,
+}
+
+/**
+ * Parse a frontmatter-style trigger string such as
+ * `onEditorWillSave => jgclark.DashboardReact.decideWhetherToUpdateDashboard`.
+ * @author @jgclark
+ * @param {string} triggerString
+ * @returns {ParsedTrigger | null}
+ */
+export function parseTriggerString(triggerString: string): ParsedTrigger | null {
+  const trimmed = triggerString.trim()
+  if (trimmed === '') {
+    return null
+  }
+  const parts = trimmed.split('=>').map((s) => s.trim())
+  if (parts.length !== 2 || parts[0] === '' || parts[1] === '') {
+    return null
+  }
+  const triggerName = parts[0]
+  const commandSplit = parts[1].split('.').map((s) => s.trim()).filter(Boolean)
+  if (commandSplit.length < 2) {
+    return null
+  }
+  const commandName = commandSplit[commandSplit.length - 1] ?? ''
+  const pluginID = commandSplit.slice(0, commandSplit.length - 1).join('.')
+  if (!triggerName || !pluginID || !commandName) {
+    return null
+  }
+  return { triggerName, pluginID, commandName }
+}
+
 /**
  * Add trigger to the currently open Editor note, with choice offered to user of which trigger to add (if param not given).
  * It decides which are trigger-related functions by:
@@ -195,22 +236,21 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
     let funcName = ''
 
     if (triggerStringArg !== '') {
+      const parsed = parseTriggerString(triggerStringArg)
+      if (!parsed) {
+        throw new Error(`Could not parse trigger string '${triggerStringArg}'. Expected e.g. 'onEditorWillSave => plugin.id.commandName'.`)
+      }
+      if (!TRIGGER_LIST.some((known) => known === parsed.triggerName)) {
+        throw new Error(`'${parsed.triggerName}' is not a known trigger type (expected one of: ${TRIGGER_LIST.join(', ')}).`)
+      }
       if (!triggerRelatedStrings.includes(triggerStringArg)) {
         logInfo('addTriggerToNote', `Trigger '${triggerStringArg}' not found in the list of triggers I can identify, but will still add it.`)
       }
-
-      // Add to note
-      // Note: using Editor, not Editor.note, in case this is used in a Template
-      // Note: setFrontMatterVars also calls ensureFrontmatter() :-(
-      const hasFMalready = noteHasFrontMatter(Editor)
-      if (hasFMalready) {
-        logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" already has frontmatter`)
-        const res = updateFrontMatterVars(Editor, { triggers: triggerStringArg })
-        logDebug('addTriggerToNote', `- result of updateFrontMatterVars = ${String(res)}`)
+      const res = addTrigger(Editor, parsed.triggerName, parsed.pluginID, parsed.commandName)
+      if (res) {
+        logDebug('addTriggerToNote', `Trigger ${parsed.triggerName} for ${parsed.pluginID} func ${parsed.commandName} was added to note ${displayTitle(Editor)}`)
       } else {
-        logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" doesn't already have frontmatter`)
-        // Note: cast is safe because line 160 above throws if `Editor.note` is null; Flow just loses that refinement across the intervening calls
-        await convertNoteToFrontmatter((Editor.note: any), `triggers: ${triggerStringArg}`)
+        logError('addTriggerToNote', `Trigger ${parsed.triggerName} for ${parsed.pluginID} func ${parsed.commandName} WASN'T added to note ${displayTitle(Editor)}`)
       }
       return
     } else {
