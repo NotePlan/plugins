@@ -4,6 +4,7 @@
 import { CustomConsole } from '@jest/console'
 import {
   classifyPeriodAffinity,
+  getCachedHeaderDoneCount,
   getCompletedDateRangeForCalendarNote,
   getCompletedTaskBreakdownFromNote,
   getDoneDateFromContent,
@@ -283,6 +284,35 @@ describe('jgclark.Dashboard countDoneTasks', () => {
       const result = getNumCompletedTasksFromCalendarNote(monthFilename, false)
 
       expect(result.completedTasks).toBe(2)
+    })
+  })
+
+  describe('getCachedHeaderDoneCount()', () => {
+    const CHANGED_NOTE_FILE = '../../data/jgclark.Dashboard/todaysChangedNoteList.json'
+
+    beforeEach(() => {
+      DataStore.preference = jest.fn()
+      DataStore.fileExists = jest.fn()
+      DataStore.loadData = jest.fn()
+    })
+
+    test('returns 0 when cache is from a previous day', () => {
+      DataStore.preference.mockReturnValue(`${YESTERDAY}T12:00:00.000Z`)
+      DataStore.fileExists.mockReturnValue(true)
+
+      expect(getCachedHeaderDoneCount()).toBe(0)
+      expect(DataStore.loadData).not.toHaveBeenCalled()
+    })
+
+    test('sums completedToday from JSON when cache is from today', () => {
+      DataStore.preference.mockReturnValue(`${TODAY}T12:00:00.000Z`)
+      DataStore.fileExists.mockImplementation((f) => f === CHANGED_NOTE_FILE)
+      DataStore.loadData.mockReturnValue(JSON.stringify([
+        { filename: 'a.md', completedToday: 2, completedTasks: 2 },
+        { filename: 'b.md', completedTasks: 3 },
+      ]))
+
+      expect(getCachedHeaderDoneCount()).toBe(5)
     })
   })
 

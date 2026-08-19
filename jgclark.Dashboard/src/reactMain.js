@@ -2,12 +2,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2026-07-06 for v2.4.0.b62 by @jgclark + @CursorAI
+// Last updated 2026-08-18 for v2.4.0.b65 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
-import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
+import { getCachedHeaderDoneCount, updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getDashboardSettingsDefaults, getLogSettings, getNotePlanSettings, getListOfEnabledSections, setPluginData, cloneDashboardSettingsBeforeSave } from './dashboardHelpers'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
@@ -437,14 +437,22 @@ export async function reactWindowInitialisedSoStartGeneratingData(): Promise<voi
     const enabledSections = getListOfEnabledSections(config)
 
     // Start generating data for the enabled sections
-    if (!config.FFlag_ForceInitialLoadForBrowserDebugging) {
-      await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
-    } else {
-      // If force initial load is enabled, we still need to set firstRun to false
+    if (config.FFlag_ForceInitialLoadForBrowserDebugging) {
       const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+
+      // Note: We need to set firstRun to false when we do a force initial load, otherwise the next time the window is opened it will think it's the first run and do a full refresh again.
       if (reactWindowData?.pluginData) {
         await setPluginData({ firstRun: false }, 'Setting firstRun to false after force initial load')
       }
+      // Sections were already in the initial payload; we now do the potentially expensive header recount as the window is up
+      const NPSettings = getNotePlanSettings()
+      if (NPSettings.doneDatesAvailable) {
+        const totalDoneCount = updateDoneCountsFromChangedNotes('after force initial load, window already shown')
+        await setPluginData({ totalDoneCount, firstRun: false }, 'Updating doneCounts after force initial load')
+      }
+    } else {
+      // Note: Full header done-count recount runs at the end of incrementallyRefreshSomeSections
+      await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
     }
     logTimer('reactWindowInitialisedSoStartGeneratingData', startTime, `----- END OF GENERATION ------`)
     logInfo('reactWindowInitialisedSoStartGeneratingData', `----- END OF GENERATION ------`)
@@ -624,7 +632,8 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
       perspectiveSettings: true,
     },
     dashboardSettingsBaseline: dashboardSettings,
-    totalDoneCount: 0,
+    // Cheap JSON read only. The full recount (all notes changed today) runs after the window is shown.
+    totalDoneCount: NPSettings.doneDatesAvailable ? getCachedHeaderDoneCount() : 0,
     firstRun: true,
     currentMaxPriorityFromAllVisibleSections: 0,
     mainWindowModeSupported: NotePlan.environment.platform === 'macOS' ? usersVersionHas('showInMainWindow') : usersVersionHas('showInMainWindowOniOS'),
@@ -633,13 +642,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
   if (allSectionsResult.reminderDisplayById) {
     pluginData.reminderDisplayById = allSectionsResult.reminderDisplayById
   }
-  logDebug('getPluginData', `After forming initial pluginData, firstRun = false`)
-
-  // Calculate all done task counts (if the appropriate setting is on)
-  if (NPSettings.doneDatesAvailable) {
-    const totalDoneCount = await updateDoneCountsFromChangedNotes('end of getPluginData')
-    pluginData.totalDoneCount = totalDoneCount
-  }
+  logDebug('getPluginData', `After forming initial pluginData (header done count seeded from cache, full recount deferred)`)
 
   return pluginData
 }

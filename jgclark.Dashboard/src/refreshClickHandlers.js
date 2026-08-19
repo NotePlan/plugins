@@ -91,7 +91,7 @@ export async function refreshDashboard(): Promise<void> {
     await setPluginData(changedData, 'Finished Refreshing all enabled sections')
     logTimer('refreshDashboard', startTime, `finished for all enabled sections`)
 
-    // re-calculate all done task counts (if the appropriate setting is on)
+    // Now sections are on screen, calculate Header done counts (this scan can take >1s)
     const NPSettings = await getNotePlanSettings()
     if (NPSettings.doneDatesAvailable) {
       const totalDoneCount = await updateDoneCountsFromChangedNotes(`end of refreshDashboard()`)
@@ -173,7 +173,7 @@ export async function incrementallyRefreshSomeSections(
     await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (after ${timer(start)})`)
     logTimer('incrementallyRefreshSomeSections', start, `- to refresh ${sectionCodes.length} sections: ${sectionCodes.toString()}`)
 
-    // re-calculate done task counts (if the appropriate setting is on)
+    // Header done counts after sections have been sent (this scan can take >1s)
     const NPSettings = await getNotePlanSettings()
     if (NPSettings.doneDatesAvailable) {
       const startTime = new Date()

@@ -14,7 +14,6 @@ import {
   SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS,
   WEBVIEW_WINDOW_ID,
 } from './constants'
-import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import {
   cloneDashboardSettingsBeforeSave,
   getDashboardSettings,
@@ -377,10 +376,9 @@ export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeCl
     logWarn('doCompleteTask', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
     return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't find task to complete. I will refresh this Section in case it has changed since the last refresh.`, errorMessageLevel: 'INFO' })
   } else {
-    // Update the done count for the section
-    await updateDoneCountsFromChangedNotes(`In doCompleteTask() for item ${item?.ID || 'unknown'}`)
-
     // Send instructions to update the window
+    // Note: Do not recount all notes here: that scan blocks REMOVE_LINE.
+    // The header is bumped via INCREMENT_DONE_COUNT; the next section refresh rebuilds todaysChangedNoteList.json.
     logDebug('doCompleteTask', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
     return handlerResult(true, removeLineSuccessActionsForSection(sectionCode, 'INCREMENT_DONE_COUNT'), { updatedParagraph: completedParagraph, sectionCodes: [sectionCode] })
   }

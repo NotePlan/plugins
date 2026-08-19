@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Dashboard plugin functions to count tasks completed today, across all notes,
 // and to count the tasks completed in a particular note.
-// Last updated 2026-07-23 for v2.4.0.b54
+// Last updated 2026-08-19 for v2.4.0.b65 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -44,6 +44,10 @@ import { getNumericPriorityFromPara } from '@helpers/sorting'
  *
  * Header totalDoneCount (from updateDoneCountsFromChangedNotes) = all tasks completed today anywhere
  * (notes changed today), not perspective-scoped. Includes project notes.
+ *
+ * Timing: updateDoneCountsFromChangedNotes walks every note changed today (getNotesChangedInInterval(0)
+ * is typically >1s) and is synchronous. Do not call it before the React window is shown. Seed the header
+ * from getCachedHeaderDoneCount() (JSON read only) and run the full recount after sections have been sent.
  *
  * DT section progress (getDoneCountsForToday) uses forToday affinity + @done(today), not the global total.
  * The same JSON also exposes forOtherPeriod and completedWins.
@@ -493,9 +497,35 @@ export function getDoneCountsForToday(): TDoneCount {
 }
 
 /**
+ * Cheap header seed: sum completed-today counts already stored in CHANGED_NOTE_FILE.
+ * Does not scan notes. Returns 0 if the cache is missing or from a previous day.
+ * @returns {number} cached total completed tasks today, or 0
+ */
+export function getCachedHeaderDoneCount(): number {
+  try {
+    const previousJSDate = DataStore.preference(LAST_TIME_THIS_WAS_RUN_PREF) ?? null
+    if (!previousJSDate || !DataStore.fileExists(CHANGED_NOTE_FILE)) return 0
+    if (moment(previousJSDate).format('YYYY-MM-DD') !== todaysDateISOString) return 0
+
+    const raw = DataStore.loadData(CHANGED_NOTE_FILE, true) ?? '[]'
+    const parsedData = JSON.parse(raw)
+    if (!Array.isArray(parsedData) || parsedData.length === 0) return 0
+
+    return parsedData.reduce((sum, item) => {
+      const n = typeof item.completedToday === 'number' ? item.completedToday : item.completedTasks || 0
+      return sum + n
+    }, 0)
+  } catch (err) {
+    logWarn('getCachedHeaderDoneCount', err.message)
+    return 0
+  }
+}
+
+/**
  * Returns a count of all completed tasks today (for the header).
  * Keeps and updates CHANGED_NOTE_FILE with per-note affinity breakdowns.
  * Only recalculates notes updated since LAST_TIME_THIS_WAS_RUN_PREF.
+ * WARNING: this is synchronous and takes >300ms (and sometimes >1s) from the note-list scan. Call it after the Dashboard window is visible, not during getPluginData.
  * @param {string?} reason for calling this
  * @returns {number} total completed tasks today (all notes / all affinities)
  */

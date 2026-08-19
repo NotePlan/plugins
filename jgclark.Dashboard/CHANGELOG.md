@@ -42,6 +42,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 
 ## [2.4.0.b65] 2026-08-18 (unreleased)
+- Change: Defer the full "tasks closed today" header recount until after the Dashboard window is shown, so it no longer blocks first display. A cached count may appear immediately; the accurate total follows once sections have loaded.
 - dev: Add Apple Reminders cache to reduce repeated calls in initial startup.
 - Change: Inline `@remind(<UUID>)` markers and reminder time chips now use the Apple Reminders list colour (not fixed blue). When a due time is set, the chip now shows bell + time.
 - Change: When an open Apple Reminder has been imported into NP, then they are now de-duplicated. The **task** is kept and the duplicate reminder row is hidden.
