@@ -94,7 +94,7 @@ function emptyRemindersGeneratedData(): TRemindersGeneratedData {
 
 /**
  * Generate data for all the sections (that the user currently wants)
- * Note: don't forget there's also refreshClickHandlers.js::refreshAllSections().
+ * Note: don't forget there's also refreshClickHandlers.js::incrementallyRefreshSomeSections() and refreshSomeSections().
  * @param {boolean} useDemoData? (default: false)
  * @param {boolean} useEditorWherePossible?
  * @param {?TDashboardSettings} configOverride - when set, used instead of disk-only settings (open WebView refresh)

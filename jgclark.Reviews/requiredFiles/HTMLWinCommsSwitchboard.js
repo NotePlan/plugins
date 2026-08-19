@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------
 //  HTMLWinCommsSwitchboard.js - in the HTMLWindow process data and logic to/from the plugin
-// Last updated: 2026-08-17 for v2.0.7 by @jgclark + @CursorAI
+// Last updated: 2026-08-19 for v2.0.7 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------------------
 /**
  * This file is loaded by the browser via <script> tag in the HTML file
@@ -149,11 +149,14 @@ function showProjectListStatusBanner(data) {
   }
   const colorClass = data.color || 'color-info'
   const borderClass = data.border || 'border-info'
-  banner.className = `project-list-status-banner ${colorClass} ${borderClass}`
+  // Apply --visible in this turn (not requestAnimationFrame). RAF does not fire while the plugin
+  // JSContext is beachballing generateAllProjectsList, so the banner would stay at opacity 0 until
+  // the list is about to refresh. Disable enter transition so the first paint is fully visible.
+  banner.style.transition = 'none'
+  banner.className = `project-list-status-banner ${colorClass} ${borderClass} project-list-status-banner--visible`
   banner.innerHTML = `<div class="project-list-status-banner-icon"><i class="fa-solid fa-spinner fa-spin"></i></div><div class="project-list-status-banner-text">${escapeHtmlText(msg)}</div>`
-  requestAnimationFrame(function () {
-    banner.classList.add('project-list-status-banner--visible')
-  })
+  void banner.offsetHeight
+  banner.style.transition = ''
 }
 
 /**

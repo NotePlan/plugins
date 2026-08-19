@@ -8,7 +8,7 @@
 //   (priority / earliest / due date / most recent) -- do not re-sort by priority here.
 // - Limit = only show the first N of M items
 //
-// Last updated 2026-07-29 for v2.4.0.b57, @jgclark + @CursorAI
+// Last updated 2026-08-19 for v2.4.0.b65, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -31,6 +31,28 @@ export function getItemDisplayPriority(item: TSectionItem): number {
     return item.reminder?.priority ?? 0
   }
   return item.para?.priority ?? 0
+}
+
+/**
+ * Apply Filter Priority Items to Apple Reminder rows using only this REM section's own max.
+ * Ignores NP-task currentMaxPriorityFromAllVisibleSections: undated reminders are almost
+ * always priority 0, so a !!! in Today would empty REM after incremental startup.
+ * @param {Array<TSectionItem>} items
+ * @param {boolean} filterByPriority
+ * @param {boolean} showAllTasks
+ * @param {number} remMaxPriority
+ * @returns {Array<TSectionItem>}
+ */
+export function filterRemItemsByOwnPriority(
+  items: Array<TSectionItem>,
+  filterByPriority: boolean,
+  showAllTasks: boolean,
+  remMaxPriority: number,
+): Array<TSectionItem> {
+  if (!filterByPriority || showAllTasks || remMaxPriority <= 0) {
+    return items
+  }
+  return items.filter((item) => getItemDisplayPriority(item) >= remMaxPriority)
 }
 type UseSectionSortAndFilter = {
   filteredItems: Array<TSectionItem>,
@@ -115,20 +137,15 @@ const useSectionSortAndFilter = (
       setItemsToShow(memoizedItems)
       setAllSortedItems(memoizedItems)
     }
-    // Handle REM section differently: generator already sorted (time / priority / date); still apply lower-priority filter
+    // Handle REM section differently: generator already sorted (time / priority / date).
+    // Filter Priority Items uses this section's own reminder.priority only -- not the NP-task global max.
+    // Undated Apple Reminders are usually priority 0; a !!! in Today would otherwise empty REM after startup.
     // Backend may slice to maxItemsToShowInSection and set totalCount; surface that via limitApplied for {countWithLimit}
     // TODO(future): Enable flagged-first sort mention if the API is extended to cover flagged status
     // TODO(later): periodic auto-refresh while Dashboard is visible
     else if (section.sectionCode === 'REM') {
-      let remItems = memoizedItems
       const remMaxPriority = getMaxPriorityInItems(memoizedItems, memoizedDashboardSettings)
-      if (filterByPriority && !showAllTasks) {
-        const priorityToUse =
-          currentMaxPriorityFromAllVisibleSections > -1 ? currentMaxPriorityFromAllVisibleSections : remMaxPriority
-        if (priorityToUse > 0) {
-          remItems = remItems.filter((f) => getItemDisplayPriority(f) >= priorityToUse)
-        }
-      }
+      const remItems = filterRemItemsByOwnPriority(memoizedItems, filterByPriority, showAllTasks, remMaxPriority)
       setItemsToShow(remItems)
       setAllSortedItems(memoizedItems)
       const remTotal = section.totalCount ?? memoizedItems.length

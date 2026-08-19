@@ -176,7 +176,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
 
   // When no sections would render show an INFO banner to confirm this, avoiding the appearance of a bug.
-  // Skip while refreshing or mid perspective-switch (switch clears sections to [] before the batch refresh sets refreshing).
+  // Skip while refreshing or mid perspective-switch (switch clears sections to [] before batchReplaceSections sets refreshing).
   useEffect(() => {
     if (pluginData.firstRun || isRefreshing || pluginData.perspectiveChanging || !dashboardSettings) return
 

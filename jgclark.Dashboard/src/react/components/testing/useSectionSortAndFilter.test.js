@@ -108,6 +108,27 @@ describe('useSectionSortAndFilter', () => {
     })
   })
 
+  describe('filterRemItemsByOwnPriority', () => {
+    const unflagged = { itemType: 'reminder', reminder: { title: 'Milk', priority: 0 } }
+    const flagged = { itemType: 'reminder', reminder: { title: 'Call', priority: 3 } }
+
+    test('keeps unflagged Apple Reminders when filter is off', () => {
+      expect(sh.filterRemItemsByOwnPriority([unflagged], false, false, 0)).toEqual([unflagged])
+    })
+
+    test('keeps unflagged Apple Reminders when this REM section has no flagged items (ignores NP-task global max)', () => {
+      expect(sh.filterRemItemsByOwnPriority([unflagged], true, false, 0)).toEqual([unflagged])
+    })
+
+    test('hides unflagged Apple Reminders when this REM section itself has a higher reminder priority', () => {
+      expect(sh.filterRemItemsByOwnPriority([unflagged, flagged], true, false, 3)).toEqual([flagged])
+    })
+
+    test('keeps all Apple Reminders when show-all is on even if this section has a high rem max', () => {
+      expect(sh.filterRemItemsByOwnPriority([unflagged, flagged], true, true, 3)).toEqual([unflagged, flagged])
+    })
+  })
+
   describe('calculateMaxPriorityAcrossAllSections', () => {
     test("skips WINS section and ignores '>>' wins when treatTopPriorityAsWins is true", () => {
       const sections = [

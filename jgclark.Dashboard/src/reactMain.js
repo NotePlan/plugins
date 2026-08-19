@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2026-08-18 for v2.4.0.b65 by @jgclark + @CursorAI
+// Last updated 2026-08-19 for v2.4.0.b65 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -412,7 +412,7 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       autoTopPadding: true,
       showReloadButton: true,
       reloadPluginID: pluginID,
-      reloadCommandName: "refreshDashboard",
+      reloadCommandName: 'restartDashboard',
     }
     logTimer('showDashboardReact', startTime, `Finished getting initial data. Now will call React:`)
 
@@ -421,6 +421,16 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
   } catch (error) {
     logError('showDashboardReact', JSP(error))
   }
+}
+
+/**
+ * Hidden plugin command used by the Main Window Reload button (and x-callback).
+ * Re-runs the normal startup path so firstRun is true and sections generate incrementally as on first open.
+ * @returns {Promise<void>}
+ */
+export async function restartDashboard(): Promise<void> {
+  logInfo('restartDashboard', `Restarting Dashboard via showDashboardReact`)
+  await showDashboardReact('full')
 }
 
 /**
@@ -607,9 +617,8 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
   logDebug('getPluginData', `Starting ${useDemoData ? 'with DEMO DATA!' : ''}`)
 
   // Important Note: If we need to force load everything, it's easy.
-  // But if we don't then 2 things are needed:
-  // - the getSomeSectionsData() for just the Today section(s)
-  // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSomeSections to generate the others
+  // Otherwise sections start empty; once the HTML window is ready, Dashboard.jsx calls reactWindowInitialisedSoStartGeneratingData,
+  // which runs incrementallyRefreshSomeSections for all enabled sections.
   const allSectionsResult =
     dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true ? await getAllSectionsData(useDemoData, true, true) : { sections: [] }
   const sections = allSectionsResult.sections

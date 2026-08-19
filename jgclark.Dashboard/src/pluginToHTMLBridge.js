@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-08-18 for v2.4.0.b65 by @CursorAI & @jgclark
+// Last updated 2026-08-19 for v2.4.0.b65 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -33,7 +33,7 @@ import {
 } from './clickHandlers'
 import { allCalendarSectionCodes, allSectionCodes, SEARCH_RELATED_SECTION_CODES, SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
 import { updateProjectsListIfProjectSection } from './projectsListSync'
-import { syncReviewsAfterDashboardFolderFilterChange } from './reviewsListSync'
+import { scheduleReviewsListAfterPerspectiveSwitch, syncReviewsAfterDashboardFolderFilterChange } from './reviewsListSync'
 import {
   doAddNewPerspective,
   doCopyPerspective,
@@ -44,7 +44,7 @@ import {
   doSwitchToPerspective,
   doSavePerspectiveSettingsFromBridge,
 } from './perspectiveClickHandlers'
-import { incrementallyRefreshSomeSections, batchRefreshSomeSections, refreshSomeSections } from './refreshClickHandlers'
+import { batchReplaceSections, incrementallyRefreshSomeSections, refreshSomeSections } from './refreshClickHandlers'
 import {
   doAddProgressUpdate,
   doCancelProject,
@@ -84,7 +84,6 @@ import type {
 } from './types'
 import { clo, clof, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '@helpers/dev'
 import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
-import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { getNoteByFilename } from '@helpers/note'
 import { isAppleRemindersCallbackURL } from '@helpers/NPReminders'
 import { usersVersionHas } from '@helpers/NPVersions'
@@ -275,7 +274,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'incrementallyRefreshSomeSections': {
-        // Note: Only used by Dashboard after first section loaded.
+        // First launch / full Refresh: one section at a time so they pop in as generated.
         logInfo('bCDI / incrementallyRefreshSomeSections', `calling incrementallyRefreshSomeSections with data.sectionCodes = ${String(data.sectionCodes)} ...`)
         result = await incrementallyRefreshSomeSections(data)
         break
@@ -868,23 +867,13 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     }
 
     if (actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
-      logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling batchRefreshSomeSections (for ${String(enabledSections)}) ...`)
+      logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling batchReplaceSections (for ${String(enabledSections)}) ...`)
       await setPluginData({ perspectiveChanging: true }, `Starting perspective change`)
-      await batchRefreshSomeSections({ ...data, sectionCodes: enabledSections })
-      logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (should hide modal spinner)`)
-      await setPluginData({ perspectiveChanging: false }, `Ending perspective change`)
+      await batchReplaceSections({ ...data, sectionCodes: enabledSections })
+      logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (spinner cleared in the replace payload)`)
 
-      // Regenerate Reviews project list after sections refresh.
-      // Note: need skipUpdateDashboardIfOpen=true to avoid a Dashboard ↔ Reviews loop.
-      if (pluginIsInstalled('jgclark.Reviews')) {
-        const switchToName = data?.perspectiveName || ''
-        logInfo('processActionOnReturn', `PERSPECTIVE_CHANGED: invoking generateProjectListsAndRenderIfOpen (skip Dashboard invoke) for '${switchToName}'`)
-        try {
-          await DataStore.invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [0, true])
-        } catch (err) {
-          logWarn('processActionOnReturn', `generateProjectListsAndRenderIfOpen for '${switchToName}' failed: ${err.message}`)
-        }
-      }
+      // Reviews Rich list: queue via x-callback (invokePluginCommandByName blocks the JSContext even without await).
+      scheduleReviewsListAfterPerspectiveSwitch(data?.perspectiveName || '')
     }
 
     if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
@@ -896,11 +885,8 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     } else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
       // Note: not used by anything, as at 2.4.0.b18
       logDebug('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(allCalendarSectionCodes)}) ..`)
-      for (const sectionCode of allCalendarSectionCodes) {
-        // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
-        await incrementallyRefreshSomeSections({ ...data, sectionCodes: [sectionCode] })
-      }
-    } else {
+      await incrementallyRefreshSomeSections({ ...data, sectionCodes: allCalendarSectionCodes })
+    } else if (!actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
       // At least update TB section (if enabled) whenever any other refresh path did not already run; merge TB into existing REFRESH_SECTION_IN_JSON sectionCodes when present
       if (enabledSections.includes('TB')) {
         logDebug('processActionOnReturn', `Ensuring REFRESH_SECTION_IN_JSON includes TB ...`)
@@ -923,7 +909,15 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       }
     }
 
-    if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
+    const alreadyDidFullSectionRefresh =
+      actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS') ||
+      actionsOnSuccess.includes('REFRESH_ALL_SECTIONS') ||
+      actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS') ||
+      actionsOnSuccess.includes('PERSPECTIVE_CHANGED')
+
+    if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON') && alreadyDidFullSectionRefresh) {
+      logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON skipped; a full section refresh already ran`)
+    } else if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
       // Prefer explicit handlerResult.sectionCodes, then fall back to data.sectionCodes, then enabled sections, then all sections.
       // This avoids cases (e.g. some addTask flows) where actions request a section refresh but no sectionCodes are provided.
       if (!handlerResult.sectionCodes) {
@@ -940,8 +934,8 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         wantedsectionCodes = allSectionCodes
         logWarn('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided; falling back to allSectionCodes`)
       }
-      logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData (for ['${String(wantedsectionCodes)}']) ...`)
-      await incrementallyRefreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
+      logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling refreshSomeSections (for ['${String(wantedsectionCodes)}']) ...`)
+      await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
     }
 
     if (actionsOnSuccess.includes('START_DELAYED_REFRESH_TIMER')) {

@@ -35,9 +35,30 @@ To aid coding, there are many types defined in `types.js`. The core ones are `TS
 
 React doesn't seem to have a way of queue-ing up data for processing.
 So there's a slightly complicated initial back-and-forth to make sure that the front-end window is ready to start receiving Sections:
-- in reactMain.js: `showDashboardReact()` -> `getInitialDataForReactWindow()` -> `getPluginData()`
-- Dashboard component `useEffect` on startup sends x-callback `reactWindowInitialised` command to plugin
-- That then kicks off `incrementallyRefreshSomeSections()`.
+- in reactMain.js: `showDashboardReact()` -> `getInitialDataForReactWindow()` -> `getPluginData()` (sections usually `[]` unless force-load)
+- Dashboard component `useEffect` on startup sends `reactWindowInitialisedSoStartGeneratingData` to the plugin
+- That then kicks off `incrementallyRefreshSomeSections()` for all enabled sections.
+
+### Plugin vs WebView: how `setPluginData` moves data
+
+The plugin JSContext and the Dashboard HTML WebView are **two separate JavaScript heaps**. They do not share memory. The live `pluginData` (sections, settings, `perspectiveChanging`, scroll passthrough, and so on) lives in the WebView as `globalSharedData`. Helpers in `@helpers/HTMLView.js` cross that gap with `HTMLView.runJavaScript`.
+
+`setPluginData(changeObject)` in `dashboardHelpers.js` is a **partial update** helper. It cannot just patch one field in the WebView in place. It:
+
+1. **Reads** the current window object: `getGlobalSharedData()` runs `globalSharedData;` in the WebView. NotePlan serializes that value (the whole tree, including `pluginData.sections`) back to the plugin.
+2. **Merges** `changeObject` onto `pluginData` in the plugin.
+3. **Writes** the full object into the WebView (`updateGlobalSharedData`, stringify plugin -> WebView) and `postMessage`s `UPDATE_DATA` so React re-renders (`sendToHTMLWindow`, another stringify of the same payload).
+
+That read in step 1 is why a tiny patch can be expensive. `setPluginData({ perspectiveChanging: false })` does not mean "send a boolean". It means "give me the entire window state, flip this flag, send the entire state back." If the WebView already holds a full section list, step 1 copies all of those sections **back into the plugin** and blocks the WebView from painting while that round-trip runs.
+
+What is cheap vs what is required:
+
+- **Required:** sending newly generated sections **plugin -> WebView** once so React can paint. The plugin already has that array (it just built it).
+- **Avoid after a large send:** a follow-up `setPluginData` whose only job is a flag. Fold the flag into the payload you already have (`perspectiveChanging: false` on the `batchReplaceSections` replace; spinner / `firstRun` on the last incremental section) so you do not immediately `getGlobalSharedData` a tree you just wrote.
+
+The `getGlobalSharedData` **inside** that replace `setPluginData` still runs, but it happens **before** the new sections are in the window (perspective switch has already set `sections: []`), so that read is small. The cost we care about is not "JSON exists"; it is "serialize the full section list **back** to the plugin right after we posted it."
+
+Awaited work on the **plugin** JSContext after posting `UPDATE_DATA` also blocks paint. Perspective switch used to `await` Reviews `generateProjectListsAndRenderIfOpen`. `skipUpdateDashboardIfOpen` only skips a second Dashboard PROJ* refresh; the project-list scan still runs in the foreground on the same context. Dashboard now queues that invoke via x-callback (`NotePlan.openURL`) only when the Rich Project List is open, so the Dashboard command can finish and the WebView can paint. `DataStore.invokePluginCommandByName` is **not** fire-and-forget: even without `await` it runs the other plugin on the same JSContext before returning (measured: ~13s `generateAllProjectsList` before Dashboard could paint). The follow-up must stay a **synchronous** function (no `async`/`await`, no `delayMs` / `new Promise`): NotePlan Beta throws `JSPromiseConstructor is not a constructor`. The x-callback passes `paintFirst` so Reviews can show its updating banner and yield before that scan; otherwise the Projects List banner would also stay invisible until the list refresh. If the Rich list is closed, skip the invoke (PROJ* in `batchReplace` already regenerates `allProjectsList.json` when those sections are enabled).
 
 
 ## Dashboard Settings
@@ -54,15 +75,15 @@ These are available through the following functions:
 
 Settings ultimately live in the plugin's `settings.json` (surfaced via `DataStore.settings` / `getSettings` for `jgclark.Dashboard`).
 - **Schema / UI definitions** for what the Dashboard exposes as settings are still in `src/dashboardSettings.js` (filters, section toggles, etc.).
-- **Server-side load/save** for Dashboard + Perspectives goes through `src/dashboardPluginSettings.js` (see below). `getDashboardSettings()` / `saveDashboardSettings()` in `dashboardHelpers.js` read/write the `dashboardSettings` blob **via** `loadDashboardPluginSettings()` → parse/merge defaults → `saveDashboardPluginSettings()`, not by touching the raw plugin object alone.
+- **Server-side load/save** for Dashboard + Perspectives goes through `src/dashboardPluginSettings.js` (see below). `getDashboardSettings()` / `saveDashboardSettings()` in `dashboardHelpers.js` read/write the `dashboardSettings` blob **via** `loadDashboardPluginSettings()` -> parse/merge defaults -> `saveDashboardPluginSettings()`, not by touching the raw plugin object alone.
 - On the React side, `dashboardSettings` state lives in `AppContext` (a `useReducer`). When the user changes a setting (filter switches, Settings dialog, etc.), code calls `dispatchDashboardSettings`. The reducer applies `applyDerivedDashboardSettings()` (coupled settings such as Wins section visibility). The custom hook `useSyncDashboardSettingsWithPlugin` (in `src/react/customHooks/`) watches that state and sends `dashboardSettingsChanged` to the plugin when appropriate (see **Custom Hooks** below). Plugin-side handling that persists those changes flows through `doSaveDashboardSettingsFromBridge()` in `clickHandlers.js`, which runs `prepareDashboardSettingsForSave()` then `saveDashboardPluginSettings(...)`.
 
 ### Plugin `settings.json` I/O (`dashboardPluginSettings.js`)
 This module is the **single choke point** for reading and writing Dashboard's persisted JSON (dashboard blob, perspective array, logging keys):
 
-- `loadDashboardPluginSettings(autoRepairOnLoad?)` — loads via `getSettings`, runs `sanitizeDashboardPluginSettings` with `cleanPerspectiveDefs: false` (structural fixes only — does **not** rewrite every perspective's `dashboardSettings` on ordinary opens), caches the result in memory, and can **auto-persist** if the file needed structural repair (duplicate root keys from an array-spread mistake, orphaned numeric keys, JSON strings where objects were expected, `perspectiveSettings` stored as an object with numeric indices, etc.).
-- `saveDashboardPluginSettings(settings, triggerUpdateMechanism?)` — runs sanitize with `cleanPerspectiveDefs: true` so each perspective def's embedded `dashboardSettings` is cleaned consistently on write, then `saveSettings`, then refreshes cache (or `invalidateDashboardPluginSettingsCache()` if save fails).
-- `repairDashboardSettings` — hidden command that backs up, runs full sanitization, and writes fixes; use when diagnosing corrupt `settings.json`.
+- `loadDashboardPluginSettings(autoRepairOnLoad?)` -- loads via `getSettings`, runs `sanitizeDashboardPluginSettings` with `cleanPerspectiveDefs: false` (structural fixes only -- does **not** rewrite every perspective's `dashboardSettings` on ordinary opens), caches the result in memory, and can **auto-persist** if the file needed structural repair (duplicate root keys from an array-spread mistake, orphaned numeric keys, JSON strings where objects were expected, `perspectiveSettings` stored as an object with numeric indices, etc.).
+- `saveDashboardPluginSettings(settings, triggerUpdateMechanism?)` -- runs sanitize with `cleanPerspectiveDefs: true` so each perspective def's embedded `dashboardSettings` is cleaned consistently on write, then `saveSettings`, then refreshes cache (or `invalidateDashboardPluginSettingsCache()` if save fails).
+- `repairDashboardSettings` -- hidden command that backs up, runs full sanitization, and writes fixes; use when diagnosing corrupt `settings.json`.
 - `sanitizeDashboardPluginSettings` only allows an explicit whitelist of **root keys** (`dashboardSettings`, `perspectiveSettings`, plugin id / logging keys) so stray duplicates cannot accumulate at the root.
 
 Heavy refresh paths (sections, diagnostics) reuse the cached plugin settings rather than re-reading the file each time.
@@ -73,7 +94,7 @@ Heavy refresh paths (sections, diagnostics) reuse the cached plugin settings rat
 ### What a Perspective is
 A **Perspective** is a saved snapshot of dashboard/filter settings, stored as:
 - `name` (string) -- `"-"` is the special default perspective; it cannot be deleted or renamed
-- `dashboardSettings` (object) -- subset of keys that belong in a perspective (see `cleanDashboardSettingsInAPerspective()` in `dashboardSettingsClean.js` — also re-exported from `perspectiveHelpers.js` for existing imports)
+- `dashboardSettings` (object) -- subset of keys that belong in a perspective (see `cleanDashboardSettingsInAPerspective()` in `dashboardSettingsClean.js` -- also re-exported from `perspectiveHelpers.js` for existing imports)
 - `isActive` (boolean) -- exactly one def in the array should have `isActive: true`
 - `isModified` (boolean) -- `true` when the live `dashboardSettings` in the window have diverged from the saved def for the active named perspective; shown in the UI as `Name*`
 
@@ -85,7 +106,7 @@ A **Perspective** is a saved snapshot of dashboard/filter settings, stored as:
 
 More design notes live in the comment block at the top of `perspectiveHelpers.js`.
 
-### Persistence (plugin `settings.json`; same object as NP’s `DataStore.settings` snapshot for `jgclark.Dashboard`)
+### Persistence (plugin `settings.json`; same object as NP's `DataStore.settings` snapshot for `jgclark.Dashboard`)
 - `perspectiveSettings` is stored in plugin settings as an **array** of perspective defs (`Array<TPerspectiveDef>`). Legacy files may have had stringified JSON or a numeric-key object; `sanitizeDashboardPluginSettings` in `dashboardPluginSettings.js` normalizes those shapes when loading or saving.
 - **Read on the plugin:** `loadPerspectiveDefsFromPluginSettings()` in `perspectiveHelpers.js` loads the full plugin settings via `loadDashboardPluginSettings()`, then reads `perspectiveSettings` (with fallbacks / defaults creation if missing). Used on window open **and** whenever handlers need fresh defs.
 - **Write on the plugin:** `savePerspectiveSettings(allDefs)` merges `perspectiveSettings` into the in-memory plugin-settings object from `loadDashboardPluginSettings()` and calls `saveDashboardPluginSettings` (same path as Dashboard saves). Perspective-only commands that update **both** top-level dashboard and defs (e.g. switch-after-add) also use `saveDashboardPluginSettings` with a merged object so reopening cannot show a stale live `dashboardSettings` while the dropdown shows a different active perspective.
@@ -95,7 +116,7 @@ More design notes live in the comment block at the top of `perspectiveHelpers.js
 ### Merging live `dashboardSettings` from a def (`mergeDashboardSettingsForPerspectiveDef`)
 When applying a perspective to the **live** top-level Dashboard settings (perspective switch, bulk save from Perspectives UI/JSON editor, adding a new active perspective), the plugin uses `mergeDashboardSettingsForPerspectiveDef()` in `perspectiveHelpers.js`:
 
-- Starts from Dashboard defaults and non–tag-section live keys (`showTagSection_*` and `includedTeamspaces` are taken from the **previous** live settings, matching switch behaviour).
+- Starts from Dashboard defaults and non-tag-section live keys (`showTagSection_*` and `includedTeamspaces` are taken from the **previous** live settings, matching switch behaviour).
 - Overlays the def's saved `dashboardSettings`.
 - Runs `removeInvalidTagSections` and optional `lastChange`.
 
@@ -142,7 +163,7 @@ Routed in `pluginToHTMLBridge.js` -> `perspectiveClickHandlers.js` (and helpers 
 |----------------|------|
 | `switchToPerspective` | Set active def, merge live `dashboardSettings` via `mergeDashboardSettingsForPerspectiveDef`, save via `saveDashboardPluginSettings`, refresh sections (`doSwitchToPerspective`) |
 | `savePerspective` | Copy live `dashboardSettings` into the active named def (`cleanDashboardSettingsInAPerspective`), clear `isModified` |
-| `savePerspectiveAndSwitch` | `doSavePerspectiveAndSwitchToPerspective`: save active named perspective **then** switch — used by `PerspectiveSelector` for Save+Switch (single round-trip). |
+| `savePerspectiveAndSwitch` | `doSavePerspectiveAndSwitchToPerspective`: save active named perspective **then** switch -- used by `PerspectiveSelector` for Save+Switch (single round-trip). |
 | `savePerspectiveAs` / `addNewPerspective` | Add a new named perspective; merges/saves **top-level** `dashboardSettings` so reopen matches the new active def |
 | `deletePerspective` | Remove def; may switch to `"-"`; `setPluginData` reflects post-switch defs when deleting the active perspective |
 | `renamePerspective` | Rename def (UI may optimistically `dispatchPerspectiveSettings` before the plugin confirms) |
@@ -159,7 +180,7 @@ Routed in `pluginToHTMLBridge.js` -> `perspectiveClickHandlers.js` (and helpers 
 
 ## Tag mention cache (`tagMentionCache.js`)
 
-The Dashboard keeps a **plugin-local cache** of which notes contain which tags/mentions, so TAG sections can avoid scanning the whole vault on every refresh. Implementation lives in `src/tagMentionCache.js`; TAG section generation uses it from `dataGenerationTags.js` when tag cache is enabled (default since v2.4.0.b44 — cache is **on** unless `FFlag_UseTagCache: false` is present in top-level `dashboardSettings`; the key is not persisted until explicitly set). The Feature Flags menu (where devs can toggle this) is shown only in DEV logging mode or when hidden `showFeatureFlagMenu: true` is set in `dashboardSettings`.
+The Dashboard keeps a **plugin-local cache** of which notes contain which tags/mentions, so TAG sections can avoid scanning the whole vault on every refresh. Implementation lives in `src/tagMentionCache.js`; TAG section generation uses it from `dataGenerationTags.js` when tag cache is enabled (default since v2.4.0.b44 -- cache is **on** unless `FFlag_UseTagCache: false` is present in top-level `dashboardSettings`; the key is not persisted until explicitly set). The Feature Flags menu (where devs can toggle this) is shown only in DEV logging mode or when hidden `showFeatureFlagMenu: true` is set in `dashboardSettings`.
 
 ### Two files
 
@@ -168,15 +189,15 @@ The Dashboard keeps a **plugin-local cache** of which notes contain which tags/m
 | `wantedTagMentionsList.json` | **Definitions:** union of tags/mentions the cache should index (`items` array) |
 | `tagMentionCache.json` | **Body:** per-note hits for those wanted items (`regularNotes`, `calendarNotes`, `wantedItems`, timestamps) |
 
-Only tags/mentions on the wanted list (`wantedTagMentionsList.json`) are indexed — caching every tag in a note was tried but made the cache file ~20x larger. `TAG_CACHE_ONLY_FOR_OPEN_ITEMS` limits which paragraph types are considered when building the cache.
+Only tags/mentions on the wanted list (`wantedTagMentionsList.json`) are indexed -- caching every tag in a note was tried but made the cache file ~20x larger. `TAG_CACHE_ONLY_FOR_OPEN_ITEMS` limits which paragraph types are considered when building the cache.
 
-### Which perspectives’ `tagsToShow` are tracked?
+### Which perspectives' `tagsToShow` are tracked?
 
-**All saved perspectives — not only the active one.** The wanted list is the **union** of every perspective def’s `tagsToShow`, not the current perspective alone.
+**All saved perspectives -- not only the active one.** The wanted list is the **union** of every perspective def's `tagsToShow`, not the current perspective alone.
 
 - `getListOfWantedTagsAndMentionsFromAllPerspectives()` (in `tagMentionCache.js`) walks every `TPerspectiveDef` and adds each `dashboardSettings.tagsToShow` entry to a `Set`.
 - `updateTagMentionCacheDefinitionsFromAllPerspectives(allDefs)` writes that union to `wantedTagMentionsList.json` via `setTagMentionCacheDefinitions()`.
-- `saveDashboardPluginSettings()` calls `updateTagMentionCacheDefinitionsFromAllPerspectives()` whenever `perspectiveSettings` is written — including **Save Perspective** (`doSavePerspective`), perspective switch saves, and JSON bulk edit. This is the main persistence path.
+- `saveDashboardPluginSettings()` calls `updateTagMentionCacheDefinitionsFromAllPerspectives()` whenever `perspectiveSettings` is written -- including **Save Perspective** (`doSavePerspective`), perspective switch saves, and JSON bulk edit. This is the main persistence path.
 - `savePerspectiveSettings()` in `perspectiveHelpers.js` also calls the updater before delegating to `saveDashboardPluginSettings()` (copy/rename/add/delete flows).
 - `onUpdateOrInstall` and `repairDashboardSettings` refresh the wanted list from all saved defs before cache rebuild or when repair is run (covers stale files after upgrade).
 - `generateTagMentionCache()` / `updateTagMentionCache()` read the wanted list with `getTagMentionCacheDefinitions()`; they do not read live `dashboardSettings.tagsToShow` for the active perspective directly.
@@ -187,10 +208,10 @@ Only tags/mentions on the wanted list (`wantedTagMentionsList.json`) are indexed
 
 If `tagsToShow` changes in the UI but the user has not saved perspectives yet, the wanted list can be stale until the next save that persists `perspectiveSettings` (e.g. **Save Perspective**). `generateTagMentionCache` documents this; it is usually corrected when TAG sections run:
 
-- `ensureCacheIsReadyForTags()` — if a requested tag is missing from the wanted list, logs a warning, calls `addTagMentionCacheDefinitions()`, and schedules regeneration.
-- `getTaggedSectionData()` — if the cache flag is on but the cache is not ready for that tag, adds the tag and schedules generation.
+- `ensureCacheIsReadyForTags()` -- if a requested tag is missing from the wanted list, logs a warning, calls `addTagMentionCacheDefinitions()`, and schedules regeneration.
+- `getTaggedSectionData()` -- if the cache flag is on but the cache is not ready for that tag, adds the tag and schedules generation.
 
-So the steady state is “union of all saved perspectives,” with **lazy** additions for tags the dashboard is actively generating before save.
+So the steady state is "union of all saved perspectives," with **lazy** additions for tags the dashboard is actively generating before save.
 
 ### TAG section IDs and dedupe hardening
 
@@ -217,26 +238,62 @@ Additionally, synthetic sections (e.g. `WINS`) are stripped from pluginData in t
 
 ## Section refresh functions (`refreshClickHandlers.js`)
 
-There are three related backend functions that re-generate a subset of Sections and push them to the React window. They differ mainly in **how many `setPluginData()` calls (and therefore React redraws)** they trigger:
+There are three related backend functions that re-generate a subset of Sections and push them to the React window. They differ in **merge vs replace**, **how many `setPluginData()` calls (and therefore React redraws)** they trigger, and **when they are the right tool**. Main Window Reload is not one of these: it calls `restartDashboard()` which re-runs `showDashboardReact()`.
 
-- `refreshSomeSections(data, calledByTrigger?)` — the core worker. Refreshes the `sectionCodes` in `data` and does the merge logic: it generates the wanted sections via `getSomeSectionsData()`, then **merges** them into the existing `pluginData.sections` (stripping synthetic sections, removing referenced sections when `separateSectionForReferencedNotes` is off, and de-duping TAG rows via `syncTagSectionsWithSettings()`). Uses the live in-memory settings (`getDashboardSettingsForOpenWebView()`), not the on-disk settings. One `setPluginData()` per call.
-- `incrementallyRefreshSomeSections(data, calledByTrigger?, setFullRefreshDate?)` — loops over `sectionCodes` and calls `refreshSomeSections()` **once per section**, so each section is sent to React as soon as it is generated (**N updates**, sections "pop in" progressively). Used on **first launch** (kicked off from a `useEffect` in `Dashboard.jsx` after Today loads) to improve perceived speed.
-- `batchRefreshSomeSections(data)` (formerly `refreshSectionsBatch`) — generates **all** the requested sections in one `getSomeSectionsData(sectionCodes, ...)` call and sends a **single** `setPluginData()` that **replaces** `sections` wholesale (**1 update**, no intermediate flicker). It does **not** run the merge logic, so the caller must pass the complete set of sectionCodes to show. Used for **perspective switching** to avoid N separate redraws.
+### How they work
 
-All three share the same tail behaviour: recalculate done-task counts (when `doneDatesAvailable`) and kick off a scheduled tag-mention-cache rebuild if one is pending.
+- `refreshSomeSections(data, calledByTrigger?, cachedRemindersData?, extraPluginDataPatch?)` -- the core worker. Refreshes the `sectionCodes` in `data` and **merges** them into the existing `pluginData.sections` (stripping synthetic sections, removing referenced sections when `separateSectionForReferencedNotes` is off, and de-duping TAG rows via `syncTagSectionsWithSettings()`). Uses the live in-memory settings (`getDashboardSettingsForOpenWebView()`), not the on-disk settings. One `setPluginData()` per call (the generated sections plus any `extraPluginDataPatch`).
+- `incrementallyRefreshSomeSections(data, calledByTrigger?, setFullRefreshDate?)` -- loops over `sectionCodes` and calls `refreshSomeSections()` **once per section**, so each section is sent to React as soon as it is generated (**N updates**, sections "pop in" progressively). Reminders are prefetched once for the batch. Spinner / `firstRun` / `lastFullRefresh` are included on the **last** section update rather than a trailing extra redraw.
+- `batchReplaceSections(data)` (formerly `refreshSectionsBatch` / `batchRefreshSomeSections`) -- generates **all** the requested sections in one `getSomeSectionsData(sectionCodes, ...)` call and sends a **single** `setPluginData()` that **replaces** `sections` wholesale (**1 update**, no intermediate flicker). It does **not** run the merge logic, so the caller must pass the complete set of sectionCodes to show.
+
+`incrementallyRefreshSomeSections` recounts header done-task totals (when `doneDatesAvailable`) after sections are sent, and kicks off a scheduled tag-mention-cache rebuild if one is pending. `refreshSomeSections` does neither; that is why it is cheap enough for small post-action updates. `batchReplaceSections` also skips the done-count recount: the header total is all completions today anywhere (not perspective-scoped), so a switch cannot change it, and the scan is often >1s -- it used to leave the "Switching perspectives" spinner up after the new sections were already painted. It may still kick off a scheduled tag-cache rebuild without awaiting it.
+
+(The "Hard Refresh" button (aka 'Main Window Reload') uses hidden command `restartDashboard()`, which calls `showDashboardReact('full')`. That rebuilds the React window with `firstRun: true` and then generates sections incrementally via `reactWindowInitialisedSoStartGeneratingData`.)
+
+### When to use which
+
+Pick by **how much of the dashboard must change** and **whether the user is waiting on an empty or stale screen**.
+
+**Use `refreshSomeSections` (default for partial updates)** when only some sections need regenerating and the rest of `pluginData.sections` should stay as they are:
+
+- After a task/reminder action (`REFRESH_SECTION_IN_JSON` in `processActionOnReturn`: complete, move, add, unschedule, and similar).
+- Editor-save trigger (`decideWhetherToUpdateDashboard` in `dashboardHooks.js`).
+- Cross-plugin / command callers that already know the codes (`refreshSectionByCode`, `refreshSectionsByCode`).
+- Any other 1-few sectionCodes list. One merge update is enough; incremental pop-in is wasted redraws.
+
+Do not also call incremental or batch for the same action if this already ran, or if a full refresh already ran in the same `processActionOnReturn` pass.
+
+**Use `incrementallyRefreshSomeSections` when the user should see sections appear (or refresh) one after another**, and you are regenerating a **large** set (typically all enabled sections):
+
+- First launch: `reactWindowInitialisedSoStartGeneratingData` after `Dashboard.jsx` reports the window is ready (sections start as `[]`).
+- User Refresh / `refreshEnabledSections` / `REFRESH_ALL_ENABLED_SECTIONS` (and `REFRESH_ALL_SECTIONS` when that action is used).
+
+Because it **merges**, leftover rows from a previous perspective can remain if you start from a populated list. Perspective switch already writes `sections: []` in `doSwitchToPerspective` before generation, so merge-onto-empty would not keep old rows. Do not use incremental for switch anyway: the switch spinner hides pop-in, and N `setPluginData` calls would re-serialize a growing section list (see **Plugin vs WebView** under Data Passing). Do not use it for a handful of post-action sectionCodes.
+
+**Use `batchReplaceSections` when you need one paint of a complete section list.** Replace vs merge is not the main reason on perspective switch (the `sections: []` wipe already drops old rows). The surviving reasons are one cheap `getGlobalSharedData` while sections are still empty, then a single write, plus skipping the header done-count recount:
+
+- Perspective switch (`PERSPECTIVE_CHANGED`): pass the **complete** enabled-section list for the new perspective. Clears `perspectiveChanging` in that same payload. Do not follow with a second `setPluginData` only to drop the spinner -- that would `getGlobalSharedData` the full section list back into the plugin and block paint (see **Plugin vs WebView** under Data Passing). If the Rich list is open, queue Reviews regen with an x-callback (`NotePlan.openURL`) and `paintFirst` so that window can show its banner before the scan; `invokePluginCommandByName` still blocks even without `await`.
+
+If you only have a partial `sectionCodes` list, batch will **drop** every section not in that list. That is correct for a perspective change and wrong for "refresh Today after completing a task".
+
+Quick chooser:
+
+- Few codes, keep other sections -- `refreshSomeSections`
+- Many codes, user waiting, progressive display is a feature -- `incrementallyRefreshSomeSections`
+- Many codes, one paint after an empty snapshot (perspective switch) -- `batchReplaceSections`
 
 ## Reminders section (`REM`)
 
-Controlled by Filter **`showRemindersSection`** (master **Show Reminders** - when off, no reminders anywhere) plus Settings under **Reminders Section**: **`showUndatedOverdueReminders`** (undated REM section + past-dated → OVERDUE), **`includedReminderLists`**, and **`hideTimedRemindersUntilDue`** (default on). **`showCurrentReminders`** remains a hidden setting (forced on for now; injects into Timed / Today / Yesterday / Tomorrow when the master is on). Backend: `dataGenerationReminders.js` (`getRemindersGeneratedData()`). Frontend: `ReminderItem.jsx` via `ItemRow`.
+Controlled by Filter **`showRemindersSection`** (master **Show Reminders** - when off, no reminders anywhere) plus Settings under **Reminders Section**: **`showUndatedOverdueReminders`** (undated REM section + past-dated -> OVERDUE), **`includedReminderLists`**, and **`hideTimedRemindersUntilDue`** (default on). **`showCurrentReminders`** remains a hidden setting (forced on for now; injects into Timed / Today / Yesterday / Tomorrow when the master is on). Backend: `dataGenerationReminders.js` (`getRemindersGeneratedData()`). Frontend: `ReminderItem.jsx` via `ItemRow`.
 
 Live data comes from incomplete Apple Reminders via `fetchIncompleteRemindersByLists()` in `@helpers/NPReminders` (lists from `getEnabledReminderLists()`, or Perspective override via `includedReminderLists`). Items are split into:
-- timed today → Time Blocks (`TB`); when `hideTimedRemindersUntilDue` is on (default), only those whose due time has been reached; when off, all timed-today reminders appear in TB immediately. When Current Reminders is enabled, TB is titled **Timed Reminders** if only reminders are present, or **Timed Items** if NotePlan timeblocks are also present (or only timeblocks). TB is generated when **either** Time Block or Current Reminders is enabled (NotePlan timeblocks only when Time Block is on).
-- untimed today → Today (`DT`); yesterday → Yesterday (`DY`) or Overdue if Yesterday is off; tomorrow → Tomorrow (`DO`) or ignored if Tomorrow is off
-- undated → the dedicated **Reminders** (`REM`) section
-- past-dated (before yesterday) → **Overdue** (`OVERDUE`), when Undated/Overdue Reminders and Show Overdue are both on
-- dated **after tomorrow** → filtered out (not shown anywhere)
+- timed today -> Time Blocks (`TB`); when `hideTimedRemindersUntilDue` is on (default), only those whose due time has been reached; when off, all timed-today reminders appear in TB immediately. When Current Reminders is enabled, TB is titled **Timed Reminders** if only reminders are present, or **Timed Items** if NotePlan timeblocks are also present (or only timeblocks). TB is generated when **either** Time Block or Current Reminders is enabled (NotePlan timeblocks only when Time Block is on).
+- untimed today -> Today (`DT`); yesterday -> Yesterday (`DY`) or Overdue if Yesterday is off; tomorrow -> Tomorrow (`DO`) or ignored if Tomorrow is off
+- undated -> the dedicated **Reminders** (`REM`) section
+- past-dated (before yesterday) -> **Overdue** (`OVERDUE`), when Undated/Overdue Reminders and Show Overdue are both on
+- dated **after tomorrow** -> filtered out (not shown anywhere)
 
-### Yesterday → Overdue spill (tasks + reminders)
+### Yesterday -> Overdue spill (tasks + reminders)
 
 `getSomeSectionsData()` in `dataGeneration.js` owns placement. Reminders and open tasks use the same rule:
 
@@ -252,7 +309,7 @@ Implementation notes:
 - When both DY and OVERDUE are on, the flat yesterday list is passed into overdue generation for content dedupe. React **Hide Duplicates** (priority order puts `DY` before `OVERDUE`) remains the display safety net.
 - `scheduleAllOverdueOpenToToday` still calls `getRelevantOverdueTasks(config, [])` so yesterday-dated overdue tasks are not excluded from bulk schedule.
 
-When `TCalendarItem.priority` is present (Apple: 0 = none, 1 = high, 5 = medium, 9 = low), `mapAppleReminderPriorityToNotePlan()` (in `@helpers/NPReminders`) stores NotePlan-style 0 / 3 / 2 / 1 on `TReminderForDashboard.priority` and the UI uses theme classes `.priority1`–`.priority3` (same as tasks). Reminder lists sort by time, then priority desc, then date. Hide lower-priority items uses `reminder.priority` as well as `para.priority`.
+When `TCalendarItem.priority` is present (Apple: 0 = none, 1 = high, 5 = medium, 9 = low), `mapAppleReminderPriorityToNotePlan()` (in `@helpers/NPReminders`) stores NotePlan-style 0 / 3 / 2 / 1 on `TReminderForDashboard.priority` and the UI uses theme classes `.priority1`-`.priority3` (same as tasks). Reminder lists sort by time, then priority desc, then date. Filter Priority Items in the **REM** section uses only that section's own `reminder.priority` values. It must not use `currentMaxPriorityFromAllVisibleSections` from NP tasks: undated Apple Reminders are usually priority 0, so a `!!!` in Today would empty REM after incremental startup. Reminders injected into TB / DT / DY / DO / OVERDUE still follow that host section's NP-task filter.
 
 v1 UI: status icon click completes the reminder (`doCompleteReminder` -> `completeReminderById()` in `@helpers/NPReminders`); ctrl-click deletes it (`doDeleteReminder` -> `deleteReminderById()`). Both then `REMOVE_LINE_FROM_JSON` matched by stable `reminder.id` (REM row IDs are index-based, so a mid-list section-only refresh reused StatusIcon local state and left text-without-icon rows). Edit dialog still TODO.
 
@@ -280,12 +337,12 @@ Used in `AppContext.jsx`. Keeps React `perspectiveSettings` in sync with `plugin
 - **Plugin -> React only:** when `pluginData.perspectiveSettings` changes, dispatch `SET_PERSPECTIVE_SETTINGS`.
 - Does **not** watch local perspective state to auto-save to the plugin; persistence is via plugin handlers and side effects of `dashboardSettingsChanged` (see **PerspectiveSettings** above).
 
-### useRefreshTimer (short delayed refresh — 5 seconds)
+### useRefreshTimer (short delayed refresh -- 5 seconds)
 `useRefreshTimer.jsx` debounces a single `setTimeout` (default **5s**) and then sends `refreshEnabledSections` to the plugin. Used in `Dashboard.jsx` when `enabled` is true (not DEV log level, not demo mode).
 
 Typical triggers:
-1. **Plugin cache bust:** `pluginData.startDelayedRefreshTimer` is set (e.g. after some bridge commands). Dashboard’s `useEffect` calls `refreshTimer()` unless interactive processing is active. [Many plugin paths that would set this are currently turned off.]
-2. **Not** used for the user’s “Automatic Update interval” setting — that is **IdleTimer** (below).
+1. **Plugin cache bust:** `pluginData.startDelayedRefreshTimer` is set (e.g. after some bridge commands). Dashboard's `useEffect` calls `refreshTimer()` unless interactive processing is active. [Many plugin paths that would set this are currently turned off.]
+2. **Not** used for the user's "Automatic Update interval" setting -- that is **IdleTimer** (below).
 
 Calling `refreshTimer()` again cancels any pending timeout and starts a new 5s countdown.
 
@@ -303,24 +360,24 @@ Dashboard has **two** refresh mechanisms with **three** different timers:
 
 ### IdleTimer (`IdleTimer.jsx`)
 Rendered from `Dashboard.jsx` only when **all** of:
-- `autoUpdateAfterIdleTime` > 0 (Settings → “Automatic Update interval”),
+- `autoUpdateAfterIdleTime` > 0 (Settings -> "Automatic Update interval"),
 - not demo mode,
 - Dashboard view is visible (`onViewDidAppear` / `onViewWillDisappear` on the WebView).
 
 **Behaviour:**
 - Invisible component; ticks every **15 seconds**.
-- Compares elapsed time since `lastActivity` to `idleTime` (minutes × 60 × 1000 from settings).
-- On timeout, calls `onIdleTimeout` → Dashboard’s `autoRefresh()` → `sendActionToPlugin('refreshEnabledSections', ...)`.
-- **Sleep/wake:** if elapsed time is far beyond `idleTime` (≥10s over threshold), treats it as sleep and resets without refreshing.
+- Compares elapsed time since `lastActivity` to `idleTime` (minutes x 60 x 1000 from settings).
+- On timeout, calls `onIdleTimeout` -> Dashboard's `autoRefresh()` -> `sendActionToPlugin('refreshEnabledSections', ...)`.
+- **Sleep/wake:** if elapsed time is far beyond `idleTime` (>=10s over threshold), treats it as sleep and resets without refreshing.
 - **Midnight:** if the tick falls in the first minute after midnight, also calls `onIdleTimeout` once per calendar day (when auto-update is enabled).
 - **Paused** while `userIsInteracting` is true: task/project dialogs, Settings dialog, or any Header dropdown open (`dialogsOpen` in `Dashboard.jsx`).
 
 Idle only applies to activity **inside the Dashboard WebView**, not the main NotePlan editor.
 
-`IdleTimer` intentionally does **not** listen for `mousemove` (would prevent timeout). Comments refer to “meaningful” interaction; reset of `lastActivity` currently happens on mount and after each fired timeout.
+`IdleTimer` intentionally does **not** listen for `mousemove` (would prevent timeout). Comments refer to "meaningful" interaction; reset of `lastActivity` currently happens on mount and after each fired timeout.
 
 ### useMidnightRollover (`useMidnightRollover.jsx`)
-Separate hook in `Dashboard.jsx`, enabled when not in demo mode. Polls every 15s for a **calendar date** change and queues `handleDateRollover` → `refreshEnabledSections` once the view is visible and dialogs are closed. Runs even when `autoUpdateAfterIdleTime` is `0`.
+Separate hook in `Dashboard.jsx`, enabled when not in demo mode. Polls every 15s for a **calendar date** change and queues `handleDateRollover` -> `refreshEnabledSections` once the view is visible and dialogs are closed. Runs even when `autoUpdateAfterIdleTime` is `0`.
 
 ### View visibility
 When the Dashboard WebView is hidden, `isViewVisible` is false: IdleTimer is not mounted, `cancelRefreshTimer()` clears any pending 5s refresh, and the TB ~54s interval in `Section.jsx` is cleared (it restarts when the view becomes visible again).
@@ -354,4 +411,6 @@ However, in most cases it is more portable to check for screen height or width a
 - Date Picker (.rdp): 10
 - combobox-dropdown: 10
 - Dropdown Menus (e.g. filter): 5
+
+
 

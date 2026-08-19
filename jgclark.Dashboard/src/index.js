@@ -53,6 +53,7 @@ export {
 export {
   makeSettingsAsCallback,
   reactWindowInitialisedSoStartGeneratingData,
+  restartDashboard,
   showDashboardReact,
   showDemoDashboard,
   showPerspective,
@@ -60,8 +61,6 @@ export {
   setSetting,
   setSettings,
 } from './reactMain.js'
-
-export { refreshDashboard } from './refreshClickHandlers'
 
 export { onMessageFromHTMLView } from './routeRequestsFromReact.js'
 

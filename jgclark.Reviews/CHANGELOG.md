@@ -2,6 +2,7 @@
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
 ## [2.0.7] - 2026-08-17
+- Fix: Project list updating banner now appears as soon as a Dashboard perspective change arrives, instead of waiting until the list refresh finishes (the scan was blocking the WebView from painting).
 - Change: Project list shows an INFO banner below the top bar while recalculating projects after a Dashboard perspective change.
 - Change: Rich project list control dialog is positioned from its measured size after it opens, instead of a fixed 505x120 estimate.
 - dev: Rich list Updated label uses locale relative phrases (e.g. "1 minute ago") via `Intl.RelativeTimeFormat`, with the previous compact buckets as fallback.

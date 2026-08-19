@@ -2,12 +2,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggers and other hooks
-// Last updated 2026-05-11 for v2.4.0.32, @jgclark + @CursorAI
+// Last updated 2026-08-19 for v2.4.0.65, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { incrementallyRefreshSomeSections, refreshSomeSections } from './refreshClickHandlers'
+import { refreshSomeSections } from './refreshClickHandlers'
 import { allSectionCodes, sectionCodesFromAllProjectsJson, WEBVIEW_WINDOW_ID } from './constants'
 // import { getSomeSectionsData } from './dataGeneration'
 import type { MessageDataObject, TBridgeClickHandlerResult, TSectionCode } from './types'
@@ -169,7 +169,7 @@ export async function onEditorWillSave(): Promise<void> {
         const data: MessageDataObject = { actionType: 'refreshSomeSections', sectionCodes: theseSectionCodes }
         // ask to update section(s), noting this is called by a trigger (which changes whether we use Editor.note.content or note.content)
         logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard section(s) ${theseSectionCodes.toString()}`)
-        const res = await incrementallyRefreshSomeSections(data, true)
+        const res = await refreshSomeSections(data, true)
       } else {
         logDebug('decideWhetherToUpdateDashboard', `Won't update dashboard.`)
       }

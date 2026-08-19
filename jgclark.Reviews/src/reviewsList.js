@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Project list display, rendering, and display-filter commands
 // Extracted from reviews.js
-// by @jgclark
+// Last updated 2026-08-19 for v2.0.7 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -49,7 +49,7 @@ import {
 import { JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
-import { sendBannerMessage, showHTMLV2, sendToHTMLWindow } from '@helpers/HTMLView'
+import { showHTMLV2, sendToHTMLWindow } from '@helpers/HTMLView'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { getOrOpenEditorFromFilename, isNoteOpenInEditor } from '@helpers/NPEditor'
 import { getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
@@ -192,10 +192,10 @@ let renderProjectListsIfOpenInFlight: boolean = false
 
 /**
  * User-facing banner text while recalculating the Rich project list after a Dashboard perspective change.
- * @param {ReviewConfig} config
+ * @param {{ usePerspectives?: boolean, perspectiveName?: string }} config
  * @returns {string}
  */
-function projectListPerspectiveRecalcBannerMessage(config: ReviewConfig): string {
+function projectListPerspectiveRecalcBannerMessage(config: { usePerspectives?: boolean, perspectiveName?: string }): string {
   const perspectiveName = config.perspectiveName
   if (config.usePerspectives && perspectiveName != null && perspectiveName !== '') {
     return `Checking all projects for the ${perspectiveName} perspective...`
@@ -204,18 +204,52 @@ function projectListPerspectiveRecalcBannerMessage(config: ReviewConfig): string
 }
 
 /**
+ * x-callback args arrive as strings; only the literal 'true' (or boolean true) counts as true.
+ * @param {boolean | string | void} value
+ * @returns {boolean}
+ */
+function coercePluginBoolArg(value: boolean | string | void): boolean {
+  return value === true || value === 'true'
+}
+
+/**
+ * Run JS in the Rich project list WebView. Calls the handler directly (not window.postMessage).
+ * `sendBannerMessage` / `sendToHTMLWindow` queue a postMessage that will not be handled until this
+ * plugin invocation yields; `generateAllProjectsList` then beachballs the JSContext so the banner
+ * would only appear just before the list refresh.
+ * @param {string} jsCode
+ * @returns {Promise<void>}
+ */
+async function runProjectListWindowJS(jsCode: string): Promise<void> {
+  if (typeof HTMLView === 'undefined' || typeof HTMLView.runJavaScript !== 'function') {
+    logWarn('runProjectListWindowJS', 'HTMLView.runJavaScript is not available; skipping')
+    return
+  }
+  await HTMLView.runJavaScript(jsCode, RICH_PROJECT_LIST_WIN_ID)
+}
+
+/**
  * Show or remove the Rich list recalculation banner when that window is open.
- * @param {ReviewConfig} config
+ * @param {ReviewConfig | { usePerspectives?: boolean, perspectiveName?: string } | null} config - required when action is 'show'
  * @param {'show' | 'remove'} action
  * @returns {Promise<void>}
  */
-async function setProjectListPerspectiveRecalcBanner(config: ReviewConfig, action: 'show' | 'remove'): Promise<void> {
+async function setProjectListPerspectiveRecalcBanner(config: ?{ usePerspectives?: boolean, perspectiveName?: string }, action: 'show' | 'remove'): Promise<void> {
   if (!isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)) return
   if (action === 'remove') {
-    await sendBannerMessage(RICH_PROJECT_LIST_WIN_ID, '', 'REMOVE')
+    await runProjectListWindowJS(`(function(){ if (typeof removeProjectListStatusBanner === 'function') removeProjectListStatusBanner() })();`)
     return
   }
-  await sendBannerMessage(RICH_PROJECT_LIST_WIN_ID, projectListPerspectiveRecalcBannerMessage(config), 'INFO')
+  if (!config) {
+    logWarn('setProjectListPerspectiveRecalcBanner', 'show requested with no config; skipping')
+    return
+  }
+  const payload = JSON.stringify({
+    msg: projectListPerspectiveRecalcBannerMessage(config),
+    color: 'color-info',
+    border: 'border-info',
+  })
+  await runProjectListWindowJS(`(function(){ if (typeof showProjectListStatusBanner === 'function') showProjectListStatusBanner(${payload}) })();`)
 }
 
 /**
@@ -267,16 +301,44 @@ export async function onDashboardFolderFiltersChanged(
 
 /**
  * Internal version of earlier function that doesn't open window if not already open.
- * @param {number?} scrollPos
- * @param {boolean?} skipUpdateDashboardIfOpen - when true, skip Dashboard PROJ* invoke (Dashboard perspective switch sets this; `PERSPECTIVE_CHANGED` refreshes sections instead).
+ * @param {number | string} scrollPos - pixels (x-callback args arrive as strings)
+ * @param {boolean | string} skipUpdateDashboardIfOpen - when true, skip Dashboard PROJ* invoke (Dashboard perspective switch sets this; `PERSPECTIVE_CHANGED` refreshes sections instead).
+ * @param {string} bannerPhase - `paintFirst`: show banner then x-callback `afterBanner` so the WebView can paint before generateAllProjectsList beachballs. `afterBanner`: skip the banner hop and generate. Empty: show banner then generate in this invocation (awaited in-process callers).
+ * @param {string} perspectiveNameForBanner - Dashboard passes the new perspective name with `paintFirst` so the banner hop does not need to load settings.
  */
 export async function generateProjectListsAndRenderIfOpen(
-  scrollPos: number = 0,
-  skipUpdateDashboardIfOpen: boolean = false,
+  scrollPos: number | string = 0,
+  skipUpdateDashboardIfOpen: boolean | string = false,
+  bannerPhase: string = '',
+  perspectiveNameForBanner: string = '',
 ): Promise<any> {
   // Note: Errors are caught and logged below (not rethrown) so NotePlan's invokePluginCommandByName from Dashboard
   // does not surface a rejection in a fragile way; the invoke may still appear successful when work failed - check console logs.
+  const scrollPosNum = typeof scrollPos === 'string' ? Number(scrollPos) || 0 : scrollPos
+  const skipDash = coercePluginBoolArg(skipUpdateDashboardIfOpen)
+  const phase = String(bannerPhase || '')
   try {
+    const richWindowOpen = isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)
+
+    // Dashboard perspective switch passes paintFirst. Show the banner and return before loading
+    // settings or scanning notes, so the WebView can paint. generateAllProjectsList then beachballs
+    // the JSContext (measured ~13s with both windows open).
+    if (richWindowOpen && phase === 'paintFirst') {
+      const perspectiveName = String(perspectiveNameForBanner || '')
+      await setProjectListPerspectiveRecalcBanner({
+        usePerspectives: perspectiveName !== '',
+        perspectiveName,
+      }, 'show')
+      const url = createRunPluginCallbackUrl('jgclark.Reviews', 'generateProjectListsAndRenderIfOpen', [
+        String(scrollPosNum),
+        skipDash ? 'true' : 'false',
+        'afterBanner',
+      ])
+      logInfo('generateProjectListsAndRenderIfOpen', `banner shown; queuing generate after paint: ${url}`)
+      NotePlan.openURL(url)
+      return {}
+    }
+
     let config = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
     if (config.usePerspectives) {
@@ -285,28 +347,27 @@ export async function generateProjectListsAndRenderIfOpen(
       if (reloaded) config = reloaded
       logInfo('generateProjectListsAndRenderIfOpen',  `using perspective '${config.perspectiveName ?? '?'}': foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(config.foldersToIgnore)}]`)
     }
-    logDebug(pluginJson, `generateProjectListsAndRenderIfOpen() starting (with scrollPos ${String(scrollPos)})`)
-    const richWindowOpen = isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)
+    logDebug(pluginJson, `generateProjectListsAndRenderIfOpen() starting (with scrollPos ${String(scrollPosNum)}, bannerPhase='${phase}')`)
     const htmlWindowSummary = NotePlan.htmlWindows.map((w) => `${w.customId ?? '-'}:${w.isVisible ? 'visible' : 'hidden'}`).join(', ')
     logInfo('generateProjectListsAndRenderIfOpen', `pre-render visibility: ${RICH_PROJECT_LIST_WIN_ID} open=${String(richWindowOpen)}; htmlWindows=[${htmlWindowSummary}]`)
 
-    if (richWindowOpen) {
+    if (richWindowOpen && phase !== 'afterBanner') {
       await setProjectListPerspectiveRecalcBanner(config, 'show')
     }
 
     // Re-calculate the allProjects list (in foreground). Skip Rich invoke from write - render once below (avoids double render per generate).
-    await generateAllProjectsList(config, true, scrollPos, skipUpdateDashboardIfOpen, true)
+    await generateAllProjectsList(config, true, scrollPosNum, skipDash, true)
     logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectListsIfOpen()`)
 
     // Single in-process Rich/markdown refresh if the list window is already open
-    await renderProjectListsIfOpen(config, scrollPos)
+    await renderProjectListsIfOpen(config, scrollPosNum)
     logInfo('generateProjectListsAndRenderIfOpen', `after renderProjectListsIfOpen()`)
     return {} // just to avoid NP silently failing when called by invokePluginCommandByName
   } catch (error) {
     // Deliberately no rethrow: same rationale as the function-level note above.
     logError('generateProjectListsAndRenderIfOpen', JSP(error))
     if (isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)) {
-      await sendBannerMessage(RICH_PROJECT_LIST_WIN_ID, '', 'REMOVE')
+      await setProjectListPerspectiveRecalcBanner(null, 'remove')
     }
   }
 }

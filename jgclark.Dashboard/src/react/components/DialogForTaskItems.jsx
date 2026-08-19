@@ -232,6 +232,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       handlingFunction: 'addTaskAnywhere',
       icons: [{ className: 'fa-regular fa-square-plus', position: 'left' }],
     },
+    // TODO: Add a 'Add comment' button for @Garba
   ]
 
   // Now filter out some that cannot be shown:

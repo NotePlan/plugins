@@ -41,9 +41,21 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Tag/mention cache used by default (faster TAG sections)
 
 
-## [2.4.0.b65] 2026-08-18 (unreleased)
-- Change: Defer the full "tasks closed today" header recount until after the Dashboard window is shown, so it no longer blocks first display. A cached count may appear immediately; the accurate total follows once sections have loaded.
+## [2.4.0.b66] 2026-08-20 (unreleased)
+- Fix: Perspective switch no longer awaits Reviews `generateProjectListsAndRenderIfOpen` (that scan blocked Dashboard paint for several seconds). If the Rich Project List is open, the regen is queued via x-callback so `invokePluginCommandByName` cannot hold the JSContext (it still runs to completion even without `await`). Adds `paintFirst` parameter on the call to help Projects List banner message show.
+
+## [2.4.0.b65] 2026-08-19 (unreleased)
+- Fix: Apple Reminders in the Reminders section no longer vanish during startup when Filter Priority Items is on. The filter now uses only reminder priorities in that section, not the highest NP-task priority from Today / Overdue / Priority.
+- dev: Refactored so "Hard Refresh" now restarts Dashboard through the normal startup path.
+### Performance improvements
 - dev: Add Apple Reminders cache to reduce repeated calls in initial startup.
+- Change: Defer the full "tasks closed today" header recount until after the Dashboard window is shown, so it no longer blocks first display. A cached count may appear immediately; the accurate total follows once sections have loaded.
+- Change: Perspective switch no longer recounts the header "tasks closed today" total (not perspective-scoped; the scan was holding the switch spinner after sections were already shown).
+- Fix: Perspective switch paints as soon as `batchReplaceSections` finishes. Clearing the switch spinner in a second `setPluginData` was round-tripping the full section JSON through the WebView and delaying display by several seconds.
+- dev: Incremental section refresh no longer sends an extra redraw after the last section (spinner / firstRun fold into that update). Post-action section refreshes use a single merge update instead of per-section incremental.
+- dev: Rename `batchRefreshSomeSections` to `batchReplaceSections` (one-shot replace of `pluginData.sections`, not a merge refresh).
+
+## [2.4.0.b65] 2026-08-18 (unreleased)
 - Change: Inline `@remind(<UUID>)` markers and reminder time chips now use the Apple Reminders list colour (not fixed blue). When a due time is set, the chip now shows bell + time.
 - Change: When an open Apple Reminder has been imported into NP, then they are now de-duplicated. The **task** is kept and the duplicate reminder row is hidden.
 - dev: Apple Reminder fetch, create/complete/delete, date classification, and display-map merge now live in `@helpers/NPReminders` for reuse by other plugins.

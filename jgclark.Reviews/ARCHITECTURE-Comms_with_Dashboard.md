@@ -34,7 +34,7 @@ Both directions use **NotePlan’s `DataStore.invokePluginCommandByName(commandN
 
 **Important:**
 
-- `generateProjectListsAndRenderIfOpen` (called when switching Dashboard perspective, if Reviews is installed) **always** regenerates `allProjectsList.json`. That is file/data work and does **not** open the Projects Rich window. It then calls `renderProjectListsIfOpen`, which **does not** open the window (`shouldOpen: false`).
+- `generateProjectListsAndRenderIfOpen` (called when switching Dashboard perspective, if Reviews is installed) **always** regenerates `allProjectsList.json` on the `afterBanner` hop. The `paintFirst` hop only shows the updating banner and re-queues. That is file/data work and does **not** open the Projects Rich window. It then calls `renderProjectListsIfOpen`, which **does not** open the window (`shouldOpen: false`).
 - `updateProjectsListIfProjectSection` (after `REMOVE_LINE_FROM_JSON` in the bridge when the line was in `PROJACT` / `PROJREVIEW`) updates the shared JSON via Reviews helpers; it does not open any window. It calls `updateAllProjectsListAfterChange` with `skipUpdateDashboardIfOpen: true`, so `writeAllProjectsList` still runs `updateRichProjectListIfOpen` (Rich HTML, if open) but **skips** `updateDashboardIfOpen`. Dashboard then runs `refreshSectionsByCode` in-process (`projectsListSync.js`), and `processActionOnReturn` re-fetches shared data before sending `UPDATE_DATA` so PROJ* rows match the new JSON (avoids same-plugin invoke ordering; see **Scenario 2** and **Races and ordering**).
 - Opening the Dashboard or the Rich Project List for the user is reserved for explicit commands / UI (e.g. `displayProjectLists` with `shouldOpen: true`), not for these cross-plugin hooks.
 
@@ -46,25 +46,27 @@ Each diagram uses **subgraphs** for plugin boundaries. `invokePluginCommandByNam
 
 ### Scenario 1 — Dashboard perspective change → Reviews regenerates list and re-renders if open
 
-**Trigger:** User switches perspective in Dashboard → `switchToPerspective()` in `jgclark.Dashboard/src/perspectiveHelpers.js`.
+**Trigger:** User switches perspective in Dashboard → `doSwitchToPerspective()` / `PERSPECTIVE_CHANGED` in Dashboard.
 
-**Mechanism:** Fire-and-forget `invokePluginCommandByName('generateProjectListsAndRenderIfOpen', 'jgclark.Reviews', [])` (guarded by `pluginIsInstalled`). Reviews regenerates `allProjectsList.json`, then `renderProjectListsIfOpen` with `shouldOpen: false`.
+**Mechanism:** After Dashboard has posted new sections, `scheduleReviewsListAfterPerspectiveSwitch` queues an x-callback (`NotePlan.openURL`) to Reviews `generateProjectListsAndRenderIfOpen` with `paintFirst` (not `invokePluginCommandByName`, which would block Dashboard paint). Reviews shows the updating banner, then queues a second x-callback (`afterBanner`) so the Projects List WebView can paint before `generateAllProjectsList` beachballs the JSContext. That second run regenerates `allProjectsList.json`, then `renderProjectListsIfOpen` with `shouldOpen: false`.
 
 ```mermaid
 flowchart LR
   subgraph dashboardPlugin [jgclark.Dashboard]
-    switchToPerspective["switchToPerspective"]
-    invokeDToP["DataStore.invokePluginCommandByName"]
-    switchToPerspective --> invokeDToP
+    switchToPerspective["PERSPECTIVE_CHANGED"]
+    scheduleXcb["scheduleReviewsListAfterPerspectiveSwitch"]
+    switchToPerspective --> scheduleXcb
   end
   subgraph reviewsPlugin [jgclark.Reviews]
-    genOpen["generateProjectListsAndRenderIfOpen"]
+    paintFirst["generate paintFirst: show banner"]
+    afterBanner["generate afterBanner"]
     genAll["generateAllProjectsList"]
     writeList["writeAllProjectsList"]
     renderIfOpen["renderProjectListsIfOpen"]
-    invokeDToP --> genOpen
-    genOpen --> genAll --> writeList
-    genOpen --> renderIfOpen
+    scheduleXcb --> paintFirst
+    paintFirst --> afterBanner
+    afterBanner --> genAll --> writeList
+    afterBanner --> renderIfOpen
   end
 ```
 
@@ -173,6 +175,7 @@ flowchart LR
 
 | Direction | NotePlan API | Command / helper |
 |-----------|--------------|------------------|
+| D → P (perspective switch) | `NotePlan.openURL` x-callback | `generateProjectListsAndRenderIfOpen` with `paintFirst`, then `afterBanner` |
 | D → P | `invokePluginCommandByName` | `generateProjectListsAndRenderIfOpen`, `renderProjectListsIfOpen` |
 | D → P (task/checklist in `PROJ*` ) | After `REMOVE_LINE_FROM_JSON` in bridge | `updateProjectsListIfProjectSection` in [`projectsListSync.js`](../jgclark.Dashboard/src/projectsListSync.js) → `updateAllProjectsListAfterChange` (with `skipUpdateDashboardIfOpen`) → `writeAllProjectsList` → `updateRichProjectListIfOpen` → then in-process `refreshSectionsByCode` |
 | P → P (Rich, after list write) | `invokePluginCommandByName` | `updateRichProjectListIfOpen` in `reviewHelpers.js` → `renderProjectListsIfOpen` (Rich window must already be open) |
@@ -190,10 +193,11 @@ flowchart LR
 
 `getSomeSectionsData` only merges **PROJACT** / **PROJREVIEW** when `showProjectActiveSection` / `showProjectReviewSection` are enabled for the current perspective. A refresh for those codes may therefore change nothing visible — **this is expected**, not a bug, when those sections are hidden in Dashboard settings.
 
-### Dashboard → Projects: fire-and-forget invoke and swallowed errors
+### Dashboard → Projects: x-callback after perspective switch
 
-- `switchToPerspective` calls `generateProjectListsAndRenderIfOpen` **without** `await` (intentional: non-blocking; no return value consumed). Rejections are surfaced via `.catch` → `logWarn`. `pluginIsInstalled('jgclark.Reviews')` skips the invoke if Reviews is not installed.
-- `generateProjectListsAndRenderIfOpen` still catches errors and logs without rethrowing (documented in code): `invokePluginCommandByName` may appear successful when work failed — check the plugin console.
+- `scheduleReviewsListAfterPerspectiveSwitch` queues `generateProjectListsAndRenderIfOpen` via `NotePlan.openURL` (not `invokePluginCommandByName`, which still blocks even without `await`). `pluginIsInstalled('jgclark.Reviews')` skips if Reviews is not installed; the Rich list must already be open.
+- The first Reviews run uses `paintFirst`: it shows the updating banner, then queues `afterBanner` so that WebView can paint before `generateAllProjectsList` blocks the JSContext.
+- `generateProjectListsAndRenderIfOpen` still catches errors and logs without rethrowing (documented in code): the x-callback may appear successful when work failed - check the plugin console.
 
 ### Dashboard → Projects: `allProjectsList.json` after removing a dashboard line
 

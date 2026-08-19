@@ -47,7 +47,9 @@ import { getNumericPriorityFromPara } from '@helpers/sorting'
  *
  * Timing: updateDoneCountsFromChangedNotes walks every note changed today (getNotesChangedInInterval(0)
  * is typically >1s) and is synchronous. Do not call it before the React window is shown. Seed the header
- * from getCachedHeaderDoneCount() (JSON read only) and run the full recount after sections have been sent.
+ * from getCachedHeaderDoneCount() (JSON read only) and run the full recount after sections have been sent
+ * (first launch / Refresh / reload). Do not run it on perspective switch: the total is not
+ * perspective-scoped, and it would hold the switch spinner after sections are already painted.
  *
  * DT section progress (getDoneCountsForToday) uses forToday affinity + @done(today), not the global total.
  * The same JSON also exposes forOtherPeriod and completedWins.
