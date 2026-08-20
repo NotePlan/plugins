@@ -70,6 +70,14 @@ flowchart LR
   end
 ```
 
+### Scenario 1b — Save active Perspective definition when folder/Space scope changed
+
+**Trigger:** User saves the active named Perspective (`doSavePerspective`) or Save & Close in Edit Perspectives (`doSavePerspectiveSettingsFromBridge`), and `includedFolders` / `excludedFolders` / `includedTeamspaces` changed vs the previously saved def.
+
+**Mechanism:** Handler returns `ACTIVE_PERSPECTIVE_DEFINITION_CHANGED`. `processActionOnReturn` queues Reviews `generateProjectListsAndRenderIfOpen` with `paintFirst` and banner reason `updated` (same x-callback pattern as Scenario 1). Banner text: "Recalculating projects for updated perspective Name...". Live folder edits on a named Perspective do **not** notify Reviews until Save, because Reviews reads the saved definition.
+
+Live folder/Space edits on the `-` (default) Perspective still notify immediately, because those writes update the saved `-` def.
+
 ### Scenario 2 — Dashboard completes/cancels a PROJ line → Reviews updates `allProjectsList.json` and Rich list (if open)
 
 **Trigger:** Task/checklist handler succeeds with `REMOVE_LINE_FROM_JSON` for `PROJACT` / `PROJREVIEW`.

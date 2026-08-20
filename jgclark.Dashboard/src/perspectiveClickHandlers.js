@@ -3,13 +3,13 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-15 for v2.4.0.b64 by @jgclark + @CursorAI
+// Last updated 2026-08-20 for v2.4.0.b66 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
-import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TDashboardSettingsIn, TPerspectiveSettings } from './types'
+import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardSettingsIn, TPerspectiveSettings } from './types'
 import { prepareDashboardSettingsForSave, preparePerspectiveSettingsForSave } from './dashboardSettingsClean'
 import {
   addNewPerspective,
@@ -28,6 +28,7 @@ import {
   logPerspectiveNames,
   isNamedPerspectiveModified,
 } from './perspectiveHelpers'
+import { perspectiveNoteScopeChanged } from './reviewsListSync'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
 
@@ -167,7 +168,12 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
   )
   // No section refresh: Save Perspective only persists already-live settings and clears isModified;
   // setPluginData above is enough for the UI (e.g. * marker). Content already matches the screen.
-  return handlerResult(true, [])
+  // Reviews reads the *saved* perspective def for folder/teamspace scope, so notify it only when those keys changed.
+  const scopeChanged = perspectiveNoteScopeChanged(activeDef.dashboardSettings, newDef.dashboardSettings)
+  if (scopeChanged) {
+    logInfo('doSavePerspective', `Folder/teamspace scope changed for '${activeDef.name}'; will sync Reviews project list`)
+  }
+  return handlerResult(true, scopeChanged ? ['ACTIVE_PERSPECTIVE_DEFINITION_CHANGED'] : [])
 }
 
 /**
@@ -200,6 +206,8 @@ export async function doSavePerspectiveAndSwitchToPerspective(data: MessageDataO
     logInfo('doSavePerspectiveAndSwitchToPerspective', `${saveResult.errorMsg || ''} Continuing with switch to "${switchToName}".`)
     await sendBannerMessage(WEBVIEW_WINDOW_ID, saveResult.errorMsg || `Perspective is not modified. Not saving.`, saveResult.errorMessageLevel || 'WARN')
   }
+  // Intentionally return only the switch result. Save may have returned ACTIVE_PERSPECTIVE_DEFINITION_CHANGED;
+  // PERSPECTIVE_CHANGED already queues one Reviews regen for the destination perspective.
   return doSwitchToPerspective({ ...data, perspectiveName: switchToName })
 }
 
@@ -358,5 +366,18 @@ export async function doSavePerspectiveSettingsFromBridge(data: MessageDataObjec
     updatedPluginData.perspectiveSettings = savedPerspectives
   }
   await setPluginData(updatedPluginData, `_Updated perspectiveSettings in global pluginData`)
-  return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'])
+  const prevActive = getActivePerspectiveDef(Array.isArray(priorPerspectiveSettings) ? priorPerspectiveSettings : [])
+  const nextActive = getActivePerspectiveDef(Array.isArray(syncedSettings) ? syncedSettings : [])
+  const scopeChanged = Boolean(
+    prevActive &&
+    nextActive &&
+    prevActive.name === nextActive.name &&
+    perspectiveNoteScopeChanged(prevActive.dashboardSettings, nextActive.dashboardSettings),
+  )
+  const actionsOnSuccess: Array<TActionOnReturn> = ['REFRESH_ALL_ENABLED_SECTIONS']
+  if (scopeChanged) {
+    logInfo('doSavePerspectiveSettingsFromBridge', `Active perspective '${nextActive?.name || ''}' folder/teamspace scope changed; will sync Reviews project list`)
+    actionsOnSuccess.push('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED')
+  }
+  return handlerResult(true, actionsOnSuccess, { perspectiveName: nextActive?.name || data?.perspectiveName || '' })
 }

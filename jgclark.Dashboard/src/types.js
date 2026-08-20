@@ -471,6 +471,7 @@ export type TBridgeClickHandlerResult = {
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   /** When APPLY_THEME is in actionsOnSuccess, the theme name to regenerate CSS for. */
   dashboardThemeName?: string,
+  perspectiveName?: string,
   errorMsg?: string,
   errorMessageLevel?: 'WARN' | 'ERROR' | 'INFO',
 }

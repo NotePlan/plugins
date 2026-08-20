@@ -3,6 +3,8 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 
 ## [2.0.7] - 2026-08-17
 - Fix: Project list updating banner now appears as soon as a Dashboard perspective change arrives, instead of waiting until the list refresh finishes (the scan was blocking the WebView from painting).
+- Change: When a saved Perspective definition changes which folders or Spaces are included, the Project list shows "Recalculating projects for updated perspective …" and regenerates.
+- Fix: Back-to-back Dashboard regenerate requests (e.g. Save then Switch, or overlapping x-callbacks) coalesce to one in-flight generate plus at most one follow-up with the latest settings.
 - Change: Project list shows an INFO banner below the top bar while recalculating projects after a Dashboard perspective change.
 - Change: Rich project list control dialog is positioned from its measured size after it opens, instead of a fixed 505x120 estimate.
 - dev: Rich list Updated label uses locale relative phrases (e.g. "1 minute ago") via `Intl.RelativeTimeFormat`, with the previous compact buckets as fallback.

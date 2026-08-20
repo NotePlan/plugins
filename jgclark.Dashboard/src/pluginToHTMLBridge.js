@@ -861,9 +861,15 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Incrementing done counts (ahead of proper background refresh)`)
     }
 
-    if (actionsOnSuccess.includes('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED')) {
-      logDebug('processActionOnReturn', `ACTIVE_PERSPECTIVE_DEFINITION_CHANGED: syncing Reviews allProjectsList before section refresh`)
-      await syncReviewsAfterDashboardFolderFilterChange()
+    // Save+Switch (or any result with both) must not queue two Reviews regenerations. Switch covers the list.
+    if (actionsOnSuccess.includes('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED') && actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
+      logInfo(
+        'processActionOnReturn',
+        `ACTIVE_PERSPECTIVE_DEFINITION_CHANGED skipped for Reviews (PERSPECTIVE_CHANGED will queue one regen)`,
+      )
+    } else if (actionsOnSuccess.includes('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED')) {
+      logDebug('processActionOnReturn', `ACTIVE_PERSPECTIVE_DEFINITION_CHANGED: queuing Reviews list regen (updated banner) before section refresh`)
+      await syncReviewsAfterDashboardFolderFilterChange(data?.perspectiveName || handlerResult.perspectiveName || '')
     }
 
     if (actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {

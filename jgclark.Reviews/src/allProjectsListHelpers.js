@@ -301,7 +301,8 @@ function stringifyProjectObjects(objArray: Array<any>): string {
 function getFolderFilterFingerprint(config: ReviewConfig): string {
   const include = Array.isArray(config.foldersToInclude) ? config.foldersToInclude.join('\u0001') : String(config.foldersToInclude ?? '')
   const ignore = Array.isArray(config.foldersToIgnore) ? config.foldersToIgnore.join('\u0001') : String(config.foldersToIgnore ?? '')
-  return `${include}\u0002${ignore}`
+  const teamspaces = Array.isArray(config.includedTeamspaces) ? config.includedTeamspaces.join('\u0001') : String(config.includedTeamspaces ?? '')
+  return `${include}\u0002${ignore}\u0002${teamspaces}`
 }
 
 function getFileAgeMs(prefName: string): number {

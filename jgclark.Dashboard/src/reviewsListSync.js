@@ -1,36 +1,70 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Sync Reviews allProjectsList.json when Dashboard folder filter settings change.
-// Last updated 2026-08-19 for v2.4.0.b65 by @jgclark + @CursorAI
+// Last updated 2026-08-20 for v2.4.0.b66 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getReviewSettings } from '../../jgclark.Reviews/src/reviewHelpers'
 import { RICH_PROJECT_LIST_WIN_ID } from '../../jgclark.Reviews/src/reviews'
 import { invalidateDashboardPluginSettingsCache } from './dashboardPluginSettings'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { logDebug, logInfo, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 
-/** Dashboard `dashboardSettings` keys that map to Reviews folder include/exclude when `usePerspectives` is on. */
-export const DASHBOARD_FOLDER_FILTER_SETTING_KEYS: Array<string> = ['includedFolders', 'excludedFolders']
+/** Dashboard `dashboardSettings` keys that change which folders or notes Reviews includes when `usePerspectives` is on. */
+export const DASHBOARD_NOTE_SCOPE_SETTING_KEYS: Array<string> = ['includedFolders', 'excludedFolders', 'includedTeamspaces']
+
+/** @deprecated Use DASHBOARD_NOTE_SCOPE_SETTING_KEYS */
+export const DASHBOARD_FOLDER_FILTER_SETTING_KEYS: Array<string> = DASHBOARD_NOTE_SCOPE_SETTING_KEYS
 
 /**
- * Whether a settings diff includes Dashboard folder filter keys.
+ * Whether a settings diff includes keys that change which folders or notes Reviews includes.
  * @param {Array<string>} diffKeys - top-level keys from compareObjects
  * @returns {boolean}
  */
 export function dashboardFolderFilterSettingsChanged(diffKeys: Array<string>): boolean {
-  return diffKeys.some((k) => DASHBOARD_FOLDER_FILTER_SETTING_KEYS.includes(k))
+  return diffKeys.some((k) => DASHBOARD_NOTE_SCOPE_SETTING_KEYS.includes(k))
 }
 
 /**
- * After Dashboard saves folder include/exclude filters, keep Reviews in sync.
- * When the Rich project list is open, invokes Reviews to regenerate `allProjectsList.json` and re-render.
- * When closed, PROJ* section refresh still picks up new JSON via Reviews `shouldRegenerateAllProjectsList` folder fingerprint.
+ * Stable fingerprint for a folder/teamspace setting that may be a CSV string or an array.
+ * @param {mixed} value
+ * @returns {string}
+ */
+export function noteScopeSettingFingerprint(value: mixed): string {
+  if (value == null || value === '') return ''
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v).trim()).filter(Boolean).join('\u0001')
+  }
+  return stringListOrArrayToArray(String(value), ',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join('\u0001')
+}
+
+/**
+ * Whether two dashboardSettings snapshots differ in folder include/exclude or Spaces to Include.
+ * @param {?{ [string]: any }} prevSettings
+ * @param {?{ [string]: any }} nextSettings
+ * @returns {boolean}
+ */
+export function perspectiveNoteScopeChanged(prevSettings: ?{ [string]: any }, nextSettings: ?{ [string]: any }): boolean {
+  const prev = prevSettings || {}
+  const next = nextSettings || {}
+  return DASHBOARD_NOTE_SCOPE_SETTING_KEYS.some((k) => noteScopeSettingFingerprint(prev[k]) !== noteScopeSettingFingerprint(next[k]))
+}
+
+/**
+ * After Dashboard saves folder/teamspace filters on the active perspective definition, keep Reviews in sync.
+ * Queues an x-callback (`paintFirst` + `updated` banner) when the Rich list is open. Does not use
+ * `invokePluginCommandByName` (that blocks paint until generateAllProjectsList finishes).
+ * When the Rich list is closed, PROJ* refresh still picks up new JSON via Reviews folder-filter fingerprint.
+ * @param {string} perspectiveName - active perspective name for the banner (optional)
  * @returns {Promise<void>}
  */
-export async function syncReviewsAfterDashboardFolderFilterChange(): Promise<void> {
+export async function syncReviewsAfterDashboardFolderFilterChange(perspectiveName: string = ''): Promise<void> {
   if (!(await pluginIsInstalled('jgclark.Reviews'))) {
     logDebug('syncReviewsAfterDashboardFolderFilterChange', 'jgclark.Reviews not installed; skipping')
     return
@@ -48,23 +82,7 @@ export async function syncReviewsAfterDashboardFolderFilterChange(): Promise<voi
     )
     return
   }
-  const richOpen = isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)
-  if (richOpen) {
-    logInfo(
-      'syncReviewsAfterDashboardFolderFilterChange',
-      `Rich list open: invoking onDashboardFolderFiltersChanged (foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(config.foldersToIgnore)}])`,
-    )
-    try {
-      await DataStore.invokePluginCommandByName('onDashboardFolderFiltersChanged', 'jgclark.Reviews', [0, true])
-    } catch (err) {
-      logWarn('syncReviewsAfterDashboardFolderFilterChange', `onDashboardFolderFiltersChanged failed: ${err.message}`)
-    }
-    return
-  }
-  logDebug(
-    'syncReviewsAfterDashboardFolderFilterChange',
-    'Rich project list not open; PROJ* refresh will regenerate allProjectsList via folder-filter fingerprint if needed',
-  )
+  scheduleReviewsListAfterPerspectiveSwitch(perspectiveName || config.perspectiveName || '', 'updated')
 }
 
 /**
@@ -83,10 +101,11 @@ export async function syncReviewsAfterDashboardFolderFilterChange(): Promise<voi
  * When the Rich list is closed, skip (same as folder-filter sync). PROJ* in batchReplace already regenerates
  * allProjectsList.json when those sections are enabled (shouldRegenerateAllProjectsList / perspective fingerprint).
  *
- * @param {string} perspectiveName - name being switched to (logging only)
+ * @param {string} perspectiveName - name being switched to (logging and banner)
+ * @param {string} bannerReason - `switch` (default) or `updated` (saved definition changed folder/note scope)
  * @returns {void}
  */
-export function scheduleReviewsListAfterPerspectiveSwitch(perspectiveName: string): void {
+export function scheduleReviewsListAfterPerspectiveSwitch(perspectiveName: string, bannerReason: string = 'switch'): void {
   try {
     if (!pluginIsInstalled('jgclark.Reviews')) {
       logDebug('scheduleReviewsListAfterPerspectiveSwitch', 'jgclark.Reviews not installed; skipping')
@@ -95,14 +114,14 @@ export function scheduleReviewsListAfterPerspectiveSwitch(perspectiveName: strin
     if (!isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)) {
       logDebug(
         'scheduleReviewsListAfterPerspectiveSwitch',
-        `Rich list not open; skipping generateProjectListsAndRenderIfOpen after switch to '${perspectiveName}'`,
+        `Rich list not open; skipping generateProjectListsAndRenderIfOpen after '${bannerReason}' for '${perspectiveName}'`,
       )
       return
     }
-    const url = createRunPluginCallbackUrl('jgclark.Reviews', 'generateProjectListsAndRenderIfOpen', ['0', 'true', 'paintFirst', perspectiveName])
+    const url = createRunPluginCallbackUrl('jgclark.Reviews', 'generateProjectListsAndRenderIfOpen', ['0', 'true', 'paintFirst', perspectiveName, bannerReason])
     logInfo(
       'scheduleReviewsListAfterPerspectiveSwitch',
-      `Rich list open: queuing x-callback generateProjectListsAndRenderIfOpen (skip Dashboard invoke, paintFirst) for '${perspectiveName}' so Dashboard can paint first: ${url}`,
+      `Rich list open: queuing x-callback generateProjectListsAndRenderIfOpen (skip Dashboard invoke, paintFirst, ${bannerReason}) for '${perspectiveName}' so Dashboard can paint first: ${url}`,
     )
     NotePlan.openURL(url)
   } catch (err) {

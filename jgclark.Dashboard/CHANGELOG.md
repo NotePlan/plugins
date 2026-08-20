@@ -42,6 +42,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 
 ## [2.4.0.b66] 2026-08-20 (unreleased)
+- Fix: Saving an active Perspective now tells Projects + Reviews to regenerate its list when folder include/exclude or Spaces to Include changed. The Projects List shows a banner ("Recalculating projects for updated perspective …") before the scan. Live folder edits on a named Perspective still wait for Save, because Reviews reads the saved definition.
+- Fix: Save+Switch (and any result with both save-scope and switch actions) queues only one Projects list regen - the switch covers it. Reviews also coalesces back-to-back regenerate requests so a second message during an in-flight scan does not start a second full generate.
 - Fix: Perspective switch no longer awaits Reviews `generateProjectListsAndRenderIfOpen` (that scan blocked Dashboard paint for several seconds). If the Rich Project List is open, the regen is queued via x-callback so `invokePluginCommandByName` cannot hold the JSContext (it still runs to completion even without `await`). Adds `paintFirst` parameter on the call to help Projects List banner message show.
 
 ## [2.4.0.b65] 2026-08-19 (unreleased)

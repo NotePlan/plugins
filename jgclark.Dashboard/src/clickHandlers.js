@@ -27,6 +27,7 @@ import {
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
+import { getActivePerspectiveDef } from './perspectiveHelpers'
 import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } from './perspectiveSettingsOnDashboardSave'
 import { resolveEditorOpenTypeForDashboardClick } from './preferredWindowType'
 import { dashboardFolderFilterSettingsChanged } from './reviewsListSync'
@@ -909,7 +910,7 @@ function planSectionRefreshAfterDashboardSettingsChange(
       }
       if (dashboardFolderFilterSettingsChanged(diffKeys)) {
         resultsToHandle.push('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED')
-        logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: folder filter settings changed; will ACTIVE_PERSPECTIVE_DEFINITION_CHANGED when Rich list is open`)
+        logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: folder/teamspace scope settings changed; will ACTIVE_PERSPECTIVE_DEFINITION_CHANGED when Rich list is open`)
       }
       if (diffKeys.length > 0 && keysNeedingContentRefresh.length === 0) {
         // e.g. preferredWindowType / interactive-processing flags: no section layout or content change,
@@ -970,7 +971,7 @@ export async function doSaveDashboardSettingsFromBridge(data: MessageDataObject,
     // Plan refresh before writing so a duplicate/no-op bridge message can bail out without setPluginData
     // (which can overwrite an in-flight REFRESH_ALL via a stale getGlobalSharedData snapshot).
     let resultsToHandle: Array<TActionOnReturn> = ['CLOSE_UNNEEDED_SECTIONS']
-    let resultExtra: { sectionCodes?: Array<TSectionCode>, dashboardThemeName?: string } = {}
+    let resultExtra: { sectionCodes?: Array<TSectionCode>, dashboardThemeName?: string, perspectiveName?: string } = {}
     if (isDashboardSettings) {
       const sectionRefreshPlan = planSectionRefreshAfterDashboardSettingsChange(priorDashboardSettingsSnapshot, settingsToSave)
       resultsToHandle = sectionRefreshPlan.resultsToHandle
@@ -1002,6 +1003,20 @@ export async function doSaveDashboardSettingsFromBridge(data: MessageDataObject,
       pluginDataPatch.perspectiveSettings = perspectivesToSave
     }
     await setPluginData(pluginDataPatch, `_Updated ${settingName} in global pluginData`)
+
+    const activeName = getActivePerspectiveDef(pluginSettingsBeforeSave?.perspectiveSettings)?.name || ''
+    if (resultsToHandle.includes('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED') && activeName !== '-' && activeName !== '') {
+      // Named perspective: live folder/teamspace edits only set isModified. Reviews reads the saved def,
+      // so wait for Save Perspective (doSavePerspective) before regenerating the project list.
+      resultsToHandle = resultsToHandle.filter((a) => a !== 'ACTIVE_PERSPECTIVE_DEFINITION_CHANGED')
+      logInfo(
+        'doSaveDashboardSettingsFromBridge',
+        `Skipping Reviews sync until Save Perspective (active named perspective '${activeName}')`,
+      )
+    }
+    if (resultsToHandle.includes('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED')) {
+      resultExtra = { ...resultExtra, perspectiveName: activeName || '-' }
+    }
 
     return handlerResult(saveOk, resultsToHandle, resultExtra)
   } catch (error) {

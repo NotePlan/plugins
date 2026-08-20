@@ -191,12 +191,36 @@ async function toggleDisplayFilterKey(
 let renderProjectListsIfOpenInFlight: boolean = false
 
 /**
+ * True while `generateAllProjectsList` + render is running (afterBanner / in-process path).
+ * Coalesces back-to-back Dashboard messages (e.g. Save then Switch, or Save+Switch edge cases).
+ */
+let generateProjectListsAndRenderIfOpenInFlight: boolean = false
+
+/**
+ * True after a `paintFirst` hop has queued `afterBanner` until that generate starts.
+ * Prevents a second `paintFirst` from queueing a second `afterBanner` x-callback.
+ */
+let generateProjectListsAfterBannerQueued: boolean = false
+
+/**
+ * When true, another regen was requested while in flight or while afterBanner was already queued;
+ * run one more generate after the current one finishes (latest perspective/settings win).
+ */
+let generateProjectListsAndRenderIfOpenNeedsRerun: boolean = false
+
+/**
  * User-facing banner text while recalculating the Rich project list after a Dashboard perspective change.
- * @param {{ usePerspectives?: boolean, perspectiveName?: string }} config
+ * @param {{ usePerspectives?: boolean, perspectiveName?: string, bannerReason?: string }} config
  * @returns {string}
  */
-function projectListPerspectiveRecalcBannerMessage(config: { usePerspectives?: boolean, perspectiveName?: string }): string {
+function projectListPerspectiveRecalcBannerMessage(config: { usePerspectives?: boolean, perspectiveName?: string, bannerReason?: string }): string {
   const perspectiveName = config.perspectiveName
+  if (config.bannerReason === 'updated') {
+    if (perspectiveName != null && perspectiveName !== '') {
+      return `Recalculating projects for updated perspective ${perspectiveName}...`
+    }
+    return 'Recalculating projects for the updated perspective...'
+  }
   if (config.usePerspectives && perspectiveName != null && perspectiveName !== '') {
     return `Checking all projects for the ${perspectiveName} perspective...`
   }
@@ -230,11 +254,11 @@ async function runProjectListWindowJS(jsCode: string): Promise<void> {
 
 /**
  * Show or remove the Rich list recalculation banner when that window is open.
- * @param {ReviewConfig | { usePerspectives?: boolean, perspectiveName?: string } | null} config - required when action is 'show'
+ * @param {ReviewConfig | { usePerspectives?: boolean, perspectiveName?: string, bannerReason?: string } | null} config - required when action is 'show'
  * @param {'show' | 'remove'} action
  * @returns {Promise<void>}
  */
-async function setProjectListPerspectiveRecalcBanner(config: ?{ usePerspectives?: boolean, perspectiveName?: string }, action: 'show' | 'remove'): Promise<void> {
+async function setProjectListPerspectiveRecalcBanner(config: ?{ usePerspectives?: boolean, perspectiveName?: string, bannerReason?: string }, action: 'show' | 'remove'): Promise<void> {
   if (!isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)) return
   if (action === 'remove') {
     await runProjectListWindowJS(`(function(){ if (typeof removeProjectListStatusBanner === 'function') removeProjectListStatusBanner() })();`)
@@ -304,23 +328,26 @@ export async function onDashboardFolderFiltersChanged(
  * @param {number | string} scrollPos - pixels (x-callback args arrive as strings)
  * @param {boolean | string} skipUpdateDashboardIfOpen - when true, skip Dashboard PROJ* invoke (Dashboard perspective switch sets this; `PERSPECTIVE_CHANGED` refreshes sections instead).
  * @param {string} bannerPhase - `paintFirst`: show banner then x-callback `afterBanner` so the WebView can paint before generateAllProjectsList beachballs. `afterBanner`: skip the banner hop and generate. Empty: show banner then generate in this invocation (awaited in-process callers).
- * @param {string} perspectiveNameForBanner - Dashboard passes the new perspective name with `paintFirst` so the banner hop does not need to load settings.
+ * @param {string} perspectiveNameForBanner - Dashboard passes the perspective name with `paintFirst` so the banner hop does not need to load settings.
+ * @param {string} bannerReason - `switch` (default) or `updated` when the saved perspective definition changed folder/note scope.
  */
 export async function generateProjectListsAndRenderIfOpen(
   scrollPos: number | string = 0,
   skipUpdateDashboardIfOpen: boolean | string = false,
   bannerPhase: string = '',
   perspectiveNameForBanner: string = '',
+  bannerReason: string = '',
 ): Promise<any> {
   // Note: Errors are caught and logged below (not rethrown) so NotePlan's invokePluginCommandByName from Dashboard
   // does not surface a rejection in a fragile way; the invoke may still appear successful when work failed - check console logs.
   const scrollPosNum = typeof scrollPos === 'string' ? Number(scrollPos) || 0 : scrollPos
   const skipDash = coercePluginBoolArg(skipUpdateDashboardIfOpen)
   const phase = String(bannerPhase || '')
+  const reason = String(bannerReason || 'switch')
   try {
     const richWindowOpen = isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)
 
-    // Dashboard perspective switch passes paintFirst. Show the banner and return before loading
+    // Dashboard perspective switch / definition save passes paintFirst. Show the banner and return before loading
     // settings or scanning notes, so the WebView can paint. generateAllProjectsList then beachballs
     // the JSContext (measured ~13s with both windows open).
     if (richWindowOpen && phase === 'paintFirst') {
@@ -328,43 +355,73 @@ export async function generateProjectListsAndRenderIfOpen(
       await setProjectListPerspectiveRecalcBanner({
         usePerspectives: perspectiveName !== '',
         perspectiveName,
+        bannerReason: reason,
       }, 'show')
+      // Second paintFirst while afterBanner is queued or generate is running: update banner only; one rerun after current work.
+      if (generateProjectListsAndRenderIfOpenInFlight || generateProjectListsAfterBannerQueued) {
+        generateProjectListsAndRenderIfOpenNeedsRerun = true
+        logInfo(
+          'generateProjectListsAndRenderIfOpen',
+          `banner shown (${reason}); coalescing paintFirst (afterBannerQueued=${String(generateProjectListsAfterBannerQueued)} inFlight=${String(generateProjectListsAndRenderIfOpenInFlight)})`,
+        )
+        return {}
+      }
+      generateProjectListsAfterBannerQueued = true
       const url = createRunPluginCallbackUrl('jgclark.Reviews', 'generateProjectListsAndRenderIfOpen', [
         String(scrollPosNum),
         skipDash ? 'true' : 'false',
         'afterBanner',
       ])
-      logInfo('generateProjectListsAndRenderIfOpen', `banner shown; queuing generate after paint: ${url}`)
+      logInfo('generateProjectListsAndRenderIfOpen', `banner shown (${reason}); queuing generate after paint: ${url}`)
       NotePlan.openURL(url)
       return {}
     }
 
-    let config = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
-    if (config.usePerspectives) {
-      invalidateDashboardPluginSettingsCache()
-      const reloaded = await getReviewSettings()
-      if (reloaded) config = reloaded
-      logInfo('generateProjectListsAndRenderIfOpen',  `using perspective '${config.perspectiveName ?? '?'}': foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(config.foldersToIgnore)}]`)
-    }
-    logDebug(pluginJson, `generateProjectListsAndRenderIfOpen() starting (with scrollPos ${String(scrollPosNum)}, bannerPhase='${phase}')`)
-    const htmlWindowSummary = NotePlan.htmlWindows.map((w) => `${w.customId ?? '-'}:${w.isVisible ? 'visible' : 'hidden'}`).join(', ')
-    logInfo('generateProjectListsAndRenderIfOpen', `pre-render visibility: ${RICH_PROJECT_LIST_WIN_ID} open=${String(richWindowOpen)}; htmlWindows=[${htmlWindowSummary}]`)
-
-    if (richWindowOpen && phase !== 'afterBanner') {
-      await setProjectListPerspectiveRecalcBanner(config, 'show')
+    if (generateProjectListsAndRenderIfOpenInFlight) {
+      generateProjectListsAndRenderIfOpenNeedsRerun = true
+      logInfo('generateProjectListsAndRenderIfOpen', `coalescing: generate already in flight (phase='${phase}'); will rerun once after current finishes`)
+      return {}
     }
 
-    // Re-calculate the allProjects list (in foreground). Skip Rich invoke from write - render once below (avoids double render per generate).
-    await generateAllProjectsList(config, true, scrollPosNum, skipDash, true)
-    logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectListsIfOpen()`)
+    generateProjectListsAfterBannerQueued = false
+    generateProjectListsAndRenderIfOpenInFlight = true
+    try {
+      do {
+        generateProjectListsAndRenderIfOpenNeedsRerun = false
 
-    // Single in-process Rich/markdown refresh if the list window is already open
-    await renderProjectListsIfOpen(config, scrollPosNum)
-    logInfo('generateProjectListsAndRenderIfOpen', `after renderProjectListsIfOpen()`)
-    return {} // just to avoid NP silently failing when called by invokePluginCommandByName
+        let config = await getReviewSettings()
+        if (!config) throw new Error('No config found. Stopping.')
+        if (config.usePerspectives) {
+          invalidateDashboardPluginSettingsCache()
+          const reloaded = await getReviewSettings()
+          if (reloaded) config = reloaded
+          logInfo('generateProjectListsAndRenderIfOpen',  `using perspective '${config.perspectiveName ?? '?'}': foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(config.foldersToIgnore)}]`)
+        }
+        logDebug(pluginJson, `generateProjectListsAndRenderIfOpen() starting (with scrollPos ${String(scrollPosNum)}, bannerPhase='${phase}')`)
+        const htmlWindowSummary = NotePlan.htmlWindows.map((w) => `${w.customId ?? '-'}:${w.isVisible ? 'visible' : 'hidden'}`).join(', ')
+        logInfo('generateProjectListsAndRenderIfOpen', `pre-render visibility: ${RICH_PROJECT_LIST_WIN_ID} open=${String(richWindowOpen)}; htmlWindows=[${htmlWindowSummary}]`)
+
+        if (richWindowOpen && phase !== 'afterBanner') {
+          await setProjectListPerspectiveRecalcBanner(config, 'show')
+        }
+
+        // Re-calculate the allProjects list (in foreground). Skip Rich invoke from write - render once below (avoids double render per generate).
+        await generateAllProjectsList(config, true, scrollPosNum, skipDash, true)
+        logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectListsIfOpen()`)
+
+        // Single in-process Rich/markdown refresh if the list window is already open
+        await renderProjectListsIfOpen(config, scrollPosNum)
+        logInfo('generateProjectListsAndRenderIfOpen', `after renderProjectListsIfOpen()${generateProjectListsAndRenderIfOpenNeedsRerun ? ' (will rerun for coalesced request)' : ''}`)
+      } while (generateProjectListsAndRenderIfOpenNeedsRerun)
+      return {} // just to avoid NP silently failing when called by invokePluginCommandByName
+    } finally {
+      generateProjectListsAndRenderIfOpenInFlight = false
+    }
   } catch (error) {
     // Deliberately no rethrow: same rationale as the function-level note above.
+    generateProjectListsAndRenderIfOpenInFlight = false
+    generateProjectListsAfterBannerQueued = false
+    generateProjectListsAndRenderIfOpenNeedsRerun = false
     logError('generateProjectListsAndRenderIfOpen', JSP(error))
     if (isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)) {
       await setProjectListPerspectiveRecalcBanner(null, 'remove')
