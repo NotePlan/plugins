@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
+// Last updated 2026-08-20 for v2.4.0.b67 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -294,11 +294,13 @@ export function getTimeBlockSectionData(
             const thisID = `${TBsectionCode}-${itemCounter}`
             // Cast: the `item.para &&` guard above is invalidated by the call in the same condition.
             const para: TParagraphForDashboard = (item.para: any)
+            // Demo paras skip makeDashboardParas; set start/end so the time chip can render
+            setTimeFieldsOnDashboardPara(para)
             const paraType = para.type
             logDebug('getTimeBlockSectionData', `+ TB ${thisID}: {${para?.content ?? '(error)'} (type: ${paraType}) from ${para?.filename ?? '(error)'}`)
-            // For title paragraphs with timeblocks, set itemType to 'timeblock' for consistent display
-            const itemType = paraType === 'title' ? 'timeblock' : undefined
-            const thisSectionItemObject = createSectionItemObject(thisID, 'TB', (item.para: any), itemType)
+            // For title/list paragraphs with timeblocks, set itemType to 'timeblock' for consistent display
+            const itemType = ['title', 'list'].includes(paraType) ? 'timeblock' : undefined
+            const thisSectionItemObject = createSectionItemObject(thisID, 'TB', para, itemType)
             timeBlockItems.push(thisSectionItemObject)
             itemCounter++
           }

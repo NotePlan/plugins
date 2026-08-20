@@ -1,16 +1,17 @@
 # 🎛 Dashboard plugin
-<img alt="Example of Dashboard window" src="dashboard-medium-2.3.0.png" width="700px"/>
+<img alt="Example of Dashboard window" src="dashboard-medium-2.4.0.png" width="700px"/>
 
-This plugin provides a **dashboard window** for your NotePlan data that in one place shows a compact list of:
+This plugin provides a **dashboard window** for your NotePlan data that in one place can show a compact list of any or all of:
 - open tasks and checklists from today's note
 - scheduled open tasks and checklists from other notes to today
 - similarly for yesterday's note, tomorrow's note, this week's and last week's notes, and monthly and quarterly notes too (if used)
-- all open tasks and checklists that contain a particular  `#tags` or `@mention`s of your choosing -- for example things tagged with the name of a family member of colleague. This can give "deferred date" functionality (see below).
-- all overdue tasks
-- all open items with an added priority
+- open Apple Reminders
+- any Time Blocks you've set for today
+- open tasks and checklists that contain a particular  `#tags` or `@mention`s of your choosing -- for example things tagged with the name of a family member of colleague. This can give "deferred date" functionality (see below).
+- overdue tasks
+- open items with an added priority
+- (from v2.4) **Wins** -- your top-priority "big rock" tasks from enabled calendar sections (optional)
 - the next Project notes ready to review (if you have the "Projects and Reviews" plugin installed)
-- it shows today's Time Blocks you've set
-- and any items from Apple Reminders (when **Show Reminders** is enabled in Filters)
 - plus a 'Search' field to show all open items that match a search.
 
 This avoids you having to keep _copying_ tasks into your Today note to see them, but instead you can _see_ them all in one place in the Dashboard window.  From there you can quickly edit, complete, cancel or move any of these items to be due on different days/week/months, with the pop-up Edit Dialog.
@@ -136,11 +137,29 @@ Calendar sections (Today, Yesterday, Week, Month, etc.) can optionally show a **
 
 The display will **automatically refresh** in the background if you set the "Automatic Update interval" to any number > 0. This number is the number of minutes after the window is idle when it will refresh the sections you want to display. You can also press the 'Refresh' button at any point, and/or you can set a trigger (see below).
 
-(From v2.3) The Dashboard will show notes held in any **(Team)Spaces** you are part of. It shows with the title of the (Team)Space in green with the (Team)Space icon, before the note title:
+The Dashboard will show notes held in any **(Team)Spaces** you are part of. It shows with the title of the (Team)Space in green with the (Team)Space icon, before the note title:
 
 <img src="teamspace-title-2.3.0.png" width="300px" margin="8px" border="1px solid grey" alt="example of (Team)Space title" align="center"/>
 
 (From v2.4) The settings screen allow you to specify which (Team)Spaces and/or the Private notes you wish to include in the current Perspective.
+
+### 'Wins' section
+See this [Video Walkthrough of the 'Wins' section](https://www.youtube.com/watch?v=hdJZhR9v6fQ)
+
+(From v2.4) **Wins** is an optional section for your highest-priority open tasks -- the ones you treat as "big rocks" or must-do wins for the period. It gathers matching items from the current calendar notes, and shows them together at the top of the Dashboard.
+
+Turn it on in Settings with "Show chosen 'Wins' priority marker as a separate section?". That also turns the Wins section visibility on or off. Choose which marker counts as a Win with '"Wins" priority marker': `>>` (default; NotePlan's top priority), `!!!`, `!!`.
+
+Mark a task in the usual NotePlan way (e.g. start the line with `>> `). Only open items with that exact marker from the enabled calendar sections above are included. Yesterday, Tomorrow, Last Week, Overdue, Tags, Priority, and Reminders are not sources for Wins.
+
+When Wins is enabled:
+
+- Matching win items are **removed from** those calendar sections in the display, so they appear in Wins rather than twice.
+- With "Hide duplicates?" on, Wins keeps the item ahead of other sections (see [Hide Duplicates](#hide-duplicates)).
+- Wins use a slightly different background so they stand out.
+- The setting "Hide lower-priority items?" still works as usual for `!` / `!!` / `!!!`, but the Wins marker is **excluded** from that calculation. A Win is never treated as "just another high priority" that forces everything else to hide -- Wins stay in their own section, and lower-priority filtering uses the highest among the remaining `!` / `!!` / `!!!` items only.
+
+Note: The **Periodic Reviews** plugin helps you write and review these "big rocks" tasks each day/week.
 
 ### Time Block / Timed Items / Timed Reminders section
 [Time blocks in NotePlan](https://help.noteplan.co/article/121-time-blocking) are a helpful way to help you plan your days. NP shows them in its calendar sidebar. When the **Time Block** section is enabled, the Dashboard shows today's time blocks from your daily note at the top of the window. For example:
@@ -154,11 +173,15 @@ When **Show Reminders** is on (Filters), this section additionally shows today's
 ### Reminders section
 <img src="reminders-section-2.4.0.png" width="740px" margin="8px" border="1px solid grey" alt="reminders section" />
 
-(From v2.4b50; Filter/Settings layout updated in v2.4b59) Incomplete items from your **Apple Reminders** lists can appear across several Dashboard sections. The Filters menu has a single **Show Reminders** toggle: when off, reminders appear nowhere. Finer controls live in Dashboard Settings under **Reminders Section**:
+(From v2.4) Incomplete items from your **Apple Reminders** lists can appear across several Dashboard sections. 
 
-- **Reminder Lists to Include** -- comma-separated list of exact Apple Reminders list names for this Perspective. Leave blank to use the lists enabled in NotePlan's Preferences → Calendars → Reminders; you can also name lists that are disabled in NotePlan if this Perspective should include them.
-- **Hide timed reminders until their due time?** -- when on (default), timed reminders due later today stay hidden until that time; when off, they appear in Timed Items immediately.
-- **Show Undated/Overdue Reminders?** -- undated reminders in the dedicated Reminders section, and past-dated reminders in Overdue (Overdue section must also be enabled).
+See this [Video Walkthrough of the 'Reminders' integration and section]( https://www.youtube.com/watch?v=tdECGIwSDHU)
+
+The Filters menu has a single "Show Reminders?" toggle: when off, reminders appear nowhere.  Finer controls live in Dashboard Settings:
+
+- "Reminder Lists to Include" -- comma-separated list of exact Apple Reminders list names for this Perspective. Leave blank to use the lists enabled in NotePlan's Preferences → Calendars → Reminders; you can also name lists that are disabled in NotePlan if this Perspective should include them.
+- "Hide timed reminders until their due time?" -- when on (default), timed reminders due later today stay hidden until that time; when off, they appear in Timed Items immediately.
+- "Show Undated/Overdue Reminders?" -- undated reminders in the dedicated Reminders section, and past-dated reminders in Overdue (Overdue section must also be enabled).
 
 Reminder rows show the list name, location and notes, and use the list's Apple Reminders color as an accent. (The 'flagged' status is not available outside Apple Reminders.)
 
@@ -175,14 +198,14 @@ Open reminders are split across the Dashboard rather than shown in a single list
 | Undated | **Reminders** section |
 | Dated after tomorrow | not shown |
 
-The same Yesterday → Overdue spill applies to **open tasks** in yesterday's daily note (and items scheduled to yesterday): when the Yesterday section is hidden, those tasks appear in Overdue alongside dated overdue tasks and any spilled yesterday reminders.
+The same Yesterday → Overdue spill applies to open tasks in yesterday's daily note (and items scheduled to yesterday): when the Yesterday section is hidden, those tasks appear in Overdue alongside dated overdue tasks and any spilled yesterday reminders.
 
-Priority from Apple Reminders (none / low / medium / high) is mapped to Dashboard levels matching task `!` / `!!` / `!!!` styling. They also participate in **Hide lower-priority items?** Filtering, and reminder lists sort by time, then priority, then date.
+Priority from Apple Reminders (none / low / medium / high) is mapped to Dashboard levels matching task `!` / `!!` / `!!!` styling. They also participate in "Hide lower-priority items?" Filtering, and reminder lists sort by time, then priority, then date.
 
 The following Actions are possible, all of which are reflected in Apple Reminders too:
 - Click the **circle** icon to complete the reminder;
 - **Ctrl-click** the circle to delete the reminder;
-- Click the reminder **/content** to open it in the Apple Reminders app (requires NotePlan **3.21.2** / build 1524 or later).
+- Click the reminder **/content** to open it in the Apple Reminders app (requires NotePlan v3.21.2 or later).
 - Use the **+** button on the Reminders section heading to add a new reminder: enter the text, choose the list, and optionally a date and time. (Note: requires NP 3.21.2.)
 
 ### Search section
@@ -354,7 +377,9 @@ Note: If you use the 'Overdue Tasks' section, this can add some delay before the
 
 ## Miscellaneous Features
 ### Note Priority Delta
-v2.4 adds the ability to change the displayed priority of all open items in a note by specifying a `note-priority-delta: N` attribute in the note's frontmatter. This adds `N` (or subtracts `-N`) to the priority of every item in that note. This is useful if you have a note where everything in it is important, for example a note about filing and paying taxes. This saves having to clutter the note with priority markers on every task.  Note: This doesn't actually change the items, but just how they're displayed in the Dashboard.
+v2.4 adds the ability to change the displayed priority of all open items in a note by specifying a `note-priority-delta: N` attribute in the note's frontmatter. This adds `N` (or subtracts `-N`) to the priority of every item in that note. This is useful if you have a note where everything in it is important, for example a note about filing and paying taxes. This saves having to clutter the note with priority markers on every task.  Note: _This doesn't actually change the items, but just how they're displayed in the Dashboard_.
+
+See this [Video Walkthrough of the Note Priority Delta feature](https://www.youtube.com/watch?v=yORM7BCHQLU)
 
 ## Controlling from Shortcuts, Streamdeck etc.
 There are number of 'callback's you can use to control the dashboard from shortcuts, command line, Streamdeck etc.  As these can be fiddly to set up, I recommend using the **/Make Callback from Current Settings** command to generate the appropriately encoded callback URL. This is copied to the clipboard ready to paste elsewhere.
@@ -445,7 +470,7 @@ noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=backupSet
 ```
 
 ## Team
-I'm just a hobby coder, and not part of the NotePlan team, but I have spent at least 9 working weeks on this particular plugin. So if you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through:
+I'm just a hobby coder, and not part of the NotePlan team, but I have spent at least 2 working months on this particular plugin. So if you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
@@ -464,4 +489,3 @@ iOS/iPadOS users: if you need support, and we ask for more logs, you can change 
 
 ## History
 Please see the [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md).
-

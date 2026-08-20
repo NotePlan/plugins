@@ -1,50 +1,52 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-  Main additions in Dashboard v2.4 (features only; bug fixes and settings omitted):
+## ## [2.4.0] 2026-08-20
+Just the Headlines:
 
-  New sections
-
+### New sections
 - Active Projects - open projects from Projects & Reviews, with next actions; existing Projects section renamed to Projects to Review
 - Wins - optional section for top-priority tasks (default >>) drawn from enabled Calendar sections
-- Apple Reminders - open reminders across relevant sections; complete / delete / add; click to open in Reminders; priorities supported
+- Apple Reminders - open reminders across relevant sections; complete / delete / add; click to open in Reminders; priorities supported; de-dupes reminders that are imported as tasks.
 
-  Projects & Reviews integration
-
+### Projects & Reviews integration
 - Progress comments and next actions on project rows
 - Complete / cancel next actions in project sections (Active Projects round-trips for an updated next action)
 - Start review button and latest progress in the Project dialog
 - Stronger two-way sync with the Projects & Reviews plugin
 
-  Calendar / time
-
+### Calendar / time
 - Timed Items - timeblocks and timed reminders in one section (title adapts)
 - Headings can appear in the current time-block / timed-items area
 - Neater time and scheduled-date chips (clock / calendar lozenges)
 
-  Task & note workflow
-
+### Task & note workflow
 - Add Task to note from Today / Week section headings
 - Search works with Search Extensions v2 or v3
 - Per-note display priority via frontmatter note-priority-delta
 
-  Spaces & windowing
-
+### Spaces & windowing
 - (Team)Spaces awareness - include Private and/or Spaces per Perspective; clearer Space display in note links
 - Open Dashboard in the main window or a split view (as well as a separate window)
 - Better iOS / iPad support (main window where available, sidebar plugin preference)
 
-  Display polish
-
+### Display polish
 - Note links as tinted lozenges (folder de-emphasised; frontmatter icon / color)
 - Mid-task note links use shorter labels and frontmatter icons
 - Tag/mention cache used by default (faster TAG sections)
 
++ Some significant performance improvements, particularly if you use the Projects & Reviews plugin as well.  And lots of bug fixes.
+
+## [2.4.0.b67] 2026-08-20 (unreleased)
+- Fix: Demo mode never shows section generation timings in the UI (even when Show Section Timings is enabled for live use).
+- Fix: Demo Timed Items now show the time chip (demo timeblocks were missing start/end time fields).
+- Fix: Demo Yesterday calendar-event checklist now renders as a calendar icon + title (was a broken `! [📅](...)` link; times inside event links are no longer treated as timeblocks).
+- Docs: README now documents the **Wins** section.
 
 ## [2.4.0.b66] 2026-08-20 (unreleased)
-- Fix: Saving an active Perspective now tells Projects + Reviews to regenerate its list when folder include/exclude or Spaces to Include changed. The Projects List shows a banner ("Recalculating projects for updated perspective …") before the scan. Live folder edits on a named Perspective still wait for Save, because Reviews reads the saved definition.
-- Fix: Save+Switch (and any result with both save-scope and switch actions) queues only one Projects list regen - the switch covers it. Reviews also coalesces back-to-back regenerate requests so a second message during an in-flight scan does not start a second full generate.
-- Fix: Perspective switch no longer awaits Reviews `generateProjectListsAndRenderIfOpen` (that scan blocked Dashboard paint for several seconds). If the Rich Project List is open, the regen is queued via x-callback so `invokePluginCommandByName` cannot hold the JSContext (it still runs to completion even without `await`). Adds `paintFirst` parameter on the call to help Projects List banner message show.
+- New: Saving an active Perspective now tells Projects + Reviews to regenerate its list when folder include/exclude or Spaces to Include changed. The Projects List shows a banner as it scans. (Live folder edits on a named Perspective still wait for Save, because Reviews reads the saved definition.)
+- dev: Save+Switch (and any result with both save-scope and switch actions) queues only one Projects list regen - the switch covers it. Reviews also coalesces back-to-back regenerate requests so a second message during an in-flight scan does not start a second full generate.
+- Performance: Perspective switch operations now return much more quickly, if the Projects plugin is in use as well. dev: It no longer awaits Reviews `generateProjectListsAndRenderIfOpen`. If the Rich Project List is open, the regen is queued via x-callback so `invokePluginCommandByName` cannot hold the JSContext (it still runs to completion even without `await`). Adds `paintFirst` parameter on the call to help Projects List banner message show.
 
 ## [2.4.0.b65] 2026-08-19 (unreleased)
 - Fix: Apple Reminders in the Reminders section no longer vanish during startup when Filter Priority Items is on. The filter now uses only reminder priorities in that section, not the highest NP-task priority from Today / Overdue / Priority.

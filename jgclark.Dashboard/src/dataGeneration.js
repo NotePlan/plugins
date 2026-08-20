@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-08-12 for v2.4.0.b63 by @CursorAI + @jgclark
+// Last updated 2026-08-20 for v2.4.0.b67 by @CursorAI + @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -93,6 +93,18 @@ function emptyRemindersGeneratedData(): TRemindersGeneratedData {
 //-----------------------------------------------------------------
 
 /**
+ * Config used when generating section payloads.
+ * Demo mode never includes section timings in the UI (even if FFlag_ShowSectionTimings is on for live use).
+ * @param {TDashboardSettings} config
+ * @param {boolean} useDemoData
+ * @returns {TDashboardSettings}
+ */
+export function applyDemoModeGenerationOverrides(config: TDashboardSettings, useDemoData: boolean): TDashboardSettings {
+  if (!useDemoData || !config.FFlag_ShowSectionTimings) return config
+  return { ...config, FFlag_ShowSectionTimings: false }
+}
+
+/**
  * Generate data for all the sections (that the user currently wants)
  * Note: don't forget there's also refreshClickHandlers.js::incrementallyRefreshSomeSections() and refreshSomeSections().
  * @param {boolean} useDemoData? (default: false)
@@ -148,7 +160,8 @@ export async function getSomeSectionsData(
 ): Promise<TSomeSectionsDataResult> {
   try {
     logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()}${tagsToGenerate && tagsToGenerate.length > 0 ? ` tagsToGenerate=[${tagsToGenerate.join(',')}]` : ''} ...`)
-    const config: TDashboardSettings = configOverride ?? (await getDashboardSettings())
+    const baseConfig: TDashboardSettings = configOverride ?? (await getDashboardSettings())
+    const config: TDashboardSettings = applyDemoModeGenerationOverrides(baseConfig, useDemoData)
 
     // Generation order is dependency-driven (Reminders / Yesterday / Overdue coupling, Projects, then slower sections).
     // Display order is owned by React via customSectionDisplayOrder -- do not reorder generation to match display.

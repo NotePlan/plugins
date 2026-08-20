@@ -99,6 +99,23 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
       expect(html).toContain('Ordinary task with 10:00 in text')
     })
 
+    test('renders NP calendar event links as calendar icon + title (not raw path / hashtag chips)', () => {
+      const content = '![📅](2025-08-02 14:00:::814B23B7-2DAB-4C1A-A365-FCA6B97C6556:::NA:::Call @PeterS:::#D06B64)'
+      const html = makeStringContentToLookLikeNPDisplayInReact(content, {
+        truncateLength: 0,
+        taskPriority: 0,
+        startTime: 'none',
+      })
+      expect(html).toContain('fa-light fa-calendar')
+      expect(html).toContain('event-link')
+      expect(html).toContain('Call ')
+      expect(html).toContain('@PeterS')
+      expect(html).not.toContain('814B23B7')
+      expect(html).not.toContain('class="hashtag"')
+      expect(html).not.toContain('class="timeBlock')
+      expect(html).toContain('style="color: #D06B64"')
+    })
+
     test('inline note link drops #heading and truncates long titles in display text', () => {
       const longTitle = 'A'.repeat(60)
       const html = makeStringContentToLookLikeNPDisplayInReact(`See [[${longTitle}#Heading]] today`, { truncateLength: 0, taskPriority: 0 })

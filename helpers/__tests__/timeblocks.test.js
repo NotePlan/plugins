@@ -184,6 +184,10 @@ describe(`${HELPER_NAME}`, () => {
         const cal = 'This is a calendar event link![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8)'
         expect(tb.isTimeBlockLine(cal)).toEqual(false)
       })
+      test('37c: UUID-style calendar event link alone should not be a timeblock', () => {
+        const cal = '![📅](2025-08-02 14:00:::814B23B7-2DAB-4C1A-A365-FCA6B97C6556:::NA:::Call @PeterS:::#D06B64)'
+        expect(tb.isTimeBlockLine(cal)).toEqual(false)
+      })
       test('38: no, as TB in a URL', () => {
         expect(tb.isTimeBlockLine('something in https://example.com/blog/2022-01-01/12:30 and nothing else')).toEqual(false)
       })
@@ -234,6 +238,14 @@ describe(`${HELPER_NAME}`, () => {
     })
     test("should return 'at 2:00am - 3:00PM'", () => {
       expect(tb.getTimeBlockString('>2022-01-01 at 2:00am - 3:00PM here')).toEqual('2:00am - 3:00PM')
+    })
+    test('should ignore time that only appears inside a calendar event link', () => {
+      const cal = '![📅](2025-08-02 14:00:::814B23B7-2DAB-4C1A-A365-FCA6B97C6556:::NA:::Call @PeterS:::#D06B64)'
+      expect(tb.getTimeBlockString(cal)).toEqual('')
+    })
+    test('should still find a timeblock that is outside a calendar event link', () => {
+      const cal = 'Prep at 12:30 ![📅](2025-08-02 14:00:::814B23B7-2DAB-4C1A-A365-FCA6B97C6556:::NA:::Call @PeterS:::#D06B64)'
+      expect(tb.getTimeBlockString(cal)).toEqual('12:30')
     })
   })
 
@@ -628,6 +640,10 @@ describe(`${HELPER_NAME}`, () => {
     })
     test('should return "none" if the para does not have a valid time', () => {
       expect(tb.getStartTimeFromPara({ content: '2025-05-09 10-11' })).toBe('none')
+    })
+    test('should return "none" when the only time is inside a calendar event link', () => {
+      const cal = '![📅](2025-08-02 14:00:::814B23B7-2DAB-4C1A-A365-FCA6B97C6556:::NA:::Call @PeterS:::#D06B64)'
+      expect(tb.getStartTimeFromPara({ content: cal })).toBe('none')
     })
   })
 

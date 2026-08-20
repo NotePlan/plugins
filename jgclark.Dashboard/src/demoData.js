@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin
-// Last updated 2026-07-11 for v2.4.0.b49 by @jgclark
+// Last updated 2026-08-20 for v2.4.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -330,8 +330,8 @@ export const openYesterdayParas: Array<TSectionItem> = [
       filename: thisFilename,
       lineIndex: 20,
       priority: 0,
-      content: '![📅](2025-08-02 14:00:::814B23B7-2DAB-4C1A-A365-FCA6B97C6556:::NA:::Visit @PeterS again:::#D06B64)',
-      rawContent: '![📅](2025-08-02 14:00:::814B23B7-2DAB-4C1A-A365-FCA6B97C6556:::NA:::Visit @PeterS again:::#D06B64)',
+      content: '![📅](2025-08-02 14:00:::814B23B7-2DAB-4C1A-A365-FCA6B97C6556:::NA:::Call @PeterS:::#D06B64)',
+      rawContent: '![📅](2025-08-02 14:00:::814B23B7-2DAB-4C1A-A365-FCA6B97C6556:::NA:::Call @PeterS:::#D06B64)',
       prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
       indents: 0,

@@ -382,7 +382,7 @@ button,
 
 	/* Teamspace note link - default layer */
 	.teamspaceName {
-		color: rgba(from var(--teamspace-color) r g b / 0.5);
+		color: rgba(from var(--teamspace-color) r g b / 0.6);
 		white-space: nowrap;
 	}
 

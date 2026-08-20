@@ -301,6 +301,8 @@ export function isActiveOrFutureTimeBlockPara(para: TParagraph, mustContainStrin
  * Get the timeblock portion of a timeblock line (also is a way to check if it's a timeblock line).
  * Does not return the text after the timeblock (you can use isTimeBlockLine to check if it's a timeblock line).
  * Note: there may not be an end time.
+ * Times that only appear inside URLs, note links, or calendar event link paths are ignored
+ * (same approach as isTimeBlockLine).
  * @tests available for jest
  * @author @dwertheimer
  *
@@ -310,9 +312,11 @@ export function isActiveOrFutureTimeBlockPara(para: TParagraph, mustContainStrin
 export const getTimeBlockString = (contentString: string): string => {
   const matchedStrings = []
   if (contentString) {
-    const reMatch: Array<string> = contentString.match(RE_TIMEBLOCK_IN_LINE) ?? []
+    // Strip URIs / note-link / event-link paths so times inside them are not treated as timeblocks
+    const strippedContent = stripDoneDateTimeMentions(stripAllURIsAndNoteLinks(contentString))
+    const reMatch: Array<string> = strippedContent.match(RE_TIMEBLOCK_IN_LINE) ?? []
     // logDebug('getTimeBlockString', `reMatch: ${String(reMatch)} for '${contentString}'`)
-    if (contentString && reMatch && reMatch.length) {
+    if (reMatch && reMatch.length) {
       matchedStrings.push(reMatch[0].trim())
     }
   }

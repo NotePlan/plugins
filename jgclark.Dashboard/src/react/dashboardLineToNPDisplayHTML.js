@@ -129,15 +129,17 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
     let output = origContent
     let timeBlockLabel = ''
 
+    // Convert NP calendar event links (and inline images) before timeblock handling, so embedded event
+    // times are not stripped from the raw `![📅](...)` path and the link can still be recognised.
+    output = simplifyNPEventLinksForHTML(output)
+    output = simplifyInlineImagesForHTML(output)
+
     // For timeblocks: strip TB + must-contain from content, and keep a leading label from startTime/endTime
     if (startTime && startTime !== 'none') {
       const prepared = prepareTimeBlockContentForDisplay(output, startTime, endTime, timeblockTextMustContainString)
       timeBlockLabel = prepared.timeLabel
       output = prepared.restContent
     }
-
-    output = simplifyNPEventLinksForHTML(output)
-    output = simplifyInlineImagesForHTML(output)
 
     // Note links (including [alias]([[title]])) before markdown-link conversion so aliases are not treated as external URLs
     const noteLinks = findNoteLinksForDisplay(output)

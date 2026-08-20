@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-19 for v2.4.0.b65 by @jgclark + @CursorAI
+// Last updated 2026-08-20 for v2.4.0.b67 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
@@ -18,7 +18,7 @@ import {
   isTBSectionEnabled,
   isUndatedOverdueRemindersEnabled,
 } from './dashboardHelpers'
-import { getSomeSectionsData, sectionCodesNeedRemindersFetch } from './dataGeneration'
+import { applyDemoModeGenerationOverrides, getSomeSectionsData, sectionCodesNeedRemindersFetch } from './dataGeneration'
 import { getRemindersGeneratedData, type TRemindersGeneratedData } from './dataGenerationReminders'
 import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
 import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from './tagMentionCache'
@@ -105,7 +105,8 @@ export async function incrementallyRefreshSomeSections(
     let cachedRemindersData: ?TRemindersGeneratedData = null
     if (sectionCodesNeedRemindersFetch(sectionCodes, config)) {
       logDebug('incrementallyRefreshSomeSections', `Prefetching Reminders once for incremental refresh of ${String(sectionCodes.length)} sections`)
-      cachedRemindersData = await getRemindersGeneratedData(config, demoMode)
+      const generationConfig = applyDemoModeGenerationOverrides(config, demoMode)
+      cachedRemindersData = await getRemindersGeneratedData(generationConfig, demoMode)
     }
 
     // One UPDATE_DATA per section (progressive pop-in). Fold spinner/firstRun/lastFullRefresh into the last
