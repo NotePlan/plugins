@@ -1,8 +1,13 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.0.9] - 2026-08-20 (not yet released)
+- Fix: **add progress** no longer loses the body `Progress:` line when also writing the first `progress:` frontmatter key.
+
+## [2.0.8] - 2026-08-20
+- Change: re-build and release, to pick up Dashboard being smarter about how it communicates change of perspective with this plugin.
+
 ## [2.0.7] - 2026-08-17
-- Fix: Project list updating banner now appears as soon as a Dashboard perspective change arrives, instead of waiting until the list refresh finishes (the scan was blocking the WebView from painting).
 - Change: When a saved Perspective definition changes which folders or Spaces are included, the Project list shows "Recalculating projects for updated perspective …" and regenerates.
 - Fix: Back-to-back Dashboard regenerate requests (e.g. Save then Switch, or overlapping x-callbacks) coalesce to one in-flight generate plus at most one follow-up with the latest settings.
 - Change: Project list shows an INFO banner below the top bar while recalculating projects after a Dashboard perspective change.

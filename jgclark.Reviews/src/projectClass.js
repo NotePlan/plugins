@@ -1222,47 +1222,39 @@ this.lastProgressComment = `${comment} (${progressDateLabel})`
 const newProgressLineForFrontmatter = formatProgressCommentString(comment, percentStr !== '' ? percentStr : undefined, progressDateStr)
 const newProgressLine = `${progressFieldName}: ${newProgressLineForFrontmatter}`
 
-      // Optionally mirror the most recent progress line into frontmatter
-      if (writeMostRecentProgressToFrontmatter) {
-        const frontmatterTarget: TEditor | TNote = possibleThisEditor ? possibleThisEditor : this.note
-        const noteForCache: TNote = possibleThisEditor && possibleThisEditor.note ? possibleThisEditor.note : this.note
-        const success = updateFrontMatterVars(frontmatterTarget, { [progressKey]: newProgressLineForFrontmatter })
-        if (success) {
-          logDebug('Project::addProgressLine', `Updated frontmatter progress OK for '${this.title}'`)
-          DataStore.updateCache(noteForCache, true)
-        } else {
-          logError('Project::addProgressLine', `Failed to update frontmatter progress for '${this.title}'`)
-        }
-      }
+      // Write the body progress line FIRST, then optionally mirror into frontmatter.
+      // Adding a new frontmatter key shifts paragraph indexes; if we wrote FM first and reused a
+      // stale mostRecentProgressLineIndex, the body line could land inside the FM block and be
+      // discarded on the next frontmatter rewrite (e.g. finishReview).
 
       // If progress heading is configured, use heading-based insertion
       if (progressHeading !== '') {
         logDebug('Project::addProgressLine', `Using progress heading: '${progressHeading}'`)
-        
+
         // Check if Progress lines already exist
         const existingProgressLines = getFieldParagraphsFromNote(this.note, progressFieldName)
-        
+
         if (existingProgressLines.length > 0) {
           // Progress lines exist - check if heading exists
           const headingPara = findHeading(this.note, progressHeading)
-          
+
           if (headingPara == null) {
             // Heading doesn't exist - insert it above the first Progress line
-            const firstProgressLine = existingProgressLines.reduce((earliest, current) => 
+            const firstProgressLine = existingProgressLines.reduce((earliest, current) =>
               current.lineIndex < earliest.lineIndex ? current : earliest
             )
             let firstProgressLineIndex = firstProgressLine.lineIndex
-            
+
             // Ensure we don't insert at line 0 or immediately after frontmatter (which is typically the title)
             const endOfFMIndex = endOfFrontmatterLineIndex(this.note) || 0
             const titleLineIndex = endOfFMIndex > 0 ? endOfFMIndex + 1 : 0
-            
+
             // Check if the insertion point is at line 0 or at the title line (first line after frontmatter)
             if (firstProgressLineIndex === 0 || (endOfFMIndex > 0 && firstProgressLineIndex === titleLineIndex)) {
               // Check if the line at titleLineIndex is actually a title
               const titlePara = this.note.paragraphs[titleLineIndex]
               const isTitleLine = titlePara && titlePara.type === 'title' && titlePara.headingLevel === 1
-              
+
               if (firstProgressLineIndex === 0) {
                 logWarn('Project::addProgressLine', `First Progress line is at line 0, adjusting to avoid overwriting title`)
                 // If line 0 is a title, insert after it; otherwise insert at line 1
@@ -1276,9 +1268,9 @@ const newProgressLine = `${progressFieldName}: ${newProgressLineForFrontmatter}`
                 firstProgressLineIndex = Math.max(1, firstProgressLineIndex + 1)
               }
             }
-            
+
             logDebug('Project::addProgressLine', `Inserting heading '${progressHeading}' above first Progress line at line ${String(firstProgressLineIndex)}`)
-            
+
             // Insert heading above first Progress line
             if (possibleThisEditor) {
               possibleThisEditor.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
@@ -1288,11 +1280,11 @@ const newProgressLine = `${progressFieldName}: ${newProgressLineForFrontmatter}`
               await DataStore.updateCache(this.note, true)
             }
           }
-          
+
           // Now add the progress line under the heading (heading is guaranteed to exist)
           logDebug('Project::addProgressLine', `Adding progress line under heading '${progressHeading}'`)
           this.note.addParagraphBelowHeadingTitle(newProgressLine, 'text', progressHeading, false, false)
-          
+
           if (possibleThisEditor) {
             await possibleThisEditor.save()
           } else {
@@ -1302,7 +1294,7 @@ const newProgressLine = `${progressFieldName}: ${newProgressLineForFrontmatter}`
           // No Progress lines exist: add new Progress Section heading (if needed) and the first progress line
           logDebug('Project::addProgressLine', `No existing Progress lines, so creating new Section heading '${progressHeading}' if needed after preamble`)
           createSectionsAndParaAfterPreamble(this.note, newProgressLine, 'text', [progressHeading], progressHeadingLevel)
-          
+
           if (possibleThisEditor) {
             await possibleThisEditor.save()
           } else {
@@ -1313,6 +1305,7 @@ const newProgressLine = `${progressFieldName}: ${newProgressLineForFrontmatter}`
         // No progress heading configured - use existing logic
         // Set insertion point for the new progress line to this paragraph,
         // or if none exist, to the line after the current metadata line
+        const noteForIndexes: TEditor | TNote = possibleThisEditor ? possibleThisEditor : this.note
         let insertionIndex = this.mostRecentProgressLineIndex
         if (isNaN(insertionIndex)) {
           insertionIndex = endOfPreambleSection(this.note)
@@ -1320,7 +1313,14 @@ const newProgressLine = `${progressFieldName}: ${newProgressLineForFrontmatter}`
         } else {
           logDebug('Project::addProgressLine', `Will insert new progress line before most recent progress line at ${String(insertionIndex)}.`)
         }
-        
+
+        // Never insert inside (or on) the frontmatter block
+        const endOfFMIndex = endOfFrontmatterLineIndex(noteForIndexes) ?? -1
+        if (endOfFMIndex >= 0 && insertionIndex <= endOfFMIndex) {
+          logWarn('Project::addProgressLine', `Insertion index ${String(insertionIndex)} is inside frontmatter (ends at ${String(endOfFMIndex)}); moving to line ${String(endOfFMIndex + 1)}`)
+          insertionIndex = endOfFMIndex + 1
+        }
+
         // Ensure we don't insert at line 0 (which is typically the title)
         if (insertionIndex === 0) {
           logWarn('Project::addProgressLine', `Insertion index is 0, adjusting to line 1 to avoid overwriting title`)
@@ -1342,6 +1342,19 @@ const newProgressLine = `${progressFieldName}: ${newProgressLineForFrontmatter}`
           logDebug('Project::addProgressLine', `- finished this.note.insertParagraph`)
           await DataStore.updateCache(this.note, true)
           logDebug('Project::addProgressLine', `- after DataStore.updateCache`)
+        }
+      }
+
+      // Optionally mirror the most recent progress line into frontmatter (after body write)
+      if (writeMostRecentProgressToFrontmatter) {
+        const frontmatterTarget: TEditor | TNote = possibleThisEditor ? possibleThisEditor : this.note
+        const noteForCache: TNote = possibleThisEditor && possibleThisEditor.note ? possibleThisEditor.note : this.note
+        const success = updateFrontMatterVars(frontmatterTarget, { [progressKey]: newProgressLineForFrontmatter })
+        if (success) {
+          logDebug('Project::addProgressLine', `Updated frontmatter progress OK for '${this.title}'`)
+          DataStore.updateCache(noteForCache, true)
+        } else {
+          logError('Project::addProgressLine', `Failed to update frontmatter progress for '${this.title}'`)
         }
       }
 

@@ -142,7 +142,7 @@ There are 2 parts of this:
     - If 'Folders to Include' setting is empty, then all folders will be used apart from those in the 'Folders to Exclude' setting.
     - The special Templates, Archive and Trash are always excluded.
   
-  - Or if you use my separate **[Dashboard plugin](https://noteplan.co/plugins/jgclark.Dashboard/)**, turn on the '**Use Perspectives**' setting to inherit its definitions of what folders (and (Team)Space notes, and even note sections) are included and excluded.  to be installed. If you change the active Perspective in the Dashboard, the Project Lists window will also automatically update (from Dashboard v2.4).
+  - Or if you use my separate **[Dashboard plugin](https://noteplan.co/plugins/jgclark.Dashboard/)**, turn on the '**Use Perspectives**' setting to inherit its definitions of what folders (and (Team)Space notes, and even note sections) are included and excluded.  to be installed. If you change (or update the definition of) the active Perspective in the Dashboard, the Project Lists window will also automatically update (from Dashboard v2.4).
 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
