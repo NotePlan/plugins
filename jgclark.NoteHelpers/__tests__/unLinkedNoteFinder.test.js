@@ -4,7 +4,7 @@
 
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
-import { buildRegex } from '../src/unlinkedNoteFinder'
+import { buildRegex, contentContainsNoteTitle } from '../src/unlinkedNoteFinder'
 
 const PLUGIN_NAME = `{{pluginID}}`
 const FILENAME = `NPPluginMain`
@@ -123,5 +123,17 @@ describe('buildRegex replace callback (boundary prefix, no lookbehind)', () => {
     const input = 'Foo, Bar baz'
     const out = input.replaceAll(buildRegex(note), (_full, boundary) => `${boundary}[[${note}]]`)
     expect(out).toBe('Foo, [[Bar]] baz')
+  })
+})
+
+describe('contentContainsNoteTitle', () => {
+  test('matches mixed case so the regex gate does not skip valid titles', () => {
+    expect(contentContainsNoteTitle('See project today', 'Project')).toBe(true)
+    expect(contentContainsNoteTitle('See Project today', 'project')).toBe(true)
+  })
+
+  test('returns false when the title is absent', () => {
+    expect(contentContainsNoteTitle('See other notes today', 'Project')).toBe(false)
+    expect(contentContainsNoteTitle('', 'Project')).toBe(false)
   })
 })

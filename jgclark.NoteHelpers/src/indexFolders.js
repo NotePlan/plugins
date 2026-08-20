@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2026-02-06 for v0.19.0+ by @jgclark
+// Last updated 2026-08-18 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -44,6 +44,22 @@ icon-color: yellow-500
 ---
 `
 
+/**
+ * Folders to include in an index, given a starting folder and whether subfolders are wanted.
+ * Uses the explicit includeSubfolders argument (not the config default) so "this folder only" is honoured.
+ * @author @jgclark
+ * @param {string} folder
+ * @param {boolean} includeSubfolders
+ * @param {$ReadOnlyArray<string>} allFolders
+ * @returns {Array<string>}
+ */
+export function foldersToIndex(folder: string, includeSubfolders: boolean, allFolders: $ReadOnlyArray<string>): Array<string> {
+  if (includeSubfolders) {
+    return allFolders.filter((f) => f.startsWith(folder))
+  }
+  return [folder]
+}
+
 //-----------------------------------------------------------------------------
 /**
  * Private function to generate the index of a specified folder, including
@@ -57,17 +73,10 @@ icon-color: yellow-500
 */
 function makeFolderIndex(folder: string, config: any, includeSubfolders: boolean): Array<string> {
   try {
-    logDebug(pluginJson, `makeFolderIndex() starting for '${folder}', displayOrder:${config.displayOrder} / dateDisplayType:${config.dateDisplayType} / ${config.includeSubfolders ? 'with' : 'without'} subfolders`)
+    logDebug(pluginJson, `makeFolderIndex() starting for '${folder}', displayOrder:${config.displayOrder} / dateDisplayType:${config.dateDisplayType} / ${includeSubfolders ? 'with' : 'without'} subfolders`)
 
     const outputArray: Array<string> = []
-    let folderList: Array<string> = []
-    // if we want a to include any subfolders, create list of folders
-    if (config.includeSubfolders) {
-      folderList = DataStore.folders.filter((f) => f.startsWith(folder))
-    } else {
-      // otherwise use a single folder
-      folderList = [folder]
-    }
+    const folderList = foldersToIndex(folder, includeSubfolders, DataStore.folders)
     logDebug('makeFolderIndex', `- Found ${folderList.length} matching folder(s)`)
 
     // Prepare output items we need just once in the output

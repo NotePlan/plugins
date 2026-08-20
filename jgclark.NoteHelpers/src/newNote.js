@@ -4,7 +4,7 @@
 // Create new note from currently selected text
 // and (optionally) leave backlink to it where selection was
 // Note: this was originally in Filer plugin
-// Last updated 2026-04-25 for 1.1.0+, @jgclark (originally @dwertheimer)
+// Last updated 2026-08-18 for v1.4.0, @jgclark (originally @dwertheimer)
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,6 +13,18 @@ import { logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getUniqueNoteTitle, getNote } from '@helpers/note'
 import { chooseFolder, getInput, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
+
+/**
+ * Whether /new note should convert the note to frontmatter using the plugin's default FM text.
+ * Uses `defaultFMText` (the actual setting key). A missing or blank value means do not convert.
+ * @author @jgclark
+ * @param {?{ defaultFMText?: mixed }} config
+ * @returns {boolean}
+ */
+export function shouldAddDefaultFrontmatter(config: ?{ defaultFMText?: mixed }): boolean {
+  const text = typeof config?.defaultFMText === 'string' ? config.defaultFMText : ''
+  return text !== ''
+}
 
 //-----------------------------------------------------------------------------
 // helper functions
@@ -59,7 +71,7 @@ export function getSuggestedTitleFromContent(content: string): string {
 export async function newNote(): Promise<void> {
   try {
     // Get title for this note
-    const title = await getInputTrimmed('Title of new note', 'OK', 'New Note from Clipboard', '')
+    const title = await getInputTrimmed('Title of new note', 'OK', 'New Note', '')
     if (typeof title === 'string') {
       const currentFolder = await chooseFolder('Select folder to add note in:', false, true, '/', true)  // don't include @Archive as an option, but do allow creation of a new folder
       const content = `# ${title}\n`
@@ -68,10 +80,9 @@ export async function newNote(): Promise<void> {
         const filename = (await DataStore.newNoteWithContent(content, currentFolder)) ?? ''
         logDebug('newNote', ` -> filename: ${filename}`)
 
-        // Add frontmatter if required
+        // Add frontmatter if the default FM text setting is not blank
         const config = await getSettings()
-        if (config.defaultFrontmatter !== '') {
-          // Add frontmatter to the note
+        if (shouldAddDefaultFrontmatter(config)) {
           const newNote = await DataStore.noteByFilename(filename, 'Notes')
           if (newNote) {
             await addFrontmatterToNote(newNote)

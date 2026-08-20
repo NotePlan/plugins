@@ -1,8 +1,9 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { log, logError, logDebug, timer, clo, clof, JSP } from '@helpers/dev'
+import { updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { getSettings } from './noteHelpers'
 
 /****************************************************************************************************************************
  *                             CONSTANTS
@@ -28,7 +29,9 @@ import { log, logError, logDebug, timer, clo, clof, JSP } from '@helpers/dev'
 export async function writeModified(): Promise<void> {
   try {
     logDebug('writeModified', 'Starting')
-    const { authorID, dateFormat } = await DataStore.settings
+    const config = await getSettings()
+    const authorID = config.authorID ?? ''
+    const dateFormat = config.dateFormat ?? 'ISO'
     const theTime = !dateFormat || dateFormat === 'ISO' ? new Date().toISOString() : new Date().toLocaleString()
     updateFrontMatterVars(Editor, {
       modified: authorID ? `${theTime} (${authorID})` : theTime,

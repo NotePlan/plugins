@@ -4,6 +4,7 @@
  */
 import pluginJson from '../plugin.json'
 import { log, logDebug, logError, logInfo, clo, JSP, timer } from '@helpers/dev'
+import { caseInsensitiveSubstringMatch } from '@helpers/search'
 
 const CODE_BLOCK_PLACEHOLDER = '8ce08058-d387-4d3a-8043-4f3b7ef63eb7'
 const MARKDOWN_LINK_PLACEHOLDER = '975b7115-5568-4bc6-b6c8-6603350572ea'
@@ -77,7 +78,7 @@ function findUnlinkedNotesInNote(currentNote: TNote, noteTitlesSortedByLength: A
   content = contentWithLinksRemoved
 
   noteTitlesSortedByLength.forEach((note) => {
-    if (currentNote.title !== note && content.includes(note)) {
+    if (currentNote.title !== note && contentContainsNoteTitle(content, note)) {
       content = content.replaceAll(buildRegex(note), (fullMatch, boundaryPrefix) => {
         logDebug(`Found link to: ${note}`)
         foundLinks++
@@ -97,6 +98,21 @@ function findUnlinkedNotesInNote(currentNote: TNote, noteTitlesSortedByLength: A
   logInfo(`Linked ${foundLinks} notes in ${currentNote.title ?? ''}, took: ${timer(overallTime)}`)
 
   return foundLinks
+}
+
+/**
+ * Fast case-insensitive check that a note title appears in content.
+ * Used as a gate before the more expensive regex replace; must agree with that regex's `i` flag.
+ * @author @jgclark
+ * @param {string} content
+ * @param {string} noteTitle
+ * @returns {boolean}
+ */
+export function contentContainsNoteTitle(content: string, noteTitle: string): boolean {
+  if (!content || !noteTitle) {
+    return false
+  }
+  return caseInsensitiveSubstringMatch(noteTitle, content)
 }
 
 /**

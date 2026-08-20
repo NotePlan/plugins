@@ -2,15 +2,16 @@
 //-----------------------------------------------------------------------------
 // Functions to find notes where the filename doesn't match what it should be based on the note's title.
 // by Leo Melo, readied for the plugin and maintained by @jgclark
-// Last updated 2028-08-03 for v1.3.7 by @jgclark
+// Last updated 2026-08-18 for v1.4.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../../plugin.json'
-import { getSettings } from '../noteHelpers'
 import { clo, logDebug, logWarn } from '@helpers/dev'
 import { getRegularNotesInFolder } from '@helpers/folders'
 import { getFSSafeFilenameFromNoteTitle } from '@helpers/NPnote'
 import { caseInsensitiveMatch } from '@helpers/search'
+import { getSettings } from '../noteHelpers'
+import { parseFoldersToIgnore } from './parseFoldersToIgnore'
 
 /**
  * Finds notes where the filename doesn't match what it should be based on the note's title.
@@ -26,8 +27,7 @@ export async function findInconsistentNames(
 ): Promise<Array<TNote>> {
   // Work out what files to check, taking note of any folders to ignore
   const settings = await getSettings()
-  const foldersToIgnoreSetting = settings.foldersToIgnore ?? ''
-  const foldersToIgnore: Array<string> = foldersToIgnoreSetting.split(',').map((folder) => folder.trim())
+  const foldersToIgnore: Array<string> = parseFoldersToIgnore(settings?.foldersToIgnore)
   const filesToCheck = getRegularNotesInFolder(folder, true, foldersToIgnore)
   logDebug('findInconsistentNames', `Will check ${filesToCheck.length} notes in folder '${folder}' and its sub-folders, ignoring [${foldersToIgnore.join(', ')}] folders`)
 

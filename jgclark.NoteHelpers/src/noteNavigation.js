@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Navigation functions for Note Helpers plugin for NotePlan
 // Jonathan Clark
-// Last updated 2026-03-06 for v1.3.3, @jgclark
+// Last updated 2026-08-18 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -52,6 +52,43 @@ export async function jumpToHeading(heading?: string): Promise<void> {
 }
 
 /**
+ * How to open a note in the Editor: prefer filename so duplicate titles cannot open the wrong note.
+ * @author @jgclark
+ * @param {TNote} note
+ * @returns {{ by: 'filename' | 'title', value: string } | null}
+ */
+export function getNoteOpenIdentifier(note: TNote): { by: 'filename' | 'title', value: string } | null {
+  const filename = note.filename
+  if (filename && filename !== '') {
+    return { by: 'filename', value: filename }
+  }
+  const title = note.title
+  if (title && title !== '') {
+    return { by: 'title', value: title }
+  }
+  return null
+}
+
+/**
+ * Open a note in the current Editor, preferring filename over title.
+ * @author @jgclark
+ * @param {TNote} note
+ * @returns {Promise<boolean>}
+ */
+async function openNoteInEditor(note: TNote): Promise<boolean> {
+  const target = getNoteOpenIdentifier(note)
+  if (!target) {
+    return false
+  }
+  if (target.by === 'filename') {
+    await Editor.openNoteByFilename(target.value)
+  } else {
+    await Editor.openNoteByTitle(target.value)
+  }
+  return true
+}
+
+/**
  * Jumps the cursor to the heading of the current note that the user selects (or the note specified by the noteTitle parameter)
  * @author @jgclark
  * @param {string?} noteTitleOrFilename optional title or filename of the note to jump to
@@ -60,27 +97,16 @@ export async function jumpToNoteHeading(noteTitleOrFilename?: string): Promise<v
   try {
     if (noteTitleOrFilename != null && noteTitleOrFilename !== '') {
       const note = await getNote(noteTitleOrFilename)
-      if (note != null && note.title != null) {
-        await Editor.openNoteByTitle(note.title)
-      } else {
-        logError("Couldn't open selected note")
+      if (!note || !(await openNoteInEditor(note))) {
+        logError('jumpToNoteHeading()', "Couldn't open selected note")
         return
       }
     } else {
       // first jump to the note of interest, then to the heading
-      // const notesList = allNotesSortedByChanged()
-      // const re = await CommandBar.showOptions(
-      //   notesList.map((n) => displayTitle(n)),
-      //   'Select note to jump to',
-      // )
-      // const note = notesList[re.index]
       const note = await chooseNoteV2(`Select note to jump to`, allRegularNotesSortedByChanged(), true, true, false, true)
 
-      // Open the note in the Editor
-      if (note != null && note.title != null) {
-        await Editor.openNoteByTitle(note.title)
-      } else {
-        logError("Couldn't open selected note")
+      if (!note || !(await openNoteInEditor(note))) {
+        logError('jumpToNoteHeading()', "Couldn't open selected note")
         return
       }
     }
@@ -96,7 +122,7 @@ export async function jumpToNoteHeading(noteTitleOrFilename?: string): Promise<v
  * NB: need to update to allow this to work with sub-windows, when EM updates API
  * @author @jgclark
  */
-export function jumpToDone(): void {
+export async function jumpToDone(): Promise<void> {
   try {
     const paras = Editor?.paragraphs
     if (paras == null) {
@@ -107,7 +133,7 @@ export function jumpToDone(): void {
     // Find the 'Done' heading of interest from all the paragraphs
     const matches = paras.filter((p) => p.headingLevel === 2).filter((q) => q.content.startsWith('Done')) // startsWith copes with Done section being folded
 
-    if (matches != null) {
+    if (matches.length > 0) {
       const startPos = matches[0].contentRange?.start ?? 0
       logDebug('jumpToDone()', `Jumping to '## Done' at position ${startPos}`)
       // Editor.renderedSelect(startPos, 0) // sometimes doesn't work
@@ -117,6 +143,7 @@ export function jumpToDone(): void {
       // Editor.highlight(p)
     } else {
       logWarn('jumpToDone()', "Couldn't find a '## Done' section. Stopping.")
+      await showMessage(`Couldn't find a '## Done' section.`, 'OK', 'Jump to Done')
     }
   } catch (e) {
     logError('jumpToDone()', e.message)
@@ -163,53 +190,5 @@ export async function openURLFromANote(): Promise<void> {
     await NotePlan.openURL(chosenURL)
   } catch (e) {
     logError('openURLFromANote()', e.message)
-  }
-}
-
-/**
- * Open current month calendar note in current Editor.
- */
-export async function showMonth(): Promise<void> {
-  try {
-    const res = await Editor.openNoteByDate(new Date(), false, 0, 0, false, "month")
-    if (!res) {
-      logWarn('showMonth', `Cannot show current month note for some reason`)
-    } else {
-      logDebug('showMonth', `Opened current month note ${displayTitle(res)}`)
-    }
-  } catch (err) {
-    logError('showMonth()', err.message)
-  }
-}
-
-/**
- * Open current quarter calendar note in current Editor.
- */
-export async function showQuarter(): Promise<void> {
-  try {
-    const res = await Editor.openNoteByDate(new Date(), false, 0, 0, false, "quarter")
-    if (!res) {
-      logWarn('showQuarter', `Cannot show current quarter note for some reason`)
-    } else {
-      logDebug('showQuarter', `Opened current quarter note ${displayTitle(res)}`)
-    }
-  } catch (err) {
-    logError('showQuarter()', err.message)
-  }
-}
-
-/**
- * Open current year calendar note in current Editor.
- */
-export async function showYear(): Promise<void> {
-  try {
-    const res = await Editor.openNoteByDate(new Date(), false, 0, 0, false, "year")
-    if (!res) {
-      logWarn('showYear', `Cannot show current year note for some reason`)
-    } else {
-      logDebug('showYear', `Opened current year note ${displayTitle(res)}`)
-    }
-  } catch (err) {
-    logError('showYear()', err.message)
   }
 }

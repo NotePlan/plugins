@@ -21,7 +21,7 @@ export async function listPublishedNotes(): Promise<void> {
 
     // Construct output
     const outputArray = []
-    const xCallbackURL = createRunPluginCallbackUrl('jgclark.NoteHelpers', 'listPublishedNotes', [])
+    const xCallbackURL = createRunPluginCallbackUrl('jgclark.NoteHelpers', 'list published notes', [])
     outputArray.push(`# Published Notes`)
     outputArray.push(`Found ${publishedNotes.length} published notes. Last run: ${new Date().toLocaleString()}  [🔄 Refresh list](${xCallbackURL})`)
     outputArray.push(``)

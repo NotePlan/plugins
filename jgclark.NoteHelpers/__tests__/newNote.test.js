@@ -3,7 +3,7 @@
 
 import { CustomConsole } from '@jest/console'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter } from '@mocks/index'
-import { getSuggestedTitleFromContent } from '../src/newNote'
+import { getSuggestedTitleFromContent, shouldAddDefaultFrontmatter } from '../src/newNote'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -39,5 +39,22 @@ describe('getSuggestedTitleFromContent', () => {
 
   test('returns empty string for empty content', () => {
     expect(getSuggestedTitleFromContent('')).toBe('')
+  })
+})
+
+describe('shouldAddDefaultFrontmatter', () => {
+  test('is false when config is missing or defaultFMText is blank', () => {
+    expect(shouldAddDefaultFrontmatter(null)).toBe(false)
+    expect(shouldAddDefaultFrontmatter(undefined)).toBe(false)
+    expect(shouldAddDefaultFrontmatter({})).toBe(false)
+    expect(shouldAddDefaultFrontmatter({ defaultFMText: '' })).toBe(false)
+  })
+
+  test('is false when the wrong setting key is present (the old bug)', () => {
+    expect(shouldAddDefaultFrontmatter({ defaultFrontmatter: 'author: me' })).toBe(false)
+  })
+
+  test('is true when defaultFMText is non-empty', () => {
+    expect(shouldAddDefaultFrontmatter({ defaultFMText: 'author: me' })).toBe(true)
   })
 })

@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // NoteHelpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2025-12-20 for v1.3.0 by @jgclark
+// Last updated 2026-08-18 for v1.4.0 by @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -14,6 +14,7 @@ import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { editSettings } from '@helpers/NPSettings'
 import { chooseFolder, showMessage } from '@helpers/userInput'
 
+export { addTitleToNoteBody } from './addTitleToNoteBody'
 export { countAndAddDays } from './countDays'
 export { duplicateNote } from './duplicateNote'
 export { indexFolders, updateAllIndexes } from './indexFolders'
@@ -33,9 +34,6 @@ export {
   // openNoteNewWindow,
   // openNoteNewSplit,
   openURLFromANote,
-  showMonth,
-  showQuarter,
-  showYear,
 } from './noteNavigation'
 export { findUnlinkedNotesInCurrentNote, findUnlinkedNotesInAllNotes, triggerFindUnlinkedNotes } from './unlinkedNoteFinder'
 export { writeModified } from './writeModified'

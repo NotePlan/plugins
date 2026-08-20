@@ -2,14 +2,14 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2025-09-14 for v1.2.1 by @jgclark
+// Last updated 2026-08-18 for v1.4.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { convertNoteToFrontmatter, printNote } from '@helpers/NPnote' // Note: not the one in 'NPTemplating'
-import { addTrigger, noteHasFrontMatter, updateFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
+import { addTrigger, updateFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
 import { getTeamspaceTitleFromNote } from '@helpers/NPTeamspace'
 import {chooseFolder,chooseOption,getInput,showMessage} from '@helpers/userInput'
 
@@ -26,27 +26,33 @@ export type noteHelpersConfigType = {
   includeSubfolders: boolean,
   indexTitle: string,
   foldersToIgnore: string,
+  dateFormat: string,
+  authorID: string,
+  _logLevel?: string,
 }
 
 /**
- * Get config settings
+ * Get config settings. Prefers live `DataStore.settings`, falling back to the plugin settings file.
+ * Always returns an object or throws. Callers must not assume a void return.
  * @author @jgclark
+ * @returns {Promise<noteHelpersConfigType>}
  */
-export async function getSettings(): Promise<any> {
+export async function getSettings(): Promise<noteHelpersConfigType> {
   try {
-    // Get settings
-    const config: noteHelpersConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-
-    if (config == null || Object.keys(config).length === 0) {
-      await showMessage(`Cannot find settings for the 'NoteHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
-      return
-    } else {
-      // clo(config, `settings`)
-      return config
+    const fromDataStore: any = await DataStore.settings
+    if (fromDataStore && typeof fromDataStore === 'object' && Object.keys(fromDataStore).length > 0) {
+      return fromDataStore
     }
+
+    const config: noteHelpersConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    if (config == null || Object.keys(config).length === 0) {
+      throw new Error(`Cannot find settings for the 'NoteHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+    }
+    return config
   } catch (err) {
     logError(pluginJson, JSP(err))
     await showMessage(err.message)
+    throw err
   }
 }
 
@@ -123,7 +129,7 @@ export async function trashNote(): Promise<void> {
       if (NotePlan.environment.buildVersion < 1431) {
         throw new Error('Sorry, before NotePlan v3.18.2, I cannot move Teamspace notes to the Trash. You will need to do this manually.')
       } else {
-        showMessage('Note: currently Teamspaces have no trash folder, but a copy will be made inside the Operating System Trash, if you need to recover the note.')
+        await showMessage('Note: currently Teamspaces have no trash folder, but a copy will be made inside the Operating System Trash, if you need to recover the note.')
       }
     }
 
@@ -145,6 +151,41 @@ export async function trashNote(): Promise<void> {
 }
 
 //-----------------------------------------------------------------
+
+export type ParsedTrigger = {
+  triggerName: string,
+  pluginID: string,
+  commandName: string,
+}
+
+/**
+ * Parse a frontmatter-style trigger string such as
+ * `onEditorWillSave => jgclark.DashboardReact.decideWhetherToUpdateDashboard`.
+ * @author @jgclark
+ * @param {string} triggerString
+ * @returns {ParsedTrigger | null}
+ */
+export function parseTriggerString(triggerString: string): ParsedTrigger | null {
+  const trimmed = triggerString.trim()
+  if (trimmed === '') {
+    return null
+  }
+  const parts = trimmed.split('=>').map((s) => s.trim())
+  if (parts.length !== 2 || parts[0] === '' || parts[1] === '') {
+    return null
+  }
+  const triggerName = parts[0]
+  const commandSplit = parts[1].split('.').map((s) => s.trim()).filter(Boolean)
+  if (commandSplit.length < 2) {
+    return null
+  }
+  const commandName = commandSplit[commandSplit.length - 1] ?? ''
+  const pluginID = commandSplit.slice(0, commandSplit.length - 1).join('.')
+  if (!triggerName || !pluginID || !commandName) {
+    return null
+  }
+  return { triggerName, pluginID, commandName }
+}
 
 /**
  * Add trigger to the currently open Editor note, with choice offered to user of which trigger to add (if param not given).
@@ -195,22 +236,21 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
     let funcName = ''
 
     if (triggerStringArg !== '') {
+      const parsed = parseTriggerString(triggerStringArg)
+      if (!parsed) {
+        throw new Error(`Could not parse trigger string '${triggerStringArg}'. Expected e.g. 'onEditorWillSave => plugin.id.commandName'.`)
+      }
+      if (!TRIGGER_LIST.some((known) => known === parsed.triggerName)) {
+        throw new Error(`'${parsed.triggerName}' is not a known trigger type (expected one of: ${TRIGGER_LIST.join(', ')}).`)
+      }
       if (!triggerRelatedStrings.includes(triggerStringArg)) {
         logInfo('addTriggerToNote', `Trigger '${triggerStringArg}' not found in the list of triggers I can identify, but will still add it.`)
       }
-
-      // Add to note
-      // Note: using Editor, not Editor.note, in case this is used in a Template
-      // Note: setFrontMatterVars also calls ensureFrontmatter() :-(
-      const hasFMalready = noteHasFrontMatter(Editor)
-      if (hasFMalready) {
-        logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" already has frontmatter`)
-        const res = updateFrontMatterVars(Editor, { triggers: triggerStringArg })
-        logDebug('addTriggerToNote', `- result of updateFrontMatterVars = ${String(res)}`)
+      const res = addTrigger(Editor, parsed.triggerName, parsed.pluginID, parsed.commandName)
+      if (res) {
+        logDebug('addTriggerToNote', `Trigger ${parsed.triggerName} for ${parsed.pluginID} func ${parsed.commandName} was added to note ${displayTitle(Editor)}`)
       } else {
-        logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" doesn't already have frontmatter`)
-        // Note: cast is safe because line 160 above throws if `Editor.note` is null; Flow just loses that refinement across the intervening calls
-        await convertNoteToFrontmatter((Editor.note: any), `triggers: ${triggerStringArg}`)
+        logError('addTriggerToNote', `Trigger ${parsed.triggerName} for ${parsed.pluginID} func ${parsed.commandName} WASN'T added to note ${displayTitle(Editor)}`)
       }
       return
     } else {
@@ -262,6 +302,20 @@ export async function addTriggerToNote(triggerStringArg: string = ''): Promise<v
 }
 
 /**
+ * Rewrite markdown links to in-note headings (`[label](#heading)`) as x-callback-urls
+ * that call `jumpToHeading` with the heading in arg0.
+ * @author @nmn
+ * @param {string} content
+ * @returns {string}
+ */
+export function rewriteLocalHeadingMarkdownLinks(content: string): string {
+  return content.replace(/\[(.*?)\]\(\#(.*?)\)/g, (_match, label, link) => {
+    const newLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&arg0=${encodeURIComponent(link)}`
+    return `[${label}](${newLink})`
+  })
+}
+
+/**
  * Converts all links that start with a `#` symbol, i.e links to headings within a note,
  * to x-callback-urls that call the `jumpToHeading` plugin command to actually jump to that heading.
  * @author @nmn
@@ -278,10 +332,7 @@ export function convertLocalLinksToPluginLinks(): void {
   let changed = false
   for (const para of paragraphs) {
     const content = para.content
-    const newContent = content.replace(/\[(.*?)\]\(\#(.*?)\)/g, (_match, label, link) => {
-      const newLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&arg1=${encodeURIComponent(link)}`
-      return `[${label}](${newLink})`
-    })
+    const newContent = rewriteLocalHeadingMarkdownLinks(content)
     if (newContent !== content) {
       para.content = newContent
       changed = true
@@ -365,17 +416,14 @@ export async function addItemToFrontmatter(note: ?TNote, key: ?string, value: ?s
     } else {
       thisKey = key
     }
-    if (!thisValue || thisValue === '') {
+    if (!value || value === '') {
       const inputValue = await getInput(`Please enter the value for key '${thisKey}'`, 'OK', 'Add Item to Frontmatter', '')
       if (typeof inputValue !== 'string' || inputValue === '') {
         throw new Error(`Empty value supplied. Stopping.`)
       }
       thisValue = inputValue
     } else {
-      // WARNING: KNOWN BUG - this branch is unreachable. The guard on line 368 tests `thisValue`, which was just initialised to '' and never reassigned before here,
-      // so it is always true (cf. the `key` guard above, which correctly tests the *parameter*). The result is that a `value` passed by the caller is always
-      // ignored and the user is always prompted. The guard should read `if (!value || value === '')`. The cast below is type-only; see LEFT report.
-      thisValue = (value: any)
+      thisValue = value
     }
     const res = updateFrontMatterVars(thisNote, { [(thisKey: string)]: thisValue })
     if (res) {
