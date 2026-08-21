@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2026-07-21 for v2.4.0.b53 by @jgclark */
+/* Last updated 2026-08-21 for v2.4.2 by @jgclark */
 
 /* ------------------------------------------------------------------ */
 html {
@@ -300,6 +300,10 @@ button,
 	padding-left: 0.3rem !important;
 }
 
+.pad-left-small {
+	padding-left: 0.15rem !important;
+}
+
 .pad-left-larger {
 	/* add space before something */
 	padding-left: 0.5rem !important;
@@ -313,6 +317,10 @@ button,
 .pad-right {
 	/* add space after something (normally an icon) */
 	padding-right: 0.3em !important;
+}
+
+.pad-right-small {
+	padding-right: 0.15em !important;
 }
 
 .pad-right-larger {

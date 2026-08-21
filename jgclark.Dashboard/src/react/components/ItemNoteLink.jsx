@@ -91,7 +91,7 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppress
           item={item}
           noteData={noteData}
           actionType="showNoteInEditorFromFilename"
-          iconClassName="pad-right"
+          iconClassName="pad-left-small pad-right-small"
           showTitle={showNoteTitle}
         />
       </span>

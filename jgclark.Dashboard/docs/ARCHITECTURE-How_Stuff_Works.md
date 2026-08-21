@@ -54,11 +54,16 @@ That read in step 1 is why a tiny patch can be expensive. `setPluginData({ persp
 What is cheap vs what is required:
 
 - **Required:** sending newly generated sections **plugin -> WebView** once so React can paint. The plugin already has that array (it just built it).
-- **Avoid after a large send:** a follow-up `setPluginData` whose only job is a flag. Fold the flag into the payload you already have (`perspectiveChanging: false` on the `batchReplaceSections` replace; spinner / `firstRun` on the last incremental section) so you do not immediately `getGlobalSharedData` a tree you just wrote.
+- **Avoid after a large send:** a follow-up `setPluginData` whose only job is a flag. Fold the flag into the payload you already have (`perspectiveChanging: false` / `firstRun: false` on the `batchReplaceSections` replace, or on the **last** incremental section) so you do not immediately `getGlobalSharedData` a tree you just wrote.
 
-The `getGlobalSharedData` **inside** that replace `setPluginData` still runs, but it happens **before** the new sections are in the window (perspective switch has already set `sections: []`), so that read is small. The cost we care about is not "JSON exists"; it is "serialize the full section list **back** to the plugin right after we posted it."
+Perspective switch always wipes to `sections: []` first (`doSwitchToPerspective`). After that:
 
-Awaited work on the **plugin** JSContext after posting `UPDATE_DATA` also blocks paint. Perspective switch used to `await` Reviews `generateProjectListsAndRenderIfOpen`. `skipUpdateDashboardIfOpen` only skips a second Dashboard PROJ* refresh; the project-list scan still runs in the foreground on the same context. Dashboard now queues that invoke via x-callback (`NotePlan.openURL`) only when the Rich Project List is open, so the Dashboard command can finish and the WebView can paint. `DataStore.invokePluginCommandByName` is **not** fire-and-forget: even without `await` it runs the other plugin on the same JSContext before returning (measured: ~13s `generateAllProjectsList` before Dashboard could paint). The follow-up must stay a **synchronous** function (no `async`/`await`, no `delayMs` / `new Promise`): NotePlan Beta throws `JSPromiseConstructor is not a constructor`. The x-callback passes `paintFirst` so Reviews can show its updating banner and yield before that scan; otherwise the Projects List banner would also stay invisible until the list refresh. If the Rich list is closed, skip the invoke (PROJ* in `batchReplace` already regenerates `allProjectsList.json` when those sections are enabled).
+- **Replace path** (`PERSPECTIVE_SWITCH_USES_REPLACE_METHOD = true`): the `getGlobalSharedData` inside that replace `setPluginData` still runs, but it happens **before** the new sections are in the window, so that read is small. One write paints the full list.
+- **Incremental path** (default, flag `false`): same growing-tree bridge cost as startup / Refresh -- each `setPluginData` can pull the sections already painted back into the plugin before merging the next one. That cost is accepted when progressive paint is wanted (see **Perspective switch refresh path** under Section refresh functions).
+
+The cost we care about is not "JSON exists"; it is "serialize the full section list **back** to the plugin right after we posted it."
+
+Awaited work on the **plugin** JSContext after posting `UPDATE_DATA` also blocks paint. Perspective switch used to `await` Reviews `generateProjectListsAndRenderIfOpen`. `skipUpdateDashboardIfOpen` only skips a second Dashboard PROJ* refresh; the project-list scan still runs in the foreground on the same context. Dashboard now queues that invoke via x-callback (`NotePlan.openURL`) only when the Rich Project List is open, so the Dashboard command can finish and the WebView can paint. `DataStore.invokePluginCommandByName` is **not** fire-and-forget: even without `await` it runs the other plugin on the same JSContext before returning (measured: ~13s `generateAllProjectsList` before Dashboard could paint). The follow-up must stay a **synchronous** function (no `async`/`await`, no `delayMs` / `new Promise`): NotePlan Beta throws `JSPromiseConstructor is not a constructor`. The x-callback passes `paintFirst` so Reviews can show its updating banner and yield before that scan; otherwise the Projects List banner would also stay invisible until the list refresh. If the Rich list is closed, skip the invoke (PROJ* regeneration in the section refresh already writes `allProjectsList.json` when those sections are enabled).
 
 
 ## Dashboard Settings
@@ -161,7 +166,7 @@ Routed in `pluginToHTMLBridge.js` -> `perspectiveClickHandlers.js` (and helpers 
 
 | Bridge command | Role |
 |----------------|------|
-| `switchToPerspective` | Set active def, merge live `dashboardSettings` via `mergeDashboardSettingsForPerspectiveDef`, save via `saveDashboardPluginSettings`, refresh sections (`doSwitchToPerspective`) |
+| `switchToPerspective` | Set active def, merge live `dashboardSettings` via `mergeDashboardSettingsForPerspectiveDef`, save via `saveDashboardPluginSettings`, wipe `sections: []`, set `firstRun` + `perspectiveChanging`, then regenerate via `PERSPECTIVE_CHANGED` (`doSwitchToPerspective`) |
 | `savePerspective` | Copy live `dashboardSettings` into the active named def (`cleanDashboardSettingsInAPerspective`), clear `isModified` |
 | `savePerspectiveAndSwitch` | `doSavePerspectiveAndSwitchToPerspective`: save active named perspective **then** switch -- used by `PerspectiveSelector` for Save+Switch (single round-trip). |
 | `savePerspectiveAs` / `addNewPerspective` | Add a new named perspective; merges/saves **top-level** `dashboardSettings` so reopen matches the new active def |
@@ -243,10 +248,10 @@ There are three related backend functions that re-generate a subset of Sections 
 ### How they work
 
 - `refreshSomeSections(data, calledByTrigger?, cachedRemindersData?, extraPluginDataPatch?)` -- the core worker. Refreshes the `sectionCodes` in `data` and **merges** them into the existing `pluginData.sections` (stripping synthetic sections, removing referenced sections when `separateSectionForReferencedNotes` is off, and de-duping TAG rows via `syncTagSectionsWithSettings()`). Uses the live in-memory settings (`getDashboardSettingsForOpenWebView()`), not the on-disk settings. One `setPluginData()` per call (the generated sections plus any `extraPluginDataPatch`).
-- `incrementallyRefreshSomeSections(data, calledByTrigger?, setFullRefreshDate?)` -- loops over `sectionCodes` and calls `refreshSomeSections()` **once per section**, so each section is sent to React as soon as it is generated (**N updates**, sections "pop in" progressively). Reminders are prefetched once for the batch. Spinner / `firstRun` / `lastFullRefresh` are included on the **last** section update rather than a trailing extra redraw.
+- `incrementallyRefreshSomeSections(data, calledByTrigger?, setFullRefreshDate?)` -- loops over `sectionCodes` and calls `refreshSomeSections()` **once per section**, so each section is sent to React as soon as it is generated (**N updates**, sections "pop in" progressively). Reminders are prefetched once for the batch. End flags (`refreshing` / `firstRun` / `perspectiveChanging` / optional `lastFullRefresh`) are included on the **last** section update rather than a trailing extra redraw.
 - `batchReplaceSections(data)` (formerly `refreshSectionsBatch` / `batchRefreshSomeSections`) -- generates **all** the requested sections in one `getSomeSectionsData(sectionCodes, ...)` call and sends a **single** `setPluginData()` that **replaces** `sections` wholesale (**1 update**, no intermediate flicker). It does **not** run the merge logic, so the caller must pass the complete set of sectionCodes to show.
 
-`incrementallyRefreshSomeSections` recounts header done-task totals (when `doneDatesAvailable`) after sections are sent, and kicks off a scheduled tag-mention-cache rebuild if one is pending. `refreshSomeSections` does neither; that is why it is cheap enough for small post-action updates. `batchReplaceSections` also skips the done-count recount: the header total is all completions today anywhere (not perspective-scoped), so a switch cannot change it, and the scan is often >1s -- it used to leave the "Switching perspectives" spinner up after the new sections were already painted. It may still kick off a scheduled tag-cache rebuild without awaiting it.
+`incrementallyRefreshSomeSections` recounts header done-task totals (when `doneDatesAvailable`) after sections are sent, and kicks off a scheduled tag-mention-cache rebuild if one is pending. `refreshSomeSections` does neither; that is why it is cheap enough for small post-action updates. `batchReplaceSections` also skips the done-count recount: the header total is all completions today anywhere (not perspective-scoped), so a switch cannot change it, and the scan is often >1s -- it used to leave switch UI busy after the new sections were already painted. It may still kick off a scheduled tag-cache rebuild without awaiting it.
 
 (The "Hard Refresh" button (aka 'Main Window Reload') uses hidden command `restartDashboard()`, which calls `showDashboardReact('full')`. That rebuilds the React window with `firstRun: true` and then generates sections incrementally via `reactWindowInitialisedSoStartGeneratingData`.)
 
@@ -267,20 +272,40 @@ Do not also call incremental or batch for the same action if this already ran, o
 
 - First launch: `reactWindowInitialisedSoStartGeneratingData` after `Dashboard.jsx` reports the window is ready (sections start as `[]`).
 - User Refresh / `refreshEnabledSections` / `REFRESH_ALL_ENABLED_SECTIONS` (and `REFRESH_ALL_SECTIONS` when that action is used).
+- Perspective switch (`PERSPECTIVE_CHANGED`) when `PERSPECTIVE_SWITCH_USES_REPLACE_METHOD` is `false` (the default) -- see below.
 
-Because it **merges**, leftover rows from a previous perspective can remain if you start from a populated list. Perspective switch already writes `sections: []` in `doSwitchToPerspective` before generation, so merge-onto-empty would not keep old rows. Do not use incremental for switch anyway: the switch spinner hides pop-in, and N `setPluginData` calls would re-serialize a growing section list (see **Plugin vs WebView** under Data Passing). Do not use it for a handful of post-action sectionCodes.
+Because it **merges**, leftover rows from a previous perspective can remain if you start from a populated list. Perspective switch already writes `sections: []` in `doSwitchToPerspective` before generation, so merge-onto-empty does **not** keep old rows; we do not need replace solely to drop former section state. Do not use incremental for a handful of post-action sectionCodes.
 
-**Use `batchReplaceSections` when you need one paint of a complete section list.** Replace vs merge is not the main reason on perspective switch (the `sections: []` wipe already drops old rows). The surviving reasons are one cheap `getGlobalSharedData` while sections are still empty, then a single write, plus skipping the header done-count recount:
+**Use `batchReplaceSections` when you need one paint of a complete section list** (no progressive pop-in), typically after an empty snapshot:
 
-- Perspective switch (`PERSPECTIVE_CHANGED`): pass the **complete** enabled-section list for the new perspective. Clears `perspectiveChanging` in that same payload. Do not follow with a second `setPluginData` only to drop the spinner -- that would `getGlobalSharedData` the full section list back into the plugin and block paint (see **Plugin vs WebView** under Data Passing). If the Rich list is open, queue Reviews regen with an x-callback (`NotePlan.openURL`) and `paintFirst` so that window can show its banner before the scan; `invokePluginCommandByName` still blocks even without `await`.
+- Perspective switch (`PERSPECTIVE_CHANGED`) when `PERSPECTIVE_SWITCH_USES_REPLACE_METHOD` is `true` -- pass the **complete** enabled-section list for the new perspective. Clears `perspectiveChanging` / `firstRun` in that same payload. Do not follow with a second `setPluginData` only to clear those flags -- that would `getGlobalSharedData` the full section list back into the plugin and block paint (see **Plugin vs WebView** under Data Passing).
 
 If you only have a partial `sectionCodes` list, batch will **drop** every section not in that list. That is correct for a perspective change and wrong for "refresh Today after completing a task".
+
+### Perspective switch refresh path (`PERSPECTIVE_SWITCH_USES_REPLACE_METHOD`)
+
+`doSwitchToPerspective` always:
+
+1. Persists the new active def / merged live `dashboardSettings`.
+2. `setPluginData` with `sections: []`, `firstRun: true`, and `perspectiveChanging: true`.
+3. Returns `PERSPECTIVE_CHANGED`; `processActionOnReturn` regenerates enabled sections.
+
+UI during switch: header `RefreshControl` shows **Generating** (driven by `firstRun`), same as initial load. There is **no** separate "Switching perspectives" `NonModalSpinner`. `perspectiveChanging` still blocks settings sync-back while generation runs; both refresh paths fold `firstRun: false` and `perspectiveChanging: false` into the finishing payload (last incremental section, or the single replace).
+
+Dev / A-B toggle in `refreshClickHandlers.js`:
+
+| `PERSPECTIVE_SWITCH_USES_REPLACE_METHOD` | Path on `PERSPECTIVE_CHANGED` |
+|------------------------------------------|-------------------------------|
+| `false` (default) | `incrementallyRefreshSomeSections` -- progressive merge onto the empty list (same bridge pattern as startup / Refresh) |
+| `true` | `batchReplaceSections` -- one write of the full section list after the wipe (cheaper bridge; no pop-in) |
+
+Replace is **not** required to discard old sections (the wipe already did that). Prefer replace when measuring or optimizing bridge cost; prefer incremental (default) when progressive paint after switch is wanted. If the Rich list is open, queue Reviews regen with an x-callback (`NotePlan.openURL`) and `paintFirst` so that window can show its banner before the scan; `invokePluginCommandByName` still blocks even without `await`.
 
 Quick chooser:
 
 - Few codes, keep other sections -- `refreshSomeSections`
-- Many codes, user waiting, progressive display is a feature -- `incrementallyRefreshSomeSections`
-- Many codes, one paint after an empty snapshot (perspective switch) -- `batchReplaceSections`
+- Many codes, user waiting, progressive display is a feature (including default perspective switch) -- `incrementallyRefreshSomeSections`
+- Many codes, one paint after an empty snapshot (perspective switch with flag `true`) -- `batchReplaceSections`. (Note: @jgclark chose not to use this at all now. I prefer the progressive paint over the reduced data back-and-forth.)
 
 ## Reminders section (`REM`)
 
@@ -322,9 +347,11 @@ On older NotePlan builds, `NotePlan.openURL` only allows `http` / `https` / `mai
 ## Interactive Processing
 
 - The interactive processing is initiated by clicking the button on a Section (not the task dialog).
-- It is triggered in `Section.jsx`, which sets `reactSettings.interactiveProcessing` to an object with the processable rows (`open` / `checklist` / `reminder`).
-- `Dialog.jsx` routes to `DialogForTaskItems` or `DialogForReminderItems` from `details.item.itemType` so a mixed IP session can switch dialogs mid-walk.
-- Advancing / skipping is shared via `interactiveProcessingHelpers.js` (`buildReactSettingsAfterIPAdvance`).
+- It is triggered in `Section.jsx`, which sets `reactSettings.interactiveProcessing` to an object with the processable rows (`open` / `checklist` / `reminder` / `project`).
+- Eligible sections include calendar/tag/overdue/priority/reminders plus `PROJACT` and `PROJREVIEW` (project rows only; next-action children are not walked).
+- `Dialog.jsx` routes by `details.item.itemType` (reminder) and `isTask` (task vs project) so a mixed IP session can switch dialogs mid-walk. Project starts set `isTask: false`.
+- Advancing / skipping is shared via `interactiveProcessingHelpers.js` (`buildReactSettingsAfterIPAdvance`, `buildReactSettingsForIPBackNavigate`).
+- Project dialog (`DialogForProjectItems`): Finish / Skip / calendar / Pause / Complete / Cancel / Add Progress advance; Start stays open. PROJACT allows true back-navigate; PROJREVIEW is forward-only. **Start Reviews** section button is unchanged.
 
 ## Custom Hooks (src/react/customHooks)
 

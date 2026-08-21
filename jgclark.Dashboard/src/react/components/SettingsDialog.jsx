@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2026-07-29 for v2.4.0.b57 by @jgclark + @CursorAI
+// Last updated 2026-08-21 for v2.4.2 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -11,8 +11,9 @@
 //--------------------------------------------------------------------------
 import React, { useCallback, useEffect, useRef, useState, type ElementRef } from 'react'
 import { defaultSectionDisplayOrder } from '../../constants.js'
-import type { TSettingItem, TDashboardSettings, TSectionCode } from '../../types.js'
+import type { TSettingItem, TSectionCode } from '../../types.js'
 import { renderItem } from '../support/uiElementRenderHelpers'
+import { getValueFromSettingItem } from '../support/settingsHelpers'
 import { setPerspectivesIfJSONChanged } from '../../perspectiveHelpers'
 import { useAppContext } from './AppContext.jsx'
 import { filterSettingsItems } from './settingsDialogFilter.js'
@@ -67,7 +68,9 @@ const SettingsDialog = ({
     items.forEach((item) => {
       if (item.key) {
         const thisKey = item.key
-        initialSettings[thisKey] = item.value || item.checked || ''
+        // Do not use `item.value || item.checked || ''`: false switches would become '' and
+        // then Save would look like a content-affecting settings change (full section refresh).
+        initialSettings[thisKey] = getValueFromSettingItem(item)
         // if (item.controlsOtherKeys) logDebug('SettingsDialog/initial state', `- ${thisKey} controls [${String(item.controlsOtherKeys)}]`) // ✅
 
         if (item.dependsOnKey) {

@@ -1,7 +1,23 @@
 // @flow
+//-----------------------------------------------------------------------------
+// Helpers for Settings system.
+// Last updated 2026-08-21 for v2.4.2, @jgclark + @CursorAI
+//-----------------------------------------------------------------------------
 import { createDashboardSettingsItems } from '../../dashboardSettings'
 import { createFilterDropdownItems } from '../components/Header/filterDropdownItems.js'
 import type { TSettingItem } from '../../types'
+
+/**
+ * Read the current value from a TSettingItem without coercing false/0 to empty string.
+ * Prefer `value` (inputs etc.), then `checked` (switches). Missing both -> ''.
+ * @param {TSettingItem} item
+ * @returns {any}
+ */
+export function getValueFromSettingItem(item: TSettingItem): any {
+  if (item.value !== undefined) return item.value
+  if (item.checked !== undefined) return item.checked
+  return ''
+}
 
 /**
  * Reduces an array of dashboard settings or filter items into an object with keys and values
@@ -12,7 +28,7 @@ import type { TSettingItem } from '../../types'
 function getSettingsObjectFromArray(items: Array<TSettingItem>): { [key: string]: any } {
   return items.reduce((acc: { [key: string]: any }, item) => {
     if (item.key) {
-      acc[item.key] = item.value || item.checked || ''
+      acc[item.key] = getValueFromSettingItem(item)
     }
     return acc
   }, {})
