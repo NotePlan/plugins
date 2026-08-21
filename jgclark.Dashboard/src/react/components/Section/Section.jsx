@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2026-07-31 for v2.4.0.b58 by @jgclark + @CursorAI
+// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -17,7 +17,7 @@ import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
 import { useAppContext } from '../AppContext.jsx'
 import CircularProgressBar from '../CircularProgressBar.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
-import { countRealSectionItems, getGeneratedDateKey, isTBSectionVisibleInSettings } from './sectionHelpers.js'
+import { countInteractiveProcessingItems, countRealSectionItems, getGeneratedDateKey, getInteractiveProcessingItems, isTBSectionVisibleInSettings } from './sectionHelpers.js'
 import { clo, getDiff, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import './Section.css'
@@ -369,12 +369,19 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
 
   // handle a click to start interactive processing
   // When moveOnlyShownItemsWhenFiltered is false, include lower-priority (and limit-hidden) items, not just those currently shown.
+  // Count and start list both use getInteractiveProcessingItems so reminders are not counted then skipped (#779).
   const handleInteractiveProcessingClick = useCallback(
     (e: MouseEvent): void => {
       const moveOnlyShownItemsWhenFiltered = dashboardSettings?.moveOnlyShownItemsWhenFiltered ?? true
       const sourceItems = moveOnlyShownItemsWhenFiltered ? itemsToShow : allSortedItems
-      const processableItems = sourceItems.filter((row) => row.itemType === 'open' || row.itemType === 'checklist')
-      if (processableItems.length === 0) return
+      const processableItems = getInteractiveProcessingItems(sourceItems)
+      if (processableItems.length === 0) {
+        logDebug(
+          'Section',
+          `Interactive Processing click on ${section.sectionCode}: no processable open/checklist items (source had ${String(sourceItems.length)} row(s); reminders/messages excluded)`,
+        )
+        return
+      }
 
       const clickPosition = { clientY: e.clientY, clientX: e.clientX + 200 }
       const itemDetails = { actionType: '', item: processableItems[0], sectionCodes: [section.sectionCode] }
@@ -596,13 +603,12 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
     ) : null
 
   // Decide whether to show interactiveProcessing button:
-  // - when moveOnlyShownItemsWhenFiltered, N is visible actionable rows only (message rows excluded)
-  // - when that setting is false, N and the IP dialog include lower-priority / limit-hidden items as well
+  // - N and the start list use the same processable filter (open/checklist only; not reminders) (#779)
+  // - when moveOnlyShownItemsWhenFiltered, source is visible rows; otherwise allSortedItems (incl. priority/limit-hidden)
   // - hide when there is nothing actionable for the chosen mode (e.g. all tasks priority-filtered and only-shown on)
-  // - TODO(later): enable for PROJREVIEW/PROJACT
-  const ipItemCount = moveOnlyShownItemsWhenFiltered
-    ? numItemsToShow
-    : allSortedItems.filter((row) => row.itemType === 'open' || row.itemType === 'checklist').length
+  // - TODO(later): enable for PROJREVIEW/PROJACT; reminder IP is a separate follow-up
+  const ipSourceItems = moveOnlyShownItemsWhenFiltered ? itemsToShow : allSortedItems
+  const ipItemCount = countInteractiveProcessingItems(ipSourceItems)
   const showIPButton =
     dashboardSettings.enableInteractiveProcessing &&
     interactiveProcessingPossibleSectionTypes.includes(section.sectionCode) &&

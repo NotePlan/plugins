@@ -2,6 +2,7 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 ## [2.4.1] 2026-08-20
+- Fix: Interactive Processing button count no longer includes Apple Reminders. IP only walks open tasks/checklists, so the badge matches what will actually be processed; the button hides when only reminders remain (no silent no-op click). (#779)
 - Fix: Interactive Processing / task dialog no longer shows an error banner when Update or Enter is used without changing content. Other actions (complete, reschedule, etc.) now keep their intended action and apply an edited content change first when needed. (closes #778 raised by @dwertheimer)
 - Fix: Inline calendar events now render properly in tasks
 

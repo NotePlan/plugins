@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
+// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TDashboardSettingsIn, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
@@ -19,6 +19,35 @@ import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/re
 export function countRealSectionItems(items: ?Array<TSectionItem>): number {
   if (!items || items.length === 0) return 0
   return items.filter((item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType)).length
+}
+
+/**
+ * Whether a section row can be walked by Interactive Processing (task dialog).
+ * Apple Reminders and message rows are excluded until reminder IP exists (#779 Phase 1).
+ * @param {TSectionItem} item
+ * @returns {boolean}
+ */
+export function isInteractiveProcessingItem(item: TSectionItem): boolean {
+  return item.itemType === 'open' || item.itemType === 'checklist'
+}
+
+/**
+ * Rows Interactive Processing will actually process from a candidate list.
+ * @param {?Array<TSectionItem>} items
+ * @returns {Array<TSectionItem>}
+ */
+export function getInteractiveProcessingItems(items: ?Array<TSectionItem>): Array<TSectionItem> {
+  if (!items || items.length === 0) return []
+  return items.filter(isInteractiveProcessingItem)
+}
+
+/**
+ * Count of Interactive Processing processable rows (must match getInteractiveProcessingItems).
+ * @param {?Array<TSectionItem>} items
+ * @returns {number}
+ */
+export function countInteractiveProcessingItems(items: ?Array<TSectionItem>): number {
+  return getInteractiveProcessingItems(items).length
 }
 
 /**
