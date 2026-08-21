@@ -1,8 +1,9 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-<!-- ## [2.5.0] 2026-08-???
-- New: Interactive Processing on Active Projects and Projects to Review (`>> N` walks project rows; PROJACT allows back-navigate, PROJREVIEW forward-only; Start Reviews unchanged). -->
+## [2.5.0] 2026-08-???
+- New: Interactive Processing on Active Projects and Projects to Review (`>> N` walks project rows; PROJACT allows back-navigate, PROJREVIEW forward-only; Start Reviews unchanged).
+- Dev: Consolidate shared section-row CSS (`.sectionItemRow`, `.sectionItemContent`, `.itemIcon`) into `ItemRow.css`; remove duplicate `TaskItem.css` / `TasksFiltered.css`.
 
 ## [2.4.2] 2026-08-???
 - Fix: Saving Dashboard Settings no longer coerces off (`false`) switches to empty string, which had forced a full section refresh when changing unrelated options (e.g. Interactive Processing transitions).
