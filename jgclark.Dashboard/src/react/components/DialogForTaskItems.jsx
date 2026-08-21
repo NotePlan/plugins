@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2026-08-18 for v2.4.0.b65 by @CursorAI
+// Last updated 2026-08-20 for v2.4.1 by @CursorAI
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -281,6 +281,9 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     if (!visibleItems) return
     if (typeof currentIPIndex !== 'number') return
 
+    // Dialog stays mounted across IP items; clear dirty flag so it does not leak to the next item
+    setContentHasChanged(false)
+
     if (!skippedItem) visibleItems[currentIPIndex].processed = true
     logDebug('DialogForTaskItems', `handleIPItemProcessed currentIPIndex=${String(currentIPIndex)}`)
     // check if there are children to skip over
@@ -338,37 +341,48 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     const { metaKey } = extractModifierKeys(event) // Indicates whether ⌘-key was pressed
     // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
     const currentContent = para.content
-    logDebug(`DialogForTaskItems/handleButtonClick`, `- button clicked on ID: ${ID} for controlStr: ${controlStr}, handlingFunction: ${handlingFunction}, itemType: ${itemType}, filename: ${filename}, contentHasChanged: ${String(contentHasChanged)}`)
+    const inputValue = inputRef?.current?.getValue() || ''
+    const contentActuallyChanged = inputValue !== currentContent
+    logDebug(`DialogForTaskItems/handleButtonClick`, `- button clicked on ID: ${ID} for controlStr: ${controlStr}, handlingFunction: ${handlingFunction}, itemType: ${itemType}, filename: ${filename}, contentHasChanged: ${String(contentHasChanged)}, contentActuallyChanged: ${String(contentActuallyChanged)}`)
 
     // prepend the current sectionCode to the section codes to refresh (copy so we never mutate button default arrays)
     const sectionCodesToSend = [...sectionCodesToRefresh]
     if (thisSectionCode) { sectionCodesToSend.unshift(thisSectionCode) }
     logDebug('DialogForTaskItems/handleButtonClick', `sectionCodesToSend=${String(sectionCodesToSend)}`)
 
-    if (contentHasChanged || controlStr === 'updateItemContent') {
-      const updatedContent = inputRef?.current?.getValue() || ''
-      logDebug(`DialogForTaskItems/handleButtonClick`, ` - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
-      const dataToSend = {
-        ...detailsMessageObject,
-        actionType: 'updateItemContent',
-        controlStr: 'updateItemContent',
-        updatedContent: currentContent !== updatedContent ? updatedContent : '',
-        sectionCodes: sectionCodesToSend,
+    const isExplicitContentUpdate = controlStr === 'updateItemContent'
+
+    if (isExplicitContentUpdate) {
+      // Update / Enter: only call the plugin when content actually changed (avoids #778 empty updatedContent error)
+      if (contentActuallyChanged) {
+        logDebug(`DialogForTaskItems/handleButtonClick`, ` - orig content: {${currentContent}} / updated content: {${inputValue}}`)
+        const dataToSend = {
+          ...detailsMessageObject,
+          actionType: 'updateItemContent',
+          controlStr: 'updateItemContent',
+          updatedContent: inputValue,
+          sectionCodes: sectionCodesToSend,
+        }
+        sendActionToPlugin('updateItemContent', dataToSend, `Dialog requesting call to updateItemContent`, true)
+      } else {
+        logDebug('DialogForTaskItems/handleButtonClick', ` - skipping no-op updateItemContent (content unchanged)`)
       }
-      sendActionToPlugin('updateItemContent', dataToSend, `Dialog requesting call to updateItemContent`, true)
       setContentHasChanged(false)
-    }
-    else {
-      // Handle all other buttons
+    } else {
+      // Other buttons: always send the clicked action. If the user also edited content, pass updatedContent so
+      // bridgeClickDashboardItem can apply the content change before the action (#778 / combined-update path).
       const dataToSend = {
         ...detailsMessageObject,
         actionType: handlingFunction,
         controlStr: controlStr,
-        updatedContent: '',
+        updatedContent: contentActuallyChanged ? inputValue : '',
         sectionCodes: sectionCodesToSend,
       }
-
+      if (contentActuallyChanged) {
+        logDebug(`DialogForTaskItems/handleButtonClick`, ` - also sending content update with ${handlingFunction}: {${currentContent}} -> {${inputValue}}`)
+      }
       sendActionToPlugin(handlingFunction, dataToSend, `Dialog requesting call to ${handlingFunction}`, true)
+      setContentHasChanged(false)
     }
 
     // Don't close dialog yet if openNote button or one of the priority buttons clicked

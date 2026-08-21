@@ -1,7 +1,11 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## ## [2.4.0] 2026-08-20
+## [2.4.1] 2026-08-20
+- Fix: Interactive Processing / task dialog no longer shows an error banner when Update or Enter is used without changing content. Other actions (complete, reschedule, etc.) now keep their intended action and apply an edited content change first when needed. (closes #778 raised by @dwertheimer)
+- Fix: Inline calendar events now render properly in tasks
+
+## [2.4.0] 2026-08-20
 Just the Headlines:
 
 ### New sections
@@ -36,12 +40,6 @@ Just the Headlines:
 - Tag/mention cache used by default (faster TAG sections)
 
 + Some significant performance improvements, particularly if you use the Projects & Reviews plugin as well.  And lots of bug fixes.
-
-## [2.4.0.b67] 2026-08-20 (unreleased)
-- Fix: Demo mode never shows section generation timings in the UI (even when Show Section Timings is enabled for live use).
-- Fix: Demo Timed Items now show the time chip (demo timeblocks were missing start/end time fields).
-- Fix: Demo Yesterday calendar-event checklist now renders as a calendar icon + title (was a broken `! [📅](...)` link; times inside event links are no longer treated as timeblocks).
-- Docs: README now documents the **Wins** section.
 
 ## [2.4.0.b66] 2026-08-20 (unreleased)
 - New: Saving an active Perspective now tells Projects + Reviews to regenerate its list when folder include/exclude or Spaces to Include changed. The Projects List shows a banner as it scans. (Live folder edits on a named Perspective still wait for Save, because Reviews reads the saved definition.)

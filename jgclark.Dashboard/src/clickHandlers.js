@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-18 for v2.4.0.b65 by @jgclark + @CursorAI
+// Last updated 2026-08-20 for v2.4.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -507,8 +507,11 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
   try {
     const { updatedContent } = data
     logDebug('doContentUpdate', `updatedContent: {${updatedContent || ''}}`)
-    if (!updatedContent) {
-      throw new Error(`Trying to updateItemContent but no updatedContent was passed`)
+    // No-op when React sent updateItemContent without a real change (Enter / Update / dirty-flag races).
+    // Returning success avoids the ERROR banner + section refresh from #778.
+    if (!updatedContent || updatedContent === content) {
+      logDebug('doContentUpdate', `No-op content update (missing or unchanged); skipping`)
+      return handlerResult(true, [])
     }
 
     const para = findParaFromStringAndFilename(filename, content)

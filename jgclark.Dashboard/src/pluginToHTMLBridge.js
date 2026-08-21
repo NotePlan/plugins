@@ -251,7 +251,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       result = doContentUpdate(data)
       if (result.success) {
         // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - TODO(later): ultimately delete this
-        content = result.updatedParagraph?.content ?? ''
+        content = result.updatedParagraph?.content ?? content
         // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
         data.item?.para?.content ? (data.item.para.content = content) : null
         logDebug('bCDI / updateItemContent', `-> successful call to doContentUpdate()`)
