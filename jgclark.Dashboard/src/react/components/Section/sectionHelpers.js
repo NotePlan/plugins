@@ -22,13 +22,13 @@ export function countRealSectionItems(items: ?Array<TSectionItem>): number {
 }
 
 /**
- * Whether a section row can be walked by Interactive Processing (task dialog).
- * Apple Reminders and message rows are excluded until reminder IP exists (#779 Phase 1).
+ * Whether a section row can be walked by Interactive Processing.
+ * Includes open tasks, checklists, and Apple Reminders (#779).
  * @param {TSectionItem} item
  * @returns {boolean}
  */
 export function isInteractiveProcessingItem(item: TSectionItem): boolean {
-  return item.itemType === 'open' || item.itemType === 'checklist'
+  return item.itemType === 'open' || item.itemType === 'checklist' || item.itemType === 'reminder'
 }
 
 /**

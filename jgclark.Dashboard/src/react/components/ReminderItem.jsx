@@ -6,9 +6,10 @@
 // Open-in-Reminders: when NotePlan >= 3.21.2 (appleAppCallbacksAvailable),
 // content click opens via openURL -> x-apple-reminderkit://REMCDReminder/{id}.
 // On older builds that scheme is blocked by NotePlan.openURL.
+// Edit icon opens DialogForReminderItems (non-IP): complete / delete / open.
 // See also ARCHITECTURE-How_Stuff_Works.md -> "Reminders section".
 //
-// Last updated 2026-08-12 for v2.4.0.b62 by @jgclark + @CursorAI
+// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useCallback } from 'react'
@@ -22,6 +23,7 @@ import { colorToModernSpecWithOpacity } from '@helpers/colors'
 import { getAppleRemindersOpenURL, getReminderMarkerColors } from '@helpers/NPReminders'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
 import { logDebug, logWarn } from '@helpers/dev'
+import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 type Props = {
   item: TSectionItem,
@@ -31,12 +33,13 @@ type Props = {
 /**
  * Reminder row. Content click opens in Apple Reminders when NP supports x-apple-reminderkit via openURL.
  * Status icon: click completes; ⌘-click or ctrl-click deletes (Calendar API).
- * TODO(later): task-like dialog (edit title/details, reschedule, change list)
+ * Edit icon opens DialogForReminderItems outside Interactive Processing.
  */
 function ReminderItem({ item, thisSection }: Props): Node {
-  const { dashboardSettings, pluginData, sendActionToPlugin } = useAppContext()
+  const { dashboardSettings, pluginData, sendActionToPlugin, setReactSettings } = useAppContext()
   const reminder = item.reminder
   const canOpenInReminders = Boolean(pluginData?.appleAppCallbacksAvailable && reminder?.id)
+  const effectiveSectionCode = item.sectionCode ?? thisSection.sectionCode
 
   const handleContentClick = useCallback(() => {
     if (!reminder?.id || !pluginData?.appleAppCallbacksAvailable) {
@@ -52,6 +55,26 @@ function ReminderItem({ item, thisSection }: Props): Node {
     }
     sendActionToPlugin('openURL', messageObject, 'Reminder content clicked', true)
   }, [item, pluginData?.appleAppCallbacksAvailable, reminder, sendActionToPlugin])
+
+  const handleClickToOpenEditDialog = useCallback(
+    (event: MouseEvent): void => {
+      const clickPosition = { clientY: event.clientY, clientX: event.clientX }
+      const { metaKey } = extractModifierKeys(event)
+      const messageObject: MessageDataObject = {
+        item,
+        actionType: '(not yet set)',
+        sectionCodes: [effectiveSectionCode],
+        modifierKey: metaKey,
+      }
+      logDebug('ReminderItem/handleClickToOpenEditDialog', `Opening reminder dialog for "${reminder?.title || ''}"`)
+      setReactSettings((prev) => ({
+        ...prev,
+        lastChange: `_Dashboard-ReminderDialogOpen`,
+        dialogData: { isOpen: true, isTask: true, details: messageObject, clickPosition },
+      }))
+    },
+    [effectiveSectionCode, item, reminder?.title, setReactSettings],
+  )
 
   if (!reminder) {
     return null
@@ -150,6 +173,9 @@ function ReminderItem({ item, thisSection }: Props): Node {
       <StatusIcon item={item} respondToClicks={true} iconColor="rgba(from var(--fg-RemindersColor) r g b / 0.6)" />
       <div className="sectionItemContent reminderItemContent">
         {contentEl}
+        <a className="dialogTriggerIcon">
+          <i className="fa-light fa-edit" onClick={handleClickToOpenEditDialog} title="Reminder actions"></i>
+        </a>
         {listnameEl}
       </div>
     </div>

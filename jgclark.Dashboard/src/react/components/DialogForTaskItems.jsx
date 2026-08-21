@@ -13,6 +13,7 @@ import type { MessageDataObject, TSectionCode } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
+import { buildReactSettingsAfterIPAdvance, ipItemsHaveBeenSkipped } from './interactiveProcessingHelpers.js'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logInfo, logWarn } from '@helpers/dev'
@@ -254,21 +255,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // Variables & Helpers
   //----------------------------------------------------------------------
 
-  // get the next index in the visibleItems array to process (default going forward) or go backwards (goBackwards = true)
-  const getNextIPIndex = (goBackwards: boolean = false) => {
-    const { visibleItems, currentIPIndex } = reactSettings?.interactiveProcessing || {}
-    if (!visibleItems || typeof currentIPIndex !== 'number') return -1
-
-    const increment = goBackwards ? -1 : 1
-    for (let i = currentIPIndex + increment; i >= 0 && i < visibleItems.length; i += increment) {
-      if (!visibleItems[i].processed) {
-        return i
-      }
-    }
-
-    return -1
-  }
-
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
@@ -276,52 +262,15 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // handle a single item (and its children) being processed in interactive processing
   const handleIPItemProcessed = (skippedItem?: boolean = false, skipForward?: boolean = true) => {
     logDebug(`DialogForTaskItems`, `handleIPItemProcessed called with skippedItem=${String(skippedItem)}, skipForward=${String(skipForward)}`)
-    // clo(reactSettings, `DialogForTaskItems: 🥸 handleIPItemProcessed calling handleIPItemProcessed; reactSettings=`)
-    const { visibleItems, currentIPIndex } = reactSettings?.interactiveProcessing || {}
-    if (!visibleItems) return
-    if (typeof currentIPIndex !== 'number') return
-
     // Dialog stays mounted across IP items; clear dirty flag so it does not leak to the next item
     setContentHasChanged(false)
-
-    if (!skippedItem) visibleItems[currentIPIndex].processed = true
-    logDebug('DialogForTaskItems', `handleIPItemProcessed currentIPIndex=${String(currentIPIndex)}`)
-    // check if there are children to skip over
-    if (!skippedItem && visibleItems[currentIPIndex].para?.hasChild) {
-    // remove any children of the first item
-      for (let i = currentIPIndex + 1; i < visibleItems.length; i++) {
-        const item = visibleItems[i]
-        logDebug('useInteractiveProcessing', `- checking for children of '${item?.para?.content ?? 'n/a'}'`)
-        if (item?.para?.isAChild) {
-          logDebug('useInteractiveProcessing', `  - found child '${item.para?.content}'`)
-          visibleItems[i].processed = true
-        } else {
-          break // stop looking
-        }
-      }
-    }
-    const newIPIndex = getNextIPIndex(!skipForward)
-    if (newIPIndex !== -1) {
-      logDebug('DialogForTaskItems', `newIPIndex=${String(newIPIndex)}; visibleItems.length=${String(visibleItems.length)}; about to save to reactSettings`)
-      setReactSettings((prevSettings) => ({
-        ...prevSettings,
-        interactiveProcessing: { ...prevSettings.interactiveProcessing, currentIPIndex: newIPIndex, visibleItems },
-        dialogData: { ...prevSettings.dialogData, details: { ...prevSettings.dialogData.details, item: visibleItems[newIPIndex] } },
-        lastChange: `_Dashboard-handleIPItemProcessed more IP items to process`,
-      }))
-    } else {
-      logDebug('DialogForTaskItems', `newIPIndex=${String(newIPIndex)}>${visibleItems.length}; about to save to reactSettings`)
-      setReactSettings((prevSettings) => ({
-        ...prevSettings,
-        interactiveProcessing: null,
-        dialogData: {
-          ...prevSettings.dialogData,
-          isOpen: false,
-          isTask: true,
-        },
-        lastChange: `_Dashboard-handleIPItemProcessed no more IP items to process`,
-      }))
-    }
+    setReactSettings((prevSettings) =>
+      buildReactSettingsAfterIPAdvance(prevSettings, {
+        skippedItem,
+        skipForward,
+        markTaskChildren: true,
+      }),
+    )
   }
 
   // Handle the Enter key press (from the editable input box) to trigger the updateItemContent button click
@@ -407,12 +356,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   }
 
   const itemsHaveBeenSkipped = () => {
-    let result = false
     const { visibleItems, currentIPIndex } = reactSettings?.interactiveProcessing || {}
-    if (visibleItems && typeof currentIPIndex === 'number') {
-      result = Boolean(visibleItems.find((item, i) => i < currentIPIndex && item.processed === false))
-    }
-    return result
+    return ipItemsHaveBeenSkipped(visibleItems, typeof currentIPIndex === 'number' ? currentIPIndex : -1)
   }
 
 

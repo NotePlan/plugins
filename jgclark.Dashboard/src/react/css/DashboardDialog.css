@@ -178,6 +178,55 @@ dialog:modal {
   margin-top: 2px;
 }
 
+/* Reminder IP / actions dialog (#779)
+ * Specificity must beat `.buttonGrid div.preText { align-self: self-start; padding-block-start: 5px }`
+ * so "For:" and the reminder title share a text baseline.
+ */
+.reminderControlDialog {
+  /* Content-sized reminder dialog is narrower than the task dialog; default ~25% wider than the shared 15rem content floor + label column (~20rem → 25rem). */
+  min-width: 25rem;
+}
+
+.buttonGrid.reminderButtonGrid {
+  grid-template-columns: auto minmax(18.75rem, auto); /* 15rem * 1.25 */
+}
+
+.buttonGrid.reminderButtonGrid > div.preText.reminderDialogForLabel {
+  align-self: baseline;
+  padding-block-start: 0;
+  padding-block-end: 0;
+  line-height: 1.35;
+}
+
+.buttonGrid.reminderButtonGrid > div.reminderDialogTitleLine {
+  align-self: baseline;
+  line-height: 1.35;
+  margin: 0;
+  padding: 0;
+}
+
+.reminderDialogActions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.reminderDialogTitleLine {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.reminderDialogTitleText {
+  font-weight: 500;
+  line-height: inherit;
+}
+
+.reminderDialogFromLabel {
+  font-weight: 500;
+}
+
 /* iOS devices require an override for font size, otherwise it does a nasty zoom in effect 
  * discovered via https://stackoverflow.com/questions/68973232/how-to-handle-safari-ios-zoom-on-input-fields/69125139#69125139
  * PS Apple says user-scalable, min-scale and max-scale settings are ignored: https://webkit.org/blog/7367/new-interaction-behaviors-in-ios-10/ 

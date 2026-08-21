@@ -63,7 +63,7 @@ export const sectionsPriorityBeforeTagWhenCalendarFocus: Array<TSectionCode> = [
 export const dontDedupeSectionCodes = ['INFO', 'PROJACT', 'PROJREVIEW', 'SEARCH', 'SAVEDSEARCH']
 
 // Enable interactive processing for these itemTypes:
-export const interactiveProcessingPossibleSectionTypes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY']
+export const interactiveProcessingPossibleSectionTypes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'REM']
 
 // When the user toggles visibility of a calendar period section only, refresh these sections (if enabled).
 // This ensures Wins / Priority / Overdue deduping stays correct.

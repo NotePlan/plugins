@@ -321,9 +321,10 @@ On older NotePlan builds, `NotePlan.openURL` only allows `http` / `https` / `mai
 
 ## Interactive Processing
 
-- The interactive processing is initiated by clicking the button on the Task dialog.
-- It is triggered in Section.jsx, which sets reactSettings.interactiveProcessing to an object with details.
-- The incrementing of the interactive processing is handled in `DialogForTaskItems.jsx::handleIPItemProcessed()`.
+- The interactive processing is initiated by clicking the button on a Section (not the task dialog).
+- It is triggered in `Section.jsx`, which sets `reactSettings.interactiveProcessing` to an object with the processable rows (`open` / `checklist` / `reminder`).
+- `Dialog.jsx` routes to `DialogForTaskItems` or `DialogForReminderItems` from `details.item.itemType` so a mixed IP session can switch dialogs mid-walk.
+- Advancing / skipping is shared via `interactiveProcessingHelpers.js` (`buildReactSettingsAfterIPAdvance`).
 
 ## Custom Hooks (src/react/customHooks)
 

@@ -1,12 +1,13 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Item Control and Project dialogs.
-// Last updated 2026-01-07 for v2.4.0.b9 by @jgclark
+// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import React, { useEffect } from 'react'
 import { type TClickPosition } from '../../types'
 import DialogForProjectItems from './DialogForProjectItems.jsx'
+import DialogForReminderItems from './DialogForReminderItems.jsx'
 import DialogForTaskItems from './DialogForTaskItems.jsx'
 import { useAppContext } from './AppContext.jsx'
 import Modal from './Modal'
@@ -24,7 +25,8 @@ type Props = {
 }
 
 /**
- * Display a Dialog for a Task or Project if reactSettings.dialogData.isOpen is true
+ * Display a Dialog for a Task, Reminder, or Project if reactSettings.dialogData.isOpen is true.
+ * Reminder vs task is chosen from details.item.itemType so Interactive Processing can switch mid-session (#779).
  * @param {Props} props The properties for the Dialog component.
  * @return {?React$Node} Renderable React node or null.
  */
@@ -114,19 +116,30 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
     }
   }, [isOpen])
 
+  const isReminderDialog = details?.item?.itemType === 'reminder'
+
   return isOpen ? (
     <Modal onClose={() => onDialogClose(true)}>
-      {isTask ? (
-        <DialogForTaskItems 
-          onClose={onDialogClose} 
-          details={details} 
-          positionDialog={positionDialog} 
+      {isReminderDialog ? (
+        <DialogForReminderItems
+          key="reminder-dialog"
+          onClose={onDialogClose}
+          details={details}
+          positionDialog={positionDialog}
+        />
+      ) : isTask ? (
+        <DialogForTaskItems
+          key="task-dialog"
+          onClose={onDialogClose}
+          details={details}
+          positionDialog={positionDialog}
         />
       ) : (
-        <DialogForProjectItems 
-          onClose={onDialogClose} 
-          details={details} 
-          positionDialog={positionDialog} 
+        <DialogForProjectItems
+          key="project-dialog"
+          onClose={onDialogClose}
+          details={details}
+          positionDialog={positionDialog}
         />
       )}
     </Modal>

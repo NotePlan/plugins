@@ -23,26 +23,25 @@ describe('sectionHelpers', () => {
     const congrats = { ID: '4', itemType: 'itemCongrats' }
     const filterMsg = { ID: '5', itemType: 'filterIndicator' }
 
-    test('isInteractiveProcessingItem is true only for open and checklist', () => {
+    test('isInteractiveProcessingItem is true for open, checklist, and reminder', () => {
       expect(sh.isInteractiveProcessingItem(openTask)).toBe(true)
       expect(sh.isInteractiveProcessingItem(checklist)).toBe(true)
-      expect(sh.isInteractiveProcessingItem(reminder)).toBe(false)
+      expect(sh.isInteractiveProcessingItem(reminder)).toBe(true)
       expect(sh.isInteractiveProcessingItem(congrats)).toBe(false)
       expect(sh.isInteractiveProcessingItem(filterMsg)).toBe(false)
     })
 
-    test('getInteractiveProcessingItems drops reminders and message rows', () => {
+    test('getInteractiveProcessingItems keeps tasks and reminders; drops message rows', () => {
       const mixed = [openTask, reminder, checklist, congrats, filterMsg]
-      expect(sh.getInteractiveProcessingItems(mixed)).toEqual([openTask, checklist])
+      expect(sh.getInteractiveProcessingItems(mixed)).toEqual([openTask, reminder, checklist])
     })
 
     test('countInteractiveProcessingItems matches filtered length (IP button N)', () => {
       const mixed = [openTask, reminder, reminder, checklist]
-      // numItemsToShow-style count would be 4; IP must report 2
-      expect(sh.countInteractiveProcessingItems(mixed)).toBe(2)
+      expect(sh.countInteractiveProcessingItems(mixed)).toBe(4)
       expect(sh.countInteractiveProcessingItems([])).toBe(0)
       expect(sh.countInteractiveProcessingItems(null)).toBe(0)
-      expect(sh.countInteractiveProcessingItems([reminder, congrats])).toBe(0)
+      expect(sh.countInteractiveProcessingItems([congrats, filterMsg])).toBe(0)
     })
   })
 
