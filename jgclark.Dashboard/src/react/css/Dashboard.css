@@ -348,7 +348,7 @@ button,
 		border: 1px solid rgba(from var(--tint-color) r g b / 0.15);
 		border-radius: 5px;
 		padding-inline: 3px;
-		margin-left: 0.3rem;
+		/* margin-left: 0.3rem; */ /* TEST: Turning off to suit PROJ* section lines */
 		white-space: nowrap;
 	}
 

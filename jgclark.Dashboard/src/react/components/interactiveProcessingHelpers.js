@@ -1,6 +1,6 @@
 // @flow
 //--------------------------------------------------------------------------
-// Shared Interactive Processing helpers for task and reminder dialogs.
+// Shared Interactive Processing helpers for task, reminder, and project dialogs.
 // Last updated 2026-08-21 for v2.4.1 by @CursorAI
 //--------------------------------------------------------------------------
 
@@ -14,6 +14,16 @@ export type TInteractiveProcessingState = {
   totalTasks: number,
   visibleItems: Array<TIPVisibleItem>,
   clickPosition?: { clientX: number, clientY: number },
+}
+
+/**
+ * Whether Dialog.jsx should use the task/reminder slot (vs project dialog).
+ * Reminders keep isTask true and are routed by itemType; projects need isTask false.
+ * @param {?TIPVisibleItem | TSectionItem} item
+ * @returns {boolean}
+ */
+export function isTaskDialogItem(item: ?TIPVisibleItem | TSectionItem): boolean {
+  return item?.itemType !== 'project'
 }
 
 /**
@@ -97,14 +107,15 @@ export function buildReactSettingsForIPBackNavigate(prevSettings: any): any {
   if (!visibleItems || typeof currentIPIndex !== 'number' || currentIPIndex <= 0) return prevSettings
 
   const newIPIndex = currentIPIndex - 1
+  const nextItem = visibleItems[newIPIndex]
   return {
     ...prevSettings,
     interactiveProcessing: { ...interactiveProcessing, currentIPIndex: newIPIndex },
     dialogData: {
       ...prevSettings.dialogData,
       isOpen: true,
-      isTask: true,
-      details: { ...prevSettings.dialogData.details, item: visibleItems[newIPIndex] },
+      isTask: isTaskDialogItem(nextItem),
+      details: { ...prevSettings.dialogData.details, item: nextItem },
     },
     lastChange: `_Dashboard-handleIPBackNavigate to index ${String(newIPIndex)}`,
   }
@@ -131,15 +142,16 @@ export function buildReactSettingsAfterIPAdvance(
   const newIPIndex = getNextIPIndex(visibleItems, currentIPIndex, !skipForward)
 
   if (newIPIndex !== -1) {
+    const nextItem = visibleItems[newIPIndex]
     return {
       ...prevSettings,
       interactiveProcessing: { ...interactiveProcessing, currentIPIndex: newIPIndex, visibleItems },
       dialogData: {
         ...prevSettings.dialogData,
         isOpen: true,
-        // Keep non-project dialogs in the task/reminder slot; Dialog.jsx routes by itemType
-        isTask: true,
-        details: { ...prevSettings.dialogData.details, item: visibleItems[newIPIndex] },
+        // Project rows need isTask false; reminders keep true and Dialog.jsx routes by itemType
+        isTask: isTaskDialogItem(nextItem),
+        details: { ...prevSettings.dialogData.details, item: nextItem },
       },
       lastChange: `_Dashboard-handleIPItemProcessed more IP items to process`,
     }
@@ -151,7 +163,7 @@ export function buildReactSettingsAfterIPAdvance(
     dialogData: {
       ...prevSettings.dialogData,
       isOpen: false,
-      isTask: true,
+      isTask: isTaskDialogItem(visibleItems[currentIPIndex]),
     },
     lastChange: `_Dashboard-handleIPItemProcessed no more IP items to process`,
   }
