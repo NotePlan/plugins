@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-20 for v2.4.0.b66 by @jgclark + @CursorAI
+// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
@@ -293,8 +293,11 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
 
   // Intentional: clear sections on perspective switch so React regenerates all enabled sections.
   // Selective removal (e.g. only tags that disappeared) is more complex and less reliable; revisit only if switch latency becomes a measured problem.
+  // firstRun: true drives the header RefreshControl "Generating" label (same as initial load). perspectiveChanging
+  // still blocks settings sync-back; it no longer drives a separate NonModalSpinner.
   const updatesToPluginData = {
     perspectiveChanging: true,
+    firstRun: true,
     perspectiveSettings: perspectiveSettingsForPlugin,
     dashboardSettings: newDashboardSettings,
     dashboardSettingsBaseline: newDashboardSettings,

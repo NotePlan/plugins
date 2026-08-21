@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-20 for v2.4.0.b67 by @jgclark + @CursorAI
+// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
@@ -27,6 +27,13 @@ import { mergeReminderDisplayById } from '@helpers/NPReminders'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getGlobalSharedData } from '@helpers/HTMLView'
 import { isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
+
+/**
+ * Dev / A-B toggle for perspective switch section loading.
+ * - false (default): merge via `incrementallyRefreshSomeSections` (same progressive path as Refresh / startup)
+ * - true: one-shot `batchReplaceSections` (single paint after the sections: [] wipe)
+ */
+export const PERSPECTIVE_SWITCH_USES_REPLACE_METHOD = false
 
 /**
  * TAG names that appear more than once in the section list.
@@ -111,7 +118,9 @@ export async function incrementallyRefreshSomeSections(
 
     // One UPDATE_DATA per section (progressive pop-in). Fold spinner/firstRun/lastFullRefresh into the last
     // section patch so React does not redraw everything again after the last section is already on screen.
-    const endFlags: TAnyObject = { refreshing: false, firstRun: false }
+    // Also clear perspectiveChanging here so perspective-switch can reuse this path without a trailing
+    // setPluginData({ perspectiveChanging: false }) that would re-serialize the full section list.
+    const endFlags: TAnyObject = { refreshing: false, firstRun: false, perspectiveChanging: false }
     if (setFullRefreshDate) endFlags.lastFullRefresh = new Date()
     for (let i = 0; i < sectionCodes.length; i++) {
       const sectionCode = sectionCodes[i]
@@ -143,7 +152,7 @@ export async function incrementallyRefreshSomeSections(
   }
   catch (error) {
     // try to close the modal spinner and reset firstRun flag, if necessary
-    await setPluginData({ refreshing: false, firstRun: false }, `Error in incrementallyRefreshSomeSections; closing modal spinner`)
+    await setPluginData({ refreshing: false, firstRun: false, perspectiveChanging: false }, `Error in incrementallyRefreshSomeSections; closing modal spinner`)
     logError('incrementallyRefreshSomeSections', error)
     return handlerResult(false, [], { errorMsg: error.message, errorMessageLevel: 'ERROR' })
   }

@@ -2,6 +2,8 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 ## [2.4.1] 2026-08-21
+- Change: Switching Perspective no longer shows the "Switching perspectives" spinner, and uses an incremental paint, rather than waiting until all sections are ready to display. dev: It sets `firstRun` so the header Refresh control shows "Generating" (same as initial load).
+Now uses an ncremental merge (`incrementallyRefreshSomeSections`) not `batchReplaceSections`. But alter `PERSPECTIVE_SWITCH_USES_REPLACE_METHOD` to change this back.
 - New: Edit icon on reminder rows opens a new dialog that supports complete, delete, and open in Reminders.
 - New: Interactive Processing now supports Apple Reminders (mixed into calendar/Overdue sections, and a new IP button on the Reminders section. (#779 raised by @dwertheimer)
 - Fix: Interactive Processing / task dialog no longer shows an error banner when Update or Enter is used without changing content. Other actions (complete, reschedule, etc.) now keep their intended action and apply an edited content change first when needed. (closes #778 raised by @dwertheimer)

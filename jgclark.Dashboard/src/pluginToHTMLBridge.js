@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-08-19 for v2.4.0.b65 by @CursorAI & @jgclark
+// Last updated 2026-08-21 for v2.4.1 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -44,7 +44,7 @@ import {
   doSwitchToPerspective,
   doSavePerspectiveSettingsFromBridge,
 } from './perspectiveClickHandlers'
-import { batchReplaceSections, incrementallyRefreshSomeSections, refreshSomeSections } from './refreshClickHandlers'
+import { batchReplaceSections, incrementallyRefreshSomeSections, PERSPECTIVE_SWITCH_USES_REPLACE_METHOD, refreshSomeSections } from './refreshClickHandlers'
 import {
   doAddProgressUpdate,
   doCancelProject,
@@ -873,10 +873,16 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     }
 
     if (actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
-      logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling batchReplaceSections (for ${String(enabledSections)}) ...`)
-      await setPluginData({ perspectiveChanging: true }, `Starting perspective change`)
-      await batchReplaceSections({ ...data, sectionCodes: enabledSections })
-      logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (spinner cleared in the replace payload)`)
+      // doSwitchToPerspective already set firstRun + perspectiveChanging and wiped sections; regenerate next.
+      if (PERSPECTIVE_SWITCH_USES_REPLACE_METHOD) {
+        logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling batchReplaceSections (for ${String(enabledSections)}; PERSPECTIVE_SWITCH_USES_REPLACE_METHOD=true) ...`)
+        await batchReplaceSections({ ...data, sectionCodes: enabledSections })
+        logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (firstRun/perspectiveChanging cleared in the replace payload)`)
+      } else {
+        logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}; PERSPECTIVE_SWITCH_USES_REPLACE_METHOD=false) ...`)
+        await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
+        logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (firstRun/perspectiveChanging cleared on last incremental section)`)
+      }
 
       // Reviews Rich list: queue via x-callback (invokePluginCommandByName blocks the JSContext even without await).
       scheduleReviewsListAfterPerspectiveSwitch(data?.perspectiveName || '')

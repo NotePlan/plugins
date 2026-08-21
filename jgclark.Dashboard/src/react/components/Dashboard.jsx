@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for 2026-08-14 for v2.4.0.b63, @jgclark + @CursorAI
+// Last updated for 2026-08-21 for v2.4.1, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -30,8 +30,6 @@ import { getTestGroups } from './testing/tests'
 import PerspectivesTable from './PerspectivesTable.jsx'
 import DebugPanel from '@helpers/react/DebugPanel'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/dev'
-import NonModalSpinner from '@helpers/react/NonModalSpinner' // Note: also a ModalSpinner is available, but no longer used here.
-
 export const standardSections: Array<TSettingItem> = showSectionSettingItems
 
 //--------------------------------------------------------------------------
@@ -176,7 +174,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
 
   // When no sections would render show an INFO banner to confirm this, avoiding the appearance of a bug.
-  // Skip while refreshing or mid perspective-switch (switch clears sections to [] before batchReplaceSections sets refreshing).
+  // Skip while refreshing or mid perspective-switch (switch clears sections to [] before replace/incremental regen sets refreshing).
   useEffect(() => {
     if (pluginData.firstRun || isRefreshing || pluginData.perspectiveChanging || !dashboardSettings) return
 
@@ -425,9 +423,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           details={reactSettings?.dialogData?.details ?? {}}
         />
       </div>
-      {pluginData.perspectiveChanging && (
-        <NonModalSpinner textBelow="Switching perspectives" style={{ container: { color: 'var(--tint-color)', textAlign: 'center', marginTop: '0.6rem', marginBottom: '0rem' } }} />
-      )}
       {pluginData?.logSettings?._logLevel === 'DEV' && (
           <DebugPanel
             isVisible={showDebugPanel}
