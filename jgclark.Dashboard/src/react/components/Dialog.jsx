@@ -27,6 +27,7 @@ type Props = {
 /**
  * Display a Dialog for a Task, Reminder, or Project if reactSettings.dialogData.isOpen is true.
  * Reminder vs task is chosen from details.item.itemType so Interactive Processing can switch mid-session (#779).
+ * Project dialogs use isTask false (PROJACT / PROJREVIEW IP).
  * @param {Props} props The properties for the Dialog component.
  * @return {?React$Node} Renderable React node or null.
  */

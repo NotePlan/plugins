@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
+// Last updated 2026-08-21 for v2.5.0, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TDashboardSettingsIn, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
@@ -23,31 +23,39 @@ export function countRealSectionItems(items: ?Array<TSectionItem>): number {
 
 /**
  * Whether a section row can be walked by Interactive Processing.
- * Includes open tasks, checklists, and Apple Reminders (#779).
+ * Includes open tasks, checklists, Apple Reminders (#779), and project rows (PROJACT/PROJREVIEW).
+ * Callers for PROJ* must still restrict to `project` only via getInteractiveProcessingItems(sectionCode).
  * @param {TSectionItem} item
  * @returns {boolean}
  */
 export function isInteractiveProcessingItem(item: TSectionItem): boolean {
-  return item.itemType === 'open' || item.itemType === 'checklist' || item.itemType === 'reminder'
+  return item.itemType === 'open' || item.itemType === 'checklist' || item.itemType === 'reminder' || item.itemType === 'project'
 }
 
 /**
  * Rows Interactive Processing will actually process from a candidate list.
+ * For PROJACT / PROJREVIEW, only `project` rows (not next-action task children).
  * @param {?Array<TSectionItem>} items
+ * @param {?TSectionCode | string} sectionCode
  * @returns {Array<TSectionItem>}
  */
-export function getInteractiveProcessingItems(items: ?Array<TSectionItem>): Array<TSectionItem> {
+export function getInteractiveProcessingItems(items: ?Array<TSectionItem>, sectionCode: ?TSectionCode | string = null): Array<TSectionItem> {
   if (!items || items.length === 0) return []
-  return items.filter(isInteractiveProcessingItem)
+  const processable = items.filter(isInteractiveProcessingItem)
+  if (sectionCode === 'PROJACT' || sectionCode === 'PROJREVIEW') {
+    return processable.filter((item) => item.itemType === 'project')
+  }
+  return processable
 }
 
 /**
  * Count of Interactive Processing processable rows (must match getInteractiveProcessingItems).
  * @param {?Array<TSectionItem>} items
+ * @param {?TSectionCode | string} sectionCode
  * @returns {number}
  */
-export function countInteractiveProcessingItems(items: ?Array<TSectionItem>): number {
-  return getInteractiveProcessingItems(items).length
+export function countInteractiveProcessingItems(items: ?Array<TSectionItem>, sectionCode: ?TSectionCode | string = null): number {
+  return getInteractiveProcessingItems(items, sectionCode).length
 }
 
 /**

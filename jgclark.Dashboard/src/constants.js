@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code.
 // Check each of them when adding a new Section.
-// Last updated 2026-08-01 for v2.4.0.b59, @jgclark + @CursorAI
+// Last updated 2026-08-21 for v2.5.0, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -63,7 +63,7 @@ export const sectionsPriorityBeforeTagWhenCalendarFocus: Array<TSectionCode> = [
 export const dontDedupeSectionCodes = ['INFO', 'PROJACT', 'PROJREVIEW', 'SEARCH', 'SAVEDSEARCH']
 
 // Enable interactive processing for these itemTypes:
-export const interactiveProcessingPossibleSectionTypes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'REM']
+export const interactiveProcessingPossibleSectionTypes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'REM', 'PROJACT', 'PROJREVIEW']
 
 // When the user toggles visibility of a calendar period section only, refresh these sections (if enabled).
 // This ensures Wins / Priority / Overdue deduping stays correct.

@@ -20,25 +20,34 @@ describe('sectionHelpers', () => {
     const openTask = { ID: '1', itemType: 'open' }
     const checklist = { ID: '2', itemType: 'checklist' }
     const reminder = { ID: '3', itemType: 'reminder' }
+    const project = { ID: '6', itemType: 'project' }
     const congrats = { ID: '4', itemType: 'itemCongrats' }
     const filterMsg = { ID: '5', itemType: 'filterIndicator' }
 
-    test('isInteractiveProcessingItem is true for open, checklist, and reminder', () => {
+    test('isInteractiveProcessingItem is true for open, checklist, reminder, and project', () => {
       expect(sh.isInteractiveProcessingItem(openTask)).toBe(true)
       expect(sh.isInteractiveProcessingItem(checklist)).toBe(true)
       expect(sh.isInteractiveProcessingItem(reminder)).toBe(true)
+      expect(sh.isInteractiveProcessingItem(project)).toBe(true)
       expect(sh.isInteractiveProcessingItem(congrats)).toBe(false)
       expect(sh.isInteractiveProcessingItem(filterMsg)).toBe(false)
     })
 
-    test('getInteractiveProcessingItems keeps tasks and reminders; drops message rows', () => {
-      const mixed = [openTask, reminder, checklist, congrats, filterMsg]
-      expect(sh.getInteractiveProcessingItems(mixed)).toEqual([openTask, reminder, checklist])
+    test('getInteractiveProcessingItems keeps tasks, reminders, and projects; drops message rows', () => {
+      const mixed = [openTask, reminder, checklist, project, congrats, filterMsg]
+      expect(sh.getInteractiveProcessingItems(mixed)).toEqual([openTask, reminder, checklist, project])
+    })
+
+    test('getInteractiveProcessingItems for PROJ* keeps project rows only (not next-action tasks)', () => {
+      const mixed = [project, openTask, checklist, congrats]
+      expect(sh.getInteractiveProcessingItems(mixed, 'PROJACT')).toEqual([project])
+      expect(sh.getInteractiveProcessingItems(mixed, 'PROJREVIEW')).toEqual([project])
+      expect(sh.countInteractiveProcessingItems(mixed, 'PROJACT')).toBe(1)
     })
 
     test('countInteractiveProcessingItems matches filtered length (IP button N)', () => {
-      const mixed = [openTask, reminder, reminder, checklist]
-      expect(sh.countInteractiveProcessingItems(mixed)).toBe(4)
+      const mixed = [openTask, reminder, reminder, checklist, project]
+      expect(sh.countInteractiveProcessingItems(mixed)).toBe(5)
       expect(sh.countInteractiveProcessingItems([])).toBe(0)
       expect(sh.countInteractiveProcessingItems(null)).toBe(0)
       expect(sh.countInteractiveProcessingItems([congrats, filterMsg])).toBe(0)

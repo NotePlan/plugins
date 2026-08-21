@@ -9,6 +9,7 @@ import {
   canNavigateBackInIP,
   getNextIPIndex,
   ipItemsHaveBeenSkipped,
+  isTaskDialogItem,
   markCurrentIPItemProcessed,
 } from '../interactiveProcessingHelpers.js'
 
@@ -63,6 +64,15 @@ describe('interactiveProcessingHelpers', () => {
     })
   })
 
+  describe('isTaskDialogItem', () => {
+    test('is false only for project rows', () => {
+      expect(isTaskDialogItem({ ID: 'p', itemType: 'project' })).toBe(false)
+      expect(isTaskDialogItem({ ID: 't', itemType: 'open' })).toBe(true)
+      expect(isTaskDialogItem({ ID: 'r', itemType: 'reminder' })).toBe(true)
+      expect(isTaskDialogItem(null)).toBe(true)
+    })
+  })
+
   describe('canNavigateBackInIP / buildReactSettingsForIPBackNavigate', () => {
     test('canNavigateBackInIP is true from the second item', () => {
       expect(canNavigateBackInIP(0)).toBe(false)
@@ -80,9 +90,22 @@ describe('interactiveProcessingHelpers', () => {
       const next = buildReactSettingsForIPBackNavigate(prev)
       expect(next.interactiveProcessing.currentIPIndex).toBe(0)
       expect(next.dialogData.details.item).toEqual(a)
+      expect(next.dialogData.isTask).toBe(true)
 
       const atStart = { ...prev, interactiveProcessing: { ...prev.interactiveProcessing, currentIPIndex: 0 } }
       expect(buildReactSettingsForIPBackNavigate(atStart)).toBe(atStart)
+    })
+
+    test('buildReactSettingsForIPBackNavigate sets isTask false for projects', () => {
+      const a = { ID: 'a', itemType: 'project' }
+      const b = { ID: 'b', itemType: 'project' }
+      const prev = {
+        interactiveProcessing: { currentIPIndex: 1, totalTasks: 2, visibleItems: [a, b] },
+        dialogData: { isOpen: true, isTask: false, details: { item: b } },
+      }
+      const next = buildReactSettingsForIPBackNavigate(prev)
+      expect(next.dialogData.isTask).toBe(false)
+      expect(next.dialogData.details.item).toEqual(a)
     })
   })
 
@@ -102,10 +125,28 @@ describe('interactiveProcessingHelpers', () => {
       expect(mid.interactiveProcessing.currentIPIndex).toBe(1)
       expect(mid.dialogData.details.item).toEqual(reminder)
       expect(mid.dialogData.isOpen).toBe(true)
+      expect(mid.dialogData.isTask).toBe(true)
 
       const end = buildReactSettingsAfterIPAdvance(mid, { skippedItem: false, skipForward: true })
       expect(end.interactiveProcessing).toBeNull()
       expect(end.dialogData.isOpen).toBe(false)
+    })
+
+    test('keeps isTask false when advancing between project rows', () => {
+      const p1 = { ID: 'p1', itemType: 'project' }
+      const p2 = { ID: 'p2', itemType: 'project' }
+      const prev = {
+        interactiveProcessing: {
+          currentIPIndex: 0,
+          totalTasks: 2,
+          visibleItems: [p1, p2],
+        },
+        dialogData: { isOpen: true, isTask: false, details: { item: p1 } },
+      }
+      const mid = buildReactSettingsAfterIPAdvance(prev, { skippedItem: false, skipForward: true, markTaskChildren: false })
+      expect(mid.interactiveProcessing.currentIPIndex).toBe(1)
+      expect(mid.dialogData.isTask).toBe(false)
+      expect(mid.dialogData.details.item).toEqual(p2)
     })
   })
 })

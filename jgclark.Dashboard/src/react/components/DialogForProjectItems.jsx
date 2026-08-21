@@ -1,20 +1,21 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
-// Called by Dialog component
-// Last updated 2026-02-08 for v2.4.0.b20 by @jgclark
+// Called by Dialog component. Supports Interactive Processing for PROJACT / PROJREVIEW.
+// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
-import React, { useRef, useLayoutEffect, useState } from 'react'
+import React, { useRef, useLayoutEffect, useState, useCallback } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
+import { buildReactSettingsAfterIPAdvance, buildReactSettingsForIPBackNavigate, canNavigateBackInIP } from './interactiveProcessingHelpers.js'
 import SmallCircularProgressIndicator from './SmallCircularProgressIndicator.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { hyphenatedDateString, relativeDateFromNumber } from '@helpers/dateTime'
-import { clo, clof, JSP, logDebug, logInfo, logWarn } from '@helpers/dev'
+import { clo, logDebug, logInfo, logWarn } from '@helpers/dev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
 
@@ -35,16 +36,173 @@ type DialogButtonProps = {
   notOnMobile: boolean, // If true, the button will only be shown on macOS, because of limitations on iOS/iPadOS
 }
 
+/** Actions that open the project note / editor and should not advance IP. */
+const STAY_OPEN_HANDLING_FUNCTIONS = new Set(['startReview'])
+
+/**
+ * Project actions dialog used by Interactive Processing and by the row edit icon (non-IP).
+ * @param {Props} props
+ * @returns {?React$Node}
+ */
 const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
+  //----------------------------------------------------------------------
+  // Refs & state (before any early return - Rules of Hooks)
+  //----------------------------------------------------------------------
+  const dialogRef: React$RefObject<?HTMLElement> = useRef <? HTMLElement > (null)
   const [animationClass, setAnimationClass] = useState('')
   const [resetCalendar, setResetCalendar] = useState(false)
 
-  // const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
-  // Note: typed as ?HTMLElement (not ?HTMLDialogElement) because flowlib types every non-special intrinsic's ref instance as HTMLElement,
-  // and React$RefObject is invariant in its type argument.
-  const dialogRef: React$RefObject<?HTMLElement> = useRef <? HTMLElement > (null)
+  const { sendActionToPlugin, pluginData, dashboardSettings, reactSettings, setReactSettings } = useAppContext()
+  const { interactiveProcessing } = reactSettings ?? {}
+  const { currentIPIndex, totalTasks } = interactiveProcessing || {}
+  const { enableInteractiveProcessing, enableInteractiveProcessingTransitions } = dashboardSettings || {}
+  // IP: animate only when IP transitions setting is on. Non-IP: keep prior project-dialog zoom when transitions not explicitly off.
+  const showAnimations = interactiveProcessing
+    ? Boolean(enableInteractiveProcessing && enableInteractiveProcessingTransitions)
+    : enableInteractiveProcessingTransitions !== false
 
-  logInfo('DialogForProjectItems', `Starting, with detailsMessageObject= ${JSP(detailsMessageObject, 2)}`)
+  const isDesktop = pluginData.platform === 'macOS'
+  const monthsToShow = (pluginData.platform === 'iOS') ? 1 : 2
+
+  const thisItem = detailsMessageObject?.item
+  const sectionCode = thisItem?.sectionCode || detailsMessageObject?.sectionCodes?.[0] || ''
+  // PROJACT: true back-navigate; PROJREVIEW: forward skip only
+  const showBackNavigate = sectionCode === 'PROJACT' && canNavigateBackInIP(currentIPIndex)
+
+  useLayoutEffect(() => {
+    if (dialogRef) positionDialog(dialogRef)
+  }, [positionDialog])
+
+  useLayoutEffect(() => {
+    if (showAnimations) {
+      setAnimationClass('zoom-in')
+    }
+    return () => {
+      if (showAnimations) {
+        setAnimationClass('zoom-out')
+      }
+    }
+  }, [showAnimations])
+
+  const handleIPItemProcessed = useCallback(
+    (skippedItem?: boolean = false, skipForward?: boolean = true) => {
+      logDebug('DialogForProjectItems', `handleIPItemProcessed skipped=${String(skippedItem)} skipForward=${String(skipForward)}`)
+      setReactSettings((prevSettings) =>
+        buildReactSettingsAfterIPAdvance(prevSettings, {
+          skippedItem,
+          skipForward,
+          markTaskChildren: false,
+        }),
+      )
+    },
+    [setReactSettings],
+  )
+
+  const closeDialog = useCallback(
+    (forceClose: boolean = false) => {
+      logDebug(`DialogForProjectItems`, `closeDialog(forceClose=${String(forceClose)})`)
+      if (reactSettings?.interactiveProcessing) {
+        if (forceClose) {
+          setReactSettings((prevSettings) => ({
+            ...prevSettings,
+            interactiveProcessing: null,
+            dialogData: {
+              ...prevSettings.dialogData,
+              isOpen: false,
+              isTask: false,
+            },
+          }))
+        } else {
+          handleIPItemProcessed(false)
+        }
+        return
+      }
+      // Non-IP: animate out then let Dialog/onClose clear dialogData
+      if (showAnimations) {
+        setAnimationClass('zoom-out')
+      }
+      setTimeout(() => onClose(forceClose), showAnimations ? 300 : 0)
+    },
+    [handleIPItemProcessed, onClose, reactSettings?.interactiveProcessing, setReactSettings, showAnimations],
+  )
+
+  const handleSkipClick = useCallback(
+    (skipForward: boolean) => {
+      if (!reactSettings?.interactiveProcessing) return
+      handleIPItemProcessed(true, skipForward)
+    },
+    [handleIPItemProcessed, reactSettings?.interactiveProcessing],
+  )
+
+  const handleBackNavigateClick = useCallback(() => {
+    if (!reactSettings?.interactiveProcessing) return
+    logDebug('DialogForProjectItems', 'handleBackNavigateClick')
+    setReactSettings((prevSettings) => buildReactSettingsForIPBackNavigate(prevSettings))
+  }, [reactSettings?.interactiveProcessing, setReactSettings])
+
+  // Handle the date selected from CalendarPicker
+  const handleDateSelect = useCallback(
+    (date: Date) => {
+      if (!date) return
+      const isoDateStr = hyphenatedDateString(date) // to avoid TZ issues
+      const actionType = 'setNextReviewDate'
+
+      logDebug(`DialogForProjectItems`, `Specific Date selected: ${String(date)} isoDateStr:${isoDateStr}. Will use actionType ${actionType}`)
+      sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, controlStr: isoDateStr }, `${isoDateStr} selected in date picker`, true)
+
+      // reset the calendar picker after some time or in the next render cycle so it forgets the last selected date
+      setResetCalendar(true)
+      setTimeout(() => setResetCalendar(false), 0)
+
+      if (!reactSettings?.interactiveProcessing) {
+        setAnimationClass('zoom-out')
+      }
+      setTimeout(() => closeDialog(false), reactSettings?.interactiveProcessing ? 0 : 300)
+    },
+    [closeDialog, detailsMessageObject, reactSettings?.interactiveProcessing, sendActionToPlugin],
+  )
+
+  const handleButtonClick = useCallback(
+    (event: MouseEvent, controlStr: string, type: string) => {
+      const { metaKey } = extractModifierKeys(event)
+      clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
+      logDebug(
+        `DialogForProjectItems handleButtonClick`,
+        `Button clicked for controlStr: ${controlStr}, type: ${type}`,
+      )
+
+      const dataToSend = {
+        ...detailsMessageObject,
+        actionType: type,
+        controlStr: controlStr,
+        updatedContent: '',
+      }
+
+      sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending actionType ${type} and controlStr ${controlStr} to plugin`, true)
+
+      // Start Review opens the note; stay open so IP can continue
+      if (STAY_OPEN_HANDLING_FUNCTIONS.has(type)) {
+        return
+      }
+
+      if (!reactSettings?.interactiveProcessing) {
+        setAnimationClass('zoom-out')
+      }
+      if (!metaKey) {
+        setTimeout(() => {
+          closeDialog(false)
+        }, 300)
+      } else {
+        closeDialog(false)
+      }
+    },
+    [closeDialog, detailsMessageObject, reactSettings?.interactiveProcessing, sendActionToPlugin],
+  )
+
+  //----------------------------------------------------------------------
+  // Validate after hooks
+  //----------------------------------------------------------------------
+
   let validated
   try {
     validated = validateAndFlattenMessageObject(detailsMessageObject)
@@ -52,26 +210,18 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     logWarn('DialogForProjectItems', `No valid details to render (${error.message}); bailing.`)
     return null
   }
-  const { ID, itemType, filename, title, modifierKey, sectionCode } = validated
-  const thisItem = detailsMessageObject?.item
+  const { ID, itemType, filename, title, modifierKey } = validated
   if (!thisItem) {
     logWarn('DialogForProjectItems', 'Cannot find item; bailing.')
     return null
   }
-  logInfo('DialogForProjectItems', `item=${JSP(thisItem, 2)}`)
+  logInfo('DialogForProjectItems', `Starting ID=${ID} itemType=${itemType} filename=${filename}`)
+
   const lastProgressText = thisItem.project?.lastProgressComment ?? ''
-
-  const { sendActionToPlugin, pluginData, dashboardSettings } = useAppContext()
-  const isDesktop = pluginData.platform === 'macOS'
-  const monthsToShow = (pluginData.platform === 'iOS') ? 1 : 2
-  const { enableInteractiveProcessingTransitions } = dashboardSettings || {}
-  // For project dialogs, always show animations (no interactive processing for projects)
-  const showAnimations = enableInteractiveProcessingTransitions !== false
-
   // We want to open the calendar picker if the meta key was pressed as this dialog was being triggered.
   const shouldStartCalendarOpen = modifierKey // = boolean for whether metaKey pressed
 
-  const reviewIntervalStr = (thisItem.project?.reviewInterval) ? `review every ${thisItem.project.reviewInterval}` : ''
+  const reviewIntervalStr = (thisItem.project?.reviewInterval) ? `review ${thisItem.project.reviewInterval}` : ''
   const reviewDaysStr = (thisItem.project?.nextReviewDays) ? `due ${relativeDateFromNumber(thisItem.project.nextReviewDays, true)}` : ''
   const reviewDetails = (reviewIntervalStr && reviewDaysStr)
     ? `(${reviewIntervalStr}; ${reviewDaysStr})`
@@ -111,79 +261,6 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     projectButtons = projectButtons.filter((button) => !button.notOnMobile)
   }
 
-  useLayoutEffect(() => {
-    // logDebug(`DialogForProjectItems`, `BEFORE POSITION detailsMessageObject`, detailsMessageObject)
-    if (dialogRef) positionDialog(dialogRef)
-    // logDebug(`DialogForProjectItems`, `AFTER POSITION detailsMessageObject`, detailsMessageObject)
-  }, [])
-
-  function handleTitleClick(e: MouseEvent) { // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties 
-    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
-    detailsMessageObject.actionType = 'showNoteInEditorFromFilename'
-    detailsMessageObject.modifierKey = modifierName
-    sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Project Title clicked in Dialog', true)
-  }
-
-  // Handle the shared closing functionality
-  const closeDialog = (forceClose: boolean = false) => {
-    // Start the zoom-out animation
-    if (showAnimations) {
-      setAnimationClass('zoom-out')
-    }
-    scheduleClose(showAnimations ? 300 : 0, forceClose)  // Match the duration of the animation
-  }
-
-  const scheduleClose = (delay: number, forceClose: boolean = false) => {
-    setTimeout(() => onClose(forceClose), delay)
-  }
-
-  // Handle the date selected from CalendarPicker
-  const handleDateSelect = (date: Date) => {
-    if (!date) return
-    const isoDateStr = hyphenatedDateString(date) // to avoid TZ issues
-    const actionType = 'setNextReviewDate'
-
-    logDebug(`DialogForProjectItems`, `Specific Date selected: ${String(date)} isoDateStr:${isoDateStr}. Will use actionType ${actionType}`)
-    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, controlStr: isoDateStr }, `${isoDateStr} selected in date picker`, true)
-
-    // reset the calendar picker after some time or in the next render cycle so it forgets the last selected date
-    setResetCalendar(true)
-    setTimeout(() => setResetCalendar(false), 0) // Reset the calendar in the next render cycle
-    closeDialog()
-  }
-
-  function handleButtonClick(_event: MouseEvent, controlStr: string, type: string) {
-    clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
-    logDebug(`DialogForProjectItems handleButtonClick`,
-      `Button clicked on ID: ${ID} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, Filename: ${filename}`,
-    )
-    const dataToSend = {
-      ...detailsMessageObject,
-      actionType: type,
-      controlStr: controlStr,
-      updatedContent: '',
-    }
-
-    sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending actionType ${type} and controlStr ${controlStr} to plugin`, true)
-
-    // Dismiss dialog with animation
-    closeDialog(false)
-  }
-
-  useLayoutEffect(() => {
-    // Trigger the zoom-in effect when the component mounts
-    if (showAnimations) {
-      setAnimationClass('zoom-in')
-    }
-
-    // run before the component unmounts
-    return () => {
-      if (showAnimations) {
-        setAnimationClass('zoom-out')
-      }
-    }
-  }, [showAnimations])
-
   return (
     <>
       {/* CSS for this part is in DashboardDialog.css */}
@@ -208,21 +285,32 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
             metaKey={{ text: 'Open in Floating Window' }}
             label={`Project Item Dialog for ${title}`}
           >
-            {/* <span className="dialogFileParts pad-left pad-right" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
-              <span className="dialogItemNote" >{title}</span>
-            </span> */}
             <span className="dialogItemNote">
               <ItemNoteLink
                 item={thisItem}
                 thisSection={sectionCode}
                 alwaysShowNoteTitle={true}
                 suppressTeamspaceName={false}
+                normalSize={true}
               />
             </span>
             <span className="reviewDetailsText">{reviewDetails}</span>
           </TooltipOnKeyPress>
 
           <div className="dialog-top-right">
+            {interactiveProcessing && currentIPIndex !== undefined && (
+              <span className="interactive-processing-status">
+                {showBackNavigate && (
+                  <button className="skip-button" onClick={handleBackNavigateClick} title="Go back to previous project">
+                    <i className="fa-solid fa-backward"></i>
+                  </button>
+                )}
+                <span>{currentIPIndex + 1}</span>/<span>{totalTasks}</span>
+                <button className="skip-button" onClick={() => handleSkipClick(true)} title="Skip this project">
+                  <i className="fa-solid fa-forward"></i>
+                </button>
+              </span>
+            )}
             <button className="closeButton" onClick={() => closeDialog(true)}>
               <i className="fa-solid fa-circle-xmark"></i>
             </button>
