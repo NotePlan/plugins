@@ -22,6 +22,8 @@ import {
   doDeleteItem,
   doDeleteReminder,
   doEvaluateString,
+  doRescheduleReminder,
+  doUpdateReminderContent,
   applyDashboardThemeToWebView,
   doSaveDashboardSettingsFromBridge,
   doShowNoteInEditorFromFilename,
@@ -238,26 +240,46 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const filename = data.item?.para?.filename ?? '<no filename found>'
     let content = data.item?.para?.content ?? '<no content found>'
     const updatedContent = data.updatedContent ?? ''
+    const isReminderItem = data.item?.itemType === 'reminder' || Boolean(data.item?.reminder?.id)
     // set default return value for each call; mostly overridden below with success
     let result: TBridgeClickHandlerResult = { success: false }
 
     logInfo(`************* bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} *************`)
     // clo(data, 'bridgeClickDashboardItem received data object; data=')
-    if (actionType !== 'refreshEnabledSections' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
+    if (actionType !== 'refreshEnabledSections' && !isReminderItem && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
     // Allow for a combination of button click and a content update
-    if (updatedContent && data.actionType !== 'updateItemContent') {
-      logDebug('bCDI', `content updated with another button press; need to update content first; new content: "${updatedContent}"`)
-      result = doContentUpdate(data)
-      if (result.success) {
-        // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - TODO(later): ultimately delete this
-        content = result.updatedParagraph?.content ?? content
-        // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
-        data.item?.para?.content ? (data.item.para.content = content) : null
-        logDebug('bCDI / updateItemContent', `-> successful call to doContentUpdate()`)
-        // The following line is important because it updates the React window with the changed content before the next action is taken
-        // This will help Dashboard find the item to update in the JSON with the revised content
-        await updateReactWindowFromLineChange(result, data, ['para.content'])
+    if ((updatedContent || data.updatedTime !== undefined || data.updatedNotes !== undefined) && data.actionType !== 'updateItemContent' && data.actionType !== 'updateReminderContent') {
+      if (isReminderItem) {
+        logDebug('bCDI', `reminder content/time/notes updated with another button press; applying before ${String(data.actionType)}`)
+        result = await doUpdateReminderContent(data)
+        if (result.success && data.item?.reminder) {
+          if (updatedContent) {
+            data.item.reminder.title = updatedContent
+          }
+          if (data.updatedTime !== undefined) {
+            data.item.reminder.time = data.updatedTime.trim() !== '' ? data.updatedTime.trim() : undefined
+          }
+          if (data.updatedNotes !== undefined) {
+            data.item.reminder.notes = data.updatedNotes
+          }
+          if (result.updatedReminder) {
+            data.item.reminder = { ...data.item.reminder, ...result.updatedReminder }
+          }
+        }
+      } else if (updatedContent) {
+        logDebug('bCDI', `content updated with another button press; need to update content first; new content: "${updatedContent}"`)
+        result = doContentUpdate(data)
+        if (result.success) {
+          // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - TODO(later): ultimately delete this
+          content = result.updatedParagraph?.content ?? content
+          // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
+          data.item?.para?.content ? (data.item.para.content = content) : null
+          logDebug('bCDI / updateItemContent', `-> successful call to doContentUpdate()`)
+          // The following line is important because it updates the React window with the changed content before the next action is taken
+          // This will help Dashboard find the item to update in the JSON with the revised content
+          await updateReactWindowFromLineChange(result, data, ['para.content'])
+        }
       }
     }
 
@@ -325,6 +347,14 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'updateItemContent': {
         result = doContentUpdate(data)
+        break
+      }
+      case 'updateReminderContent': {
+        result = await doUpdateReminderContent(data)
+        break
+      }
+      case 'rescheduleReminder': {
+        result = await doRescheduleReminder(data)
         break
       }
       case 'toggleType': {
@@ -708,6 +738,27 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         // For Project items
         logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for Project '${filename}': calling updateReactWindowFromLineChange()`)
         await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'project'])
+      } else if (isReminder) {
+        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        let sections = reactWindowData.pluginData.sections
+        const reminderId = data.item?.reminder?.id ?? ''
+        const updatedReminder = handlerResult.updatedReminder
+        if (!reminderId || !updatedReminder) {
+          logWarn('processActionOnReturn', `UPDATE_LINE_IN_JSON reminder missing id or updatedReminder`)
+        } else {
+          const indexes = findSectionItems(sections, ['itemType', 'reminder.id'], {
+            itemType: 'reminder',
+            'reminder.id': reminderId,
+          })
+          if (indexes.length) {
+            const itemsToUpdateStr = indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', ')
+            logInfo('processActionOnReturn', `-> found ${indexes.length} reminder item(s) to update: ${itemsToUpdateStr}`)
+            sections = copyUpdatedSectionItemData(indexes, ['itemType', 'reminder.title', 'reminder.notes', 'reminder.date', 'reminder.time', 'reminder.priority'], { reminder: updatedReminder }, sections)
+            await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Updated reminder items ${itemsToUpdateStr}`)
+          } else {
+            logWarn('processActionOnReturn', `-> no reminder items found to update for reminder.id="${reminderId}"`)
+          }
+        }
       } else {
         // Handle Task or Message types
         // Find all references to this content (could be in multiple sections)
@@ -981,13 +1032,14 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
 export async function updateReactWindowFromLineChange(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject, fieldPathsToUpdate: Array<string>): Promise<void> {
   try {
     clo(handlerResult, 'updateReactWindowFLC: handlerResult')
-    const { errorMsg, success, updatedParagraph } = handlerResult
+    const { errorMsg, success, updatedParagraph, updatedReminder } = handlerResult
     const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
     const { ID } = data.item ?? { ID: '?' }
     if (!success) {
       throw new Error(`handlerResult indicates failure with item: ID ${ID}, so won't update window. ${errorMsg || ''}`)
     }
     const isProject = data.item?.itemType === 'project'
+    const isReminder = data.item?.itemType === 'reminder' || Boolean(data.item?.reminder?.id)
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     let sections = reactWindowData.pluginData.sections
 
@@ -1019,6 +1071,18 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
       // For Project items
       const { filename = '' } = data.item?.project ?? { filename: 'error' }
       logInfo('updateReactWindowFLC', `UPDATE_LINE_IN_JSON for '${ID}' = Project '${filename}'. Will sendToHTMLWindow()`)
+    } else if (isReminder && updatedReminder) {
+      const reminderId = data.item?.reminder?.id ?? ''
+      const indexes = findSectionItems(sections, ['itemType', 'reminder.id'], {
+        itemType: 'reminder',
+        'reminder.id': reminderId,
+      })
+      if (indexes.length) {
+        logInfo('updateReactWindowFLC', `-> found ${indexes.length} reminder item(s) to update`)
+        sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { reminder: updatedReminder }, sections)
+      } else {
+        throw new Error(`updateReactWindowFLC: unable to find reminder to update: ID ${ID} reminder.id="${reminderId}"`)
+      }
     } else {
       // No updatedParagraph provided - this should only happen for project updates or other special cases
       throw new Error(`no updatedParagraph param was given, and its not a Project update. So cannot update react window content for: ID=${ID}. errorMsg=${errorMsg || '-'}`)

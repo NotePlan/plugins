@@ -369,6 +369,8 @@ export type TActionType =
   | 'unknown'
   | 'unscheduleItem'
   | 'updateItemContent'
+  | 'updateReminderContent'
+  | 'rescheduleReminder'
   | 'rescheduleItem'
   | 'addNewPerspective'
   | 'commsBridgeTest'
@@ -414,6 +416,8 @@ export type MessageDataObject = {
   item?: TSectionItem, // optional (but only because REFRESH doesn't need any data)
   controlStr?: TControlString, // further detail on actionType
   updatedContent?: string, // where we have made an update in React window
+  updatedTime?: string, // optional HH:MM for reminder edits from the dialog
+  updatedNotes?: string, // optional notes for reminder edits from the dialog
   newSettings?: string /* either reactSettings or dashboardSettings depending on actionType */,
   modifierKey?: any /* used when modifier key is pressed with an action */,
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
@@ -467,6 +471,7 @@ export const REFRESH_ACTIONS_ALLOWED_ON_HANDLER_FAILURE: Array<TActionOnReturn> 
 export type TBridgeClickHandlerResult = {
   success: boolean,
   updatedParagraph?: TParagraphForDashboard, // TODO: TEST: this becoming TParagraphForDashboard not TParagraph
+  updatedReminder?: TReminderForDashboard,
   actionsOnSuccess?: Array<TActionOnReturn>, // actions to perform after return
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   /** When APPLY_THEME is in actionsOnSuccess, the theme name to regenerate CSS for. */

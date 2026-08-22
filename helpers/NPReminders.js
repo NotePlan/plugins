@@ -81,6 +81,18 @@ export type TAddAppleReminderParams = {
 }
 
 /**
+ * Params for updating an existing Apple Reminder via Calendar.update.
+ * Omit a field to leave it unchanged; pass date null or '' to clear the due date; pass time '' for all-day on the target date.
+ */
+export type TUpdateAppleReminderParams = {
+  title?: string,
+  date?: ?string, // undefined = no change; null / '' = clear; YYYY-MM-DD = set
+  time?: ?string, // undefined = no change; '' = all-day; HH:MM = timed
+  notes?: string, // undefined = no change; '' clears notes
+  applePriority?: ?number,
+}
+
+/**
  * Foreground/background colours for a reminder marker lozenge.
  * Uses the Apple Reminders list colour when provided; otherwise NP theme CSS variable fallbacks.
  * @param {?string} listColor - hex/list colour from the reminder list
@@ -780,4 +792,108 @@ export async function deleteReminderById(reminderId: string): Promise<?TCalendar
   await Calendar.remove(calendarItem)
   logDebug('deleteReminderById', `done for id=${reminderId} ("${calendarItem.title || ''}")`)
   return calendarItem
+}
+
+/**
+ * Update an Apple Reminder's title, notes, and/or due date/time via Calendar.update.
+ * Re-fetches via reminderByID before mutating so CalendarItem setters do not coerce null dates to epoch.
+ * @param {string} reminderId
+ * @param {TUpdateAppleReminderParams} params
+ * @returns {Promise<?TCalendarItem>} updated CalendarItem, or null if not found
+ */
+export async function updateReminderById(reminderId: string, params: TUpdateAppleReminderParams): Promise<?TCalendarItem> {
+  const calendarItem = await Calendar.reminderByID(reminderId)
+  if (!calendarItem || !calendarItem.id) {
+    logWarn('updateReminderById', `reminderByID returned nothing for id=${reminderId}`)
+    return null
+  }
+
+  const { title, date, time, notes, applePriority } = params
+  const wantsTitleChange = title !== undefined
+  const wantsNotesChange = notes !== undefined
+  const wantsPriorityChange = applePriority !== undefined
+  const wantsDateChange = date !== undefined
+  const wantsTimeChange = time !== undefined
+
+  if (!wantsTitleChange && !wantsNotesChange && !wantsPriorityChange && !wantsDateChange && !wantsTimeChange) {
+    logDebug('updateReminderById', `no-op for id=${reminderId}`)
+    return calendarItem
+  }
+
+  const listName = calendarItem.calendar || ''
+  const nextTitle = wantsTitleChange ? title : calendarItem.title || ''
+  const nextNotes = wantsNotesChange ? notes : calendarItem.notes || ''
+  const nextPriority = wantsPriorityChange ? applePriority : calendarItem.priority
+
+  if (wantsDateChange && (date === null || date === '')) {
+    logDebug('updateReminderById', `clearing due date for id=${reminderId}`)
+    await Calendar.update(({
+      id: calendarItem.id,
+      title: nextTitle,
+      date: null,
+      type: 'reminder',
+      isAllDay: true,
+      calendar: listName,
+      isCompleted: Boolean(calendarItem.isCompleted),
+      notes: nextNotes,
+      url: calendarItem.url || '',
+      ...(typeof nextPriority === 'number' ? { priority: nextPriority } : {}),
+    }: any))
+    return await Calendar.reminderByID(reminderId)
+  }
+
+  if (wantsDateChange || wantsTimeChange) {
+    const { date: currentDate, time: currentTime } = getReminderLocalDateAndTime(calendarItem)
+    const targetDateRaw = wantsDateChange ? date : currentDate
+    const targetDate = typeof targetDateRaw === 'string' ? targetDateRaw.trim() : ''
+    const targetTimeRaw = wantsTimeChange ? time : currentTime
+    const targetTime = typeof targetTimeRaw === 'string' ? targetTimeRaw.trim() : ''
+
+    if (!targetDate) {
+      throw new Error('updateReminderById: cannot set a time without a due date')
+    }
+
+    let dueDate: Date
+    let isAllDay = true
+    if (targetTime !== '') {
+      dueDate = getDateObjFromDateTimeString(`${targetDate} ${targetTime}`)
+      isAllDay = false
+    } else {
+      const dateOnly = getDateObjFromDateString(targetDate)
+      if (!dateOnly) {
+        throw new Error(`updateReminderById: Could not parse date "${targetDate}"`)
+      }
+      dueDate = dateOnly
+      isAllDay = true
+    }
+
+    const updatedItem: TCalendarItem = calendarItem
+    updatedItem.title = nextTitle
+    updatedItem.notes = nextNotes
+    updatedItem.date = dueDate
+    updatedItem.isAllDay = isAllDay
+    if (wantsPriorityChange && typeof nextPriority === 'number') {
+      updatedItem.priority = nextPriority
+    }
+    await Calendar.update(updatedItem)
+    logDebug(
+      'updateReminderById',
+      `updated id=${reminderId} date=${targetDate} time=${targetTime || '(all-day)'} title="${String(nextTitle).slice(0, 40)}"`,
+    )
+    return await Calendar.reminderByID(reminderId)
+  }
+
+  const updatedItem: TCalendarItem = calendarItem
+  if (wantsTitleChange) {
+    updatedItem.title = nextTitle
+  }
+  if (wantsNotesChange) {
+    updatedItem.notes = nextNotes
+  }
+  if (wantsPriorityChange && typeof nextPriority === 'number') {
+    updatedItem.priority = nextPriority
+  }
+  await Calendar.update(updatedItem)
+  logDebug('updateReminderById', `updated title/notes/priority only for id=${reminderId} title="${String(nextTitle).slice(0, 40)}"`)
+  return await Calendar.reminderByID(reminderId)
 }
