@@ -30,15 +30,16 @@ import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
 import { getActivePerspectiveDef } from './perspectiveHelpers'
 import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } from './perspectiveSettingsOnDashboardSave'
 import { resolveEditorOpenTypeForDashboardClick } from './preferredWindowType'
+import { calculateNewDateStr } from './moveClickHandlers'
 import { dashboardFolderFilterSettingsChanged } from './reviewsListSync'
-import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TSectionCode } from './types'
-import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
+import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TReminderForDashboard, TSectionCode } from './types'
+import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { smartOpenNoteInEditorFromFilename, smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename } from '@helpers/NPParagraph'
-import { addAppleReminder, completeReminderById, deleteReminderById, mapNotePlanPriorityToAppleReminder, parseLeadingPriorityFromReminderText } from '@helpers/NPReminders'
+import { addAppleReminder, completeReminderById, deleteReminderById, mapCalendarItemToReminder, mapNotePlanPriorityToAppleReminder, parseLeadingPriorityFromReminderText, updateReminderById } from '@helpers/NPReminders'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getLiveWindowRectFromWin, getWindowEmbedType, getWindowFromCustomId, isEmbeddedWindow, rectToString, storeWindowRect } from '@helpers/NPWindows'
@@ -283,6 +284,205 @@ function removeLineSuccessActionsForSection(sectionCode: TSectionCode, ...extras
   }
   actions.push(...extras)
   return actions
+}
+
+/** Section codes that may need refresh after a reminder due-date change. */
+const REMINDER_DATE_CHANGE_SECTIONS: Array<TSectionCode> = ['REM', 'DT', 'TB', 'DO', 'DY', 'OVERDUE']
+
+/**
+ * Merge the current item section with standard reminder date-change sections for refresh.
+ * @param {?TSectionCode} sectionCode
+ * @returns {Array<TSectionCode>}
+ */
+function reminderRefreshSectionCodes(sectionCode?: ?TSectionCode): Array<TSectionCode> {
+  const codes = sectionCode ? [sectionCode] : []
+  for (const code of REMINDER_DATE_CHANGE_SECTIONS) {
+    if (!codes.includes(code)) {
+      codes.push(code)
+    }
+  }
+  return codes
+}
+
+/**
+ * Validate reminder item data for bridge handlers.
+ * @param {MessageDataObject} data
+ * @param {string} handlerName
+ * @returns {{ ok: true, data: { reminderId: string, sectionCode: TSectionCode, reminder: TReminderForDashboard } } | { ok: false, result: TBridgeClickHandlerResult }}
+ */
+function validateMessageDataForReminderHandler(
+  data: MessageDataObject,
+  handlerName: string,
+): { ok: true, data: { reminderId: string, sectionCode: TSectionCode, reminder: TReminderForDashboard } } | { ok: false, result: TBridgeClickHandlerResult } {
+  const reminderId = data.item?.reminder?.id
+  const sectionCode = data.item?.sectionCode
+  const reminder = data.item?.reminder
+  if (!reminderId) {
+    return { ok: false, result: handlerResult(false, [], { errorMsg: `${handlerName}: No reminder id on item` }) }
+  }
+  if (!sectionCode) {
+    return { ok: false, result: handlerResult(false, [], { errorMsg: `${handlerName}: No sectionCode on item` }) }
+  }
+  if (!reminder) {
+    return { ok: false, result: handlerResult(false, [], { errorMsg: `${handlerName}: No reminder on item` }) }
+  }
+  return { ok: true, data: { reminderId, sectionCode, reminder } }
+}
+
+/**
+ * Map an updated CalendarItem reminder back to dashboard reminder shape, preserving list colour when known.
+ * @param {TCalendarItem} calendarItem
+ * @param {TReminderForDashboard} previousReminder
+ * @returns {TReminderForDashboard}
+ */
+function mapUpdatedReminderForDashboard(calendarItem: TCalendarItem, previousReminder: TReminderForDashboard): TReminderForDashboard {
+  const colorByTitle = previousReminder.listname && previousReminder.color ? { [previousReminder.listname]: previousReminder.color } : {}
+  const mapped = mapCalendarItemToReminder(calendarItem, colorByTitle)
+  return {
+    ...mapped,
+    // Explicit notes so clearing notes in EventKit is reflected (mapCalendarItemToReminder omits empty notes)
+    notes: mapped.notes || '',
+    color: mapped.color || previousReminder.color,
+    listname: mapped.listname || previousReminder.listname,
+  }
+}
+
+/**
+ * Update a reminder title, notes, and/or due time from the edit dialog.
+ * Leading !!! / !! / ! markers set Apple priority and are stripped from the stored title.
+ * Setting a time on an undated reminder infers today's date (with an INFO log).
+ * @param {MessageDataObject} data
+ * @returns {Promise<TBridgeClickHandlerResult>}
+ */
+export async function doUpdateReminderContent(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const validated = validateMessageDataForReminderHandler(data, 'doUpdateReminderContent')
+  if (!validated.ok) return validated.result
+  const { reminderId, sectionCode, reminder } = validated.data
+  try {
+    const currentTitle = reminder.title || ''
+    const currentTime = reminder.time || ''
+    const currentNotes = reminder.notes || ''
+    const updatedTitleRaw = data.updatedContent !== undefined ? data.updatedContent : currentTitle
+    const updatedTimeRaw = data.updatedTime !== undefined ? data.updatedTime : undefined
+    const updatedNotesRaw = data.updatedNotes !== undefined ? data.updatedNotes : undefined
+    const titleChanged = updatedTitleRaw !== currentTitle
+    const timeChanged = updatedTimeRaw !== undefined && updatedTimeRaw !== currentTime
+    const notesChanged = updatedNotesRaw !== undefined && updatedNotesRaw !== currentNotes
+
+    if (!titleChanged && !timeChanged && !notesChanged) {
+      logDebug('doUpdateReminderContent', `No-op update for reminder id=${reminderId}`)
+      return handlerResult(true, [])
+    }
+
+    const { title: parsedTitle, notePlanPriority } = parseLeadingPriorityFromReminderText(updatedTitleRaw)
+    if (!parsedTitle || parsedTitle.trim() === '') {
+      throw new Error('doUpdateReminderContent: Reminder text cannot be empty')
+    }
+    const applePriority = notePlanPriority > 0 ? mapNotePlanPriorityToAppleReminder(notePlanPriority) : 0
+
+    const trimmedTime = timeChanged && typeof updatedTimeRaw === 'string' ? updatedTimeRaw.trim() : ''
+    // Timed reminders require a due date; if undated and a non-empty time is set, schedule for today
+    let inferredDateToday = false
+    let dateToSet: ?string = undefined
+    if (timeChanged && trimmedTime !== '' && !reminder.date) {
+      dateToSet = getTodaysDateHyphenated()
+      inferredDateToday = true
+      logInfo('doUpdateReminderContent', `inferred today's date (${dateToSet}) when adding time "${trimmedTime}" to undated reminder id=${reminderId}`)
+    }
+
+    const calendarItem = await updateReminderById(reminderId, {
+      ...(titleChanged ? { title: parsedTitle, applePriority } : {}),
+      ...(notesChanged ? { notes: typeof updatedNotesRaw === 'string' ? updatedNotesRaw : '' } : {}),
+      ...(timeChanged ? { time: trimmedTime } : {}),
+      ...(inferredDateToday && dateToSet ? { date: dateToSet } : {}),
+    })
+    if (!calendarItem) {
+      return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], {
+        sectionCodes: [sectionCode],
+        errorMsg: `Couldn't find reminder to update. I will refresh this section in case it has changed since the last refresh.`,
+        errorMessageLevel: 'INFO',
+      })
+    }
+
+    const updatedReminder = mapUpdatedReminderForDashboard(calendarItem, reminder)
+    logDebug(
+      'doUpdateReminderContent',
+      `done for id=${reminderId} title="${updatedReminder.title || ''}" time=${String(updatedReminder.time ?? '-')} date=${String(updatedReminder.date ?? 'UNDATED')} notesChanged=${String(notesChanged)}`,
+    )
+    // Inferring a date can move the row between sections (REM -> DT/TB); refresh those sections
+    if (inferredDateToday) {
+      return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], {
+        updatedReminder,
+        sectionCodes: reminderRefreshSectionCodes(sectionCode),
+      })
+    }
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedReminder, sectionCodes: [sectionCode] })
+  } catch (err) {
+    logError('doUpdateReminderContent', err.message)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: err.message, errorMessageLevel: 'ERROR' })
+  }
+}
+
+/**
+ * Reschedule an Apple Reminder to a new due date, or clear its due date (`unsched`).
+ * Optional updatedContent / updatedTime / updatedNotes from the dialog are applied before the date change.
+ * @param {MessageDataObject} data
+ * @returns {Promise<TBridgeClickHandlerResult>}
+ */
+export async function doRescheduleReminder(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const validated = validateMessageDataForReminderHandler(data, 'doRescheduleReminder')
+  if (!validated.ok) return validated.result
+  const { reminderId, sectionCode, reminder } = validated.data
+  const controlStr = String(data.controlStr || '')
+  const sectionCodes = reminderRefreshSectionCodes(sectionCode)
+
+  try {
+    if (data.updatedContent || data.updatedTime !== undefined || data.updatedNotes !== undefined) {
+      const contentResult = await doUpdateReminderContent(data)
+      if (!contentResult.success) {
+        return contentResult
+      }
+    }
+
+    if (controlStr === 'unsched') {
+      const calendarItem = await updateReminderById(reminderId, { date: null })
+      if (!calendarItem) {
+        return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], {
+          sectionCodes,
+          errorMsg: `Couldn't find reminder to unschedule. I will refresh the affected section(s).`,
+          errorMessageLevel: 'INFO',
+        })
+      }
+      logDebug('doRescheduleReminder', `cleared due date for id=${reminderId}`)
+      return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { sectionCodes })
+    }
+
+    const config: TDashboardSettings = await getDashboardSettings()
+    const startDateStr = getTodaysDateHyphenated()
+    const newDateStr = calculateNewDateStr(controlStr, startDateStr, config, reminder.listname || 'Reminder', true)
+    logDebug('doRescheduleReminder', `id=${reminderId} controlStr=${controlStr} -> ${newDateStr}`)
+
+    const preserveTime = data.updatedTime !== undefined ? String(data.updatedTime).trim() : (reminder.time || '')
+    const calendarItem = await updateReminderById(reminderId, {
+      date: newDateStr,
+      time: preserveTime,
+    })
+    if (!calendarItem) {
+      return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], {
+        sectionCodes,
+        errorMsg: `Couldn't find reminder to reschedule. I will refresh the affected section(s).`,
+        errorMessageLevel: 'INFO',
+      })
+    }
+
+    if (controlStr.match(RE_DATE)) {
+      logDebug('doRescheduleReminder', `picked explicit date ${newDateStr} for id=${reminderId}`)
+    }
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { sectionCodes })
+  } catch (err) {
+    logError('doRescheduleReminder', err.message)
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes, errorMsg: err.message, errorMessageLevel: 'ERROR' })
+  }
 }
 
 /**

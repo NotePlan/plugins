@@ -40,7 +40,7 @@ import { scheduleItem, scheduleItemLiteMethod } from '@helpers/NPScheduleItems'
  * @param {boolean} isReschedule - if true, uses 'longer' mode for intervals; if false, uses 'offset' mode
  * @returns {string} the calculated new date string
  */
-function calculateNewDateStr(
+export function calculateNewDateStr(
   dateOrInterval: string,
   baseDateStr: string,
   config: TDashboardSettings,

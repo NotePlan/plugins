@@ -374,6 +374,31 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toBe(item)
         expect(global.Calendar.remove).toHaveBeenCalledWith(item)
       })
+
+      test('updateReminderById returns null when missing, else updates title/date/time', async () => {
+        const { updateReminderById } = require('../NPReminders.js')
+        global.Calendar.reminderByID.mockResolvedValue(null)
+        expect(await updateReminderById('missing', { title: 'X' })).toBeNull()
+
+        const datedItem = {
+          id: 'r3',
+          title: 'Old title',
+          calendar: 'Work',
+          date: new Date('2026-08-18T14:30:00.000Z'),
+          isAllDay: false,
+          isCompleted: false,
+          notes: '',
+          url: '',
+          occurences: ['2026-08-18'],
+        }
+        global.Calendar.reminderByID.mockResolvedValue({ ...datedItem })
+        await updateReminderById('r3', { title: 'New title' })
+        expect(global.Calendar.update).toHaveBeenCalledWith(expect.objectContaining({ title: 'New title' }))
+
+        global.Calendar.reminderByID.mockResolvedValueOnce({ ...datedItem }).mockResolvedValueOnce({ ...datedItem, date: null })
+        await updateReminderById('r3', { date: null })
+        expect(global.Calendar.update).toHaveBeenCalledWith(expect.objectContaining({ id: 'r3', date: null }))
+      })
     })
 
     describe('addAppleReminder()', () => {

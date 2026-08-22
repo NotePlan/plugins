@@ -1,6 +1,6 @@
 /**
   CSS for the items Actions Dialog 
-  Last updated 2026-02-05 for v2.4.0.b20 by @jgclark
+  Last updated 2026-08-22 for v2.4.2 by @jgclark & @CursorAI
   */
 
 dialog {
@@ -178,38 +178,96 @@ dialog:modal {
   margin-top: 2px;
 }
 
-/* Reminder IP / actions dialog (#779)
- * Specificity must beat `.buttonGrid div.preText { align-self: self-start; padding-block-start: 5px }`
- * so "For:" and the reminder title share a text baseline.
+/* Reminder IP / actions dialog (#779, #2.4.2 edit/reschedule)
+ * Fixed width for a given viewport (wider than the old content-sized dialog).
  */
 .reminderControlDialog {
-  /* Content-sized reminder dialog is narrower than the task dialog; default ~25% wider than the shared 15rem content floor + label column (~20rem → 25rem). */
-  min-width: 25rem;
+  width: min(38rem, calc(100vw - 1.5rem));
+  min-width: min(38rem, calc(100vw - 1.5rem));
+  max-width: min(38rem, calc(100vw - 1.5rem));
+  box-sizing: border-box;
+
+  /* A couple of overrides are necessary to look good */
+  .dialogBody {
+    padding-block-start: 0.5rem;
+    padding-inline-start: 1rem;
+  }
+  .dialogTitle {
+    padding-inline-start: 3rem;
+  }
 }
 
 .buttonGrid.reminderButtonGrid {
-  grid-template-columns: auto minmax(18.75rem, auto); /* 15rem * 1.25 */
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
-.buttonGrid.reminderButtonGrid > div.preText.reminderDialogForLabel {
-  align-self: baseline;
+.buttonGrid.reminderButtonGrid > div.preText.reminderDialogRowLabel {
+  align-self: auto; /* baseline; */
   padding-block-start: 0;
   padding-block-end: 0;
   line-height: 1.35;
 }
 
-.buttonGrid.reminderButtonGrid > div.reminderDialogTitleLine {
+.buttonGrid.reminderButtonGrid > div.reminderDialogLine {
   align-self: baseline;
   line-height: 1.35;
   margin: 0;
   padding: 0;
 }
 
+.reminderDialogEditLine {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.reminderDialogEditLine .fullTextInput {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.reminderDialogEditLine .reminderNotesInput {
+  flex: 1 1 auto;
+  max-width: calc(100% - 4.75rem); /* leave room for Update on the same row */
+  font-weight: 500;
+}
+
+.reminderDialogEditLine .updateItemContentButton {
+  flex: 0 0 auto;
+}
+
+.reminderDialogScheduleLine {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+}
+
+.reminderTimeInput {
+  font-size: 0.9rem;
+  font-weight: 500;
+  width: 4.5rem;
+  flex: 0 0 auto;
+  padding: 1px 4px 1px 4px;
+  margin-right: 0.25rem;
+  border: 1px solid var(--divider-color);
+  border-radius: 4px;
+  background-color: var(--bg-mid-color);
+  color: var(--fg-sidebar-color);
+}
+
+.reminderDialogNotesLine {
+  color: var(--fg-placeholder-color);
+  font-size: 0.9rem;
+}
+
 .reminderDialogActions {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  /* gap: 0.35rem; */
 }
 
 .reminderDialogTitleLine {

@@ -4,13 +4,14 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 <!-- ## [2.5.0] 2026-08-???
 - New: Interactive Processing on Active Projects and Projects to Review (`>> N` walks project rows; PROJACT allows back-navigate, PROJREVIEW forward-only; Start Reviews unchanged). -->
 
-## [2.4.2] 2026-08-???
+## [2.4.2] 2026-08-23???
 - Fix: Saving Dashboard Settings no longer coerces off (`false`) switches to empty string, which had forced a full section refresh when changing unrelated options (e.g. Interactive Processing transitions).
 - Change: Switching Perspective no longer shows the "Switching perspectives" spinner, and uses an incremental paint, rather than waiting until all sections are ready to display. dev: It sets `firstRun` so the header Refresh control shows "Generating" (same as initial load). It wow uses an incremental merge (`incrementallyRefreshSomeSections`) not `batchReplaceSections`. But alter `PERSPECTIVE_SWITCH_USES_REPLACE_METHOD` to change this back.
+- Change: Reminder edit dialog now supports editing the reminder text, notes, and due time inline (Update / Enter), plus day-scale reschedule shortcuts, calendar picker, and Unsched. Setting a time on an undated reminder schedules it for today. Dialog width is fixed per viewport (wider than before). Bell icon in the dialog title uses the reminder list colour.
 
 ## [2.4.1] 2026-08-21
 - New: Edit icon on reminder rows opens a new dialog that supports complete, delete, and open in Reminders.
-- New: Interactive Processing now supports Apple Reminders (mixed into calendar/Overdue sections, and a new IP button on the Reminders section. (#779 raised by @dwertheimer)
+- New: Interactive Processing now supports Apple Reminders (mixed into calendar/Overdue sections), and a new IP button on the Reminders section. (#779 raised by @dwertheimer)
 - Fix: Interactive Processing / task dialog no longer shows an error banner when Update or Enter is used without changing content. Other actions (complete, reschedule, etc.) now keep their intended action and apply an edited content change first when needed. (closes #778 raised by @dwertheimer)
 - Fix: Inline calendar events now render properly in tasks
 
