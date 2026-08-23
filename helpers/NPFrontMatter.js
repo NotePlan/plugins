@@ -1029,8 +1029,9 @@ export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [st
     // Ensure the note has front matter (for both Editor and note cases).
     // For regular Notes, also write a title: key from the current note title when creating FM
     // for the first time. (Previously skipped for Editor due to an H1-removal side-effect that is now fixed.)
-    // $FlowIgnore[prop-missing] Editor may expose .note; prefer that type when present
-    const typeForTitle = isEditor && note.note != null ? note.note.type : note.type
+    // Editor may expose .note; prefer that type when present (CoreNoteFields has no .note)
+    const underlyingNote: ?TNote = isEditor ? (note: any).note : null
+    const typeForTitle = underlyingNote != null ? underlyingNote.type : note.type
     const alsoEnsureTitle = typeForTitle === 'Notes'
     const hadFrontMatterBeforeEnsure = hasFrontMatter(note.content || '')
     if (!ensureFrontmatter(note, alsoEnsureTitle)) {
@@ -1057,7 +1058,8 @@ export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [st
             .trim()
         }
         if (resolvedTitle !== '') {
-          attributesToWrite = { title: resolvedTitle, ...newAttributes }
+          // Spread indexer first so Flow can track explicit keys after it
+          attributesToWrite = { ...newAttributes, title: resolvedTitle }
           logDebug('updateFrontMatterVars', `Injected title '${resolvedTitle}' into attributes for newly created frontmatter`)
         }
       }

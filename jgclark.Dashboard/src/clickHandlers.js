@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-20 for v2.4.1 by @jgclark + @CursorAI
+// Last updated 2026-08-23 for v2.4.2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -39,7 +39,7 @@ import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { smartOpenNoteInEditorFromFilename, smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename } from '@helpers/NPParagraph'
-import { addAppleReminder, completeReminderById, deleteReminderById, mapCalendarItemToReminder, mapNotePlanPriorityToAppleReminder, parseLeadingPriorityFromReminderText, updateReminderById } from '@helpers/NPReminders'
+import { addAppleReminder, completeReminderById, deleteReminderById, mapCalendarItemToReminder, mapNotePlanPriorityToAppleReminder, parseLeadingPriorityFromReminderText, updateReminderById, type TUpdateAppleReminderParams } from '@helpers/NPReminders'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getLiveWindowRectFromWin, getWindowEmbedType, getWindowFromCustomId, isEmbeddedWindow, rectToString, storeWindowRect } from '@helpers/NPWindows'
@@ -169,7 +169,7 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
  * Add a new Apple Reminder from the Reminders section heading button.
  * Dialog supplies text, list, and optional date/time.
  * Leading !!! / !! / ! in the text set Apple priority (high / medium / low) and are stripped from the title.
- * Dated today → DT/TB; tomorrow → DO; undated → REM (caller refreshes those sections).
+ * Dated today -> DT/TB; tomorrow -> DO; undated -> REM (caller refreshes those sections).
  *
  * Calendar create/clear-date lives in addAppleReminder() (@helpers/NPReminders).
  *
@@ -390,12 +390,22 @@ export async function doUpdateReminderContent(data: MessageDataObject): Promise<
       logInfo('doUpdateReminderContent', `inferred today's date (${dateToSet}) when adding time "${trimmedTime}" to undated reminder id=${reminderId}`)
     }
 
-    const calendarItem = await updateReminderById(reminderId, {
-      ...(titleChanged ? { title: parsedTitle, applePriority } : {}),
-      ...(notesChanged ? { notes: typeof updatedNotesRaw === 'string' ? updatedNotesRaw : '' } : {}),
-      ...(timeChanged ? { time: trimmedTime } : {}),
-      ...(inferredDateToday && dateToSet ? { date: dateToSet } : {}),
-    })
+    // Build params imperatively -- multiple conditional spreads trigger Flow [exponential-spread].
+    const updateParams: TUpdateAppleReminderParams = {}
+    if (titleChanged) {
+      updateParams.title = parsedTitle
+      updateParams.applePriority = applePriority
+    }
+    if (notesChanged) {
+      updateParams.notes = typeof updatedNotesRaw === 'string' ? updatedNotesRaw : ''
+    }
+    if (timeChanged) {
+      updateParams.time = trimmedTime
+    }
+    if (inferredDateToday && dateToSet) {
+      updateParams.date = dateToSet
+    }
+    const calendarItem = await updateReminderById(reminderId, updateParams)
     if (!calendarItem) {
       return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], {
         sectionCodes: [sectionCode],
@@ -1051,14 +1061,17 @@ export async function applyDashboardThemeToWebView(themeName: string): Promise<b
  * Decide incremental section refresh actions after dashboard settings were merged (pre vs post snapshot).
  * @param {{ [string]: any }} priorDashboardSettingsSnapshot
  * @param {mixed} settingsToSave
- * @returns {{ resultsToHandle: Array<TActionOnReturn>, resultExtra: { sectionCodes?: Array<TSectionCode>, dashboardThemeName?: string }, diffKeys: Array<string> }}
+ * @returns {{ resultsToHandle: Array<TActionOnReturn>, resultExtra: { sectionCodes?: Array<TSectionCode>, dashboardThemeName?: string, perspectiveName?: string }, diffKeys: Array<string> }}
  */
 function planSectionRefreshAfterDashboardSettingsChange(
   priorDashboardSettingsSnapshot: { [string]: any },
   settingsToSave: mixed,
-): { resultsToHandle: Array<TActionOnReturn>, resultExtra: { sectionCodes?: Array<TSectionCode>, dashboardThemeName?: string }, diffKeys: Array<string> } {
+): {
+  resultsToHandle: Array<TActionOnReturn>,
+  resultExtra: { sectionCodes?: Array<TSectionCode>, dashboardThemeName?: string, perspectiveName?: string }, diffKeys: Array<string>
+} {
   const resultsToHandle: Array<TActionOnReturn> = ['CLOSE_UNNEEDED_SECTIONS']
-  let resultExtra: { sectionCodes?: Array<TSectionCode>, dashboardThemeName?: string } = {}
+  let resultExtra: { sectionCodes?: Array<TSectionCode>, dashboardThemeName?: string, perspectiveName?: string } = {}
   const defaults = getDashboardSettingsDefaults()
   // Cast: spreading an indexed object ({ [string]: any }) last into an object literal is a known Flow
   // limitation -- it can't prove which explicit keys survive, so the literal gets no inferrable type.

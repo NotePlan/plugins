@@ -22,7 +22,8 @@ import { applyDemoModeGenerationOverrides, getSomeSectionsData, sectionCodesNeed
 import { getRemindersGeneratedData, type TRemindersGeneratedData } from './dataGenerationReminders'
 import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
 import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from './tagMentionCache'
-import type { MessageDataObject, TAnyObject, TBridgeClickHandlerResult, TPluginData, TSection } from './types'
+import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData, TSection } from './types'
+// TAnyObject is a global from flow-typed/Noteplan.js (do not import from ./types)
 import { mergeReminderDisplayById } from '@helpers/NPReminders'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getGlobalSharedData } from '@helpers/HTMLView'

@@ -104,6 +104,7 @@ async function reloadAndUpdateLists(
  */
 async function retargetOpenEditorAfterArchive(originalFilename: string, newFilename: string): Promise<void> {
   const openEditor = getOpenEditorFromFilename(originalFilename) || getOpenEditorFromFilename(newFilename)
+  // $FlowIgnore[method-unbinding] existence check before call; TEditor always defines this when present
   if (!openEditor || typeof openEditor.openNoteByFilename !== 'function') {
     return
   }

@@ -8,12 +8,13 @@ import { createFilterDropdownItems } from '../components/Header/filterDropdownIt
 import type { TSettingItem } from '../../types'
 
 /**
- * Read the current value from a TSettingItem without coercing false/0 to empty string.
- * Prefer `value` (inputs etc.), then `checked` (switches). Missing both -> ''.
- * @param {TSettingItem} item
+ * Read the current value from a setting item without coercing false/0 to empty string.
+ * Prefer `value` (inputs/numbers etc.), then `checked` (switches). Missing both -> ''.
+ * Inexact object: accepts full TSettingItem (and test fixtures) while allowing non-string `value`.
+ * @param {{ value?: any, checked?: boolean, ... }} item
  * @returns {any}
  */
-export function getValueFromSettingItem(item: TSettingItem): any {
+export function getValueFromSettingItem(item: { value?: any, checked?: boolean, ... }): any {
   if (item.value !== undefined) return item.value
   if (item.checked !== undefined) return item.checked
   return ''

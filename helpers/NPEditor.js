@@ -532,7 +532,8 @@ export async function highlightParagraphInEditorByContent(
   }
 
   const paraForCoords = resolveParagraphForHighlight(filename, paraContentToTest)
-  const highlightStart = paraForCoords?.contentRange?.start ?? null
+  // Truthy check narrows `TParagraph | false` so Flow allows `.contentRange` (optional chaining alone does not)
+  const highlightStart = paraForCoords ? paraForCoords.contentRange?.start ?? null : null
 
   if (newWindowType === 'split') {
     if (highlightStart == null) {
