@@ -102,6 +102,78 @@ describe('getMetadataLineIndexFromBody', () => {
     const actualIndex = getMetadataLineIndexFromBody((note: any))
     expect(actualIndex).toBe(false)
   })
+
+  test('ignores unrelated hashtag line under title (issue #775)', () => {
+    preferenceValues['projectTypeTags'] = ['#project', '#area']
+    preferenceValues['sequentialTag'] = '#sequential'
+
+    const note = new Note({
+      title: 'Example',
+      filename: 'example.md',
+      rawContent:
+        '---\n' +
+        'type: #area\n' +
+        'review: 3m\n' +
+        '---\n' +
+        '# Example\n' +
+        '#admin [[Some Resource]] some other text\n' +
+        '\n' +
+        'Body line 1\n',
+    })
+
+    const actualIndex = getMetadataLineIndexFromBody((note: any))
+    expect(actualIndex).toBe(false)
+  })
+
+  test('ignores personal nested hashtag under title that is not in Hashtags to Review', () => {
+    preferenceValues['projectTypeTags'] = ['#project', '#area']
+
+    const note = new Note({
+      title: 'Example',
+      filename: 'example.md',
+      rawContent:
+        '# Example\n' +
+        '#hobby/creative · [[Some Other Note]]\n' +
+        '\n' +
+        'Body line 1\n',
+    })
+
+    expect(getMetadataLineIndexFromBody((note: any))).toBe(false)
+  })
+
+  test('still finds legacy body line that starts with a configured project type hashtag', () => {
+    preferenceValues['projectTypeTags'] = ['#project', '#area']
+
+    const note = new Note({
+      title: 'Example',
+      filename: 'example.md',
+      rawContent:
+        '# Example\n' +
+        '#project @review(1w)\n' +
+        '\n' +
+        'Body line 1\n',
+    })
+
+    const expectedIndex = note.paragraphs.findIndex((p: any) => String(p.rawContent).startsWith('#project'))
+    expect(getMetadataLineIndexFromBody((note: any))).toBe(expectedIndex)
+  })
+
+  test('still finds legacy body line that starts with #paused', () => {
+    preferenceValues['projectTypeTags'] = ['#project']
+
+    const note = new Note({
+      title: 'Example',
+      filename: 'example.md',
+      rawContent:
+        '# Example\n' +
+        '#paused\n' +
+        '\n' +
+        'Body line 1\n',
+    })
+
+    const expectedIndex = note.paragraphs.findIndex((p: any) => String(p.rawContent).startsWith('#paused'))
+    expect(getMetadataLineIndexFromBody((note: any))).toBe(expectedIndex)
+  })
 })
 
 describe('getProjectMetadataLineIndex', () => {

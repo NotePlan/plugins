@@ -1,8 +1,9 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
-## [2.0.9] - 2026-08-20 (not yet released)
+## [2.0.9] - 2026-08-23
 - Fix: **add progress** no longer loses the body `Progress:` line when also writing the first `progress:` frontmatter key.
+- Fix: review commands no longer treat an unrelated hashtag on the first body line under the title as legacy project metadata (and delete the rest of that line). Only Hashtags to Review (plus `#paused` / `#sequential` / `#archive`) trigger that migration. [Addresses #775 for @hannahlinas]
 
 ## [2.0.8] - 2026-08-20
 - Change: re-build and release, to pick up Dashboard being smarter about how it communicates change of perspective with this plugin.

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-05-23 for v2.0.1, @CursorAI & @jgclark
+// Last updated 2026-08-23 for v2.0.9, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -271,6 +271,9 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     DataStore.setPreference('progressStr', config.progressStr)
     DataStore.setPreference('numberDaysForFutureToIgnore', config.numberDaysForFutureToIgnore)
     DataStore.setPreference('ignoreChecklistsInProgress', config.ignoreChecklistsInProgress)
+    // Used by body-metadata detection so unrelated personal hashtags are not treated as legacy project tags
+    DataStore.setPreference('projectTypeTags', Array.isArray(config.projectTypeTags) ? config.projectTypeTags : [])
+    DataStore.setPreference('sequentialTag', config.sequentialTag ?? '#sequential')
 
     // Frontmatter metadata preferences
     // Set a preference for the key name to use for project metadata in the frontmatter. (Dev Note: This is to make the setting available in the Project class.)
@@ -603,6 +606,53 @@ function endOfFrontmatterLineIndexFromRawLines(lines: Array<string>): number {
 }
 
 /**
+ * Hashtags that identify legacy body metadata lines: configured Hashtags to Review plus special markers.
+ * Prefs are populated by getReviewSettings(); when unset, only special markers are recognised.
+ * @returns {Array<string>}
+ * @private
+ */
+function getRecognisedProjectMetadataHashtags(): Array<string> {
+  const fromSettingsRaw = DataStore.preference('projectTypeTags')
+  let fromSettings: Array<string> = []
+  if (Array.isArray(fromSettingsRaw)) {
+    fromSettings = fromSettingsRaw.map((t) => checkString(t).trim()).filter((t) => t !== '')
+  } else if (typeof fromSettingsRaw === 'string' && fromSettingsRaw.trim() !== '') {
+    fromSettings = stringListOrArrayToArray(fromSettingsRaw, ',').map((t) => t.trim()).filter((t) => t !== '')
+  }
+  const sequentialTag = checkString(DataStore.preference('sequentialTag') || '#sequential').trim()
+  const specials: Array<string> = ['#paused', '#archive']
+  if (sequentialTag !== '') {
+    specials.push(sequentialTag)
+  }
+  const seen = new Set < string > ()
+  const ordered: Array<string> = []
+  for (const tag of [...fromSettings, ...specials]) {
+    const normalized = tag.startsWith('#') ? tag : `#${tag}`
+    if (!seen.has(normalized)) {
+      seen.add(normalized)
+      ordered.push(normalized)
+    }
+  }
+  return ordered
+}
+
+/**
+ * True when a body line starts with a hashtag and includes at least one recognised project-type / special tag.
+ * Personal / unrelated hashtags (e.g. #admin, #hobby/creative) must not be treated as legacy metadata.
+ * @param {string} lineContent
+ * @returns {boolean}
+ * @private
+ */
+function lineStartsWithRecognisedProjectHashtag(lineContent: string): boolean {
+  const trimmed = lineContent.trim()
+  if (trimmed.match(/^#(?!#)\S/) == null) return false
+  const hashtagsOnLine = getHashtagsFromString(trimmed)
+  if (hashtagsOnLine.length === 0) return false
+  const recognised = getRecognisedProjectMetadataHashtags()
+  return hashtagsOnLine.some((tag) => recognised.includes(tag))
+}
+
+/**
  * Works out which body line (if any) of the current note is project-style metadata line.
  * This scans the note body only (after any YAML frontmatter) and is used as a legacy/fallback
  * signal for where project metadata used to live in plain text.
@@ -611,8 +661,8 @@ function endOfFrontmatterLineIndexFromRawLines(lines: Array<string>): number {
  *
  * A body line (using `rawContent` not `content`) is considered metadata-like when it is:
  * - a line starting 'project:' or 'metadata:'
- * - the first line containing an '@review()' or '@reviewed()' mention
- * - the first line starting with a single leading hashtag (project tag line).
+ * - the first line that is a single '@mention(...)'
+ * - the first line starting with a hashtag that matches Hashtags to Review (or #paused / #sequential / #archive).
  * @author @jgclark
  *
  * @param {TNote} note to use
@@ -636,7 +686,7 @@ export function getMetadataLineIndexFromBody(note: CoreNoteFields | TEditor): nu
       if (
         thisLine.match(/^(project|metadata|review|reviewed):/i) ||
         thisLine.match(/^@\w[\w\-.]*\([^)]*\)\s*$/) ||
-        thisLine.match(/^#(?!#)\S/)
+        lineStartsWithRecognisedProjectHashtag(thisLine)
       ) {
         lineNumber = i
         logDebug('getMetadataLineIndexFromBody', `Found body metadata-like line ${String(i)}: '${thisLine}'`)
@@ -702,7 +752,7 @@ export const PROJECT_METADATA_MIGRATED_MESSAGE = '_Project metadata has been mig
  * Metadata-style lines are defined as lines that:
  * - start with 'project:', 'metadata:', 'review:', or 'reviewed:'
  * - or contain an '@review(...)' / '@reviewed(...)' mention
- * - or start with a hashtag.
+ * - or start with a recognised project-type / special hashtag (not arbitrary personal tags).
  * @param {Array<TParagraph>} paras - all paragraphs in the note/editor
  * @param {number} startIndex - index to start scanning from (usually after frontmatter)
  * @returns {?{ index: number, content: string }} first matching line info, or null if none found
@@ -714,7 +764,7 @@ function findFirstMetadataBodyLine(paras: Array<TParagraph>, startIndex: number)
     const isMetadataStyleLine =
       content.match(/^(project|metadata|review|reviewed):/i) != null ||
       content.match(/(@review|@reviewed)\(.+\)/) != null ||
-      content.match(/^#(?!#)\S/) != null
+      lineStartsWithRecognisedProjectHashtag(content)
 
     if (isMetadataStyleLine) {
       return { index: i, content }
@@ -741,7 +791,7 @@ function isMetadataBodyLikeLine(content: string): boolean {
   return (
     trimmed.match(/^(project|metadata|review|reviewed):/i) != null ||
     trimmed.match(/^@\w[\w\-.]*\([^)]*\)\s*$/) != null ||
-    trimmed.match(/^#(?!#)\S/) != null
+    lineStartsWithRecognisedProjectHashtag(trimmed)
   )
 }
 
