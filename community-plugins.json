@@ -82,5 +82,12 @@
     "author": "EduardMe",
     "description": "Import Apple Reminders into the current note as linked tasks with reminder pills that sync two-way (requires NotePlan 3.21.2+)",
     "repo": "EduardMe/noteplan-reminder-import-plugin"
+  },
+  {
+    "id": "np.AttachmentRecovery",
+    "name": "Attachment Recovery",
+    "author": "EduardMe",
+    "description": "Recover deleted attachments (images, drawings, files) of the open note from the app's hidden trash, e.g. after a sync issue removed them",
+    "repo": "EduardMe/noteplan-attachment-recovery-plugin"
   }
 ]
