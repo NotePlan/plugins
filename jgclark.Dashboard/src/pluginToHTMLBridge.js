@@ -253,18 +253,24 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       if (isReminderItem) {
         logDebug('bCDI', `reminder content/time/notes updated with another button press; applying before ${String(data.actionType)}`)
         result = await doUpdateReminderContent(data)
-        if (result.success && data.item?.reminder) {
+        // Locals: Flow does not refine optional MessageDataObject fields after later writes to `data`.
+        const reminderItem = data.item
+        const updatedTimeRaw = data.updatedTime
+        const updatedNotesRaw = data.updatedNotes
+        if (result.success && reminderItem && reminderItem.reminder) {
+          // Local binding: Flow drops `reminderItem.reminder` refinement after property writes on it.
+          const reminder = reminderItem.reminder
           if (updatedContent) {
-            data.item.reminder.title = updatedContent
+            reminder.title = updatedContent
           }
-          if (data.updatedTime !== undefined) {
-            data.item.reminder.time = data.updatedTime.trim() !== '' ? data.updatedTime.trim() : undefined
+          if (updatedTimeRaw !== undefined) {
+            reminder.time = updatedTimeRaw.trim() !== '' ? updatedTimeRaw.trim() : undefined
           }
-          if (data.updatedNotes !== undefined) {
-            data.item.reminder.notes = data.updatedNotes
+          if (updatedNotesRaw !== undefined) {
+            reminder.notes = updatedNotesRaw
           }
           if (result.updatedReminder) {
-            data.item.reminder = { ...data.item.reminder, ...result.updatedReminder }
+            reminderItem.reminder = { ...reminder, ...result.updatedReminder }
           }
         }
       } else if (updatedContent) {

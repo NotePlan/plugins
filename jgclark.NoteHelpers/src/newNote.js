@@ -4,7 +4,7 @@
 // Create new note from currently selected text
 // and (optionally) leave backlink to it where selection was
 // Note: this was originally in Filer plugin
-// Last updated 2026-08-18 for v1.4.0, @jgclark (originally @dwertheimer)
+// Last updated 2026-08-23 for v1.4.0+, @jgclark (originally @dwertheimer) + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -18,10 +18,10 @@ import { chooseFolder, getInput, getInputTrimmed, showMessage, showMessageYesNo 
  * Whether /new note should convert the note to frontmatter using the plugin's default FM text.
  * Uses `defaultFMText` (the actual setting key). A missing or blank value means do not convert.
  * @author @jgclark
- * @param {?{ defaultFMText?: mixed }} config
+ * @param {?{ +defaultFMText?: mixed, ... }} config
  * @returns {boolean}
  */
-export function shouldAddDefaultFrontmatter(config: ?{ defaultFMText?: mixed }): boolean {
+export function shouldAddDefaultFrontmatter(config: ?{ +defaultFMText ?: mixed, ... }): boolean {
   const text = typeof config?.defaultFMText === 'string' ? config.defaultFMText : ''
   return text !== ''
 }

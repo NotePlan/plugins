@@ -1,7 +1,7 @@
 // @flow
 //----------------------------------------------------------------------------------------------------------------------
 // Helpers for Apple Reminders / NotePlan Calendar reminder APIs
-// Last updated 2026-08-18 for v2.4.0.b65, @jgclark + @CursorAI
+// Last updated 2026-08-23 for v2.4.2, @jgclark + @CursorAI
 //----------------------------------------------------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -145,7 +145,7 @@ export function mergeReminderDisplayById(existing?: ?TReminderDisplayById, patch
 /**
  * Strict @remind(:::UUID) pattern in task/note content (global regex).
  */
-export const RE_REMIND_UUID_IN_CONTENT = /@remind\(:::([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\)/g
+export const RE_REMIND_UUID_IN_CONTENT: RegExp = /@remind\(:::([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\)/g
 
 /**
  * Extract Apple Reminder ids referenced by @remind(:::UUID) tokens in task content.
@@ -158,11 +158,14 @@ export function extractReminderIdsFromTaskContent(content: string): Array<string
   }
   const ids: Array<string> = []
   const re = new RegExp(RE_REMIND_UUID_IN_CONTENT.source, 'g')
-  let match
-  while ((match = re.exec(content)) !== null) {
-    if (match[1]) {
-      ids.push(match[1])
+  // Assign-then-check: Flow does not refine `match` from `(match = re.exec(...)) !== null` in the while condition.
+  let match: RegExp$matchResult | null = re.exec(content)
+  while (match != null) {
+    const id = match[1]
+    if (id) {
+      ids.push(id)
     }
+    match = re.exec(content)
   }
   return ids
 }
@@ -821,8 +824,9 @@ export async function updateReminderById(reminderId: string, params: TUpdateAppl
   }
 
   const listName = calendarItem.calendar || ''
-  const nextTitle = wantsTitleChange ? title : calendarItem.title || ''
-  const nextNotes = wantsNotesChange ? notes : calendarItem.notes || ''
+  // Ternary on the optional itself (not a boolean flag) so Flow narrows to string for TCalendarItem fields.
+  const nextTitle: string = title !== undefined ? title : (calendarItem.title || '')
+  const nextNotes: string = notes !== undefined ? notes : (calendarItem.notes || '')
   const nextPriority = wantsPriorityChange ? applePriority : calendarItem.priority
 
   if (wantsDateChange && (date === null || date === '')) {

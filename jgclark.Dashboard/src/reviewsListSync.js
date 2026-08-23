@@ -1,12 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Sync Reviews allProjectsList.json when Dashboard folder filter settings change.
-// Last updated 2026-08-20 for v2.4.0.b66 by @jgclark + @CursorAI
+// Last updated 2026-08-23 for v2.4.2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getReviewSettings } from '../../jgclark.Reviews/src/reviewHelpers'
 import { RICH_PROJECT_LIST_WIN_ID } from '../../jgclark.Reviews/src/reviews'
 import { invalidateDashboardPluginSettingsCache } from './dashboardPluginSettings'
+import type { TDashboardSettingsIn } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { logDebug, logInfo, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
@@ -46,13 +47,15 @@ export function noteScopeSettingFingerprint(value: mixed): string {
 
 /**
  * Whether two dashboardSettings snapshots differ in folder include/exclude or Spaces to Include.
- * @param {?{ [string]: any }} prevSettings
- * @param {?{ [string]: any }} nextSettings
+ * Accepts TDashboardSettingsIn (read-only partial) from perspective defs.
+ * @param {?TDashboardSettingsIn} prevSettings
+ * @param {?TDashboardSettingsIn} nextSettings
  * @returns {boolean}
  */
-export function perspectiveNoteScopeChanged(prevSettings: ?{ [string]: any }, nextSettings: ?{ [string]: any }): boolean {
-  const prev = prevSettings || {}
-  const next = nextSettings || {}
+export function perspectiveNoteScopeChanged(prevSettings: ?TDashboardSettingsIn, nextSettings: ?TDashboardSettingsIn): boolean {
+  // Cast through any: TDashboardSettingsIn has no string indexer, and `|| {}` would be an exact empty object (invalid-computed-prop).
+  const prev: any = prevSettings || {}
+  const next: any = nextSettings || {}
   return DASHBOARD_NOTE_SCOPE_SETTING_KEYS.some((k) => noteScopeSettingFingerprint(prev[k]) !== noteScopeSettingFingerprint(next[k]))
 }
 

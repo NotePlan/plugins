@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2026-05-28 for v2.4.0.b45, @jgclark + @CursorAI
+// Last updated 2026-08-23 for v2.4.2, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -71,8 +71,6 @@ Named perspectives
   - set active perspective to default
 
 -----------------------------------------------------------------------------*/
-
-const pluginID = 'jgclark.Dashboard' // pluginJson['plugin.id']
 
 const standardSettings = cleanDashboardSettingsInAPerspective(
   // Annotated accumulator: the keys are TSettingItem.key values, which are only known at runtime, so the
@@ -470,13 +468,14 @@ export function isNamedPerspectiveModified(
 export async function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): Promise<boolean> {
   try {
     logDebug(`savePerspectiveSettings saving ${allDefs.length} perspectives in DataStore.settings`)
-    // Update union of all perspectives' tagsToShow → wantedTagMentionsList.json (also done in saveDashboardPluginSettings below)
+    // Update union of all perspectives' tagsToShow -> wantedTagMentionsList.json (also done in saveDashboardPluginSettings below)
     updateTagMentionCacheDefinitionsFromAllPerspectives(allDefs)
-    const pluginSettings = await loadDashboardPluginSettings()
-    pluginSettings.perspectiveSettings = allDefs
-
-    // Save settings using the reliable helper ("the long way")
-    const res = await saveDashboardPluginSettings(pluginSettings)
+    // Immutable merge: do not mutate the cached object from loadDashboardPluginSettings (that path
+    // was observed to persist dashboardSettings but leave perspectiveSettings unchanged on disk).
+    const res = await saveDashboardPluginSettings({
+      ...(await loadDashboardPluginSettings()),
+      perspectiveSettings: allDefs,
+    })
     logDebug('savePerspectiveSettings', `Apparently saved with result ${String(res)}. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
     return res
   } catch (error) {
@@ -811,7 +810,7 @@ export async function addNewPerspective(nameArg?: string): Promise<void> {
  */
 export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
   logDebug('deleteAllNamedPerspectiveSettings', `Attempting to delete all Perspective settings (other than default) ...`)
-  let allDefs = await loadPerspectiveDefsFromPluginSettings()
+  const allDefs = await loadPerspectiveDefsFromPluginSettings()
   for (const p of allDefs) {
     if (p.name !== '-') {
       await deletePerspective(p.name)

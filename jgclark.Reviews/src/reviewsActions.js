@@ -68,6 +68,7 @@ async function getFocusedEditorForFilename(filename: string, logContext: string)
     if (Editor?.filename === filename) {
       return possibleThisEditor
     }
+    // $FlowIgnore[method-unbinding] existence check before call; TEditor always defines this when present
     if (typeof possibleThisEditor.focus === 'function') {
       possibleThisEditor.focus()
       logDebug(logContext, `Focused editor pane for '${filename}'`)

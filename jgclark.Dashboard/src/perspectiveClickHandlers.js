@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
+// Last updated 2026-08-23 for v2.4.2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getDashboardSettings, handlerResult, setPluginData, getDashboardSettingsDefaults } from './dashboardHelpers'
@@ -226,12 +226,23 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
   const revisedDefs = renamePerspective(origName, newName, perspectiveSettings)
   if (!revisedDefs) return handlerResult(false, [], { errorMsg: `renamePerspective failed` })
 
-  // FIXME: this appears to save Dashboard settings OK to the settings.json file, but not the perspectiveSettings part of that file
-  const res = await savePerspectiveSettings(revisedDefs)
+  // Same immutable save path as doSavePerspective / doSwitchToPerspective
+  // (mutating the loaded settings object via savePerspectiveSettings was observed to leave perspectiveSettings unchanged on disk).
+  const res = await saveDashboardPluginSettings({
+    ...(await loadDashboardPluginSettings()),
+    perspectiveSettings: revisedDefs,
+  })
   if (!res) {
-    return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
+    return handlerResult(false, [], { errorMsg: `saveDashboardPluginSettings failed` })
   }
-  await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${newName}`)
+  const savedPerspectives = (await loadDashboardPluginSettings()).perspectiveSettings
+  await setPluginData(
+    {
+      perspectiveSettings: Array.isArray(savedPerspectives) ? savedPerspectives : revisedDefs,
+      pushFromServer: { perspectiveSettings: true },
+    },
+    `_Renamed perspective ${origName} to ${newName}`,
+  )
   return handlerResult(true, [])
 }
 

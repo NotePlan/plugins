@@ -4,9 +4,10 @@
 // Last updated 2026-08-21 for v2.4.1 by @CursorAI
 //--------------------------------------------------------------------------
 
-import type { TSectionItem } from '../../types'
+import type { TItemToProcess } from '../../types'
 
-export type TIPVisibleItem = TSectionItem & { processed?: boolean }
+// Alias of TItemToProcess so IP helpers stay aligned with TInteractiveProcessing.visibleItems.
+export type TIPVisibleItem = TItemToProcess
 
 export type TInteractiveProcessingState = {
   sectionName?: string,

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React dialog for Apple Reminder items (Interactive Processing + actions).
 // Edit title/notes/time, reschedule, complete / delete / open in Reminders.
-// Last updated 2026-08-22 for v2.4.2 by @CursorAI & @jgclark
+// Last updated 2026-08-23 for v2.4.2 by @CursorAI & @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useLayoutEffect, useState, useCallback } from 'react'
@@ -64,7 +64,8 @@ const DialogForReminderItems = ({ details: detailsMessageObject, onClose, positi
 
   const item = detailsMessageObject?.item
   const reminder = item?.reminder
-  const sectionCode: TSectionCode | string = item?.sectionCode || detailsMessageObject.sectionCodes?.[0] || ''
+  // Prefer TSectionCode | '' (not | string) so unshift into Array<TSectionCode> type-checks after the truthiness guard.
+  const sectionCode: TSectionCode | '' = item?.sectionCode || detailsMessageObject.sectionCodes?.[0] || ''
   const canOpenInReminders = Boolean(pluginData?.appleAppCallbacksAvailable && reminder?.id)
   const monthsToShow = pluginData.platform === 'iOS' ? 1 : 2
   const shouldStartCalendarOpen = Boolean(detailsMessageObject.modifierKey)
@@ -327,37 +328,36 @@ const repositionCalendarForPicker = useCallback((): void => {
 
 // Day-scale reschedule only (week/month/quarter shortcuts omitted for reminders)
 const moveButtons: Array<DialogButtonProps> = [
-  { label: 'today', controlStr: 't', sectionCodesToRefresh: ['DT', 'TB'] },
-  { label: '+1d', controlStr: '+1d', sectionCodesToRefresh: ['DO'] },
-  { label: '+1b', controlStr: '+1b', sectionCodesToRefresh: ['DO'] },
-  { label: '+2d', controlStr: '+2d', sectionCodesToRefresh: [] },
-  { label: '+3d', controlStr: '+3d', sectionCodesToRefresh: [] },
+  { label: 'today', controlStr: 't', sectionCodesToRefresh: ['DT', 'TB'], handlingFunction: 'rescheduleReminder' },
+  { label: '+1d', controlStr: '+1d', sectionCodesToRefresh: ['DO'], handlingFunction: 'rescheduleReminder' },
+  { label: '+1b', controlStr: '+1b', sectionCodesToRefresh: ['DO'], handlingFunction: 'rescheduleReminder' },
+  { label: '+2d', controlStr: '+2d', sectionCodesToRefresh: [], handlingFunction: 'rescheduleReminder' },
+  { label: '+3d', controlStr: '+3d', sectionCodesToRefresh: [], handlingFunction: 'rescheduleReminder' },
 ]
 
 if (sectionCode === 'DT') {
   moveButtons.splice(0, 1) // remove 'today' when already in Today
-  moveButtons.splice(3, 0, { label: '+3d', controlStr: '+3d', sectionCodesToRefresh: [] })
 }
 
-  const actionButtons: Array<DialogButtonProps> = [
-    {
-      label: '',
-      controlStr: 'completereminder',
-      description: 'Complete reminder',
-      handlingFunction: 'completeReminder',
-      icons: [{ className: 'fa-regular fa-circle-check', position: 'left' }],
-    },
-  ]
+const actionButtons: Array<DialogButtonProps> = [
+  {
+    label: '',
+    controlStr: 'completereminder',
+    description: 'Complete reminder',
+    handlingFunction: 'completeReminder',
+    icons: [{ className: 'fa-regular fa-circle-check', position: 'left' }],
+  },
+]
 
-  if (canOpenInReminders) {
-    actionButtons.push({
-      label: 'Open',
-      controlStr: 'openreminder',
-      description: 'Open in Apple Reminders',
-      handlingFunction: 'openURL',
-      icons: [{ className: 'fa-regular fa-arrow-up-right-from-square', position: 'right' }],
-    })
-  }
+if (canOpenInReminders) {
+  actionButtons.push({
+    label: 'Open',
+    controlStr: 'openreminder',
+    description: 'Open in Apple Reminders',
+    handlingFunction: 'openURL',
+    icons: [{ className: 'fa-regular fa-arrow-up-right-from-square', position: 'right' }],
+  })
+}
 
 actionButtons.push(
   {
@@ -472,7 +472,7 @@ actionButtons.push(
                 key={index}
                 className="PCButton"
                 title={button.description ?? ''}
-                onClick={(e) => handleButtonClick(e, button.controlStr, 'rescheduleReminder', button.sectionCodesToRefresh ?? [])}
+                onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction, button.sectionCodesToRefresh ?? [])}
               >
                 {button.label}
               </button>

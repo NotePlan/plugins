@@ -210,10 +210,10 @@ let generateProjectListsAndRenderIfOpenNeedsRerun: boolean = false
 
 /**
  * User-facing banner text while recalculating the Rich project list after a Dashboard perspective change.
- * @param {{ usePerspectives?: boolean, perspectiveName?: string, bannerReason?: string }} config
+ * @param {{ +usePerspectives?: boolean, +perspectiveName?: string, +bannerReason?: string, ... }} config
  * @returns {string}
  */
-function projectListPerspectiveRecalcBannerMessage(config: { usePerspectives?: boolean, perspectiveName?: string, bannerReason?: string }): string {
+function projectListPerspectiveRecalcBannerMessage(config: { +usePerspectives?: boolean, +perspectiveName?: string, +bannerReason?: string, ... }): string {
   const perspectiveName = config.perspectiveName
   if (config.bannerReason === 'updated') {
     if (perspectiveName != null && perspectiveName !== '') {
@@ -254,11 +254,11 @@ async function runProjectListWindowJS(jsCode: string): Promise<void> {
 
 /**
  * Show or remove the Rich list recalculation banner when that window is open.
- * @param {ReviewConfig | { usePerspectives?: boolean, perspectiveName?: string, bannerReason?: string } | null} config - required when action is 'show'
+ * @param {?{ +usePerspectives?: boolean, +perspectiveName?: string, +bannerReason?: string, ... }} config - required when action is 'show'
  * @param {'show' | 'remove'} action
  * @returns {Promise<void>}
  */
-async function setProjectListPerspectiveRecalcBanner(config: ?{ usePerspectives?: boolean, perspectiveName?: string, bannerReason?: string }, action: 'show' | 'remove'): Promise<void> {
+async function setProjectListPerspectiveRecalcBanner(config: ?{ +usePerspectives?: boolean, +perspectiveName?: string, +bannerReason?: string, ... }, action: 'show' | 'remove'): Promise<void> {
   if (!isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)) return
   if (action === 'remove') {
     await runProjectListWindowJS(`(function(){ if (typeof removeProjectListStatusBanner === 'function') removeProjectListStatusBanner() })();`)

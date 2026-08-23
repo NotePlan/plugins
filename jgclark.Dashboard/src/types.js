@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-08-12 for v2.4.0.b63 by @jgclark + @CursorAI
+// Last updated 2026-08-23 for v2.4.2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -555,10 +555,8 @@ export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' |
  */
 export type TSettingItem = { ...TDialogSettingItem, type: TDialogSettingItemType | TSettingItemType }
 
-export type TItemToProcess = {
-  ...TSectionItem,
-  processed?: boolean,
-}
+// Intersection (not object spread): with exact_by_default, `...TSectionItem` can drop required fields like ID for Flow.
+export type TItemToProcess = TSectionItem & { processed?: boolean }
 
 export type TInteractiveProcessing =
   | {
