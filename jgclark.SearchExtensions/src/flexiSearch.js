@@ -77,15 +77,11 @@ ${await infoTooltipToUse()}
   </div>
 
 	<div class="dialogSection">
-		<b>Case sensitive searching?</b>
-    <label for="casesens" class="switch">
-      <input type="checkbox" id="casesens" name="casesens" value="casesens"/>
-    </label>
+    <input type="checkbox" id="casesens" name="casesens" value="casesens"/>
+    <label for="casesens"><b>Case sensitive searching?</b></label>
     <span class="gap-right"></span>
-    <b>Match full words only?</b>
-    <label for="fullword" class="switch">
-      <input type="checkbox" id="fullword" name="fullword" value="fullword" />
-    </label>
+    <input type="checkbox" id="fullword" name="fullword" value="fullword" />
+    <label for="fullword"><b>Match full words only?</b></label>
   </div>
 
   <div class="dialogSection">
@@ -433,13 +429,21 @@ export async function showFlexiSearchDialog(
       .replace('%%NOTETYPESSTRPREF%%', noteTypesStr)
       .replace('%%PARATYPESSTRPREF%%', paraTypesStr)
 
+    // Dialog-only: +2px on the theme/editor base so rem-based dialog CSS scales with it.
+    const editorFontSize = Number(DataStore.preference('fontSize'))
+    const dialogBaseFontSize = (Number.isFinite(editorFontSize) && editorFontSize > 0 ? editorFontSize : 14) + 2
+
     // write HTML to capture relevant search options
     const opts: HtmlWindowOptions = {
       windowTitle: 'FlexiSearch',
       customId: 'flexiSearchDialog',
       headerTags: resourceLinksInHeader,
       generalCSSIn: '', // i.e. generate from theme
-      specificCSS: '',
+      specificCSS: `
+html, body, .body {
+  font-size: ${String(dialogBaseFontSize)}px;
+}
+`,
       makeModal: false, // modal doesn't actually help us here
       postBodyScript: flexiSearchDialogPostBodyScriptsWithPrefValues,
       savedFilename: '../../jgclark.SearchExtensions/flexiSearchDialog.html',

@@ -9,6 +9,8 @@
   min-width: 20rem;
   min-height: 16rem;
   font-size: 0.9rem;
+  font-family: var(--font-family, inherit);
+  padding-left: 1rem; /* 100% larger than typical ~0.5rem/8px body inset */
 }
 .dialogBox > div {
   max-width: 25rem;
@@ -27,7 +29,7 @@
 }
 .fa-regular {
   color: var(--tint-color);
-  padding: 0 0.3rem;
+  padding: 0 0.3rem 0 0; /* no left pad so checkbox–label gap matches the rest of the dialog */
   font-size: 0.9rem;
 }
 /* FIXME: FA icons and kbd land up being 1pt different in height :-( */
@@ -53,9 +55,8 @@ input[type="text"] {
 input[type="checkbox"] {
   margin: 1px 4px 0px 1px;
   /* margin-top: 1px; */
-  vertical-align: baseline;
-  /* height: 0.9rem;
-  width: 0.9rem; */
+  vertical-align: middle;
+  zoom: 1.25; /* 25% larger */
 }
 .buttonRow {
   display: flex;
@@ -82,7 +83,7 @@ a {
   display: grid;
   grid-template-columns: repeat(3, 1fr); /* Equal width columns */
   padding-left: 1rem;
-  gap: 0.5rem; /* Optional: space between grid items */
+  column-gap: 0.3rem; /* was 0.5rem; 40% tighter between columns */
   /* width: 400px; /* Adjust as needed */
   /* height: 400px; /* Adjust as needed */
   width: min-intrinsic;
@@ -92,7 +93,7 @@ a {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.06rem; /* was 0.1rem; 40% tighter between line types */
   margin: 0rem;
   /* padding-inline: 0.4rem; */
 }
