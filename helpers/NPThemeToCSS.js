@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
 // by @jgclark
-// Last updated 2025-02-23 by @jgclark
+// Last updated 2026-08-24 by @jgclark and @CursorAI
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -116,9 +116,11 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
     // Set body:
     // - main font = styles.body.font
-    const tempBodyFont = themeJSON.styles.body.font ?? '-apple-system'
-    const bodyFont = tempBodyFont === '.AppleSystemUIFont' ? '-apple-system' : tempBodyFont
-    logDebug('generateCSSFromTheme', `bodyFont: ${bodyFont}`)
+    const tempBodyFont = themeJSON.styles.body.font ?? '.AppleSystemUIFont'
+    const bodyFontCssProps = fontPropertiesFromNP(tempBodyFont)
+    const bodyFontFamilyDecl = bodyFontCssProps.find((p) => p.startsWith('font-family:')) ?? 'font-family: -apple-system'
+    logDebug('generateCSSFromTheme', `bodyFont: ${tempBodyFont} -> ${bodyFontFamilyDecl}`)
+    rootSel.push(`--font-family: ${bodyFontFamilyDecl.replace(/^font-family:\s*/, '')}`)
     // - main foreground colour (styles.body.color)
     // - main background colour (editor.backgroundColor)
     tempSel = []
@@ -194,7 +196,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     rootSel.push(`--bg-mid-color: ${mixHexColors(bgMainColor, altColor)}`)
 
     // Set font for native controls (otherwise will go to Apple default)
-    output.push(makeCSSSelector('button, input', [`font-family: "${bodyFont}"`]))
+    output.push(makeCSSSelector('button, input', bodyFontCssProps.filter((p) => p.startsWith('font-family:') || p.startsWith('font-weight:') || p.startsWith('font-style:'))))
 
     // Set a few styles here that require computed light and dark settings
     // Note: These days probably could do this just in CSS, but for clarity doing so here.
@@ -683,7 +685,7 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
 
   // Deal with special case of Apple's System font
   // See https://www.webkit.org/blog/3709/using-the-system-font-in-web-content/ for more info
-  if (fontNameNP.startsWith('.AppleSystemUIFont')) {
+  if (fontNameNP.startsWith('.AppleSystemUIFont') || fontNameNP === '-apple-system') {
     outputArr.push(`font-family: "-apple-system"`)
     outputArr.push(`line-height: 1.2rem`)
     if (fontNameNP.includes('Bold')) {
@@ -710,24 +712,14 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
     return outputArr
   }
 
-  // Not a special. So now split input string into parts either side of '-'
-  // and then insert spaces before capital letters
+  // Not a special. Split on '-' for weight/style, then space camelCase (not every capital).
   let translatedFamily: string
   let translatedWeight: string = '400'
   let translatedStyle: string = 'normal'
   const splitParts = fontNameNP.split('-')
   const namePartNoSpaces = splitParts[0]
-  let namePartSpaced = ''
   const modifierLC = splitParts.length > 0 ? splitParts[1]?.toLowerCase() : ''
-  for (let i = 0; i < namePartNoSpaces.length; i++) {
-    const c = namePartNoSpaces[i]
-    if (c.match(/[A-Z]/)) {
-      namePartSpaced += ` ${c}`
-    } else {
-      namePartSpaced += c
-    }
-  }
-  translatedFamily = namePartSpaced.trim()
+  translatedFamily = humanizePostScriptFontFamily(namePartNoSpaces)
   // logDebug('fontPropertiesFromNP', `family -> ${translatedFamily}`)
 
   // Using the numeric font-weight system
@@ -804,11 +796,39 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
     translatedFamily = userFont
   }
 
-  outputArr.push(`font-family: "${translatedFamily}"`)
+  outputArr.push(cssFontFamilyStack(translatedFamily, fontNameNP))
   outputArr.push(`font-weight: ${translatedWeight}`)
-  outputArr.push(`font-style: "${translatedStyle}"`)
+  outputArr.push(`font-style: ${translatedStyle}`)
   // logDebug('translateFontNameNPToCSS', `${fontNameNP} ->  ${outputArr.toString()}`)
   return outputArr
+}
+
+/**
+ * Turn a PostScript / theme family token into a CSS-friendly family name.
+ * Splits on camelCase and acronym boundaries only (IBMPlexSansCond -> IBM Plex Sans Cond).
+ * @param {string} namePartNoSpaces
+ * @returns {string}
+ */
+function humanizePostScriptFontFamily(namePartNoSpaces: string): string {
+  return namePartNoSpaces
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .trim()
+}
+
+/**
+ * CSS font-family stack: humanized name, original PostScript name, generic fallback.
+ * @param {string} translatedFamily
+ * @param {string} originalName
+ * @returns {string}
+ */
+function cssFontFamilyStack(translatedFamily: string, originalName: string): string {
+  const families = [`"${translatedFamily}"`]
+  if (originalName && originalName !== translatedFamily) {
+    families.push(`"${originalName}"`)
+  }
+  families.push('sans-serif')
+  return `font-family: ${families.join(', ')}`
 }
 
 /**

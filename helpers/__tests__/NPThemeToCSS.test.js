@@ -70,31 +70,46 @@ describe(`${FILE}`, () => {
     })
     test('should return defaults from random font name', () => {
       const res = t.fontPropertiesFromNP('Zebra')
-      expect(res).toEqual(['font-family: "Zebra"', 'font-weight: 400', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Zebra", sans-serif', 'font-weight: 400', 'font-style: normal'])
     })
     test("input 'AvenirNext'", () => {
       const res = t.fontPropertiesFromNP('AvenirNext')
-      expect(res).toEqual(['font-family: "Avenir Next"', 'font-weight: 400', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Avenir Next", "AvenirNext", sans-serif', 'font-weight: 400', 'font-style: normal'])
     })
     test("input 'AvenirNext-Italic'", () => {
       const res = t.fontPropertiesFromNP('AvenirNext-Italic')
-      expect(res).toEqual(['font-family: "Avenir Next"', 'font-weight: 400', 'font-style: "italic"'])
+      expect(res).toEqual(['font-family: "Avenir Next", "AvenirNext-Italic", sans-serif', 'font-weight: 400', 'font-style: italic'])
     })
     test("input 'HelveticaNeue'", () => {
       const res = t.fontPropertiesFromNP('HelveticaNeue')
-      expect(res).toEqual(['font-family: "Helvetica Neue"', 'font-weight: 400', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Helvetica Neue", "HelveticaNeue", sans-serif', 'font-weight: 400', 'font-style: normal'])
     })
     test("input 'HelveticaNeue-Bold'", () => {
       const res = t.fontPropertiesFromNP('HelveticaNeue-Bold')
-      expect(res).toEqual(['font-family: "Helvetica Neue"', 'font-weight: 700', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Helvetica Neue", "HelveticaNeue-Bold", sans-serif', 'font-weight: 700', 'font-style: normal'])
     })
     test("input 'Candara'", () => {
       const res = t.fontPropertiesFromNP('Candara')
-      expect(res).toEqual(['font-family: "Candara"', 'font-weight: 400', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Candara", sans-serif', 'font-weight: 400', 'font-style: normal'])
     })
     test("input 'Charter-Book'", () => {
       const res = t.fontPropertiesFromNP('Charter-Book')
-      expect(res).toEqual(['font-family: "Charter"', 'font-weight: 500', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Charter", "Charter-Book", sans-serif', 'font-weight: 500', 'font-style: normal'])
+    })
+    test("input 'IBMPlexSansCond-Regular' does not space acronym letters", () => {
+      const res = t.fontPropertiesFromNP('IBMPlexSansCond-Regular')
+      expect(res[0]).toBe('font-family: "IBM Plex Sans Cond", "IBMPlexSansCond-Regular", sans-serif')
+      expect(res[0]).not.toMatch(/I B M/)
+      expect(res).toEqual([
+        'font-family: "IBM Plex Sans Cond", "IBMPlexSansCond-Regular", sans-serif',
+        'font-weight: 400',
+        'font-style: normal',
+      ])
+    })
+    test("input '.AppleSystemUIFont' maps to -apple-system", () => {
+      const res = t.fontPropertiesFromNP('.AppleSystemUIFont')
+      expect(res[0]).toBe('font-family: "-apple-system"')
+      expect(res).toContain('font-weight: 400')
     })
   })
 
