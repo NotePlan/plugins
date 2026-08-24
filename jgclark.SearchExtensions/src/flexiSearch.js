@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Save search but with flexible options presented as HTML dialog to user first
 // Jonathan Clark
-// Last updated 2025-10-03 for v3.0.0, @jgclark
+// Last updated 2026-08-24 for v3.0.0, @jgclark & @CursorAI
 //-----------------------------------------------------------------------------
 // TODO: fix Cancel button not working on iOS
 
@@ -17,25 +17,17 @@ import { closeWindowFromCustomId, logWindowsList } from '@helpers/NPWindows'
 const pluginID = "jgclark.SearchExtensions"
 
 //-----------------------------------------------------------------------------
-const infoTooltipForPluginExtendedSyntax = `
-    <div class="tooltip">
-      <i class="fa-regular fa-circle-question"></i>
-      <div class="tooltipUnderLeft">
+const infoHelpBodyForPluginExtendedSyntax = `
       Searches match on whole or partial words.<br />
       Separate search terms by spaces; surround an exact phrase in double quotes.<br />
       Must find: <kbd>+term</kbd><br />
       Must not find in same line: <kbd>-term</kbd><br />
       Must not find in note: <kbd>!term</kbd><br />
-      <i class="fa-regular fa-globe"></i><a href="https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/" target="_blank">Full documentation</a>
-      <u></u> <!-- used to trigger extra bit that mimics speech bubble -->
-    </div>
+      <i class="fa-regular fa-fw fa-globe"></i><a href="https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/" target="_blank">Full documentation</a>
 `
-const infoTooltipForNPExtendedSyntax = `
-    <div class="tooltip">
-      <i class="fa-regular fa-circle-question"></i>
-      <div class="tooltipUnderLeft">
-      Searches match on partial words; to get whole words enclose in double quotes. Separate search terms by spaces; surround an exact phrase in double quotes.<br />
-      <i class="fa-regular fa-globe"></i><a href="https://help.noteplan.co/article/269-advanced-search" target="_blank">Full documentation</a><br />
+const infoHelpBodyForNPExtendedSyntax = `
+      Searches match on partial words; to get whole words enclose in double quotes. Separate search terms by spaces; surround an exact phrase in double quotes. 
+      <i class="fa-regular fa-fw fa-globe"></i><a href="https://help.noteplan.co/article/269-advanced-search" target="_blank">Full documentation</a><br />
       Must find: <kbd>term</kbd><br />
       Must not find in same line: <kbd>-term</kbd><br />
       May find in same line: <kbd>termA OR termB</kbd> and negative groups <kbd>-(termA OR termB)</kbd><br />
@@ -48,25 +40,38 @@ const infoTooltipForNPExtendedSyntax = `
       Heading: <kbd>heading:Projects</kbd><br />
       Sort: <kbd>sort:asc|desc</kbd><br />
       Show/Hide: <kbd>show|hide:past-events|archive|teamspace|timeblocked</kbd>
-      <u></u> <!-- used to trigger extra bit that mimics speech bubble -->
-    </div>
 `
 
-const infoTooltipToUse = async (): Promise<string> => {
+const infoHelpBodyToUse = async (): Promise<string> => {
   // TODO(later): remove config check, and then can take out the async stuff
   const config = await getSearchSettings()
   const useNPAdvancedSyntax = config.useNativeSearch && (NotePlan.environment.buildVersion >= 1429)
-  return useNPAdvancedSyntax ? infoTooltipForNPExtendedSyntax : infoTooltipForPluginExtendedSyntax
+  return useNPAdvancedSyntax ? infoHelpBodyForNPExtendedSyntax : infoHelpBodyForPluginExtendedSyntax
 }
 
 // Dialog box, for use with plugin extended syntax (i.e. before NP extended syntax available in 3.18)
-const flexiSearchDialogHTML = async () => `
+const flexiSearchDialogHTML = async () => {
+  const infoHelpBody = await infoHelpBodyToUse()
+  return `
 <div class="dialogBox">
  <form type="dialog" id="searchOptions">
   <div class="dialogSection">
 		<b>Search Terms</b><input type="text" id="searchTerms" name="searchTerms" size="40" value="" autofocus tabindex="1" />&nbsp;
-${await infoTooltipToUse()}
+    <button type="button" id="infoHelpToggle" class="infoHelpToggle" aria-expanded="false" aria-controls="infoHelpPanel" title="Search help">
+      <i class="fa-regular fa-fw fa-circle-question"></i>
+    </button>
 	</div>
+
+  <div id="infoHelpPanel" class="infoHelpPanel" aria-hidden="true">
+    <div class="infoHelpPanelInner">
+      <div class="infoHelpPanelBody">
+${infoHelpBody}
+      </div>
+      <div class="infoHelpCloseRow">
+        <button type="button" id="infoHelpClose" class="infoHelpClose">Close</button>
+      </div>
+    </div>
+  </div>
 
 	<div class="dialogSection">
 		<b>Save results to </b>
@@ -100,49 +105,58 @@ ${await infoTooltipToUse()}
   <div class="grid-v3-container">
     <div class="dialogList">
       <ul class="grid-item">
+        <b>Tasks</b>
+      </ul>
+      <ul class="grid-item">
         <input type="checkbox" id="taskOpen" name="task" value="open" />
-        <label for="taskOpen"><i class="fa-regular fa-circle"></i><b>Tasks</b> Open</label>
+        <label for="taskOpen"><i class="fa-regular fa-fw fa-circle"></i>Open</label>
       </ul>
       <ul class="grid-item">
         <input type="checkbox" id="taskScheduled" name="task" value="taskScheduled" />
-        <label for="taskScheduled"><i class="fa-regular fa-clock"></i>Scheduled</label>
+        <label for="taskScheduled"><i class="fa-regular fa-fw fa-clock"></i>Scheduled</label>
       </ul>
       <ul class="grid-item">
         <input type="checkbox" id="taskDone" name="task" value="done"  />
-        <label for="taskDone"><i class="fa-regular fa-circle-check"></i>Complete</label>
+        <label for="taskDone"><i class="fa-regular fa-fw fa-circle-check"></i>Complete</label>
       </ul>
       <ul class="grid-item">
         <input type="checkbox" id="taskCancelled" name="task" value="taskCancelled" />
-        <label for="taskCancelled"><i class="fa-regular fa-circle-xmark"></i>Cancelled</label>
+        <label for="taskCancelled"><i class="fa-regular fa-fw fa-circle-xmark"></i>Cancelled</label>
       </ul>
     </div>
 
     <div class="dialogList">
       <ul class="grid-item">
+        <b>Checklists</b>
+      </ul>
+      <ul class="grid-item">
         <input type="checkbox" id="checklistOpen" name="checklist"
         value="checklistOpen" checked />
-        <label for="checklistOpen"><i class="fa-regular fa-square"></i><b>Checklists</b> Open</label>
+        <label for="checklistOpen"><i class="fa-regular fa-fw fa-square"></i>Open</label>
       </ul>
       <ul class="grid-item">
         <input type="checkbox" id="checklistScheduled" name="checklist"
         value="checklistScheduled" />
-        <label for="checklistScheduled"><i class="fa-regular fa-square-chevron-right"></i>Scheduled</label>
+        <label for="checklistScheduled"><i class="fa-regular fa-fw fa-square-chevron-right"></i>Scheduled</label>
       </ul>
       <ul class="grid-item">
         <input type="checkbox" id="checklistDone" name="checklist" value="checklistDone" checked />
-        <label for="checklistDone"><i class="fa-regular fa-square-check"></i>Complete</label>
+        <label for="checklistDone"><i class="fa-regular fa-fw fa-square-check"></i>Complete</label>
       </ul>
       <ul class="grid-item">
         <input type="checkbox" id="checklistCancelled" name="checklist" value="checklistCancelled" />
-        <label for="checklistCancelled"><i class="fa-regular fa-square-xmark">
+        <label for="checklistCancelled"><i class="fa-regular fa-fw fa-square-xmark">
         </i>Cancelled</label>
       </ul>
     </div>
 
     <div class="dialogList">
-        <ul class="grid-item">
+      <ul class="grid-item">
+        <b>Other line types</b>
+      </ul>
+      <ul class="grid-item">
         <input type="checkbox" name="other" id="list" value="non-task" checked />
-        <label for="list"><b>Other line types</b>: bullets, quotes, headings, ordinary lines</label>
+        <label for="list">bullets, quotes, headings, ordinary lines</label>
       </ul>
     </div>
   </div>
@@ -161,6 +175,7 @@ ${await infoTooltipToUse()}
  </form>
 </div>
 `
+}
 
 // Script to send the search options to the plugin and start it
 const JSStartSearchInPlugin = JSON.stringify(`
@@ -376,6 +391,59 @@ const flexiSearchDialogPostBodyScripts = `
         onHandle: "neededDummyFunc",
         id: "1"
       })
+    })
+
+    // Sliding help panel under the search-terms info icon
+    const infoHelpPanel = document.getElementById('infoHelpPanel')
+    const infoHelpToggle = document.getElementById('infoHelpToggle')
+    const infoHelpClose = document.getElementById('infoHelpClose')
+
+    function openInfoHelp() {
+      if (!infoHelpPanel || !infoHelpToggle) return
+      infoHelpPanel.classList.add('is-open')
+      infoHelpPanel.setAttribute('aria-hidden', 'false')
+      infoHelpToggle.setAttribute('aria-expanded', 'true')
+    }
+
+    function closeInfoHelp() {
+      if (!infoHelpPanel || !infoHelpToggle) return
+      infoHelpPanel.classList.remove('is-open')
+      infoHelpPanel.setAttribute('aria-hidden', 'true')
+      infoHelpToggle.setAttribute('aria-expanded', 'false')
+    }
+
+    function toggleInfoHelp(event) {
+      event.preventDefault()
+      event.stopPropagation()
+      if (!infoHelpPanel) return
+      if (infoHelpPanel.classList.contains('is-open')) {
+        closeInfoHelp()
+      } else {
+        openInfoHelp()
+      }
+    }
+
+    if (infoHelpToggle) {
+      infoHelpToggle.addEventListener('click', toggleInfoHelp)
+    }
+    if (infoHelpClose) {
+      infoHelpClose.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        closeInfoHelp()
+      })
+    }
+    if (infoHelpPanel) {
+      infoHelpPanel.addEventListener('click', (event) => {
+        event.stopPropagation()
+      })
+    }
+    form.addEventListener('click', (event) => {
+      if (!infoHelpPanel || !infoHelpPanel.classList.contains('is-open')) return
+      const target = event.target
+      if (infoHelpToggle && (target === infoHelpToggle || infoHelpToggle.contains(target))) return
+      if (infoHelpPanel.contains(target)) return
+      closeInfoHelp()
     })
   })
 

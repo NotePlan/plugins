@@ -4,7 +4,7 @@
 // Interactive commands for SearchExtensions plugin.
 // Create list of occurrences of note paragraphs with specified strings, which can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2025-10-30 for v3.0.0, @jgclark
+// Last updated 2026-08-24 for v3.0.0, @jgclark & @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -334,7 +334,7 @@ export async function saveSearch(
 
       //---------------------------------------------------------
       // Search using search() API via JGC modified search helpers to suit NP 3.18.1 extended search syntax
-      CommandBar.showLoading(true, `${commandNameToDisplay} for [${searchTermsRepStr}] ...`)
+      CommandBar.showLoading(true, `${commandNameToDisplay} for [${searchTermsRepStr}]`)
       await CommandBar.onAsyncThread()
 
       // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later

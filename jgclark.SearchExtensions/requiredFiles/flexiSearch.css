@@ -1,4 +1,5 @@
 /* Speciifc CSS for the /flexiSearch dialog box */
+/* Last updated 2026-08-24 by @jgclark and @CursorAI */
 
 .dialogBox {
   display: flex;
@@ -10,7 +11,7 @@
   min-height: 16rem;
   font-size: 0.9rem;
   font-family: var(--font-family, inherit);
-  padding-left: 1rem; /* 100% larger than typical ~0.5rem/8px body inset */
+  padding: 0rem 0.5rem;
 }
 .dialogBox > div {
   max-width: 25rem;
@@ -30,14 +31,11 @@
 .fa-regular {
   color: var(--tint-color);
   padding: 0 0.3rem 0 0; /* no left pad so checkbox–label gap matches the rest of the dialog */
-  font-size: 0.9rem;
 }
-/* FIXME: FA icons and kbd land up being 1pt different in height :-( */
 kbd {
   color: var(--tint-color);
   padding: 0 0.3rem;
-  font-size: 0.9rem;
-  font-family: var(--font-family);
+  font-size: 0.85rem;
 }
 label {
   margin-right: 2px;
@@ -52,11 +50,15 @@ input[type="text"] {
   padding-left: 0.2rem;
   font-size: 0.9rem;
 }
+input[type="radio"] {
+  margin-left: 4px;
+  vertical-align: top;
+  zoom: 1.2; /* 20% larger */
+}
 input[type="checkbox"] {
   margin: 1px 4px 0px 1px;
-  /* margin-top: 1px; */
-  vertical-align: middle;
-  zoom: 1.25; /* 25% larger */
+  vertical-align: text-top;
+  zoom: 1.2; /* 20% larger */
 }
 .buttonRow {
   display: flex;
@@ -66,7 +68,7 @@ input[type="checkbox"] {
 }
 /* should only be used for default action button */
 .mainButton { 
-  font-weight: 700;
+  font-weight: 600;
 }
 .validationWarning {
   font-size: 0.9rem;
@@ -93,9 +95,8 @@ a {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.06rem; /* was 0.1rem; 40% tighter between line types */
+  gap: 0rem;
   margin: 0rem;
-  /* padding-inline: 0.4rem; */
 }
 
 /*
@@ -115,152 +116,84 @@ a {
 }
 
 /* ----------------------------------------------------------------- */
-/* Tooltips adapted from http://www.menucool.com/tooltip/css-tooltip
-  Had previously looked at https://www.cssportal.com/css-tooltip-generator/ */
-.tooltip {
-    display:inline-block;
-    position:relative;
+/* Sliding help panel (replaces hover tooltip) */
+#searchOptions {
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.tooltip .tooltipLeft {
-    min-width:8rem;
-    max-width:21rem;
-    top:50%;
-    right:100%;
-    margin-left:1.0rem;
-    transform:translate(0, -20%); /* was -50% */
-    position:absolute;
-    z-index:99999999;
-    box-sizing:border-box;
-    display:none;
-    text-align:left;
-    color:var(--fg-main-color);
-    background-color:var(--bg-alt-color);
-    font-weight:normal;
-    font-size:0.9rem;
-    border-radius:6px;
-    border:1px solid var(--tint-color);
-    box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
-    padding:0.5rem;
+.infoHelpToggle {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: var(--tint-color);
+  vertical-align: middle;
+  font-size: inherit;
 }
 
-.tooltip:hover .tooltipLeft {
-    display:block;
+.infoHelpPanel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.tooltip .tooltipLeft u {
-    position:absolute;
-    top:10%; /* was -50% */
-    left:100%;
-    /* margin-top:-12px; */
-    width:12px;
-    height:24px;
-    overflow:hidden;
+.infoHelpPanel.is-open {
+  grid-template-rows: 1fr;
 }
 
-.tooltip .tooltipLeft u::after {
-    content:'';
-    position:absolute;
-    width:12px;
-    height:12px;
-    left:0;
-    top:50%;
-    transform:translate(-50%,-50%) rotate(-45deg);
-    background-color:var(--bg-alt-color);
-    border:1px solid var(--tint-color);
-    box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
+.infoHelpPanelInner {
+  overflow: hidden;
+  min-height: 0;
+  background-color: var(--bg-alt-color);
+  color: var(--fg-main-color);
+  font-weight: normal;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  box-shadow: none;
+  box-sizing: border-box;
 }
 
-.tooltip .tooltipUnder {
-    min-width:14rem;
-    max-width:21rem;
-    top: 30px;
-    left:50%;
-    transform:translate(-50%, 0);
-    position:absolute;
-    z-index:99999999;
-    box-sizing:border-box;
-    display:none;
-    text-align:left;
-    color:var(--fg-main-color);
-    background-color:var(--bg-alt-color);
-    font-weight:normal;
-    font-size:0.9rem;
-    border-radius:6px;
-    border:1px solid var(--tint-color);
-    box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
-    padding:0.5rem;
+.infoHelpPanel.is-open .infoHelpPanelInner {
+  border: 1px solid var(--tint-color);
+  box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
+  padding: 0.25rem 0.5rem;
+  margin: 0rem;
+  max-height: min(55vh, 21rem);
+  overflow-y: scroll; /* always reserve/show vertical scrollbar */
+  scrollbar-gutter: stable;
 }
 
-.tooltip:hover .tooltipUnder {
-    display:block;
+/* Force a visible scrollbar in WKWebView (macOS overlay scrollbars otherwise hide) */
+.infoHelpPanel.is-open .infoHelpPanelInner::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 6px;
+}
+.infoHelpPanel.is-open .infoHelpPanelInner::-webkit-scrollbar-track {
+  background: transparent;
+}
+.infoHelpPanel.is-open .infoHelpPanelInner::-webkit-scrollbar-thumb {
+  background-color: var(--tint-color);
+  border-radius: 4px;
 }
 
-.tooltip .tooltipUnder u {
-    position:absolute;
-    bottom:100%;
-    left:50%;
-    margin-left:-12px;
-    width:24px;
-    height:12px;
-    overflow:hidden;
+.infoHelpPanelBody {
+  text-align: left;
 }
 
-.tooltip .tooltipUnder u::after {
-    content:'';
-    position:absolute;
-    width:12px;
-    height:12px;
-    left:50%;
-    transform:translate(-50%,50%) rotate(45deg);
-    background-color:var(--bg-alt-color);
-    border:1px solid var(--tint-color);
-    box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
+.infoHelpCloseRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
 }
 
-.tooltip .tooltipUnderLeft {
-    min-width:14rem;
-    max-width:21rem;
-    top: 30px;
-    left: 00%;
-    transform:translate(-90%, 0);
-    position:absolute;
-    z-index:99999999;
-    box-sizing:border-box;
-    display:none;
-    text-align:left;
-    color:var(--fg-main-color);
-    background-color:var(--bg-alt-color);
-    font-weight:normal;
-    font-size:0.9rem;
-    border-radius:6px;
-    border:1px solid var(--tint-color);
-    box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
-    padding:0.5rem;
-}
-
-.tooltip:hover .tooltipUnderLeft {
-    display:block;
-}
-
-.tooltip .tooltipUnderLeft u {
-    position:absolute;
-    bottom:100%;
-    left:95%;
-    margin-left:-12px;
-    width:24px;
-    height:12px;
-    overflow:hidden;
-}
-
-.tooltip .tooltipUnderLeft u::after {
-    content:'';
-    position:absolute;
-    width:12px;
-    height:12px;
-    left:50%;
-    transform:translate(-50%,50%) rotate(45deg);
-    background-color:var(--bg-alt-color);
-    border:1px solid var(--tint-color);
-    box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
+.infoHelpClose {
+  margin: 3px 0 0 0;
+  padding: 3px 10px 4px 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
 }

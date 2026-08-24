@@ -2,6 +2,10 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b3] - 2026-08-24
+- tweaks to flexi search layout window
+- fix certain fonts not being picked up from theme files
+
 ## [3.0.0.b2] - 2025-09-31
 ### Changes
 - '/replace' command now works with new search operators in the search string
