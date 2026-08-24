@@ -39,7 +39,8 @@ function makeConfig(overrides: any = {}): any {
 function folderFilterFingerprint(config: any): string {
   const include = Array.isArray(config.foldersToInclude) ? config.foldersToInclude.join('\u0001') : ''
   const ignore = Array.isArray(config.foldersToIgnore) ? config.foldersToIgnore.join('\u0001') : ''
-  return `${include}\u0002${ignore}`
+  const teamspaces = Array.isArray(config.includedTeamspaces) ? config.includedTeamspaces.join('\u0001') : ''
+  return `${include}\u0002${ignore}\u0002${teamspaces}`
 }
 
 function makeProjectNote(filename: string, tag: string = '#project'): TNote {
