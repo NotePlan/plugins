@@ -2,6 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
 // by @jgclark
+// Last updated 2026-08-24 by @jgclark and @CursorAI
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -133,9 +134,11 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
     // Set body:
     // - main font = styles.body.font
-    const tempBodyFont = themeJSON.styles.body.font ?? '-apple-system'
-    const bodyFont = tempBodyFont === '.AppleSystemUIFont' ? '-apple-system' : tempBodyFont
-    logDebug('generateCSSFromTheme', `bodyFont: ${bodyFont}`)
+    const tempBodyFont = themeJSON.styles.body.font ?? '.AppleSystemUIFont'
+    const bodyFontCssProps = fontPropertiesFromNP(tempBodyFont)
+    const bodyFontFamilyDecl = bodyFontCssProps.find((p) => p.startsWith('font-family:')) ?? 'font-family: -apple-system'
+    logDebug('generateCSSFromTheme', `bodyFont: ${tempBodyFont} -> ${bodyFontFamilyDecl}`)
+    rootSel.push(`--font-family: ${bodyFontFamilyDecl.replace(/^font-family:\s*/, '')}`)
     // - main foreground colour (styles.body.color)
     // - main background colour (editor.backgroundColor)
     tempSel = []
@@ -226,7 +229,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     rootSel.push(`--bg-mid-color: ${mixHexColors(bgMainColor, altColor)}`)
 
     // Set font for native controls (otherwise will go to Apple default)
-    output.push(makeCSSSelector('button, input', [`font-family: "${bodyFont}"`]))
+    output.push(makeCSSSelector('button, input', bodyFontCssProps.filter((p) => p.startsWith('font-family:') || p.startsWith('font-weight:') || p.startsWith('font-style:'))))
 
     // Set a few styles here that require specfic light and dark settings, borrowing directly from macOS
     // Note: These days probably could do this just in CSS, but for clarity doing so here.
@@ -782,7 +785,7 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
 
   // Deal with special case of Apple's System font
   // See https://www.webkit.org/blog/3709/using-the-system-font-in-web-content/ for more info
-  if (fontNameNP.startsWith('.AppleSystemUIFont')) {
+  if (fontNameNP.startsWith('.AppleSystemUIFont') || fontNameNP === '-apple-system') {
     outputArr.push(`font-family: "-apple-system"`)
     outputArr.push(`line-height: 1.2rem`)
     if (fontNameNP.includes('Bold')) {
@@ -809,8 +812,7 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
     return outputArr
   }
 
-  // Not a special. So now split input string into parts either side of '-'
-  // and map the family segment to CSS `font-family` wording
+  // Not a special. Split on '-' for weight/style, then map family segment to CSS wording.
   let translatedFamily: string
   let translatedWeight: string = '400'
   let translatedStyle: string = 'normal'
@@ -909,11 +911,26 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
     translatedFamily = userFont
   }
 
-  outputArr.push(`font-family: "${translatedFamily}"`)
+  outputArr.push(cssFontFamilyStack(translatedFamily, fontNameNP))
   outputArr.push(`font-weight: ${translatedWeight}`)
-  outputArr.push(`font-style: "${translatedStyle}"`)
+  outputArr.push(`font-style: ${translatedStyle}`)
   // logDebug('translateFontNameNPToCSS', `${fontNameNP} ->  ${outputArr.toString()}`)
   return outputArr
+}
+
+/**
+ * CSS font-family stack: humanized name, original PostScript name, generic fallback.
+ * @param {string} translatedFamily
+ * @param {string} originalName
+ * @returns {string}
+ */
+function cssFontFamilyStack(translatedFamily: string, originalName: string): string {
+  const families = [`"${translatedFamily}"`]
+  if (originalName && originalName !== translatedFamily) {
+    families.push(`"${originalName}"`)
+  }
+  families.push('sans-serif')
+  return `font-family: ${families.join(', ')}`
 }
 
 /**
