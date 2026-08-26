@@ -138,32 +138,32 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // Set standard list of buttons to render.
   const buttons: Array<DialogButtonProps> = [
-    { label: 'today', controlStr: 't', sectionCodesToRefresh: ['DT'] },
-    { label: '+1d', controlStr: '+1d', sectionCodesToRefresh: ['DO'] },
-    { label: '+1b', controlStr: '+1b', sectionCodesToRefresh: ['DO'] },
-    { label: '+2d', controlStr: '+2d', sectionCodesToRefresh: [] },
-    { label: 'this week', controlStr: '+0w', sectionCodesToRefresh: ['W'] },
-    { label: '+1w', controlStr: '+1w', sectionCodesToRefresh: [] },
-    { label: '+2w', controlStr: '+2w', sectionCodesToRefresh: [] },
-    { label: 'this month', controlStr: '+0m', sectionCodesToRefresh: ['M'] },
-    { label: '+1m', controlStr: '+1m', sectionCodesToRefresh: [] },
-    { label: 'this quarter', controlStr: '+0q', sectionCodesToRefresh: ['Q'] },
+    { label: 'today', controlStr: 't', sectionCodesToRefresh: ['DT'], description: 'Re-schedule to today' },
+    { label: '+1d', controlStr: '+1d', sectionCodesToRefresh: ['DO'], description: 'Re-schedule to tomorrow' },
+    { label: '+1b', controlStr: '+1b', sectionCodesToRefresh: ['DO'], description: 'Re-schedule to next business day' },
+    { label: '+2d', controlStr: '+2d', sectionCodesToRefresh: [], description: 'Re-schedule to 2 days later' },
+    { label: 'this week', controlStr: '+0w', sectionCodesToRefresh: ['W'], description: 'Re-schedule to this week' },
+    { label: '+1w', controlStr: '+1w', sectionCodesToRefresh: [], description: 'Re-schedule to next week' },
+    { label: '+2w', controlStr: '+2w', sectionCodesToRefresh: [], description: 'Re-schedule to 2 weeks later' },
+    { label: 'this month', controlStr: '+0m', sectionCodesToRefresh: ['M'], description: 'Re-schedule to this month' },
+    { label: '+1m', controlStr: '+1m', sectionCodesToRefresh: [], description: 'Re-schedule to next month' },
+    { label: 'this quarter', controlStr: '+0q', sectionCodesToRefresh: ['Q'], description: 'Re-schedule to this quarter' },
   ]
 
   // Now tweak this list if buttons slightly if we're on a weekly or monthly note etc.
   if (sectionCodes) {
     if (sectionCodes.includes('DT')) {
       buttons.splice(0, 1) // remove the 'today' item, as its redundant
-      buttons.splice(3, 0, { label: '+3d', controlStr: '+3d', sectionCodesToRefresh: [] }) // add another one instead
+      buttons.splice(3, 0, { label: '+3d', controlStr: '+3d', sectionCodesToRefresh: [], description: 'Re-schedule to 3 days later' }) // add another one instead
     }
     if (sectionCodes.includes('W')) {
       buttons.splice(4, 1) // remove the 'this week' item, as its redundant
     }
     if (sectionCodes.includes('M')) {
-      buttons.splice(7, 1, { label: 'next month', controlStr: '+1m', sectionCodesToRefresh: [] }) // Replace the 'this month' item
+      buttons.splice(7, 1, { label: 'next month', controlStr: '+1m', sectionCodesToRefresh: [], description: 'Re-schedule to next month' }) // Replace the 'this month' item
     }
     if (sectionCodes.includes('Q')) {
-      buttons.splice(8, 1, { label: 'next quarter', controlStr: '+1q', sectionCodesToRefresh: [] }) // Replace the 'this quarter' item
+      buttons.splice(8, 1, { label: 'next quarter', controlStr: '+1q', sectionCodesToRefresh: [], description: 'Re-schedule to next quarter' }) // Replace the 'this quarter' item
     }
   }
 

@@ -218,7 +218,7 @@ dialog:modal {
 .reminderDialogEditLine {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.25rem;
   width: 100%;
 }

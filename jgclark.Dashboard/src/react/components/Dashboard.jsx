@@ -95,6 +95,18 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const containerRef = useRef<?HTMLDivElement>(null)
   // Dedupe empty-state banner: only fire when transitioning into "nothing to show", not on every re-render while empty
   const hadDisplayableSectionsRef = useRef < boolean > (true)
+  const demoReminderDialogOpenedRef = useRef(false)
+  const demoReminderDialogTitleRef = useRef('')
+  const demoReminderDialogItemRef = useRef(null)
+
+  useEffect(() => {
+    if (pluginData.openDemoReminderDialogTitle) {
+      demoReminderDialogTitleRef.current = pluginData.openDemoReminderDialogTitle
+    }
+    if (pluginData.openDemoReminderDialogItem) {
+      demoReminderDialogItemRef.current = pluginData.openDemoReminderDialogItem
+    }
+  }, [pluginData.openDemoReminderDialogTitle, pluginData.openDemoReminderDialogItem])
 
   //----------------------------------------------------------------------
   // State
@@ -324,6 +336,27 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       updatePluginData({ ...pluginData, currentMaxPriorityFromAllVisibleSections: newMaxPriority }, `Recalculated max priority: ${newMaxPriority}`)
     }
   }, [sections, dashboardSettings, pluginData.currentMaxPriorityFromAllVisibleSections])
+
+  // Demo/README helper: openDemoReminderDialogTitle on pluginData auto-opens that reminder's edit dialog once.
+  useEffect(() => {
+    if (!pluginData.demoMode || reactSettings?.dialogData?.isOpen || demoReminderDialogOpenedRef.current) return
+    const title = demoReminderDialogTitleRef.current
+    const itemFromRef = demoReminderDialogItemRef.current
+    const remSection = sections.find((s) => s.sectionCode === 'REM')
+    const item = itemFromRef || (title ? remSection?.sectionItems?.find((i) => i.reminder?.title === title) : undefined)
+    if (!item) return
+    demoReminderDialogOpenedRef.current = true
+    setReactSettings((prev) => ({
+      ...prev,
+      lastChange: '_Dashboard-DemoReminderDialogOpen',
+      dialogData: {
+        isOpen: true,
+        isTask: true,
+        details: { item, actionType: '(not yet set)', sectionCodes: [item.sectionCode || 'REM'] },
+        clickPosition: { clientY: 320, clientX: 420 },
+      },
+    }))
+  }, [pluginData.demoMode, reactSettings?.dialogData?.isOpen, sections, setReactSettings])
 
   //----------------------------------------------------------------------
   // Handlers

@@ -14,6 +14,7 @@ import {
   doCancelTask,
   doContentUpdate,
   doCompleteReminder,
+  doConvertReminderToTask,
   doCompleteTask,
   doCompleteTaskThen,
   doCompleteChecklist,
@@ -325,6 +326,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'completeReminder': {
         result = await doCompleteReminder(data)
+        break
+      }
+      case 'convertReminderToTask': {
+        result = await doConvertReminderToTask(data)
         break
       }
       case 'cancelTask': {

@@ -326,6 +326,7 @@ export type TActionType =
   | 'cancelTask'
   | 'completeProject'
   | 'completeReminder'
+  | 'convertReminderToTask'
   | 'completeTask'
   | 'completeTaskThen'
   | 'completeChecklist'
@@ -524,6 +525,10 @@ export type TPluginData = {
   },
   /** Live dashboard snapshot after switch/save; used for `*` when `isModified` is false (merge carryover ≠ raw def). */
   dashboardSettingsBaseline?: TDashboardSettingsIn,
+  /** When set in demo mode, auto-opens the reminder edit dialog for this title (README screenshots). */
+  openDemoReminderDialogTitle?: string,
+  /** Pre-built REM section item for openDemoReminderDialogTitle (available before incremental section refresh). */
+  openDemoReminderDialogItem?: TSectionItem,
   demoMode: boolean /* use fake content for demo/test purposes */,
   totalDoneCount?: number,
   startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands */,
