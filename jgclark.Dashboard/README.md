@@ -202,11 +202,23 @@ The same Yesterday → Overdue spill applies to open tasks in yesterday's daily 
 
 Priority from Apple Reminders (none / low / medium / high) is mapped to Dashboard levels matching task `!` / `!!` / `!!!` styling. They also participate in "Hide lower-priority items?" Filtering, and reminder lists sort by time, then priority, then date.
 
-The following Actions are possible, all of which are reflected in Apple Reminders too:
+On Reminder items, you can take the following actions, all of which are reflected in Apple Reminders too:
 - Click the **circle** icon to complete the reminder;
 - **Ctrl-click** the circle to delete the reminder;
-- Click the reminder **/content** to open it in the Apple Reminders app (requires NotePlan v3.21.2 or later).
+- Click the reminder **content** to open it in the Apple Reminders app (requires NotePlan v3.21.2 or later).
 - Use the **+** button on the Reminders section heading to add a new reminder: enter the text, choose the list, and optionally a date and time. (Note: requires NP 3.21.2.)
+- Click the **pencil** icon to open the Reminder edit dialog:
+
+  <img src="reminders-edit-dialog-2.4.3.png" width="600px" margin="8px" alt="reminder edit dialog" />
+
+  In that dialog you can:
+  - Edit the reminder title and notes, then press **Update** (or Enter) to save
+  - Set or clear a due time (`HH:MM`)
+  - Reschedule with `today`, `+1d`, `+1b`, `+2d`, `+3d`, the calendar picker, or **Unsched** (removes the due date)
+  - **Complete** the reminder
+  - **Convert to** an open task prepended to today's daily note (and delete the Apple Reminder), carrying notes, location, date, time, and priority when set
+  - **Open** in Apple Reminders (when NotePlan supports it and the reminder has an id)
+  - **Delete** the reminder
 
 ### Search section
 <img src="search-bar-2.2.0.gif" margin="8px" border="1px solid grey" alt="using Dashboard search" />
