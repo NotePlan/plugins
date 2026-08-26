@@ -203,6 +203,15 @@ export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'Y' | '
 // Note: REM added v2.5.0 from Apple Reminders
 // Note: When adding a new section code, make sure to update the constants in constants.js and dashboardSettings.js files, and getSomeSectionsData in dataGeneration.js
 
+/**
+ * Logical (non-section) refresh token used by task/reminder dialogs.
+ * Resolved at click time to the open item's actual sectionCode via resolveSectionCodesToRefresh.
+ */
+export type TLogicalSectionCode = 'ITEM_ORIG_SECTION'
+
+/** Real section codes plus dialog-only logical tokens for sectionCodesToRefresh button defs. */
+export type TSectionCodeOrLogical = TSectionCode | TLogicalSectionCode
+
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 
 // details for a section
