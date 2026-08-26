@@ -2,16 +2,17 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2026-08-20 for v2.4.1 by @CursorAI
+// Last updated 2026-08-26 for v2.4.3 by @CursorAI
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
 //
 import React, { useRef, useLayoutEffect, useState } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
-import type { MessageDataObject, TSectionCode } from '../../types'
+import type { MessageDataObject, TSectionCode, TSectionCodeOrLogical } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
+import { resolveSectionCodesToRefresh } from './dialogRefreshHelpers.js'
 import ItemNoteLink from './ItemNoteLink.jsx'
 import { buildReactSettingsAfterIPAdvance, ipItemsHaveBeenSkipped } from './interactiveProcessingHelpers.js'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
@@ -35,7 +36,7 @@ type DialogButtonProps = {
   handlingFunction?: string,
   description?: string,
   icons?: Array<{ className: string, position: 'left' | 'right' }>,
-  sectionCodesToRefresh?: Array<TSectionCode>,
+  sectionCodesToRefresh?: Array<TSectionCodeOrLogical>,
 }
 
 type EditableInputHandle = { getValue: () => string }
@@ -115,8 +116,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   logDebug('DialogForTaskItems', `ID=${String(ID)} / itemType=${String(itemType)} / filename=${String(filename)} / sectionCodes=${String(sectionCodes)} / para.content={${String(para?.content ?? 'n/a')}}`)
   if (!filename || filename === '') { logWarn('DialogForTaskItems', `filename is undefined or empty`) }
 
-  // sectionCodes in this case will be just the sectionCode of the current item
-  const thisSectionCode = sectionCodes?.[0] ?? ''
+  // sectionCodes in this case will be just the sectionCode of the current item (used to resolve ITEM_ORIG_SECTION)
+  const thisSectionCode: TSectionCode | '' = sectionCodes?.[0] ?? ''
   if (!thisSectionCode) { logWarn('DialogForTaskItems', `thisSectionCode is undefined or empty`) }
   logDebug('DialogForTaskItems', `thisSectionCode=${String(thisSectionCode)}`)
 
@@ -137,33 +138,34 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // logDebug('DialogForTaskItems', `- dateChangeFunctionToUse = ${dateChangeFunctionToUse} from resched?:${String(resched)}`)
 
   // Set standard list of buttons to render.
+  // ITEM_ORIG_SECTION resolves at click time to the open item's sectionCode (source section to refresh).
   const buttons: Array<DialogButtonProps> = [
-    { label: 'today', controlStr: 't', sectionCodesToRefresh: ['DT'], description: 'Re-schedule to today' },
-    { label: '+1d', controlStr: '+1d', sectionCodesToRefresh: ['DO'], description: 'Re-schedule to tomorrow' },
-    { label: '+1b', controlStr: '+1b', sectionCodesToRefresh: ['DO'], description: 'Re-schedule to next business day' },
-    { label: '+2d', controlStr: '+2d', sectionCodesToRefresh: [], description: 'Re-schedule to 2 days later' },
-    { label: 'this week', controlStr: '+0w', sectionCodesToRefresh: ['W'], description: 'Re-schedule to this week' },
-    { label: '+1w', controlStr: '+1w', sectionCodesToRefresh: [], description: 'Re-schedule to next week' },
-    { label: '+2w', controlStr: '+2w', sectionCodesToRefresh: [], description: 'Re-schedule to 2 weeks later' },
-    { label: 'this month', controlStr: '+0m', sectionCodesToRefresh: ['M'], description: 'Re-schedule to this month' },
-    { label: '+1m', controlStr: '+1m', sectionCodesToRefresh: [], description: 'Re-schedule to next month' },
-    { label: 'this quarter', controlStr: '+0q', sectionCodesToRefresh: ['Q'], description: 'Re-schedule to this quarter' },
+    { label: 'today', controlStr: 't', sectionCodesToRefresh: ['ITEM_ORIG_SECTION', 'DT'], description: 'Re-schedule to today' },
+    { label: '+1d', controlStr: '+1d', sectionCodesToRefresh: ['ITEM_ORIG_SECTION', 'DO'], description: 'Re-schedule to tomorrow' },
+    { label: '+1b', controlStr: '+1b', sectionCodesToRefresh: ['ITEM_ORIG_SECTION', 'DO'], description: 'Re-schedule to next business day' },
+    { label: '+2d', controlStr: '+2d', sectionCodesToRefresh: ['ITEM_ORIG_SECTION'], description: 'Re-schedule to 2 days later' },
+    { label: 'this week', controlStr: '+0w', sectionCodesToRefresh: ['ITEM_ORIG_SECTION', 'W'], description: 'Re-schedule to this week' },
+    { label: '+1w', controlStr: '+1w', sectionCodesToRefresh: ['ITEM_ORIG_SECTION'], description: 'Re-schedule to next week' },
+    { label: '+2w', controlStr: '+2w', sectionCodesToRefresh: ['ITEM_ORIG_SECTION'], description: 'Re-schedule to 2 weeks later' },
+    { label: 'this month', controlStr: '+0m', sectionCodesToRefresh: ['ITEM_ORIG_SECTION', 'M'], description: 'Re-schedule to this month' },
+    { label: '+1m', controlStr: '+1m', sectionCodesToRefresh: ['ITEM_ORIG_SECTION'], description: 'Re-schedule to next month' },
+    { label: 'this quarter', controlStr: '+0q', sectionCodesToRefresh: ['ITEM_ORIG_SECTION', 'Q'], description: 'Re-schedule to this quarter' },
   ]
 
   // Now tweak this list if buttons slightly if we're on a weekly or monthly note etc.
   if (sectionCodes) {
     if (sectionCodes.includes('DT')) {
       buttons.splice(0, 1) // remove the 'today' item, as its redundant
-      buttons.splice(3, 0, { label: '+3d', controlStr: '+3d', sectionCodesToRefresh: [], description: 'Re-schedule to 3 days later' }) // add another one instead
+      buttons.splice(3, 0, { label: '+3d', controlStr: '+3d', sectionCodesToRefresh: ['ITEM_ORIG_SECTION'], description: 'Re-schedule to 3 days later' }) // add another one instead
     }
     if (sectionCodes.includes('W')) {
       buttons.splice(4, 1) // remove the 'this week' item, as its redundant
     }
     if (sectionCodes.includes('M')) {
-      buttons.splice(7, 1, { label: 'next month', controlStr: '+1m', sectionCodesToRefresh: [], description: 'Re-schedule to next month' }) // Replace the 'this month' item
+      buttons.splice(7, 1, { label: 'next month', controlStr: '+1m', sectionCodesToRefresh: ['ITEM_ORIG_SECTION'], description: 'Re-schedule to next month' }) // Replace the 'this month' item
     }
     if (sectionCodes.includes('Q')) {
-      buttons.splice(8, 1, { label: 'next quarter', controlStr: '+1q', sectionCodesToRefresh: [], description: 'Re-schedule to next quarter' }) // Replace the 'this quarter' item
+      buttons.splice(8, 1, { label: 'next quarter', controlStr: '+1q', sectionCodesToRefresh: ['ITEM_ORIG_SECTION'], description: 'Re-schedule to next quarter' }) // Replace the 'this quarter' item
     }
   }
 
@@ -177,6 +179,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       description: 'Complete item',
       handlingFunction: itemType === 'checklist' ? 'completeChecklist' : 'completeTask',
       icons: [{ className: `fa-regular ${itemType === 'checklist' ? 'fa-square-check' : 'fa-circle-check'}`, position: 'left' }],
+      sectionCodesToRefresh: ['ITEM_ORIG_SECTION'],
     },
     {
       label: 'then',
@@ -184,6 +187,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       description: 'Mark the item as completed on the date it was scheduled for',
       handlingFunction: 'completeTaskThen',
       icons: [{ className: `fa-regular ${itemType === 'checklist' ? 'fa-square-check' : 'fa-circle-check'}`, position: 'left' }],
+      sectionCodesToRefresh: ['ITEM_ORIG_SECTION'],
     },
     {
       label: '',
@@ -191,6 +195,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       description: 'Cancel item',
       handlingFunction: itemType === 'checklist' ? 'cancelChecklist' : 'cancelTask',
       icons: [{ className: `fa-regular ${itemType === 'checklist' ? 'fa-square-xmark' : 'fa-circle-xmark'}`, position: 'left' }],
+      sectionCodesToRefresh: ['ITEM_ORIG_SECTION'],
     },
     {
       label: 'Move to',
@@ -198,6 +203,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       description: 'Move item to a different note',
       handlingFunction: 'moveToNote',
       icons: [{ className: 'fa-regular fa-file-lines', position: 'right' }],
+      sectionCodesToRefresh: ['ITEM_ORIG_SECTION'],
     },
     {
       label: 'Priority',
@@ -205,6 +211,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       description: 'Increase priority of item',
       handlingFunction: 'cyclePriorityStateUp',
       icons: [{ className: 'fa-regular fa-arrow-up', position: 'right' }],
+      sectionCodesToRefresh: ['ITEM_ORIG_SECTION'],
     },
     {
       label: 'Priority',
@@ -212,6 +219,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       description: 'Decrease priority of item',
       handlingFunction: 'cyclePriorityStateDown',
       icons: [{ className: 'fa-regular fa-arrow-down', position: 'right' }],
+      sectionCodesToRefresh: ['ITEM_ORIG_SECTION'],
     },
     {
       label: 'Change to',
@@ -219,12 +227,14 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       description: 'Toggle item type between task and checklist',
       handlingFunction: 'toggleType',
       icons: [{ className: itemType === 'checklist' ? 'fa-regular fa-circle' : 'fa-regular fa-square', position: 'right' }],
+      sectionCodesToRefresh: ['ITEM_ORIG_SECTION'],
     },
     {
       label: 'Unsched',
       controlStr: 'unsched',
       description: 'Remove date from this item',
       handlingFunction: 'unscheduleItem',
+      sectionCodesToRefresh: ['ITEM_ORIG_SECTION'],
     },
     {
       label: 'New Task',
@@ -232,6 +242,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       description: 'Add new task',
       handlingFunction: 'addTaskAnywhere',
       icons: [{ className: 'fa-regular fa-square-plus', position: 'left' }],
+      sectionCodesToRefresh: [],
     },
     // TODO: Add a 'Add comment' button for @Garba
   ]
@@ -277,7 +288,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   function handleEnterPress() {
     // Cast: this synthetic call has no real event; handleButtonClick only passes it to
     // extractModifierKeys(), whose declared MouseEvent | KeyboardEvent param can't be widened from here.
-    handleButtonClick(({}: any), 'updateItemContent', 'updateItemContent', [])
+    handleButtonClick(({}: any), 'updateItemContent', 'updateItemContent', ['ITEM_ORIG_SECTION'])
   }
 
   // Handle the content change (from the editable input box) to set a flag that the content has changed
@@ -286,7 +297,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   }
 
   // Handle button clicks to trigger its handler, and generally close the dialog
-  function handleButtonClick(event: MouseEvent, controlStr: string, handlingFunction: string, sectionCodesToRefresh: Array<TSectionCode>) {
+  function handleButtonClick(event: MouseEvent, controlStr: string, handlingFunction: string, sectionCodesToRefresh: Array<TSectionCodeOrLogical>) {
     const { metaKey } = extractModifierKeys(event) // Indicates whether ⌘-key was pressed
     // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
     const currentContent = para.content
@@ -294,9 +305,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     const contentActuallyChanged = inputValue !== currentContent
     logDebug(`DialogForTaskItems/handleButtonClick`, `- button clicked on ID: ${ID} for controlStr: ${controlStr}, handlingFunction: ${handlingFunction}, itemType: ${itemType}, filename: ${filename}, contentHasChanged: ${String(contentHasChanged)}, contentActuallyChanged: ${String(contentActuallyChanged)}`)
 
-    // prepend the current sectionCode to the section codes to refresh (copy so we never mutate button default arrays)
-    const sectionCodesToSend = [...sectionCodesToRefresh]
-    if (thisSectionCode) { sectionCodesToSend.unshift(thisSectionCode) }
+    // Resolve ITEM_ORIG_SECTION -> thisSectionCode; no longer auto-prepend source section
+    const sectionCodesToSend = resolveSectionCodesToRefresh(sectionCodesToRefresh, thisSectionCode)
     logDebug('DialogForTaskItems/handleButtonClick', `sectionCodesToSend=${String(sectionCodesToSend)}`)
 
     const isExplicitContentUpdate = controlStr === 'updateItemContent'
@@ -524,7 +534,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
               <button
                 className="updateItemContentButton PCButton"
                 title={'Update the content of this item'}
-                onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent', [])}
+                onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent', ['ITEM_ORIG_SECTION'])}
               >
                 Update
               </button>

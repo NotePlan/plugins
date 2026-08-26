@@ -6,9 +6,10 @@
 //--------------------------------------------------------------------------
 
 import React, { useRef, useLayoutEffect, useState, useCallback } from 'react'
-import type { MessageDataObject, TSectionCode } from '../../types'
+import type { MessageDataObject, TSectionCode, TSectionCodeOrLogical } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
+import { resolveSectionCodesToRefresh } from './dialogRefreshHelpers.js'
 import { buildReactSettingsAfterIPAdvance, buildReactSettingsForIPBackNavigate, canNavigateBackInIP } from './interactiveProcessingHelpers.js'
 import { getAppleRemindersOpenURL } from '@helpers/NPReminders'
 import { getDateObjFromDateString, hyphenatedDateString } from '@helpers/dateTime'
@@ -31,7 +32,7 @@ type DialogButtonProps = {
   handlingFunction: string,
   description?: string,
   icons?: Array<{ className: string, position: 'left' | 'right' }>,
-  sectionCodesToRefresh?: Array<TSectionCode>,
+  sectionCodesToRefresh?: Array<TSectionCodeOrLogical>,
 }
 
 type EditableInputHandle = { getValue: () => string }
@@ -185,7 +186,7 @@ const handleTimeChange = useCallback(() => {
 }, [])
 
   const handleButtonClick = useCallback(
-    (event: MouseEvent, controlStr: string, handlingFunction: string, sectionCodesToRefresh: Array<TSectionCode> = []) => {
+    (event: MouseEvent, controlStr: string, handlingFunction: string, sectionCodesToRefresh: Array<TSectionCodeOrLogical> = []) => {
       const { metaKey } = extractModifierKeys(event)
       logDebug('DialogForReminderItems/handleButtonClick', `controlStr=${controlStr} handlingFunction=${handlingFunction}`)
 
@@ -204,10 +205,8 @@ const handleTimeChange = useCallback(() => {
       const hasPendingEdits =
         titleActuallyChanged || notesActuallyChanged || timeActuallyChanged || contentHasChanged || notesHasChanged || timeHasChanged
 
-      const sectionCodesToSend = [...sectionCodesToRefresh]
-      if (sectionCode && !sectionCodesToSend.includes(sectionCode)) {
-        sectionCodesToSend.unshift(sectionCode)
-      }
+      // Resolve ITEM_ORIG_SECTION -> sectionCode; no longer auto-prepend source section
+      const sectionCodesToSend = resolveSectionCodesToRefresh(sectionCodesToRefresh, sectionCode)
 
       const itemForAction = {
         ...item,
@@ -291,7 +290,7 @@ const handleTimeChange = useCallback(() => {
   )
 
 const handleEnterPress = useCallback(() => {
-  handleButtonClick(({}: any), 'updateReminderContent', 'updateReminderContent', [])
+  handleButtonClick(({}: any), 'updateReminderContent', 'updateReminderContent', ['ITEM_ORIG_SECTION'])
   }, [handleButtonClick])
 
 const handleContentChange = useCallback((_updatedContent: string) => {
@@ -306,7 +305,7 @@ const handleDateSelect = useCallback(
   (date: Date) => {
     if (!date) return
     const isoDateStr = hyphenatedDateString(date)
-    handleButtonClick(({}: any), isoDateStr, 'rescheduleReminder', ['REM', 'DT', 'TB', 'DO', 'DY', 'OVERDUE'])
+    handleButtonClick(({}: any), isoDateStr, 'rescheduleReminder', ['ITEM_ORIG_SECTION'])
 setResetCalendar(true)
 setTimeout(() => setResetCalendar(false), 0)
     },
@@ -327,13 +326,14 @@ const repositionCalendarForPicker = useCallback((): void => {
   }
 
 // Day-scale reschedule only (week/month/quarter shortcuts omitted for reminders)
+// ITEM_ORIG_SECTION resolves at click time to the open item's sectionCode (source section to refresh).
 const moveButtons: Array<DialogButtonProps> = [
-  { label: 'today', controlStr: 't', sectionCodesToRefresh: ['DT', 'TB'], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to today' },
-  { label: '+1d', controlStr: '+1d', sectionCodesToRefresh: ['DO'], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to tomorrow' },
-  { label: '+1b', controlStr: '+1b', sectionCodesToRefresh: ['DO'], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to next business day' },
-  { label: '+2d', controlStr: '+2d', sectionCodesToRefresh: [], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to 2 days later' },
-  { label: '+3d', controlStr: '+3d', sectionCodesToRefresh: [], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to 3 days later' },
-  { label: 'Unsched', controlStr: 'unsched', sectionCodesToRefresh: ['REM'], handlingFunction: 'rescheduleReminder', description: 'Remove due date from this reminder' },
+  { label: 'today', controlStr: 't', sectionCodesToRefresh: ['ITEM_ORIG_SECTION', 'DT', 'TB'], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to today' },
+  { label: '+1d', controlStr: '+1d', sectionCodesToRefresh: ['ITEM_ORIG_SECTION', 'DO'], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to tomorrow' },
+  { label: '+1b', controlStr: '+1b', sectionCodesToRefresh: ['ITEM_ORIG_SECTION', 'DO'], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to next business day' },
+  { label: '+2d', controlStr: '+2d', sectionCodesToRefresh: ['ITEM_ORIG_SECTION'], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to 2 days later' },
+  { label: '+3d', controlStr: '+3d', sectionCodesToRefresh: ['ITEM_ORIG_SECTION'], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to 3 days later' },
+  { label: 'Unsched', controlStr: 'unsched', sectionCodesToRefresh: ['ITEM_ORIG_SECTION', 'REM'], handlingFunction: 'rescheduleReminder', description: 'Remove due date from this reminder' },
 ]
 
 if (sectionCode === 'DT') {
@@ -347,6 +347,7 @@ const actionButtons: Array<DialogButtonProps> = [
     description: 'Complete reminder',
     handlingFunction: 'completeReminder',
     icons: [{ className: 'fa-regular fa-circle-check', position: 'left' }],
+    sectionCodesToRefresh: ['ITEM_ORIG_SECTION'],
   },
   {
     label: 'Convert to',
@@ -354,7 +355,7 @@ const actionButtons: Array<DialogButtonProps> = [
     description: "Convert to task in today's note (and delete reminder)",
     handlingFunction: 'convertReminderToTask',
     icons: [{ className: 'fa-regular fa-circle', position: 'right' }],
-    sectionCodesToRefresh: ['DT', 'TB', 'REM', 'DO', 'DY', 'OVERDUE'],
+    sectionCodesToRefresh: ['ITEM_ORIG_SECTION', 'DT', 'TB'],
   },
 ]
 
@@ -365,6 +366,7 @@ if (canOpenInReminders) {
     description: 'Open in Apple Reminders',
     handlingFunction: 'openURL',
     icons: [{ className: 'fa-regular fa-arrow-up-right-from-square', position: 'right' }],
+    sectionCodesToRefresh: [],
   })
 }
 
@@ -375,6 +377,7 @@ actionButtons.push(
     description: 'Delete reminder',
     handlingFunction: 'deleteReminder',
     icons: [{ className: 'fa-regular fa-trash-can', position: 'left' }],
+    sectionCodesToRefresh: ['ITEM_ORIG_SECTION'],
   },
 )
 
@@ -449,7 +452,7 @@ actionButtons.push(
             <button
               className="updateItemContentButton PCButton"
               title="Update the reminder text, notes, and time"
-              onClick={(e) => handleButtonClick(e, 'updateReminderContent', 'updateReminderContent', [])}
+              onClick={(e) => handleButtonClick(e, 'updateReminderContent', 'updateReminderContent', ['ITEM_ORIG_SECTION'])}
             >
               Update
             </button>
