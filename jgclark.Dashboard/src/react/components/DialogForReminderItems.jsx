@@ -1,8 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React dialog for Apple Reminder items (Interactive Processing + actions).
-// Edit title/notes/time, reschedule, complete / delete / open in Reminders.
-// Last updated 2026-08-23 for v2.4.2 by @CursorAI & @jgclark
+// Edit title/notes/time, reschedule, complete / convert to today / delete / open in Reminders.
+// Last updated 2026-08-26 for v2.4.3 by @CursorAI & @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useLayoutEffect, useState, useCallback } from 'react'
@@ -328,11 +328,12 @@ const repositionCalendarForPicker = useCallback((): void => {
 
 // Day-scale reschedule only (week/month/quarter shortcuts omitted for reminders)
 const moveButtons: Array<DialogButtonProps> = [
-  { label: 'today', controlStr: 't', sectionCodesToRefresh: ['DT', 'TB'], handlingFunction: 'rescheduleReminder' },
-  { label: '+1d', controlStr: '+1d', sectionCodesToRefresh: ['DO'], handlingFunction: 'rescheduleReminder' },
-  { label: '+1b', controlStr: '+1b', sectionCodesToRefresh: ['DO'], handlingFunction: 'rescheduleReminder' },
-  { label: '+2d', controlStr: '+2d', sectionCodesToRefresh: [], handlingFunction: 'rescheduleReminder' },
-  { label: '+3d', controlStr: '+3d', sectionCodesToRefresh: [], handlingFunction: 'rescheduleReminder' },
+  { label: 'today', controlStr: 't', sectionCodesToRefresh: ['DT', 'TB'], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to today' },
+  { label: '+1d', controlStr: '+1d', sectionCodesToRefresh: ['DO'], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to tomorrow' },
+  { label: '+1b', controlStr: '+1b', sectionCodesToRefresh: ['DO'], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to next business day' },
+  { label: '+2d', controlStr: '+2d', sectionCodesToRefresh: [], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to 2 days later' },
+  { label: '+3d', controlStr: '+3d', sectionCodesToRefresh: [], handlingFunction: 'rescheduleReminder', description: 'Re-schedule to 3 days later' },
+  { label: 'Unsched', controlStr: 'unsched', sectionCodesToRefresh: ['REM'], handlingFunction: 'rescheduleReminder', description: 'Remove due date from this reminder' },
 ]
 
 if (sectionCode === 'DT') {
@@ -347,6 +348,14 @@ const actionButtons: Array<DialogButtonProps> = [
     handlingFunction: 'completeReminder',
     icons: [{ className: 'fa-regular fa-circle-check', position: 'left' }],
   },
+  {
+    label: 'Convert to',
+    controlStr: 'converttotoday',
+    description: "Convert to task in today's note (and delete reminder)",
+    handlingFunction: 'convertReminderToTask',
+    icons: [{ className: 'fa-regular fa-circle', position: 'right' }],
+    sectionCodesToRefresh: ['DT', 'TB', 'REM', 'DO', 'DY', 'OVERDUE'],
+  },
 ]
 
 if (canOpenInReminders) {
@@ -360,12 +369,6 @@ if (canOpenInReminders) {
 }
 
 actionButtons.push(
-  {
-    label: 'Unsched',
-    controlStr: 'unsched',
-    description: 'Remove due date from this reminder',
-    handlingFunction: 'rescheduleReminder',
-  },
   {
     label: '',
     controlStr: 'deletereminder',

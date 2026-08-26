@@ -39,11 +39,11 @@ import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { smartOpenNoteInEditorFromFilename, smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename } from '@helpers/NPParagraph'
-import { addAppleReminder, completeReminderById, deleteReminderById, mapCalendarItemToReminder, mapNotePlanPriorityToAppleReminder, parseLeadingPriorityFromReminderText, updateReminderById, type TUpdateAppleReminderParams } from '@helpers/NPReminders'
+import { addAppleReminder, buildOpenTaskContentFromReminder, completeReminderById, deleteReminderById, mapCalendarItemToReminder, mapNotePlanPriorityToAppleReminder, parseLeadingPriorityFromReminderText, updateReminderById, type TUpdateAppleReminderParams } from '@helpers/NPReminders'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getLiveWindowRectFromWin, getWindowEmbedType, getWindowFromCustomId, isEmbeddedWindow, rectToString, storeWindowRect } from '@helpers/NPWindows'
-import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
+import { cyclePriorityStateDown, cyclePriorityStateUp, smartPrependPara } from '@helpers/paragraph'
 import { processChosenHeading } from '@helpers/userInput'
 
 /****************************************************************************************************************************
@@ -565,6 +565,71 @@ export async function doDeleteReminder(data: MessageDataObject): Promise<TBridge
     const sectionCode = data.item?.sectionCode
     if (sectionCode) {
       return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: err.message, errorMessageLevel: 'ERROR' })
+    }
+    return handlerResult(false, [], { errorMsg: err.message })
+  }
+}
+
+/**
+ * Convert an Apple Reminder to an open task prepended to today's daily note, then delete the reminder.
+ * Carries notes, location (@mention), date (>YYYY-MM-DD), time (at HH:MM), and priority markers when set.
+ * @param {MessageDataObject} data - must include item.reminder and item.sectionCode
+ * @returns {Promise<TBridgeClickHandlerResult>}
+ */
+export async function doConvertReminderToTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  try {
+    const reminder = data.item?.reminder
+    const reminderId = reminder?.id
+    const sectionCode = data.item?.sectionCode
+    const sectionCodes: Array<TSectionCode> = data.sectionCodes && data.sectionCodes.length > 0
+      ? data.sectionCodes
+      : sectionCode
+        ? [sectionCode, 'DT']
+        : ['DT']
+
+    if (!reminder || !reminderId) {
+      throw new Error('doConvertReminderToTask: No reminder id on item')
+    }
+    if (!sectionCode) {
+      throw new Error('doConvertReminderToTask: No sectionCode on item')
+    }
+
+    const todayDateStr = getTodaysDateHyphenated()
+    const todayNote = DataStore.calendarNoteByDateString(todayDateStr)
+    if (!todayNote) {
+      throw new Error(`doConvertReminderToTask: Could not open today's daily note (${todayDateStr})`)
+    }
+
+    const taskContent = buildOpenTaskContentFromReminder(reminder)
+    if (!taskContent) {
+      throw new Error('doConvertReminderToTask: Reminder has no content to convert')
+    }
+
+    smartPrependPara(todayNote, taskContent, 'open')
+    DataStore.updateCache(todayNote, true)
+
+    const deleted = await deleteReminderById(reminderId)
+    if (!deleted) {
+      logWarn('doConvertReminderToTask', `task prepended but reminderByID returned nothing for id=${reminderId}; refreshing sections`)
+      return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], {
+        sectionCodes,
+        errorMsg: `Created the task in today's note, but couldn't delete the reminder. I will refresh these sections.`,
+        errorMessageLevel: 'WARN',
+      })
+    }
+
+    logDebug('doConvertReminderToTask', `converted id=${reminderId} -> today note content="${taskContent.slice(0, 60)}"`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { sectionCodes })
+  } catch (err) {
+    logError('doConvertReminderToTask', err.message)
+    const sectionCode = data.item?.sectionCode
+    const sectionCodes: Array<TSectionCode> = data.sectionCodes && data.sectionCodes.length > 0
+      ? data.sectionCodes
+      : sectionCode
+        ? [sectionCode]
+        : []
+    if (sectionCodes.length > 0) {
+      return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes, errorMsg: err.message, errorMessageLevel: 'ERROR' })
     }
     return handlerResult(false, [], { errorMsg: err.message })
   }

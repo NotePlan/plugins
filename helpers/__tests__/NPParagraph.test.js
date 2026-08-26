@@ -1181,3 +1181,41 @@ line 8 ordinary para
     expect(resultParas).toEqual(paragraphs)
   })
 })
+
+describe('buildOpenTaskRawContentFromParts()', () => {
+  test('title only', () => {
+    expect(p.buildOpenTaskRawContentFromParts({ content: 'Buy milk' })).toBe('Buy milk')
+  })
+
+  test('full combination with priority notes location date time', () => {
+    expect(
+      p.buildOpenTaskRawContentFromParts({
+        content: 'Buy milk',
+        priority: 3,
+        notes: 'pick up oat',
+        location: 'Home',
+        date: '2026-08-26',
+        time: '14:30',
+      }),
+    ).toBe('!!! Buy milk (pick up oat) @Home >2026-08-26 at 14:30')
+  })
+
+  test('omits empty optional parts and supports >> priority', () => {
+    expect(p.buildOpenTaskRawContentFromParts({ content: 'Win', priority: 4, date: '2026-01-01' })).toBe('>> Win >2026-01-01')
+  })
+
+  test('does not double-prefix date or time or location @', () => {
+    expect(
+      p.buildOpenTaskRawContentFromParts({
+        content: 'Call',
+        location: '@Office',
+        date: '>2026-08-26',
+        time: 'at 09:00',
+      }),
+    ).toBe('Call @Office >2026-08-26 at 09:00')
+  })
+
+  test('trims whitespace and collapses internal spaces', () => {
+    expect(p.buildOpenTaskRawContentFromParts({ content: '  Task  ', notes: '  note  ', priority: 1 })).toBe('! Task (note)')
+  })
+})

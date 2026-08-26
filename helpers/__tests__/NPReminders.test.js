@@ -30,6 +30,7 @@ import {
   resolveCalendarAddResult,
   resolveReminderListsByNames,
   sortRemindersByTimePriorityDate,
+  buildOpenTaskContentFromReminder,
 } from '../NPReminders.js'
 
 global.DataStore = DataStore
@@ -476,6 +477,26 @@ describe(`${PLUGIN_NAME}`, () => {
       const uuid = '123e4567-e89b-12d3-a456-426614174000'
       expect(extractReminderIdsFromTaskContent(`Buy milk @remind(:::${uuid})`)).toEqual([uuid])
       expect(extractReminderIdsFromTaskContent('No reminder link')).toEqual([])
+    })
+  })
+
+  describe('buildOpenTaskContentFromReminder()', () => {
+    test('maps reminder fields onto open-task content', () => {
+      expect(
+        buildOpenTaskContentFromReminder({
+          title: 'Buy milk',
+          listname: 'Home',
+          priority: 3,
+          notes: 'pick up oat',
+          location: 'Home',
+          date: '2026-08-26',
+          time: '14:30',
+        }),
+      ).toBe('!!! Buy milk (pick up oat) @Home >2026-08-26 at 14:30')
+    })
+
+    test('title-only reminder omits unset parts', () => {
+      expect(buildOpenTaskContentFromReminder({ title: 'Simple', listname: 'Reminders' })).toBe('Simple')
     })
   })
 })

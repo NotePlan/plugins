@@ -8,6 +8,7 @@ import moment from 'moment/min/moment-with-locales'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
 import { getDateObjFromDateString, getDateObjFromDateTimeString } from '@helpers/dateTime'
 import { logDebug, logWarn } from '@helpers/dev'
+import { buildOpenTaskRawContentFromParts } from '@helpers/NPParagraph'
 import { usersVersionHas } from '@helpers/NPVersions'
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -900,4 +901,21 @@ export async function updateReminderById(reminderId: string, params: TUpdateAppl
   await Calendar.update(updatedItem)
   logDebug('updateReminderById', `updated title/notes/priority only for id=${reminderId} title="${String(nextTitle).slice(0, 40)}"`)
   return await Calendar.reminderByID(reminderId)
+}
+
+/**
+ * Build open-task paragraph content from a normalized TReminder (thin wrapper around buildOpenTaskRawContentFromParts).
+ * Encodes priority, notes (in parentheses), location as @mention, >date, and at HH:MM when set.
+ * @param {TReminder} reminder
+ * @returns {string}
+ */
+export function buildOpenTaskContentFromReminder(reminder: TReminder): string {
+  return buildOpenTaskRawContentFromParts({
+    content: reminder.title || '',
+    priority: reminder.priority,
+    notes: reminder.notes,
+    location: reminder.location,
+    date: reminder.date,
+    time: reminder.time,
+  })
 }

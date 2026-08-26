@@ -1,6 +1,9 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.4.3] 2026-08-???
+- New: Reminder edit dialog Actions row has **→ Today** (second control) to convert a reminder into an open task prepended to today's daily note, then delete the Apple Reminder. Carries notes (in parentheses), location as `@mention`, `>date`, `at HH:MM`, and priority markers when set.
+
 ## [2.4.2] 2026-08-24
 - Change: Reminder edit dialog now supports editing the reminder text, notes, and due time inline (Update / Enter), plus day-scale reschedule shortcuts, calendar picker, and Unsched. Setting a time on an undated reminder schedules it for today. Dialog width is fixed per viewport (wider than before). Bell icon in the dialog title uses the reminder list colour.
 - Change: Switching Perspective no longer shows the "Switching perspectives" spinner, and uses an incremental paint, rather than waiting until all sections are ready to display. dev: It sets `firstRun` so the header Refresh control shows "Generating" (same as initial load). It wow uses an incremental merge (`incrementallyRefreshSomeSections`) not `batchReplaceSections`. But alter `PERSPECTIVE_SWITCH_USES_REPLACE_METHOD` to change this back.
@@ -50,7 +53,7 @@ Just the Headlines:
 - Tag/mention cache used by default (faster TAG sections)
 
 + Some significant performance improvements, particularly if you use the Projects & Reviews plugin as well.  And lots of bug fixes.
-
+<!--
 ## [2.4.0.b66] 2026-08-20 (unreleased)
 - New: Saving an active Perspective now tells Projects + Reviews to regenerate its list when folder include/exclude or Spaces to Include changed. The Projects List shows a banner as it scans. (Live folder edits on a named Perspective still wait for Save, because Reviews reads the saved definition.)
 - dev: Save+Switch (and any result with both save-scope and switch actions) queues only one Projects list regen - the switch covers it. Reviews also coalesces back-to-back regenerate requests so a second message during an in-flight scan does not start a second full generate.
@@ -555,6 +558,7 @@ Just the Headlines:
 - new "Spaces to Include" setting which controls which (Team)Spaces you wish to include, plus whether or not to include the Private "Space" (all notes not in a Space). This is applied per Perspective.
 - Improved display of Teamspace part of note links in displayed items
 - improve design of toggle switches, and add subtle animation
+-->
 
 ## [2.3.3] 2025-12-04
 - new 'Year' section available

@@ -1900,3 +1900,45 @@ export function getSelectedParagraphsWithCorrectLineIndex(): Array<TParagraph> {
     return []
   }
 }
+
+/**
+ * Parts used to assemble open-task paragraph content (no task-marker prefix).
+ */
+export type TOpenTaskContentParts = {
+  content: string,
+  priority?: number, // 0/omit = none; 1..4 = ! / !! / !!! / >>
+  notes?: string,
+  location?: string,
+  date?: string, // YYYY-MM-DD (or already `>…` scheduled string)
+  time?: string, // HH:MM (or already `at HH:MM`)
+}
+
+const OPEN_TASK_PRIORITY_MARKERS = ['', '!', '!!', '!!!', '>>']
+
+/**
+ * Assemble open-task paragraph content from parts (priority, notes, location, schedule date, time).
+ * Returns content suitable for insertParagraph / smartPrependPara with type 'open' (no task marker prefix).
+ * Omits any part that is unset or empty after trim.
+ * @author @jgclark
+ * @param {TOpenTaskContentParts} parts
+ * @returns {string}
+ */
+export function buildOpenTaskRawContentFromParts(parts: TOpenTaskContentParts): string {
+  const title = (parts.content || '').trim()
+  const priorityNum = typeof parts.priority === 'number' ? parts.priority : 0
+  const priorityMarker = priorityNum >= 1 && priorityNum <= 4 ? OPEN_TASK_PRIORITY_MARKERS[priorityNum] : ''
+  const notes = (parts.notes || '').trim()
+  const location = (parts.location || '').trim()
+  const dateRaw = (parts.date || '').trim()
+  const timeRaw = (parts.time || '').trim()
+
+  const pieces: Array<string> = []
+  if (priorityMarker) pieces.push(priorityMarker)
+  if (title) pieces.push(title)
+  if (notes) pieces.push(`(${notes})`)
+  if (location) pieces.push(location.startsWith('@') ? location : `@${location}`)
+  if (dateRaw) pieces.push(dateRaw.startsWith('>') ? dateRaw : `>${dateRaw}`)
+  if (timeRaw) pieces.push(/^at\s/i.test(timeRaw) ? timeRaw : `at ${timeRaw}`)
+
+  return pieces.join(' ').replace(/\s+/g, ' ').trim()
+}
