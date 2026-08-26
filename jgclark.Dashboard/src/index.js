@@ -62,6 +62,8 @@ export {
   setSettings,
 } from './reactMain.js'
 
+export { openDemoProjectDialog, openDemoReminderDialog, openDemoTaskDialog } from './demoDialogHelpers.js'
+
 export { onMessageFromHTMLView } from './routeRequestsFromReact.js'
 
 export {
