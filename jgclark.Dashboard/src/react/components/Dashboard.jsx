@@ -29,7 +29,7 @@ import '../css/Dashboard.css'
 import { getTestGroups } from './testing/tests'
 import PerspectivesTable from './PerspectivesTable.jsx'
 import DebugPanel from '@helpers/react/DebugPanel'
-import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 export const standardSections: Array<TSettingItem> = showSectionSettingItems
 
 //--------------------------------------------------------------------------
@@ -95,18 +95,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const containerRef = useRef<?HTMLDivElement>(null)
   // Dedupe empty-state banner: only fire when transitioning into "nothing to show", not on every re-render while empty
   const hadDisplayableSectionsRef = useRef < boolean > (true)
-  const demoReminderDialogOpenedRef = useRef(false)
-  const demoReminderDialogTitleRef = useRef('')
-  const demoReminderDialogItemRef = useRef(null)
-
-  useEffect(() => {
-    if (pluginData.openDemoReminderDialogTitle) {
-      demoReminderDialogTitleRef.current = pluginData.openDemoReminderDialogTitle
-    }
-    if (pluginData.openDemoReminderDialogItem) {
-      demoReminderDialogItemRef.current = pluginData.openDemoReminderDialogItem
-    }
-  }, [pluginData.openDemoReminderDialogTitle, pluginData.openDemoReminderDialogItem])
 
   //----------------------------------------------------------------------
   // State
@@ -337,26 +325,47 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [sections, dashboardSettings, pluginData.currentMaxPriorityFromAllVisibleSections])
 
-  // Demo/README helper: openDemoReminderDialogTitle on pluginData auto-opens that reminder's edit dialog once.
+  // Hidden demo/screenshot helpers (`openDemo*Dialog`): open edit dialog for pluginData.openDialogForItemID, then clear it.
   useEffect(() => {
-    if (!pluginData.demoMode || reactSettings?.dialogData?.isOpen || demoReminderDialogOpenedRef.current) return
-    const title = demoReminderDialogTitleRef.current
-    const itemFromRef = demoReminderDialogItemRef.current
-    const remSection = sections.find((s) => s.sectionCode === 'REM')
-    const item = itemFromRef || (title ? remSection?.sectionItems?.find((i) => i.reminder?.title === title) : undefined)
-    if (!item) return
-    demoReminderDialogOpenedRef.current = true
+    const itemID = pluginData.openDialogForItemID
+    if (!itemID || reactSettings?.dialogData?.isOpen) return
+    let foundItem = null
+    for (const section of sections) {
+      const match = section.sectionItems?.find((i) => i.ID === itemID)
+      if (match) {
+        foundItem = match
+        break
+      }
+    }
+    if (!foundItem) {
+      // Sections may still be empty during first paint; keep the request until items exist.
+      if (!sections.some((s) => (s.sectionItems?.length ?? 0) > 0)) {
+        logDebug('Dashboard', `openDialogForItemID="${itemID}" waiting for sections to populate`)
+        return
+      }
+      logWarn('Dashboard', `openDialogForItemID="${itemID}" not found in ${sections.length} sections; clearing request`)
+      updatePluginData({ ...pluginData, openDialogForItemID: undefined }, `Clear missing openDialogForItemID ${itemID}`)
+      return
+    }
+    const isProject = foundItem.itemType === 'project'
+    const sectionCode = foundItem.sectionCode || ''
+    logDebug('Dashboard', `Opening dialog for item ID="${itemID}" itemType=${String(foundItem.itemType)}`)
     setReactSettings((prev) => ({
       ...prev,
-      lastChange: '_Dashboard-DemoReminderDialogOpen',
+      lastChange: `_Dashboard-DemoDialogOpen-${itemID}`,
       dialogData: {
         isOpen: true,
-        isTask: true,
-        details: { item, actionType: '(not yet set)', sectionCodes: [item.sectionCode || 'REM'] },
+        isTask: !isProject,
+        details: {
+          item: foundItem,
+          actionType: '(not yet set)',
+          sectionCodes: sectionCode ? [sectionCode] : [],
+        },
         clickPosition: { clientY: 320, clientX: 420 },
       },
     }))
-  }, [pluginData.demoMode, reactSettings?.dialogData?.isOpen, sections, setReactSettings])
+    updatePluginData({ ...pluginData, openDialogForItemID: undefined }, `Opened dialog for ${itemID}; cleared openDialogForItemID`)
+  }, [pluginData.openDialogForItemID, pluginData, reactSettings?.dialogData?.isOpen, sections, setReactSettings, updatePluginData])
 
   //----------------------------------------------------------------------
   // Handlers

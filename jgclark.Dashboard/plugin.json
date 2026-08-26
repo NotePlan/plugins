@@ -70,6 +70,33 @@
       "arguments": []
     },
     {
+      "hidden": true,
+      "name": "openDemoTaskDialog",
+      "description": "Open DialogForTaskItems for the given section item ID (arg0)",
+      "jsFunction": "openDemoTaskDialog",
+      "arguments": [
+        "section item ID (e.g. 0-0)"
+      ]
+    },
+    {
+      "hidden": true,
+      "name": "openDemoReminderDialog",
+      "description": "Open DialogForReminderItems for the given section item ID (arg0; demo: REM-3)",
+      "jsFunction": "openDemoReminderDialog",
+      "arguments": [
+        "section item ID (e.g. REM-3)"
+      ]
+    },
+    {
+      "hidden": true,
+      "name": "openDemoProjectDialog",
+      "description": "Open DialogForProjectItems for the given section item ID (arg0)",
+      "jsFunction": "openDemoProjectDialog",
+      "arguments": [
+        "section item ID (e.g. PROJACT-0)"
+      ]
+    },
+    {
       "hidden": false,
       "name": "Generate Diagnostics file",
       "description": "Generate Diagnostic Settings File",
