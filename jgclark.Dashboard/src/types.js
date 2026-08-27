@@ -45,6 +45,7 @@ export type TDashboardSettings = {
   FFlag_ShowSectionTimings?: boolean,
   FFlag_UseTagCache?: boolean, // TODO: remove this in v2.5.0?
   FFlag_UseTagCacheAPIComparison?: boolean, // TODO: remove this in v2.5.0?
+  FFlag_UsePriorityCache?: boolean, // Priority note-index cache; on unless explicitly false
   FFlag_DynamicAddToAnywhere?: boolean, // Use new DynamicDialog-based add task dialog instead of QuickCapture plugin,
 
 

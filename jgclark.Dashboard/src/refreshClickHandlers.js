@@ -22,6 +22,7 @@ import { applyDemoModeGenerationOverrides, getSomeSectionsData, sectionCodesNeed
 import { getRemindersGeneratedData, type TRemindersGeneratedData } from './dataGenerationReminders'
 import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
 import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from './tagMentionCache'
+import { isPriorityNoteIndexCacheGenerationScheduled, generatePriorityNoteIndexCache } from './priorityNoteIndexCache'
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData, TSection } from './types'
 // TAnyObject is a global from flow-typed/Noteplan.js (do not import from ./types)
 import { mergeReminderDisplayById } from '@helpers/NPReminders'
@@ -143,10 +144,14 @@ export async function incrementallyRefreshSomeSections(
       logTimer('incrementallyRefreshSomeSections', startTime, `- to calculate done counts at end of incrementallyRefreshSomeSections`, 200)
     }
 
-    // Finally, if relevant, rebuild the tag mention cache.
+    // Finally, if relevant, rebuild scheduled caches (fire-and-forget so we do not block the UI).
     if (isTagMentionCacheGenerationScheduled()) {
       logInfo('incrementallyRefreshSomeSections', `- generating scheduled tag mention cache`)
-      const _promise = generateTagMentionCache('After incrementally refreshing some sections, as scheduled') // no await, as we don't want to block the UI
+      const _tagPromise = generateTagMentionCache('After incrementally refreshing some sections, as scheduled') // no await
+    }
+    if (isPriorityNoteIndexCacheGenerationScheduled()) {
+      logInfo('incrementallyRefreshSomeSections', `- generating scheduled Priority note-index cache`)
+      const _priorityPromise = generatePriorityNoteIndexCache('After incrementally refreshing some sections, as scheduled') // no await
     }
 
     return handlerResult(true)
@@ -215,10 +220,14 @@ export async function batchReplaceSections(data: MessageDataObject): Promise<TBr
 
     // Do not recount header done counts here (not perspective-scoped; scan would hold the switch spinner). See JSDoc.
 
-    // If scheduled, rebuild the tag/mention cache without blocking the switch spinner.
+    // If scheduled, rebuild caches without blocking the switch spinner.
     if (isTagMentionCacheGenerationScheduled()) {
       logInfo('batchReplaceSections', `- generating scheduled tag mention cache`)
-      const _promise = generateTagMentionCache('After batch replacing sections, as scheduled')
+      const _tagPromise = generateTagMentionCache('After batch replacing sections, as scheduled')
+    }
+    if (isPriorityNoteIndexCacheGenerationScheduled()) {
+      logInfo('batchReplaceSections', `- generating scheduled Priority note-index cache`)
+      const _priorityPromise = generatePriorityNoteIndexCache('After batch replacing sections, as scheduled')
     }
     return handlerResult(true)
   }

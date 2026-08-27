@@ -16,6 +16,7 @@ const featureFlagSettingDefs = [
   // Note: DBW requests this is kept even when v2.3.0 is released
   { key: 'FFlag_UseTagCache', label: 'Use Tag Cache', description: 'Use Tag Cache to speed up tag/mention searches' },
   { key: 'FFlag_UseTagCacheAPIComparison', label: 'Use Tag Cache API Comparison', description: 'When using Tag Cache, compare the results with the API. (Slows it down.)' },
+  { key: 'FFlag_UsePriorityCache', label: 'Use Priority Cache', description: 'Use Priority note-index cache to speed up the Priority section (avoids full vault scan)' },
   { key: 'FFlag_ShowSectionTimings', label: 'Show Section Timings', description: 'Show timings for how long it took to generate sections' },
   { key: 'FFlag_DynamicAddToAnywhere', label: 'Dynamic Add To Anywhere', description: 'Use new DynamicDialog-based add task dialog instead of QuickCapture plugin' },
 ]
@@ -25,7 +26,10 @@ export const createFeatureFlagItems = (dashboardSettings: TDashboardSettings): A
     label: setting.label,
     key: setting.key,
     type: 'switch',
-    checked: setting.key === 'FFlag_UseTagCache' ? dashboardSettings[setting.key] !== false : Boolean(dashboardSettings[setting.key]),
+    checked:
+      setting.key === 'FFlag_UseTagCache' || setting.key === 'FFlag_UsePriorityCache'
+        ? dashboardSettings[setting.key] !== false
+        : Boolean(dashboardSettings[setting.key]),
     description: setting.description,
   }))
 }

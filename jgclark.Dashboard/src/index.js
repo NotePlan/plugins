@@ -74,6 +74,7 @@ export {
 } from './NPHooks'
 
 export { generateTagMentionCache, updateTagMentionCache } from './tagMentionCache'
+export { generatePriorityNoteIndexCache, updatePriorityNoteIndexCache } from './priorityNoteIndexCache'
 
 export { updateDoneCountsFromChangedNotes, logDoneCounts } from './countDoneTasks'
 

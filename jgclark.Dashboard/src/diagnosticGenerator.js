@@ -14,6 +14,7 @@ import {
 import { logPerspectives, logPerspectiveNames, getActivePerspectiveName, loadPerspectiveDefsFromPluginSettings } from './perspectiveHelpers'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { getTagMentionCacheDiagnosticsLines } from './tagMentionCache'
+import { getPriorityNoteIndexCacheDiagnosticsLines } from './priorityNoteIndexCache'
 import type { TPerspectiveDef } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink } from '@helpers/general'
@@ -90,6 +91,9 @@ export async function generateDiagnosticsFile(refreshArg: string = '') {
     output.push('')
     output.push('## Tag/Mention Cache')
     output.push(...getTagMentionCacheDiagnosticsLines(ds))
+    output.push('')
+    output.push('## Priority Note-Index Cache')
+    output.push(...getPriorityNoteIndexCacheDiagnosticsLines(ds))
     output.push('')
     output.push(`## Perspectives`)
     output.push(`Current Perspective = **${getActivePerspectiveName(perspectiveDefs)}**`)

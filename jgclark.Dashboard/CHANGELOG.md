@@ -1,9 +1,11 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.5.0] 2026-08-???
+## [2.5.0.b1] 2026-08-27
+- New: Priority note-index cache (`priorityNoteIndexCache.json`) so the Priority section can avoid a full vault scan on warm refreshes. On by default (`FFlag_UsePriorityCache`); falls back to full scan and schedules a background rebuild when the cache is missing. Commands: `generatePriorityNoteIndexCache` / `updatePriorityNoteIndexCache`.
 - New: Interactive Processing on Active Projects and Projects to Review (`>> N` walks project rows; PROJACT allows back-navigate, PROJREVIEW forward-only; Start Reviews unchanged).
 - Dev: Consolidate shared section-row CSS (`.sectionItemRow`, `.sectionItemContent`, `.itemIcon`) into `ItemRow.css`; remove duplicate `TaskItem.css` / `TasksFiltered.css`.
+- Dev: Bring Reminder edit / Convert to Task / `ITEM_ORIG_SECTION` refresh and related 2.4.2–2.4.3 work from main onto the 2.5.0 branch.
 
 ## [2.4.3] 2026-08-???
 - New: Reminder edit dialog Actions row has "Convert to Task" (second control) to convert a reminder into an open task prepended to today's daily note, then delete the Apple Reminder. Carries notes (in parentheses), location as `@mention`, `>date`, `at HH:MM`, and priority markers when set.

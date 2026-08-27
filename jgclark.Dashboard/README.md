@@ -276,7 +276,7 @@ If the **Yesterday** section is turned off, Overdue also includes open tasks fro
 You can set the "Sort order for Tag/Mention and Overdue items": 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.
 
 ### Priority section
-This finds all **unscheduled** open items with a priority set (with `>>`, `!!!`, `!!` and `!` markers). Items that already have a `>date` (or `>today`) are left out on purpose: they belong in the Calendar period sections and/or **Overdue**, not here. Priority is the undated raised-priority backlog. Note: _this is likely to be very slow to generate, as it can't use any of NotePlan's internal caches, and doesn't have a natural way to limit it, like the Overdue section._
+This finds all **unscheduled** open items with a priority set (with `>>`, `!!!`, `!!` and `!` markers). Items that already have a `>date` (or `>today`) are left out on purpose: they belong in the Calendar period sections and/or **Overdue**, not here. Priority is the undated raised-priority backlog. Note: _a full vault scan is slow because NotePlan has no Priority API like `listOverdueTasks`_. From **2.5.0.b1** Dashboard keeps a local **Priority note-index cache** (similar to the Tag cache) so warm refreshes only open candidate notes; the first run after install may still do a full scan and then build the cache in the background.
 
 David's advice is: "Priority tasks float to the tops of their individual sections already. And I go through all overdue tasks and handle them so that section stays small after you bite the bullet and do it once."
 

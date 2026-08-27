@@ -237,8 +237,43 @@ Additionally, synthetic sections (e.g. `WINS`) are stripped from pluginData in t
 ### Refresh cadence
 
 - **Update** (`updateTagMentionCache`): notes changed since last run (~**1 hour** threshold via `updateTagMentionCacheIfTooOld`).
-- **Full regenerate** (`generateTagMentionCache`): ~**24 hours** or when new wanted items appear / scheduled via preference `regenerateTagMentionCachePref`.
+- **Full regenerate** (`generateTagMentionCache`): ~**5 days** or when new wanted items appear / scheduled via preference `regenerateTagMentionCachePref`.
 - Plugin install/update may force a full rebuild (`index.js` `onUpdateOrInstall`).
+
+
+## Priority note-index cache (`priorityNoteIndexCache.js`)
+
+The Priority section has no NotePlan API equivalent of `DataStore.listOverdueTasks()`, so discovery historically walked every non-special project note plus past calendar notes (~11s on a large vault for a few dozen hits). From **2.5.0.b1**, Dashboard keeps a **plugin-local filename index** of notes that contain at least one **open, unscheduled, priority>0** paragraph (same membership rule as `getOpenPriorityItems` in `dataGenerationPriority.js`).
+
+Implementation: `src/priorityNoteIndexCache.js`. Consumed by `getRelevantPriorityTasks()` when Priority cache is enabled (default -- **on** unless `FFlag_UsePriorityCache: false` in top-level `dashboardSettings`).
+
+### Cache file
+
+| File | Role |
+|------|------|
+| `priorityNoteIndexCache.json` | Filenames only: `regularNotes`, `calendarNotes`, plus `generatedAt` / `lastUpdated` (ISO UTC) and `version` |
+
+Paragraphs are **not** stored. On every Priority refresh the plugin re-opens candidate notes and re-runs `getOpenPriorityItems`, so false positives self-heal. False negatives are mitigated by incremental updates on changed notes and periodic full regenerate.
+
+### Index vs query universe
+
+| At index build / update | At Priority query |
+|-------------------------|-------------------|
+| All non-`@` regular notes | Existing folder filters (`includedFolders` / `excludedFolders`) via `filterParasByRelevantFolders` |
+| **All** calendar notes that match the membership rule | Restrict calendar candidates to `pastCalendarNotes()` (date start before today) |
+
+Indexing calendar notes broadly avoids a midnight-only invalidation path when yesterday's note becomes "past." Folder filters are **not** baked into the index so one cache serves all perspectives.
+
+### Cold / missing cache
+
+If the cache file is missing or invalid, Priority falls back to the full vault scan (correct first paint) and **schedules** `generatePriorityNoteIndexCache` via preference. Scheduled rebuilds run fire-and-forget after `incrementallyRefreshSomeSections` / `batchReplaceSections` (same pattern as the tag cache), on the **main thread** with loading/banner feedback.
+
+### Refresh cadence
+
+- **Update** (`updatePriorityNoteIndexCache`): notes changed since last run (~**1 hour** via `updatePriorityNoteIndexCacheIfTooOld`; 5s debounce).
+- **Full regenerate** (`generatePriorityNoteIndexCache`): ~**5 days**, or when scheduled / commanded (`generatePriorityNoteIndexCache` / `updatePriorityNoteIndexCache`).
+
+Diagnostics (`generateDiagnosticsFile`) include a **Priority Note-Index Cache** section.
 
 
 ## Section refresh functions (`refreshClickHandlers.js`)

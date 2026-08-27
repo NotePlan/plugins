@@ -18,6 +18,8 @@ import {
   isWinItem,
   makeDashboardParas,
 } from './dashboardHelpers'
+import { isPriorityCacheEnabled } from './dashboardSettingsClean'
+import { getNotesFromPriorityNoteIndexCache, schedulePriorityNoteIndexCacheGeneration } from './priorityNoteIndexCache'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getRegularNotesFromFilteredFolders } from '@helpers/folders'
@@ -163,9 +165,25 @@ async function getRelevantPriorityTasks(config: TDashboardSettings): Promise<Arr
     // const includedFolders = config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',').map((folder) => folder.trim()) : []
     const excludedFolders = config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : []
     logInfo('getRelevantPriorityTasks', `excludedFolders: ${String(excludedFolders)}`)
-    // Reduce list to all notes that are not blank or in @ folders or excludedFolders
-    let notesToCheck = getRegularNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
-    logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
+
+    let notesToCheck: Array<TNote> = []
+    const usePriorityCache = isPriorityCacheEnabled(config)
+    if (usePriorityCache) {
+      const cachedNotes = await getNotesFromPriorityNoteIndexCache()
+      if (cachedNotes != null) {
+        notesToCheck = cachedNotes
+        logTimer('getRelevantPriorityTasks', thisStartTime, `- from PRIORITY CACHE: ${String(notesToCheck.length)} candidate notes`)
+      } else {
+        logInfo('getRelevantPriorityTasks', `- Priority cache unavailable; falling back to full vault scan (generation scheduled for later)`)
+        schedulePriorityNoteIndexCacheGeneration()
+        notesToCheck = getRegularNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
+        logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
+      }
+    } else {
+      // Reduce list to all notes that are not blank or in @ folders or excludedFolders
+      notesToCheck = getRegularNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
+      logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
+    }
 
     // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by `DataStore.projectNotes` (the call behind 'regularNotesFromFilteredFolders').
     // Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
