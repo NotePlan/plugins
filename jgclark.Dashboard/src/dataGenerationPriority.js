@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-08-12 for v2.4.0.b63 by @jgclark + @CursorAI
+// Last updated 2026-08-27 for v2.5.0.b2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -172,7 +172,7 @@ async function getRelevantPriorityTasks(config: TDashboardSettings): Promise<Arr
       const cachedNotes = await getNotesFromPriorityNoteIndexCache()
       if (cachedNotes != null) {
         notesToCheck = cachedNotes
-        logTimer('getRelevantPriorityTasks', thisStartTime, `- from PRIORITY CACHE: ${String(notesToCheck.length)} candidate notes`)
+        logInfo('getRelevantPriorityTasks', `- from PRIORITY CACHE: ${String(notesToCheck.length)} candidate notes`)
       } else {
         logInfo('getRelevantPriorityTasks', `- Priority cache unavailable; falling back to full vault scan (generation scheduled for later)`)
         schedulePriorityNoteIndexCacheGeneration()

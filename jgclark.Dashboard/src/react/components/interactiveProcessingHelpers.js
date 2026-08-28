@@ -4,7 +4,7 @@
 // Last updated 2026-08-21 for v2.4.1 by @CursorAI
 //--------------------------------------------------------------------------
 
-import type { TItemToProcess } from '../../types'
+import type { TItemToProcess, TSectionItem } from '../../types'
 
 // Alias of TItemToProcess so IP helpers stay aligned with TInteractiveProcessing.visibleItems.
 export type TIPVisibleItem = TItemToProcess

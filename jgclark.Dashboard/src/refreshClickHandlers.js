@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
+// Last updated 2026-08-27 for v2.5.0.b2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
@@ -22,7 +22,7 @@ import { applyDemoModeGenerationOverrides, getSomeSectionsData, sectionCodesNeed
 import { getRemindersGeneratedData, type TRemindersGeneratedData } from './dataGenerationReminders'
 import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
 import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from './tagMentionCache'
-import { isPriorityNoteIndexCacheGenerationScheduled, generatePriorityNoteIndexCache } from './priorityNoteIndexCache'
+import { generatePriorityNoteIndexCache, shouldRunScheduledPriorityNoteIndexCacheGeneration } from './priorityNoteIndexCache'
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData, TSection } from './types'
 // TAnyObject is a global from flow-typed/Noteplan.js (do not import from ./types)
 import { mergeReminderDisplayById } from '@helpers/NPReminders'
@@ -149,7 +149,7 @@ export async function incrementallyRefreshSomeSections(
       logInfo('incrementallyRefreshSomeSections', `- generating scheduled tag mention cache`)
       const _tagPromise = generateTagMentionCache('After incrementally refreshing some sections, as scheduled') // no await
     }
-    if (isPriorityNoteIndexCacheGenerationScheduled()) {
+    if (shouldRunScheduledPriorityNoteIndexCacheGeneration()) {
       logInfo('incrementallyRefreshSomeSections', `- generating scheduled Priority note-index cache`)
       const _priorityPromise = generatePriorityNoteIndexCache('After incrementally refreshing some sections, as scheduled') // no await
     }
@@ -225,7 +225,7 @@ export async function batchReplaceSections(data: MessageDataObject): Promise<TBr
       logInfo('batchReplaceSections', `- generating scheduled tag mention cache`)
       const _tagPromise = generateTagMentionCache('After batch replacing sections, as scheduled')
     }
-    if (isPriorityNoteIndexCacheGenerationScheduled()) {
+    if (shouldRunScheduledPriorityNoteIndexCacheGeneration()) {
       logInfo('batchReplaceSections', `- generating scheduled Priority note-index cache`)
       const _priorityPromise = generatePriorityNoteIndexCache('After batch replacing sections, as scheduled')
     }

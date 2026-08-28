@@ -2,12 +2,12 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by Dialog component. Supports Interactive Processing for PROJACT / PROJREVIEW.
-// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
+// Last updated 2026-08-28 for v2.5.0.b by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import React, { useRef, useLayoutEffect, useState, useCallback } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
-import { type MessageDataObject } from "../../types"
+import { type MessageDataObject, type TSection, type TSectionCode } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
@@ -65,7 +65,9 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   const monthsToShow = (pluginData.platform === 'iOS') ? 1 : 2
 
   const thisItem = detailsMessageObject?.item
-  const sectionCode = thisItem?.sectionCode || detailsMessageObject?.sectionCodes?.[0] || ''
+  const sectionCode: TSectionCode | '' = thisItem?.sectionCode || detailsMessageObject?.sectionCodes?.[0] || ''
+  const thisSection: ?TSection =
+    sectionCode !== '' ? pluginData.sections?.find((section) => section.sectionCode === sectionCode) : undefined
   // PROJACT: true back-navigate; PROJREVIEW: forward skip only
   const showBackNavigate = sectionCode === 'PROJACT' && canNavigateBackInIP(currentIPIndex)
 
@@ -286,13 +288,15 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
             label={`Project Item Dialog for ${title}`}
           >
             <span className="dialogItemNote">
-              <ItemNoteLink
-                item={thisItem}
-                thisSection={sectionCode}
-                alwaysShowNoteTitle={true}
-                suppressTeamspaceName={false}
-                normalSize={true}
-              />
+              {thisSection != null && (
+                <ItemNoteLink
+                  item={thisItem}
+                  thisSection={thisSection}
+                  alwaysShowNoteTitle={true}
+                  suppressTeamspaceName={false}
+                  normalSize={true}
+                />
+              )}
             </span>
             <span className="reviewDetailsText">{reviewDetails}</span>
           </TooltipOnKeyPress>

@@ -243,7 +243,7 @@ Additionally, synthetic sections (e.g. `WINS`) are stripped from pluginData in t
 
 ## Priority note-index cache (`priorityNoteIndexCache.js`)
 
-The Priority section has no NotePlan API equivalent of `DataStore.listOverdueTasks()`, so discovery historically walked every non-special project note plus past calendar notes (~11s on a large vault for a few dozen hits). From **2.5.0.b1**, Dashboard keeps a **plugin-local filename index** of notes that contain at least one **open, unscheduled, priority>0** paragraph (same membership rule as `getOpenPriorityItems` in `dataGenerationPriority.js`).
+The Priority section has no NotePlan API equivalent of `DataStore.listOverdueTasks()`, so discovery historically walked every non-special project note plus past calendar notes (~11s on a large vault for a few dozen hits). From 2.5.0.b2, Dashboard keeps a **plugin-local filename index** of notes that contain at least one **open, unscheduled, priority>0** paragraph (same membership rule as `getOpenPriorityItems` in `dataGenerationPriority.js`).
 
 Implementation: `src/priorityNoteIndexCache.js`. Consumed by `getRelevantPriorityTasks()` when Priority cache is enabled (default -- **on** unless `FFlag_UsePriorityCache: false` in top-level `dashboardSettings`).
 
@@ -262,11 +262,11 @@ Paragraphs are **not** stored. On every Priority refresh the plugin re-opens can
 | All non-`@` regular notes | Existing folder filters (`includedFolders` / `excludedFolders`) via `filterParasByRelevantFolders` |
 | **All** calendar notes that match the membership rule | Restrict calendar candidates to `pastCalendarNotes()` (date start before today) |
 
-Indexing calendar notes broadly avoids a midnight-only invalidation path when yesterday's note becomes "past." Folder filters are **not** baked into the index so one cache serves all perspectives.
+Indexing calendar notes broadly avoids a midnight-only invalidation path when yesterday's note becomes "past." _Folder filters are **not** baked into the index so one cache serves all perspectives._
 
 ### Cold / missing cache
 
-If the cache file is missing or invalid, Priority falls back to the full vault scan (correct first paint) and **schedules** `generatePriorityNoteIndexCache` via preference. Scheduled rebuilds run fire-and-forget after `incrementallyRefreshSomeSections` / `batchReplaceSections` (same pattern as the tag cache), on the **main thread** with loading/banner feedback.
+If the cache file is missing or invalid, Priority falls back to the full vault scan (correct first paint) and **schedules** `generatePriorityNoteIndexCache` via preference. Scheduled rebuilds run fire-and-forget after `incrementallyRefreshSomeSections` / `batchReplaceSections` (same pattern as the tag cache), on the **main thread** with WebView banner feedback (`sendBannerMessage`).
 
 ### Refresh cadence
 

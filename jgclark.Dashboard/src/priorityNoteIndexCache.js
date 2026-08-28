@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Priority note-index cache for Dashboard PRIORITY section
-// Last updated 2026-08-27 for v2.5.0.b1 by @jgclark + @CursorAI
+// Last updated 2026-08-27 for v2.5.0.b2 by @CursorAI
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -14,6 +14,7 @@
 // Indexes notes that contain at least one open, unscheduled, priority>0 item.
 // Folder filters are applied at query time so one cache serves all perspectives.
 // Calendar notes are indexed broadly; Priority query restricts to past calendar notes.
+// Rebuild every PRIORITY_CACHE_GENERATE_INTERVAL_DAYS (default 5) days, or on demand if the user has requested it.
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -188,23 +189,16 @@ function addNoteToPriorityCache(cache: TPriorityNoteIndexCache, filename: string
 /**
  * Scan notes and collect filenames that match the Priority membership rule.
  * @param {$ReadOnlyArray<TNote>} notes
- * @param {string} progressLabel
  * @returns {{ filenames: Array<string>, matchingNoteCount: number, notesSkippedByPrefilter: number }}
  */
 function processNotesForPriorityIndex(
   notes: $ReadOnlyArray<TNote>,
-  progressLabel: string,
 ): { filenames: Array<string>, matchingNoteCount: number, notesSkippedByPrefilter: number } {
   const filenames: Array<string> = []
   let matchingNoteCount = 0
   let notesSkippedByPrefilter = 0
-  let noteCount = 0
 
   for (const note of notes) {
-    noteCount++
-    if (noteCount % 100 === 0) {
-      CommandBar.showLoading(true, progressLabel, noteCount / notes.length)
-    }
     if (!isNonBlankMarkdownNote(note)) {
       notesSkippedByPrefilter++
       continue
@@ -245,6 +239,28 @@ export function isPriorityNoteIndexCacheGenerationScheduled(): boolean {
 export function schedulePriorityNoteIndexCacheGeneration(): void {
   logInfo('schedulePriorityNoteIndexCacheGeneration', `Scheduling priority note-index cache generation.`)
   DataStore.setPreference(regeneratePriorityNoteIndexCachePref, true)
+}
+
+/**
+ * True when a scheduled full regenerate should actually run.
+ * Skips leftover schedule flags when a fresh-enough cache file already exists
+ * (e.g. after a prior generate that saved the file but never cleared the pref).
+ * @returns {boolean}
+ */
+export function shouldRunScheduledPriorityNoteIndexCacheGeneration(): boolean {
+  if (!isPriorityNoteIndexCacheGenerationScheduled()) return false
+  const cache = loadPriorityNoteIndexCache()
+  if (!cache || !cache.generatedAt) return true
+  const diffHours = moment().diff(moment(cache.generatedAt), 'hours', true)
+  if (diffHours < PRIORITY_CACHE_GENERATE_INTERVAL_DAYS * 24) {
+    logInfo(
+      'shouldRunScheduledPriorityNoteIndexCacheGeneration',
+      `Schedule flag set, but cache is only ${diffHours.toFixed(3)} hours old (< ${String(PRIORITY_CACHE_GENERATE_INTERVAL_DAYS)} days) - clearing flag and skipping full regenerate`,
+    )
+    clearPriorityNoteIndexCacheGenerationPref()
+    return false
+  }
+  return true
 }
 
 /**
@@ -290,13 +306,13 @@ export function loadPriorityNoteIndexCache(): ?TPriorityNoteIndexCache {
  * Generate the priority note-index cache from scratch.
  * Scans all non-@ regular notes and all calendar notes on the **main thread**
  * (same lesson as tagMentionCache: async-thread regenerations have stalled without saving).
+ * Progress uses the Dashboard WebView banner (`sendBannerMessage`), same as tag/mention cache generation.
  * @param {string} generationReason
  * @returns {Promise<void>}
  */
 export async function generatePriorityNoteIndexCache(generationReason: string = 'Triggered by external call'): Promise<void> {
   const startTime = new Date()
   let progressBannerShown = false
-  let loadingIndicatorShown = false
   try {
     logInfo('generatePriorityNoteIndexCache', `Starting for ${generationReason}`)
 
@@ -309,16 +325,14 @@ export async function generatePriorityNoteIndexCache(generationReason: string = 
       'INFO',
     )
     progressBannerShown = true
-
-    CommandBar.showLoading(true, `Generating Priority note-index cache (${String(allCalNotes.length + allRegularNotes.length)} notes) ...`)
-    loadingIndicatorShown = true
+    logInfo('generatePriorityNoteIndexCache', `- processing ${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes ...`)
 
     logInfo('generatePriorityNoteIndexCache', `- scanning ${String(allCalNotes.length)} calendar notes ...`)
-    const calResult = processNotesForPriorityIndex(allCalNotes, 'Generating Priority note-index cache (calendar)')
+    const calResult = processNotesForPriorityIndex(allCalNotes)
     logDebug('generatePriorityNoteIndexCache', `  - pre-filter skipped ${String(calResult.notesSkippedByPrefilter)} calendar notes`)
 
     logInfo('generatePriorityNoteIndexCache', `- scanning ${String(allRegularNotes.length)} regular notes ...`)
-    const regResult = processNotesForPriorityIndex(allRegularNotes, 'Generating Priority note-index cache (regular)')
+    const regResult = processNotesForPriorityIndex(allRegularNotes)
     logDebug('generatePriorityNoteIndexCache', `  - pre-filter skipped ${String(regResult.notesSkippedByPrefilter)} regular notes`)
 
     const elapsedSecs = Math.max(((new Date(): any) - startTime) / 1000, 0.001)
@@ -344,7 +358,10 @@ export async function generatePriorityNoteIndexCache(generationReason: string = 
     logTimer('generatePriorityNoteIndexCache', startTime, `- after saving ${String(totalMatching)} note filenames to ${priorityNoteIndexCacheFile}`)
 
     recordPriorityCacheLastRunTime(startTime)
+    // Clear the schedule flag before any WebView banner await, so a hung banner cannot leave regen permanently scheduled
+    clearPriorityNoteIndexCacheGenerationPref()
 
+    // Replace progress banner with a timed completion message (progress banners have no timeout and would persist otherwise)
     await sendBannerMessage(
       WEBVIEW_WINDOW_ID,
       `Priority note-index cache re-generated; it contains ${String(totalMatching)} notes with raised-priority items`,
@@ -352,8 +369,6 @@ export async function generatePriorityNoteIndexCache(generationReason: string = 
       5000,
     )
     progressBannerShown = false
-
-    clearPriorityNoteIndexCacheGenerationPref()
   } catch (err) {
     logError('generatePriorityNoteIndexCache', JSP(err))
     if (progressBannerShown) {
@@ -363,9 +378,6 @@ export async function generatePriorityNoteIndexCache(generationReason: string = 
       progressBannerShown = false
     }
   } finally {
-    if (loadingIndicatorShown) {
-      CommandBar.showLoading(false)
-    }
     if (progressBannerShown) {
       logWarn('generatePriorityNoteIndexCache', `- removing progress banner`)
       await sendBannerMessage(WEBVIEW_WINDOW_ID, '', 'REMOVE')
@@ -489,6 +501,13 @@ export async function getNotesFromPriorityNoteIndexCache(): Promise<?Array<TNote
     }
 
     schedulePriorityNoteIndexCacheGenerationIfTooOld(cache.generatedAt)
+    // If we have a usable cache, drop any leftover regenerate flag from a prior interrupted generate
+    if (isPriorityNoteIndexCacheGenerationScheduled()) {
+      const diffHours = moment().diff(moment(cache.generatedAt), 'hours', true)
+      if (diffHours < PRIORITY_CACHE_GENERATE_INTERVAL_DAYS * 24) {
+        clearPriorityNoteIndexCacheGenerationPref()
+      }
+    }
 
     const pastCalFilenames = new Set(pastCalendarNotes().map((n) => n.filename))
     const candidateFilenames: Array<string> = cache.regularNotes.concat(cache.calendarNotes.filter((fn) => pastCalFilenames.has(fn)))
