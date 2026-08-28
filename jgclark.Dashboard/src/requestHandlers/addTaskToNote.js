@@ -9,6 +9,7 @@ import { getDashboardSettings } from '../dashboardHelpers'
 import { isValidCalendarNoteFilename, convertISOToYYYYMMDD, isDailyDateStr } from '@helpers/dateTime'
 import { logDebug, logError } from '@helpers/dev'
 import { coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
+import { getUsersNoteFileExtension, RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { getNoteFromFilename } from '@helpers/NPnote'
 import { resolveNoteChooserFilenameForLookup } from '@helpers/noteChooserFilenameResolve'
 import { processChosenHeading } from '@helpers/userInput'
@@ -49,13 +50,13 @@ export async function addTaskToNote(params: { filename: string, taskText: string
 
     // Normalize filename: convert ISO date format (YYYY-MM-DD) to NotePlan format (YYYYMMDD) if needed
     // Check if filename (without extension) is a daily date string in ISO format
-    const filenameWithoutExt = normalizedFilename.replace(/\.(md|txt)$/, '')
+    const filenameWithoutExt = normalizedFilename.replace(RE_NOTE_FILE_EXTENSION, '')
     if (isDailyDateStr(filenameWithoutExt)) {
       // Convert ISO format to NotePlan format for calendar notes
       const convertedDate = convertISOToYYYYMMDD(filenameWithoutExt)
       if (convertedDate !== filenameWithoutExt) {
         // Conversion happened - reconstruct filename with NotePlan format
-        const ext = normalizedFilename.match(/\.(md|txt)$/)?.[0] || '.md'
+        const ext = normalizedFilename.match(RE_NOTE_FILE_EXTENSION)?.[0] || `.${getUsersNoteFileExtension()}`
         normalizedFilename = `${convertedDate}${ext}`
         logDebug('requestHandlers/addTaskToNote', `Converted ISO date filename to NotePlan format "${normalizedFilename}"`)
       }
@@ -79,7 +80,7 @@ export async function addTaskToNote(params: { filename: string, taskText: string
       const isCalendarNote = isValidCalendarNoteFilename(normalizedFilename)
       if (isCalendarNote) {
         // Extract date string from normalized filename (without extension) for calendarNoteByDateString
-        const dateStr = normalizedFilename.replace(/\.(md|txt)$/, '')
+        const dateStr = normalizedFilename.replace(RE_NOTE_FILE_EXTENSION, '')
         // calendarNoteByDateString accepts both ISO (YYYY-MM-DD) and NotePlan (YYYYMMDD) formats,
         // but we've normalized to NotePlan format, so use that
         destNote = DataStore.calendarNoteByDateString(dateStr, space)

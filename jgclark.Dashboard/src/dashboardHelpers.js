@@ -44,6 +44,7 @@ import {
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
 } from '@helpers/dateTime'
+import { DEFAULT_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { findNoteLinksForDisplay } from '@helpers/HTMLView'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
@@ -290,7 +291,7 @@ export function getNotePlanSettings(): TNotePlanSettings {
 export function getNotePlanSettingsDefaults(): TNotePlanSettings {
   return {
     timeblockMustContainString: '',
-    defaultFileExtension: 'md',
+    defaultFileExtension: DEFAULT_NOTE_FILE_EXTENSION,
     doneDatesAvailable: false,
     currentTeamspaces: [],
   }

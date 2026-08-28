@@ -21,6 +21,7 @@ import {
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getRegularNotesFromFilteredFolders } from '@helpers/folders'
+import { RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 import { pastCalendarNotes } from '@helpers/note'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
@@ -171,7 +172,7 @@ async function getRelevantPriorityTasks(config: TDashboardSettings): Promise<Arr
     // Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
     // Note: JGC has asked EM to not return other sorts of files
     // Note: this takes roughly 1ms per note for JGC.
-    notesToCheck = notesToCheck.filter((n) => n.filename.match(/(.txt|.md)$/)).filter((n) => n.content && !isNaN(n.content.length) && n.content.length >= 1)
+    notesToCheck = notesToCheck.filter((n) => RE_NOTE_FILE_EXTENSION.test(n.filename)).filter((n) => n.content && !isNaN(n.content.length) && n.content.length >= 1)
     logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(notesToCheck.length)} non-blank MD notes to check`)
 
     // Now find all open items in them which have a priority marker
