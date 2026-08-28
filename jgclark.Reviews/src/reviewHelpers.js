@@ -408,6 +408,69 @@ export function getNextActionLineIndex(note: CoreNoteFields, naTag: string): num
 }
 
 /**
+ * Hashtags that define this note's project type: the combined frontmatter key (e.g. `project:`)
+ * plus any legacy body metadata line. Does not include hashtags from tasks or other body content.
+ * @param {CoreNoteFields | TNote} note
+ * @returns {Array<string>} de-duplicated tags in first-seen order
+ */
+export function getProjectTypeTagsFromNoteMetadata(note: CoreNoteFields | TNote): Array<string> {
+  const tags: Array<string> = []
+  const seen = new Set<string>()
+  const addTags = (candidates: Array<string>) => {
+    for (const tag of candidates) {
+      if (!tag || !tag.startsWith('#') || tag.length <= 1) continue
+      const key = tag.toLowerCase()
+      if (!seen.has(key)) {
+        seen.add(key)
+        tags.push(tag)
+      }
+    }
+  }
+
+  const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+  const frontmatterValue = getFrontmatterAttribute(note, combinedKey)
+  addTags(getHashtagsFromString(String(frontmatterValue ?? '')))
+
+  const metadataLineIndex = getProjectMetadataLineIndex(note)
+  const paras = note.paragraphs ?? []
+  if (metadataLineIndex !== false && paras.length > metadataLineIndex) {
+    const metadataLine = paras[metadataLineIndex].content ?? ''
+    addTags(getHashtagsFromString(metadataLine))
+  }
+
+  return tags
+}
+
+/**
+ * Return configured project-type tags present on a note (frontmatter/metadata only), in config order.
+ * @param {CoreNoteFields | TNote} note
+ * @param {Array<string>} projectTypeTags
+ * @returns {Array<string>}
+ */
+export function getMatchingProjectTypeTagsOnNote(
+  note: CoreNoteFields | TNote,
+  projectTypeTags: Array<string>,
+): Array<string> {
+  const metadataTagsLower = getProjectTypeTagsFromNoteMetadata(note).map((t) => t.toLowerCase())
+  return projectTypeTags.filter((tag) => {
+    const normalisedTag = tag.startsWith('#') ? tag : `#${tag}`
+    return metadataTagsLower.includes(normalisedTag.toLowerCase())
+  })
+}
+
+/**
+ * Return true when the note's project metadata includes the given project type tag (case-insensitive).
+ * @param {CoreNoteFields | TNote} note
+ * @param {string} projectTypeTag - e.g. '#project'
+ * @returns {boolean}
+ */
+export function noteHasProjectTypeTag(note: CoreNoteFields | TNote, projectTypeTag: string): boolean {
+  if (projectTypeTag === '') return false
+  const normalisedTag = projectTypeTag.startsWith('#') ? projectTypeTag : `#${projectTypeTag}`
+  return getProjectTypeTagsFromNoteMetadata(note).some((t) => t.toLowerCase() === normalisedTag.toLowerCase())
+}
+
+/**
  * Return true if the project note is marked sequential (sequential tag in frontmatter 'project' or in the metadata line).
  * Mirrors logic in Project.gatherAnyNextActionContent.
  * @param {TNote} note - Note to check

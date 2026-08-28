@@ -11,7 +11,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getReviewSettings, parseMarkdownHeadingSetting, type ReviewConfig } from './reviewHelpers'
+import { getMatchingProjectTypeTagsOnNote, getReviewSettings, parseMarkdownHeadingSetting, type ReviewConfig } from './reviewHelpers'
 import {
   RE_DONE_DATE_OPT_TIME,
   RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,
@@ -190,20 +190,6 @@ function getNotesInTargetProjectFolders(config: ReviewConfig): { notes: Array<TN
   })
   const folders = getDistinctSortedFolderPathsFromNotes(notesInTargetFolders)
   return { notes: notesInTargetFolders, folders }
-}
-
-/**
- * Return project-type tags present on a note (from note.hashtags), in config order.
- * @param {TNote} note
- * @param {Array<string>} projectTypeTags
- * @returns {Array<string>}
- */
-function getMatchingProjectTagsOnNote(note: TNote, projectTypeTags: Array<string>): Array<string> {
-  const hashtags: $ReadOnlyArray<string> = note.hashtags ?? []
-  return projectTypeTags.filter((tag) => {
-    const normalisedTag = tag.startsWith('#') ? tag : `#${tag}`
-    return hashtags.includes(normalisedTag)
-  })
 }
 
 /**
@@ -872,7 +858,7 @@ function aggregateNotesProgressedByFolderAndTag(config: ReviewConfig, week: Week
   for (const note of notes) {
     if (!noteProgressedInWeek(note, week)) continue
 
-    const matchingTags = getMatchingProjectTagsOnNote(note, projectTypeTags)
+    const matchingTags = getMatchingProjectTypeTagsOnNote(note, projectTypeTags)
     if (matchingTags.length === 0) continue
 
     const noteTitle = (note.title ?? '').trim() !== '' ? (note.title ?? '').trim() : note.filename

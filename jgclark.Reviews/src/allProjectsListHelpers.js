@@ -11,13 +11,19 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
 import { calcReviewFieldsForProject, isProjectFinished } from './projectClassCalculations.js'
-import { getReviewSettings, updateDashboardIfOpen, updateRichProjectListIfOpen } from './reviewHelpers.js'
+import {
+  getProjectTypeTagsFromNoteMetadata,
+  getReviewSettings,
+  noteHasProjectTypeTag,
+  updateDashboardIfOpen,
+  updateRichProjectListIfOpen,
+} from './reviewHelpers.js'
 import type { ReviewConfig } from './reviewHelpers.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toISODateString } from '@helpers/dateTime'
 import { getFolderFromFilename, getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-import { findNotesMatchingHashtagOrMentionFromList, getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
+import { getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { smartPrependPara } from '@helpers/paragraph'
 
@@ -491,9 +497,7 @@ export function isNoteInCurrentProjectSelection(note: TNote, config: ReviewConfi
     }
   }
 
-  const noteFolder = getFolderFromFilename(note.filename ?? '')
-  const tagMatches = findNotesMatchingHashtagOrMentionFromList(projectTypeTag, [note], true, false, noteFolder, false, [])
-  return tagMatches.some((n) => n.filename === note.filename)
+  return noteHasProjectTypeTag(note, projectTypeTag)
 }
 
 /**
@@ -591,9 +595,10 @@ export async function enumerateMatchingProjectNoteTagPairs(
       CommandBar.showLoading(true, `Generating Project Review list for notes in folder ${folder}`)
     }
 
-    // Get notes that include projectTag in this folder, ignoring subfolders
+    // Match project type tags from frontmatter / metadata line only (not body task hashtags)
+    const projectNotesInFolder = filteredProjectNotes.filter((n) => getFolderFromFilename(n.filename) === folder)
     for (const tag of tags) {
-      const projectNotesArr = findNotesMatchingHashtagOrMentionFromList(tag, filteredProjectNotes, true, false, folder, false, [])
+      const projectNotesArr = projectNotesInFolder.filter((n) => noteHasProjectTypeTag(n, tag))
       for (const n of projectNotesArr) {
         pairs.push({ note: n, projectTypeTag: tag })
       }
@@ -1079,7 +1084,7 @@ export async function updateAllProjectsListAfterChange(
         const tagsToTry =
           projectTypeTags.length > 0
             ? projectTypeTags
-            : (noteForAdd.hashtags ?? []).filter((tag: string) => tag.startsWith('#') && tag.length > 1)
+            : getProjectTypeTagsFromNoteMetadata(noteForAdd)
         let added = false
         for (const tag of tagsToTry) {
           if (await addNewProjectToAllProjectsListIfInScope(noteForAdd, tag, config, scrollPosForRichList, options)) {

@@ -134,6 +134,20 @@ describe('isNoteInCurrentProjectSelection', () => {
     const note = makeProjectNote('Projects/test.md', '#area')
     expect(isNoteInCurrentProjectSelection((note: any), makeConfig(), '#area')).toBe(false)
   })
+
+  test('returns false when tag appears only in body tasks, not in frontmatter', () => {
+    const note = new Note({
+      title: 'Reviews Plugin',
+      filename: 'Projects/Reviews Plugin.md',
+      content:
+        '---\nproject: #area\nreview: 1m\n---\n# Reviews Plugin\n* [x] type #goal bug\n+ [x] #projects and #project/company issue\n',
+      hashtags: ['#area', '#goal', '#project', '#projects'],
+    })
+    const config = makeConfig({ projectTypeTags: ['#goal', '#project', '#area'] })
+    expect(isNoteInCurrentProjectSelection((note: any), config, '#goal')).toBe(false)
+    expect(isNoteInCurrentProjectSelection((note: any), config, '#project')).toBe(false)
+    expect(isNoteInCurrentProjectSelection((note: any), config, '#area')).toBe(true)
+  })
 })
 
 describe('addNewProjectToAllProjectsListIfInScope', () => {
