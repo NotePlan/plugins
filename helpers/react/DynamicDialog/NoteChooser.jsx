@@ -15,6 +15,7 @@ import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { getNoteDecorationForReact, TEAMSPACE_ICON_COLOR } from '@helpers/NPnote.js'
 import { getFolderFromFilename } from '@helpers/folders.js'
+import { makeCalendarFilename, RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { parseTeamspaceFilename, getFilenameWithoutTeamspaceID } from '@helpers/teamspace.js'
 import './NoteChooser.css'
 
@@ -196,7 +197,7 @@ export function NoteChooser({
         // Use setTimeout to ensure notes are reloaded first
         setTimeout(() => {
           // Get the note title from the filename
-          const noteTitleFromFilename = createdFilename.split('/').pop()?.replace(/\.md$/, '') || noteTitle.trim()
+          const noteTitleFromFilename = createdFilename.split('/').pop()?.replace(RE_NOTE_FILE_EXTENSION, '') || noteTitle.trim()
           onChange(noteTitleFromFilename, createdFilename)
         }, 100)
       } else {
@@ -261,7 +262,8 @@ export function NoteChooser({
   }
 
   /**
-   * Convert a Date object to calendar note filename (YYYYMMDD.md)
+   * Convert a Date object to its equivalent daily calendar note filename (YYYYMMDD with user's file extension)
+   * Note: This is local-timezone-dependent.
    * @param {Date} date - The date to convert
    * @returns {string} - Calendar note filename
    */
@@ -269,11 +271,12 @@ export function NoteChooser({
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const day = String(date.getDate()).padStart(2, '0')
-    return `${year}${month}${day}.md`
+    return makeCalendarFilename(`${year}${month}${day}`)
   }
 
   /**
-   * Convert a Date object to ISO 8601 format (YYYY-MM-DD) in local timezone
+   * Convert a Date object to ISO 8601 format (YYYY-MM-DD)
+   * Note: this is local-timezone-dependent.
    * @param {Date} date - The date to convert
    * @returns {string} - ISO 8601 date string
    */

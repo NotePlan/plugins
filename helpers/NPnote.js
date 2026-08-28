@@ -238,7 +238,8 @@ export function getNoteDecorationForReact(note: TNote | NoteOption): { icon: str
   if (note.type === 'Calendar') {
     // dateTime helpers match YYYYMMDD etc. with the vault's supported extensions; also allow ISO daily filenames, should they erronesouly exist now, or are allowed in future.
     const basename = note.filename.split('/').pop() || ''
-    noteTypeForIcon = dt.isDailyNote(note) || dt.isIsoDaily(basename) ? '<DAY>' : dt.isWeeklyNote(note) ? '<WEEK>' : dt.isMonthlyNote(note) ? '<MONTH>' : dt.isQuarterlyNote(note) ? '<QUARTER>' : '<YEAR>'
+    const calendarNoteForTypeCheck: CoreNoteFields = (note: any)
+    noteTypeForIcon = dt.isDailyNote(calendarNoteForTypeCheck) || dt.isIsoDaily(basename) ? '<DAY>' : dt.isWeeklyNote(calendarNoteForTypeCheck) ? '<WEEK>' : dt.isMonthlyNote(calendarNoteForTypeCheck) ? '<MONTH>' : dt.isQuarterlyNote(calendarNoteForTypeCheck) ? '<QUARTER>' : '<YEAR>'
   }
   const folderIconDetails = noteIconsToUse.find((details) => details.firstLevelFolder === noteTypeForIcon) ?? defaultNoteIconDetails
 

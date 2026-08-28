@@ -100,7 +100,7 @@ export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
  * @param {string} basename 
  * @returns {boolean} true if basename is of form YYYY-MM-DD.md or YYYY-MM-DD.txt
  */
-export const isIsoDaily = (basename) => new RegExp(`^${RE_DATE}${FILE_EXTENSIONS_GROUP}`, 'i').test(basename)
+export const isIsoDaily = (basename: string): boolean => new RegExp(`^${RE_DATE}${FILE_EXTENSIONS_GROUP}`, 'i').test(basename)
 
 /**
  * WARNING: Deprecated in favour of clearer named function 'todaysDateISOString' below.
