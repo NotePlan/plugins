@@ -6,6 +6,7 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 - Change: "Progress Heading" and "Progress Heading level" are now a single setting — include markdown heading markers in "Progress Heading" (e.g. `## Progress`). On upgrade, existing plain-text heading and level values are migrated automatically into one string.
 - Change: In Project List window, make the scroll-bounce not apply to the top bar.
 - Fix: Project list discovery and **/weeklyProjectsProgress** now classify notes by project type using only the combined frontmatter key (e.g. `project: #area`) and any legacy body metadata line, not hashtags mentioned elsewhere in the note body.
+- Fix: Edge case where .txt files could be ignored.
 
 ## [2.0.9] - 2026-08-23
 - Fix: **add progress** no longer loses the body `Progress:` line when also writing the first `progress:` frontmatter key.

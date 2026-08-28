@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-07-17 for v2.0.6 by @CursorAI
+// Last updated 2026-08-28 for v2.1.0 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -23,6 +23,7 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from 
 import { toISODateString } from '@helpers/dateTime'
 import { getFolderFromFilename, getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
+import { RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { smartPrependPara } from '@helpers/paragraph'
@@ -910,7 +911,7 @@ export function resolveProjectNoteFromListFilename(filename: string): ?TNote {
       return archived
     }
   }
-  const titleGuess = filename.replace(/\.md$/i, '').split('/').pop() ?? ''
+  const titleGuess = filename.split('/').pop()?.replace(RE_NOTE_FILE_EXTENSION, '') ?? ''
   if (titleGuess === '') {
     return null
   }
