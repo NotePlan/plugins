@@ -236,13 +236,7 @@ function showProjectControlDialog(dataObject) {
     console.log(`Button clicked on encodedFilename: ${encodedFilename} with controlStr: ${controlStr}, metaModifier: ${metaModifier}`)
     const scrollPos = typeof window.__reviewsGetScrollPos === 'function'
       ? window.__reviewsGetScrollPos()
-      : (typeof window.pageYOffset !== 'undefined'
-        ? window.pageYOffset
-        : (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined'
-          ? document.documentElement.scrollTop
-          : (document.body && typeof document.body.scrollTop !== 'undefined'
-            ? document.body.scrollTop
-            : 0)))
+      : 0
     // console.log(`Sending to backend: onClickProjectListItem(${functionToInvoke}) scrollPos=${String(scrollPos)}`)
     sendMessageToPlugin('onClickProjectListItem', { itemID: '-', type: functionToInvoke, controlStr: controlStr, encodedFilename: encodedFilename, metaModifier: metaModifier, scrollPos: scrollPos })
     // Dismiss dialog
@@ -438,13 +432,7 @@ function addCommandButtonEventListeners() {
       // console.log(`Attempting to send plugin command '${button.dataset.command}' ...`)
       const scrollPos = typeof window.__reviewsGetScrollPos === 'function'
         ? window.__reviewsGetScrollPos()
-        : (typeof window.pageYOffset !== 'undefined'
-          ? window.pageYOffset
-          : (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined'
-            ? document.documentElement.scrollTop
-            : (document.body && typeof document.body.scrollTop !== 'undefined'
-              ? document.body.scrollTop
-              : 0)))
+        : 0
       const theseCommandArgs = (button.dataset.commandArgs).split(',')
       sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs, scrollPos: scrollPos })
     }, false)

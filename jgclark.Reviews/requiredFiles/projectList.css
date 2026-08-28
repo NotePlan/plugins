@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-08-17 for v2.0.7, @jgclark + @CursorAI
+ * Last updated 2026-08-28 for v2.1.x, @jgclark + @CursorAI
  */
 
 /* ============================================================
@@ -8,6 +8,9 @@
    ============================================================ */
 
 html {
+  height: 100%;
+  overflow: hidden;
+
   /* Colours specific to this plugin */
 	--teamspace-color: #269F54;
   --project-no-percent-color: #BBB;
@@ -27,11 +30,25 @@ html {
   font-size: 14pt;  
 }
 
-body {
-  /* Settings for overall body */
-  margin: 0px;
+body.project-list-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  overflow: hidden;
   background-color: var(--bg-alt-color);
-} */
+}
+
+/* Scrollable project list body; rubber-band bounce applies here only, not the top bar */
+.project-list-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background-color: var(--bg-alt-color);
+  -webkit-overflow-scrolling: touch;
+}
 
 /* ============================================================
    Base element defaults (type selectors)
@@ -161,15 +178,14 @@ input, label {
 
 /* TOPBAR ------------------------------------------------- */
 
-/* Keep a header stuck to top; spread items evenly across the top bar */
+/* Fixed header row in the non-scrolling shell; spread items evenly across the top bar */
 .topbar {
   display: grid;
   grid-template-columns: auto auto auto auto;
   /* grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); */
   align-items: baseline;
   column-gap: 0.5rem;
-  position: sticky;
-  top: 0px;
+  flex-shrink: 0;
   background-color: var(--bg-sidebar-color); 
   border-top: 1px solid var(--divider-color);
   border-bottom: 1px solid var(--divider-color);
@@ -203,6 +219,7 @@ input, label {
   grid-template-columns: fit-content(100%) 1fr;
   gap: 0.6rem;
   align-items: center;
+  flex-shrink: 0;
   margin: 0;
   padding: 0.55rem 0.9rem;
   border-style: solid;

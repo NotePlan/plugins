@@ -56,53 +56,57 @@ async function handleCheckboxClick(cb) {
 
 /**
  * Functions to get/set scroll position of the project list content.
+ * Scroll lives in #project-list-scroll so the top bar does not rubber-band with the list body.
  * Helped by https://stackoverflow.com/questions/9377951/how-to-remember-scroll-position-and-scroll-back
  * But need to find a different approach to store the position, as cookies not available.
  */
 export const scrollPreLoadJSFuncs: string = `
 <script type="text/javascript">
-function getCurrentScrollHeight() {
-  let scrollPos;
+function getProjectListScrollEl() {
+  return document.getElementById('project-list-scroll')
+}
+
+function getScrollPos() {
+  var el = getProjectListScrollEl()
+  if (el) return el.scrollTop
   if (typeof window.pageYOffset !== 'undefined') {
-    scrollPos = window.pageYOffset;
+    return window.pageYOffset
   }
-  else if (typeof document.compatMode !== 'undefined' && document.compatMode !== 'BackCompat') {
-    scrollPos = document.documentElement.scrollTop;
+  if (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined') {
+    return document.documentElement.scrollTop
   }
-  else if (typeof document.body !== 'undefined') {
-    scrollPos = document.body.scrollTop;
+  if (document.body && typeof document.body.scrollTop !== 'undefined') {
+    return document.body.scrollTop
   }
-  let label = document.getElementById("scrollDisplay");
-  label.innerHTML = String(scrollPos);
-  console.log("getCurrentScrollHeight = " + String(scrollPos));
+  return 0
+}
+
+function getCurrentScrollHeight() {
+  var scrollPos = getScrollPos()
+  var label = document.getElementById("scrollDisplay")
+  if (label) label.innerHTML = String(scrollPos)
+  console.log("getCurrentScrollHeight = " + String(scrollPos))
 }
 
 // Note: saving scroll position to cookie does not work in Safari, but not in NP.
 function setScrollPos(h) {
   <!-- console.log('setScrollPos = ' + String(h)); -->
-  document.documentElement.scrollTop = h;
-  document.body.scrollTop = h;
+  var el = getProjectListScrollEl()
+  if (el) {
+    el.scrollTop = h
+    return
+  }
+  document.documentElement.scrollTop = h
+  document.body.scrollTop = h
 }
+
+window.__reviewsGetScrollPos = getScrollPos
 </script>
 `
 
 export const autoRefreshScript: string = `
 <script type="text/javascript">
 (function() {
-  function getScrollPos() {
-    if (typeof window.pageYOffset !== 'undefined') {
-      return window.pageYOffset;
-    } else if (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined') {
-      return document.documentElement.scrollTop;
-    } else if (document.body && typeof document.body.scrollTop !== 'undefined') {
-      return document.body.scrollTop;
-    }
-    return 0;
-  }
-
-  // Expose the function to get the scroll position to the window object so it can also be used by the windowCloseAndReopenScripts function.
-  window.__reviewsGetScrollPos = getScrollPos;
-
   function scheduleAutoRefresh() {
     var meta = document.querySelector('meta[name="autoUpdateAfterIdleTime"]');
     if (!meta) return;
@@ -116,7 +120,7 @@ export const autoRefreshScript: string = `
 
     window.__reviewsAutoRefreshTimer = setInterval(function() {
       try {
-        var scrollPos = getScrollPos();
+        var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0;
         console.log('Auto-refreshing Project List at scrollPos ' + String(scrollPos));
         sendMessageToPlugin('refresh', { scrollPos: scrollPos });
       } catch (e) {
@@ -163,13 +167,7 @@ export const shortcutsScript: string = `
 // send 'refresh' command
 shortcut.add("meta+r", function() {
   console.log("Shortcut '⌘r' triggered: will call refresh");
-  var scrollPos = (typeof window.pageYOffset !== 'undefined')
-    ? window.pageYOffset
-    : (document.documentElement && typeof document.documentElement.scrollTop !== 'undefined')
-      ? document.documentElement.scrollTop
-      : (document.body && typeof document.body.scrollTop !== 'undefined')
-        ? document.body.scrollTop
-        : 0;
+  var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0;
   sendMessageToPlugin('refresh', { scrollPos: scrollPos });
 });
 // send 'toggleDisplayOnlyDue' command

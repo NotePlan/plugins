@@ -4,6 +4,7 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 ## [2.1.0] - 2026-08-28
 - **/weeklyProjectsProgress** now also upserts a current-week summary into the weekly note when "Heading for Weekly Project Progress output" is set (default: `## Weekly Project Progress`). It can output as a table, or lists arranged by folder, subfolder or project tag type.
 - Change: "Progress Heading" and "Progress Heading level" are now a single setting — include markdown heading markers in "Progress Heading" (e.g. `## Progress`). On upgrade, existing plain-text heading and level values are migrated automatically into one string.
+- Change: In Project List window, make the scroll-bounce not apply to the top bar.
 
 ## [2.0.9] - 2026-08-23
 - Fix: **add progress** no longer loses the body `Progress:` line when also writing the first `progress:` frontmatter key.

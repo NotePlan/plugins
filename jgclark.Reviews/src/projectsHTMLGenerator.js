@@ -511,6 +511,9 @@ function mapReviewDaysToStatus(interval: number): IntervalStatus {
   return { text: '', colorClass: '', icon: '' }
 }
 
+/** ID of the inner scroll container for Rich project list body content */
+export const PROJECT_LIST_SCROLL_ID = 'project-list-scroll'
+
 //-----------------------------------------------------------------------------
 // HTML Structure Generation
 //-----------------------------------------------------------------------------

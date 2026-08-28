@@ -19,6 +19,7 @@ import {
 import { Project } from './projectClass'
 import {
   buildEmptyProjectListHelpHtml,
+  PROJECT_LIST_SCROLL_ID,
   buildProjectLineForStyle,
   buildProjectListTopBarHtml,
   buildProjectControlDialogHtml,
@@ -556,6 +557,7 @@ export async function renderProjectListsHTML(
     // Generate top bar HTML (uses config.tagActiveCounts for dropdown tag counts)
     config.projectsShownCount = projectsForDisplay.length
     outputArray.push(buildProjectListTopBarHtml(config))
+    outputArray.push(`<div id="${PROJECT_LIST_SCROLL_ID}" class="project-list-scroll">`)
 
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
     const noteCount = projectsForDisplay.length
@@ -581,6 +583,7 @@ export async function renderProjectListsHTML(
       const projectsHiddenByDisplayFilters = projectsToReview.length === 0 ? countAfterTagFilterOnly : 0
       outputArray.push(buildEmptyProjectListHelpHtml(config, projectsHiddenByDisplayFilters))
     }
+    outputArray.push('</div>')
     logTimer('renderProjectListsHTML', funcTimer, `end single section (${noteCount} projects)`)
 
     // Generate project control dialog HTML
@@ -605,7 +608,7 @@ export async function renderProjectListsHTML(
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // now in requiredFiles/projectList.css instead
       makeModal: false, // = not modal window
-      bodyOptions: '',
+      bodyOptions: 'class="project-list-shell"',
       preBodyScript: /* setPercentRingJSFunc + */ scrollPreLoadJSFuncs,
       postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + displayFiltersDropdownScript + tagTogglesVisibilityScript + autoRefreshScript + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js" ></script>

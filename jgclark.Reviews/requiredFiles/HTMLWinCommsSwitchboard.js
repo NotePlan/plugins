@@ -124,7 +124,7 @@ function clearReviewingProject(data) {
 }
 
 /**
- * Show or update the perspective-recalculation status banner below the sticky top bar.
+ * Show or update the perspective-recalculation status banner below the top bar (outside the scroll container).
  * Payload matches sendBannerMessage from helpers/HTMLView.js: { type, msg, color, border, icon }.
  * @param {{ type?: string, msg?: string, color?: string, border?: string, icon?: string }} data
  */
