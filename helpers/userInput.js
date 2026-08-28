@@ -8,6 +8,7 @@
 import json5 from 'json5'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { displayTitleWithRelDate } from './NPdateTime'
+import { RE_NOTE_FILE_EXTENSION } from './NPFileExtensions'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from './dev'
 import { getFoldersMatching } from './folders'
 import { getAllTeamspaceIDsAndTitles, getTeamspaceTitleFromID } from './NPTeamspace'
@@ -1304,7 +1305,7 @@ export async function chooseNote(
         isInIgnoredFolder = true
       }
     })
-    isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
+    isInIgnoredFolder = isInIgnoredFolder || !RE_NOTE_FILE_EXTENSION.test(note.filename) //do not include non-markdown files
     return !isInIgnoredFolder
   })
   const sortedNoteListFiltered = noteListFiltered.sort((first, second) => second.changedDate.getTime() - first.changedDate.getTime()) // most recent first

@@ -12,6 +12,7 @@ import { displayTitle, isValidUUID } from '@helpers/general'
 import { calendarNotesSortedByChanged, noteType } from '@helpers/note'
 import { getRelativeDates, type RelativeDate } from '@helpers/NPDateStrings'
 import { displayTitleWithRelDate, getDateStrFromRelativeDateString } from '@helpers/NPdateTime'
+import { FILE_EXTENSIONS_GROUP } from '@helpers/NPFileExtensions'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes, getFrontmatterAttribute } from '@helpers/NPFrontMatter'
 import { getBlockUnderHeading } from '@helpers/NPParagraph'
 import { usersVersionHas } from '@helpers/NPVersions'
@@ -235,27 +236,9 @@ export function getNoteDecorationForReact(note: TNote | NoteOption): { icon: str
   // Determine note type for icon - use same logic as chooseNoteV2
   let noteTypeForIcon = getFolderFromFilename(note.filename).split('/')[0]
   if (note.type === 'Calendar') {
-    // Use filename pattern matching for calendar note type detection
-    // This works for both TNote and NoteOption since dateTime helpers only need filename anyway
-    // The dateTime helpers (isDailyNote, etc.) use regex patterns on filename, so we replicate that logic here
+    // dateTime helpers match YYYYMMDD etc. with the vault's supported extensions; also allow ISO daily filenames, should they erronesouly exist now, or are allowed in future.
     const basename = note.filename.split('/').pop() || ''
-    // Match patterns used by dateTime helpers:
-    // - Daily: YYYYMMDD.md or YYYY-MM-DD.md
-    // - Weekly: YYYY-Wnn.md
-    // - Monthly: YYYY-MM.md
-    // - Quarterly: YYYY-Qn.md
-    // - Yearly: YYYY.md
-    if (/^\d{8}\.md$/.test(basename) || /^\d{4}-\d{2}-\d{2}\.md$/.test(basename)) {
-      noteTypeForIcon = '<DAY>'
-    } else if (/^\d{4}-W\d{2}\.md$/.test(basename)) {
-      noteTypeForIcon = '<WEEK>'
-    } else if (/^\d{4}-\d{2}\.md$/.test(basename) && !basename.includes('-W') && !basename.includes('-Q')) {
-      noteTypeForIcon = '<MONTH>'
-    } else if (/^\d{4}-Q\d\.md$/.test(basename)) {
-      noteTypeForIcon = '<QUARTER>'
-    } else {
-      noteTypeForIcon = '<YEAR>'
-    }
+    noteTypeForIcon = dt.isDailyNote(note) || dt.isIsoDaily(basename) ? '<DAY>' : dt.isWeeklyNote(note) ? '<WEEK>' : dt.isMonthlyNote(note) ? '<MONTH>' : dt.isQuarterlyNote(note) ? '<QUARTER>' : '<YEAR>'
   }
   const folderIconDetails = noteIconsToUse.find((details) => details.firstLevelFolder === noteTypeForIcon) ?? defaultNoteIconDetails
 

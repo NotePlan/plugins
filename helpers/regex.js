@@ -2,7 +2,7 @@
 // @flow
 //---------------------------------------------------------------------
 // Regex definitions for NotePlan and its plugins
-// Last updated 2026-02-03 by @jgclark
+// Last updated 2026-08-28 by @jgclark
 //---------------------------------------------------------------------
 //
 // This file holds definitions that don't live in more specific helper files, and also lists other files with useful regexes.
@@ -40,7 +40,6 @@ export const RE_ARROW_DATES_G: RegExp = />(today|tomorrow|yesterday|(([0-9]{4})(
 // - RE_DATE_TIME
 // - RE_BARE_DATE
 // - RE_BARE_DATE_CAPTURE
-// - RE_FILE_EXTENSIONS_GROUP
 // - RE_NP_DAY_SPEC
 // - RE_NP_WEEK_SPEC
 // - WEEK_NOTE_LINK
@@ -49,6 +48,9 @@ export const RE_ARROW_DATES_G: RegExp = />(today|tomorrow|yesterday|(([0-9]{4})(
 // - RE_NP_MONTH_SPEC
 // - RE_NP_QUARTER_SPEC
 // - RE_NP_YEAR_SPEC
+
+// In helpers/NPFileExtensions.js:
+// - FILE_EXTENSIONS_GROUP
 
 // @done(...)
 // In helpers/dateTime.js

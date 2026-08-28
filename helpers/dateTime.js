@@ -9,12 +9,13 @@ import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
 import { formatISO9075, eachDayOfInterval, eachWeekendOfInterval, format, add } from 'date-fns'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
+import { FILE_EXTENSIONS_GROUP } from './NPFileExtensions'
 // Note: TEAMSPACE_INDICATOR defined locally to avoid circular dependency with regex.js
 const TEAMSPACE_INDICATOR = '%%NotePlanCloud%%'
 const RE_TEAMSPACE_INDICATOR_AND_ID = new RegExp(`^${TEAMSPACE_INDICATOR}\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})`, 'i')
 
 //-----------------------------------------------------------
-// CONSTANTS
+// Moment formats
 export const MOMENT_FORMAT_NP_ISO = 'YYYY-MM-DD'
 export const MOMENT_FORMAT_NP_DAY = 'YYYYMMDD'
 export const MOMENT_FORMAT_NP_WEEK = 'GGGG-[W]WW' // note: GGGG is the week year, which is needed with ISO weeks
@@ -25,6 +26,8 @@ export const MOMENT_FORMAT_NP_YEAR = 'YYYY'
 //-----------------------------------------------------------
 // REGEXES (and strings that help make regexes)
 // WARNING: Most of the RE_* below aren't actually regex objects but strings
+
+export { FILE_EXTENSIONS_GROUP } from './NPFileExtensions'
 
 // Basic date/time regex strings
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
@@ -38,9 +41,8 @@ export const RE_SCHEDULED_ISO_DATE = '>\\d{4}-[01]\\d-[0123]\\d' // find schedul
 export const RE_DATE_TIME = `${RE_DATE} ${RE_TIME}` // YYYY-MM-DD HH:MM[AM|PM]
 export const RE_BARE_DATE = `[^\d(<\/-]${RE_DATE}` // an ISO date without a digit or ( or < or / or - before it. Note: > is allowed.
 export const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})` // capturing date in above
-export const RE_FILE_EXTENSIONS_GROUP = `\\.(md|txt)$` // and tie to end of string
 export const RE_NP_DAY_SPEC = RE_YYYYMMDD_DATE
-export const RE_DAILY_NOTE_FILENAME = `(^|\\/)${RE_YYYYMMDD_DATE}${RE_FILE_EXTENSIONS_GROUP}`
+export const RE_DAILY_NOTE_FILENAME = `(^|\\/)${RE_YYYYMMDD_DATE}${FILE_EXTENSIONS_GROUP}`
 export const DAILY_NOTE_LINK = `[\<\>]${RE_DATE}(?!<)` // don't match >YYYY-MM-DD< format
 export const RE_SCHEDULED_DAILY_NOTE_LINK: RegExp = />\d{4}-[01]\d-[0123]\d/ // Note: finds '>RE_DATE'
 
@@ -49,7 +51,7 @@ export const RE_NP_WEEK_SPEC = '\\d{4}\\-W[0-5]\\d' // find dates of form YYYY-W
 export const WEEK_NOTE_LINK = `[\<\>]${RE_NP_WEEK_SPEC}`
 export const SCHEDULED_WEEK_NOTE_LINK = '\\s+>\\d{4}\\-W[0-5]\\d'
 export const RE_SCHEDULED_WEEK_NOTE_LINK: RegExp = />\d{4}\-W[0-5]\d/ // Note: finds '>RE_NP_WEEK_SPEC'
-export const RE_WEEKLY_NOTE_FILENAME = `(^|\\/)${RE_NP_WEEK_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
+export const RE_WEEKLY_NOTE_FILENAME = `(^|\\/)${RE_NP_WEEK_SPEC}${FILE_EXTENSIONS_GROUP}`
 export const RE_BARE_WEEKLY_DATE = `[^\d(<\/-]${RE_NP_WEEK_SPEC}` // a YYYY-Www date without a digit or ( or < or / or - before it. Note: > is allowed.
 export const RE_BARE_WEEKLY_DATE_CAPTURE = `[^\d(<\/-](${RE_NP_WEEK_SPEC})` // capturing date in above
 
@@ -59,14 +61,14 @@ export const RE_NP_MONTH_SPEC = '\\d{4}-[01]\\d(?![\\d-])' // find dates of form
 export const MONTH_NOTE_LINK = `[\<\>]${RE_NP_MONTH_SPEC}`
 export const SCHEDULED_MONTH_NOTE_LINK = `>${RE_NP_MONTH_SPEC}`
 export const RE_SCHEDULED_MONTH_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_MONTH_SPEC}`)
-export const RE_MONTHLY_NOTE_FILENAME = `(^|\\/)${RE_NP_MONTH_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
+export const RE_MONTHLY_NOTE_FILENAME = `(^|\\/)${RE_NP_MONTH_SPEC}${FILE_EXTENSIONS_GROUP}`
 
 // Quarters
 export const RE_NP_QUARTER_SPEC = '\\d{4}\\-Q[1-4](?!\\d)' // find dates of form YYYY-Qn not followed by digit
 export const QUARTER_NOTE_LINK = `[\<\>]${RE_NP_QUARTER_SPEC}`
 export const SCHEDULED_QUARTERLY_NOTE_LINK = `>${RE_NP_QUARTER_SPEC}`
 export const RE_SCHEDULED_QUARTERLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_QUARTER_SPEC}`)
-export const RE_QUARTERLY_NOTE_FILENAME = `(^|\\/)${RE_NP_QUARTER_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
+export const RE_QUARTERLY_NOTE_FILENAME = `(^|\\/)${RE_NP_QUARTER_SPEC}${FILE_EXTENSIONS_GROUP}`
 
 // Years
 export const RE_NP_YEAR_SPEC = '\\d{4}(?![\\d-])' // find years of form YYYY without leading or trailing - or digit [fails if I add negative start or negative lookbehinds]
@@ -74,7 +76,7 @@ export const RE_BARE_YEAR_SPEC = '^\\d{4}$' // find years of form YYYY without a
 export const YEAR_NOTE_LINK = `[\<\>]${RE_NP_YEAR_SPEC}`
 export const SCHEDULED_YEARLY_NOTE_LINK = `>${RE_NP_YEAR_SPEC}`
 export const RE_SCHEDULED_YEARLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_YEAR_SPEC}`)
-export const RE_YEARLY_NOTE_FILENAME = `(^|\\/)${RE_NP_YEAR_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
+export const RE_YEARLY_NOTE_FILENAME = `(^|\\/)${RE_NP_YEAR_SPEC}${FILE_EXTENSIONS_GROUP}`
 
 // Tests for all calendar period types
 export const RE_ANY_DUE_DATE_TYPE: RegExp = new RegExp(`\\s+>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`)
@@ -92,6 +94,13 @@ export const RE_DONE_DATE_OPT_TIME: RegExp = new RegExp(`@done\\(${RE_ISO_DATE}(
 export const RE_DATE_INTERVAL = `[+\\-]?\\d+[BbDdWwMmQqYy]`
 export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
 export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
+
+/**
+ * Checks if a filename represents an ISO format daily note. This is currently invalid, but may be allowed in future.
+ * @param {string} basename 
+ * @returns {boolean} true if basename is of form YYYY-MM-DD.md or YYYY-MM-DD.txt
+ */
+export const isIsoDaily = (basename) => new RegExp(`^${RE_DATE}${FILE_EXTENSIONS_GROUP}`, 'i').test(basename)
 
 /**
  * WARNING: Deprecated in favour of clearer named function 'todaysDateISOString' below.

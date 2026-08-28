@@ -25,6 +25,7 @@ import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/d
 import { getFolderListMinusExclusions, getFolderFromFilename, getRegularNotesFromFilteredFolders } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
+import { RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { noteHasFrontMatter, getFrontmatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { formRegExForUsersOpenTasks, TEAMSPACE_INDICATOR } from '@helpers/regex'
@@ -187,7 +188,7 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
   //   noteName = convertedName
   // }
 
-  const hasExtension = noteName ? noteName.endsWith('.md') || noteName.endsWith('.txt') : false
+  const hasExtension = noteName ? RE_NOTE_FILE_EXTENSION.test(noteName) : false
   const hasFolder = noteName.includes('/')
   const isCalendarNote = isValidCalendarNoteFilename(noteName) || isValidCalendarNoteTitleStr(noteName)
   logDebug(
@@ -712,7 +713,7 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
           isInIgnoredFolder = true
         }
       })
-      isInIgnoredFolder = isInIgnoredFolder || (excludeNonMarkdownFiles && !/(\.md|\.txt)$/i.test(note.filename)) //do not include non-markdown files
+      isInIgnoredFolder = isInIgnoredFolder || (excludeNonMarkdownFiles && !RE_NOTE_FILE_EXTENSION.test(note.filename)) //do not include non-markdown files
       return !isInIgnoredFolder
     })
   }
