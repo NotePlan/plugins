@@ -6,16 +6,25 @@ import { createRunPluginCallbackUrl } from '@helpers/general'
 import {
   HIDE_EMPTY_FOLDERS_PARAM,
   SHOW_EMPTY_FOLDERS_PARAM,
-  TOGGLE_EMPTY_FOLDERS_PARAM,
   applyShowEmptyFoldersParamToConfig,
+  buildWeeklyProgressBulletSummary,
+  buildWeeklyProgressByFolderSummaryLines,
+  buildWeeklyProgressBySubFolderSummaryLines,
+  buildWeeklyProgressTagSummaryLines,
+  buildWeeklyProgressTagCountSummary,
+  formatFolderTagSummaryLabel,
+  formatProjectTypeTagCountLabel,
   getFirstWeeklyProjectProgressParam,
+  getTopLevelFolderPath,
   getWeeklyProjectProgressViewParam,
-  isToggleEmptyFoldersParam,
   normalizeWeeklyProjectProgressParam,
   parseWeekLabelParam,
   resolveShowEmptyFoldersFromParam,
   resolveWeekLabelFromArgs,
-  toggleWeeklyProjectProgressShowEmptyFoldersOnConfig,
+  resolveWeeklyProjectProgressOutputStyle,
+  tagNamePresentInFolderName,
+  WEEKLY_PROJECT_PROGRESS_OUTPUT_LIST_BY_SUBFOLDER,
+  WEEKLY_PROJECT_PROGRESS_OUTPUT_TABLE_BY_SUBFOLDER,
 } from '../projectsWeeklyProgress'
 
 const baseConfig = { projectTypeTags: ['#project'] }
@@ -63,23 +72,9 @@ describe('resolveShowEmptyFoldersFromParam', () => {
     })).toBe(true)
   })
 
-  test('legacy hideEmptyFolders and showEmptyFolders tokens still work', () => {
-    expect(resolveShowEmptyFoldersFromParam('hideEmptyFolders', baseConfig)).toBe(false)
-    expect(resolveShowEmptyFoldersFromParam('showEmptyFolders', baseConfig)).toBe(true)
-  })
-
   test('URL-encoded hide token resolves correctly', () => {
     const encoded = encodeURIComponent(HIDE_EMPTY_FOLDERS_PARAM)
     expect(resolveShowEmptyFoldersFromParam(encoded, baseConfig)).toBe(false)
-  })
-
-  test('legacy toggle token flips from default true', () => {
-    expect(resolveShowEmptyFoldersFromParam(TOGGLE_EMPTY_FOLDERS_PARAM, baseConfig)).toBe(false)
-  })
-
-  test('legacy JSON toggle payload still works', () => {
-    const json = JSON.stringify({ toggleWeeklyProjectProgressShowEmptyFolders: true })
-    expect(resolveShowEmptyFoldersFromParam(encodeURIComponent(json), baseConfig)).toBe(false)
   })
 
   test('explicit JSON setting value is honoured', () => {
@@ -94,17 +89,6 @@ describe('resolveShowEmptyFoldersFromParam', () => {
   })
 })
 
-describe('isToggleEmptyFoldersParam', () => {
-  test('recognises legacy toggle token', () => {
-    expect(isToggleEmptyFoldersParam(TOGGLE_EMPTY_FOLDERS_PARAM)).toBe(true)
-  })
-
-  test('does not treat hide/show tokens as legacy toggle', () => {
-    expect(isToggleEmptyFoldersParam(HIDE_EMPTY_FOLDERS_PARAM)).toBe(false)
-    expect(isToggleEmptyFoldersParam(SHOW_EMPTY_FOLDERS_PARAM)).toBe(false)
-  })
-})
-
 describe('applyShowEmptyFoldersParamToConfig', () => {
   test('hide param forces false even when settings say true', () => {
     const config = { ...baseConfig, weeklyProjectProgressShowEmptyFolders: true }
@@ -116,15 +100,6 @@ describe('applyShowEmptyFoldersParamToConfig', () => {
     const config = { ...baseConfig, weeklyProjectProgressShowEmptyFolders: false }
     const result = applyShowEmptyFoldersParamToConfig(config, SHOW_EMPTY_FOLDERS_PARAM)
     expect(result.weeklyProjectProgressShowEmptyFolders).toBe(true)
-  })
-})
-
-describe('toggleWeeklyProjectProgressShowEmptyFoldersOnConfig', () => {
-  test('defaults to true then toggles to false and back', () => {
-    const hidden = toggleWeeklyProjectProgressShowEmptyFoldersOnConfig(baseConfig)
-    expect(hidden.weeklyProjectProgressShowEmptyFolders).toBe(false)
-    const shown = toggleWeeklyProjectProgressShowEmptyFoldersOnConfig(hidden)
-    expect(shown.weeklyProjectProgressShowEmptyFolders).toBe(true)
   })
 })
 
@@ -144,6 +119,153 @@ describe('resolveWeekLabelFromArgs', () => {
   test('finds week label among multiple args', () => {
     expect(resolveWeekLabelFromArgs(['hide', '2026-W34'])).toBe('2026-W34')
     expect(resolveWeekLabelFromArgs(['2026-W34', 'hide'])).toBe('2026-W34')
+  })
+})
+
+describe('formatProjectTypeTagCountLabel', () => {
+  test('singular for one note, plural otherwise, without hash', () => {
+    expect(formatProjectTypeTagCountLabel('#goal', 1)).toBe('goal')
+    expect(formatProjectTypeTagCountLabel('#goal', 2)).toBe('goals')
+    expect(formatProjectTypeTagCountLabel('#project', 4)).toBe('projects')
+    expect(formatProjectTypeTagCountLabel('#area', 3)).toBe('areas')
+  })
+})
+
+describe('resolveWeeklyProjectProgressOutputStyle', () => {
+  test('maps user-facing list styles to bullet modes', () => {
+    expect(resolveWeeklyProjectProgressOutputStyle({ weeklyProjectProgressBulletSummary: 'List by tag' }))
+      .toEqual({ showTable: false, bulletMode: 'byTag' })
+    expect(resolveWeeklyProjectProgressOutputStyle({ weeklyProjectProgressBulletSummary: 'List by folder' }))
+      .toEqual({ showTable: false, bulletMode: 'byFolder' })
+    expect(resolveWeeklyProjectProgressOutputStyle({ weeklyProjectProgressBulletSummary: 'List by sub-folder' }))
+      .toEqual({ showTable: false, bulletMode: 'bySubFolder' })
+  })
+
+  test('table by sub-folder shows table only', () => {
+    expect(resolveWeeklyProjectProgressOutputStyle({ weeklyProjectProgressBulletSummary: WEEKLY_PROJECT_PROGRESS_OUTPUT_TABLE_BY_SUBFOLDER }))
+      .toEqual({ showTable: true, bulletMode: 'none' })
+  })
+
+  test('defaults to list by sub-folder', () => {
+    expect(resolveWeeklyProjectProgressOutputStyle({}))
+      .toEqual({ showTable: false, bulletMode: 'bySubFolder' })
+  })
+
+  test('still accepts legacy internal tokens', () => {
+    expect(resolveWeeklyProjectProgressOutputStyle({ weeklyProjectProgressBulletSummary: 'byTag' }))
+      .toEqual({ showTable: false, bulletMode: 'byTag' })
+  })
+})
+
+describe('buildWeeklyProgressTagCountSummary', () => {
+  test('formats tag counts with commas and final and', () => {
+    const notesByTag = new Map([
+      ['#goal', ['G1', 'G2', 'G3']],
+      ['#project', ['P1', 'P2', 'P3', 'P4']],
+    ])
+    expect(buildWeeklyProgressTagCountSummary(['#goal', '#project', '#area'], notesByTag))
+      .toBe('3 goals, 4 projects and 0 areas')
+  })
+
+  test('handles two tags with and', () => {
+    expect(buildWeeklyProgressTagCountSummary(['#goal', '#project'], new Map([['#goal', ['G1']]])))
+      .toBe('1 goal and 0 projects')
+  })
+})
+
+describe('buildWeeklyProgressTagSummaryLines', () => {
+  test('builds bullet lines in tag order, skipping empty tags', () => {
+    const notesByTag = new Map([
+      ['#project', ['Beta note', 'Alpha note']],
+      ['#goal', ['Goal note']],
+    ])
+    const result = buildWeeklyProgressTagSummaryLines(['#goal', '#project', '#area'], notesByTag)
+    expect(result).toBe('- **1 goal**: Goal note\n- **2 projects**: Alpha note・Beta note')
+  })
+
+  test('returns empty string when no progressed notes', () => {
+    expect(buildWeeklyProgressTagSummaryLines(['#goal'], new Map())).toBe('')
+  })
+})
+
+describe('tagNamePresentInFolderName', () => {
+  test('detects tag name in folder name case-insensitively', () => {
+    expect(tagNamePresentInFolderName('Projects/Project Alpha', '#project')).toBe(true)
+    expect(tagNamePresentInFolderName('Areas/Health', '#goal')).toBe(false)
+    expect(tagNamePresentInFolderName('My PROJECT folder', '#project')).toBe(true)
+  })
+})
+
+describe('formatFolderTagSummaryLabel', () => {
+  test('omits tag label when tag name appears in folder name', () => {
+    expect(formatFolderTagSummaryLabel('Project Alpha', '#project', 3)).toBe('Project Alpha 3')
+  })
+
+  test('includes plural tag label when tag name not in folder name', () => {
+    expect(formatFolderTagSummaryLabel('Health', '#area', 2)).toBe('2 Health areas')
+    expect(formatFolderTagSummaryLabel('Health', '#area', 1)).toBe('1 Health area')
+  })
+})
+
+describe('getTopLevelFolderPath', () => {
+  test('returns first path segment', () => {
+    expect(getTopLevelFolderPath('Projects/Project Alpha')).toBe('Projects')
+    expect(getTopLevelFolderPath('Areas')).toBe('Areas')
+  })
+})
+
+describe('buildWeeklyProgressByFolderSummaryLines', () => {
+  test('aggregates notes under top-level folder per tag', () => {
+    const notesByFolderAndTag = new Map([
+      ['Projects/Project Alpha', new Map([['#project', ['Alpha note']]])],
+      ['Projects/Project Beta', new Map([['#project', ['Beta note']]])],
+      ['Areas/Health', new Map([['#area', ['Health note']]])],
+    ])
+    const result = buildWeeklyProgressByFolderSummaryLines(['#project', '#area'], notesByFolderAndTag)
+    expect(result).toBe('- **Areas 1**: Health note\n- **Projects 2**: Alpha note・Beta note')
+  })
+
+  test('omits tag label when top-level folder name contains tag', () => {
+    const notesByFolderAndTag = new Map([
+      ['Projects/SubA', new Map([['#project', ['Note A', 'Note B', 'Note C']]])],
+    ])
+    const result = buildWeeklyProgressByFolderSummaryLines(['#project'], notesByFolderAndTag)
+    expect(result).toBe('- **Projects 3**: Note A・Note B・Note C')
+  })
+})
+
+describe('buildWeeklyProgressBySubFolderSummaryLines', () => {
+  test('groups subfolder lines under top-level folder bullets', () => {
+    const notesByFolderAndTag = new Map([
+      ['Projects/Project Alpha', new Map([['#project', ['Alpha note']]])],
+      ['Projects/Project Beta', new Map([['#project', ['Beta note']]])],
+      ['Areas/Health', new Map([['#area', ['Health note']]])],
+    ])
+    const result = buildWeeklyProgressBySubFolderSummaryLines(['#project', '#area'], notesByFolderAndTag)
+    expect(result).toBe(
+      '- Areas\n'
+      + '  - **Areas/Health 1**: Health note\n'
+      + '- Projects\n'
+      + '  - **Projects/Project Alpha 1**: Alpha note\n'
+      + '  - **Projects/Project Beta 1**: Beta note',
+    )
+  })
+})
+
+describe('buildWeeklyProgressBulletSummary', () => {
+  const notesByTag = new Map([['#goal', ['Goal note']]])
+  const notesByFolderAndTag = new Map([
+    ['Goals/Goal A', new Map([['#goal', ['Goal note']]])],
+  ])
+
+  test('returns empty string for none or blank mode', () => {
+    expect(buildWeeklyProgressBulletSummary('none', ['#goal'], notesByTag, notesByFolderAndTag)).toBe('')
+    expect(buildWeeklyProgressBulletSummary('', ['#goal'], notesByTag, notesByFolderAndTag)).toBe('')
+  })
+
+  test('delegates to byTag mode', () => {
+    expect(buildWeeklyProgressBulletSummary('byTag', ['#goal'], notesByTag, notesByFolderAndTag))
+      .toBe('- **1 goal**: Goal note')
   })
 })
 

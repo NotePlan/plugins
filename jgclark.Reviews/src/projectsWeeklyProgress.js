@@ -22,7 +22,7 @@ import { getNPWeekData, pad } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, type headingLevelType } from '@helpers/general'
 import { getRegularNotesFromFilteredFolders, getFolderFromFilename } from '@helpers/folders'
-import { getOpenEditorFromFilename } from '@helpers/NPEditor'
+import { getOpenEditorFromFilename, getOrOpenEditorFromFilename } from '@helpers/NPEditor'
 import { replaceSection } from '@helpers/note'
 import { isDone } from '@helpers/utils'
 import { showHTMLV2 } from '@helpers/HTMLView'
@@ -37,13 +37,8 @@ const PROJECT_FOLDER_MATCHERS: Array<string> = ['area', 'project']
 const PROGRESS_PER_FOLDER_FILENAME: string = 'progress-per-folder.csv'
 const TASK_COMPLETION_PER_FOLDER_FILENAME: string = 'task-completion-per-folder.csv'
 const PLUGIN_ID: string = 'jgclark.Reviews'
-/** @deprecated Legacy toggle token; prefer hide / show */
-export const TOGGLE_EMPTY_FOLDERS_PARAM: string = 'toggleEmptyFolders'
 export const HIDE_EMPTY_FOLDERS_PARAM: string = 'hide'
 export const SHOW_EMPTY_FOLDERS_PARAM: string = 'show'
-/** @deprecated Legacy x-callback tokens; still accepted when resolving params */
-const LEGACY_HIDE_EMPTY_FOLDERS_PARAM: string = 'hideEmptyFolders'
-const LEGACY_SHOW_EMPTY_FOLDERS_PARAM: string = 'showEmptyFolders'
 
 //-----------------------------------------------------------------------------
 // Types
@@ -65,6 +60,8 @@ type TWeeklyProgressByFolderAndTag = {
   folders: Array<string>,
   tags: Array<string>,
   counts: Map<string, Map<string, number>>,
+  notesByTag: Map<string, Array<string>>,
+  notesByFolderAndTag: Map<string, Map<string, Array<string>>>,
 }
 
 //-----------------------------------------------------------------------------
@@ -296,12 +293,301 @@ function buildWeeklyProgressMarkdownTable(
 }
 
 /**
+ * Label for a project-type tag in bullet summaries (no #; plural when count !== 1).
+ * @param {string} tag
+ * @param {number} count
+ * @returns {string}
+ */
+export function formatProjectTypeTagCountLabel(tag: string, count: number): string {
+  const base = tag.replace(/^#/, '').toLowerCase()
+  if (count === 1) {
+    return base
+  }
+  if (base.endsWith('s')) {
+    return base
+  }
+  return `${base}s`
+}
+
+/**
+ * Return true if the tag name (without #) appears in the folder name (case-insensitive).
+ * @param {string} folderName
+ * @param {string} tag
+ * @returns {boolean}
+ */
+export function tagNamePresentInFolderName(folderName: string, tag: string): boolean {
+  const tagBase = tag.replace(/^#/, '')
+  if (!tagBase) {
+    return false
+  }
+  return folderName.toLowerCase().includes(tagBase.toLowerCase())
+}
+
+/**
+ * Bold-label text for folder/subfolder bullet summaries: "{folder} {count}" or "{folder} {count} {tagLabel}".
+ * Omits the tag label when the tag name already appears in the folder name.
+ * @param {string} folderName
+ * @param {string} tag
+ * @param {number} count
+ * @returns {string}
+ */
+export function formatFolderTagSummaryLabel(folderName: string, tag: string, count: number): string {
+  if (tagNamePresentInFolderName(folderName, tag)) {
+    return `**${String(count)} ${folderName}**`
+  }
+  const label = formatProjectTypeTagCountLabel(tag, count)
+  return `**${String(count)} ${folderName}** ${label}`
+}
+
+/**
+ * First path segment of a folder path (e.g. "Projects/Area A" -> "Projects").
+ * @param {string} folderPath
+ * @returns {string}
+ */
+export function getTopLevelFolderPath(folderPath: string): string {
+  if (!folderPath || folderPath === '/') {
+    return folderPath || '/'
+  }
+  const parts = folderPath.split('/').filter((part) => part !== '')
+  return parts[0] ?? folderPath
+}
+
+/**
+ * Sort note titles for bullet summaries.
+ * @param {Array<string>} titles
+ * @returns {Array<string>}
+ */
+function sortNoteTitlesForSummary(titles: Array<string>): Array<string> {
+  return [...titles].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+}
+
+/**
+ * Build bullet lines summarising progressed notes per project tag.
+ * Format: - **{count} {tagLabel}**: Title1・Title2 (one line per tag, in tag order)
+ * @param {Array<string>} tags
+ * @param {Map<string, Array<string>>} notesByTag
+ * @returns {string}
+ */
+export function buildWeeklyProgressTagSummaryLines(
+  tags: Array<string>,
+  notesByTag: Map<string, Array<string>>,
+): string {
+  const lines: Array<string> = []
+  for (const tag of tags) {
+    const titles = notesByTag.get(tag) ?? []
+    if (titles.length === 0) {
+      continue
+    }
+    const sortedTitles = sortNoteTitlesForSummary(titles)
+    const label = formatProjectTypeTagCountLabel(tag, sortedTitles.length)
+    lines.push(`- **${String(sortedTitles.length)} ${label}**: ${sortedTitles.join('・')}`)
+  }
+  return lines.join('\n')
+}
+
+/**
+ * Short comma-separated summary of progressed note counts per tag, e.g. "3 goals, 4 projects and 0 areas".
+ * @param {Array<string>} tags
+ * @param {Map<string, Array<string>>} notesByTag
+ * @returns {string}
+ */
+export function buildWeeklyProgressTagCountSummary(
+  tags: Array<string>,
+  notesByTag: Map<string, Array<string>>,
+): string {
+  const parts: Array<string> = tags.map((tag) => {
+    const count = notesByTag.get(tag)?.length ?? 0
+    const label = formatProjectTypeTagCountLabel(tag, count)
+    return `${String(count)} ${label}`
+  })
+  if (parts.length === 0) {
+    return '0 notes'
+  }
+  if (parts.length === 1) {
+    return parts[0]
+  }
+  if (parts.length === 2) {
+    return `${parts[0]} and ${parts[1]}`
+  }
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
+}
+
+/**
+ * Merge note titles into a map keyed by tag (deduped, sorted later).
+ * @param {Map<string, Array<string>>} target
+ * @param {string} tag
+ * @param {Array<string>} titles
+ */
+function mergeNoteTitlesIntoTagMap(target: Map<string, Array<string>>, tag: string, titles: Array<string>): void {
+  if (titles.length === 0) {
+    return
+  }
+  const existing = target.get(tag) ?? []
+  target.set(tag, Array.from(new Set([...existing, ...titles])))
+}
+
+/**
+ * Build bullet lines grouped by top-level folder (one line per top-level folder and tag).
+ * @param {Array<string>} tags
+ * @param {Map<string, Map<string, Array<string>>>} notesByFolderAndTag
+ * @returns {string}
+ */
+export function buildWeeklyProgressByFolderSummaryLines(
+  tags: Array<string>,
+  notesByFolderAndTag: Map<string, Map<string, Array<string>>>,
+): string {
+  const byTopLevel: Map<string, Map<string, Array<string>>> = new Map()
+
+  for (const [folderPath, tagMap] of notesByFolderAndTag.entries()) {
+    const topLevel = getTopLevelFolderPath(folderPath)
+    const topLevelTagMap = byTopLevel.get(topLevel) ?? new Map()
+    for (const [tag, titles] of tagMap.entries()) {
+      mergeNoteTitlesIntoTagMap(topLevelTagMap, tag, titles)
+    }
+    byTopLevel.set(topLevel, topLevelTagMap)
+  }
+
+  const lines: Array<string> = []
+  const sortedTopLevels = Array.from(byTopLevel.keys()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+  for (const topLevel of sortedTopLevels) {
+    const tagMap = byTopLevel.get(topLevel) ?? new Map()
+    for (const tag of tags) {
+      const titles = tagMap.get(tag) ?? []
+      if (titles.length === 0) {
+        continue
+      }
+      const sortedTitles = sortNoteTitlesForSummary(titles)
+      const label = formatFolderTagSummaryLabel(topLevel, tag, sortedTitles.length)
+      lines.push(`- ${label}: ${sortedTitles.join(' ・ ')}`)
+    }
+  }
+  return lines.join('\n')
+}
+
+/**
+ * Build bullet lines grouped by top-level folder with sub-bullets per full folder path and tag.
+ * @param {Array<string>} tags
+ * @param {Map<string, Map<string, Array<string>>>} notesByFolderAndTag
+ * @returns {string}
+ */
+export function buildWeeklyProgressBySubFolderSummaryLines(
+  tags: Array<string>,
+  notesByFolderAndTag: Map<string, Map<string, Array<string>>>,
+): string {
+  const foldersByTopLevel: Map<string, Array<string>> = new Map()
+
+  for (const folderPath of notesByFolderAndTag.keys()) {
+    const topLevel = getTopLevelFolderPath(folderPath)
+    const folderList = foldersByTopLevel.get(topLevel) ?? []
+    if (!folderList.includes(folderPath)) {
+      folderList.push(folderPath)
+    }
+    foldersByTopLevel.set(topLevel, folderList)
+  }
+
+  const lines: Array<string> = []
+  const sortedTopLevels = Array.from(foldersByTopLevel.keys()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+  for (const topLevel of sortedTopLevels) {
+    const folderPaths = (foldersByTopLevel.get(topLevel) ?? []).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+    const subLines: Array<string> = []
+    for (const folderPath of folderPaths) {
+      const tagMap = notesByFolderAndTag.get(folderPath) ?? new Map()
+      for (const tag of tags) {
+        const titles = tagMap.get(tag) ?? []
+        if (titles.length === 0) {
+          continue
+        }
+        const sortedTitles = sortNoteTitlesForSummary(titles)
+        const label = formatFolderTagSummaryLabel(folderPath, tag, sortedTitles.length)
+        subLines.push(`\t- ${label}: ${sortedTitles.join(' ・ ')}`)
+      }
+    }
+    if (subLines.length > 0) {
+      lines.push(`- ${topLevel}`)
+      lines.push(...subLines)
+    }
+  }
+  return lines.join('\n')
+}
+
+/**
+ * Build bullet summary block for the configured summary mode.
+ * @param {'byTag' | 'byFolder' | 'bySubFolder' | 'none' | ''} mode
+ * @param {Array<string>} tags
+ * @param {Map<string, Array<string>>} notesByTag
+ * @param {Map<string, Map<string, Array<string>>>} notesByFolderAndTag
+ * @returns {string}
+ */
+export function buildWeeklyProgressBulletSummary(
+  mode: 'byTag' | 'byFolder' | 'bySubFolder' | 'none' | '',
+  tags: Array<string>,
+  notesByTag: Map<string, Array<string>>,
+  notesByFolderAndTag: Map<string, Map<string, Array<string>>>,
+): string {
+  if (mode === 'byTag') {
+    return buildWeeklyProgressTagSummaryLines(tags, notesByTag)
+  }
+  if (mode === 'byFolder') {
+    return buildWeeklyProgressByFolderSummaryLines(tags, notesByFolderAndTag)
+  }
+  if (mode === 'bySubFolder') {
+    return buildWeeklyProgressBySubFolderSummaryLines(tags, notesByFolderAndTag)
+  }
+  return ''
+}
+
+/**
  * Whether to include folder rows with no progress in the weekly table (default: true).
  * @param {ReviewConfig} config
  * @returns {boolean}
  */
 function getWeeklyProjectProgressShowEmptyFolders(config: ReviewConfig): boolean {
   return config.weeklyProjectProgressShowEmptyFolders !== false
+}
+
+type TWeeklyProjectProgressBulletSummaryMode = 'byTag' | 'byFolder' | 'bySubFolder' | 'none' | ''
+
+type TWeeklyProjectProgressOutputStyle = {
+  showTable: boolean,
+  bulletMode: TWeeklyProjectProgressBulletSummaryMode,
+}
+
+/** User-facing output style labels stored in settings */
+export const WEEKLY_PROJECT_PROGRESS_OUTPUT_LIST_BY_TAG: string = 'List by tag'
+export const WEEKLY_PROJECT_PROGRESS_OUTPUT_LIST_BY_FOLDER: string = 'List by folder'
+export const WEEKLY_PROJECT_PROGRESS_OUTPUT_LIST_BY_SUBFOLDER: string = 'List by sub-folder'
+export const WEEKLY_PROJECT_PROGRESS_OUTPUT_TABLE_BY_SUBFOLDER: string = 'Table by sub-folder'
+
+/**
+ * Resolve weekly note output style from settings (list vs table, and bullet grouping).
+ * Accepts current user-facing labels and legacy internal tokens (byTag, byFolder, etc.).
+ * @param {ReviewConfig} config
+ * @returns {TWeeklyProjectProgressOutputStyle}
+ */
+export function resolveWeeklyProjectProgressOutputStyle(config: ReviewConfig): TWeeklyProjectProgressOutputStyle {
+  const style = config.weeklyProjectProgressBulletSummary?.trim() ?? WEEKLY_PROJECT_PROGRESS_OUTPUT_LIST_BY_SUBFOLDER
+  switch (style) {
+    case WEEKLY_PROJECT_PROGRESS_OUTPUT_LIST_BY_TAG:
+    case 'byTag':
+      return { showTable: false, bulletMode: 'byTag' }
+    case WEEKLY_PROJECT_PROGRESS_OUTPUT_LIST_BY_FOLDER:
+    case 'byFolder':
+      return { showTable: false, bulletMode: 'byFolder' }
+    case WEEKLY_PROJECT_PROGRESS_OUTPUT_LIST_BY_SUBFOLDER:
+    case 'bySubFolder':
+      return { showTable: false, bulletMode: 'bySubFolder' }
+    case WEEKLY_PROJECT_PROGRESS_OUTPUT_TABLE_BY_SUBFOLDER:
+      return { showTable: true, bulletMode: 'none' }
+    case 'none':
+    case '':
+      return { showTable: false, bulletMode: 'none' }
+    default:
+      logWarn(
+        'resolveWeeklyProjectProgressOutputStyle',
+        `Invalid weeklyProjectProgressBulletSummary '${style}'; defaulting to '${WEEKLY_PROJECT_PROGRESS_OUTPUT_LIST_BY_SUBFOLDER}'`,
+      )
+      return { showTable: false, bulletMode: 'bySubFolder' }
+  }
 }
 
 /**
@@ -421,29 +707,8 @@ export function resolveWeekLabelFromArgs(argsIn: Array<any>): ?string {
 }
 
 /**
- * Return true if params request toggling the show-empty-folders setting (legacy links).
- * @param {string} paramsStr
- * @returns {boolean}
- */
-export function isToggleEmptyFoldersParam(paramsStr: string): boolean {
-  if (!paramsStr) {
-    return false
-  }
-  const token = decodeParamToken(paramsStr)
-  if (token === TOGGLE_EMPTY_FOLDERS_PARAM) {
-    return true
-  }
-  try {
-    const parsed = JSON.parse(token)
-    return parsed?.toggleWeeklyProjectProgressShowEmptyFolders === true
-  } catch (_) {
-    return false
-  }
-}
-
-/**
  * Resolve the desired show-empty-folders value from a command param, if specified.
- * Uses explicit hide/show tokens (preferred) or legacy toggle/JSON overrides.
+ * Uses explicit hide/show tokens.
  * @param {string} paramsStr
  * @param {ReviewConfig} config
  * @returns {?boolean}
@@ -453,14 +718,11 @@ export function resolveShowEmptyFoldersFromParam(paramsStr: string, config: Revi
     return null
   }
   const token = decodeParamToken(paramsStr)
-  if (token === HIDE_EMPTY_FOLDERS_PARAM || token === LEGACY_HIDE_EMPTY_FOLDERS_PARAM) {
+  if (token === HIDE_EMPTY_FOLDERS_PARAM) {
     return false
   }
-  if (token === SHOW_EMPTY_FOLDERS_PARAM || token === LEGACY_SHOW_EMPTY_FOLDERS_PARAM) {
+  if (token === SHOW_EMPTY_FOLDERS_PARAM) {
     return true
-  }
-  if (isToggleEmptyFoldersParam(paramsStr)) {
-    return !getWeeklyProjectProgressShowEmptyFolders(config)
   }
   try {
     const parsed = JSON.parse(token)
@@ -471,18 +733,6 @@ export function resolveShowEmptyFoldersFromParam(paramsStr: string, config: Revi
     // not JSON — fall through
   }
   return null
-}
-
-/**
- * Flip weeklyProjectProgressShowEmptyFolders on a config object (does not persist).
- * @param {ReviewConfig} config
- * @returns {ReviewConfig}
- */
-export function toggleWeeklyProjectProgressShowEmptyFoldersOnConfig(config: ReviewConfig): ReviewConfig {
-  return {
-    ...config,
-    weeklyProjectProgressShowEmptyFolders: !getWeeklyProjectProgressShowEmptyFolders(config),
-  }
 }
 
 /**
@@ -564,26 +814,6 @@ function getWeekInfoFromWeekLabel(weekLabel: string): WeekInfo {
 }
 
 /**
- * Remove orphan intro fragments left by NotePlan when markdown links precede a table insert.
- * @param {CoreNoteFields} note
- * @param {string} weekLabel
- */
-function removeOrphanWeeklyProgressIntroFragments(note: CoreNoteFields, weekLabel: string): void {
-  const paras = note.paragraphs ?? []
-  const orphans = paras.filter((p) => {
-    if (p.type !== 'text') {
-      return false
-    }
-    const content = p.content.trim()
-    return content.startsWith(`Notes progressed in ${weekLabel} [`) && content.endsWith('(')
-  })
-  if (orphans.length > 0) {
-    note.removeParagraphs(orphans)
-    logDebug('removeOrphanWeeklyProgressIntroFragments', `Removed ${String(orphans.length)} orphan intro fragment(s)`)
-  }
-}
-
-/**
  * Apply optional params from command/x-callback invocation (hide/show empty-folder rows, etc.).
  * Persists setting changes to settings.json when a show/hide override is present. Returns the in-memory config used for this run.
  * @param {ReviewConfig} config
@@ -642,10 +872,19 @@ function aggregateNotesProgressedByFolderAndTag(config: ReviewConfig, week: Week
 
   const { notes, folders } = getNotesInTargetProjectFolders(config)
   const counts: Map<string, Map<string, Set<string>>> = new Map()
+  const notesByTagSets: Map<string, Set<string>> = new Map()
+  const notesByFolderAndTagSets: Map<string, Map<string, Set<string>>> = new Map()
 
   if (projectTypeTags.length === 0) {
     logWarn('aggregateNotesProgressedByFolderAndTag', 'No projectTypeTags configured; weekly table will be empty')
-    return { weekLabel: week.label, folders, tags: projectTypeTags, counts: new Map() }
+    return {
+      weekLabel: week.label,
+      folders,
+      tags: projectTypeTags,
+      counts: new Map(),
+      notesByTag: new Map(),
+      notesByFolderAndTag: new Map(),
+    }
   }
 
   for (const note of notes) {
@@ -654,6 +893,7 @@ function aggregateNotesProgressedByFolderAndTag(config: ReviewConfig, week: Week
     const matchingTags = getMatchingProjectTagsOnNote(note, projectTypeTags)
     if (matchingTags.length === 0) continue
 
+    const noteTitle = (note.title ?? '').trim() !== '' ? (note.title ?? '').trim() : note.filename
     const folderPath = getFolderFromFilename(note.filename)
     for (const tag of matchingTags) {
       const folderMap = counts.get(folderPath) ?? new Map()
@@ -661,6 +901,16 @@ function aggregateNotesProgressedByFolderAndTag(config: ReviewConfig, week: Week
       noteSet.add(note.filename)
       folderMap.set(tag, noteSet)
       counts.set(folderPath, folderMap)
+
+      const titleSet = notesByTagSets.get(tag) ?? new Set()
+      titleSet.add(noteTitle)
+      notesByTagSets.set(tag, titleSet)
+
+      const folderTagMap = notesByFolderAndTagSets.get(folderPath) ?? new Map()
+      const folderTitleSet = folderTagMap.get(tag) ?? new Set()
+      folderTitleSet.add(noteTitle)
+      folderTagMap.set(tag, folderTitleSet)
+      notesByFolderAndTagSets.set(folderPath, folderTagMap)
     }
   }
 
@@ -673,11 +923,42 @@ function aggregateNotesProgressedByFolderAndTag(config: ReviewConfig, week: Week
     countNumbers.set(folder, numberMap)
   }
 
+  const notesByTag: Map<string, Array<string>> = new Map()
+  for (const tag of projectTypeTags) {
+    const titleSet = notesByTagSets.get(tag)
+    if (!titleSet || titleSet.size === 0) {
+      continue
+    }
+    notesByTag.set(
+      tag,
+      Array.from(titleSet).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })),
+    )
+  }
+
+  const notesByFolderAndTag: Map<string, Map<string, Array<string>>> = new Map()
+  for (const [folderPath, tagMap] of notesByFolderAndTagSets.entries()) {
+    const titleMap: Map<string, Array<string>> = new Map()
+    for (const [tag, titleSet] of tagMap.entries()) {
+      if (titleSet.size === 0) {
+        continue
+      }
+      titleMap.set(
+        tag,
+        Array.from(titleSet).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })),
+      )
+    }
+    if (titleMap.size > 0) {
+      notesByFolderAndTag.set(folderPath, titleMap)
+    }
+  }
+
   return {
     weekLabel: week.label,
     folders,
     tags: projectTypeTags,
     counts: countNumbers,
+    notesByTag,
+    notesByFolderAndTag,
   }
 }
 
@@ -685,9 +966,9 @@ function aggregateNotesProgressedByFolderAndTag(config: ReviewConfig, week: Week
  * Upsert a project progress table into a weekly calendar note.
  * @param {ReviewConfig} config
  * @param {?string} weekLabelIn - ISO week label (e.g. 2026-W35); defaults to current week
- * @returns {void}
+ * @returns {Promise<void>}
  */
-function writeWeeklyProjectProgressToWeeklyNote(config: ReviewConfig, weekLabelIn: ?string = null): void {
+async function writeWeeklyProjectProgressToWeeklyNote(config: ReviewConfig, weekLabelIn: ?string = null): Promise<void> {
   const headingSetting = config.weeklyProjectProgressHeading?.trim() ?? ''
   if (!headingSetting) {
     logDebug('writeWeeklyProjectProgressToWeeklyNote', `weeklyProjectProgressHeading not set; skipping weekly note write`)
@@ -703,7 +984,7 @@ function writeWeeklyProjectProgressToWeeklyNote(config: ReviewConfig, weekLabelI
   const weekLabel = weekLabelIn ?? getCurrentWeekLabel()
   const targetWeek = getWeekInfoFromWeekLabel(weekLabel)
 
-  const { folders: allFolders, tags, counts } = aggregateNotesProgressedByFolderAndTag(config, targetWeek)
+  const { folders: allFolders, tags, counts, notesByTag, notesByFolderAndTag } = aggregateNotesProgressedByFolderAndTag(config, targetWeek)
   const showEmptyFolders = getWeeklyProjectProgressShowEmptyFolders(config)
   const folders = getFoldersForWeeklyProgressTable(allFolders, counts, showEmptyFolders)
   const hiddenFolderCount = allFolders.length - folders.length
@@ -715,8 +996,22 @@ function writeWeeklyProjectProgressToWeeklyNote(config: ReviewConfig, weekLabelI
   // Show/Hide toggle disabled pending NotePlan fix for markdown links + table body inserts
   // const emptyFoldersToggleMD = getEmptyFoldersToggleLinkMD(showEmptyFolders)
   const sectionHeadingWithLinks = `${headingText} ${xCallbackMD}`
-  const table = buildWeeklyProgressMarkdownTable(folders, tags, counts)
-  const bodyContent = table !== '' ? `Notes progressed in ${weekLabel}:\n${table}` : `Notes progressed in ${weekLabel}:`
+  const { showTable, bulletMode } = resolveWeeklyProjectProgressOutputStyle(config)
+  const table = showTable ? buildWeeklyProgressMarkdownTable(folders, tags, counts) : ''
+  const tagsSummary = buildWeeklyProgressTagCountSummary(tags, notesByTag)
+  const introLine = `${tagsSummary} progressed in ${weekLabel}:`
+  let bulletBlock = ''
+  if (bulletMode !== 'none' && bulletMode !== '') {
+    bulletBlock = buildWeeklyProgressBulletSummary(bulletMode, tags, notesByTag, notesByFolderAndTag)
+  }
+  const bodyParts: Array<string> = [introLine]
+  if (showTable && table !== '') {
+    bodyParts.push(table)
+  }
+  if (bulletBlock !== '') {
+    bodyParts.push(bulletBlock)
+  }
+  const bodyContent = bodyParts.join('\n')
 
   const destNote = DataStore.calendarNoteByDateString(weekLabel)
     ?? DataStore.calendarNoteByDate(targetWeek.startDate, 'week')
@@ -725,12 +1020,18 @@ function writeWeeklyProjectProgressToWeeklyNote(config: ReviewConfig, weekLabelI
     return
   }
 
+  let noteToUpdate: CoreNoteFields = destNote
   const openEditor = getOpenEditorFromFilename(destNote.filename, true)
-  const noteToUpdate = openEditor || destNote
   if (openEditor) {
+    noteToUpdate = openEditor
     logDebug('writeWeeklyProjectProgressToWeeklyNote', `Weekly note '${destNote.filename}' is open in Editor; updating Editor pane`)
+  } else {
+    const openedEditor = await getOrOpenEditorFromFilename(destNote.filename, 'window')
+    if (openedEditor) {
+      noteToUpdate = openedEditor
+      logDebug('writeWeeklyProjectProgressToWeeklyNote', `Weekly note '${destNote.filename}' opened in Editor for update`)
+    }
   }
-  removeOrphanWeeklyProgressIntroFragments(noteToUpdate, weekLabel)
   replaceSection(noteToUpdate, headingText, sectionHeadingWithLinks, headingLevel, bodyContent)
   logInfo('writeWeeklyProjectProgressToWeeklyNote', `Updated section '${headingText}' in weekly note '${destNote.filename}' for ${weekLabel}`)
 }
@@ -903,7 +1204,7 @@ export async function writeProjectsWeeklyProgressToCSV(...argsIn: any[]): Promis
     const tasksCsvString = tasksRows.join('\n')
     await DataStore.saveData(tasksCsvString, TASK_COMPLETION_PER_FOLDER_FILENAME, true)
 
-    writeWeeklyProjectProgressToWeeklyNote(config, weekLabel)
+    await writeWeeklyProjectProgressToWeeklyNote(config, weekLabel)
 
     logInfo('writeProjectsWeeklyProgressToCSV', `Written weekly progress CSV to '${PROGRESS_PER_FOLDER_FILENAME}' and '${TASK_COMPLETION_PER_FOLDER_FILENAME}'`)
   } catch (error) {

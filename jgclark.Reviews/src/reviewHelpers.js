@@ -92,6 +92,7 @@ export type ReviewConfig = {
   projectMetadataFrontmatterKey?: string,
   weeklyProjectProgressHeading?: string,
   weeklyProjectProgressShowEmptyFolders?: boolean,
+  weeklyProjectProgressBulletSummary?: string,
   _logLevel: string,
   _logTimer: boolean,
 }

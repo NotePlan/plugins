@@ -313,9 +313,7 @@ This scans your Area/Project folders and writes two CSV files into the plugin's 
 - one with the number of distinct notes progressed per folder per week (a project note counts as progressed if one or more tasks were completed that week)
 - one with the total number of completed tasks per folder per week
 
-If setting "Heading for Weekly Project Progress output" is set (default: `## Weekly Project Progress`), it also inserts or updates a markdown table into the **current weekly note** under that heading. The table shows, for the current week only the number of notes in a particular (sub-)folder that had at least one task completed that week. It does this with one column per 'project tag (' (defined above), such as `#project` or `#goal`.
-
-It includes two pseudo-buttons: one to Refresh, and the other to toggle whether to Hide or Show folders with no progress. The latter toggles the "Show folders with no progress in weekly table?" setting (default: on).
+If setting "Heading for Weekly Project Progress output" is set (default: `## Weekly Project Progress`), it also inserts or updates a summary section into the **current weekly note** under that heading. It can output as a table, or lists arranged by folder, subfolder or project tag (defined above), such as `#project` or `#goal`. This is controlled by setting 'Weekly project progress output style'.
 
 ### "/heatmaps for weekly Projects Progress" command
 This first runs the same scan as `/weeklyProjectsProgress` (so the CSVs are kept fresh), and then shows a pair of heatmaps in a new window:

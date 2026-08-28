@@ -192,7 +192,10 @@
     {
       "hidden": false,
       "name": "weeklyProjectsProgress",
-      "alias": [],
+      "alias": [
+        "wpp",
+        "progress"
+      ],
       "description": "Generate per-folder Area/Project progress stats as CSV files in the plugin data folder, and upsert a summary table into the current weekly note when 'Heading for Weekly Project Progress output' is set",
       "jsFunction": "writeProjectsWeeklyProgressToCSV",
       "arguments": [
@@ -586,10 +589,24 @@
       "required": false
     },
     {
+      "key": "weeklyProjectProgressBulletSummary",
+      "title": "Weekly project progress output style",
+      "description": "How '/weeklyProjectsProgress' presents progressed notes in the weekly note: a bullet list grouped by tag, folder, or sub-folder; or a markdown table with one row per sub-folder.",
+      "type": "string",
+      "choices": [
+        "List by tag",
+        "List by folder",
+        "List by sub-folder",
+        "Table by sub-folder"
+      ],
+      "default": "List by sub-folder",
+      "required": true
+    },
+    {
       "key": "weeklyProjectProgressShowEmptyFolders",
       "title": "Show folders with no progress in weekly table?",
       "description": "When set, the weekly note table includes folder rows even if no notes progressed there that week. When off, only folders with at least one progressed note are shown. Can also be toggled from a pseudo-button in the weekly note output.",
-      "type": "bool",
+      "type": "hidden",
       "default": true,
       "required": true
     },
