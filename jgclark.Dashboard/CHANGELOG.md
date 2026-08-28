@@ -1,8 +1,11 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.5.0.b2] 2026-08-27
-- New: Priority note-index cache so the Priority section can avoid a full vault scan on warm refreshes. On by default (`FFlag_UsePriorityCache`); falls back to full scan and schedules a background rebuild when the cache is missing. Commands: `generatePriorityNoteIndexCache` / `updatePriorityNoteIndexCache`.
+## [2.5.0.b2] 2026-08-28
+- New: Priority note-index cache so the Priority section can avoid a full scan on warm refreshes. On by default (`FFlag_UsePriorityCache`); falls back to full scan and schedules a background rebuild when the cache is missing. Commands: `generatePriorityNoteIndexCache` / `updatePriorityNoteIndexCache`.
+- dev: Fix potential duplicate WINS section rows when stale pluginData persists synthetic section.
+Strip SYNTHETIC_SECTION_CODES before injectSyntheticWinsSection builds Wins from calendar sections.
+
 
 ## [2.5.0.b1] 2026-08-27
 - New: Interactive Processing on Active Projects and Projects to Review (`>> N` walks project rows; PROJACT allows back-navigate, PROJREVIEW forward-only; Start Reviews unchanged).

@@ -376,6 +376,35 @@ describe('sectionHelpers', () => {
       expect(out).toBe(sections)
     })
 
+    test('replaces stale WINS in pluginData with freshly built synthetic WINS (no duplicate section rows)', () => {
+      const sections = [
+        {
+          ID: 'DT',
+          name: 'Today',
+          showSettingName: 'showTodaySection',
+          sectionCode: 'DT',
+          isReferenced: false,
+          description: '',
+          sectionItems: [{ ID: 'DT-1', itemType: 'open', sectionCode: 'DT', para: { priority: 4, type: 'open', content: '>> win', filename: 'x.md' } }],
+        },
+        {
+          ID: 'WINS',
+          name: 'Wins',
+          showSettingName: 'showWinsSection',
+          sectionCode: 'WINS',
+          isReferenced: false,
+          description: '',
+          totalCount: 99,
+          sectionItems: [{ ID: 'WINS-stale', itemType: 'open', sectionCode: 'WINS', para: { priority: 4, type: 'open', content: '>> stale', filename: 'old.md' } }],
+        },
+      ]
+      const out = injectSyntheticWinsSection(sections, baseSettings)
+      const winsSections = out.filter((s) => s.sectionCode === 'WINS')
+      expect(winsSections).toHaveLength(1)
+      expect(winsSections[0].sectionItems.map((i) => i.para.content)).toEqual(['>> win'])
+      expect(winsSections[0].totalCount).toBe(1)
+    })
+
     test('appends WINS with priority-4 `>>` items from visible DT/W in order', () => {
       const sections = [
         {
