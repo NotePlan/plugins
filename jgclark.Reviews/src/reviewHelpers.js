@@ -90,6 +90,8 @@ export type ReviewConfig = {
   progressHeadingLevel: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8, // must match the levels NotePlan's insertHeading() accepts
   writeMostRecentProgressToFrontmatter?: boolean,
   projectMetadataFrontmatterKey?: string,
+  weeklyProjectProgressHeading?: string,
+  weeklyProjectProgressShowEmptyFolders?: boolean,
   _logLevel: string,
   _logTimer: boolean,
 }

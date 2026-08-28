@@ -7,7 +7,7 @@
 // Columns: successive week labels (e.g. 2026-W06)
 // Rows: folder names in alphabetical order
 //
-// Last updated 2026-08-17 for v2.0.7 by @jgclark + @CursorAI
+// Last updated 2026-08-28 for v2.1.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -19,8 +19,11 @@ import {
   YYYYMMDDDateStringFromDate,
 } from '@helpers/dateTime'
 import { getNPWeekData, pad } from '@helpers/NPdateTime'
-import { clo, JSP, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
+import { createPrettyRunPluginLink, type headingLevelType } from '@helpers/general'
 import { getRegularNotesFromFilteredFolders, getFolderFromFilename } from '@helpers/folders'
+import { getOpenEditorFromFilename } from '@helpers/NPEditor'
+import { replaceSection } from '@helpers/note'
 import { isDone } from '@helpers/utils'
 import { showHTMLV2 } from '@helpers/HTMLView'
 import { showMessage } from '@helpers/userInput'
@@ -34,6 +37,13 @@ const PROJECT_FOLDER_MATCHERS: Array<string> = ['area', 'project']
 const PROGRESS_PER_FOLDER_FILENAME: string = 'progress-per-folder.csv'
 const TASK_COMPLETION_PER_FOLDER_FILENAME: string = 'task-completion-per-folder.csv'
 const PLUGIN_ID: string = 'jgclark.Reviews'
+/** @deprecated Legacy toggle token; prefer hide / show */
+export const TOGGLE_EMPTY_FOLDERS_PARAM: string = 'toggleEmptyFolders'
+export const HIDE_EMPTY_FOLDERS_PARAM: string = 'hide'
+export const SHOW_EMPTY_FOLDERS_PARAM: string = 'show'
+/** @deprecated Legacy x-callback tokens; still accepted when resolving params */
+const LEGACY_HIDE_EMPTY_FOLDERS_PARAM: string = 'hideEmptyFolders'
+const LEGACY_SHOW_EMPTY_FOLDERS_PARAM: string = 'showEmptyFolders'
 
 //-----------------------------------------------------------------------------
 // Types
@@ -48,6 +58,13 @@ type TWeeklyHeatmapChart = {
   data: Array<{ x: string, y: string, heat: number }>,
   chartTitle: string,
   containerId: string,
+}
+
+type TWeeklyProgressByFolderAndTag = {
+  weekLabel: string,
+  folders: Array<string>,
+  tags: Array<string>,
+  counts: Map<string, Map<string, number>>,
 }
 
 //-----------------------------------------------------------------------------
@@ -142,6 +159,583 @@ function getDoneISODateFromContent(content: string): string {
 }
 
 /**
+ * Parse a setting value that may include markdown heading markers (e.g. "## Weekly Project Progress").
+ * @param {string} setting
+ * @returns {{ level: headingLevelType, text: string }}
+ */
+function parseMarkdownHeadingSetting(setting: string): { level: headingLevelType, text: string } {
+  const trimmed = setting.trim()
+  if (!trimmed) {
+    return { level: 2, text: '' }
+  }
+  const match = trimmed.match(/^(#{1,5})\s+(.*)$/)
+  if (match) {
+    const level = Math.min(5, Math.max(1, match[1].length))
+    return { level: (level: any), text: match[2].trim() }
+  }
+  return { level: 2, text: trimmed }
+}
+
+/**
+ * Return true if the note title looks like an index/MOC note to exclude from progress stats.
+ * @param {?string} title
+ * @returns {boolean}
+ */
+function isIndexOrMOCNoteTitle(title: ?string): boolean {
+  if (!title) return false
+  return Boolean(title.match(/^index $/i) || title.match(/ index$/i) || title.match(/^moc $/i) || title.match(/ moc$/i))
+}
+
+/**
+ * Derive distinct folder paths from a list of notes (folders with no notes are never included).
+ * @param {Array<TNote>} notes
+ * @returns {Array<string>}
+ */
+function getDistinctSortedFolderPathsFromNotes(notes: Array<TNote>): Array<string> {
+  return Array.from(new Set(notes.map((n) => getFolderFromFilename(n.filename))))
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+}
+
+/**
+ * Get notes in Area/Project folders, plus the sorted list of folder paths found.
+ * Folder paths are derived only from notes that exist — empty folders are never included.
+ * @param {ReviewConfig} config
+ * @returns {{ notes: Array<TNote>, folders: Array<string> }}
+ */
+function getNotesInTargetProjectFolders(config: ReviewConfig): { notes: Array<TNote>, folders: Array<string> } {
+  const foldersToExclude = config.foldersToIgnore ?? []
+  const allNotes = getRegularNotesFromFilteredFolders(foldersToExclude, true)
+  const notesInTargetFolders = allNotes.filter((n) => {
+    const folderPath = getFolderFromFilename(n.filename)
+    return isAreaOrProjectFolder(folderPath) && !isIndexOrMOCNoteTitle(n.title)
+  })
+  const folders = getDistinctSortedFolderPathsFromNotes(notesInTargetFolders)
+  return { notes: notesInTargetFolders, folders }
+}
+
+/**
+ * Return project-type tags present on a note (from note.hashtags), in config order.
+ * @param {TNote} note
+ * @param {Array<string>} projectTypeTags
+ * @returns {Array<string>}
+ */
+function getMatchingProjectTagsOnNote(note: TNote, projectTypeTags: Array<string>): Array<string> {
+  const hashtags: $ReadOnlyArray<string> = note.hashtags ?? []
+  return projectTypeTags.filter((tag) => {
+    const normalisedTag = tag.startsWith('#') ? tag : `#${tag}`
+    return hashtags.includes(normalisedTag)
+  })
+}
+
+/**
+ * Return true if the note has at least one completed task in the given week.
+ * @param {TNote} note
+ * @param {WeekInfo} week
+ * @returns {boolean}
+ */
+function noteProgressedInWeek(note: TNote, week: WeekInfo): boolean {
+  for (const p of note.paragraphs) {
+    if (!isDone(p)) continue
+    const doneISO = getDoneISODateFromContent(p.content)
+    if (!doneISO) continue
+    if (getWeekLabelForISODate(doneISO, [week]) !== '') {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Build a markdown table for current-week notes progressed, by folder and project tag.
+ * Empty cells are left blank (not zero).
+ * @param {Array<string>} folders
+ * @param {Array<string>} tags
+ * @param {Map<string, Map<string, number>>} counts
+ * @returns {string}
+ */
+function buildWeeklyProgressMarkdownTable(
+  folders: Array<string>,
+  tags: Array<string>,
+  counts: Map<string, Map<string, number>>,
+): string {
+  if (tags.length === 0) {
+    return ''
+  }
+  const escapeCell = (value: string): string => value.replace(/\|/g, '\\|')
+  const headerCells = ['Folder', ...tags].map(escapeCell)
+  const alignCells = headerCells.map((_, index) => (index === 0 ? '---' : '---:'))
+  const lines: Array<string> = [
+    `| ${headerCells.join(' | ')} |`,
+    `| ${alignCells.join(' | ')} |`,
+  ]
+
+  const columnTotals: Array<number> = tags.map((tag) => {
+    let total = 0
+    for (const folder of folders) {
+      total += counts.get(folder)?.get(tag) ?? 0
+    }
+    return total
+  })
+  const totalRowCells = [
+    '**TOTAL**',
+    ...columnTotals.map((count) => String(count)),
+  ].map(escapeCell)
+  lines.push(`| ${totalRowCells.join(' | ')} |`)
+
+  for (const folder of folders) {
+    const tagCounts = counts.get(folder) ?? new Map()
+    const rowCells = [escapeCell(folder)]
+    for (const tag of tags) {
+      const count = tagCounts.get(tag) ?? 0
+      rowCells.push(count > 0 ? String(count) : '')
+    }
+    lines.push(`| ${rowCells.join(' | ')} |`)
+  }
+
+  return lines.join('\n')
+}
+
+/**
+ * Whether to include folder rows with no progress in the weekly table (default: true).
+ * @param {ReviewConfig} config
+ * @returns {boolean}
+ */
+function getWeeklyProjectProgressShowEmptyFolders(config: ReviewConfig): boolean {
+  return config.weeklyProjectProgressShowEmptyFolders !== false
+}
+
+/**
+ * Return folder rows for the weekly table, optionally hiding folders with no progress that week.
+ * @param {Array<string>} allFolders
+ * @param {Map<string, Map<string, number>>} counts
+ * @param {boolean} showEmptyFolders
+ * @returns {Array<string>}
+ */
+function getFoldersForWeeklyProgressTable(
+  allFolders: Array<string>,
+  counts: Map<string, Map<string, number>>,
+  showEmptyFolders: boolean,
+): Array<string> {
+  if (showEmptyFolders) {
+    return allFolders
+  }
+  return allFolders.filter((folder) => {
+    const tagCounts = counts.get(folder)
+    if (!tagCounts) {
+      return false
+    }
+    return Array.from(tagCounts.values()).some((count) => count > 0)
+  })
+}
+
+/**
+ * Decode x-callback arg tokens safely.
+ * @param {string} paramsStr
+ * @returns {string}
+ */
+function decodeParamToken(paramsStr: string): string {
+  if (!paramsStr) {
+    return ''
+  }
+  try {
+    return decodeURIComponent(paramsStr)
+  } catch (_) {
+    return paramsStr
+  }
+}
+
+/**
+ * Normalise command/x-callback input to a string (NotePlan may pass a string or other types).
+ * @param {any} paramsIn
+ * @returns {string}
+ */
+export function normalizeWeeklyProjectProgressParam(paramsIn: any): string {
+  if (paramsIn == null || paramsIn === '') {
+    return ''
+  }
+  if (typeof paramsIn === 'object') {
+    return JSON.stringify(paramsIn)
+  }
+  return String(paramsIn).trim()
+}
+
+/** ISO week label e.g. 2026-W35 */
+const WEEK_LABEL_RE: RegExp = /^(\d{4})-W(\d{1,2})$/i
+
+/**
+ * Pick the first non-empty normalised param from NotePlan command arguments.
+ * @param {Array<any>} argsIn
+ * @returns {string}
+ */
+export function getFirstWeeklyProjectProgressParam(argsIn: Array<any>): string {
+  for (const arg of argsIn) {
+    const normalised = normalizeWeeklyProjectProgressParam(arg)
+    if (normalised !== '') {
+      return normalised
+    }
+  }
+  return ''
+}
+
+/**
+ * Normalise all non-empty command/x-callback arguments to strings.
+ * @param {Array<any>} argsIn
+ * @returns {Array<string>}
+ */
+export function normalizeWeeklyProjectProgressArgs(argsIn: Array<any>): Array<string> {
+  return argsIn
+    .map(normalizeWeeklyProjectProgressParam)
+    .filter((arg) => arg !== '')
+}
+
+/**
+ * Parse an ISO week label param (e.g. 2026-W35), or null if not a week token.
+ * @param {string} paramsStr
+ * @returns {?string}
+ */
+export function parseWeekLabelParam(paramsStr: string): ?string {
+  if (!paramsStr) {
+    return null
+  }
+  const token = decodeParamToken(paramsStr).toUpperCase()
+  const match = token.match(WEEK_LABEL_RE)
+  if (!match) {
+    return null
+  }
+  return `${match[1]}-W${pad(Number(match[2]))}`
+}
+
+/**
+ * Return the first week label found in command arguments, if any.
+ * @param {Array<any>} argsIn
+ * @returns {?string}
+ */
+export function resolveWeekLabelFromArgs(argsIn: Array<any>): ?string {
+  for (const arg of normalizeWeeklyProjectProgressArgs(argsIn)) {
+    const weekLabel = parseWeekLabelParam(arg)
+    if (weekLabel) {
+      return weekLabel
+    }
+  }
+  return null
+}
+
+/**
+ * Return true if params request toggling the show-empty-folders setting (legacy links).
+ * @param {string} paramsStr
+ * @returns {boolean}
+ */
+export function isToggleEmptyFoldersParam(paramsStr: string): boolean {
+  if (!paramsStr) {
+    return false
+  }
+  const token = decodeParamToken(paramsStr)
+  if (token === TOGGLE_EMPTY_FOLDERS_PARAM) {
+    return true
+  }
+  try {
+    const parsed = JSON.parse(token)
+    return parsed?.toggleWeeklyProjectProgressShowEmptyFolders === true
+  } catch (_) {
+    return false
+  }
+}
+
+/**
+ * Resolve the desired show-empty-folders value from a command param, if specified.
+ * Uses explicit hide/show tokens (preferred) or legacy toggle/JSON overrides.
+ * @param {string} paramsStr
+ * @param {ReviewConfig} config
+ * @returns {?boolean}
+ */
+export function resolveShowEmptyFoldersFromParam(paramsStr: string, config: ReviewConfig): ?boolean {
+  if (!paramsStr) {
+    return null
+  }
+  const token = decodeParamToken(paramsStr)
+  if (token === HIDE_EMPTY_FOLDERS_PARAM || token === LEGACY_HIDE_EMPTY_FOLDERS_PARAM) {
+    return false
+  }
+  if (token === SHOW_EMPTY_FOLDERS_PARAM || token === LEGACY_SHOW_EMPTY_FOLDERS_PARAM) {
+    return true
+  }
+  if (isToggleEmptyFoldersParam(paramsStr)) {
+    return !getWeeklyProjectProgressShowEmptyFolders(config)
+  }
+  try {
+    const parsed = JSON.parse(token)
+    if (typeof parsed?.weeklyProjectProgressShowEmptyFolders === 'boolean') {
+      return parsed.weeklyProjectProgressShowEmptyFolders
+    }
+  } catch (_) {
+    // not JSON — fall through
+  }
+  return null
+}
+
+/**
+ * Flip weeklyProjectProgressShowEmptyFolders on a config object (does not persist).
+ * @param {ReviewConfig} config
+ * @returns {ReviewConfig}
+ */
+export function toggleWeeklyProjectProgressShowEmptyFoldersOnConfig(config: ReviewConfig): ReviewConfig {
+  return {
+    ...config,
+    weeklyProjectProgressShowEmptyFolders: !getWeeklyProjectProgressShowEmptyFolders(config),
+  }
+}
+
+/**
+ * Apply a show/hide empty-folders param to config (does not persist).
+ * @param {ReviewConfig} config
+ * @param {string} paramsStr
+ * @returns {ReviewConfig}
+ */
+export function applyShowEmptyFoldersParamToConfig(config: ReviewConfig, paramsStr: string): ReviewConfig {
+  const resolved = resolveShowEmptyFoldersFromParam(paramsStr, config)
+  if (resolved == null) {
+    return overrideSettingsWithEncodedTypedArgs(config, paramsStr)
+  }
+  return {
+    ...config,
+    weeklyProjectProgressShowEmptyFolders: resolved,
+  }
+}
+
+/**
+ * x-callback param that preserves the current empty-folder view mode on refresh.
+ * @param {boolean} showEmptyFolders
+ * @returns {string}
+ */
+export function getWeeklyProjectProgressViewParam(showEmptyFolders: boolean): string {
+  return showEmptyFolders ? SHOW_EMPTY_FOLDERS_PARAM : HIDE_EMPTY_FOLDERS_PARAM
+}
+
+/*
+ * Markdown x-callback link for hide/show empty-folder rows — disabled for now.
+function getEmptyFoldersToggleLinkMD(showEmptyFolders: boolean): string {
+  const linkText = showEmptyFolders ? 'Hide folders with no progress' : 'Show folders with no progress'
+  const param = showEmptyFolders ? HIDE_EMPTY_FOLDERS_PARAM : SHOW_EMPTY_FOLDERS_PARAM
+  return createPrettyRunPluginLink(linkText, PLUGIN_ID, 'weeklyProjectsProgress', [param])
+}
+ */
+
+/**
+ * Markdown x-callback refresh link that preserves view mode and target week.
+ * @param {boolean} showEmptyFolders
+ * @param {string} weekLabel
+ * @returns {string}
+ */
+function getWeeklyProjectProgressRefreshLinkMD(showEmptyFolders: boolean, weekLabel: string): string {
+  return createPrettyRunPluginLink(
+    '🔄 Refresh',
+    PLUGIN_ID,
+    'weeklyProjectsProgress',
+    [getWeeklyProjectProgressViewParam(showEmptyFolders), weekLabel],
+  )
+}
+
+/**
+ * @returns {string}
+ */
+function getCurrentWeekLabel(): string {
+  const weekData = getNPWeekData(new Date(), 0, 'week')
+  if (!weekData) {
+    throw new Error('getCurrentWeekLabel: could not determine current week')
+  }
+  return weekData.weekString ?? `${String(weekData.weekYear)}-W${pad(weekData.weekNumber)}`
+}
+
+/**
+ * @param {string} weekLabel
+ * @returns {WeekInfo}
+ */
+function getWeekInfoFromWeekLabel(weekLabel: string): WeekInfo {
+  const weekData = getNPWeekData(weekLabel, 0, 'week')
+  if (!weekData) {
+    throw new Error(`getWeekInfoFromWeekLabel: could not resolve week '${weekLabel}'`)
+  }
+  const label = weekData.weekString ?? `${String(weekData.weekYear)}-W${pad(weekData.weekNumber)}`
+  return {
+    label,
+    startDate: weekData.startDate,
+    endDate: weekData.endDate,
+  }
+}
+
+/**
+ * Remove orphan intro fragments left by NotePlan when markdown links precede a table insert.
+ * @param {CoreNoteFields} note
+ * @param {string} weekLabel
+ */
+function removeOrphanWeeklyProgressIntroFragments(note: CoreNoteFields, weekLabel: string): void {
+  const paras = note.paragraphs ?? []
+  const orphans = paras.filter((p) => {
+    if (p.type !== 'text') {
+      return false
+    }
+    const content = p.content.trim()
+    return content.startsWith(`Notes progressed in ${weekLabel} [`) && content.endsWith('(')
+  })
+  if (orphans.length > 0) {
+    note.removeParagraphs(orphans)
+    logDebug('removeOrphanWeeklyProgressIntroFragments', `Removed ${String(orphans.length)} orphan intro fragment(s)`)
+  }
+}
+
+/**
+ * Apply optional params from command/x-callback invocation (hide/show empty-folder rows, etc.).
+ * Persists setting changes to settings.json when a show/hide override is present. Returns the in-memory config used for this run.
+ * @param {ReviewConfig} config
+ * @param {Array<any>} argsIn
+ * @returns {Promise<ReviewConfig>}
+ */
+async function applyWeeklyProjectProgressCommandParamsFromArgs(config: ReviewConfig, argsIn: Array<any>): Promise<ReviewConfig> {
+  try {
+    const normalisedArgs = normalizeWeeklyProjectProgressArgs(argsIn)
+    if (normalisedArgs.length === 0) {
+      return config
+    }
+
+    for (const arg of normalisedArgs) {
+      const resolvedShowEmpty = resolveShowEmptyFoldersFromParam(arg, config)
+      if (resolvedShowEmpty != null) {
+        const updatedConfig = { ...config, weeklyProjectProgressShowEmptyFolders: resolvedShowEmpty }
+        logInfo(
+          'applyWeeklyProjectProgressCommandParams',
+          `Set weeklyProjectProgressShowEmptyFolders to ${String(updatedConfig.weeklyProjectProgressShowEmptyFolders)} from param '${decodeParamToken(arg)}'`,
+        )
+        await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+        return updatedConfig
+      }
+    }
+
+    for (const arg of normalisedArgs) {
+      if (parseWeekLabelParam(arg)) {
+        continue
+      }
+      const updatedConfig = applyShowEmptyFoldersParamToConfig(config, arg)
+      if (updatedConfig !== config) {
+        await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+        return updatedConfig
+      }
+    }
+
+    return config
+  } catch (error) {
+    logError('applyWeeklyProjectProgressCommandParams', error.message)
+    return config
+  }
+}
+
+/**
+ * Aggregate distinct notes progressed in the given week, by folder path and project tag.
+ * @param {ReviewConfig} config
+ * @param {WeekInfo} week
+ * @returns {TWeeklyProgressByFolderAndTag}
+ */
+function aggregateNotesProgressedByFolderAndTag(config: ReviewConfig, week: WeekInfo): TWeeklyProgressByFolderAndTag {
+  let projectTypeTags: Array<string> = config.projectTypeTags ?? []
+  if (typeof projectTypeTags === 'string') {
+    projectTypeTags = [projectTypeTags]
+  }
+
+  const { notes, folders } = getNotesInTargetProjectFolders(config)
+  const counts: Map<string, Map<string, Set<string>>> = new Map()
+
+  if (projectTypeTags.length === 0) {
+    logWarn('aggregateNotesProgressedByFolderAndTag', 'No projectTypeTags configured; weekly table will be empty')
+    return { weekLabel: week.label, folders, tags: projectTypeTags, counts: new Map() }
+  }
+
+  for (const note of notes) {
+    if (!noteProgressedInWeek(note, week)) continue
+
+    const matchingTags = getMatchingProjectTagsOnNote(note, projectTypeTags)
+    if (matchingTags.length === 0) continue
+
+    const folderPath = getFolderFromFilename(note.filename)
+    for (const tag of matchingTags) {
+      const folderMap = counts.get(folderPath) ?? new Map()
+      const noteSet = folderMap.get(tag) ?? new Set()
+      noteSet.add(note.filename)
+      folderMap.set(tag, noteSet)
+      counts.set(folderPath, folderMap)
+    }
+  }
+
+  const countNumbers: Map<string, Map<string, number>> = new Map()
+  for (const [folder, tagMap] of counts.entries()) {
+    const numberMap: Map<string, number> = new Map()
+    for (const [tag, noteSet] of tagMap.entries()) {
+      numberMap.set(tag, noteSet.size)
+    }
+    countNumbers.set(folder, numberMap)
+  }
+
+  return {
+    weekLabel: week.label,
+    folders,
+    tags: projectTypeTags,
+    counts: countNumbers,
+  }
+}
+
+/**
+ * Upsert a project progress table into a weekly calendar note.
+ * @param {ReviewConfig} config
+ * @param {?string} weekLabelIn - ISO week label (e.g. 2026-W35); defaults to current week
+ * @returns {void}
+ */
+function writeWeeklyProjectProgressToWeeklyNote(config: ReviewConfig, weekLabelIn: ?string = null): void {
+  const headingSetting = config.weeklyProjectProgressHeading?.trim() ?? ''
+  if (!headingSetting) {
+    logDebug('writeWeeklyProjectProgressToWeeklyNote', `weeklyProjectProgressHeading not set; skipping weekly note write`)
+    return
+  }
+
+  const { level: headingLevel, text: headingText } = parseMarkdownHeadingSetting(headingSetting)
+  if (!headingText) {
+    logWarn('writeWeeklyProjectProgressToWeeklyNote', `weeklyProjectProgressHeading is blank after parsing; skipping weekly note write`)
+    return
+  }
+
+  const weekLabel = weekLabelIn ?? getCurrentWeekLabel()
+  const targetWeek = getWeekInfoFromWeekLabel(weekLabel)
+
+  const { folders: allFolders, tags, counts } = aggregateNotesProgressedByFolderAndTag(config, targetWeek)
+  const showEmptyFolders = getWeeklyProjectProgressShowEmptyFolders(config)
+  const folders = getFoldersForWeeklyProgressTable(allFolders, counts, showEmptyFolders)
+  const hiddenFolderCount = allFolders.length - folders.length
+  logInfo(
+    'writeWeeklyProjectProgressToWeeklyNote',
+    `week=${weekLabel}; showEmptyFolders=${String(showEmptyFolders)}; table rows=${String(folders.length)} of ${String(allFolders.length)} folders (${String(hiddenFolderCount)} hidden)`,
+  )
+  const xCallbackMD = getWeeklyProjectProgressRefreshLinkMD(showEmptyFolders, weekLabel)
+  // Show/Hide toggle disabled pending NotePlan fix for markdown links + table body inserts
+  // const emptyFoldersToggleMD = getEmptyFoldersToggleLinkMD(showEmptyFolders)
+  const sectionHeadingWithLinks = `${headingText} ${xCallbackMD}`
+  const table = buildWeeklyProgressMarkdownTable(folders, tags, counts)
+  const bodyContent = table !== '' ? `Notes progressed in ${weekLabel}:\n${table}` : `Notes progressed in ${weekLabel}:`
+
+  const destNote = DataStore.calendarNoteByDateString(weekLabel)
+    ?? DataStore.calendarNoteByDate(targetWeek.startDate, 'week')
+  if (!destNote) {
+    logError('writeWeeklyProjectProgressToWeeklyNote', `Cannot find weekly note to write to for ${weekLabel}`)
+    return
+  }
+
+  const openEditor = getOpenEditorFromFilename(destNote.filename, true)
+  const noteToUpdate = openEditor || destNote
+  if (openEditor) {
+    logDebug('writeWeeklyProjectProgressToWeeklyNote', `Weekly note '${destNote.filename}' is open in Editor; updating Editor pane`)
+  }
+  removeOrphanWeeklyProgressIntroFragments(noteToUpdate, weekLabel)
+  replaceSection(noteToUpdate, headingText, sectionHeadingWithLinks, headingLevel, bodyContent)
+  logInfo('writeWeeklyProjectProgressToWeeklyNote', `Updated section '${headingText}' in weekly note '${destNote.filename}' for ${weekLabel}`)
+}
+
+/**
  * Generate weekly Project/Area progress stats per relevant folder for the last N weeks. Returns two arrays of strings:
  * - First array: notes-per-week (distinct notes with at least one completed task)
  * - Second array: tasks-per-week (total completed tasks)
@@ -157,7 +751,6 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
     if (!config) {
       throw new Error('generateProjectsWeeklyProgressLines: could not load Review settings. Stopping.')
     }
-    const foldersToExclude = config.foldersToIgnore ?? []
 
     // 1. Week range (last 12 weeks, including current)
     const weeks: Array<WeekInfo> = getLastNWeeks(DEFAULT_NUM_WEEKS)
@@ -167,20 +760,8 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
     const weekLabels: Array<string> = weeks.map((w) => w.label)
 
     // 2. Get all regular notes from filtered folders (respecting existing Projects exclusions)
-    const allNotes = getRegularNotesFromFilteredFolders(foldersToExclude, true)
-    logDebug('generateProjectsWeeklyProgressLines', `considering ${String(allNotes.length)} regular notes`)
-
-    // 3. Filter notes to those whose folder name contains 'Area' or 'Project', and doesn't start or end with 'index' or 'MOC' (case-insensitive)
-    const folderSet: Set<string> = new Set()
-    const notesInTargetFolders = allNotes.filter((n) => {
-      const folderPath = getFolderFromFilename(n.filename)
-      if (isAreaOrProjectFolder(folderPath) && !n.title?.match(/^index $/i) && !n.title?.match(/ index$/i) && !n.title?.match(/^moc $/i) && !n.title?.match(/ moc$/i)) {
-        folderSet.add(folderPath)
-        return true
-      }
-      return false
-    })
-    const folders: Array<string> = Array.from(folderSet).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+    const { notes: notesInTargetFolders, folders } = getNotesInTargetProjectFolders(config)
+    logDebug('generateProjectsWeeklyProgressLines', `considering ${String(notesInTargetFolders.length)} regular notes`)
     logInfo('generateProjectsWeeklyProgressLines', `found ${String(folders.length)} Area/Project folders and ${String(notesInTargetFolders.length)} notes in them`)
 
     if (folders.length === 0) {
@@ -290,9 +871,27 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
  * @author @jgclark (spec) + @cursor (implementation)
  * @returns {Promise<void>}
  */
-export async function writeProjectsWeeklyProgressToCSV(): Promise<void> {
+export async function writeProjectsWeeklyProgressToCSV(...argsIn: any[]): Promise<void> {
   try {
-    logDebug(pluginJson, `writeProjectsWeeklyProgressToCSV: starting`)
+    const normalisedArgs = normalizeWeeklyProjectProgressArgs(argsIn)
+    logDebug(
+      pluginJson,
+      `writeProjectsWeeklyProgressToCSV: starting with ${String(normalisedArgs.length)} arg(s)${normalisedArgs.length > 0 ? `: [${normalisedArgs.join(', ')}]` : ''}`,
+    )
+
+    let config: ReviewConfig | null = ((await getReviewSettings(): any): ReviewConfig)
+    if (!config) {
+      throw new Error('writeProjectsWeeklyProgressToCSV: could not load Review settings. Stopping.')
+    }
+
+    if (normalisedArgs.length > 0) {
+      config = await applyWeeklyProjectProgressCommandParamsFromArgs(config, argsIn)
+    }
+    const weekLabel = resolveWeekLabelFromArgs(argsIn) ?? getCurrentWeekLabel()
+    logDebug(
+      pluginJson,
+      `writeProjectsWeeklyProgressToCSV: using weeklyProjectProgressShowEmptyFolders=${String(getWeeklyProjectProgressShowEmptyFolders(config))}, week=${weekLabel}`,
+    )
 
     const [notesRows, tasksRows] = await generateProjectsWeeklyProgressLines()
 
@@ -303,6 +902,8 @@ export async function writeProjectsWeeklyProgressToCSV(): Promise<void> {
     // Then prepare and write the tasks-per-week CSV
     const tasksCsvString = tasksRows.join('\n')
     await DataStore.saveData(tasksCsvString, TASK_COMPLETION_PER_FOLDER_FILENAME, true)
+
+    writeWeeklyProjectProgressToWeeklyNote(config, weekLabel)
 
     logInfo('writeProjectsWeeklyProgressToCSV', `Written weekly progress CSV to '${PROGRESS_PER_FOLDER_FILENAME}' and '${TASK_COMPLETION_PER_FOLDER_FILENAME}'`)
   } catch (error) {
