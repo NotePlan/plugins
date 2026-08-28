@@ -12,8 +12,8 @@ import { generateAllProjectsList } from './allProjectsListHelpers'
 import { migrateAllProjects } from './migration'
 import { renderProjectListsIfOpen } from './reviews'
 import { getReviewSettings } from './reviewHelpers'
-import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
-import { backupSettings, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { JSP, compareObjects, logDebug, logError, logInfo } from '@helpers/dev'
+import { backupSettings, pluginUpdated, saveSettings, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 export { getReviewSettings } from './reviewHelpers' // Keep exported while hidden test:getReviewSettings command exists
@@ -65,6 +65,26 @@ export { onMessageFromHTMLView } from './pluginToHTMLBridge'
 const pluginID = 'jgclark.Reviews'
 
 /**
+ * Migrate legacy progressHeading + progressHeadingLevel into a single markdown heading string.
+ * @param {{ [string]: any }} settings
+ * @returns {{ [string]: any }}
+ */
+function migrateProgressHeadingSetting(settings: { [string]: any }): { [string]: any } {
+  const migrated = { ...settings }
+  const rawHeading = typeof migrated.progressHeading === 'string' ? migrated.progressHeading.trim() : ''
+  const oldLevel = migrated.progressHeadingLevel
+
+  if (oldLevel !== undefined || (rawHeading !== '' && !/^#{1,5}\s+/.test(rawHeading))) {
+    if (rawHeading !== '' && !/^#{1,5}\s+/.test(rawHeading)) {
+      const level = Math.min(5, Math.max(1, Number(oldLevel) || 2))
+      migrated.progressHeading = `${'#'.repeat(level)} ${rawHeading}`
+    }
+    delete migrated.progressHeadingLevel
+  }
+  return migrated
+}
+
+/**
  * Open this plugin's settings pane in NotePlan Preferences.
  * Used by the Rich list empty-state gear control, and the "/Projects: open plugin settings" command.
  * @returns {Promise<void>}
@@ -113,11 +133,20 @@ export async function onSettingsUpdated(): Promise<void> {
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logInfo(pluginID, `onUpdateOrInstall: starting ...`)
-    const updateSettingsResult = updateSettingData(pluginJson)
-    logInfo(pluginID, `- updateSettingData returned code: ${updateSettingsResult}`)
+    const initialSettings = (await DataStore.loadJSON(`../${pluginID}/settings.json`)) || DataStore.settings || {}
 
     // Backup settings on install/update as a v2 safety net (quietly)
     await backupSettings('jgclark.Reviews', `before_onUpdateOrInstall_v${pluginJson["plugin.version"]}`, true)
+
+    const migratedSettings = migrateProgressHeadingSetting(initialSettings)
+    const diff = compareObjects(migratedSettings, initialSettings, [], true)
+    if (diff != null) {
+      logInfo(pluginID, `- migrated progressHeading setting from legacy progressHeadingLevel`)
+      await saveSettings(pluginID, migratedSettings, false)
+    }
+
+    const updateSettingsResult = updateSettingData(pluginJson)
+    logInfo(pluginID, `- updateSettingData returned code: ${updateSettingsResult}`)
 
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'Plugin Installed or Updated.' })

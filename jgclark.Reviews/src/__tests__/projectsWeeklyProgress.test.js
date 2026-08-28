@@ -198,12 +198,12 @@ describe('tagNamePresentInFolderName', () => {
 
 describe('formatFolderTagSummaryLabel', () => {
   test('omits tag label when tag name appears in folder name', () => {
-    expect(formatFolderTagSummaryLabel('Project Alpha', '#project', 3)).toBe('Project Alpha 3')
+    expect(formatFolderTagSummaryLabel('Project Alpha', '#project', 3)).toBe('**3 Project Alpha**')
   })
 
   test('includes plural tag label when tag name not in folder name', () => {
-    expect(formatFolderTagSummaryLabel('Health', '#area', 2)).toBe('2 Health areas')
-    expect(formatFolderTagSummaryLabel('Health', '#area', 1)).toBe('1 Health area')
+    expect(formatFolderTagSummaryLabel('Health', '#area', 2)).toBe('**2 Health** areas')
+    expect(formatFolderTagSummaryLabel('Health', '#area', 1)).toBe('**1 Health** area')
   })
 })
 
@@ -222,7 +222,7 @@ describe('buildWeeklyProgressByFolderSummaryLines', () => {
       ['Areas/Health', new Map([['#area', ['Health note']]])],
     ])
     const result = buildWeeklyProgressByFolderSummaryLines(['#project', '#area'], notesByFolderAndTag)
-    expect(result).toBe('- **Areas 1**: Health note\n- **Projects 2**: Alpha note・Beta note')
+    expect(result).toBe('- **1 Areas**: Health note\n- **2 Projects**: Alpha note ・ Beta note')
   })
 
   test('omits tag label when top-level folder name contains tag', () => {
@@ -230,7 +230,7 @@ describe('buildWeeklyProgressByFolderSummaryLines', () => {
       ['Projects/SubA', new Map([['#project', ['Note A', 'Note B', 'Note C']]])],
     ])
     const result = buildWeeklyProgressByFolderSummaryLines(['#project'], notesByFolderAndTag)
-    expect(result).toBe('- **Projects 3**: Note A・Note B・Note C')
+    expect(result).toBe('- **3 Projects**: Note A ・ Note B ・ Note C')
   })
 })
 
@@ -244,10 +244,10 @@ describe('buildWeeklyProgressBySubFolderSummaryLines', () => {
     const result = buildWeeklyProgressBySubFolderSummaryLines(['#project', '#area'], notesByFolderAndTag)
     expect(result).toBe(
       '- Areas\n'
-      + '  - **Areas/Health 1**: Health note\n'
+      + '\t- **1 Areas/Health**: Health note\n'
       + '- Projects\n'
-      + '  - **Projects/Project Alpha 1**: Alpha note\n'
-      + '  - **Projects/Project Beta 1**: Beta note',
+      + '\t- **1 Projects/Project Alpha**: Alpha note\n'
+      + '\t- **1 Projects/Project Beta**: Beta note',
     )
   })
 })

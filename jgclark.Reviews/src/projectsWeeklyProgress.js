@@ -11,7 +11,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
+import { getReviewSettings, parseMarkdownHeadingSetting, type ReviewConfig } from './reviewHelpers'
 import {
   RE_DONE_DATE_OPT_TIME,
   RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,
@@ -20,7 +20,7 @@ import {
 } from '@helpers/dateTime'
 import { getNPWeekData, pad } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
-import { createPrettyRunPluginLink, type headingLevelType } from '@helpers/general'
+import { createPrettyRunPluginLink } from '@helpers/general'
 import { getRegularNotesFromFilteredFolders, getFolderFromFilename } from '@helpers/folders'
 import { getOpenEditorFromFilename, getOrOpenEditorFromFilename } from '@helpers/NPEditor'
 import { replaceSection } from '@helpers/note'
@@ -153,24 +153,6 @@ function getDoneISODateFromContent(content: string): string {
   const reReturnArray = content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
   const doneDate = reReturnArray[1]
   return typeof doneDate === 'string' ? doneDate : ''
-}
-
-/**
- * Parse a setting value that may include markdown heading markers (e.g. "## Weekly Project Progress").
- * @param {string} setting
- * @returns {{ level: headingLevelType, text: string }}
- */
-function parseMarkdownHeadingSetting(setting: string): { level: headingLevelType, text: string } {
-  const trimmed = setting.trim()
-  if (!trimmed) {
-    return { level: 2, text: '' }
-  }
-  const match = trimmed.match(/^(#{1,5})\s+(.*)$/)
-  if (match) {
-    const level = Math.min(5, Math.max(1, match[1].length))
-    return { level: (level: any), text: match[2].trim() }
-  }
-  return { level: 2, text: trimmed }
 }
 
 /**

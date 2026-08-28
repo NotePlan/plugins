@@ -548,25 +548,10 @@
     {
       "key": "progressHeading",
       "title": "Progress Heading",
-      "description": "Optional heading name to organize Progress lines under. If set, all Progress lines will be added under this heading. If the heading doesn't exist, it will be created automatically.\nTip: if this ends with '…' then the section will start folded.",
+      "description": "Optional heading to organize Progress lines under. Include the markdown heading markers (e.g. '## Progress'). Leave blank to disable. If set, all Progress lines will be added under this heading. If the heading doesn't exist, it will be created automatically.\nTip: if this ends with '…' then the section will start folded.",
       "type": "string",
       "default": "",
       "required": false
-    },
-    {
-      "key": "progressHeadingLevel",
-      "title": "Progress Heading level",
-      "description": "The heading level (1-5) to use for the Progress heading. Level 1 is the highest, level 5 is the lowest.",
-      "type": "number",
-      "choices": [
-        1,
-        2,
-        3,
-        4,
-        5
-      ],
-      "default": 2,
-      "required": true
     },
     {
       "key": "writeMostRecentProgressToFrontmatter",

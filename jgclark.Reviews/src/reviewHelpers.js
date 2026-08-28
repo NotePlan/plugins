@@ -27,7 +27,7 @@ import {
   toISODateString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { displayTitle } from '@helpers/general'
+import { displayTitle, type headingLevelType } from '@helpers/general'
 import { backupSettings, pluginIsInstalled } from '@helpers/NPConfiguration'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttribute, noteHasFrontMatter, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
@@ -40,6 +40,24 @@ import { chooseOption, showMessage } from '@helpers/userInput'
 // Constants
 const reviewsPluginId = pluginJson['plugin.id']
 const richProjectListWinId = `${reviewsPluginId}.rich-review-list`
+
+/**
+ * Parse a setting value that may include markdown heading markers (e.g. "## Progress").
+ * @param {string} setting
+ * @returns {{ level: headingLevelType, text: string }}
+ */
+export function parseMarkdownHeadingSetting(setting: string): { level: headingLevelType, text: string } {
+  const trimmed = setting.trim()
+  if (!trimmed) {
+    return { level: 2, text: '' }
+  }
+  const match = trimmed.match(/^(#{1,5})\s+(.*)$/)
+  if (match) {
+    const level = Math.min(5, Math.max(1, match[1].length))
+    return { level: (level: any), text: match[2].trim() }
+  }
+  return { level: 2, text: trimmed }
+}
 
 //------------------------------
 // Type definitions
@@ -87,7 +105,6 @@ export type ReviewConfig = {
   preferredWindowType: string, // "New Window" |"Main Window" | "Split View"
   autoUpdateAfterIdleTime?: number,
   progressHeading?: string,
-  progressHeadingLevel: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8, // must match the levels NotePlan's insertHeading() accepts
   writeMostRecentProgressToFrontmatter?: boolean,
   projectMetadataFrontmatterKey?: string,
   weeklyProjectProgressHeading?: string,

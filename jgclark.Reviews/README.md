@@ -205,8 +205,7 @@ To add a progress comment, either run the **/add progress update** command, or c
 The settings relating to Progress calculations and comments are:
 - Ignore tasks set more than these days in the future: If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 1 day: all items with future scheduled dates are ignored.)
 - Ignore checklists in progress? If set, then checklists in progress will not be counted as part of the project's completion percentage.
-- Progress Heading: (from v1.3) Optional heading name under which `Progress: ...` lines are stored in the project note. If you set this when the note already has progress lines, the plugin finds them and inserts the heading above. Tip: if this ends with `…` the section will start folded.
-- Progress Heading level: heading level (1–5) used when the Progress heading is created (default `2`).
+- Progress Heading: Optional heading under which `Progress: ...` lines are stored in the project note. Include the markdown heading markers (e.g. `## Progress`). Leave blank to disable. If you set this when the note already has progress lines, the plugin finds them and inserts the heading above. Tip: if this ends with `…` the section will start folded.
 - Also write most recent Progress line to frontmatter?: (from v1.3) When on, the current progress line is also written to frontmatter so it can be used in Folder Views (default: off).
 
 Note: Progress comments are written as `@YYYY-MM-DD`. Compact `@YYYYMMDD` lines from earlier versions still parse.
