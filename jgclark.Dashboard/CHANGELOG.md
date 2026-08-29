@@ -3,6 +3,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.5.0.b2] 2026-08-28
 - New: Priority note-index cache so the Priority section can avoid a full scan on warm refreshes. On by default (`FFlag_UsePriorityCache`); falls back to full scan and schedules a background rebuild when the cache is missing. Commands: `generatePriorityNoteIndexCache` / `updatePriorityNoteIndexCache`.
+- dev: WebView week relative dates now use async `getNPWeekDataBridged()` (awaits Calendar Thenables) instead of moment fallback at startup. Lazy `relativeDatesISO` cache refreshes after Dashboard mount.
 - dev: Fix potential duplicate WINS section rows when stale pluginData persists synthetic section.
 Strip SYNTHETIC_SECTION_CODES before injectSyntheticWinsSection builds Wins from calendar sections.
 

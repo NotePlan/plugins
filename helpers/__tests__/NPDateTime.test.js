@@ -921,4 +921,78 @@ describe(`${FILENAME}`, () => {
       expect(warnSpy).not.toHaveBeenCalled()
     })
   })
+
+  describe('getNPWeekDataBridged', () => {
+    const momentLib = require('moment/min/moment-with-locales')
+    let originalCalendar
+    let warnSpy
+
+    beforeEach(() => {
+      originalCalendar = global.Calendar
+      // eslint-disable-next-line global-require
+      const dev = require('../dev')
+      warnSpy = jest.spyOn(dev, 'logWarn')
+    })
+
+    afterEach(() => {
+      global.Calendar = originalCalendar
+      if (warnSpy) warnSpy.mockRestore()
+    })
+
+    test('awaits Calendar Thenables and returns valid week info', async () => {
+      global.Calendar = {
+        weekNumber: (date) => Promise.resolve(momentLib(date).isoWeek()),
+        startOfWeek: (date) => Promise.resolve(momentLib(date).startOf('isoWeek').toDate()),
+        endOfWeek: (date) => Promise.resolve(momentLib(date).endOf('isoWeek').toDate()),
+      }
+      const result = await f.getNPWeekDataBridged(new Date('2024-11-06T12:00:00'))
+      expect(result).not.toBeNull()
+      expect(isValidDate(result.startDate)).toBe(true)
+      expect(isValidDate(result.endDate)).toBe(true)
+      expect(typeof result.weekNumber).toBe('number')
+      expect(result.weekString).toMatch(/^\d{4}-W\d{2}$/)
+      expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    test('falls back to moment after await when Calendar resolves to {}', async () => {
+      global.Calendar = {
+        weekNumber: () => Promise.resolve(45),
+        startOfWeek: () => Promise.resolve({}),
+        endOfWeek: () => Promise.resolve({}),
+      }
+      const result = await f.getNPWeekDataBridged(new Date('2024-11-06T12:00:00'))
+      expect(result).not.toBeNull()
+      expect(isValidDate(result.startDate)).toBe(true)
+      expect(warnSpy).toHaveBeenCalled()
+    })
+  })
+
+  describe('refreshRelativeDatesISOCache', () => {
+    const momentLib = require('moment/min/moment-with-locales')
+    let originalCalendar
+
+    beforeEach(() => {
+      originalCalendar = global.Calendar
+      global.Calendar = {
+        weekNumber: (date) => Promise.resolve(momentLib(date).isoWeek()),
+        startOfWeek: (date) => Promise.resolve(momentLib(date).startOf('isoWeek').toDate()),
+        endOfWeek: (date) => Promise.resolve(momentLib(date).endOf('isoWeek').toDate()),
+      }
+    })
+
+    afterEach(() => {
+      global.Calendar = originalCalendar
+    })
+
+    test('bumps cache version and adds or updates this week entry', async () => {
+      const versionBefore = f.getRelativeDatesISOCacheVersion()
+
+      await f.refreshRelativeDatesISOCache()
+
+      expect(f.getRelativeDatesISOCacheVersion()).toBe(versionBefore + 1)
+      const cacheAfter = f.getRelativeDatesISOCache()
+      const thisWeekAfter = cacheAfter.find((rd) => rd.relName === 'this week')
+      expect(thisWeekAfter?.dateStr).toMatch(/^\d{4}-W\d{2}$/)
+    })
+  })
 })

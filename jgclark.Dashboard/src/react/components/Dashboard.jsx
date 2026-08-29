@@ -30,6 +30,7 @@ import { getTestGroups } from './testing/tests'
 import PerspectivesTable from './PerspectivesTable.jsx'
 import DebugPanel from '@helpers/react/DebugPanel'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { refreshRelativeDatesISOCache } from '@helpers/NPdateTime'
 export const standardSections: Array<TSettingItem> = showSectionSettingItems
 
 //--------------------------------------------------------------------------
@@ -238,6 +239,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     logInfo('Dashboard/useEffect [] (startup only)', `${sections.length} sections (${origSections.length} origSections): [${sections.map((s) => s.sectionCode).join(', ')}]`)
     logDebug('Dashboard', `React: sending reactWindowInitialisedSoStartGeneratingData command to plugin`)
     runPluginCommand('reactWindowInitialisedSoStartGeneratingData', 'jgclark.Dashboard', [''])
+    // WebView Calendar.* calls often return Thenables during early startup. Re-apply week entries in the
+    // NPdateTime relative-dates cache once the bridge is ready (correct week start vs moment fallback).
+    refreshRelativeDatesISOCache().catch((err) => {
+      logWarn('Dashboard', `refreshRelativeDatesISOCache failed: ${err?.message ?? String(err)}`)
+    })
   }, [])
 
   // Keep the window/tab title in sync. In Main Window / Split View, NotePlan's chrome uses the
