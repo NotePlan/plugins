@@ -96,6 +96,28 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(getUsersNoteFileExtension()).toBe(DEFAULT_NOTE_FILE_EXTENSION)
       })
 
+      test('returns default when defaultFileExtension is a function (React/HTML window bridge proxy)', () => {
+        // In a React/HTML window every DataStore property access returns an async bridge function,
+        // which is truthy - returning it built filenames like "20260829.function(...args) {...}".
+        // $FlowFixMe[incompatible-type] - deliberately wrong type, to mimic the WebView bridge
+        DataStore.defaultFileExtension = function (...args) {
+          return Promise.resolve(args)
+        }
+        expect(getUsersNoteFileExtension()).toBe(DEFAULT_NOTE_FILE_EXTENSION)
+        expect(makeCalendarFilename('20260829')).toBe(`20260829.${DEFAULT_NOTE_FILE_EXTENSION}`)
+      })
+
+      test('returns default when defaultFileExtension is not a string', () => {
+        // $FlowFixMe[incompatible-type] - deliberately wrong type
+        DataStore.defaultFileExtension = { then: () => {} }
+        expect(getUsersNoteFileExtension()).toBe(DEFAULT_NOTE_FILE_EXTENSION)
+      })
+
+      test('trims whitespace and any leading dot', () => {
+        DataStore.defaultFileExtension = ' .txt '
+        expect(getUsersNoteFileExtension()).toBe('txt')
+      })
+
       test('returns default when DataStore access throws', () => {
         const savedDataStore = global.DataStore
         global.DataStore = {
