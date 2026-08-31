@@ -11,6 +11,44 @@ let ENV_MODE = 'production' // whether to use minified react or not
 
 const ReactDevToolsImport = `<script src="http://localhost:8097"></script>`
 
+/**
+ * App-level NotePlan preferences that React code cannot read for itself.
+ *
+ * Inside an HTML/React window `DataStore` is an async bridge proxy: every property access returns a
+ * function you would have to await, so there is no synchronous way to read a scalar like
+ * `defaultFileExtension`. Reading them here (plugin side, where they are real values) and baking them
+ * into `pluginData` gives every plugin's React window the same values with no per-plugin plumbing.
+ *
+ * Merged into whatever the calling plugin already put in `pluginData.notePlanSettings`, so a plugin
+ * that sets its own richer version (e.g. Dashboard's `getNotePlanSettings()`) keeps it and simply wins.
+ * @returns {Object} settings to merge under `pluginData.notePlanSettings`
+ */
+function getSharedNotePlanSettings(): { [string]: any } {
+  try {
+    return {
+      defaultFileExtension: DataStore.defaultFileExtension,
+    }
+  } catch (error) {
+    logError(pluginJson, `getSharedNotePlanSettings: could not read app preferences: ${error.message}`)
+    return {}
+  }
+}
+
+/**
+ * Add the shared NotePlan app settings to globalData.pluginData.notePlanSettings, without disturbing
+ * anything else the calling plugin put in pluginData.
+ * @param {any} globalData - the plugin's globalSharedData object
+ * @returns {any} the same object, with pluginData.notePlanSettings filled in
+ */
+function addSharedNotePlanSettings(globalData: any): any {
+  const pluginData = globalData.pluginData ?? {}
+  globalData.pluginData = {
+    ...pluginData,
+    notePlanSettings: { ...getSharedNotePlanSettings(), ...(pluginData.notePlanSettings ?? {}) },
+  }
+  return globalData
+}
+
 function setEnv(globalData: any) {
   if (globalData.hasOwnProperty('ENV_MODE')) {
     ENV_MODE = globalData.ENV_MODE
@@ -56,6 +94,7 @@ function prepareReactWindowData(
   let globalSharedData = globalData
 
   globalSharedData = setEnv(globalSharedData) // set the build mode etc
+  globalSharedData = addSharedNotePlanSettings(globalSharedData) // app preferences React can't read for itself
   globalSharedData.lastUpdated = { msg: 'Initial data load', date: new Date().toLocaleString() }
 
   // Load all CSS files in the plugin.json file that end in '.css

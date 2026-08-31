@@ -2,6 +2,12 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [1.0.12] 2026-08-29
+
+### Added
+
+- React windows now get app-level NotePlan preferences that React cannot read for itself, baked into `pluginData.notePlanSettings` when the window opens. Inside a WebView `DataStore` is an async bridge proxy, so a scalar preference like `DataStore.defaultFileExtension` can't be read synchronously -- reading it plugin-side and passing it through gives every plugin's React window the value with no per-plugin plumbing. Starts with `defaultFileExtension`. Merged *under* anything the calling plugin already put in `pluginData.notePlanSettings`, so plugins that set their own (e.g. Dashboard) are unaffected.
+
 ## [1.0.11] 2026-07-17
 
 ### Changed

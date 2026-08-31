@@ -130,6 +130,55 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
+    describe('getUsersNoteFileExtension in a React window', () => {
+      // In a React window DataStore is an async bridge proxy (every property access returns a function),
+      // so the extension comes from the pluginData payload np.Shared bakes in when it opens the window.
+      const bridgeProxyDataStore = {
+        get defaultFileExtension() {
+          return function (...args) {
+            return Promise.resolve(args)
+          }
+        },
+      }
+      let savedDataStore
+
+      beforeEach(() => {
+        savedDataStore = global.DataStore
+        global.DataStore = bridgeProxyDataStore
+      })
+
+      afterEach(() => {
+        global.DataStore = savedDataStore
+        delete global.globalSharedData
+      })
+
+      test('falls back to pluginData.notePlanSettings.defaultFileExtension', () => {
+        global.globalSharedData = { pluginData: { notePlanSettings: { defaultFileExtension: 'txt' } } }
+        expect(getUsersNoteFileExtension()).toBe('txt')
+        expect(makeCalendarFilename('20260829')).toBe('20260829.txt')
+      })
+
+      test('returns default when globalSharedData is absent', () => {
+        expect(getUsersNoteFileExtension()).toBe(DEFAULT_NOTE_FILE_EXTENSION)
+      })
+
+      test('returns default when pluginData has no notePlanSettings', () => {
+        global.globalSharedData = { pluginData: {} }
+        expect(getUsersNoteFileExtension()).toBe(DEFAULT_NOTE_FILE_EXTENSION)
+      })
+
+      test('returns default when the baked value is not a string', () => {
+        global.globalSharedData = { pluginData: { notePlanSettings: { defaultFileExtension: 42 } } }
+        expect(getUsersNoteFileExtension()).toBe(DEFAULT_NOTE_FILE_EXTENSION)
+      })
+
+      test('a real DataStore string still wins over the baked value', () => {
+        global.DataStore = { defaultFileExtension: 'md' }
+        global.globalSharedData = { pluginData: { notePlanSettings: { defaultFileExtension: 'txt' } } }
+        expect(getUsersNoteFileExtension()).toBe('md')
+      })
+    })
+
     describe('makeCalendarFilename', () => {
       let savedDefaultFileExtension
 
