@@ -26,7 +26,7 @@ import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/d
 import { getFolderListMinusExclusions, getFolderFromFilename, getRegularNotesFromFilteredFolders } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
-import { noteHasFrontMatter, getFrontmatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
+import { noteHasFrontMatter, getFrontmatterAttributes, setNoteFrontmatterAttributes, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { formRegExForUsersOpenTasks, TEAMSPACE_INDICATOR } from '@helpers/regex'
 import { sortListBy } from '@helpers/sorting'
@@ -905,23 +905,30 @@ export function numberOfOpenItemsInNote(note: CoreNoteFields): number {
 }
 
 /**
- * Set the icon for a note in the frontmatter.
+ * Set the icon (and optional colour/style) in a note's frontmatter.
+ *
+ * Merges into existing frontmatter via `setNoteFrontmatterAttributes`: it does **not** replace the whole `frontmatterAttributes` object. 
+ * That matters when `title`, `triggers`, etc. were set earlier in the same run:
+ * the old implementation assigned `note.frontmatterAttributes` from a stale object and
+ * could drop those keys (especially if called immediately after `ensureFrontmatter`).
+ *
+ * **Order:** Call after other frontmatter fields (e.g. `title`) are set. Safe as the last FM write
+ * in a pipeline that has already finished body `updateParagraph` calls.
+ *
  * @author @jgclark
  * @param {TNote} note
  * @param {string} icon
  * @param {string?} iconColor
  * @param {string?} iconStyle
+ * @see setNoteFrontmatterAttributes
  */
 export function setIconForNote(note: TNote, icon: string, iconColor: ?string, iconStyle: ?string): void {
-  // To set icon in frontmatter, first read existing frontmatter, then update.
-  const noteFrontmatter = note.frontmatterAttributes
-  noteFrontmatter["icon"] = icon
+  const iconAttributes: { [string]: string } = { icon }
   if (iconColor) {
-    noteFrontmatter["icon-color"] = iconColor
+    iconAttributes['icon-color'] = iconColor
   }
   if (iconStyle) {
-    noteFrontmatter["icon-style"] = iconStyle
+    iconAttributes['icon-style'] = iconStyle
   }
-  // $FlowIgnore[cannot-write] documentation says this particular usage *is* safe
-  note.frontmatterAttributes = noteFrontmatter
+  setNoteFrontmatterAttributes(note, iconAttributes)
 }

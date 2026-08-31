@@ -958,4 +958,21 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toBeNull()
     })
   })
+
+  describe('setIconForNote()', () => {
+    test('merges icon into frontmatter without dropping title', () => {
+      const note = new Note({ filename: 'test.md' })
+      note.frontmatterAttributes = {
+        title: '[TheSacred] Search results',
+        triggers: 'onOpen -> jgclark.SearchExtensions.refreshSavedSearch',
+      }
+
+      n.setIconForNote(note, 'magnifying-glass', 'blue')
+
+      expect(note.frontmatterAttributes.title).toEqual('[TheSacred] Search results')
+      expect(note.frontmatterAttributes.triggers).toEqual('onOpen -> jgclark.SearchExtensions.refreshSavedSearch')
+      expect(note.frontmatterAttributes.icon).toEqual('magnifying-glass')
+      expect(note.frontmatterAttributes['icon-color']).toEqual('blue')
+    })
+  })
 })

@@ -5,14 +5,24 @@ import {
   type resultOutputV3Type,
   type SearchConfig,
   type typedSearchTerm,
+  buildRefreshCallbackArgs,
   createFormattedResultLines,
+  findFirstSectionHeadingParagraphIndex,
+  finaliseSpecificSearchResultNote,
+  getSearchCommandName,
+  insertOrReplaceMetadataLine,
+  isBodyH1Paragraph,
+  isSearchResultsMetadataLine,
   numberOfUniqueFilenames,
   reduceNoteAndLineArray,
 } from '../src/searchHelpers'
 import { sortListBy } from '@helpers/sorting'
 import { differenceByPropVal, differenceByObjectEquality } from '@helpers/dataManipulation'
 import { JSP, clo } from '@helpers/dev'
+import { stringToTailwindColorName } from '@helpers/colors'
+import { setIconForNote } from '@helpers/note'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan } from '@mocks/index'
+import { Note } from '@mocks/Note.mock'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -77,6 +87,29 @@ const mustArr: Array<noteAndLine> = [
 // clo(mustArr, 'mustArr:')
 
 describe('searchHelpers.js tests', () => {
+  describe('getSearchCommandName()', () => {
+    test('maps originator commands to plugin.json command names', () => {
+      expect(getSearchCommandName('searchOverAll')).toEqual('search')
+      expect(getSearchCommandName('searchPeriod')).toEqual('searchInPeriod')
+      expect(getSearchCommandName('quickSearch')).toEqual('quickSearch')
+    })
+  })
+
+  describe('buildRefreshCallbackArgs()', () => {
+    test('puts paraTypes before noteTypes for period search', () => {
+      expect(buildRefreshCallbackArgs('searchPeriod', 'term', 'both', 'open,done', '20250101', '20250301'))
+        .toEqual(['term', 'open,done', 'both', 'refresh', '20250101', '20250301'])
+    })
+    test('uses noteTypes before paraTypes for standard searches', () => {
+      expect(buildRefreshCallbackArgs('searchOverAll', 'term', 'both', 'open,done'))
+        .toEqual(['term', 'both', 'open,done', 'refresh'])
+    })
+    test('uses noteTypes before paraTypes for open tasks', () => {
+      expect(buildRefreshCallbackArgs('searchOpenTasks', 'term', 'both', 'open,done'))
+        .toEqual(['term', 'both', 'open,done', 'refresh'])
+    })
+  })
+
   describe('numberOfUniqueFilenames()', () => {
     test('should return 6', () => {
       const result = numberOfUniqueFilenames(mayArr)
@@ -205,6 +238,128 @@ describe('searchHelpers.js tests', () => {
       const result = differenceByObjectEquality(modifiedMustArr, notArr)
       // clo(result, 'test result for TERM3 but not TERM2')
       expect(result).toEqual(diffArr)
+    })
+  })
+
+  describe('isSearchResultsMetadataLine()', () => {
+    test('recognises current metadata format', () => {
+      const line = '**6 results** from 4 notes at 31/08/2026, 20:00 [🔄 Re-run search](noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions)'
+      expect(isSearchResultsMetadataLine(line)).toEqual(true)
+    })
+    test('recognises legacy Refresh label', () => {
+      const line = '(6 results from 4 notes) at 31/08/2026 [🔄 Refresh \'KeyChanges\' search](noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions)'
+      expect(isSearchResultsMetadataLine(line)).toEqual(true)
+    })
+    test('rejects ordinary result lines', () => {
+      expect(isSearchResultsMetadataLine('- some note line with results from 4 notes mentioned')).toEqual(false)
+    })
+  })
+
+  describe('insertOrReplaceMetadataLine()', () => {
+    const config: Partial<SearchConfig> = { headingLevel: 2 }
+    const oldMetadata = '**6 results** from 4 notes at 31/08/2026, 20:00 [🔄 Re-run search](noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions)'
+    const newMetadata = '**15 results** from 12 notes at 31/08/2026, 21:49 [🔄 Re-run search](noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions)'
+
+    test('replaces the metadata paragraph before the first section heading', () => {
+      const note = new Note({ filename: 'Search Results/Test.md' })
+      note.paragraphs = [
+        { content: '---', type: 'separator', lineIndex: 0, headingLevel: 0 },
+        { content: 'triggers: onOpen -> jgclark.SearchExtensions.refreshSavedSearch', type: 'text', lineIndex: 1, headingLevel: 0 },
+        { content: '---', type: 'separator', lineIndex: 2, headingLevel: 0 },
+        { content: oldMetadata, type: 'text', lineIndex: 3, headingLevel: 0 },
+        { content: '[KeyChanges]', type: 'title', lineIndex: 4, headingLevel: 2 },
+        { content: '- old result', type: 'list', lineIndex: 5, headingLevel: 2 },
+      ]
+      note._content = 'mock content'
+      const updateParagraphSpy = jest.spyOn(note, 'updateParagraph')
+      insertOrReplaceMetadataLine(note, config, newMetadata)
+      expect(note.paragraphs[3].content).toEqual(newMetadata)
+      expect(note.paragraphs.filter((p) => p.content === oldMetadata).length).toEqual(0)
+      expect(updateParagraphSpy).toHaveBeenCalled()
+    })
+  })
+
+  describe('findFirstSectionHeadingParagraphIndex()', () => {
+    test('returns paragraph index of first section heading after frontmatter', () => {
+      const note = new Note({ filename: 'Search Results/Test3.md' })
+      note.paragraphs = [
+        { content: '---', type: 'separator', lineIndex: 0, headingLevel: 0 },
+        { content: '---', type: 'separator', lineIndex: 1, headingLevel: 0 },
+        { content: 'metadata', type: 'text', lineIndex: 2, headingLevel: 0 },
+        { content: '[KeyChanges]', type: 'title', lineIndex: 3, headingLevel: 2 },
+      ]
+      note._content = 'mock content'
+      expect(findFirstSectionHeadingParagraphIndex(note, 2)).toEqual(3)
+    })
+  })
+
+  describe('finaliseSpecificSearchResultNote()', () => {
+    test('sets frontmatter title and removes H1', () => {
+      const note = new Note({ filename: 'Search Results/TheSacred.md' })
+      note.paragraphs = [
+        { content: '[TheSacred] Search results', type: 'title', lineIndex: 0, headingLevel: 1 },
+        { content: 'metadata', type: 'text', lineIndex: 1, headingLevel: 0 },
+        { content: '[TheSacred]', type: 'title', lineIndex: 2, headingLevel: 2 },
+      ]
+      note._content = '# [TheSacred] Search results\nmetadata\n## [TheSacred]\n'
+      note.frontmatterAttributes = {}
+
+      finaliseSpecificSearchResultNote(note, '[TheSacred] Search results')
+
+      expect(note.frontmatterAttributes.title).toEqual('[TheSacred] Search results')
+      expect(note.paragraphs.some((p) => p.headingLevel === 1)).toEqual(false)
+    })
+
+    test('keeps title in FM block when removing legacy H1 above existing YAML', () => {
+      const note = new Note({ filename: 'Search Results/TheSacred.md' })
+      note.paragraphs = [
+        { content: '---', type: 'separator', lineIndex: 0, headingLevel: 0 },
+        { content: 'triggers: onOpen -> foo', type: 'text', lineIndex: 1, headingLevel: 0 },
+        { content: '---', type: 'separator', lineIndex: 2, headingLevel: 0 },
+        { content: '[TheSacred] Search results', type: 'title', lineIndex: 3, headingLevel: 1 },
+        { content: '6 results from 4 notes', type: 'text', lineIndex: 4, headingLevel: 0 },
+        { content: '[TheSacred]', type: 'title', lineIndex: 5, headingLevel: 2 },
+      ]
+      note._content = '---\ntriggers: onOpen -> foo\n---\n# [TheSacred] Search results\n6 results from 4 notes\n## [TheSacred]\n'
+      note.frontmatterAttributes = { triggers: 'onOpen -> foo' }
+
+      finaliseSpecificSearchResultNote(note, '[TheSacred] Search results')
+
+      expect(note.frontmatterAttributes.title).toEqual('[TheSacred] Search results')
+      expect(note.paragraphs.some((p) => p.content.startsWith('title:'))).toEqual(true)
+      expect(note.paragraphs.some((p) => p.headingLevel === 1)).toEqual(false)
+    })
+  })
+
+  describe('re-run pipeline (metadata → finalise → icon)', () => {
+    test('keeps frontmatter title when note has YAML block but no title line', () => {
+      const requestedTitle = '[TheSacred] Search results'
+      const note = new Note({ filename: 'Search Results/TheSacred.md' })
+      note.paragraphs = [
+        { content: '---', type: 'separator', lineIndex: 0, headingLevel: 0 },
+        { content: 'triggers: onOpen -> jgclark.SearchExtensions.searchOnOpen', type: 'text', lineIndex: 1, headingLevel: 0 },
+        { content: '---', type: 'separator', lineIndex: 2, headingLevel: 0 },
+        { content: '6 results from 4 notes at 1 Jan 2025', type: 'text', lineIndex: 3, headingLevel: 0 },
+        { content: '[TheSacred]', type: 'title', lineIndex: 4, headingLevel: 2 },
+        { content: '- old result', type: 'text', lineIndex: 5, headingLevel: 0 },
+      ]
+      note._content = '---\ntriggers: onOpen -> jgclark.SearchExtensions.searchOnOpen\n---\n6 results from 4 notes at 1 Jan 2025\n## [TheSacred]\n- old result\n'
+      note.frontmatterAttributes = { triggers: 'onOpen -> jgclark.SearchExtensions.searchOnOpen' }
+      Editor.note = note
+
+      const config: Partial<SearchConfig> = { headingLevel: 2 }
+      const newMetadata = '15 results from 12 notes at 31 Aug 2026 [🔄 Re-run search](noteplan://x-callback-url/runPlugin)'
+
+      insertOrReplaceMetadataLine(note, config, newMetadata)
+      finaliseSpecificSearchResultNote(note, requestedTitle)
+      setIconForNote(note, 'magnifying-glass', stringToTailwindColorName(requestedTitle))
+
+      expect(note.frontmatterAttributes.title).toEqual(requestedTitle)
+      expect(note.frontmatterAttributes.triggers).toEqual('onOpen -> jgclark.SearchExtensions.searchOnOpen')
+      expect(note.frontmatterAttributes.icon).toEqual('magnifying-glass')
+      expect(note.paragraphs.some((p) => p.content.startsWith('title:'))).toEqual(true)
+      expect(note.paragraphs.some((p) => p.headingLevel === 1)).toEqual(false)
+      expect(note.paragraphs.some((p) => p.content === newMetadata)).toEqual(true)
     })
   })
 

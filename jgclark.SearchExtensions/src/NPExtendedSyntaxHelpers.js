@@ -116,6 +116,7 @@ export async function runNPExtendedSyntaxSearches(
     logDebug('runNPExtendedSyntaxSearches', `searchTermsToHighlight: '${String(searchTermsToHighlight)}'`)
 
     // If the settings say we want only full word matches, then update the searchString to surround the search term(s) with quotes
+    // Note: quoteTermsInSearchString leaves #hashtags/@mentions unquoted — wrapping them breaks DataStore.search
     if (fullWordSearching) {
       searchString = (searchOperators.join(" ") + " " + quoteTermsInSearchString(searchTerms.join(" "))).trim()
       logInfo('runNPExtendedSyntaxSearches', `fullWordSearching: updated searchString to [${searchString}]`)

@@ -170,8 +170,9 @@ export class Note {
     this.paragraphs = this.paragraphs.filter((p) => p.lineIndex !== para.lineIndex)
     this.resetLineIndexesAndContent()
   }
-  async removeParagraphAtIndex(): Promise<void> {
-    throw 'Note :: removeParagraphAtIndex Not implemented yet'
+  async removeParagraphAtIndex(lineIndex: number) {
+    this.paragraphs = this.paragraphs.filter((p) => p.lineIndex !== lineIndex)
+    this.resetLineIndexesAndContent()
   }
   async removeParagraphs(paras: any[]) {
     // filter this.paragraphs to remove paragraphs with lineIndex in paras

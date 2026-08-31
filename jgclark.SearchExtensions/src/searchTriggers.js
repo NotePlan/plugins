@@ -81,14 +81,14 @@ export async function refreshSavedSearch(): Promise<void> {
     }
 
     logDebug(pluginJson, `refreshSavedSearch triggered for '${noteReadOnly.filename}'`)
-    // Does this note have a Refresh button from the Search Extensions plugin?
+    // Does this note have a Re-run / Refresh button from the Search Extensions plugin?
     const refreshButtonLines = noteReadOnly.paragraphs.filter(p =>
-      /Refresh /.test(p.content)
+      /(Re-run search|Refresh )/.test(p.content)
       && /noteplan:\/\/x\-callback\-url\/runPlugin\?pluginID=jgclark\.SearchExtensions&/.test(p.content)
     )
     // Only proceed if we have a refresh button
     if (refreshButtonLines?.length === 0) {
-      logInfo(pluginJson, 'Note has no suitable Refresh button')
+      logInfo(pluginJson, 'Note has no suitable Re-run/Refresh button')
       return
     }
 
@@ -116,27 +116,27 @@ export async function refreshSavedSearch(): Promise<void> {
     await CommandBar.onAsyncThread()
     switch (cmdName) {
       case "search": { // -> searchOverAll()
-        searchOverAll(arg0, arg1, arg2, arg3)
+        await searchOverAll(arg0, arg1, arg2, arg3)
         break
       }
       case "searchOverCalendar": {
-        searchOverCalendar(arg0, arg1, arg2, arg3)
+        await searchOverCalendar(arg0, arg1, arg2, arg3)
         break
       }
       case "searchOverNotes": {
-        searchOverNotes(arg0, arg1, arg2, arg3)
+        await searchOverNotes(arg0, arg1, arg2, arg3)
         break
       }
       case "searchOpenTasks": {
-        searchOpenTasks(arg0, arg1, arg2)
+        await searchOpenTasks(arg0, arg1, arg2, arg3)
         break
       }
       case "searchInPeriod": { // -> searchPeriod()
-        searchPeriod(arg0, arg1, arg2, arg3, arg4, arg5)
+        await searchPeriod(arg0, arg1, arg2, arg3, arg4, arg5)
         break
       }
       case "quickSearch": {
-        quickSearch(arg0, arg1, arg2, arg3)
+        await quickSearch(arg0, arg1, arg2, arg3)
         break
       }
     }

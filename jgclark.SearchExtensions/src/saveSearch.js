@@ -8,29 +8,34 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getDateRangeFromUser } from './dateRanges'
+import { getDateRangeFromUser, getDateRangeFromSearchOptions } from './dateRanges'
 import type { resultOutputV3Type, SearchConfig, TSearchOptions } from './searchHelpers'
 import {
   applySearchOperatorsToOptions,
+  applySyncOpenResultItemsIfNeeded,
+  buildRefreshCallbackArgs,
   createFormattedResultLines,
+  finaliseSpecificSearchResultNote,
   formSearchResultsHeadingLine,
   formSearchResultsMetadataLine,
   getNoteTypesFromString,
   getNoteTypesAsString,
   getParaTypesFromString,
   getParaTypesAsString,
+  getSearchCommandName,
   getSearchSettings,
   insertOrReplaceMetadataLine,
   OPEN_PARA_TYPES,
+  removeBodyH1IfTitleInFrontmatter,
   writeSearchResultsToNote,
 } from './searchHelpers'
 import { runPluginExtendedSyntaxSearches, validateAndTypeSearchTerms } from './pluginExtendedSyntaxHelpers'
 import { runNPExtendedSyntaxSearches } from './NPExtendedSyntaxHelpers'
 import { stringToTailwindColorName } from '@helpers/colors'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { ensureFrontmatter } from '@helpers/NPFrontMatter'
-import { createRunPluginCallbackUrl } from '@helpers/general'
-import { removeSection, replaceSection, setIconForNote } from '@helpers/note'
+import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
+import { removeSection, replaceSection, setIconForNote, getNoteByFilename } from '@helpers/note'
+import { getStartOfActiveContentCharIndex, scrollEditorToStartOfActiveNote } from '@helpers/NPnote'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import { getSearchOperators, isNPAdvancedSyntaxAvailable } from '@helpers/search'
 import {
@@ -367,8 +372,15 @@ export async function saveSearch(
 
       // Work out time period to cover (if wanted)
       if (('fromDateStr' in searchOptions) || ('toDateStr' in searchOptions)) {
-        [fromDateStr, toDateStr, periodString, periodAndPartStr] = await getDateRangeFromUser()
-        logDebug('saveSearch', `Time period for search: ${periodAndPartStr}`)
+        const hasFromDate = Boolean(searchOptions.fromDateStr)
+        const hasToDate = Boolean(searchOptions.toDateStr)
+        if (hasFromDate || hasToDate) {
+          [fromDateStr, toDateStr, periodString, periodAndPartStr] = getDateRangeFromSearchOptions(searchOptions)
+          logDebug('saveSearch', `Time period from searchOptions: ${periodAndPartStr}`)
+        } else {
+          [fromDateStr, toDateStr, periodString, periodAndPartStr] = await getDateRangeFromUser()
+          logDebug('saveSearch', `Time period from user: ${periodAndPartStr}`)
+        }
         if (fromDateStr > toDateStr) {
           throw new Error(`Stopping: fromDate ${fromDateStr} is after toDate ${toDateStr}`)
         }
@@ -449,6 +461,7 @@ export async function saveSearch(
     logDebug('saveSearch', `after comparison check`)
 
     if (resultSetToUse) {
+      resultSetToUse = await applySyncOpenResultItemsIfNeeded(resultSetToUse, config)
       if (resultSetToUse.resultCount === 0) {
         logDebug('saveSearch', `No results found for search [${searchTermsRepStr}]`)
         await showMessage(`No results found for search [${searchTermsRepStr}] with your current settings.`)
@@ -463,21 +476,18 @@ export async function saveSearch(
     // const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
 
     // Create the x-callback URL for the refresh action
-    const xCallbackURL = (originatorCommand === 'searchPeriod')
-      ? createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [
-        termsToMatchStr,
-        getNoteTypesAsString(noteTypesToInclude),
-        getParaTypesAsString(paraTypesToInclude),
-        'refresh',
-        fromDateStr,
-        toDateStr,
-      ])
-      : createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [
-        termsToMatchStr,
-        getNoteTypesAsString(noteTypesToInclude),
-        getParaTypesAsString(paraTypesToInclude),
-        'refresh',
-      ])
+    const callbackFromDateStr = fromDateStr || searchOptions.fromDateStr || ''
+    const callbackToDateStr = toDateStr || searchOptions.toDateStr || ''
+    const refreshCommandName = getSearchCommandName(originatorCommand)
+    const refreshCallbackArgs = buildRefreshCallbackArgs(
+      originatorCommand,
+      termsToMatchStr,
+      getNoteTypesAsString(noteTypesToInclude),
+      getParaTypesAsString(paraTypesToInclude),
+      callbackFromDateStr,
+      callbackToDateStr,
+    )
+    const xCallbackURL = createRunPluginCallbackUrl('jgclark.SearchExtensions', refreshCommandName, refreshCallbackArgs)
 
     switch (destination) {
       case 'searchSpecificNote': {
@@ -500,7 +510,25 @@ export async function saveSearch(
         break
       }
 
-      default: { // i.e. 'current' or 'refresh'
+      case 'refresh': {
+        // Re-run from a dedicated search-results note: update that note (not just "current") so
+        // frontmatter title and intro metadata stay in sync with the results section.
+        const refreshSearchTermsRepStr = resultSetToUse.searchTermsStr ?? '?'
+        const requestedTitle = `[${refreshSearchTermsRepStr}] ${config.searchHeading}${periodAndPartStr ? ` for ${periodAndPartStr}` : ''}`
+        const editorNote = Editor.note
+        const editorTitle = editorNote ? displayTitle(editorNote) : ''
+        const isDedicatedResultsNote = editorTitle === requestedTitle
+          || (editorTitle.startsWith(`[${refreshSearchTermsRepStr}]`) && editorTitle.includes(config.searchHeading))
+
+        if (isDedicatedResultsNote) {
+          await writeToSearchSpecificNote(config, resultSetToUse, periodAndPartStr, xCallbackURL)
+        } else {
+          writeSearchResultsToCurrentNote(config, resultSetToUse, xCallbackURL)
+        }
+        break
+      }
+
+      default: { // i.e. 'current'
         writeSearchResultsToCurrentNote(config, resultSetToUse, xCallbackURL)
         break
       }
@@ -514,16 +542,16 @@ export async function saveSearch(
 async function writeToSearchSpecificNote(
   config: SearchConfig, resultSetToUse: resultOutputV3Type, periodAndPartStr: string, xCallbackURL: string
 ): Promise<void> {
-  // We will write an overarching title, as we need an identifying title for the note.
-  // As this is likely to be a note just used for this set of search terms, just delete the whole note contents and re-write each search term's block.
-  // Note: Does need to include a subhead with search term + result count. Why?
+  // Full title (e.g. `[#watercolour] (Search Results)`) goes in frontmatter, not the body H1.
   // Note: If no results, and the search results note hasn't already been created, then don't create it just for empty results. But do update it if it already exists.
   const searchTermsRepStr = resultSetToUse.searchTermsStr ?? '?'
-  // const searchOperatorsRepStr = resultSetToUse.searchOperatorsStr ? ` (${resultSetToUse.searchOperatorsStr})` : ''
   const requestedTitle = `[${searchTermsRepStr}] ${config.searchHeading}${periodAndPartStr ? ` for ${periodAndPartStr}` : ''}`
 
+  // When the results note is open, write via Editor so paragraph edits persist in the UI
+  const targetNote = (Editor.note && displayTitle(Editor.note) === requestedTitle) ? Editor : null
+
   // Get/make note, and then replace the search term's block (if already present) or append.
-  const noteFilename = await writeSearchResultsToNote(config, resultSetToUse, requestedTitle, xCallbackURL, true, true)
+  const noteFilename = await writeSearchResultsToNote(config, resultSetToUse, requestedTitle, xCallbackURL, true, true, targetNote)
   logDebug('saveSearch/writeToSearchSpecificNote', `- written to filename '${noteFilename}'`)
 
   if (resultSetToUse.resultCount === 0) {
@@ -531,10 +559,13 @@ async function writeToSearchSpecificNote(
   } else {
     if (noteOpenInEditor(noteFilename)) {
       logDebug('saveSearch/writeToSearchSpecificNote', `- note ${noteFilename} already open in an editor window`)
+      // scrollEditorToStartOfActiveNote is also called from writeSearchResultsToNote
     } else {
-      // Open the results note in a new split window
-      logDebug('saveSearch/writeToSearchSpecificNote', `- opening note ${noteFilename} in a split window`)
-      await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
+      // Open at start of body content (metadata line), not scrolled to bottom of results
+      const resultsNote = getNoteByFilename(noteFilename)
+      const charIndex = resultsNote ? getStartOfActiveContentCharIndex(resultsNote) : 0
+      logDebug('saveSearch/writeToSearchSpecificNote', `- opening note ${noteFilename} in a split window at char ${charIndex}`)
+      await Editor.openNoteByFilename(noteFilename, false, charIndex, charIndex, true)
     }
   }
 }
@@ -552,9 +583,10 @@ async function writeToQuickSearchNote(
   if (noteOpenInEditor(noteFilename)) {
     logDebug('saveSearch/writeToQuickSearchNote', `- note ${noteFilename} already open in an editor window`)
   } else {
-    // Open the results note in a new split window, unless we can tell
-    logDebug('saveSearch/writeToQuickSearchNote', `- opening note ${noteFilename} in a split window`)
-    await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
+    const resultsNote = getNoteByFilename(noteFilename)
+    const charIndex = resultsNote ? getStartOfActiveContentCharIndex(resultsNote) : 0
+    logDebug('saveSearch/writeToQuickSearchNote', `- opening note ${noteFilename} in a split window at char ${charIndex}`)
+    await Editor.openNoteByFilename(noteFilename, false, charIndex, charIndex, true)
   }
 }
 
@@ -585,20 +617,13 @@ function writeSearchResultsToCurrentNote(
       return
     }
 
-    const currentNote = Editor.note
+    const currentNote = Editor.note ? Editor : null
     if (currentNote == null) {
       throw new Error(`No note is open to save search results to.`)
     }
 
     const thisResultHeading = formSearchResultsHeadingLine(resultSetToUse)
     const thisMetadataLine = formSearchResultsMetadataLine(resultSetToUse, xCallbackURL)
-    insertOrReplaceMetadataLine(currentNote, config, thisMetadataLine)
-    
-    // Ensure that frontmatter is present
-    const FMResult = ensureFrontmatter(currentNote)
-    if (!FMResult) {
-      logWarn('saveSearch/writeSearchResultsToCurrentNote',`Failed to ensure frontmatter in current note. Will try to continue.`)
-    }
 
     // Remove section from note using 2 different possible formats
     const olderResultHeadingStart1 = `'${resultSetToUse.searchTermsStr}'`
@@ -612,8 +637,20 @@ function writeSearchResultsToCurrentNote(
     const resultOutputLines: Array<string> = createFormattedResultLines(resultSetToUse, config)
     replaceSection(currentNote, thisResultHeading, thisResultHeading, config.headingLevel, `${resultOutputLines.join('\n')}`)
 
+    insertOrReplaceMetadataLine(currentNote, config, thisMetadataLine)
+
+    const searchTermsRepStr = resultSetToUse.searchTermsStr ?? '?'
+    const requestedTitle = `[${searchTermsRepStr}] ${config.searchHeading}`
+    const editorTitle = displayTitle(currentNote)
+    if (editorTitle === requestedTitle
+      || (editorTitle.startsWith(`[${searchTermsRepStr}]`) && editorTitle.includes(config.searchHeading))) {
+      finaliseSpecificSearchResultNote(Editor.note ?? currentNote, requestedTitle)
+    }
+
     // Set note's icon
-    setIconForNote(currentNote, "magnifying-glass", stringToTailwindColorName(thisResultHeading))
+    setIconForNote(currentNote, 'magnifying-glass', stringToTailwindColorName(thisResultHeading))
+    removeBodyH1IfTitleInFrontmatter(Editor.note ?? currentNote, requestedTitle)
+    scrollEditorToStartOfActiveNote(currentNote)
     logDebug('saveSearch/writeSearchResultsToCurrentNote', `Finished writing to current note.`)
   }
   catch (err) {

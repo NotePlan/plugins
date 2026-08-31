@@ -14,10 +14,11 @@ import {
   type headingLevelType,
 } from '@helpers/general'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
-import { findFirstHeadingOfMinimumLevel, getNoteByFilename, getNoteLinkForDisplay, removeSection, replaceSection, setIconForNote } from '@helpers/note'
+import { getNoteByFilename, getNoteLinkForDisplay, removeSection, replaceSection, setIconForNote } from '@helpers/note'
+import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttributes, getFrontmatterWriteTarget, hasFrontMatter, noteHasFrontMatter, setNoteFrontmatterAttributes } from '@helpers/NPFrontMatter'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { getOrMakeRegularNoteInFolder, getNoteTitleFromFilename } from '@helpers/NPnote'
-import { findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { getOrMakeRegularNoteInFolder, getNoteTitleFromFilename, getStartOfActiveContentCharIndex, scrollEditorToStartOfActiveNote } from '@helpers/NPnote'
+import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { showMessageYesNo } from '@helpers/userInput'
 
@@ -155,6 +156,13 @@ export async function getSearchSettings(): Promise<any> {
     if (config == null || Object.keys(config).length === 0) {
       throw new Error(`Cannot find settings for '${pluginID}' plugin`)
     }
+    // Normalise legacy setting values so existing installs recover
+    if (config.resultStyle === 'NotePlan-style') {
+      config.resultStyle = 'NotePlan'
+    }
+    if (config.sortOrder === 'updated (most recent first)') {
+      config.sortOrder = 'updated (most recent note first)'
+    }
     // Set syncOpenResultItems which is a special case. There's no separate setting for it (in SE), as is it is implied by resultStyle === 'NotePlan'
     // But it can be overridden by calls from other plugins.
     config.syncOpenResultItems = config.resultStyle === 'NotePlan'
@@ -171,8 +179,70 @@ export async function getSearchSettings(): Promise<any> {
 // Helper Functions
 
 /**
+ * Map internal originatorCommand to registered plugin.json command name for x-callback URLs.
+ * @param {string} originatorCommand
+ * @returns {string}
+ */
+export function getSearchCommandName(originatorCommand: string): string {
+  const commandMap: { [key: string]: string } = {
+    searchOverAll: 'search',
+    searchPeriod: 'searchInPeriod',
+    searchOverCalendar: 'searchOverCalendar',
+    searchOverNotes: 'searchOverNotes',
+    searchOpenTasks: 'searchOpenTasks',
+    quickSearch: 'quickSearch',
+  }
+  return commandMap[originatorCommand] ?? originatorCommand
+}
+
+/**
+ * Build x-callback args for re-run/refresh links, matching each command's JS signature.
+ * @param {string} originatorCommand
+ * @param {string} termsToMatchStr
+ * @param {string} noteTypesAsStr
+ * @param {string} paraTypesAsStr
+ * @param {string?} fromDateStr
+ * @param {string?} toDateStr
+ * @returns {Array<string>}
+ */
+export function buildRefreshCallbackArgs(
+  originatorCommand: string,
+  termsToMatchStr: string,
+  noteTypesAsStr: string,
+  paraTypesAsStr: string,
+  fromDateStr?: string,
+  toDateStr?: string,
+): Array<string> {
+  const refreshDest = 'refresh'
+  switch (originatorCommand) {
+    case 'searchPeriod':
+      return [termsToMatchStr, paraTypesAsStr, noteTypesAsStr, refreshDest, fromDateStr ?? '', toDateStr ?? '']
+    case 'searchOpenTasks':
+      return [termsToMatchStr, noteTypesAsStr, paraTypesAsStr, refreshDest]
+    default:
+      return [termsToMatchStr, noteTypesAsStr, paraTypesAsStr, refreshDest]
+  }
+}
+
+/**
+ * Add blockIDs to open-task source lines when NotePlan result style is active.
+ * @param {resultOutputV3Type} resultSet
+ * @param {SearchConfig} config
+ * @returns {Promise<resultOutputV3Type>}
+ */
+export async function applySyncOpenResultItemsIfNeeded(
+  resultSet: resultOutputV3Type,
+  config: SearchConfig,
+): Promise<resultOutputV3Type> {
+  if (config.resultStyle === 'NotePlan' && config.syncOpenResultItems) {
+    return await makeAnySyncs(resultSet)
+  }
+  return resultSet
+}
+
+/**
  * Get array of paragraph types from a string
- * For v3 we need to map 'non-task' to 'quote', 'list', 'title' (heading), and 'text'
+ * For v3 we need to map 'not-task' to 'quote', 'list', 'title' (heading), and 'text'
  * @author @jgclark
  * @param {string} paraTypesAsStr
  * @returns {Array<ParagraphType>}
@@ -184,12 +254,12 @@ export function getParaTypesFromString(paraTypesAsStr: string): Array<ParagraphT
       // $FlowFixMe[incompatible-type]
       ? stringListOrArrayToArray(paraTypesAsStr, ',')
       : []
-  if (paraTypesAsStr.includes('non-task')) {
+  if (paraTypesAsStr.includes('not-task')) {
     paraTypesToInclude.push('quote')
     paraTypesToInclude.push('list')
     paraTypesToInclude.push('title')
     paraTypesToInclude.push('text')
-    paraTypesToInclude.splice(paraTypesToInclude.indexOf('non-task'), 1)
+    paraTypesToInclude.splice(paraTypesToInclude.indexOf('not-task'), 1)
   }
   logDebug('getParaTypesFromString', `'${paraTypesAsStr ?? '(null)'}' -> para types [${paraTypesToInclude.toString()}]`)
   return paraTypesToInclude
@@ -328,6 +398,7 @@ export function formSearchResultsMetadataLine(resultSet: resultOutputV3Type, xCa
  * @param {string?} xCallbackURL URL to cause a 'refresh' of this command
  * @param {boolean?} justReplaceThisSection if set, will just replace this justReplaceThisSection's section, not replace the whole note (default: false)
  * @param {boolean?} doNotCreateNoteIfNoResults? (default: true)
+ * @param {TNote?} targetNote optional note to write to (e.g. Editor.note when re-running an open results note)
  * @returns {string} filename of note we've written to
  */
 export async function writeSearchResultsToNote(
@@ -337,6 +408,7 @@ export async function writeSearchResultsToNote(
   xCallbackURL: string = '',
   justReplaceThisSection: boolean = false,
   doNotCreateNoteIfNoResults: boolean = true,
+  targetNote: ?TNote = null,
 ): Promise<string> {
   try {
     logDebug('writeSearchResultsToNote', `Starting with ${resultSet.resultCount} results to write to note ${requestedTitle}, ${justReplaceThisSection ? 'just replacing this section' : 'replacing the whole note'}`)
@@ -363,39 +435,58 @@ export async function writeSearchResultsToNote(
       return ''
     }
 
-    // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
-    // Note: in theory could now use the 'content' parameter on Editor.openNoteByFilename() via NPNote/openNoteByFilename() helper here.
-    const outputNote = await getOrMakeRegularNoteInFolder(requestedTitle, config.folderToStore)
+    // Get existing note by title, or use the supplied target (e.g. Editor when re-running an open results note).
+    let outputNote = targetNote ?? await getOrMakeRegularNoteInFolder(requestedTitle, config.folderToStore)
 
     // TODO: Try to write different OR parts to separate sections.
 
     if (!outputNote) {
       throw new Error(`Couldn't find or make note for ${requestedTitle}. Stopping.`)
     }
+    outputNote = getFrontmatterWriteTarget(outputNote)
 
     // If the relevant note has more than just a title line, decide whether to replace all contents, or just replace a given heading section
     if (justReplaceThisSection && outputNote.paragraphs.length > 1) {
-      insertOrReplaceMetadataLine(outputNote, config, metadataLine)
-
-      // Remove section from note using an older possible heading format
+      // Remove section from note using older possible heading formats
       const olderResultHeadingStart1 = `'${searchTermsRepStr}'`
       logDebug('writeSearchResultsToNote', `Will remove section '${olderResultHeadingStart1}' from current note`)
-      const _res = removeSection(outputNote, olderResultHeadingStart1)
+      const _res1 = removeSection(outputNote, olderResultHeadingStart1)
+      const _res2 = removeSection(outputNote, searchTermsRepStr)
+      const _res3 = removeSection(outputNote, headingLine)
 
       // Replace the results section
-      logDebug('writeSearchResultsToNote', `- just replacing section '${searchTermsRepStr}' in ${outputNote.filename}`)
-      replaceSection(outputNote, searchTermsRepStr, headingLine, config.headingLevel, resultsContent)
+      logDebug('writeSearchResultsToNote', `- just replacing section '${headingLine}' in ${outputNote.filename}`)
+      replaceSection(outputNote, headingLine, headingLine, config.headingLevel, resultsContent)
+
+      // Metadata before finalise: updateParagraph() on body can wipe a frontmatter block
+      // that was just added, so title/FM finalisation must run last.
+      insertOrReplaceMetadataLine(outputNote, config, metadataLine)
+      finaliseSpecificSearchResultNote(outputNote, requestedTitle)
 
     } else {
-      // Replace all note contents
+      // Replace all note contents. Specific-result notes use frontmatter title (no H1).
       logDebug('writeSearchResultsToNote', `- replacing note content in ${outputNote.filename}`)
-      const newContent = `${titleLine}\n${metadataLine}\n${headingMarker} ${headingLine}\n${resultsContent}`
+      const newContent = justReplaceThisSection
+        ? `${metadataLine}\n${headingMarker} ${headingLine}\n${resultsContent}`
+        : `${titleLine}\n${metadataLine}\n${headingMarker} ${headingLine}\n${resultsContent}`
       // logDebug('', `${newContent} = ${newContent.length} bytes`)
       outputNote.content = newContent
+      if (justReplaceThisSection) {
+        insertOrReplaceMetadataLine(outputNote, config, metadataLine)
+        finaliseSpecificSearchResultNote(outputNote, requestedTitle)
+      }
     }
 
-    // Set note's icon
-    setIconForNote(outputNote, "magnifying-glass", stringToTailwindColorName(requestedTitle))
+    // Set note's icon (after finalise — setIconForNote merges existing frontmatter keys)
+    setIconForNote(outputNote, 'magnifying-glass', stringToTailwindColorName(requestedTitle))
+
+    // H1 removal must be last: icon/metadata writes can leave a stale body title line when the note is open in Editor.
+    if (justReplaceThisSection) {
+      removeBodyH1IfTitleInFrontmatter(outputNote, requestedTitle)
+    }
+
+    // replaceSection / note.content edits scroll the open Editor to the bottom; show metadata at top.
+    scrollEditorToStartOfActiveNote(outputNote)
 
     noteFilename = outputNote.filename ?? '<error>'
     logDebug('writeSearchResultsToNote', `written resultSet for ${searchTermsRepStr} to the note ${noteFilename} (${displayTitle(outputNote)})`)
@@ -407,23 +498,191 @@ export async function writeSearchResultsToNote(
   }
 }
 
-export function insertOrReplaceMetadataLine(outputNote: TNote, config: SearchConfig, metadataLine: string): void {
-  // Replace contents of an existing line with the metadata in it, if it exists ...
-  let firstSectionHeadingLineIndex = findFirstHeadingOfMinimumLevel(outputNote, config.headingLevel)
-  if (firstSectionHeadingLineIndex === -1) {
-    firstSectionHeadingLineIndex = outputNote.paragraphs.length
+/**
+ * Whether a paragraph is the search-results metadata line (counts, date, re-run link).
+ * @param {string} content
+ * @returns {boolean}
+ */
+export function isSearchResultsMetadataLine(content: string): boolean {
+  const hasRefreshLink = /(🔄|Re-run search|Refresh )/.test(content)
+  const hasResultCounts = /from\s+\d+\s+notes?\b/i.test(content)
+  const hasCallback = /noteplan:\/\/x-callback-url\/runPlugin/i.test(content)
+  return (hasRefreshLink && hasResultCounts) || (hasResultCounts && hasCallback)
+}
+
+/**
+ * Paragraph array index of the first section heading at or above headingLevel, or -1.
+ * @param {TNote} note
+ * @param {number} headingLevel
+ * @returns {number}
+ */
+export function findFirstSectionHeadingParagraphIndex(note: TNote, headingLevel: number): number {
+  const startOfActive = findStartOfActivePartOfNote(note)
+  const endOfActive = findEndOfActivePartOfNote(note)
+  const paras = note.paragraphs ?? []
+  for (let i = startOfActive; i <= endOfActive; i++) {
+    const p = paras[i]
+    if (p.type === 'title' && p.headingLevel >= headingLevel) {
+      return i
+    }
   }
-  logDebug('insertOrReplaceMetadataLine', `- firstSectionHeadingLineIndex = ${firstSectionHeadingLineIndex}`)
-  const metadataLineIndex = outputNote.paragraphs.findIndex(p => p.content.includes('🔄') && p.lineIndex < firstSectionHeadingLineIndex) ?? -1
-  logDebug('insertOrReplaceMetadataLine', `- metadataLineIndex = ${metadataLineIndex}`)
-  if (metadataLineIndex !== -1) {
-    logDebug('insertOrReplaceMetadataLine', `- replacing metadata at line ${String(metadataLineIndex)}`)
-    outputNote.paragraphs[metadataLineIndex].content = metadataLine
-  } else {
-    // ... otherwise insert it at start of active part of note + 1 (i.e. past any frontmatter and title)
-    const startOfActive = findStartOfActivePartOfNote(outputNote)
-    logDebug('insertOrReplaceMetadataLine', `- inserting metadata line at startOfActive + 1 = ${String(startOfActive+1)}`)
-    outputNote.insertParagraph(metadataLine, startOfActive+1, 'text')
+  return -1
+}
+
+/**
+ * Whether a raw markdown line is a sole body H1 for the given title (not H2+).
+ * @param {string} line
+ * @param {string} titleText
+ * @returns {boolean}
+ */
+function isH1ContentLine(line: string, titleText: string): boolean {
+  const trimmed = line.trim()
+  if (!/^#+\s/.test(trimmed) || /^##+\s/.test(trimmed)) return false
+  const textOnly = trimmed.replace(/^#+\s*/, '')
+  return textOnly === titleText
+}
+
+/** Whether a paragraph is a legacy body H1 to remove when title lives in frontmatter. */
+export function isBodyH1Paragraph(p: TParagraph, titleText?: string): boolean {
+  const raw = (p.rawContent ?? p.content ?? '').trim()
+  if (titleText && isH1ContentLine(raw, titleText)) return true
+  if (p.headingLevel === 1 && (!titleText || p.content === titleText)) return true
+  if (/^#\s/.test(raw) && !/^##\s/.test(raw)) return true
+  return false
+}
+
+/**
+ * Remove a legacy body H1 when the note title now lives in frontmatter.
+ *
+ * Uses `getFrontmatterWriteTarget` for paragraph removal. NotePlan often does not persist
+ * `removeParagraph*` on an open note — fall back to stripping the H1 line from `note.content`,
+ * then re-assert frontmatter title via `setNoteFrontmatterAttributes`.
+ *
+ * @param {TNote} note
+ * @param {string} frontmatterTitle
+ */
+export function removeBodyH1IfTitleInFrontmatter(note: TNote, frontmatterTitle: string): void {
+  const writeTarget = getFrontmatterWriteTarget(note)
+  const titleInFM = getFrontmatterAttributes(note).title || frontmatterTitle
+  if (!titleInFM) return
+
+  const h1Index = writeTarget.paragraphs.findIndex((p) => isBodyH1Paragraph(p, frontmatterTitle))
+  if (h1Index >= 0) {
+    logDebug('removeBodyH1IfTitleInFrontmatter', `removing body H1 at paragraph ${h1Index}`)
+    writeTarget.removeParagraphAtIndex(h1Index)
+  }
+
+  // NotePlan may not persist removeParagraph* on Editor when the note is open; strip the H1 line from content.
+  const stillHasH1 = writeTarget.paragraphs.some((p) => isBodyH1Paragraph(p, frontmatterTitle))
+  if (stillHasH1) {
+    const lines = (writeTarget.content || '').split('\n')
+    const filtered = lines.filter((line) => !isH1ContentLine(line, frontmatterTitle))
+    if (filtered.length < lines.length) {
+      logDebug('removeBodyH1IfTitleInFrontmatter', `fallback: stripping H1 line from note.content`)
+      writeTarget.content = filtered.join('\n')
+      setNoteFrontmatterAttributes(note, { title: frontmatterTitle })
+    }
+  }
+}
+
+/**
+ * Finish a specific (per-search-terms) results note: set frontmatter title to the
+ * full note title (e.g. `[#watercolour] (Search Results)`), drop any H1 (title lives
+ * in frontmatter), and remove a blank line immediately after the closing frontmatter separator.
+ * @param {TNote} note
+ * @param {string} frontmatterTitle e.g. `[#watercolour] (Search Results)`
+ */
+export function finaliseSpecificSearchResultNote(note: TNote, frontmatterTitle: string): void {
+  try {
+    const writeTarget = getFrontmatterWriteTarget(note)
+    const hadFMBlock = noteHasFrontMatter(note) || hasFrontMatter(note.content || '')
+
+    if (!hadFMBlock) {
+      logDebug('finaliseSpecificSearchResultNote', `no frontmatter block yet for ${note.filename ?? '?'} — creating from legacy layout`)
+      ensureFrontmatter(writeTarget, true, frontmatterTitle)
+    }
+
+    // Set title via frontmatterAttributes merge (Editor when open). Do not use
+    // updateFrontMatterVars here — on Editor.note it takes the non-Editor path and
+    // can call ensureFrontmatter against stale note.content.
+    setNoteFrontmatterAttributes(note, { title: frontmatterTitle })
+
+    const titleInFM = getFrontmatterAttributes(note).title || frontmatterTitle
+
+    if (titleInFM) {
+      removeBodyH1IfTitleInFrontmatter(note, frontmatterTitle)
+    } else {
+      logWarn('finaliseSpecificSearchResultNote', `title not set in frontmatter for ${note.filename ?? '?'} — keeping any H1 in body`)
+    }
+
+    const endFM = endOfFrontmatterLineIndex(writeTarget)
+    if (typeof endFM === 'number' && endFM > 0) {
+      const next = writeTarget.paragraphs[endFM + 1]
+      if (next && (next.type === 'empty' || next.content.trim() === '')) {
+        writeTarget.removeParagraph(next)
+      }
+    }
+
+    // Paragraph removals can re-parse frontmatter from YAML; re-assert title (and sync title: line).
+    setNoteFrontmatterAttributes(note, { title: frontmatterTitle })
+
+    logDebug('finaliseSpecificSearchResultNote', `title='${frontmatterTitle}' for ${note.filename}`)
+  } catch (err) {
+    logError('finaliseSpecificSearchResultNote', err.message)
+  }
+}
+
+export function insertOrReplaceMetadataLine(outputNote: TNote, config: SearchConfig, metadataLine: string): void {
+  try {
+    const writeTarget = getFrontmatterWriteTarget(outputNote)
+    // Replace contents of an existing metadata line before the first results section, if present.
+    const firstSectionHeadingParaIndex = findFirstSectionHeadingParagraphIndex(writeTarget, config.headingLevel)
+    const searchLimit = firstSectionHeadingParaIndex === -1 ? writeTarget.paragraphs.length : firstSectionHeadingParaIndex
+    logDebug('insertOrReplaceMetadataLine', `- firstSectionHeadingParaIndex = ${firstSectionHeadingParaIndex}, searchLimit = ${searchLimit}`)
+
+    let metadataLineIndex = -1
+    for (let i = 0; i < searchLimit; i++) {
+      if (isSearchResultsMetadataLine(writeTarget.paragraphs[i].content)) {
+        metadataLineIndex = i
+        break
+      }
+    }
+    logDebug('insertOrReplaceMetadataLine', `- metadataLineIndex = ${metadataLineIndex}`)
+
+    if (metadataLineIndex !== -1) {
+      logDebug('insertOrReplaceMetadataLine', `- replacing metadata at paragraph ${String(metadataLineIndex)}`)
+      const metadataPara = writeTarget.paragraphs[metadataLineIndex]
+      metadataPara.content = metadataLine
+      writeTarget.updateParagraph(metadataPara)
+      // Remove any duplicate metadata lines before the first section heading
+      for (let i = searchLimit - 1; i >= 0; i--) {
+        if (i !== metadataLineIndex && isSearchResultsMetadataLine(writeTarget.paragraphs[i].content)) {
+          logDebug('insertOrReplaceMetadataLine', `- removing duplicate metadata at paragraph ${String(i)}`)
+          writeTarget.removeParagraph(writeTarget.paragraphs[i])
+        }
+      }
+    } else {
+      // Insert at start of active part (past frontmatter). If that line is blank, replace it.
+      // If it is an H1 title, insert after the title.
+      let insertAt = findStartOfActivePartOfNote(writeTarget)
+      const paraAtStart = writeTarget.paragraphs[insertAt]
+      if (paraAtStart && paraAtStart.type === 'empty') {
+        writeTarget.removeParagraph(paraAtStart)
+      } else if (paraAtStart && isBodyH1Paragraph(paraAtStart)) {
+        insertAt += 1
+      }
+      logDebug('insertOrReplaceMetadataLine', `- inserting metadata line at ${String(insertAt)}`)
+      writeTarget.insertParagraph(metadataLine, insertAt, 'text')
+      const insertedPara = writeTarget.paragraphs[insertAt]
+      if (insertedPara) {
+        if (insertedPara.content !== metadataLine) {
+          insertedPara.content = metadataLine
+        }
+        writeTarget.updateParagraph(insertedPara)
+      }
+    }
+  } catch (err) {
+    logError('insertOrReplaceMetadataLine', err.message)
   }
 }
 

@@ -11,7 +11,8 @@
   min-height: 16rem;
   font-size: 0.9rem;
   font-family: var(--font-family, inherit);
-  padding: 0rem 0.5rem;
+  margin: 0rem;
+  /* padding: 0rem 0.5rem; */
 }
 .dialogBox > div {
   max-width: 25rem;
@@ -19,14 +20,15 @@
   background-color: var(--bg-alt-color);
 }
 .dialogSection {
-  margin: 0.4rem 0rem; /* horiz + vert */
+  margin: 0.4rem 1rem;
 }
 .dialogSection b {
   font-weight: 600;
   color: var(--tint-color);
 }
-.gap-right {
-  margin: 0.3rem;
+
+.gap-left {
+  margin-left: 0.3rem;
 }
 .fa-regular {
   color: var(--tint-color);
@@ -40,25 +42,26 @@ kbd {
 label {
   margin-right: 2px;
 }
+input[type="text"] {
+  margin: 0.2rem 0rem;
+  width: auto;
+  font-size: 0.9rem;
+  padding-left: 0.2rem;
+}
 input[type="submit"] {
-  margin: 3px 6px;
+  margin: 3px 0px;
   padding: 3px 6px 4px 6px;
   font-size: 0.9rem;
 }
-input[type="text"] {
-  margin-left: 0.4rem;
-  padding-left: 0.2rem;
-  font-size: 0.9rem;
-}
 input[type="radio"] {
-  margin-left: 4px;
-  vertical-align: top;
-  zoom: 1.2; /* 20% larger */
+  margin-left: 0.25rem;
+  vertical-align: text-top;
+  zoom: 1.1; /* 10% larger */
 }
 input[type="checkbox"] {
-  margin: 1px 4px 0px 1px;
+  margin: 3px 4px 0px 1px;
   vertical-align: text-top;
-  zoom: 1.2; /* 20% larger */
+  zoom: 1.1; /* 10% larger */
 }
 .buttonRow {
   display: flex;
@@ -78,6 +81,19 @@ input[type="checkbox"] {
 a {
   color: var(--fg-alt-color);
   text-decoration: underline;
+}
+
+/* ----------------------------------------------------------------- */
+
+.searchTerms {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+}
+.searchTerms input[type="text"] {
+  flex: 1;
+  min-width: 0; /* allow shrinking below intrinsic text width */
 }
 
 /* ----------------------------------------------------------------- */
@@ -110,7 +126,7 @@ a {
 .grid-item {
   /* display: flex; */
   justify-content: left;
-  align-items: baseline;
+  align-items: center;
   padding: 1px;
   margin: 0px;
 }
@@ -129,7 +145,7 @@ a {
   margin: 0;
   cursor: pointer;
   color: var(--tint-color);
-  vertical-align: middle;
+  vertical-align: baseline;
   font-size: inherit;
 }
 
@@ -137,8 +153,10 @@ a {
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.28s ease;
-  width: 100%;
+  /* width: 100%; */
   box-sizing: border-box;
+  font-size: 0.68rem;
+  margin: 0.25rem 0.5rem;
 }
 
 .infoHelpPanel.is-open {
@@ -151,7 +169,7 @@ a {
   background-color: var(--bg-alt-color);
   color: var(--fg-main-color);
   font-weight: normal;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   border-radius: 6px;
   border: 1px solid transparent;
   box-shadow: none;

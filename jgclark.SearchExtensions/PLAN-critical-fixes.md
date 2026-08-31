@@ -1,6 +1,6 @@
 # Search Extensions – Critical Fixes Plan
 
-Status: planned (not started)  
+Status: in progress (fixes 1–6 done)  
 Source: code review of `jgclark.SearchExtensions` (2026-08-09)  
 Target: iterative fixes for items 1–9; after each item bump beta version and commit (do not push until asked)
 
@@ -13,7 +13,7 @@ Target: iterative fixes for items 1–9; after each item bump beta version and c
 | CHANGELOG | add `## [3.0.0.bN]` section at top for each fix commit |
 | Git | one commit per fix; do not push |
 
-Suggested sequence: **b3** (fix 1) … **b11** (fix 9). Adjust if other betas land first.
+Suggested sequence: **b4** (fix 1) … **b12** (fix 9). Adjust if other betas land first.
 
 ## Scope boundaries
 
@@ -63,12 +63,13 @@ Destination tokens: docs/`plugin.json` use `current` \| `newnote` \| `quick` \| 
 
 ### Verify
 
-- [ ] Saved notes with old “Refresh …” and new “Re-run search” both trigger refresh.
-- [ ] Generated x-callback `command=` values exist in `plugin.json`.
+- [ ] Saved notes with old “Refresh …” trigger refresh.
+- [x] Saved notes with new “Re-run search” trigger refresh.
+- [x] Generated x-callback `command=` values exist in `plugin.json`.
 - [ ] Period re-run preserves date args and para filter.
 
-**Version:** 3.0.0.b3 / releaseStatus beta3  
-**Commit message idea:** `fix(SearchExtensions): restore re-run/onOpen refresh callbacks (b3)`
+**Version:** 3.0.0.b4
+**Commit message idea:** `fix(SearchExtensions): restore re-run/onOpen refresh callbacks (b4)`
 
 ---
 
@@ -98,8 +99,8 @@ Effects: `syncOpenResultItems` stays false; sort falls back outside `SORT_MAP`; 
 - [ ] Fresh settings → NotePlan styling path and non-title default sort when intended.
 - [ ] Old settings JSON with legacy strings works after load.
 
-**Version:** 3.0.0.b4  
-**Commit message idea:** `fix(SearchExtensions): align resultStyle/sortOrder defaults with SORT_MAP (b4)`
+**Version:** 3.0.0.b5  
+**Commit message idea:** `fix(SearchExtensions): align resultStyle/sortOrder defaults with SORT_MAP (b5)`
 
 ---
 
@@ -122,8 +123,8 @@ Effects: `syncOpenResultItems` stays false; sort falls back outside `SORT_MAP`; 
 - [ ] Native path + NotePlan result style + open tasks → sync markers on sources and result lines.
 - [ ] Simplified style still does not sync.
 
-**Version:** 3.0.0.b5  
-**Commit message idea:** `fix(SearchExtensions): sync open tasks on native search path (b5)`
+**Version:** 3.0.0.b6  
+**Commit message idea:** `fix(SearchExtensions): sync open tasks on native search path (b6)`
 
 ---
 
@@ -146,8 +147,8 @@ When `fromDateStr`/`toDateStr` are already on `searchOptions`, the legacy branch
 - [ ] `/searchInPeriod` with args does not re-prompt on legacy path.
 - [ ] Interactive SIP without args still prompts once.
 
-**Version:** 3.0.0.b6  
-**Commit message idea:** `fix(SearchExtensions): honour period dates on plugin search path (b6)`
+**Version:** 3.0.0.b7  
+**Commit message idea:** `fix(SearchExtensions): honour period dates on plugin search path (b7)`
 
 ---
 
@@ -161,9 +162,9 @@ Checkbox values include non-API tokens: `taskScheduled`, `taskCancelled`, `check
 
 ### Implementation steps
 
-1. Set checkbox `value=` attributes to real `ParagraphType` strings (+ `non-task` for “other line types”).
+1. Set checkbox `value=` attributes to real `ParagraphType` strings (+ `other` for “other line types”).
 2. Fix default `paraTypesStr` preference fallback to valid tokens, e.g.  
-   `open,done,checklist,checklistDone,non-task,`
+   `open,done,checklist,checklistDone,other,`
 3. Optionally migrate stored prefs containing old tokens when loading the dialog (map old → new once).
 
 ### Verify
@@ -171,8 +172,8 @@ Checkbox values include non-API tokens: `taskScheduled`, `taskCancelled`, `check
 - [ ] Selecting Scheduled / Open checklist / Cancelled filters matching paras only.
 - [ ] Default dialog selection produces non-empty sensible results.
 
-**Version:** 3.0.0.b7  
-**Commit message idea:** `fix(SearchExtensions): use real ParagraphTypes in flexiSearch dialog (b7)`
+**Version:** 3.0.0.b8  
+**Commit message idea:** `fix(SearchExtensions): use real ParagraphTypes in flexiSearch dialog (b8)`
 
 ---
 
@@ -198,8 +199,8 @@ Settings write boolean prefs; HTML compares prefs to checkbox values `'casesens'
 - [ ] Toggle settings → open flexi dialog → controls match.
 - [ ] Toggle controls in dialog → submit → search honours flags.
 
-**Version:** 3.0.0.b8  
-**Commit message idea:** `fix(SearchExtensions): align flexiSearch case/full-word prefs with settings (b8)`
+**Version:** 3.0.0.b9  
+**Commit message idea:** `fix(SearchExtensions): align flexiSearch case/full-word prefs with settings (b9)`
 
 ---
 
@@ -224,8 +225,8 @@ Docs/args say `newnote`; chooser and writers use `searchSpecificNote`. Unknown v
 - [ ] x-callback with `destination=newnote` creates/updates Saved Searches note.
 - [ ] `refresh` still updates in place.
 
-**Version:** 3.0.0.b9  
-**Commit message idea:** `fix(SearchExtensions): accept newnote destination alias (b9)`
+**Version:** 3.0.0.b10  
+**Commit message idea:** `fix(SearchExtensions): accept newnote destination alias (b10)`
 
 ---
 
@@ -250,8 +251,8 @@ if (res === 'No') { return } // Cancel never matches
 - [ ] Cancel aborts with no `updateParagraph` work.
 - [ ] Yes still replaces.
 
-**Version:** 3.0.0.b10  
-**Commit message idea:** `fix(SearchExtensions): honour Cancel on replace confirmation (b10)`
+**Version:** 3.0.0.b11  
+**Commit message idea:** `fix(SearchExtensions): honour Cancel on replace confirmation (b11)`
 
 ---
 
@@ -279,8 +280,8 @@ iOS branch (`>= 1426`) never runs; both platforms use macOS threshold (`>= 1344`
 - [ ] On macOS vs iOS mocks/logic: correct boolean for a given buildVersion.
 - [ ] No regression: modern macOS builds still true.
 
-**Version:** 3.0.0.b11  
-**Commit message idea:** `fix(SearchExtensions): correct isNPAdvancedSyntaxAvailable platform check (b11)`
+**Version:** 3.0.0.b12  
+**Commit message idea:** `fix(SearchExtensions): correct isNPAdvancedSyntaxAvailable platform check (b12)`
 
 ---
 
@@ -297,15 +298,15 @@ For each fix N:
 
 ### Progress
 
-- [ ] Fix 1 – Re-run / onOpen refresh → b3
-- [ ] Fix 2 – Settings defaults → b4
-- [ ] Fix 3 – Native path sync open tasks → b5
-- [ ] Fix 4 – Period dates on legacy path → b6
-- [ ] Fix 5 – flexiSearch para types → b7
-- [ ] Fix 6 – flexiSearch prefs types → b8
-- [ ] Fix 7 – Destination aliases → b9
-- [ ] Fix 8 – Replace Cancel → b10
-- [ ] Fix 9 – isNPAdvancedSyntaxAvailable → b11
+- [x] Fix 1 – Re-run / onOpen refresh 
+- [x] Fix 2 – Settings defaults
+- [x] Fix 3 – Native path sync open tasks
+- [x] Fix 4 – Period dates on legacy path
+- [x] Fix 5 – flexiSearch para types
+- [x] Fix 6 – flexiSearch prefs types
+- [ ] Fix 7 – Destination aliases
+- [ ] Fix 8 – Replace Cancel
+- [ ] Fix 9 – isNPAdvancedSyntaxAvailable
 
 ---
 

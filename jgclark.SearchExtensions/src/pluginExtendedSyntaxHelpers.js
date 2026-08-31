@@ -8,7 +8,7 @@
 //-----------------------------------------------------------------------------
 
 import type { noteAndLine, typedSearchTerm, resultObjectType, resultOutputType, resultOutputV3Type, reducedFieldSet, SearchConfig, TSearchOptions } from './searchHelpers'
-import { makeAnySyncs, SORT_MAP } from './searchHelpers'
+import { SORT_MAP } from './searchHelpers'
 import { getDateStrForStartofPeriodFromCalendarFilename, withinDateRange } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import {
@@ -602,15 +602,8 @@ export async function runPluginExtendedSyntaxSearches(
     const consolidatedResultSet: resultOutputV3Type = applyPluginSearchOperators(termsResults, config.resultLimit, fromDateStr, toDateStr)
     logTimer('runPluginExtendedSyntaxSearches', outerStartTime, `- Applied search logic`)
 
-    // For open tasks, add line sync with blockIDs (if wanted, and using NotePlan display style)
-    // clo(consolidatedResultSet, 'after applyPluginSearchOperators, consolidatedResultSet =')
-    if (config.resultStyle === 'NotePlan' && config.syncOpenResultItems) {
-      const syncdConsolidatedResultSet = await makeAnySyncs(consolidatedResultSet)
-      // clo(syncdConsolidatedResultSet, 'after makeAnySyncs, syncdConsolidatedResultSet =')
-      return syncdConsolidatedResultSet
-    } else {
-      return consolidatedResultSet
-    }
+    // Open-task sync is applied in saveSearch() after both search engines resolve.
+    return consolidatedResultSet
   }
   catch (err) {
     logError('runPluginExtendedSyntaxSearches', err.message)

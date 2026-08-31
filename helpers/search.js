@@ -654,11 +654,23 @@ export function removeSearchOperators(searchTermsStr: string): string {
 // moved to jgclark.SearchExtensions/src/searchHelpers.js
 
 /**
+ * Whether a search term is a #hashtag or @mention (optional leading '-').
+ * NotePlan's native search already treats these as whole tokens; wrapping them in
+ * quotes for "full word" mode breaks the API (returns 0 results).
+ * @param {string} term
+ * @returns {boolean}
+ */
+function isHashtagOrMentionTerm(term: string): boolean {
+  return /^#/.test(term) || /^@/.test(term) || /^-#/.test(term) || /^-@/.test(term)
+}
+
+/**
  * Return a searchString with each term surrounded by double-quotes.
  * Treat -, ( and ) as punctuation not part of the terms.
  * Leaves alone:
  * - terms already surrounded by double-quotes
  * - search operators
+ * - #hashtags and @mentions (and their negated forms), which must stay unquoted for the NP search API
  * Suitable for use with extended search API from v3.18.1.
  * @author @Cursor guided by @jgclark
  * @tests in jest file
@@ -746,14 +758,14 @@ export function quoteTermsInSearchString(searchString: string): string {
         result += quotedParenContent
         result += ')'
       } else {
-        // Regular negation - find the term and quote it with the minus
+        // Regular negation - find the term; leave #hashtags/@mentions unquoted
         let term = '-'
         i++
         while (i < searchString.length && searchString[i] !== ' ' && searchString[i] !== '(' && searchString[i] !== ')') {
           term += searchString[i]
           i++
         }
-        result += `"${term}"`
+        result += isHashtagOrMentionTerm(term) ? term : `"${term}"`
       }
     } else if (char === ' ') {
       result += ' '
@@ -768,6 +780,9 @@ export function quoteTermsInSearchString(searchString: string): string {
       
       if (term === 'OR') {
         result += 'OR'
+      } else if (isHashtagOrMentionTerm(term)) {
+        // Hashtags/mentions must stay unquoted or DataStore.search returns 0
+        result += term
       } else {
         result += `"${term}"`
       }

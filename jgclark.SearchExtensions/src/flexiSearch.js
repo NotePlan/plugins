@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Save search but with flexible options presented as HTML dialog to user first
 // Jonathan Clark
-// Last updated 2026-08-24 for v3.0.0, @jgclark & @CursorAI
+// Last updated 2026-08-31 for v3.0.0.b, @jgclark & @CursorAI
 //-----------------------------------------------------------------------------
 // TODO: fix Cancel button not working on iOS
 
@@ -15,6 +15,28 @@ import { type HtmlWindowOptions, showHTMLV2 } from '@helpers/HTMLView'
 import { closeWindowFromCustomId, logWindowsList } from '@helpers/NPWindows'
 
 const pluginID = "jgclark.SearchExtensions"
+
+/**
+ * Map legacy flexiSearch para-type tokens to current ParagraphType strings.
+ * @param {string} paraTypesStr
+ * @returns {string}
+ */
+function normalizeParaTypesPref(paraTypesStr: string): string {
+  return paraTypesStr
+    .replace(/taskScheduled/g, 'scheduled')
+    .replace(/taskCancelled/g, 'cancelled')
+    .replace(/checklistOpen/g, 'checklist')
+    .replace(/other/g, 'not-task')
+}
+
+/**
+ * Treat stored preference as checked for case/full-word dialog controls.
+ * @param {any} pref
+ * @returns {boolean}
+ */
+function isTruthySearchFlagPref(pref: any): boolean {
+  return pref === true || pref === 'true' || pref === 'casesens' || pref === 'fullword'
+}
 
 //-----------------------------------------------------------------------------
 const infoHelpBodyForPluginExtendedSyntax = `
@@ -56,10 +78,13 @@ const flexiSearchDialogHTML = async () => {
 <div class="dialogBox">
  <form type="dialog" id="searchOptions">
   <div class="dialogSection">
-		<b>Search Terms</b><input type="text" id="searchTerms" name="searchTerms" size="40" value="" autofocus tabindex="1" />&nbsp;
-    <button type="button" id="infoHelpToggle" class="infoHelpToggle" aria-expanded="false" aria-controls="infoHelpPanel" title="Search help">
-      <i class="fa-regular fa-fw fa-circle-question"></i>
-    </button>
+		<div class="searchTerms">
+      <b>Search terms</b>
+      <button type="button" id="infoHelpToggle" class="infoHelpToggle gap-left" aria-expanded="false" aria-controls="infoHelpPanel" title="Search help">
+        <i class="fa-regular fa-fw fa-circle-question"></i>
+      </button>
+      <input type="text" id="searchTerms" name="searchTerms" value="" autofocus tabindex="1" />
+    </div>
 	</div>
 
   <div id="infoHelpPanel" class="infoHelpPanel" aria-hidden="true">
@@ -84,8 +109,7 @@ ${infoHelpBody}
 	<div class="dialogSection">
     <input type="checkbox" id="casesens" name="casesens" value="casesens"/>
     <label for="casesens"><b>Case sensitive searching?</b></label>
-    <span class="gap-right"></span>
-    <input type="checkbox" id="fullword" name="fullword" value="fullword" />
+    <input type="checkbox" id="fullword" name="fullword" value="fullword" class="gap-left" />
     <label for="fullword"><b>Match full words only?</b></label>
   </div>
 
@@ -112,7 +136,7 @@ ${infoHelpBody}
         <label for="taskOpen"><i class="fa-regular fa-fw fa-circle"></i>Open</label>
       </ul>
       <ul class="grid-item">
-        <input type="checkbox" id="taskScheduled" name="task" value="taskScheduled" />
+        <input type="checkbox" id="taskScheduled" name="task" value="scheduled" />
         <label for="taskScheduled"><i class="fa-regular fa-fw fa-clock"></i>Scheduled</label>
       </ul>
       <ul class="grid-item">
@@ -120,7 +144,7 @@ ${infoHelpBody}
         <label for="taskDone"><i class="fa-regular fa-fw fa-circle-check"></i>Complete</label>
       </ul>
       <ul class="grid-item">
-        <input type="checkbox" id="taskCancelled" name="task" value="taskCancelled" />
+        <input type="checkbox" id="taskCancelled" name="task" value="cancelled" />
         <label for="taskCancelled"><i class="fa-regular fa-fw fa-circle-xmark"></i>Cancelled</label>
       </ul>
     </div>
@@ -131,7 +155,7 @@ ${infoHelpBody}
       </ul>
       <ul class="grid-item">
         <input type="checkbox" id="checklistOpen" name="checklist"
-        value="checklistOpen" checked />
+        value="checklist" checked />
         <label for="checklistOpen"><i class="fa-regular fa-fw fa-square"></i>Open</label>
       </ul>
       <ul class="grid-item">
@@ -155,7 +179,7 @@ ${infoHelpBody}
         <b>Other line types</b>
       </ul>
       <ul class="grid-item">
-        <input type="checkbox" name="other" id="list" value="non-task" checked />
+        <input type="checkbox" name="other" id="list" value="not-task" checked />
         <label for="list">bullets, quotes, headings, ordinary lines</label>
       </ul>
     </div>
@@ -216,6 +240,10 @@ const flexiSearchDialogPostBodyScripts = `
     const form = document.getElementById(formID)
 		const inputs = form.elements
 
+		function isTruthyPref(val) {
+			return val === true || val === 'true' || val === 'casesens' || val === 'fullword'
+		}
+
 		// Iterate over checkbox controls setting whether they're initially checked or not
     // Note additional complexity because 'list' is a substring of '...Checklist'
 		function initDialogState() {
@@ -230,11 +258,11 @@ const flexiSearchDialogPostBodyScripts = `
           console.log('- setting saveType "'+ val +'" to ' + String(saveType === val))
           inputs[i].checked = (saveType === val)
         } else if (inputs[i].name === "casesens") {
-          console.log('- setting caseSensitiveSearching "'+ val +'" to ' + String(caseSensitiveSearching === val))
-          inputs[i].checked = (caseSensitiveSearching === val)
+          console.log('- setting caseSensitiveSearching to ' + String(isTruthyPref(caseSensitiveSearching)))
+          inputs[i].checked = isTruthyPref(caseSensitiveSearching)
         } else if (inputs[i].name === "fullword") {
-          console.log('- setting fullWordSearching "'+ val +'" to ' + String(fullWordSearching === val))
-          inputs[i].checked = (fullWordSearching === val)
+          console.log('- setting fullWordSearching to ' + String(isTruthyPref(fullWordSearching)))
+          inputs[i].checked = isTruthyPref(fullWordSearching)
         } else if (inputs[i].type === "checkbox") {
           console.log('- setting paraTypesStr "'+ val +'" to ' + String(paraTypesArr.includes(val)))
           inputs[i].checked = paraTypesArr.includes(val)
@@ -264,13 +292,11 @@ const flexiSearchDialogPostBodyScripts = `
 					// Set this
 					saveType = inputs[i].value
 				}
-				if (inputs[i].checked && (inputs[i].name === "casesens")) {
-					// Set this
-					caseSens = inputs[i].value
+				if (inputs[i].name === "casesens") {
+					caseSens = inputs[i].checked ? 'true' : 'false'
 				}
-				if (inputs[i].checked && (inputs[i].name === "fullword")) {
-					// Set this
-					fullWord = inputs[i].value
+				if (inputs[i].name === "fullword") {
+					fullWord = inputs[i].checked ? 'true' : 'false'
 				}
 				if (inputs[i].checked && (inputs[i].name === "task" || inputs[i].name === "checklist" || inputs[i].name === "other")) {
 					// Add this checked value to a CSV string
@@ -358,11 +384,11 @@ const flexiSearchDialogPostBodyScripts = `
         if (inputs[i].checked && (inputs[i].name === "savetype")) {
           currentSaveType = inputs[i].value
         }
-        if (inputs[i].checked && (inputs[i].name === "casesens")) {
-          currentCaseSens = inputs[i].value
+        if (inputs[i].name === "casesens") {
+          currentCaseSens = inputs[i].checked ? 'true' : 'false'
         }
-        if (inputs[i].checked && (inputs[i].name === "fullword")) {
-          currentFullWord = inputs[i].value
+        if (inputs[i].name === "fullword") {
+          currentFullWord = inputs[i].checked ? 'true' : 'false'
         }
         if (inputs[i].checked && (inputs[i].name === "task" || inputs[i].name === "checklist" || inputs[i].name === "other")) {
           currentParaTypesStr += inputs[i].value + ','
@@ -482,18 +508,18 @@ export async function showFlexiSearchDialog(
     // Note: extra commas aren't typos
     const saveTypePref = DataStore.preference(`${pluginID}.saveType`)
     const saveType = (saveTypePref != null) ? String(saveTypePref) : 'quick'
-    const caseSensitiveSearching = DataStore.preference(`${pluginID}.caseSensitiveSearching`) ?? false
-    const fullWordSearching = DataStore.preference(`${pluginID}.fullWordSearching`) ?? false
+    const caseSensitiveSearchingPref = DataStore.preference(`${pluginID}.caseSensitiveSearching`) ?? false
+    const fullWordSearchingPref = DataStore.preference(`${pluginID}.fullWordSearching`) ?? false
     const noteTypesStrPref = DataStore.preference(`${pluginID}.noteTypesStr`)
     const noteTypesStr = (noteTypesStrPref != null) ? String(noteTypesStrPref) : 'notes,calendar,'
     const paraTypesStrPref = DataStore.preference(`${pluginID}.paraTypesStr`)
-    const paraTypesStr = (paraTypesStrPref != null) ? String(paraTypesStrPref) : 'open,done,checklistOpen,checklistDone,other,'
+    const paraTypesStr = normalizeParaTypesPref(
+      (paraTypesStrPref != null) ? String(paraTypesStrPref) : 'open,done,checklist,checklistDone,non-task,'
+    )
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
-      // $FlowIgnore[incompatible-call] not pretty, but works
-      .replace('%%CASESENSPREF%%', caseSensitiveSearching)
-      // $FlowIgnore[incompatible-call] not pretty, but works
-      .replace('%%FULLWORDPREF%%', fullWordSearching)
+      .replace('%%CASESENSPREF%%', String(isTruthySearchFlagPref(caseSensitiveSearchingPref)))
+      .replace('%%FULLWORDPREF%%', String(isTruthySearchFlagPref(fullWordSearchingPref)))
       .replace('%%NOTETYPESSTRPREF%%', noteTypesStr)
       .replace('%%PARATYPESSTRPREF%%', paraTypesStr)
 
@@ -532,8 +558,8 @@ html, body, .body {
  * Handle search request from the flexiSearch dialog.
  * @param {string} searchTerms 
  * @param {string} saveType 
- * @param {string} caseSensitiveSearchingAsStr Note: string due to limit of bridge to plugin. either 'casesens' or ''
- * @param {string} fullWordSearchingAsStr Note: string due to limit of bridge to plugin. either 'fullword' or ''
+ * @param {string} caseSensitiveSearchingAsStr Note: string due to limit of bridge to plugin. 'true' or legacy 'casesens'
+ * @param {string} fullWordSearchingAsStr Note: string due to limit of bridge to plugin. 'true' or legacy 'fullword'
  * @param {string} noteType 'notes' | 'calendar' | 'both'
  * @param {string} paraTypes 
  * @returns {any} but in practice empty object
@@ -559,8 +585,8 @@ export async function flexiSearchHandler(
             : 'search' // which defaults to 'both'
 
     // Set searchOptions
-    const caseSensitiveSearching: boolean = caseSensitiveSearchingAsStr === 'casesens'
-    const fullWordSearching: boolean = fullWordSearchingAsStr === 'fullword'
+    const caseSensitiveSearching: boolean = caseSensitiveSearchingAsStr === 'true' || caseSensitiveSearchingAsStr === 'casesens'
+    const fullWordSearching: boolean = fullWordSearchingAsStr === 'true' || fullWordSearchingAsStr === 'fullword'
     // saveSearch(searchTerms, noteType, originatorCommand, paraTypes, 'Searching', caseSensitiveSearching, fullWordSearching)
     const searchOptions: TSearchOptions = {
       noteTypesToInclude: getNoteTypesFromString(noteType),
@@ -608,7 +634,11 @@ export function savePluginPreference(key: string, value: string): any {
   try {
     const prefName = `${pluginID}.${key}`
     logDebug(pluginJson, `savePluginPreference('${key}', '${value}') called for ${pluginID}`)
-    DataStore.setPreference(prefName, value)
+    if (key === 'caseSensitiveSearching' || key === 'fullWordSearching') {
+      DataStore.setPreference(prefName, value === 'true' || value === 'casesens' || value === 'fullword')
+    } else {
+      DataStore.setPreference(prefName, value)
+    }
     logDebug(pluginJson, `-> ${String(DataStore.preference(prefName))}`)
 
     return {} // apparently required to avoid error in log

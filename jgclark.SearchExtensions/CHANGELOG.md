@@ -2,6 +2,39 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [3.0.0.b10] - 2026-08-31
+- fix full-word mode breaking `#hashtag` / `@mention` searches: do not wrap them in quotes for `DataStore.search` (API returned 0 for e.g. `"#watercolour"`)
+- specific search result notes: move full title (e.g. `[#watercolour] (Search Results)`) into frontmatter `title`, not body H1; remove blank line after frontmatter
+- fix "re-run search" hitting lots of different API fragility with stale data and race conditions
+- fix results note scrolled to bottom after re-run: 
+- fix: single #hashtags and @mentions now work OK again.
+
+## [3.0.0.b9] - 2026-08-31
+- fix flexiSearch case/full-word prefs: store booleans, init dialog from settings correctly, accept legacy `casesens`/`fullword` values.
+- improve layout in flexiSearch further
+
+## [3.0.0.b8] - 2026-08-31
+- fix flexiSearch paragraph type checkbox values to use real NotePlan `ParagraphType` strings
+- migrate legacy para-type preference tokens on dialog load (`taskScheduled` → `scheduled`, etc.)
+- expand `other` line-type token in `getParaTypesFromString` (alias for `non-task`)
+
+## [3.0.0.b7] - 2026-08-31
+- fix legacy search path to honour supplied period dates instead of always re-prompting
+- use `getDateRangeFromSearchOptions` when `fromDateStr`/`toDateStr` are already set
+
+## [3.0.0.b6] - 2026-08-31
+- fix `/searchOpenTasks` sync on native search path (blockIDs now added when using NotePlan result style)
+
+## [3.0.0.b5] - 2026-08-31
+- fix `resultStyle` and `sortOrder` defaults to match valid choice strings
+- normalise legacy settings values on load (`NotePlan-style`, short sort label)
+
+## [3.0.0.b4] - 2026-08-31
+- fix re-run/onOpen refresh: detect both "Re-run search" and "Refresh" button labels
+- fix x-callback URLs to use registered command names (`search`, `searchInPeriod`, etc.)
+- fix period re-run callback arg order (paraTypes before noteTypes)
+- await search commands in `refreshSavedSearch` so loading spinner stays until complete
+
 ## [3.0.0.b3] - 2026-08-24
 - tweaks to flexi search layout window
 - fix certain fonts not being picked up from theme files

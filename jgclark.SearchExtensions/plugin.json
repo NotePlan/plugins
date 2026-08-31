@@ -9,8 +9,8 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
   "plugin.version": "3.0.0",
-  "plugin.releaseStatus": "beta3",
-  "plugin.lastUpdateInfo": "3.0.0: Significant changes to align with welcome new native search capabilities in NotePlan v3.18.1.\nIf you are running this newer version, the plugin assumes you're using the new native search syntax.\nPlease see the README to learn more.\nNote: this is a beta release, so please report any issues you find.",
+  "plugin.releaseStatus": "beta10",
+  "plugin.lastUpdateInfo": "3.0.0.b10: Fix full-word #hashtag search; specific results notes use frontmatter title with (Search Results).",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -302,7 +302,7 @@
         "NotePlan",
         "Simplified"
       ],
-      "default": "NotePlan-style",
+      "default": "NotePlan",
       "required": true
     },
     {
@@ -336,7 +336,7 @@
         "updated (most recent note first)",
         "updated (least recent note first)"
       ],
-      "default": "updated (most recent first)",
+      "default": "updated (most recent note first)",
       "required": true
     },
     {

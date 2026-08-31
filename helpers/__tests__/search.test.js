@@ -720,5 +720,17 @@ describe('search.js tests', () => {
       const result = s.quoteTermsInSearchString('term1 (term2 OR term3) -term4')
       expect(result).toEqual('"term1" ("term2" OR "term3") "-term4"')
     })
+    test('leaves hashtags unquoted (NP API breaks if quoted)', () => {
+      expect(s.quoteTermsInSearchString('#watercolour')).toEqual('#watercolour')
+      expect(s.quoteTermsInSearchString('#tag term')).toEqual('#tag "term"')
+    })
+    test('leaves mentions unquoted', () => {
+      expect(s.quoteTermsInSearchString('@done')).toEqual('@done')
+      expect(s.quoteTermsInSearchString('@person word')).toEqual('@person "word"')
+    })
+    test('leaves negated hashtags and mentions unquoted', () => {
+      expect(s.quoteTermsInSearchString('-#watercolour')).toEqual('-#watercolour')
+      expect(s.quoteTermsInSearchString('-@done')).toEqual('-@done')
+    })
   })
 })

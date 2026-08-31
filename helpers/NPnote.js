@@ -765,6 +765,40 @@ export function scrollToParagraphWithContent(content: string): boolean {
 }
 
 /**
+ * Character index at the start of the active body (first line after frontmatter / note title).
+ * Use with `Editor.openNoteByFilename(..., highlightStart, highlightEnd, ...)` to open at the top of body content.
+ *
+ * @param {CoreNoteFields} note
+ * @returns {number}
+ */
+export function getStartOfActiveContentCharIndex(note: CoreNoteFields): number {
+  const startLine = findStartOfActivePartOfNote(note)
+  return note.paragraphs[startLine]?.contentRange?.start ?? 0
+}
+
+/**
+ * Scroll the open Editor to the start of the note's active body (after frontmatter).
+ *
+ * Use after bulk paragraph edits (`replaceSection`, `insertParagraph`, `note.content = …`) that leave
+ * the view scrolled to the bottom. No-op if `note` is not the file open in Editor.
+ *
+ * @param {CoreNoteFields?} note - defaults to `Editor.note`
+ */
+export function scrollEditorToStartOfActiveNote(note?: CoreNoteFields): void {
+  try {
+    if (typeof Editor === 'undefined' || !Editor.note) return
+    const noteToUse = note ?? Editor.note
+    if (!noteToUse?.filename || noteToUse.filename !== Editor.note.filename) return
+    const paras = Editor.paragraphs ?? noteToUse.paragraphs ?? []
+    const startLine = findStartOfActivePartOfNote({ ...noteToUse, paragraphs: paras })
+    const charIndex = paras[startLine]?.contentRange?.start ?? 0
+    Editor.highlightByIndex(charIndex, 0)
+  } catch (err) {
+    logDebug('NPnote/scrollEditorToStartOfActiveNote', err.message)
+  }
+}
+
+/**
  * Return list of all notes of type ['Notes'] or ['Calendar'] or both (default).
  * Note: .slice() is used to avoid mutating the original arrays. This doesn't appear to affect performance, so I'm leaving them in.
  * @author @jgclark

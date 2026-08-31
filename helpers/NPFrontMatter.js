@@ -3,11 +3,20 @@
 /**
  * Key FrontMatter functions:
  * getFrontmatterAttributes() - get the front matter attributes from a note
- * updateFrontMatterVars() - update the front matter attributes for a note
- * (deprecated) setFrontMatterVars() - set/update the front matter attributes for a note (will create frontmatter if necessary)
- * noteHasFrontMatter() - test whether a Test whether a Note contains front matter
- * ensureFrontMatter() - ensure that a note has front matter (will create frontmatter if necessary)
+ * getFrontmatterWriteTarget() - Editor when the note is open, else the note (for FM setter)
+ * setNoteFrontmatterAttributes() - merge attributes into frontmatter without dropping existing keys (preferred for FM updates after body edits)
+ * updateFrontMatterVars() - update the front matter attributes for a note (pass Editor, not Editor.note, when the note is open)
+ * noteHasFrontMatter() - test whether a Note contains front matter
+ * ensureFrontmatter() - create a --- frontmatter block on notes that lack one (see its JSDoc for safe use)
  * addTrigger() - add a trigger to the front matter (will create frontmatter if necessary)
+ * (deprecated) setFrontMatterVars() - set/update the front matter attributes for a note (will create frontmatter if necessary)
+ *
+ * Frontmatter editing fragility (NotePlan API):
+ * - paragraph.content = … and note.updateParagraph() on the *body* can desync note.content from paragraphs.
+ * - Assigning note.content = … rewrites the whole note from a string snapshot and can undo recent paragraph edits.
+ * - The frontmatterAttributes setter on Editor.note often does not persist; use Editor when the note is open.
+ * - Mutating note.frontmatterAttributes in place then assigning it back can drop keys if the object was stale.
+ * Workaround: after body edits, use setNoteFrontmatterAttributes(); call it last in the pipeline; use updateParagraph for body text.
  */
 
 import fm from 'front-matter'
@@ -126,6 +135,113 @@ export function noteHasFrontMatter(note: CoreNoteFields): boolean {
  * @returns object of attributes or empty object if the note has no front matter
  */
 export const getFrontmatterAttributes = (note: CoreNoteFields): { [string]: string } => note.frontmatterAttributes || {}
+
+/**
+ * Return the object that should receive frontmatter **and paragraph** writes when the note may be open in Editor.
+ *
+ * **Why this exists:** When a note is open in the Editor, calls on `Editor.note` (the TNote) often do not
+ * persist — including `frontmatterAttributes`, `updateParagraph`, `removeParagraph`, and `insertParagraph`.
+ * Use **`Editor`** itself (this helper returns it when `note.filename === Editor.note.filename`).
+ *
+ * `updateFrontMatterVars` detects Editor via `note.note`; this helper is for callers that hold a TNote
+ * reference (e.g. from DataStore or `Editor.note`).
+ *
+ * @param {CoreNoteFields} note - usually `Editor.note` or a DataStore note
+ * @returns {CoreNoteFields} `Editor` if that note is the one open in the editor, else `note`
+ * @see setNoteFrontmatterAttributes
+ */
+export function getFrontmatterWriteTarget(note: CoreNoteFields): CoreNoteFields {
+  try {
+    if (typeof Editor !== 'undefined' && Editor.note?.filename && note.filename === Editor.note.filename) {
+      return Editor
+    }
+  } catch (_) {
+    // Editor may be unavailable in tests
+  }
+  return note
+}
+
+/**
+ * Write or update frontmatter key lines in the note's YAML block (paragraphs between ---).
+ *
+ * Required because setting `frontmatterAttributes` alone does not add a `title:` line to the YAML.
+ * Without a YAML line, a later `removeParagraph` or content re-parse drops keys that existed only
+ * on the API setter.
+ *
+ * @param {CoreNoteFields} note
+ * @param {{ [string]: string }} attributes - keys to sync into the YAML block
+ */
+function syncFrontmatterAttributeLines(note: CoreNoteFields, attributes: { [string]: string }): void {
+  if (!attributes || Object.keys(attributes).length === 0) return
+  const hasFMBlock = noteHasFrontMatter(note) || hasFrontMatter(note.content || '')
+  if (!hasFMBlock) return
+
+  const writeTarget = getFrontmatterWriteTarget(note)
+
+  Object.keys(attributes).forEach((key: string) => {
+    const value = attributes[key]
+    if (value == null || value === '') return
+    const attributeLine = `${key}: ${key === 'triggers' ? value.trim() : quoteText(String(value).trim())}`
+    const paragraph = writeTarget.paragraphs.find((para) => para.content.startsWith(`${key}:`))
+    if (paragraph) {
+      if (paragraph.content !== attributeLine) {
+        paragraph.content = attributeLine
+        writeTarget.updateParagraph(paragraph)
+      }
+    } else {
+      const closingIndex = writeTarget.paragraphs.findIndex((para) => para.content.trim() === '---' && para.lineIndex > 0)
+      if (closingIndex !== -1) {
+        writeTarget.insertParagraph(attributeLine, closingIndex, 'text')
+      }
+    }
+  })
+}
+
+/**
+ * Merge attributes into a note's frontmatter without dropping existing keys (e.g. title, triggers, icon).
+ *
+ * **Preferred way** to set or update frontmatter fields after editing the note body with paragraph
+ * APIs (`paragraph.content`, `insertParagraph`, `removeParagraph`, `updateParagraph`, `replaceSection`, etc.).
+ *
+ * **Fragility this avoids:**
+ * - Old `setIconForNote` mutated `note.frontmatterAttributes` in place; if that object was `{}` or
+ *   missing keys that existed only in the YAML block, re-assigning it wiped `title` and other fields.
+ * - `ensureFrontmatter()` and `note.content = …` rebuild from `note.content`, which may be a *stale*
+ *   snapshot taken before paragraph edits — so running them after body updates can undo those edits
+ *   or strip frontmatter that was just set.
+ * - API-only `title` without a `title:` YAML line is lost when NotePlan re-parses frontmatter from body.
+ *
+ * **Workaround / usage:**
+ * 1. Finish all body/section edits first.
+ * 2. Update the metadata intro line with `updateParagraph` on `getFrontmatterWriteTarget(note)`.
+ * 3. Call this function (syncs YAML lines + API setter). Call again after any later body edit if needed.
+ * 4. For icons, use `setIconForNote` (which calls this function).
+ *
+ * When the note is open, also sets `Editor.note.frontmatterAttributes` so read paths on the TNote stay in sync.
+ *
+ * @param {CoreNoteFields} note
+ * @param {{ [string]: string }} attributes - keys to set or overwrite; other existing keys are kept
+ * @see getFrontmatterWriteTarget
+ * @see setIconForNote
+ */
+export function setNoteFrontmatterAttributes(note: CoreNoteFields, attributes: { [string]: string }): void {
+  const target = getFrontmatterWriteTarget(note)
+  const fromContent = hasFrontMatter(note.content || '') ? getAttributes(note.content) : {}
+  const merged = { ...fromContent, ...getFrontmatterAttributes(note), ...attributes }
+
+  syncFrontmatterAttributeLines(note, attributes)
+
+  const fromContentAfter = hasFrontMatter(note.content || '') ? getAttributes(note.content) : {}
+  const finalMerged = { ...merged, ...fromContentAfter }
+  // $FlowIgnore[cannot-write] documented safe usage for frontmatterAttributes
+  target.frontmatterAttributes = finalMerged
+  if (target !== note) {
+    // Keep TNote in sync when the note is open (Editor mock and some NP read paths use Editor.note)
+    // $FlowIgnore[cannot-write]
+    note.frontmatterAttributes = finalMerged
+  }
+  logDebug('NPFrontMatter/setNoteFrontmatterAttributes', `keys=[${Object.keys(finalMerged).join(', ')}] on ${note.filename ?? '?'}`)
+}
 
 /**
  * Gets the value of a given field ('attribute') from frontmatter if it exists
@@ -422,17 +538,36 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
 // }
 
 /**
- * Ensure that a note has front matter (and optionally has a title you specify).
- * WARNING: Failing for @jgclark on calendar notes without existing FM.
- * If the note already has front matter, returns true.
- * If the note does not have front matter, adds it and returns true.
- * If optional title is given, it overrides any existing title in the note for the frontmatter title.
+ * Ensure that a note has a `---` frontmatter block (and optionally set `title`).
+ *
+ * **Note:** This still the right tool when a note has *no* frontmatter block yet and you need to create one
+ * (e.g. legacy H1-only notes, first-time trigger setup). `addTrigger()` and similar helpers depend on it.
+ *
+ * **Safe scenarios:**
+ * - Note is empty or nearly empty and you have not yet mutated body paragraphs in this run.
+ * - Converting a legacy note once: H1 in body → `title` in new frontmatter block.
+ * - Note already has a `---` block and you only need a small `note.content` string patch *before*
+ *   any paragraph-level body edits (rare; prefer `setNoteFrontmatterAttributes` for title updates).
+ * - Calendar notes needing an empty `---` / `---` wrapper (`alsoEnsureTitle: false`).
+ *
+ * **Avoid / unsafe scenarios:**
+ * - **After** `replaceSection`, `insertParagraph`, `removeParagraph`, or `updateParagraph` on the
+ *   body — `note.content` is often stale; `note.content = …` branches here can rewrite the whole note
+ *   and undo body changes or frontmatter set via `frontmatterAttributes`.
+ * - **Between** setting frontmatter via `setNoteFrontmatterAttributes` and a later body
+ *   `updateParagraph` — the paragraph save can still wipe FM; set title *after* body updates instead.
+ * - Passing `Editor.note` to `updateFrontMatterVars` on an open note — that path may call this
+ *   function against stale content; pass `Editor` or use `setNoteFrontmatterAttributes` directly.
+ *
+ * **Workaround when the note already has a frontmatter block:** use `setNoteFrontmatterAttributes`
+ * or `updateFrontMatterVars(Editor, …)` instead of this function.
+ *
  * @author @dwertheimer based on @jgclark's convertNoteToFrontmatter code
  * @param {TNote} note
  * @param {boolean?} alsoEnsureTitle - if true then fail if a title can't be set. Default: true. For calendar notes this wants to be false.
  * @param {string?} title - optional override text that will be added to the frontmatter as the note title (regardless of whether it already had for a title)
  * @returns {boolean} true if front matter existed or was added, false if failed for some reason
- * @author @dwertheimer
+ * @see setNoteFrontmatterAttributes
  */
 export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean = true, title?: string | null): boolean {
   const outputNoteContents = (message: string) =>
@@ -945,12 +1080,21 @@ export function normalizeValue(value: string): string {
 
 /**
  * Update existing front matter attributes based on the provided newAttributes.
- * Assumes that newAttributes is the complete desired set of attributes.
- * Adds new attributes, updates existing ones, and (optionally) deletes any that are not present in newAttributes.
- * @param {CoreNoteFields} note - The note to update.
+ *
+ * **Editor vs Editor.note:** When the note is open, pass **`Editor`** (not `Editor.note`). This
+ * function uses `Boolean(note.note)` to detect Editor; on `Editor.note` it takes the non-Editor path
+ * and may call `ensureFrontmatter(note)` against stale `note.content`. For simple merge updates
+ * (e.g. title, icon) after body edits, prefer `setNoteFrontmatterAttributes`.
+ *
+ * Assumes that newAttributes is the complete desired set of attributes when `deleteMissingAttributes`
+ * is true. Adds new attributes, updates existing ones, and (optionally) deletes any that are not
+ * present in newAttributes.
+ *
+ * @param {CoreNoteFields} note - pass `Editor` when the note is open in the editor
  * @param {{ [string]: string }} newAttributes - The complete set of desired front matter attributes.
  * @param {boolean} deleteMissingAttributes - Whether to delete attributes that are not present in newAttributes (default: false)
  * @returns {boolean} - Whether the front matter was updated successfully.
+ * @see setNoteFrontmatterAttributes
  */
 export function updateFrontMatterVars(note: TEditor | TNote, newAttributes: { [string]: string }, deleteMissingAttributes: boolean = false): boolean {
   try {

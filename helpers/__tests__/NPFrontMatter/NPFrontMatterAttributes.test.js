@@ -341,5 +341,40 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(barParagraph.content).toEqual('bar: newBaz')
       })
     })
+    describe('setNoteFrontmatterAttributes()', () => {
+      test('merges attributes without dropping existing keys', () => {
+        const note = new Note({ filename: 'test.md' })
+        note.frontmatterAttributes = {
+          title: 'Old',
+          triggers: 'onOpen -> foo',
+        }
+        f.setNoteFrontmatterAttributes(note, { title: 'New', bar: 'baz' })
+        expect(note.frontmatterAttributes).toEqual({
+          title: 'New',
+          triggers: 'onOpen -> foo',
+          bar: 'baz',
+        })
+      })
+
+      test('writes title into YAML block so re-parse after removeParagraph keeps it', () => {
+        const note = new Note({ filename: 'Search Results/TheSacred.md' })
+        note.paragraphs = [
+          { content: '---', type: 'separator', lineIndex: 0, headingLevel: 0 },
+          { content: 'triggers: onOpen -> foo', type: 'text', lineIndex: 1, headingLevel: 0 },
+          { content: '---', type: 'separator', lineIndex: 2, headingLevel: 0 },
+          { content: '[TheSacred] Search results', type: 'title', lineIndex: 3, headingLevel: 1 },
+          { content: 'metadata', type: 'text', lineIndex: 4, headingLevel: 0 },
+        ]
+        note._content = '---\ntriggers: onOpen -> foo\n---\n# [TheSacred] Search results\nmetadata\n'
+        note.frontmatterAttributes = { triggers: 'onOpen -> foo' }
+
+        f.setNoteFrontmatterAttributes(note, { title: '[TheSacred] Search results' })
+        const h1 = note.paragraphs.find((p) => p.headingLevel === 1)
+        if (h1) note.removeParagraph(h1)
+
+        expect(note.frontmatterAttributes.title).toEqual('[TheSacred] Search results')
+        expect(note.paragraphs.some((p) => p.content.startsWith('title:'))).toEqual(true)
+      })
+    })
   })
 })
