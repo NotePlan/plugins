@@ -399,8 +399,14 @@ export function NoteChooser({
 
       logDebug('NoteChooser', `handleCalendarDateSelect: calendarFilename="${calendarFilename}", dateISO="${dateISO}"`)
 
-      // Find the note in the notes array or create a new option
-      const existingNote = notes.find((note) => note.filename === calendarFilename || note.filename.endsWith(`/${calendarFilename}`))
+      // Find the note in the notes array or create a new option.
+      // Match on the date part only: in a React window the user's real file extension isn't knowable,
+      // so calendarFilename falls back to the default one and wouldn't match a .txt vault's note.
+      const calendarFilenameBase = calendarFilename.replace(RE_NOTE_FILE_EXTENSION, '')
+      const existingNote = notes.find((note) => {
+        const noteFilenameBase = note.filename.replace(RE_NOTE_FILE_EXTENSION, '')
+        return noteFilenameBase === calendarFilenameBase || noteFilenameBase.endsWith(`/${calendarFilenameBase}`)
+      })
 
       logDebug('NoteChooser', `handleCalendarDateSelect: existingNote=${existingNote ? `found: ${existingNote.title}` : 'not found'}`)
 
