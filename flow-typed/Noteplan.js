@@ -1171,6 +1171,31 @@ declare class CommandBar {
    * Note: Available from v3.0.26
    */
   static onMainThread(): Promise<void>;
+  /**
+   * CommandBar.runOnAsyncThread()
+   * Runs the given function on a background thread and returns its result as a Promise. 
+   * This is the recommended way to do heavy work (parsing, loops over many notes, etc.) without freezing 
+   * the user interface — it replaces the `onAsyncThread()` / `onMainThread()` pair with a single scoped call: 
+   * only the code inside the function runs in the background, and after `await` you are automatically back 
+   * on the main thread. There is no way to forget to switch back.
+   *
+   * Rules for the function you pass in:
+   * - It must be a synchronous function (no `async`, no `await` inside — you'll get an error otherwise). 
+   *   Do bridge calls before or after `runOnAsyncThread`, not inside it.
+   * - Don't touch the user interface inside it (no Editor.* calls other than reading cached values, 
+   *   no prompts, no HTMLView). Cache what you need in variables beforehand.
+   * - `CommandBar.showLoading` is safe to call inside for progress updates.
+   *
+   * You can call it multiple times in a row, e.g. to interleave background work with prompts or editor updates.
+   *
+   * Error handling: if the passed value is not a function, or the function is async, the Promise resolves 
+   * with null and the error message is delivered to a `.catch()` handler if you attached one 
+   * (try/catch around `await` won't receive it). Errors thrown inside the function are logged to the plugin console.
+   * Note: Available from v3.21.3
+   * @param {Function} function - A synchronous function to execute on the background thread. Its return value resolves the Promise.
+   * @return {Promise} - Resolves with the function's return value, back on the main thread.
+  */
+  static runOnAsyncThread(function): Promise < any >;
 
   /**
    * CommandBar.prompt()
