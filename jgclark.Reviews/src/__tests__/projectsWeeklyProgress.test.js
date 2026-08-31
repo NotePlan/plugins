@@ -58,34 +58,25 @@ describe('getFirstWeeklyProjectProgressParam', () => {
 
 describe('resolveShowEmptyFoldersFromParam', () => {
   test('hide resolves to false regardless of current setting', () => {
-    expect(resolveShowEmptyFoldersFromParam(HIDE_EMPTY_FOLDERS_PARAM, baseConfig)).toBe(false)
-    expect(resolveShowEmptyFoldersFromParam(HIDE_EMPTY_FOLDERS_PARAM, {
-      ...baseConfig,
-      weeklyProjectProgressShowEmptyFolders: true,
-    })).toBe(false)
+    expect(resolveShowEmptyFoldersFromParam(HIDE_EMPTY_FOLDERS_PARAM)).toBe(false)
+    expect(resolveShowEmptyFoldersFromParam(HIDE_EMPTY_FOLDERS_PARAM)).toBe(false)
   })
 
   test('show resolves to true regardless of current setting', () => {
-    expect(resolveShowEmptyFoldersFromParam(SHOW_EMPTY_FOLDERS_PARAM, {
-      ...baseConfig,
-      weeklyProjectProgressShowEmptyFolders: false,
-    })).toBe(true)
+    expect(resolveShowEmptyFoldersFromParam(SHOW_EMPTY_FOLDERS_PARAM)).toBe(true)
   })
 
   test('URL-encoded hide token resolves correctly', () => {
     const encoded = encodeURIComponent(HIDE_EMPTY_FOLDERS_PARAM)
-    expect(resolveShowEmptyFoldersFromParam(encoded, baseConfig)).toBe(false)
+    expect(resolveShowEmptyFoldersFromParam(encoded)).toBe(false)
   })
 
   test('explicit JSON setting value is honoured', () => {
-    expect(resolveShowEmptyFoldersFromParam(
-      encodeURIComponent('{"weeklyProjectProgressShowEmptyFolders":false}'),
-      baseConfig,
-    )).toBe(false)
+    expect(resolveShowEmptyFoldersFromParam(encodeURIComponent('{"weeklyProjectProgressShowEmptyFolders":false}'))).toBe(false)
   })
 
   test('returns null for refresh (empty) param', () => {
-    expect(resolveShowEmptyFoldersFromParam('', baseConfig)).toBe(null)
+    expect(resolveShowEmptyFoldersFromParam('')).toBe(null)
   })
 })
 
@@ -274,13 +265,13 @@ describe('hide/show x-callback URL roundtrip', () => {
     const url = createRunPluginCallbackUrl('jgclark.Reviews', 'weeklyProjectsProgress', [HIDE_EMPTY_FOLDERS_PARAM])
     expect(url).toContain('arg0=hide')
     const arg0 = decodeURIComponent(url.split('arg0=')[1]?.split('&')[0] ?? '')
-    expect(resolveShowEmptyFoldersFromParam(arg0, baseConfig)).toBe(false)
+    expect(resolveShowEmptyFoldersFromParam(arg0)).toBe(false)
   })
 
   test('show link encodes arg0 correctly', () => {
     const url = createRunPluginCallbackUrl('jgclark.Reviews', 'weeklyProjectsProgress', [SHOW_EMPTY_FOLDERS_PARAM])
     const arg0 = decodeURIComponent(url.split('arg0=')[1]?.split('&')[0] ?? '')
-    expect(resolveShowEmptyFoldersFromParam(arg0, { ...baseConfig, weeklyProjectProgressShowEmptyFolders: false })).toBe(true)
+    expect(resolveShowEmptyFoldersFromParam(arg0)).toBe(true)
   })
 
   test('refresh view param matches current show/hide mode', () => {

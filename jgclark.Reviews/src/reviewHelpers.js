@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-08-23 for v2.0.9, @CursorAI & @jgclark
+// Last updated 2026-08-31 for v2.0.9+, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -113,6 +113,9 @@ export type ReviewConfig = {
   _logLevel: string,
   _logTimer: boolean,
 }
+
+/** Partial settings object for helpers/tests that only need a subset of Review settings. */
+export type ReviewConfigInput = $ReadOnly<Partial<ReviewConfig>>
 
 /**
  * Lookup user's preferred metadata item string ready to use as a frontmatter key. Note: Any leading # or @ is stripped off.
@@ -428,7 +431,7 @@ export function getProjectTypeTagsFromNoteMetadata(note: CoreNoteFields | TNote)
   }
 
   const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-  const frontmatterValue = getFrontmatterAttribute(note, combinedKey)
+  const frontmatterValue = getFrontmatterAttribute((note: any), combinedKey)
   addTags(getHashtagsFromString(String(frontmatterValue ?? '')))
 
   const metadataLineIndex = getProjectMetadataLineIndex(note)
