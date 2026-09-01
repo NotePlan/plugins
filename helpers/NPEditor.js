@@ -260,6 +260,94 @@ export function isNoteOpenInEditor(filename: string): boolean {
 }
 
 /**
+ * Return note from a single editor pane (`Editor.note`, or the editor itself for calendar notes when `.note` is unset).
+ * Returns null if no note is found (e.g. if a folder view is open).
+ * @author @CursorAI
+ * @param {any} editorWindow
+ * @returns {?CoreNoteFields}
+ */
+export function getNoteFromEditorWindow(editorWindow: any): ?CoreNoteFields {
+  if (editorWindow?.note != null) {
+    return editorWindow.note
+  }
+  if (editorWindow?.type === 'Calendar' && String(editorWindow.filename ?? '').trim() !== '') {
+    return editorWindow
+  }
+  return null
+}
+
+/**
+ * Return note best matching the current editor context, searching all open editor panes when needed.
+ * Uses global `Editor` when it matches; otherwise scans `NotePlan.editors` (split views, etc.).
+ * Returns null if no note is found (e.g. if a folder view is open).
+ * Note: Sidebar actions can move focus to a different pane before a plugin runs; optional filters recover the intended note.
+ * @author @CursorAI
+ * @param {Object} [options]
+ * - {NoteType?} [options.noteType] restrict to 'Calendar' or 'Notes'
+ * - {(note?: CoreNoteFields) => boolean} [options.noteToMatch] additional predicate
+ * - {boolean?} [options.preferSelection=true] when scanning panes, prefer one with an active text selection
+ * @returns {?CoreNoteFields}
+ */
+export function getOpenEditorNote(options?: {|
+  noteType?: NoteType,
+  noteToMatch?: (note: CoreNoteFields) => boolean,
+  preferSelection?: boolean,
+|}): ?CoreNoteFields {
+  const noteType = options?.noteType
+  const noteToMatch = options?.noteToMatch
+  const preferSelection = options?.preferSelection !== false
+
+  const matchesFilters = (note: ?CoreNoteFields): boolean => {
+    if (note == null) {
+      return false
+    }
+    if (noteType != null && note.type !== noteType) {
+      return false
+    }
+    if (noteToMatch != null && !noteToMatch(note)) {
+      return false
+    }
+    return true
+  }
+
+  const globalNote = getNoteFromEditorWindow(Editor)
+  if (matchesFilters(globalNote)) {
+    return globalNote
+  }
+
+  const editors = NotePlan.editors ?? []
+  if (editors.length === 0) {
+    return matchesFilters(globalNote) ? globalNote : null
+  }
+
+  type Candidate = {| note: CoreNoteFields, hasSelection: boolean, index: number |}
+const candidates: Array<Candidate> = []
+for (let index = 0; index < editors.length; index++) {
+  const editorWindow = editors[index]
+  const note = getNoteFromEditorWindow(editorWindow)
+  if (!matchesFilters(note)) {
+    continue
+  }
+  const selStart = editorWindow.selection?.start
+  const hasSelection = typeof selStart === 'number' && selStart >= 0
+  candidates.push({ note: (note: any), hasSelection, index })
+}
+
+if (candidates.length === 0) {
+  return null
+}
+
+if (preferSelection) {
+  const withSelection = candidates.filter((c) => c.hasSelection)
+  if (withSelection.length > 0) {
+    return withSelection[withSelection.length - 1].note
+  }
+}
+
+return candidates[candidates.length - 1].note
+}
+
+/**
  * Returns the first open Editor window that matches a given filename (if any).
  * If 'getLastOpenEditor' is true, then return the last matching open Editor window (which is the most recently opened one) instead.
  * @author @jgclark
