@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md) for details on available commands and use case.
 
+## [1.1.5] Readwise 2024-10-28 (@aaronpoweruser)
+
+- Fix formatting of Readwise tags containing spaces or '&' characters.
+
 ## [1.1.4] Readwise 2024-05-28 (@aaronpoweruser)
 
 - Add a setting for paragraph type.
