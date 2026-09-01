@@ -453,7 +453,7 @@ function pluralCompletedTaskWord(count: number): string {
 }
 
 /**
- * Title row for the done-task summary: plain "N completed task(s)", or "N other completed task(s)" after a wins block.
+ * Title row for the done-task summary: "N completed task(s) in this note", or "N other completed task(s) in this note" after a wins block.
  * @param {number} lineCount
  * @param {'plain' | 'other'} variant
  * @returns {string}
@@ -461,9 +461,9 @@ function pluralCompletedTaskWord(count: number): string {
 function formatCompletedTasksSummaryHeading(lineCount: number, variant: 'plain' | 'other'): string {
   const w = pluralCompletedTaskWord(lineCount)
   if (variant === 'other') {
-    return `${lineCount} other completed ${w}`
+    return `${lineCount} other completed ${w} in this note`
   }
-  return `${lineCount} completed ${w}`
+  return `${lineCount} completed ${w} in this note`
 }
 
 /**

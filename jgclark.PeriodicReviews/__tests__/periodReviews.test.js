@@ -9,6 +9,7 @@ import {
   getBigTaskMarkerFromConfig,
   getBigTaskPriorityFromConfig,
   getEffectivePlannedItemAffixes,
+  getOpenEditorNoteForReview,
   getPeriodAdjectiveFromType,
   getPlanItemsNameForPeriodType,
   getReviewPeriodTitleStringFromCalendarNote,
@@ -20,6 +21,7 @@ import {
   summaryTaskLineDedupeKey,
 } from '../src/periodicReviewHelpers'
 import {
+  closePeriodicReviewWindow,
   extractPlanSectionItems,
   partitionReviewAnswerLinesForMixedUpsert,
   taskContentIsSummaryWin,
@@ -28,11 +30,13 @@ import { buildReviewHTML } from '../src/reviewHTMLViewGenerator'
 import {
   buildInitialReviewAnswersByFieldName,
   buildOutputFromReviewWindowAnswers,
+  convertNumericHoursToDurationHHMM,
   getBooleanClearDirectivesFromAnswers,
   getStringQuestionMatchKeyFromOutputLine,
   getStringQuestionMatchKeyFromParsedQuestion,
   getTemplateLineUpsertKey,
   getTemplateLineUpsertKeyFromOutputLine,
+  mergeTemplateAnswerLineIntoExistingLine,
   parseQuestions,
 } from '../src/reviewQuestions'
 import { DataStore } from '@mocks/index'
@@ -230,6 +234,48 @@ Do: <tasks>`
       expect(shouldUseOpenEditorCalendarNote(yesterdayDaily, 'day', '2026-05-17', false)).toBe(true)
     })
 
+    it('shouldUseOpenEditorCalendarNote should prefer open Teamspace daily note when preferOpenSameKind', () => {
+      const teamspaceDaily = {
+        type: 'Calendar',
+        filename: '%%NotePlanCloud%%/my-teamspace-id/20260517.md',
+        title: 'Friday thoughts',
+      }
+      expect(shouldUseOpenEditorCalendarNote(teamspaceDaily, 'day', '2026-05-18', true)).toBe(true)
+    })
+
+    it('shouldUseOpenEditorCalendarNote should prefer open Teamspace weekly note when preferOpenSameKind', () => {
+      const teamspaceWeekly = {
+        type: 'Calendar',
+        filename: '%%NotePlanCloud%%/my-teamspace-id/2026-W20.md',
+        title: 'Week 20 review',
+      }
+      expect(shouldUseOpenEditorCalendarNote(teamspaceWeekly, 'week', '2026-W35', true)).toBe(true)
+    })
+
+    it('getOpenEditorNoteForReview should delegate to getOpenEditorNote with period kind filter', () => {
+      const editorWas = global.Editor
+      const notePlanWas = global.NotePlan
+      const projectNote = { type: 'Notes', filename: 'Projects/foo.md', title: 'Foo project' }
+      const weeklyNote = { type: 'Calendar', filename: '2026-W35.md', title: '2026-W35' }
+      const dailyNote = { type: 'Calendar', filename: '20260831.md', title: '2026-08-31' }
+      global.Editor = {
+        note: projectNote,
+        type: 'Notes',
+        filename: 'Projects/foo.md',
+      }
+      global.NotePlan = {
+        editors: [
+          global.Editor,
+          { note: weeklyNote, type: 'Calendar', filename: '2026-W35.md' },
+          { note: dailyNote, type: 'Calendar', filename: '20260831.md', selection: { start: 1, end: 1 } },
+        ],
+      }
+      expect(getOpenEditorNoteForReview('day')).toBe(dailyNote)
+      expect(getOpenEditorNoteForReview('week')).toBe(weeklyNote)
+      global.Editor = editorWas
+      global.NotePlan = notePlanWas
+    })
+
     it('getReviewPeriodTitleStringFromCalendarNote should use filename when title is not a period string', () => {
       expect(getReviewPeriodTitleStringFromCalendarNote(yesterdayDaily, 'day')).toBe('2026-05-17')
     })
@@ -329,7 +375,7 @@ Mood: <mood>`
       const formIdx = afterSummary.indexOf('<form id="review-form"')
       expect(formIdx).toBeGreaterThan(-1)
       const summaryInner = afterSummary.slice(0, formIdx)
-      expect(summaryInner).toContain('completed tasks')
+      expect(summaryInner).toContain('completed tasks in this note')
       expect(summaryInner).toContain('Pray for Jill')
       expect(summaryInner).toContain('<details class="summary-details summary-details-carry-over-plan" open>')
       expect(summaryInner).toContain('<details class="summary-details summary-details-completed-tasks">')
@@ -363,7 +409,7 @@ Mood: <mood>`
       expect(html).toContain('<details class="summary-details summary-details-carry-over-plan" open>')
       expect(html).toContain('<details class="summary-details summary-details-completed-wins">')
       expect(html).toContain('<details class="summary-details summary-details-completed-other">')
-      expect(html).toContain('1 other completed task')
+      expect(html).toContain('1 other completed task in this note')
       expect(html).not.toMatch(/\b2 completed tasks\b/)
       expect(html.indexOf('Planned win')).toBeLessThan(html.indexOf('other completed'))
       expect(html.indexOf('other completed')).toBeLessThan(html.indexOf('Plain task'))
@@ -533,6 +579,20 @@ Ship: <tasks>`,
       expect(initial.q_0).toBe('7:52')
     })
 
+    it('should convert numeric @sleep hours to duration when template expects <duration>', () => {
+      const config = { dailyReviewQuestions: 'Health: @sleep(<duration>)' }
+      const questions = parseQuestions(config.dailyReviewQuestions)
+      expect(buildInitialReviewAnswersByFieldName(questions, ['Health: @sleep(7)']).q_0).toBe('7:00')
+      expect(buildInitialReviewAnswersByFieldName(questions, ['Health: @sleep(7.5)']).q_0).toBe('7:30')
+    })
+
+    it('convertNumericHoursToDurationHHMM should map decimal hours to H:MM', () => {
+      expect(convertNumericHoursToDurationHHMM('7')).toBe('7:00')
+      expect(convertNumericHoursToDurationHHMM('7.5')).toBe('7:30')
+      expect(convertNumericHoursToDurationHHMM('1.25')).toBe('1:15')
+      expect(convertNumericHoursToDurationHHMM('bad')).toBe('')
+    })
+
     it('should extract token int answers even when template segment has extra prefix text', () => {
       const config = { dailyReviewQuestions: 'Health: @sleep(<duration>) @fruitveg(<int>)' }
       const questions = parseQuestions(config.dailyReviewQuestions)
@@ -677,6 +737,14 @@ Ship: <tasks>`,
       expect(out).toBe('@focus(1:30)\n')
     })
 
+    it('should output duration answers when user enters decimal hours', () => {
+      const raw = 'Health: @sleep(<duration>)'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: '7.5' })
+      expect(out).toBe('Health: @sleep(7:30)\n')
+    })
+
     it('should omit invalid duration answers', () => {
       const raw = '@focus(<duration>)'
       const parsedQuestions = parseQuestions(raw)
@@ -795,6 +863,39 @@ Ship: <tasks>`,
       expect(directives.length).toBe(1)
       expect(directives[0].lineKey).toBe('health:')
       expect(directives[0].tokensToClear).toEqual(['Did stretches'])
+    })
+
+    it('mergeTemplateAnswerLineIntoExistingLine should append new @token and preserve unrelated text', () => {
+      const parsed = parseQuestions('Health: @addme(<int>)')
+      const merged = mergeTemplateAnswerLineIntoExistingLine(
+        'Health: @existing(1234) with other text',
+        'Health: @addme(222)',
+        parsed,
+        'health:',
+      )
+      expect(merged).toBe('Health: @existing(1234) with other text @addme(222)')
+    })
+
+    it('mergeTemplateAnswerLineIntoExistingLine should replace @token when template reuses the same mention', () => {
+      const parsed = parseQuestions('Health: @existing(<int>) @addme(<int>)')
+      const merged = mergeTemplateAnswerLineIntoExistingLine(
+        'Health: @existing(1234) with other text',
+        'Health: @existing(999) @addme(222)',
+        parsed,
+        'health:',
+      )
+      expect(merged).toBe('Health: @existing(999) with other text @addme(222)')
+    })
+
+    it('mergeTemplateAnswerLineIntoExistingLine should replace only the template @token when answer omits other fields', () => {
+      const parsed = parseQuestions('Health: @existing(<int>) @addme(<int>)')
+      const merged = mergeTemplateAnswerLineIntoExistingLine(
+        'Health: @existing(1234) with other text',
+        'Health: @addme(222)',
+        parsed,
+        'health:',
+      )
+      expect(merged).toBe('Health: @existing(1234) with other text @addme(222)')
     })
   })
 
@@ -917,6 +1018,71 @@ Ship: <tasks>`,
       )
       expect(updates.length).toBe(1)
       expect(updates[0].content).toBe('Health: @sleep(6:30)')
+    })
+
+    it('should preserve unrelated @tokens and free text when upserting a partial template line', () => {
+      const raw = 'Health: @addme(<int>)'
+      const parsedQuestions = parseQuestions(raw)
+      const paragraphs = [
+        { type: 'title', content: 'Review', lineIndex: 2, headingLevel: 2 },
+        { type: 'text', content: 'Health: @existing(1234) with other text', lineIndex: 3 },
+        { type: 'title', content: 'Next Section', lineIndex: 5, headingLevel: 2 },
+      ]
+      const answerLines = ['Health: @addme(222)']
+      const { updates, appendLines } = partitionReviewAnswerLinesForMixedUpsert(
+        paragraphs,
+        'Review',
+        answerLines,
+        parsedQuestions,
+      )
+      expect(updates.length).toBe(1)
+      expect(updates[0].content).toBe('Health: @existing(1234) with other text @addme(222)')
+      expect(appendLines).toEqual([])
+    })
+
+    it('should overwrite an existing @token when the template uses the same mention', () => {
+      const raw = 'Health: @existing(<int>) @addme(<int>)'
+      const parsedQuestions = parseQuestions(raw)
+      const paragraphs = [
+        { type: 'title', content: 'Review', lineIndex: 2, headingLevel: 2 },
+        { type: 'text', content: 'Health: @existing(1234) with other text', lineIndex: 3 },
+        { type: 'title', content: 'Next Section', lineIndex: 5, headingLevel: 2 },
+      ]
+      const answerLines = ['Health: @existing(999) @addme(222)']
+      const { updates } = partitionReviewAnswerLinesForMixedUpsert(paragraphs, 'Review', answerLines, parsedQuestions)
+      expect(updates[0].content).toBe('Health: @existing(999) with other text @addme(222)')
+    })
+
+    it('should upsert numeric @sleep hours into duration format on save', () => {
+      const raw = 'Health: @sleep(<duration>)'
+      const parsedQuestions = parseQuestions(raw)
+      const paragraphs = [
+        { type: 'title', content: 'Review', lineIndex: 2, headingLevel: 2 },
+        { type: 'text', content: 'Health: @sleep(7.5) with other text', lineIndex: 3 },
+        { type: 'title', content: 'Next Section', lineIndex: 5, headingLevel: 2 },
+      ]
+      const answerLines = ['Health: @sleep(7:30)']
+      const { updates } = partitionReviewAnswerLinesForMixedUpsert(paragraphs, 'Review', answerLines, parsedQuestions)
+      expect(updates[0].content).toBe('Health: @sleep(7:30) with other text')
+    })
+  })
+
+  describe('closePeriodicReviewWindow', () => {
+    it('should close an htmlWindow whose customId contains period-review', () => {
+      const close = jest.fn()
+      const htmlWindowsWas = global.NotePlan?.htmlWindows
+      const editorsWas = global.NotePlan?.editors
+      global.NotePlan = { htmlWindows: [{ customId: 'jgclark.PeriodicReviews.period-review', close }], editors: [] }
+      closePeriodicReviewWindow()
+      expect(close).toHaveBeenCalledTimes(1)
+      global.NotePlan = { htmlWindows: htmlWindowsWas ?? [], editors: editorsWas ?? [] }
+    })
+
+    it('should close an editor window whose customId contains period-review when no htmlWindow matches', () => {
+      const close = jest.fn()
+      global.NotePlan = { htmlWindows: [], editors: [{ customId: 'jgclark.PeriodicReviews.period-review-split', close }] }
+      closePeriodicReviewWindow()
+      expect(close).toHaveBeenCalledTimes(1)
     })
   })
 

@@ -1,7 +1,15 @@
 # What's changed in  Periodic Reviews Plugin?
-_Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.DailyJournal/)._
+_Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.PeriodicReviews/)._
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
+
+## [2.0.0.b16] - 2026-09-01
+- Fix: **Daily Review** and **Weekly Review** (and other period commands) again keep the editor on the open calendar note of the same kind instead of jumping to the current period. Teamspace calendar filenames are now recognised, and the plugin falls back to `Editor` when `Editor.note` is unset. Split-view: when a sidebar click moves focus to a non-calendar pane, open editors are scanned for a matching calendar note instead of opening today's note in the wrong split (via shared `getOpenEditorNote()` in `@helpers/NPEditor.js`).
+- Fix: mixed-line review upsert now preserves existing @mentions, hashtags, and free text not in the template, appending new template tokens instead of replacing the whole line. Template tokens already on the line are updated in place.
+- Fix: review window now closes reliably after Save (including main-window and split-view modes). Close runs before opening the next period note for planning tasks, with fallback matching for the review window customId.
+- Dev: `OPEN_NEXT_PERIOD_NOTE_AFTER_PLANNING` toggle (currently `false`) controls whether planning-task write opens the next calendar note in the editor when it is not already loaded.
+- Fix: `<duration>` pre-fill and write-back now accept legacy numeric hour values in `@token(...)` (e.g. `@sleep(7)` → `@sleep(7:00)`, `@sleep(7.5)` → `@sleep(7:30)`).
+- Re-order settings under new section headings. Update README.
 
 ## [2.0.0.b15] - 2026-08-11
 - fix: template lines like `Programming: @prog(<number>) <string>` now pre-fill and write back free-text when the note only has the string portion (e.g. `Programming: Things I've already noted.`). Blank earlier @token fields no longer drop the line label from the output.

@@ -44,6 +44,66 @@ export function getReviewQuestionTypeTagRegExp(): RegExp {
 }
 
 const RE_DURATION_HHMM = /^(\d{1,2}):([0-5]\d)$/
+const RE_NUMERIC_HOURS = /^(\d+(?:\.\d+)?)$/
+
+/**
+ * Convert decimal hours (e.g. 7, 7.5) to [H]H:MM for duration fields.
+ * @tests in jest file
+ * @param {string} numericHours
+ * @returns {string} empty when invalid
+ */
+export function convertNumericHoursToDurationHHMM(numericHours: string): string {
+  const trimmed = String(numericHours ?? '').trim()
+  if (!RE_NUMERIC_HOURS.test(trimmed)) {
+    return ''
+  }
+  const n = Number(trimmed)
+  if (!Number.isFinite(n) || n < 0) {
+    return ''
+  }
+  let hours = Math.floor(n)
+  let minutes = Math.round((n - hours) * 60)
+  if (minutes >= 60) {
+    hours += Math.floor(minutes / 60)
+    minutes = minutes % 60
+  }
+  return `${hours}:${String(minutes).padStart(2, '0')}`
+}
+
+/**
+ * Parse a duration value from note line text for one question (HH:MM or decimal hours in parens).
+ * @param {string} line
+ * @param {string} token
+ * @param {string} prefix
+ * @param {string} suffix
+ * @returns {string}
+ */
+function extractDurationAnswerFromLine(line: string, token: string, prefix: string, suffix: string): string {
+  if (token && token.startsWith('@')) {
+    const tokenDurationRE = new RegExp(`${escapeRegExp(token)}\\s*\\(\\s*(\\d{1,2}:[0-5]\\d)\\s*\\)`, 'i')
+    const tokenDurationMatch = line.match(tokenDurationRE)
+    if (tokenDurationMatch?.[1] != null) {
+      return tokenDurationMatch[1]
+    }
+    const tokenNumericDurationRE = new RegExp(`${escapeRegExp(token)}\\s*\\(\\s*(\\d+(?:\\.\\d+)?)\\s*\\)`, 'i')
+    const tokenNumericMatch = line.match(tokenNumericDurationRE)
+    if (tokenNumericMatch?.[1] != null) {
+      return convertNumericHoursToDurationHHMM(tokenNumericMatch[1])
+    }
+    return ''
+  }
+  const hhmmRE = new RegExp(`${escapeRegExp(prefix)}(\\d{1,2}:[0-5]\\d)${escapeRegExp(suffix)}`)
+  const hhmmMatch = line.match(hhmmRE)
+  if (hhmmMatch?.[1] != null) {
+    return hhmmMatch[1]
+  }
+  const numericRE = new RegExp(`${escapeRegExp(prefix)}(\\d+(?:\\.\\d+)?)${escapeRegExp(suffix)}`)
+  const numericMatch = line.match(numericRE)
+  if (numericMatch?.[1] != null) {
+    return convertNumericHoursToDurationHHMM(numericMatch[1])
+  }
+  return ''
+}
 
 /**
  * Parse question lines to extract questions and their types.
@@ -342,6 +402,116 @@ export function getTemplateLineUpsertKeyFromOutputLine(outputLine: string, parse
 }
 
 /**
+ * Merge a newly rendered template answer line into existing note line content.
+ * Preserves tokens and free text not covered by the template; updates or appends template @/# tokens.
+ * When the template reuses a token already on the line, that token's value is replaced in place.
+ * @tests in jest file
+ * @param {string} existingLine
+ * @param {string} answerLine newly rendered output for this template line
+ * @param {Array<ParsedQuestionType>} parsedQuestions
+ * @param {string} lineMatchKey normalized template-line key (e.g. "health:")
+ * @returns {string}
+ */
+export function mergeTemplateAnswerLineIntoExistingLine(
+  existingLine: string,
+  answerLine: string,
+  parsedQuestions: Array<ParsedQuestionType>,
+  lineMatchKey: string,
+): string {
+  const keyNorm = normalizeStringMatchKey(lineMatchKey)
+  const lineIndexes = Array.from(new Set(parsedQuestions.map((pq) => pq.lineIndex)))
+  const lineIndex = lineIndexes.find((idx) => normalizeStringMatchKey(getTemplateLineUpsertKey(parsedQuestions, idx)) === keyNorm)
+  const lineQuestions = lineIndex != null ? parsedQuestions.filter((pq) => pq.lineIndex === lineIndex) : []
+  let result = String(existingLine ?? '').trim()
+  const answer = String(answerLine ?? '').trim()
+  if (result === '' || lineQuestions.length === 0) {
+    return answer
+  }
+
+  for (const pq of lineQuestions) {
+    const t = String(pq.type).toLowerCase()
+    if (t === 'subheading' || t === 'h2' || t === 'h3') {
+      continue
+    }
+    const token = String(pq.question ?? '').trim()
+
+    if (t === 'boolean') {
+      if (token === '') {
+        continue
+      }
+      const tokenPresentRE = new RegExp(`(?:^|\\s)${escapeRegExp(token)}(?=\\s|$)`, 'i')
+      const inAnswer = tokenPresentRE.test(answer)
+      if (inAnswer && !tokenPresentRE.test(result)) {
+        result = `${result} ${token}`.replace(/\s+/g, ' ')
+      }
+      continue
+    }
+
+    if (t === 'string') {
+      const newStringVal = extractExistingAnswerOnLine(pq, answer, lineQuestions)
+      if (newStringVal === '') {
+        continue
+      }
+      if (lineQuestions.length === 1) {
+        result = answerFromReviewWindowPayload(pq, newStringVal)
+        continue
+      }
+      const oldResidual = extractResidualStringOnMixedLine(result, pq, lineQuestions)
+      if (oldResidual !== '') {
+        const idx = result.lastIndexOf(oldResidual)
+        if (idx >= 0) {
+          result = `${result.slice(0, idx)}${newStringVal}${result.slice(idx + oldResidual.length)}`.replace(/\s+/g, ' ').trim()
+        }
+      } else {
+        result = `${result} ${newStringVal}`.replace(/\s+/g, ' ')
+      }
+      continue
+    }
+
+    if (token.startsWith('@')) {
+      const tokenParenRE = new RegExp(`${escapeRegExp(token)}\\s*\\([^)]*\\)`, 'i')
+      const newMatch = answer.match(tokenParenRE)
+      if (newMatch == null) {
+        continue
+      }
+      const newSegment = newMatch[0]
+      if (tokenParenRE.test(result)) {
+        result = result.replace(tokenParenRE, newSegment)
+      } else {
+        result = `${result} ${newSegment}`.replace(/\s+/g, ' ')
+      }
+      continue
+    }
+
+    const val = extractExistingAnswerOnLine(pq, answer, lineQuestions)
+    if (val === '') {
+      continue
+    }
+    const replacement = answerFromReviewWindowPayload(pq, val)
+    if (replacement === '') {
+      continue
+    }
+    const { prefix, suffix } = splitParsedSegmentAtTypeMarker(String(pq.originalLine ?? ''), pq.type)
+    const prefixEsc = escapeRegExp(prefix)
+    const suffixEsc = escapeRegExp(suffix)
+    let fieldRE: RegExp
+    if (t === 'duration') {
+      fieldRE = new RegExp(`${prefixEsc}\\d{1,2}:\\d{2}${suffixEsc}`)
+    } else if (t === 'number') {
+      fieldRE = new RegExp(`${prefixEsc}[-+]?\\d*\\.?\\d+(?:[eE][-+]?\\d+)?${suffixEsc}`)
+    } else {
+      fieldRE = new RegExp(`${prefixEsc}\\d+${suffixEsc}`)
+    }
+    if (fieldRE.test(result)) {
+      result = result.replace(fieldRE, replacement)
+    } else {
+      result = `${result} ${replacement}`.replace(/\s+/g, ' ')
+    }
+  }
+  return result.replace(/\s+/g, ' ').trim()
+}
+
+/**
  * For unchecked boolean answers present in payload, return question-text tokens to clear from existing upsert target lines.
  * @tests in jest file
  * @param {Array<ParsedQuestionType>} parsedQuestions
@@ -443,16 +613,7 @@ function extractExistingAnswerOnLine(
     return m?.[1] != null ? m[1] : ''
   }
   if (t === 'duration') {
-    if (token && token.startsWith('@')) {
-      const tokenDurationRE = new RegExp(`${escapeRegExp(token)}\\s*\\(\\s*(\\d{1,2}:[0-5]\\d)\\s*\\)`, 'i')
-      const tokenDurationMatch = line.match(tokenDurationRE)
-      if (tokenDurationMatch?.[1] != null) {
-        return tokenDurationMatch[1]
-      }
-    }
-    const re = new RegExp(`${escapeRegExp(prefix)}(\\d{1,2}:[0-5]\\d)${escapeRegExp(suffix)}`)
-    const m = line.match(re)
-    return m?.[1] != null ? m[1] : ''
+    return extractDurationAnswerFromLine(line, token, prefix, suffix)
   }
   if (t === 'bullets' || t === 'checklists' || t === 'tasks') {
     const marker = linePrefixForMultilineAnswerType(t)
@@ -609,8 +770,9 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
       return ''
     }
     case 'duration': {
-      if (RE_DURATION_HHMM.test(answer)) {
-        return parsedQuestion.originalLine.startsWith('-') ? `- ${answer}` : parsedQuestion.originalLine.replace(/<duration>/, answer)
+      const durationValue = RE_DURATION_HHMM.test(answer) ? answer : convertNumericHoursToDurationHHMM(answer)
+      if (durationValue !== '') {
+        return parsedQuestion.originalLine.startsWith('-') ? `- ${durationValue}` : parsedQuestion.originalLine.replace(/<duration>/, durationValue)
       }
       return ''
     }

@@ -32,7 +32,7 @@ Wins: <bullets>
 Challenges: <string>
 ```
 
-- "Daily Review/Journal Questions": `Wins`
+- "Daily Planned items heading": `Wins`
 
 Submitting the form will insert something like this into **today**'s note:
 
@@ -48,7 +48,7 @@ Wins:
 - First win...
 - Another one
 ```
-And if  you enter items in the 'Planning' section, then it will prefix something like this into **tomorrow**'s note:
+And if you enter items in the 'Planning' section, then it will prefix something like this into **tomorrow**'s note:
 ```markdown
 ## Wins for 2026-04-10
 * >> First win
@@ -56,16 +56,17 @@ And if  you enter items in the 'Planning' section, then it will prefix something
 ```
 
 ### Which period is reviewed?
-If a daily note is currently open when **/Daily Review** is called, then that day is reviewed, otherwise today's note is used. The same goes for the other calendar periods.
+If a calendar note of the matching kind is open when you run a review command (for example yesterday's daily note when running **/Daily Review**), that note is reviewed and the editor stays on it instead of jumping to the current period. Teamspace calendar notes are supported. If no matching calendar note is open, the plugin uses the current period (today, this week, and so on).
 
-The window first shows a Summary section, that starts with a reminder of the main few tasks/aims/goals you set for that period, and whether they were completed or not. For Daily notes only, it includes alist of tasks completed that day, plus a list of calendar events.
+The window first shows a **Summary** section. It starts with a reminder of the main few tasks/aims/goals you set for that period (your carry-over plan items), and whether they were completed or not. **Daily** and **Weekly** reviews also list completed tasks for the period. **Daily** reviews also include a list of calendar events. Summary subsections are collapsible (carry-over plan items are expanded by default; completed tasks and events start collapsed).
 
-### Basic Configuration
-To use weekly, monthly, quarterly, or yearly notes, turn them on in **NotePlan Settings** → Calendar:
+## Configuration
+To use weekly, monthly, quarterly, or yearly notes, turn them on in NotePlan Settings → Calendar:
+<img src="calendar-settings@2x.png" width="600px" />
 
-<img src="calendar-settings@2x.png" width="600px"/>
+<img src="settings-button@2x.png" align="right" width="100px" />
 
-<img src="settings-button@2x.png" align="right" width="100px"/> Open the **💭 Journalling & Reviews** card in Plugin Preferences, then use the gear button to edit settings. 
+Open the **Periodic Reviews** card in Plugin Preferences, then use the gear button to edit settings. 
 
 ### Setting the Review Questions
 The terms in angle brackets define both the input controls and how lines are written to the note. The available input controls are:
@@ -74,7 +75,7 @@ The terms in angle brackets define both the input controls and how lines are wri
 - `<done>` — the same as `<boolean>` above
 - `<int>` or `<integer>` — whole number (integer)
 - `<number>` — number, which may include a decimal part
-- `<duration>` — `[H]H:MM` (e.g. `1:05`, `12:30`)
+- `<duration>` — `[H]H:MM` (e.g. `1:05`, `12:30`). (To be helpful, it will also successfully parse durations given as decimal hours (e.g. `@sleep(7)` pre-fills as `7:00`, `@sleep(7.5)` as `7:30`).
 - `<string>` — single-line text
 - `<bullets>` — multi-line; each non-empty line is prefixed with a markdown bullet (`- `)
 - `<checklists>` — same, with checklist markers (`+ `)
@@ -89,31 +90,30 @@ You can include headings and placeholders:
 - line breaks or `\n`. 
 
 Notes:
-- Multiple `<boolean>`, `<int>`, or `<number>` items on one line are supported
-- If matching answers already exist in the note, they will appear **pre-filled**  in the form. The latest matching block wins.
+- Multiple `<boolean>`, `<int>`, `<number>`, or `<duration>` items on one line are supported (for example `Health: @steps(<int>) @distance(<number>) @sleep(<duration>) <string>`).
+- If matching answers already exist in the note, they will appear **pre-filled** in the form. The latest matching block wins.
+- When you save, existing lines are updated in place rather than duplicated. Mixed lines keep any extra `@mentions`, `#hashtags`, or free text that are not part of the template, updating only the template tokens on that line.
 
 ### Other Settings
 
-- **Window placement:** **Review Window type** — 'New Window' (the default), 'Main Window', or a 'Split View' within the main window.
-- **Open the calendar note when reviewing it?** (default: on). 
-- **Calendars to include in review summaries:** optional filter list; leave empty to include all calendars.
-- **Big task marker style:** choose whether major tasks/goals are indicated by `>>` (priority 4, the default), `!!!` (priority 3), or `!!` (priority 2). This is used when scanning summary/carry-over "big task" lines.
-- **Planning vs reviewing:** For each period you can set a **planned items** name (defaults such as *Big Wins*, *Big Rocks*, *Key Outcomes*, *Goals*, *Theme*). After the main form, a **planning** area can write an **H2** and big-task lines (for example `>> …` or `!!! …`) at the **start** of the **next** period’s calendar note, replacing any existing section with that title. Empty planning clears that section on the next note. The heading uses `{planName} for {next period title}` (e.g. `Big Rocks for 2026-W15`), separate from the on-screen “Planned:” / “Planning: …” labels. The priority marker is always taken from **Big task marker style**.
+- **Review Window type**: 'New Window' (the default), 'Main Window', or a 'Split View' within the main window.
+- **Open the calendar note when reviewing it?** (default: true).
+- **Calendars to include in review summaries**: optional filter list; leave empty to include all calendars.
+- **Big task marker style:** choose whether major tasks/goals are indicated by `>>` (priority 4, the default), `!!!` (priority 3), or `!!` (priority 2). This is used when scanning summary/carry-over "big task" lines and when writing planning tasks to the next period.
+- **Planned items suffix (for next period note):** optional text appended to each planned item written to the next period’s note (default: `#win`).
+- **Review Section Heading**: The name of a section heading after which weekly/monthly/quarterly/yearly Review answers are added. If it doesn't exist, it is added at the end of the note (default: `Review`).
+- **List of moods**: optional comma-separated list of possible <mood>s to select from. Can include emojis, as the default shows.
 
-### Section headings
+Then for the **day period**, there are 3 settings:
+- **Daily Journal Section Heading**: The name of a section heading after which Daily Review/Journal answers are added. If it doesn't exist, it is added at the end of the note (default: `Journal`).
+- **Daily Planned Items Heading**: Used in the review window and as the H2 title prefix for planned tasks written to the next day's note (e.g. 'Big Wins' becomes 'Big Wins for YYYY-MM-DD'). Leave blank to write planned items only, with no heading.
+- **Daily Review/Journal Questions**: Multi-line string that includes both the Journal/Review questions and how to lay out the answers in the daily note (details above).
 
-- **Daily Journal Section Heading** — where **daily** review/journal answers are appended (default: `Journal`).
-- **Review Section Heading** — where **weekly / monthly / quarterly / yearly** answers go (default: `Review`).
-
-If the heading does not already exist in a note, the content is added at the end of the note.
-
+Then for each **other time period**, there are 2 settings:
+- **Name for [period] Planned items**: Used in the review window and as the H2 title prefix for planned items written to the next [period]'s note (e.g. 'Theme' becomes 'Theme for 2027'). Leave blank to write planned items only, with no heading.
+- **[period] Review/Journal Questions**: String that includes both the Journal/Review questions and how to lay out the answers in the [period] note (details above).
 
 If a question is left empty, that line is omitted from the output. If a line in the note already starts with the same question text, it is treated as an existing answer, and prefilled.
-
-
-### Moods
-
-Comma-separated list of labels (emoji optional).
 
 ---
 
@@ -126,30 +126,6 @@ A: This plugin replaces that older plugin for the review questions functionality
 
 Q: How is this different from your **Projects & Reviews** plugin?  
 A: That plugin is designed to be used for assisting track and review Projects or project-like activities. It works on regular notes, and helps you review work on many projects, and review each at its suitable review interval. This plugin is designed to help you intentionally focus on whatever are the most important projects/goals/behaviours across all of your different endeavours in life.
-
-<!-- TODO: needs to be removed ...
-## Quickly applying templates at the start or end of a period
-
-The NotePlan site has good [articles on Templates](https://help.noteplan.co/article/136-templates) and a [Template Gallery](https://noteplan.co/templates).
-
-For template tag commands (events, quote-of-the-day, weather, etc.), see the [Templating documentation](https://noteplan.co/templates/docs).
-
-### `/dayStart` and `/todayStart`
-
-These apply your configured start-of-day template from the `Templates` folder. (Since about NotePlan 3.17, [auto-insert templates](https://help.noteplan.co/article/229-auto-insert-templates) into new calendar notes reduce the need for manual runs.)
-
-- **`/todayStart`**: applies your **Start-of-Day** template only to **today's** calendar note, regardless of which note is open.
-- **`/dayStart`**: appends that template to the **currently open daily note** (or today’s note if you are not in a daily note). Be careful on **other** dates: tags like `<%- date… %>` or `<%- weather() %>` still resolve to **today**.
-
-### `/weekStart`, `/monthStart`, and end-of-period commands
-
-**`/weekStart`** and **`/monthStart`** behave like **`/dayStart`** for weekly and monthly notes.
-
-**`/dayEnd`**, **`/todayEnd`**, **`/weekEnd`**, **`/monthEnd`** mirror the “start” commands but use your **end-of-period** templates—useful for habit or stats summaries from [**Habits & Summaries**](https://noteplan.co/plugins/jgclark.Summaries) or cleanup via [**Tidy Up**](https://noteplan.co/plugins/np.Tidy).
-
--->
-
----
 
 ## Support
 

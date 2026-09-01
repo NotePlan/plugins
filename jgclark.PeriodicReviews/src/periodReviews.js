@@ -16,6 +16,7 @@ import {
   getJournalSettings,
   getPeriodAdjectiveFromType,
   getPlanItemsNameForPeriodType,
+  getOpenEditorNoteForReview,
   getQuestionsForPeriod,
   getReviewPeriodTitleStringFromCalendarNote,
   getSectionHeadingForPeriod,
@@ -31,6 +32,7 @@ import {
   buildOutputFromReviewWindowAnswers,
   getBooleanClearDirectivesFromAnswers,
   getTemplateLineUpsertKeyFromOutputLine,
+  mergeTemplateAnswerLineIntoExistingLine,
   parseQuestions,
 } from './reviewQuestions'
 import { stylesheetinksInHeader, faLinksInHeader, buildReviewHTML } from './reviewHTMLViewGenerator'
@@ -51,7 +53,7 @@ import { getEventsForDay } from '@helpers/NPCalendar'
 import { getFirstDateInPeriod, getLastDateInPeriod } from '@helpers/NPdateTime'
 import { getNotesChangedInInterval } from '@helpers/NPnote'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { closeWindowFromCustomId } from '@helpers/NPWindows'
+import { getWindowFromCustomId } from '@helpers/NPWindows'
 import { isParaAMatchForHeading } from '@helpers/headings'
 import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { escapeRegExp } from '@helpers/regex'
@@ -63,6 +65,43 @@ import { getInput, showMessage } from '@helpers/userInput'
 
 const REVIEW_WINDOW_CUSTOM_ID = 'jgclark.PeriodicReviews.period-review'
 const REVIEW_WINDOW_CALLBACK_COMMAND = 'onReviewWindowAction'
+const REVIEW_WINDOW_CUSTOM_ID_FRAGMENT = 'period-review'
+
+/** When true, open the next period calendar note in the editor while writing planning tasks (if it is not already loaded). */
+const OPEN_NEXT_PERIOD_NOTE_AFTER_PLANNING = false
+
+/**
+ * Close the periodic review HTML window (floating, main-window, or split view).
+ * @tests in jest file
+ * @returns {void}
+ */
+export function closePeriodicReviewWindow(): void {
+  let windowToClose: TEditor | HTMLView | false = getWindowFromCustomId(REVIEW_WINDOW_CUSTOM_ID)
+  if (!windowToClose) {
+    for (const htmlWindow of NotePlan.htmlWindows ?? []) {
+      const customId = String(htmlWindow.customId ?? '').toLowerCase()
+      if (customId.includes(REVIEW_WINDOW_CUSTOM_ID_FRAGMENT)) {
+        windowToClose = htmlWindow
+        break
+      }
+    }
+  }
+  if (!windowToClose) {
+    for (const editorWindow of NotePlan.editors ?? []) {
+      const customId = String(editorWindow.customId ?? '').toLowerCase()
+      if (customId.includes(REVIEW_WINDOW_CUSTOM_ID_FRAGMENT)) {
+        windowToClose = editorWindow
+        break
+      }
+    }
+  }
+  if (windowToClose) {
+    windowToClose.close()
+    logDebug(pluginJson, `closePeriodicReviewWindow: closed window customId='${String(windowToClose.customId ?? REVIEW_WINDOW_CUSTOM_ID)}'`)
+    return
+  }
+  logWarn(pluginJson, `closePeriodicReviewWindow: no review window found to close (customId '${REVIEW_WINDOW_CUSTOM_ID}')`)
+}
 
 /** Paragraph types treated as tasks under a plan H2 (carry-over + rewrite). Includes cancelled so big-task plan lines stay in the summary as not done. */
 const PLAN_SECTION_PARA_TYPES: Set<string> = new Set([
@@ -266,20 +305,27 @@ export async function writePlanningTasksToNextPeriodNote(
     const headingTitle = buildNextPeriodNotePlanSectionHeadingTitle(planName, nextTitle)
     logDebug('writePlanningTasksToNextPeriodNote', `planName='${planName}' headingTitle='${headingTitle}' / nextTitle='${nextTitle}'`)
     let nextNote: ?TNote = getCalendarNoteByTitle(nextTitle)
-    if (!nextNote) {
+    if (!nextNote && OPEN_NEXT_PERIOD_NOTE_AFTER_PLANNING) {
       logDebug('writePlanningTasksToNextPeriodNote', `Note '${nextTitle}' not found, so opening it`)
       await Editor.openNoteByTitle(nextTitle)
       nextNote = getCalendarNoteByTitle(nextTitle) ?? Editor.note
     }
     if (!nextNote) {
-      logError(pluginJson, `writePlanningTasksToNextPeriodNote: could not open calendar note '${nextTitle}'`)
+      if (OPEN_NEXT_PERIOD_NOTE_AFTER_PLANNING) {
+        logError(pluginJson, `writePlanningTasksToNextPeriodNote: could not open calendar note '${nextTitle}'`)
+      } else {
+        logDebug(
+          'writePlanningTasksToNextPeriodNote',
+          `Note '${nextTitle}' not loaded and OPEN_NEXT_PERIOD_NOTE_AFTER_PLANNING is false, so skipping planning write`,
+        )
+      }
       return
     }
 
     const hasHeading = headingTitle !== ''
     logDebug(
       'writePlanningTasksToNextPeriodNote',
-      `Note '${nextTitle}' opened; will now write (or replace) plan section${hasHeading ? ` heading '${headingTitle}'` : ' (no heading)'}`,
+      `Using note '${nextTitle}'${OPEN_NEXT_PERIOD_NOTE_AFTER_PLANNING ? ' (opened in editor)' : ''}; will now write (or replace) plan section${hasHeading ? ` heading '${headingTitle}'` : ' (no heading)'}`,
     )
     const plannedPrefix = getBigTaskMarkerFromConfig(config)
     const normalizedLines = normalizePlanningTaskLinesFromForm(planningFormText, plannedPrefix)
@@ -380,9 +426,8 @@ async function processReviewQuestions(
 
     // Reuse the editor note when it is a calendar note of the requested period *kind* (day/week/…).
     // For refresh / navigatePeriod we require an exact title match so we actually move to the requested period.
-    const openEditorNote = Editor.note
+    const openEditorNote = getOpenEditorNoteForReview(periodType)
     const useOpenNote = shouldUseOpenEditorCalendarNote(openEditorNote, periodType, periodStringIn, preferOpenSameKind)
-    // TODO: Check for Teamspace stuff here
     if (useOpenNote && openEditorNote != null) {
       reviewNote = openEditorNote
       const openPeriodTitle = getReviewPeriodTitleStringFromCalendarNote(openEditorNote, periodType)
@@ -645,7 +690,13 @@ export function partitionReviewAnswerLinesForMixedUpsert(
     })
     if (paraToUpdate) {
       usedLineIndexes.add(paraToUpdate.lineIndex ?? -1)
-      updates.push({ para: paraToUpdate, content: answerLine })
+      const mergedContent = mergeTemplateAnswerLineIntoExistingLine(
+        String(paraToUpdate.content ?? ''),
+        trimmedLine,
+        parsedQuestions,
+        lineMatchKey,
+      )
+      updates.push({ para: paraToUpdate, content: mergedContent })
     } else {
       appendLines.push(answerLine)
     }
@@ -818,7 +869,7 @@ export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed =
   // logDebug(pluginJson, `onReviewWindowAction payloadLength=${String(payload?.length ?? 0)} payloadPreview="${String(payload ?? '').slice(0, 100)}"`)
   if (actionName === 'cancel') {
     logDebug('Journalling/onReviewWindowAction', `Cancelled by user.`)
-    closeWindowFromCustomId(REVIEW_WINDOW_CUSTOM_ID)
+    closePeriodicReviewWindow()
     return {}
   }
 
@@ -873,6 +924,7 @@ export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed =
     return {}
   }
   const config: PeriodicReviewConfigType = configMaybe
+  const isSubmit = actionName === 'submit'
   let safePayload: any = {}
   try {
     // Allow callback payloads as JSON string (x-callback / jsBridge) or as an object (native bridge).
@@ -910,12 +962,17 @@ export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed =
     } else if (!hasPlanningContent) {
       logWarn(pluginJson, 'No template question answers were collected from the review window')
     }
+    if (isSubmit) {
+      closePeriodicReviewWindow()
+    }
     await writePlanningTasksToNextPeriodNote(config, periodString, periodType, planningText)
     logDebug('Journalling/onReviewWindowAction', `Finished.`)
-    closeWindowFromCustomId(REVIEW_WINDOW_CUSTOM_ID)
     return {}
   } catch (err) {
     logError(pluginJson, `onReviewWindowAction: ${err.message}`)
+    if (isSubmit) {
+      closePeriodicReviewWindow()
+    }
     return {}
   }
 }

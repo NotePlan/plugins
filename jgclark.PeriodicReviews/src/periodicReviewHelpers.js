@@ -5,7 +5,6 @@
 // last update 2026-08-11 for v2.0.0.b15 by @jgclark / @CursorAI
 //---------------------------------------------------------------
 
-import pluginJson from '../plugin.json'
 import {
   getCalendarNoteTimeframe,
   getDateStringFromCalendarFilename,
@@ -14,7 +13,10 @@ import {
   RE_DONE_DATE_OPT_TIME,
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { getOpenEditorNote } from '@helpers/NPEditor'
+import { getFilenameWithoutTeamspaceID } from '@helpers/teamspace'
 import { showMessage } from '@helpers/userInput'
+import pluginJson from '../plugin.json'
 
 //---------------------------------------------------------------
 // Constants & Types
@@ -288,6 +290,46 @@ export function getReviewPeriodTitleStringFromCalendarNote(note: TNote, periodTy
 }
 
 /**
+ * Return Calendar note timeframe (or false). Supports Teamspace calendar filenames.
+ * @tests in jest file
+ * @param {CoreNoteFields} note
+ * @returns {false | 'day' | 'week' | 'month' | 'quarter' | 'year'}
+ */
+export function getCalendarNoteTimeframeForReview(note: CoreNoteFields): false | 'day' | 'week' | 'month' | 'quarter' | 'year' {
+  if (note.type !== 'Calendar') {
+    return false
+  }
+  let filename = getFilenameWithoutTeamspaceID(note.filename ?? '')
+  if (filename.startsWith('/')) {
+    filename = filename.slice(1)
+  }
+  const basename = filename.includes('/') ? filename.slice(filename.lastIndexOf('/') + 1) : filename
+  if (basename === '') {
+    return false
+  }
+  return getCalendarNoteTimeframe(({ type: 'Calendar', filename: basename }: any))
+}
+
+/**
+ * Note currently shown in the editor for review commands.
+ * Delegates to `getOpenEditorNote`, filtering by calendar period kind when requested.
+ * @tests in jest file
+ * @param {string} periodType optional review period kind ('day', 'week', ...)
+ * @returns {?TNote}
+ */
+export function getOpenEditorNoteForReview(periodType?: string): ?TNote {
+  if (periodType == null) {
+    return getOpenEditorNote()
+  }
+  return getOpenEditorNote({
+    matchNote: (note) => {
+      const kind = getCalendarNoteTimeframeForReview(note)
+      return kind !== false && kind === periodType
+    },
+  })
+}
+
+/**
  * Whether the note open in the editor should be used for a review command.
  * @tests in jest file
  * @param {?TNote} openNote
@@ -305,7 +347,7 @@ export function shouldUseOpenEditorCalendarNote(
   if (openNote == null) {
     return false
   }
-  const openPeriodKind = getCalendarNoteTimeframe(openNote)
+  const openPeriodKind = getCalendarNoteTimeframeForReview(openNote)
   if (openPeriodKind === false || openPeriodKind !== periodType) {
     return false
   }
