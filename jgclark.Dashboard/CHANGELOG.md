@@ -6,6 +6,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Fix: WebView week lookups keep Calendar.weekNumber when startOfWeek/endOfWeek return empty objects (HTML bridge Date serialization), reconstruct week boundaries from firstDayOfWeek, and no longer warn on every relative-week offset.
 - Fix: Space and Note pickers in Add a new task no longer flash open then closed when you click blank dialog area above the fields, and no longer reopen when dismissing the list.
 - Change: SearchableChooser dropdown max height is 220px (`CHOOSER_DROPDOWN_HEIGHT`).
+- Fix: Note chooser calendar popup stays on-screen (auto-aligns to the left of the button when it would clip the right edge).
+- Change: Note chooser calendar date cells use the same rounded-square day style and spacing as the task-edit calendar picker.
 
 ## [2.5.0.b2] 2026-08-28
 - New: Priority note-index cache so the Priority section can avoid a full scan on warm refreshes. On by default (`FFlag_UsePriorityCache`); falls back to full scan and schedules a background rebuild when the cache is missing. Commands: `generatePriorityNoteIndexCache` / `updatePriorityNoteIndexCache`.

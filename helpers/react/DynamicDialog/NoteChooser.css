@@ -1,3 +1,37 @@
 /* NoteChooser Component Styles */
-/* All base styles are now in SearchableChooser.css and apply automatically */
-/* This file is kept for any NoteChooser-specific overrides if needed in the future */
+/* SearchableChooser.css covers the note list. */
+/* Date cells: rounded squares like the task-edit picker, with a full 1px border (WKWebView native buttons only draw bottom/right). */
+
+.note-chooser-calendar-picker {
+  padding: 0.25rem 0.3rem 0.35rem;
+}
+
+.note-chooser-calendar-picker .calendarPickerCustom {
+  --rdp-cell-size: 1.6rem;
+  margin: 0.35rem 0.5rem 0.5rem;
+}
+
+.note-chooser-calendar-picker .rdp-button,
+.note-chooser-calendar-picker .rdp-day {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  box-shadow: none;
+  background-clip: padding-box;
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.4) !important;
+  border-radius: 4px !important;
+  font-size: 0.85rem;
+  font-weight: 400;
+  padding: 0;
+  margin: 2px;
+}
+
+.note-chooser-calendar-picker .rdp-day_today {
+  background-color: rgb(from var(--tint-color) r g b / 0.5);
+  color: var(--fg-main-color);
+}
+
+.note-chooser-calendar-picker .rdp-button:hover:not([disabled]):not(.rdp-day_today) {
+  background-color: rgb(from var(--attag-color) r g b / 0.5);
+  font-weight: 700;
+}

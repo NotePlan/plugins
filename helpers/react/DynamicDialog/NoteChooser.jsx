@@ -37,6 +37,39 @@ export type NoteOption = {
   changedDate?: ?number,
 }
 
+/** How the calendar popup aligns to the calendar button. 'auto' uses start, or end if it would overflow the right edge. */
+export type CalendarPickerAlignment = 'start' | 'center' | 'end' | 'auto'
+
+const CALENDAR_PICKER_FALLBACK_WIDTH = 320
+const CALENDAR_PICKER_FALLBACK_HEIGHT = 340
+
+/**
+ * Position the note-chooser calendar popup relative to its button.
+ * @param {HTMLElement} buttonEl
+ * @param {number} elementWidth
+ * @param {number} elementHeight
+ * @param {CalendarPickerAlignment} alignment
+ * @returns {?{ top: number, left: number }}
+ */
+function positionCalendarPicker(
+  buttonEl: HTMLElement,
+  elementWidth: number,
+  elementHeight: number,
+  alignment: CalendarPickerAlignment,
+): ?{ top: number, left: number } {
+  const position = calculatePortalPosition({
+    referenceElement: buttonEl,
+    elementWidth,
+    elementHeight,
+    preferredPlacement: 'below',
+    preferredAlignment: alignment,
+    offset: 5,
+    viewportPadding: 10,
+  })
+  if (!position) return null
+  return { top: position.top, left: position.left }
+}
+
 export type NoteChooserProps = {
   label?: string,
   value?: string, // The note title or filename
@@ -67,6 +100,7 @@ export type NoteChooserProps = {
   shortDescriptionOnLine2?: boolean, // If true, render short description on second line (default: false)
   showTitleOnly?: boolean, // If true, show only the note title in the label (not "path / title") (default: false)
   showCalendarChooserIcon?: boolean, // If true, show a calendar button next to the chooser (default: true)
+  calendarPickerAlignment?: CalendarPickerAlignment, // Align calendar to the button: start (left), center, end (right), or auto (default: auto)
   allowMultiSelect?: boolean, // If true, enable multi-select mode using ContainedMultiSelectChooser (default: false)
   noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename', // Output format for both single and multi-select (default: 'wikilink' for multi-select, 'title' for single-select)
   noteSeparator?: 'space' | 'comma' | 'newline', // For multi-select, separator between notes (default: 'space')
@@ -119,6 +153,7 @@ export function NoteChooser({
   shortDescriptionOnLine2 = false,
   showTitleOnly = false,
   showCalendarChooserIcon = true,
+  calendarPickerAlignment = 'auto',
   allowMultiSelect = false,
   noteOutputFormat,
   noteSeparator = 'space',
@@ -429,24 +464,14 @@ export function NoteChooser({
     setShowCalendarPicker(newShowState)
 
     if (newShowState && calendarButtonRef.current) {
-      // Calculate position for calendar picker
-      const position = calculatePortalPosition({
-        referenceElement: calendarButtonRef.current,
-        elementWidth: 280, // Approximate width of DayPicker
-        elementHeight: 300, // Approximate height of DayPicker
-        preferredPlacement: 'below',
-        preferredAlignment: 'start',
-        offset: 5,
-        viewportPadding: 10,
-      })
-
+      const position = positionCalendarPicker(calendarButtonRef.current, CALENDAR_PICKER_FALLBACK_WIDTH, CALENDAR_PICKER_FALLBACK_HEIGHT, calendarPickerAlignment)
       if (position) {
-        setCalendarPosition({ top: position.top, left: position.left })
+        setCalendarPosition(position)
       }
     } else {
       setCalendarPosition(null)
     }
-  }, [showCalendarPicker])
+  }, [showCalendarPicker, calendarPickerAlignment])
 
   // Update calendar position on scroll/resize - use refs to prevent infinite loops
   const calendarPositionRef = useRef<?{ top: number, left: number }>(null)
@@ -458,15 +483,11 @@ export function NoteChooser({
 
     const updatePosition = () => {
       if (!calendarButtonRef.current) return
-      const position = calculatePortalPosition({
-        referenceElement: calendarButtonRef.current,
-        elementWidth: 280,
-        elementHeight: 300,
-        preferredPlacement: 'below',
-        preferredAlignment: 'start',
-        offset: 5,
-        viewportPadding: 10,
-      })
+      const pickerEl = calendarPickerRef.current
+      const measured = pickerEl ? pickerEl.getBoundingClientRect() : null
+      const elementWidth = measured && measured.width > 0 ? measured.width : CALENDAR_PICKER_FALLBACK_WIDTH
+      const elementHeight = measured && measured.height > 0 ? measured.height : CALENDAR_PICKER_FALLBACK_HEIGHT
+      const position = positionCalendarPicker(calendarButtonRef.current, elementWidth, elementHeight, calendarPickerAlignment)
 
       if (position) {
         // Only update if position actually changed to prevent infinite loops
@@ -494,15 +515,33 @@ export function NoteChooser({
     window.addEventListener('scroll', throttledUpdate, true)
     window.addEventListener('resize', throttledUpdate)
 
+    let resizeObserver: any = null
+    const pickerEl = calendarPickerRef.current
+    if (pickerEl && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        updatePosition()
+      })
+      resizeObserver.observe(pickerEl)
+    }
+
+    // Re-measure after DayPicker has laid out (first paint often has width 0 or a stale estimate)
+    const rafId = requestAnimationFrame(() => {
+      updatePosition()
+    })
+
     return () => {
       if (timeoutId) {
         window.clearTimeout(timeoutId)
+      }
+      cancelAnimationFrame(rafId)
+      if (resizeObserver) {
+        resizeObserver.disconnect()
       }
       window.removeEventListener('scroll', throttledUpdate, true)
       window.removeEventListener('resize', throttledUpdate)
       calendarPositionRef.current = null
     }
-  }, [showCalendarPicker])
+  }, [showCalendarPicker, calendarPickerAlignment])
 
   // Filter notes based on this field's options and folder filter
   const filteredNotes = useMemo(() => {
@@ -973,7 +1012,7 @@ export function NoteChooser({
           return createPortal(
             <div
               ref={calendarPickerRef}
-              className="dayPicker-container"
+              className="dayPicker-container note-chooser-calendar-picker"
               style={{
                 position: 'fixed',
                 top: `${calendarPosition.top}px`,

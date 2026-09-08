@@ -159,6 +159,7 @@ export type TSettingItem = {
   sourceSpaceKey?: string, // Value dependency: for note-chooser, key of a space-chooser field to filter notes by space
   showTitleOnly?: boolean, // for note-chooser, show only the note title in the label (not "path / title") (default: false)
   showCalendarChooserIcon?: boolean, // for note-chooser, show a calendar button next to the chooser (default: true)
+  calendarPickerAlignment?: 'start' | 'center' | 'end' | 'auto', // for note-chooser, align calendar popup to the button (default: auto)
   onOpen?: () => void | Promise<void>, // for note-chooser and other choosers, callback when dropdown opens (for lazy loading)
   allowMultiSelect?: boolean, // for note-chooser, enable multi-select mode (default: false)
   noteOutputFormat?: 'raw-url' | 'wikilink' | 'pretty-link' | 'title' | 'filename', // for note-chooser, output format for both single and multi-select (default: 'wikilink' for multi-select, 'title' for single-select). For single-select, only 'title' and 'filename' are valid (wikilink/pretty-link/raw-url are treated as 'title').

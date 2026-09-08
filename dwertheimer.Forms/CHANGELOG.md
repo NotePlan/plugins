@@ -12,6 +12,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 
 ### Changed
 - **SearchableChooser dropdown height**: Max height is 220px via `CHOOSER_DROPDOWN_HEIGHT` (positioning and painted max-height). Rebuild Form React bundles after pulling helpers.
+- **NoteChooser calendar popup**: Stays on-screen (`calendarPickerAlignment` default `auto`; start / center / end also supported). Date cells use rounded squares and spacing matching the Dashboard task-edit calendar. Rebuild Form React bundles after pulling helpers.
 - **Chooser keyboard navigation**: `ContainedMultiSelectChooser` and `MultiSelectChooser` support Arrow Up/Down highlight, Enter to toggle/select (or confirm create), and Escape to clear highlight / cancel create - matching SearchableChooser / DropdownSelect. Rebuild Form React bundles after pulling helpers.
 
 ### Edited in this release
