@@ -482,12 +482,13 @@ export function NoteChooser({
     }
 
     const updatePosition = () => {
-      if (!calendarButtonRef.current) return
+      const buttonEl = calendarButtonRef.current
+      if (!buttonEl) return
       const pickerEl = calendarPickerRef.current
       const measured = pickerEl ? pickerEl.getBoundingClientRect() : null
       const elementWidth = measured && measured.width > 0 ? measured.width : CALENDAR_PICKER_FALLBACK_WIDTH
       const elementHeight = measured && measured.height > 0 ? measured.height : CALENDAR_PICKER_FALLBACK_HEIGHT
-      const position = positionCalendarPicker(calendarButtonRef.current, elementWidth, elementHeight, calendarPickerAlignment)
+      const position = positionCalendarPicker(buttonEl, elementWidth, elementHeight, calendarPickerAlignment)
 
       if (position) {
         // Only update if position actually changed to prevent infinite loops

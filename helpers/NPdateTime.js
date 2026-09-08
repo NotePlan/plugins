@@ -1077,7 +1077,7 @@ export async function getNPWeekDataBridged(
     ) {
       const coercedStart = coerceBridgedDate(await awaitBridgedValue(Calendar.startOfWeek(date)))
       const coercedEnd = coerceBridgedDate(await awaitBridgedValue(Calendar.endOfWeek(date)))
-      if (dt.isValidDateObject(coercedStart) && dt.isValidDateObject(coercedEnd)) {
+      if (coercedStart instanceof Date && coercedEnd instanceof Date && dt.isValidDateObject(coercedStart) && dt.isValidDateObject(coercedEnd)) {
         startDate = coercedStart
         endDate = coercedEnd
       } else {
