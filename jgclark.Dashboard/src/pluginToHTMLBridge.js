@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-08-21 for v2.4.1 by @CursorAI & @jgclark
+// Last updated 2026-09-08 for v2.5.0.b3 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -617,13 +617,16 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 /**
  * One function to handle all actions on return from the various handlers.
  * On success: run all requested `actionsOnSuccess` (line updates, closes, refreshes, etc.).
- * On failure: show a banner, then still run any refresh-only actions (handlers often promise "I will refresh"). But line mutations, done-count, theme, and perspective actions are skipped.
+ * On failure: still run any refresh-only actions (handlers often promise "I will refresh"), then show the banner.
+ * Showing the banner first can interrupt the refresh (WebView SHOW_BANNER triggers another onMessageFromHTMLView while JSContext is mid-refresh).
+ * Line mutations, done-count, theme, and perspective actions are skipped on failure.
  * For `REMOVE_LINE_FROM_JSON` after PROJ* list sync: do not send `UPDATE_DATA` using the `reactWindowData` captured at the start of that block;
  * always re-fetch via `getGlobalSharedData` after `updateProjectsListIfProjectSection` so the payload includes in-process `refreshSectionsByCode` merges (see `projectsListSync.js` / `writeAllProjectsList` skip flag).
  * @param {TBridgeClickHandlerResult} handlerResult
  * @param {MessageDataObject} data
  */
 async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult, data: MessageDataObject) {
+  let deferredBanner: { msg: string, level: string } | null = null
   try {
     // check to see if the theme has changed and if so, update it
     let config: any = await getDashboardSettings()
@@ -641,14 +644,16 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     if (!success) {
       logDebug('processActionOnReturn', `-> failed (success false) ${errorMsg || ''}`)
       const errorLevel = errorMessageLevel || 'WARN'
-      await sendBannerMessage(WEBVIEW_WINDOW_ID, errorMsg || `Sorry; something's gone wrong for "${data.actionType}"`, errorLevel)
+      const bannerMsg = errorMsg || `Sorry; something's gone wrong for "${data.actionType}"`
       // Handlers often return REFRESH_* with "I will refresh..." -- honour those only; skip line/mutation actions
       const wanted = (handlerResult.actionsOnSuccess ?? []).filter((a) => REFRESH_ACTIONS_ALLOWED_ON_HANDLER_FAILURE.includes(a))
       if (wanted.length === 0) {
+        await sendBannerMessage(WEBVIEW_WINDOW_ID, bannerMsg, errorLevel)
         return
       }
-      logDebug('processActionOnReturn', `-> still running refresh action(s) after failure: [${String(wanted)}]`)
+      logInfo('processActionOnReturn', `-> running refresh action(s) after failure, then banner: [${String(wanted)}] sectionCodes=${String(handlerResult.sectionCodes || [])}`)
       handlerResult.actionsOnSuccess = wanted
+      deferredBanner = { msg: bannerMsg, level: errorLevel }
     }
 
     // Handle the different success cases (and failure-path refresh-only actions above)
@@ -657,6 +662,9 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     const hadExplicitRefreshSectionRequestAtStart = actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')
     if (actionsOnSuccess.length === 0) {
       logDebug('processActionOnReturn', `note: no post process actions to perform`)
+      if (deferredBanner) {
+        await sendBannerMessage(WEBVIEW_WINDOW_ID, deferredBanner.msg, deferredBanner.level)
+      }
       return
     }
     const isProject = data.item?.itemType === 'project'
@@ -961,8 +969,9 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       logDebug('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(allCalendarSectionCodes)}) ..`)
       await incrementallyRefreshSomeSections({ ...data, sectionCodes: allCalendarSectionCodes })
     } else if (!actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
-      // At least update TB section (if enabled) whenever any other refresh path did not already run; merge TB into existing REFRESH_SECTION_IN_JSON sectionCodes when present
-      if (enabledSections.includes('TB')) {
+      // At least update TB section (if enabled) whenever any other success-path refresh did not already run.
+      // Skip on handler failure: keep the originating-section refresh small so the promised toast cannot interrupt it.
+      if (enabledSections.includes('TB') && success) {
         logDebug('processActionOnReturn', `Ensuring REFRESH_SECTION_IN_JSON includes TB ...`)
         if (!actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
           actionsOnSuccess.push('REFRESH_SECTION_IN_JSON')
@@ -1020,9 +1029,16 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
     }
 
+    if (deferredBanner) {
+      await sendBannerMessage(WEBVIEW_WINDOW_ID, deferredBanner.msg, deferredBanner.level)
+    }
+
   } catch (error) {
     logError('processActionOnReturn', `error: ${JSP(error)}: \n${JSP(formatReactError(error))}`)
     clo(data.item, `- data.item at error:`)
+    if (deferredBanner) {
+      await sendBannerMessage(WEBVIEW_WINDOW_ID, deferredBanner.msg, deferredBanner.level)
+    }
   }
 }
 

@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-23 for v2.4.2 by @jgclark + @CursorAI
+// Last updated 2026-09-08 for v2.5.0.b3 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -1010,7 +1010,7 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
   // V2
   const validated = validateMessageDataForHandler(data, 'doShowLineInEditorFromFilename')
   if (!validated.ok) return validated.result
-  const { filename, content, modifierKey } = validated.data
+  const { filename, content, modifierKey, item, sectionCode } = validated.data
   const config = await getDashboardSettings()
   const openType = resolveEditorOpenTypeForDashboardClick(modifierKey, config?.preferredWindowType)
   logDebug('doShowLineInEditorFromFilename', `starting for filename ${filename} with content {${content}}, modifierKey ${String(modifierKey)}, openType ${openType}`)
@@ -1019,9 +1019,12 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
     logDebug('doShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor and highlighted the paragraph`)
     return handlerResult(true)
   } else {
-    logWarn('doShowLineInEditorFromFilename', `-> could not open/highlight line in '${filename}'`)
-    return handlerResult(false, [], {
-      errorMsg: `Could not open or highlight that line in '${filename}'.`,
+    const originatingSectionCode = item?.sectionCode || sectionCode
+    const sectionCodes = originatingSectionCode ? [originatingSectionCode] : []
+    logWarn('doShowLineInEditorFromFilename', `-> could not open/highlight line in '${filename}'; will refresh sectionCodes=[${String(sectionCodes)}]`)
+    return handlerResult(false, sectionCodes.length > 0 ? ['REFRESH_SECTION_IN_JSON'] : [], {
+      sectionCodes,
+      errorMsg: `Could not open or highlight that line in '${filename}'. I will refresh that section.`,
       errorMessageLevel: 'INFO',
     })
   }
