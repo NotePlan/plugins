@@ -11,6 +11,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 - **SearchableChooser click-outside**: Clicking dialog chrome or blank space above an open Space/Note (and other) picker now leaves the list closed instead of flashing it open. Rebuild Form React bundles after pulling helpers.
 
 ### Changed
+- **SearchableChooser dropdown height**: Max height is 220px via `CHOOSER_DROPDOWN_HEIGHT` (positioning and painted max-height). Rebuild Form React bundles after pulling helpers.
 - **Chooser keyboard navigation**: `ContainedMultiSelectChooser` and `MultiSelectChooser` support Arrow Up/Down highlight, Enter to toggle/select (or confirm create), and Escape to clear highlight / cancel create - matching SearchableChooser / DropdownSelect. Rebuild Form React bundles after pulling helpers.
 
 ### Edited in this release

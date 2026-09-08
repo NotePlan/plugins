@@ -12,6 +12,12 @@ import { logDebug } from '@helpers/react/reactDev.js'
 import './SearchableChooser.css'
 
 /**
+ * Max height of the SearchableChooser portal dropdown (px).
+ * Used for painted max-height and for flip-above/below positioning.
+ */
+export const CHOOSER_DROPDOWN_HEIGHT = 220
+
+/**
  * Configuration for customizing the chooser behavior
  */
 export type ChooserConfig = {
@@ -760,14 +766,13 @@ export function SearchableChooser({
   const calculateDropdownPosition = (): ?{ top: number, left: number, width: number, openAbove: boolean } => {
     if (!inputRef.current) return null
 
-    const dropdownMaxHeight = 150 // Match CSS max-height
     const inputRect = inputRef.current.getBoundingClientRect()
 
     // Use the shared portal positioning helper
     const position = calculatePortalPosition({
       referenceElement: inputRef.current,
       elementWidth: inputRect.width,
-      elementHeight: dropdownMaxHeight,
+      elementHeight: CHOOSER_DROPDOWN_HEIGHT,
       preferredPlacement: 'below',
       preferredAlignment: 'start',
       offset: 0, // No gap for dropdown (it should connect to input)
@@ -929,6 +934,7 @@ export function SearchableChooser({
                 top: dropdownPosition ? `${dropdownPosition.top}px` : '0px',
                 left: dropdownPosition ? `${dropdownPosition.left}px` : '0px',
                 width: dropdownPosition ? `${dropdownPosition.width}px` : 'auto',
+                maxHeight: `${CHOOSER_DROPDOWN_HEIGHT}px`,
                 display: 'block',
                 zIndex: 99999,
                 opacity: dropdownPosition ? 1 : 0,

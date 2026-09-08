@@ -253,38 +253,14 @@ input[type="text"][class*="-chooser-input"]:focus {
   opacity: 0.8;
 }
 
-/* Dropdown - use direct class name for maximum compatibility */
-.searchable-chooser-dropdown {
-  position: absolute !important;
-  top: 100% !important;
-  left: 0 !important;
-  right: 0 !important;
-  max-height: 150px;
-  overflow-y: auto;
-  background-color: var(--bg-main-color, #eff1f5) !important;
-  border: 1px solid var(--divider-color, #CDCFD0) !important;
-  border-top: none;
-  border-radius: 0 0 4px 4px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 99999 !important;
-  margin-top: -1px;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  height: auto !important;
-  min-height: 50px !important;
-}
-
 /* Portal dropdown - fixed positioning to avoid clipping */
-/* Note: Portal dropdowns do NOT use .searchable-chooser-dropdown class to avoid conflicts */
+/* max-height is set inline from CHOOSER_DROPDOWN_HEIGHT in SearchableChooser.jsx */
 .searchable-chooser-dropdown-portal {
   position: fixed !important;
-  /* top, left, width set via inline styles - these will override CSS */
-  /* Reset rules from [class*="-chooser-dropdown"] which also matches this class name */
+  /* top, left, width, max-height set via inline styles */
   right: auto !important;
   top: auto;
   left: auto;
-  max-height: 150px;
   overflow-y: auto;
   background-color: var(--bg-main-color, #eff1f5) !important;
   border: 1px solid var(--divider-color, #CDCFD0) !important;
@@ -331,8 +307,10 @@ input[type="text"][class*="-chooser-input"]:focus {
   box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Also support attribute selector for backward compatibility */
-/* Exclude the portal: its class contains "-chooser-dropdown" and must stay position:fixed with inline top/left/width */
+/*
+ * Fallback for non-portal * -chooser-dropdown elements (none currently rendered).
+ * Excluded the portal: its class contains "-chooser-dropdown" and must stay position:fixed with inline top/left/width.
+ *
 .searchable-chooser-base [class*="-chooser-dropdown"]:not(.searchable-chooser-dropdown-portal),
 [class*="-chooser-dropdown"]:not(.searchable-chooser-dropdown-portal) {
   position: absolute;
@@ -349,6 +327,7 @@ input[type="text"][class*="-chooser-input"]:focus {
   z-index: 9999;
   margin-top: -1px;
 }
+ */
 
 /* Option - use direct class name for maximum compatibility */
 .searchable-chooser-option {

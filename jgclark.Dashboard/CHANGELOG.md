@@ -5,6 +5,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Fix: If a task cannot be opened/highlighted from Dashboard, refresh that section and say so in the toast. The refresh now runs before the toast, so the banner cannot interrupt it.
 - Fix: WebView week lookups keep Calendar.weekNumber when startOfWeek/endOfWeek return empty objects (HTML bridge Date serialization), reconstruct week boundaries from firstDayOfWeek, and no longer warn on every relative-week offset.
 - Fix: Space and Note pickers in Add a new task no longer flash open then closed when you click blank dialog area above the fields, and no longer reopen when dismissing the list.
+- Change: SearchableChooser dropdown max height is 220px (`CHOOSER_DROPDOWN_HEIGHT`).
 
 ## [2.5.0.b2] 2026-08-28
 - New: Priority note-index cache so the Priority section can avoid a full scan on warm refreshes. On by default (`FFlag_UsePriorityCache`); falls back to full scan and schedules a background rebuild when the cache is missing. Commands: `generatePriorityNoteIndexCache` / `updatePriorityNoteIndexCache`.
