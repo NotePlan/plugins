@@ -929,6 +929,7 @@ describe(`${FILENAME}`, () => {
 
     beforeEach(() => {
       originalCalendar = global.Calendar
+      f.resetCalendarWeekBoundariesBridgeState()
       // eslint-disable-next-line global-require
       const dev = require('../dev')
       warnSpy = jest.spyOn(dev, 'logWarn')
@@ -936,6 +937,7 @@ describe(`${FILENAME}`, () => {
 
     afterEach(() => {
       global.Calendar = originalCalendar
+      f.resetCalendarWeekBoundariesBridgeState()
       if (warnSpy) warnSpy.mockRestore()
     })
 
@@ -954,16 +956,63 @@ describe(`${FILENAME}`, () => {
       expect(warnSpy).not.toHaveBeenCalled()
     })
 
-    test('falls back to moment after await when Calendar resolves to {}', async () => {
+    test('keeps Calendar weekNumber and reconstructs boundaries when start/end resolve to {}', async () => {
       global.Calendar = {
-        weekNumber: () => Promise.resolve(45),
+        weekNumber: () => Promise.resolve(99),
         startOfWeek: () => Promise.resolve({}),
         endOfWeek: () => Promise.resolve({}),
       }
       const result = await f.getNPWeekDataBridged(new Date('2024-11-06T12:00:00'))
       expect(result).not.toBeNull()
+      expect(result.weekNumber).toBe(99)
+      expect(isValidDate(result.startDate)).toBe(true)
+      expect(isValidDate(result.endDate)).toBe(true)
+      expect(result.weekString).toBe('2024-W99')
+      expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    test('skips further startOfWeek/endOfWeek calls after the first empty-object result', async () => {
+      const startOfWeek = jest.fn(() => Promise.resolve({}))
+      const endOfWeek = jest.fn(() => Promise.resolve({}))
+      global.Calendar = {
+        weekNumber: () => Promise.resolve(45),
+        startOfWeek,
+        endOfWeek,
+      }
+      const date = new Date('2024-11-06T12:00:00')
+      await f.getNPWeekDataBridged(date)
+      await f.getNPWeekDataBridged(date)
+      expect(startOfWeek).toHaveBeenCalledTimes(1)
+      expect(endOfWeek).toHaveBeenCalledTimes(1)
+      expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    test('coerces ISO-string Calendar Date returns to Date objects', async () => {
+      global.Calendar = {
+        weekNumber: (date) => Promise.resolve(momentLib(date).isoWeek()),
+        startOfWeek: (date) => Promise.resolve(momentLib(date).startOf('isoWeek').toDate().toISOString()),
+        endOfWeek: (date) => Promise.resolve(momentLib(date).endOf('isoWeek').toDate().toISOString()),
+      }
+      const result = await f.getNPWeekDataBridged(new Date('2024-11-06T12:00:00'))
+      expect(result).not.toBeNull()
+      expect(isValidDate(result.startDate)).toBe(true)
+      expect(isValidDate(result.endDate)).toBe(true)
+      expect(result.weekNumber).toBe(momentLib(new Date('2024-11-06T12:00:00')).isoWeek())
+      expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    test('falls back to moment when weekNumber is not a number', async () => {
+      global.Calendar = {
+        weekNumber: () => Promise.resolve({}),
+        startOfWeek: (date) => Promise.resolve(momentLib(date).startOf('isoWeek').toDate()),
+        endOfWeek: (date) => Promise.resolve(momentLib(date).endOf('isoWeek').toDate()),
+      }
+      const result = await f.getNPWeekDataBridged(new Date('2024-11-06T12:00:00'))
+      expect(result).not.toBeNull()
+      expect(typeof result.weekNumber).toBe('number')
       expect(isValidDate(result.startDate)).toBe(true)
       expect(warnSpy).toHaveBeenCalled()
+      expect(warnSpy.mock.calls.some((c) => String(c[0]).includes('getNPWeekDataBridged') && String(c[1]).includes('invalid weekNumber'))).toBe(true)
     })
   })
 
@@ -973,6 +1022,7 @@ describe(`${FILENAME}`, () => {
 
     beforeEach(() => {
       originalCalendar = global.Calendar
+      f.resetCalendarWeekBoundariesBridgeState()
       global.Calendar = {
         weekNumber: (date) => Promise.resolve(momentLib(date).isoWeek()),
         startOfWeek: (date) => Promise.resolve(momentLib(date).startOf('isoWeek').toDate()),

@@ -4,8 +4,8 @@
 // @jgclark except where shown
 //-------------------------------------------------------------------------------
 
+import { endOfWeek as dfEndOfWeek, format, startOfWeek as dfStartOfWeek } from 'date-fns'
 import moment from 'moment/min/moment-with-locales'
-import { format } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
 import * as dt from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
@@ -841,6 +841,95 @@ function momentWeekFallback(newMom: any): {| weekNumber: number, startDate: Date
 }
 
 /**
+ * Coerce a WebView/bridge Calendar Date return into a JS Date.
+ * The HTML bridge serializes Date arguments as ISO strings, but Date return values
+ * often arrive as ISO strings, timestamps, or empty objects (`{}`) with no enumerable props.
+ *
+ * @param {mixed} value
+ * @returns {Date | null}
+ */
+function coerceBridgedDate(value: mixed): Date | null {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const fromNumber = new Date(value)
+    return Number.isNaN(fromNumber.getTime()) ? null : fromNumber
+  }
+  if (typeof value === 'string' && value !== '') {
+    const fromString = new Date(value)
+    return Number.isNaN(fromString.getTime()) ? null : fromString
+  }
+  return null
+}
+
+/**
+ * Week start/end for an anchor date using JS weekday 0=Sunday ... 6=Saturday (date-fns weekStartsOn).
+ *
+ * @param {Date} date
+ * @param {number} weekStartsOn
+ * @returns {{ startDate: Date, endDate: Date }}
+ */
+function weekBoundariesFromFirstDayOfWeek(date: Date, weekStartsOn: number): {| startDate: Date, endDate: Date |} {
+  const startsOn = ((Math.floor(weekStartsOn) % 7) + 7) % 7
+  const options = { weekStartsOn: (startsOn: any) }
+  return {
+    startDate: dfStartOfWeek(date, options),
+    endDate: dfEndOfWeek(date, options),
+  }
+}
+
+/**
+ * Resolve the user's NotePlan firstDayOfWeek to JS weekday (0=Sunday).
+ * Awaits a bridged preference Thenable. Same mapping as getUsersFirstDayOfWeekUTC().
+ *
+ * @returns {Promise<number>}
+ */
+async function getUsersFirstDayOfWeekBridged(): Promise<number> {
+  if (typeof DataStore === 'undefined' || DataStore == null || typeof DataStore.preference !== 'function') {
+    return 1
+  }
+  const pref = await awaitBridgedValue(DataStore.preference('firstDayOfWeek'))
+  return typeof pref === 'number' ? Number(pref) - 1 : 1
+}
+
+// WebView Calendar.startOfWeek / endOfWeek often resolve to `{}` (Date return values do not JSON-serialize).
+// After the first failure, skip those bridge calls for the rest of this JSContext. Calendar.weekNumber still works.
+let calendarWeekBoundariesUnusable: boolean = false
+let loggedCalendarWeekBoundariesUnusable: boolean = false
+
+/**
+ * Reset the WebView Calendar week-boundary skip flag.
+ * Used by tests; also available if a later NotePlan build starts returning real Dates again in the same context.
+ *
+ * @returns {void}
+ */
+export function resetCalendarWeekBoundariesBridgeState(): void {
+  calendarWeekBoundariesUnusable = false
+  loggedCalendarWeekBoundariesUnusable = false
+}
+
+/**
+ * Reconstruct week start/end from firstDayOfWeek when Calendar Date returns are unusable.
+ * Logs once at debug for this JSContext.
+ *
+ * @param {Date} date
+ * @param {number} weekNumber - Calendar week number being kept
+ * @returns {Promise<{ startDate: Date, endDate: Date }>}
+ */
+async function reconstructWeekBoundariesFromPreference(date: Date, weekNumber: number): Promise<{| startDate: Date, endDate: Date |}> {
+  if (!loggedCalendarWeekBoundariesUnusable) {
+    logDebug(
+      'NPdateTime::getNPWeekDataBridged',
+      `Calendar startOfWeek/endOfWeek unusable after await; reconstructing week boundaries from firstDayOfWeek (keeping weekNumber=${String(weekNumber)})`,
+    )
+    loggedCalendarWeekBoundariesUnusable = true
+  }
+  const weekStartsOn = await getUsersFirstDayOfWeekBridged()
+  return weekBoundariesFromFirstDayOfWeek(date, weekStartsOn)
+}
+
+/**
  * Build the NotePlanWeekInfo object from resolved week number and boundary dates.
  *
  * @param {number} weekNumber
@@ -937,8 +1026,10 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
  * Why this exists:
  * - Sync getNPWeekData() cannot await bridge Promises, so it falls back to moment week boundaries.
  * - Moment uses locale week start (often Sunday), which may not match the user's NotePlan setting.
- * - During early WebView startup Calendar may even resolve to `{}` before the bridge is ready.
- * - This function awaits each Calendar result via npBridgeResolve and only then falls back to moment.
+ * - Calendar.weekNumber serializes as a number and is usable after await.
+ * - Calendar.startOfWeek / endOfWeek Date returns often arrive as `{}` (no enumerable props) or ISO strings.
+ * - When boundaries are unusable, keep Calendar's weekNumber and reconstruct start/end from firstDayOfWeek.
+ * - Full moment fallback only when weekNumber itself is not a number.
  *
  * Use from async code paths (NPDateStrings, Dashboard startup refresh). Plugin-side sync code
  * should keep using getNPWeekData().
@@ -967,22 +1058,38 @@ export async function getNPWeekDataBridged(
     }
 
     // Each Calendar call may return a Thenable. awaitBridgedValue unwraps one level (Promise or { then }).
-    const weekNumberRaw = Calendar.weekNumber(date)
-    const startDateRaw = Calendar.startOfWeek(date)
-    const endDateRaw = Calendar.endOfWeek(date)
-    let weekNumber = await awaitBridgedValue(weekNumberRaw)
-    let startDate = await awaitBridgedValue(startDateRaw)
-    let endDate = await awaitBridgedValue(endDateRaw)
-
-    if (typeof weekNumber !== 'number' || !dt.isValidDateObject(startDate) || !dt.isValidDateObject(endDate)) {
+    const weekNumber = await awaitBridgedValue(Calendar.weekNumber(date))
+    if (typeof weekNumber !== 'number') {
       logWarn(
         'NPdateTime::getNPWeekDataBridged',
-        `Calendar returned invalid week data after await (weekNumber=${String(weekNumber)} start=${String(startDate)} end=${String(endDate)}), falling back to moment week boundaries`,
+        `Calendar returned invalid weekNumber after await (${String(weekNumber)}); falling back to moment week boundaries`,
       )
       const fallback = momentWeekFallback(newMom)
-      weekNumber = fallback.weekNumber
-      startDate = fallback.startDate
-      endDate = fallback.endDate
+      return composeNotePlanWeekInfo(fallback.weekNumber, fallback.startDate, fallback.endDate, date)
+    }
+
+    let startDate: Date
+    let endDate: Date
+    if (
+      !calendarWeekBoundariesUnusable &&
+      typeof Calendar.startOfWeek === 'function' &&
+      typeof Calendar.endOfWeek === 'function'
+    ) {
+      const coercedStart = coerceBridgedDate(await awaitBridgedValue(Calendar.startOfWeek(date)))
+      const coercedEnd = coerceBridgedDate(await awaitBridgedValue(Calendar.endOfWeek(date)))
+      if (dt.isValidDateObject(coercedStart) && dt.isValidDateObject(coercedEnd)) {
+        startDate = coercedStart
+        endDate = coercedEnd
+      } else {
+        calendarWeekBoundariesUnusable = true
+        const reconstructed = await reconstructWeekBoundariesFromPreference(date, weekNumber)
+        startDate = reconstructed.startDate
+        endDate = reconstructed.endDate
+      }
+    } else {
+      const reconstructed = await reconstructWeekBoundariesFromPreference(date, weekNumber)
+      startDate = reconstructed.startDate
+      endDate = reconstructed.endDate
     }
 
     return composeNotePlanWeekInfo(weekNumber, startDate, endDate, date)
