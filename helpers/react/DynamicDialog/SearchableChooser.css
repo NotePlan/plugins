@@ -47,7 +47,9 @@
 /* Use font-weight: 600 to match input-box-label styling for consistency */
 .searchable-chooser-base [class*="-chooser-label"],
 [class*="-chooser-label"] {
-  display: block;
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
   margin-bottom: 0.25rem;
   font-weight: 600;
   color: var(--fg-main-color, #4c4f69);
@@ -278,6 +280,10 @@ input[type="text"][class*="-chooser-input"]:focus {
 .searchable-chooser-dropdown-portal {
   position: fixed !important;
   /* top, left, width set via inline styles - these will override CSS */
+  /* Reset rules from [class*="-chooser-dropdown"] which also matches this class name */
+  right: auto !important;
+  top: auto;
+  left: auto;
   max-height: 150px;
   overflow-y: auto;
   background-color: var(--bg-main-color, #eff1f5) !important;
@@ -326,8 +332,9 @@ input[type="text"][class*="-chooser-input"]:focus {
 }
 
 /* Also support attribute selector for backward compatibility */
-.searchable-chooser-base [class*="-chooser-dropdown"],
-[class*="-chooser-dropdown"] {
+/* Exclude the portal: its class contains "-chooser-dropdown" and must stay position:fixed with inline top/left/width */
+.searchable-chooser-base [class*="-chooser-dropdown"]:not(.searchable-chooser-dropdown-portal),
+[class*="-chooser-dropdown"]:not(.searchable-chooser-dropdown-portal) {
   position: absolute;
   top: 100%;
   left: 0;
