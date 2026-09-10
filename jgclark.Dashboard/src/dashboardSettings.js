@@ -232,6 +232,15 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     compactDisplay: true,
   },
   {
+    key: 'displayDensity',
+    label: 'Display Density',
+    description: 'Normal uses the standard spacing and text length. Compact tightens vertical spacing between items and truncates item text sooner, so more fits on screen.',
+    type: 'dropdown-select',
+    options: ['Normal', 'Compact'],
+    default: 'Normal',
+    compactDisplay: true,
+  },
+  {
     label: 'Show referenced items in separate section?',
     key: 'separateSectionForReferencedNotes',
     description: 'Whether to show items that are referenced to a Calendar note from other notes in a separate section than those in the Calendar note itself.',

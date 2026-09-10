@@ -72,6 +72,7 @@ export type TDashboardSettings = {
   applyCurrentFilteringToSearch: boolean,
   autoUpdateAfterIdleTime: number,
   dashboardTheme: string,
+  displayDensity: string, // 'Normal' | 'Compact'
   dontSearchFutureItems: boolean,
   displayDoneCounts: boolean,
   enableInteractiveProcessing: boolean,

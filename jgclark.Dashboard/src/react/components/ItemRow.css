@@ -1,5 +1,5 @@
 /* CSS specific to ItemRow component and its children.
-/* Last updated 2026-08-21 for v2.5.0, @jgclark */
+/* Last updated 2026-09-10 for v2.5.0.b4, @jgclark */
 
 /* Shared layout for task / reminder / project / message rows (was TaskItem.css + TasksFiltered.css) */
 .sectionItemRow {
@@ -24,12 +24,27 @@
 	/* reduce vertical spacing and line below */
 	font-size: 1.0rem;
 	font-weight: 400;
-	padding: 1px 4px;
+	padding: 1px 2px;
 	border-bottom: 0px;
 	break-inside: avoid;
 	line-height: 1.2rem;
 	/* Ensure we don't get a single word orphan on a line. Not sure if it is supported in NotePlan's version of Safari. */
 	text-wrap: pretty;
+}
+
+/* Compact Display Density: tighter vertical spacing so more items fit on screen */
+.density-compact .sectionItemRow {
+	margin: 0px 4px 0px 0px;
+}
+
+.density-compact .sectionItemContent {
+	padding: 0px 2px;
+	line-height: 1rem; /* ~10% tighter */
+}
+
+.density-compact .itemIcon {
+	padding-block-start: 0px;
+	line-height: 80% /* ~20% tighter */
 }
 
 /* Need to override some CSS that comes in the theme */

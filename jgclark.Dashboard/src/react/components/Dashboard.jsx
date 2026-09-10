@@ -445,7 +445,12 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   return (
     <>
-    <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
+    <div
+      style={dashboardContainerStyle}
+      tabIndex={0}
+      ref={containerRef}
+      className={`${pluginData.platform ?? ''}${dashboardSettings?.displayDensity === 'Compact' ? ' density-compact' : ''}`.trim()}
+    >
       {autoUpdateEnabled && (
           <IdleTimer
             idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000}

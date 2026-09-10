@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated 2026-07-21 for v2.4.0.b52 by @jgclark/@Cursor
+// Last updated 2026-09-10 for v2.5.0.b4 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
@@ -12,6 +12,9 @@ import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import './ItemContent.css'
 
 //--------------------------------------------------------------------------
+
+const NORMAL_ITEM_TRUNCATE_LENGTH = 140
+const COMPACT_ITEM_TRUNCATE_LENGTH = 70 // half of Normal when Display Density is Compact
 
 type Props = {
   item: TSectionItem,
@@ -36,7 +39,8 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   }
 
   // compute the things we need later
-  let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140, timeblockMustContainString, pluginData?.reminderDisplayById)
+  const truncateLength = dashboardSettings?.displayDensity === 'Compact' ? COMPACT_ITEM_TRUNCATE_LENGTH : NORMAL_ITEM_TRUNCATE_LENGTH
+  let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, truncateLength, timeblockMustContainString, pluginData?.reminderDisplayById)
   mainContent = applyDashboardSettingsToDisplayedItemHtml(mainContent, dashboardSettings)
 
   // Note: This is how to remove tag/mention, if they match the item's sectionCode. Decided not to keep this, as it is doesn't suit some use cases for tags/mentions.
