@@ -257,6 +257,9 @@ export function isNoteOpenInEditor(filename: string): boolean {
  */
 export async function getFirstRegularNoteAmongOpenEditors(): Promise<?TNote> {
   try {
+    if (Editor && Editor.type === 'Notes' && Editor.filename) {
+      return Editor
+    }
     const focusedNote = Editor?.note
     if (focusedNote && focusedNote.type === 'Notes') {
       return focusedNote
