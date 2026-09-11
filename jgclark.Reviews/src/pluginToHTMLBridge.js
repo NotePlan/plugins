@@ -6,6 +6,7 @@
 
 import pluginJson from '../plugin.json'
 import { resolveProjectNoteFromListFilename } from './allProjectsListHelpers'
+import { getReviewSettings } from './reviewHelpers'
 import {
   addProgressUpdate,
   cancelProject,
@@ -430,12 +431,14 @@ export async function bridgeClickProjectListItem(data: MessageDataObject | any) 
         if (filenameToOpen !== filename) {
           logInfo('bridgeClickProjectListItem', `-> showNoteInEditorFromFilename: list had '${filename}', opening current path '${filenameToOpen}'`)
         }
-        const openedNewSplit = openNoteInSplitViewIfNotOpenAlready(filenameToOpen, 'bridgeClickProjectListItem')
-        if (openedNewSplit) {
-          logDebug('bridgeClickProjectListItem', `-> opened or triggered split for filename ${filenameToOpen}`)
-        } else {
-          logDebug('bridgeClickProjectListItem', `-> focused existing editor or no-op for filename ${filenameToOpen}`)
-        }
+    const config = await getReviewSettings()
+    if (config?.preferredWindowType === 'Main Window') {
+      const openedNewSplit = openNoteInSplitViewIfNotOpenAlready(filenameToOpen, 'bridgeClickProjectListItem')
+      logDebug('bridgeClickProjectListItem', openedNewSplit ? `-> opened or triggered split for filename ${filenameToOpen}` : `-> focused existing editor or no-op for filename ${filenameToOpen}`)
+    } else {
+      const openedInMain = await Editor.openNoteByFilename(filenameToOpen)
+      logDebug('bridgeClickProjectListItem', openedInMain ? `-> opened filename ${filenameToOpen} in main Editor` : `-> couldn't open filename ${filenameToOpen} in main Editor`)
+    }
         break
       }
       case 'showLineInEditorFromFilename': {
