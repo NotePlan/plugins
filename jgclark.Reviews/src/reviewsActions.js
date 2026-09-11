@@ -402,7 +402,7 @@ export async function finishReviewAndStartNextReview(
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
-    const noteToFinish: ?TNote = noteArg ?? (await getFirstRegularNoteAmongOpenEditors())
+    const noteToFinish: ?TNote = noteArg || (await getFirstRegularNoteAmongOpenEditors())
     if (!noteToFinish) {
       logWarn('finishReviewAndStartNextReview', `- There's no project note in any open Editor pane to finish reviewing.`)
       await showMessage(`No open editor pane has a project note to finish reviewing. Open the project note (or focus it) and try again.`, 'OK, thanks', 'Reviews')
