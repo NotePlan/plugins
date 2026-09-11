@@ -14,7 +14,7 @@ import { checkBoolean, checkString } from '@helpers/checkType'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
 import { makePluginCommandButton, redToGreenInterpolation } from '@helpers/HTMLView'
-import { localeRelativeDateFromNumber, nowLocaleShortDateTime } from '@helpers/NPdateTime'
+import { localeRelativeDateFromNumber } from '@helpers/NPdateTime'
 import { getLineMainContentPos } from '@helpers/search'
 import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 // Length truncation now handled in CSS (.nextActionText)
@@ -578,7 +578,7 @@ export function buildProjectListTopBarHtml(config: any): string {
     parts.push(perspectiveSection)
   }
 
-  const refreshSection = `<div id="refresh"><span class="topbar-item pad-right-larger"><span id="richProjectListVisibleCount" class="topbar-project-visible-count">${projectsShownCount} ${pluralise('project', projectsShownCount)}</span></span>${refreshPCButton}\n<span class="topbar-item"><span class="hideable-label">Updated: </span><span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
+  const refreshSection = `<div id="refresh"><span class="topbar-item pad-right-larger"><span id="richProjectListVisibleCount" class="topbar-project-visible-count">${projectsShownCount} ${pluralise('project', projectsShownCount)}</span></span>${refreshPCButton}\n<span class="topbar-item"><span class="hideable-label">Updated: </span><span id="timer">just now</span>\n</span></div>`
   parts.push(refreshSection)
 
   parts.push(`<div class="topbar-center-cluster">`)

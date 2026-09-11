@@ -14,7 +14,7 @@ dialog {
 }
 
 dialog:modal {
-  max-width: 92%;
+  max-width: 90%;
 }
 
 .dialogTitle {
@@ -61,8 +61,7 @@ dialog:modal {
 
 .buttonGrid {
   display: grid;
-  grid-template-columns: max-content minmax(15rem, 28rem);
-  /* grid-template-columns: minmax(4rem, 6rem) minmax(15rem, auto); */
+  grid-template-columns: max-content minmax(15rem, max-content);
   column-gap: 0.5rem;
   row-gap: 0.2rem;
   /* vertically align content items in center */

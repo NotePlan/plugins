@@ -298,7 +298,7 @@ function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, eve
   }
   if (x < fudgeFactor) {
     x = fudgeFactor
-    const maxW = Math.round(window.innerWidth * 0.8)
+    const maxW = Math.round(window.innerWidth * 0.9)
     dialog.style.width = `${String(Math.min(window.innerWidth - fudgeFactor, maxW))}px`
     console.log(`Off left: now x=0; width=${dialog.style.width}`)
   }

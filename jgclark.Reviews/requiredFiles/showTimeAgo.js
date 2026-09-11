@@ -3,31 +3,19 @@
 //--------------------------------------------------------------------------------------
 // Show time ago
 // Note: requires a meta tag 'startTime'
-// Last updated: 2026-08-17 for v2.0.7 by @jgclark + @CursorAI
+// Last updated: 2026-09-11 for v2.1.1 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------------------
 
 /**
- * Format a past duration as a relative string (e.g. "1 minute ago").
- * Uses Intl.RelativeTimeFormat when available; otherwise compact buckets (Nm/Nh/Nd).
+ * Format a past duration as compact relative time, matching Dashboard's header
+ * (getTimeAgoString plus Header's min/hour compactification).
+ * e.g. "just now", "<1m ago", "2m ago", "3h ago", "2 days ago".
  * @param {number} diffMins minutes since startTime (can be fractional)
  * @returns {string}
  */
 function formatTimeAgo(diffMins) {
   if (diffMins <= 0.1) {
     return 'just now'
-  }
-  const roundedMins = Math.round(diffMins)
-  const roundedHours = Math.round(diffMins / 60.0)
-  const roundedDays = Math.round(diffMins / 60.0 / 24.0)
-  if (typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function') {
-    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'always', style: 'long' })
-    if (diffMins < 90) {
-      return rtf.format(-roundedMins, 'minute')
-    }
-    if (diffMins < 1440) {
-      return rtf.format(-roundedHours, 'hour')
-    }
-    return rtf.format(-roundedDays, 'day')
   }
   if (diffMins <= 1) {
     return '<1m ago'
@@ -36,12 +24,18 @@ function formatTimeAgo(diffMins) {
     return '1m ago'
   }
   if (diffMins <= 90) {
-    return String(roundedMins) + 'm ago'
+    return String(Math.round(diffMins)) + 'm ago'
   }
   if (diffMins <= 1440) {
-    return String(roundedHours) + 'h ago'
+    return String(Math.round(diffMins / 60.0)) + 'h ago'
   }
-  return String(roundedDays) + 'd ago'
+  if (diffMins <= 43776) {
+    return String(Math.round(diffMins / 1440.0)) + 'd ago'
+  }
+  if (diffMins <= 525312) {
+    return String(Math.round(diffMins / 43800.0)) + ' mon ago'
+  }
+  return String(Math.round(diffMins / 525600.0)) + ' yrs ago'
 }
 
 function showTimeAgo() {

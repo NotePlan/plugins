@@ -1,6 +1,13 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.1.1] - 2026-09-11
+- Fix: "Finish+Next" button in top bar not working (thanks to @cbkadel PR)
+- Fix: clicking title forcing Split View, even when your "Preferred Window Type" setting was "New Window"  (thanks to @cbkadel PR)
+- Fix: Project control dialog now sizes more sensibly.
+- Change: The top bar's last updated label uses a more compact display, e.g. "2m ago".
+- Change: make colours in project display a little clearer.
+
 ## [2.1.0] - 2026-08-28
 - **/weeklyProjectsProgress** now also upserts a current-week summary into the weekly note when "Heading for Weekly Project Progress output" is set (default: `## Weekly Project Progress`). It can output as a table, or lists arranged by folder, subfolder or project tag type.
 - Change: "Progress Heading" and "Progress Heading level" are now a single setting — include markdown heading markers in "Progress Heading" (e.g. `## Progress`). On upgrade, existing plain-text heading and level values are migrated automatically into one string.
