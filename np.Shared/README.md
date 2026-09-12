@@ -116,6 +116,107 @@ The `live-server` npm package can be very useful to locally open saved HTML outp
 
 (The `ignore` in this case stops it re-loading when that plugin's `todaysChangedNoteList.json` file changes, which it can do frequently.)
 
+## Tag / mention cache
+
+Plugins can share a vault-wide index of which notes contain particular `#hashtags` and `@mentions`, without each plugin scanning every note itself. Implementation: `np.Shared/src/tagMentionCache.js`. Originally written by @jgclark for Dashboard; moved here in Sep 2026 so other plugins (e.g. Projects + Reviews) can use it.
+
+### What it delivers
+
+The cache does **not** return paragraphs or task text. It answers: "which note filenames currently have any of these wanted tags/mentions?"
+
+Each hit is stored as `{ filename, items: ['#project', '@alice'] }` in two lists: `regularNotes` and `calendarNotes`. Lookups are **case-insensitive** (`#Area` matches `#area`).
+
+A note is indexed only if a **wanted** item appears in:
+
+- an open, checklist, scheduled, or checklist-scheduled paragraph, or
+- any frontmatter field value.
+
+Hashtags that appear only on done tasks, or only in body prose, are **not** indexed (that would make the file much larger). Notes in `@` special folders (`@Archive`, `@Templates`, `@Trash`, …) are skipped on a full rebuild.
+
+### Data Files
+Two files under `data/np.Shared/` (paths are fully specified so any plugin context can read them):
+
+| File | Role |
+|------|------|
+| `wantedTagMentionsList.json` | Per-plugin registrations. The cache indexes the **union**. |
+| `tagMentionCache.json` | The index: `generatedAt`, `lastUpdated`, `wantedItems`, `regularNotes`, `calendarNotes`. |
+
+An item stays in the union until **no** registered plugin still wants it.
+
+### Updates
+Shared owns the cache **functions** (`generateTagMentionCache`, `updateTagMentionCache`, age checks, and a `regenerate` preference). It does **not** run a timer, as it doesn't have a long-lived context to run from. Something else has to call those functions periodically:
+
+- **Dashboard** is still the usual driver. After the Dashboard window first paints, and again after a section refresh, it checks `isTagMentionCacheGenerationScheduled()` and then runs `generateTagMentionCache` (with a progress banner). TAG section generation calls `getFilenamesOfNotesWithTagOrMentions`, which incrementally updates if the cache is more than about **1 hour** old, and *schedules* a full rebuild if the cache is more than about **5 days** old (Dashboard then runs that rebuild on the next open/refresh).
+- **Registering new union items** (from any plugin) fire-and-forgets `generateTagMentionCache` immediately. A full rebuild can take 1-2 minutes; do not `await` it on a UI refresh path.
+
+So, if another plugin never opens and no plugin calls generate/update, the cache is _not_ refreshed, and will not be useful.
+
+### Register your items
+
+Import from Shared (Rollup will bundle the module). Use your `plugin.id` so other plugins' lists are left alone.
+
+```javascript
+import {
+  registerTagMentionCacheItems,
+  unregisterTagMentionCacheItems,
+  addTagMentionCacheItemsForPlugin,
+  getTagMentionCacheDefinitions,
+  isTagMentionCacheAvailable,
+  isTagMentionCacheAvailableForItem,
+} from '../../np.Shared/src/tagMentionCache'
+
+// Replace this plugin's list (does not wipe other plugins)
+registerTagMentionCacheItems('jgclark.Reviews', ['#project', '#area', '#goal'])
+
+// Add without removing existing items for this plugin
+addTagMentionCacheItemsForPlugin('jgclark.Reviews', ['#area'])
+
+// Drop this plugin's list. Items remain if another plugin still registered them.
+unregisterTagMentionCacheItems('jgclark.Reviews')
+```
+
+`getTagMentionCacheDefinitions()` returns the current **union**. `isTagMentionCacheAvailable()` is true when `tagMentionCache.json` exists. `isTagMentionCacheAvailableForItem('#project')` is true when that item is already in the cache body's `wantedItems` (so a lookup will not miss it for being unregistered).
+
+If you register items that are not yet in the union, Shared **starts** a full rebuild (fire-and-forget `generateTagMentionCache`). Do not `await` that rebuild on a UI refresh path. A 5-day-old cache is only *flagged* for rebuild; Dashboard (or another caller) has to run generate.
+
+`addTagMentionCacheDefinitions` / `setTagMentionCacheDefinitions` are Dashboard-compat helpers that write only the `jgclark.Dashboard` slot.
+
+### How to query
+
+**Cheap read (preferred on a refresh path).** Regular notes only. Does not update or rebuild. Returns `[]` if the cache file is missing.
+
+```javascript
+import { getRegularNoteFilenamesFromTagMentionCache } from '../../np.Shared/src/tagMentionCache'
+
+const filenames = getRegularNoteFilenamesFromTagMentionCache(['#project', '#area'])
+// e.g. ['Projects/Home.md', 'Areas/Health.md']
+```
+
+Resolve a note with `DataStore.projectNoteByFilename(filename)` (or your usual helper) if you need the `TNote`.
+
+**Full lookup (calendar + regular).** Can incrementally update the cache first, and optionally compare counts with the NotePlan API (slower; useful for diagnostics).
+
+```javascript
+import { getFilenamesOfNotesWithTagOrMentions } from '../../np.Shared/src/tagMentionCache'
+
+// firstUpdateCache=false: do not rebuild or incrementally update on this call
+const [filenames, comparison] = await getFilenamesOfNotesWithTagOrMentions(
+  ['#project', '@alice'],
+  false,
+  false,
+)
+```
+
+Pass `firstUpdateCache: true` (the default) only when you can afford `updateTagMentionCache()` (it walks notes changed since last run). Pass `turnOnAPIComparison: false` unless you want the comparison string.
+
+**One note.** `getCacheItemsFromNote(note, wantedItems)` returns the wanted tags/mentions found on that note using the same rules as a cache build (open items + any frontmatter field).
+
+### Typical plugin flow
+
+1. On settings load, `registerTagMentionCacheItems(yourPluginId, yourTags)`.
+2. On a hot path, if `isTagMentionCacheAvailableForItem` is true for the tags you need, call `getRegularNoteFilenamesFromTagMentionCache`.
+3. If the cache is missing or does not yet include your tags, fall back to your own scan (or wait for the scheduled rebuild). Do not trigger `generateTagMentionCache` from a window-refresh handler.
+
 ## Support
 
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).

@@ -2,10 +2,13 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [1.1.1] 2026-09-12
+- New: Shared **tag/mention cache** (`tagMentionCache.js`) with per-plugin registration. Plugins call `registerTagMentionCacheItems(pluginId, items)` / `unregisterTagMentionCacheItems(pluginId)`. The cache indexes the union; an item is dropped only when no plugin still wants it. Also indexes wanted tags/mentions in **any** frontmatter field, and exposes `getRegularNoteFilenamesFromTagMentionCache` for a cheap read.
+
+## [1.1.0] 2026-08-31
+- React windows now get app-level NotePlan preferences that React cannot read for itself, baked into `pluginData.notePlanSettings` when the window opens. dev: Inside a WebView `DataStore` is an async bridge proxy, so a scalar preference like `DataStore.defaultFileExtension` can't be read synchronously -- reading it plugin-side and passing it through gives every plugin's React window the value with no per-plugin plumbing. Starts with `defaultFileExtension`. Merged under anything the calling plugin already put in `pluginData.notePlanSettings`, so plugins that set their own (e.g. Dashboard) are unaffected.
+
 ## [1.0.11] 2026-07-17
-
-### Changed
-
 - Upgraded Font Awesome Pro assets from **6.0.0-alpha3** to **7.0.1**: `fontawesome.css`, `*.min.flat4NP.css` style loaders, and `fa-*.woff2` webfonts (Regular, Solid, Light, Duotone).
 - `getAvailableReminderLists` now uses `getAllAccessibleReminderLists()` from `@helpers/NPReminders` (same titles, plus NotePlan 3.20+ colour/enabled-list support in the helper).
 

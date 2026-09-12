@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Shared Resources plugin for NotePlan
 // Jonathan Clark
-// last updated 15.7.2023 for v0.4.4, @jgclark
+// last updated 2026.09.12 for v1.1.1 by @CursorAI
 // -----------------------------------------------------------------------------
 
 const sharedPluginID = 'np.Shared'
@@ -14,6 +14,20 @@ import { showMessage } from '@helpers/userInput'
 
 export { openReactWindow, showInMainWindow, onMessageFromHTMLView } from './NPReactLocal'
 export { handleSharedRequest } from './sharedRequestRouter'
+export {
+  addTagMentionCacheDefinitions,
+  addTagMentionCacheItemsForPlugin,
+  generateTagMentionCache,
+  getRegularNoteFilenamesFromTagMentionCache,
+  getTagMentionCacheDefinitions,
+  getTagMentionCacheRegistrations,
+  getUnionOfTagMentionCacheRegistrations,
+  parseTagMentionCacheRegistrationsJson,
+  pruneTagMentionCacheToUnion,
+  registerTagMentionCacheItems,
+  unregisterTagMentionCacheItems,
+  updateTagMentionCache,
+} from './tagMentionCache'
 
 /**
  * Log the list of resource files that should currently be available by this plugin (i.e. at run-time, not compile-time).
