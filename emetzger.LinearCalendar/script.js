@@ -122,7 +122,6 @@ function installCalendarEventEditor(host) {
               <div class="ce-row" id="ce-count-row"><label for="ce-count">Occurrences</label><input id="ce-count" name="count" type="number" min="1" max="9999" value="10"></div>
               <p class="ce-hint" id="ce-repeat-summary" aria-live="polite"></p><p class="ce-error" id="ce-repeat-error" role="alert" hidden></p></div>
             </details>
-            <p class="ce-hint" id="ce-repeat-help"></p>
           </fieldset>
           <fieldset class="ce-group"><legend>Details</legend>
             <div class="ce-row" id="ce-alert-row"><label for="ce-alert">Alert</label><select name="alert" id="ce-alert">${alertOptions()}</select></div>
@@ -680,11 +679,7 @@ function installCalendarEventEditor(host) {
     el('alert-row').hidden = !advanced
     el('second-alert-row').hidden = !advanced
     el('alert-help').hidden = !(event && event.hasComplexAlerts)
-    el('repeat-help').textContent = recurrence
-      ? ''
-      : recurring
-      ? 'Edit this series and its repeat schedule in Apple Calendar.'
-      : 'To make this event repeat, save it and set its repeat schedule in Apple Calendar.'
+    field('repeat').closest('.ce-row').hidden = !recurrence
     el('notice').hidden = !readOnly
     el('notice').textContent =
       loadError ||
