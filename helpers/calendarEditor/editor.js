@@ -155,7 +155,7 @@ function installCalendarEventEditor(host) {
     .ce-recurrence[open] .ce-repeat-done{display:block;position:absolute;top:18px;right:20px;border:0;color:var(--ce-focus);font-weight:600}
     #ce-attendees{max-width:75%;text-align:right;overflow-wrap:anywhere;color:var(--ce-label)}
     @media(prefers-color-scheme:dark){.ce-overlay{color-scheme:dark;--ce-bg:#252528;--ce-surface:#35353a;--ce-text:#f0f0f2;--ce-label:#d0d0d9;--ce-muted:#91919e;--ce-line:#51515a;--ce-accent:#df7600;--ce-focus:#70a2ff;--ce-danger:#ff8585;background:#0005}.ce-overlay input[type=checkbox]:not(:checked){background:#55555e}}
-    @media(max-width:440px){.ce-overlay{padding:10px}.ce-dialog{max-height:calc(100dvh - 20px)}.ce-header{padding:20px 18px}.ce-body{padding:4px 18px 0}.ce-footer{padding:16px 18px}.ce-row{gap:6px}.ce-datetime{gap:6px}.ce-datetime input[type=date]{width:128px}.ce-datetime input[type=time]{width:110px}}
+    @media(max-width:440px){.ce-overlay input,.ce-overlay select,.ce-overlay textarea,.ce-identity .ce-title{font-size:16px}.ce-overlay{padding:10px}.ce-dialog{max-height:calc(100dvh - 20px)}.ce-header{padding:20px 18px}.ce-body{padding:4px 18px 0}.ce-footer{padding:16px 18px}.ce-row{gap:6px}.ce-datetime{gap:6px}.ce-datetime input[type=date]{width:128px}.ce-datetime input[type=time]{width:110px}}
     @media(max-width:360px){.ce-datetime{flex-wrap:wrap}.ce-datetime input[type=date],.ce-datetime input[type=time]{width:125px}}
     @media(prefers-reduced-motion:reduce){.ce-overlay input[type=checkbox]:after{transition:none}}
   `
@@ -171,6 +171,7 @@ function installCalendarEventEditor(host) {
   let previousFocus = null
   let confirmation = null
   let previousDates = null
+  let originalAllDayDates = null
   let saved = false
   let selectedDays = new Set()
   let selectedMonthDays = new Set()
@@ -405,12 +406,19 @@ function installCalendarEventEditor(host) {
     }
     if (!field('calendar').value) throw new Error('Choose a writable calendar before saving.')
     const isAllDay = field('allDay').checked
-    const start = parseDate(field('startDate').value, isAllDay ? '00:00' : field('startTime').value)
-    const end = parseDate(field('endDate').value, isAllDay ? '00:00' : field('endTime').value)
+    let start = parseDate(field('startDate').value, isAllDay ? '00:00' : field('startTime').value)
+    let end = parseDate(field('endDate').value, isAllDay ? '00:00' : field('endTime').value)
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) throw new Error('Enter valid start and end dates and times.')
     if (isAllDay ? end < start : end <= start) throw new Error('The end must be after the start.')
     // EventKit uses an exclusive end. Advance by a calendar day, not 24 hours (DST).
     if (isAllDay) end.setDate(end.getDate() + 1)
+    // Display dates are not a request to normalize an existing EventKit schedule.
+    // Some all-day events have non-midnight boundaries. A title-only edit must
+    // preserve them, particularly when EventKit splits this/future occurrences.
+    if (advanced && isAllDay && originalAllDayDates) {
+      if (field('startDate').value === originalAllDayDates.start) start = new Date(event.date || event.startDate)
+      if (field('endDate').value === originalAllDayDates.end) end = new Date(event.endDate)
+    }
     const url = field('url').value.trim()
     if (url && (!event || url !== event.url)) {
       try {
@@ -578,6 +586,7 @@ function installCalendarEventEditor(host) {
     field('allDay').checked = allDay
     field('startDate').value = dateText(start)
     field('endDate').value = dateText(end)
+    originalAllDayDates = event && allDay ? { start: field('startDate').value, end: field('endDate').value } : null
     field('startTime').value = !allDay ? timeText(start) : '09:00'
     field('endTime').value = !allDay ? timeText(end) : '10:00'
     field('until').value = dateText(start)

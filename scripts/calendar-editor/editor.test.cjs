@@ -232,3 +232,63 @@ test('new drafts remember the last saved writable calendar and fall back when it
   await t.click('[data-action="close"]'); calendars = [calendars[0]]
   await t.editor.open({ start: new Date(2026, 8, 16) }); assert.equal(t.field('calendar').value, 'work'); t.close()
 })
+
+test('renaming this and future all-day occurrences preserves original date boundaries', async () => {
+  // NotePlan's existing native editor can produce a 01:00 all-day start.
+  const original = { ...timed, title: 'Someting', isAllDay: true, isRecurring: true,
+    date: '2026-09-23T01:00:00', endDate: '2026-09-24T00:00:00',
+    recurrenceRules: [{ frequency: 'weekly', interval: 1 }] }
+  const t = setup(); await t.editor.open({ event: original })
+  assert.equal(t.field('endDate').value, '2026-09-23')
+  t.change('title', 'Someting1'); await t.click('#ce-save'); await t.click('[data-action="confirm"]')
+  const saved = t.calls.saves[0]
+  assert.equal(saved.scope, 'future')
+  assert.equal(saved.date.getTime(), new Date(original.date).getTime())
+  assert.equal(saved.endDate.getTime(), new Date(original.endDate).getTime())
+  assert.equal('recurrenceRules' in saved, false)
+  await t.editor.open({ event: saved }); assert.equal(t.field('endDate').value, '2026-09-23'); t.close()
+})
+
+test('shortening a spanning all-day series saves the selected inclusive last day', async () => {
+  const t = setup(); await t.editor.open({ event: { ...timed, isAllDay: true, isRecurring: true,
+    date: '2026-09-23T01:00:00', endDate: '2026-09-25T00:00:00',
+    recurrenceRules: [{ frequency: 'weekly', interval: 1 }] } })
+  assert.equal(t.field('endDate').value, '2026-09-24')
+  t.change('endDate', '2026-09-23'); await t.click('#ce-save'); await t.click('[data-action="confirm"]')
+  const saved = t.calls.saves[0]
+  assert.equal(saved.scope, 'future'); assert.equal(saved.date.getHours(), 1)
+  assert.equal(saved.endDate.getTime(), new Date('2026-09-24T00:00:00').getTime())
+  await t.editor.open({ event: saved }); assert.equal(t.field('endDate').value, '2026-09-23'); t.close()
+})
+
+test('both calendars follow NotePlan week-start preferences instead of stale local settings', async () => {
+  for (const firstDay of [1, 2, 7]) {
+    for (const plugin of ['emetzger.Calendar', 'emetzger.LinearCalendar']) {
+      const context = vm.createContext({}); vm.runInContext(fs.readFileSync(plugin + '/script.js', 'utf8'), context)
+      const dom = new JSDOM(context.getCalendarHTML(2026), { url: 'https://calendar.test', runScripts: 'dangerously', pretendToBeVisual: true, beforeParse(window) {
+        window.matchMedia = () => ({ matches: false, addEventListener() {} })
+        window.HTMLElement.prototype.scrollIntoView = function() {}
+        window.localStorage.setItem('calendar_firstDayOfWeek', '4')
+        window.localStorage.setItem('calendarFirstDayOfWeek', '0')
+        window.localStorage.setItem('calendarLayoutMode', 'fixedWeek')
+        window.DataStore = { preference: async (key) => { assert.equal(key, 'firstDayOfWeek'); return firstDay } }
+        window.Calendar = { availableCalendars: async () => [], eventsBetween: async () => [] }
+      }})
+      await tick(); await tick(); await tick()
+      const expected = firstDay - 1
+      if (plugin.includes('Linear')) {
+        assert.equal(dom.window.document.querySelector('.weekday-header').textContent, ['SU','MO','TU','WE','TH','FR','SA'][expected])
+        assert.equal(dom.window.document.querySelector('#firstDayOfWeekSection').style.display, 'none')
+      } else {
+        dom.window.document.querySelector('[data-view="week"]').click(); await tick(); await tick()
+        const headers = Array.from(dom.window.document.querySelectorAll('.week-header-day'))
+        assert.equal(new Date(headers[0].dataset.date + 'T12:00:00').getDay(), expected)
+        assert.deepEqual(headers.map(el => el.dataset.date), Array.from(dom.window.document.querySelectorAll('.all-day-column'), el => el.dataset.date))
+        assert.deepEqual(headers.map(el => el.dataset.date), Array.from(dom.window.document.querySelectorAll('.week-body .day-column'), el => el.dataset.date))
+        dom.window.document.querySelector('[data-view="month"]').click(); await tick(); await tick()
+        assert.equal(dom.window.document.querySelector('.weekday-cell').textContent.trim().toUpperCase(), ['SUN','MON','TUE','WED','THU','FRI','SAT'][expected])
+      }
+      dom.window.close()
+    }
+  }
+})

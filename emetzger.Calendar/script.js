@@ -193,7 +193,7 @@ function installCalendarEventEditor(host) {
     .ce-recurrence[open] .ce-repeat-done{display:block;position:absolute;top:18px;right:20px;border:0;color:var(--ce-focus);font-weight:600}
     #ce-attendees{max-width:75%;text-align:right;overflow-wrap:anywhere;color:var(--ce-label)}
     @media(prefers-color-scheme:dark){.ce-overlay{color-scheme:dark;--ce-bg:#252528;--ce-surface:#35353a;--ce-text:#f0f0f2;--ce-label:#d0d0d9;--ce-muted:#91919e;--ce-line:#51515a;--ce-accent:#df7600;--ce-focus:#70a2ff;--ce-danger:#ff8585;background:#0005}.ce-overlay input[type=checkbox]:not(:checked){background:#55555e}}
-    @media(max-width:440px){.ce-overlay{padding:10px}.ce-dialog{max-height:calc(100dvh - 20px)}.ce-header{padding:20px 18px}.ce-body{padding:4px 18px 0}.ce-footer{padding:16px 18px}.ce-row{gap:6px}.ce-datetime{gap:6px}.ce-datetime input[type=date]{width:128px}.ce-datetime input[type=time]{width:110px}}
+    @media(max-width:440px){.ce-overlay input,.ce-overlay select,.ce-overlay textarea,.ce-identity .ce-title{font-size:16px}.ce-overlay{padding:10px}.ce-dialog{max-height:calc(100dvh - 20px)}.ce-header{padding:20px 18px}.ce-body{padding:4px 18px 0}.ce-footer{padding:16px 18px}.ce-row{gap:6px}.ce-datetime{gap:6px}.ce-datetime input[type=date]{width:128px}.ce-datetime input[type=time]{width:110px}}
     @media(max-width:360px){.ce-datetime{flex-wrap:wrap}.ce-datetime input[type=date],.ce-datetime input[type=time]{width:125px}}
     @media(prefers-reduced-motion:reduce){.ce-overlay input[type=checkbox]:after{transition:none}}
   `
@@ -209,6 +209,7 @@ function installCalendarEventEditor(host) {
   let previousFocus = null
   let confirmation = null
   let previousDates = null
+  let originalAllDayDates = null
   let saved = false
   let selectedDays = new Set()
   let selectedMonthDays = new Set()
@@ -443,12 +444,19 @@ function installCalendarEventEditor(host) {
     }
     if (!field('calendar').value) throw new Error('Choose a writable calendar before saving.')
     const isAllDay = field('allDay').checked
-    const start = parseDate(field('startDate').value, isAllDay ? '00:00' : field('startTime').value)
-    const end = parseDate(field('endDate').value, isAllDay ? '00:00' : field('endTime').value)
+    let start = parseDate(field('startDate').value, isAllDay ? '00:00' : field('startTime').value)
+    let end = parseDate(field('endDate').value, isAllDay ? '00:00' : field('endTime').value)
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) throw new Error('Enter valid start and end dates and times.')
     if (isAllDay ? end < start : end <= start) throw new Error('The end must be after the start.')
     // EventKit uses an exclusive end. Advance by a calendar day, not 24 hours (DST).
     if (isAllDay) end.setDate(end.getDate() + 1)
+    // Display dates are not a request to normalize an existing EventKit schedule.
+    // Some all-day events have non-midnight boundaries. A title-only edit must
+    // preserve them, particularly when EventKit splits this/future occurrences.
+    if (advanced && isAllDay && originalAllDayDates) {
+      if (field('startDate').value === originalAllDayDates.start) start = new Date(event.date || event.startDate)
+      if (field('endDate').value === originalAllDayDates.end) end = new Date(event.endDate)
+    }
     const url = field('url').value.trim()
     if (url && (!event || url !== event.url)) {
       try {
@@ -616,6 +624,7 @@ function installCalendarEventEditor(host) {
     field('allDay').checked = allDay
     field('startDate').value = dateText(start)
     field('endDate').value = dateText(end)
+    originalAllDayDates = event && allDay ? { start: field('startDate').value, end: field('endDate').value } : null
     field('startTime').value = !allDay ? timeText(start) : '09:00'
     field('endTime').value = !allDay ? timeText(end) : '10:00'
     field('until').value = dateText(start)
@@ -901,6 +910,7 @@ function getCalendarHTML() {
       background: var(--bg-primary);
       color: var(--text-primary);
       height: 100vh;
+      height: 100dvh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -1740,7 +1750,7 @@ function getCalendarHTML() {
 
     .week-header {
       display: grid;
-      grid-template-columns: var(--time-column-width) repeat(7, 1fr);
+      grid-template-columns: var(--time-column-width) repeat(7, minmax(0, 1fr));
       border-bottom: 1px solid var(--border-color);
       background: var(--bg-primary);
       flex-shrink: 0;
@@ -1789,7 +1799,7 @@ function getCalendarHTML() {
     /* All-day section */
     .all-day-section {
       display: grid;
-      grid-template-columns: var(--time-column-width) repeat(7, 1fr);
+      grid-template-columns: var(--time-column-width) repeat(7, minmax(0, 1fr));
       border-bottom: 1px solid var(--border-color);
       min-height: 28px;
       background: var(--bg-primary);
@@ -1815,12 +1825,20 @@ function getCalendarHTML() {
       min-width: 0;
     }
 
+    .week-header, .all-day-section, .week-body { scrollbar-gutter: stable; }
+    .week-header { overflow-y: hidden; }
+    .all-day-section { max-height: min(160px, 24dvh); overflow-y: auto; align-items: start; }
+    .all-day-label { align-self: stretch; align-items: flex-start; }
+    .week-view, .day-view, .week-body { min-height: 0; }
+    .event-compact-time { display: none; }
+    .timed-event-time { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
     /* Time grid */
     .week-body {
       flex: 1;
       overflow-y: auto;
       display: grid;
-      grid-template-columns: var(--time-column-width) repeat(7, 1fr);
+      grid-template-columns: var(--time-column-width) repeat(7, minmax(0, 1fr));
       position: relative;
     }
 
@@ -2366,7 +2384,7 @@ function getCalendarHTML() {
       }
 
       /* Week view adjustments */
-      .week-header .day-header {
+      .week-header-day {
         padding: 6px 2px !important;
         font-size: 11px !important;
       }
@@ -2484,10 +2502,19 @@ function getCalendarHTML() {
         gap: 0;
       }
 
-      .nav-btn, .today-circle-btn {
-        width: 32px;
-        height: 32px;
+      .nav-btn, .today-circle-btn, .event-filter-toggle, .calendar-filter-button {
+        min-width: 44px;
+        min-height: 44px;
       }
+      .view-btn { min-height: 44px; min-width: 44px; }
+      .event-filter { height: 44px; }
+      .header-right:has(.event-filter.expanded) { flex-wrap: wrap; }
+      .header-right:has(.event-filter.expanded) .calendar-filter { order: 2; }
+      .event-filter.expanded { order: 3; flex: 1 0 100%; }
+      .header-right .event-filter.expanded .event-filter-input { flex: 1; width: auto; max-width: none; height: 44px; font-size: 16px; }
+      .event-filter.expanded.has-value .event-filter-clear { width: 44px; height: 44px; }
+
+      .quick-add-toggle, .quick-add-calendar-btn { min-height: 44px; min-width: 44px; }
 
       .nav-title {
         font-size: 14px;
@@ -2527,7 +2554,7 @@ function getCalendarHTML() {
       }
 
       .calendar-container {
-        padding-bottom: 60px !important;
+        padding-bottom: calc(64px + env(safe-area-inset-bottom)) !important;
       }
 
       .quick-add-input {
@@ -2588,7 +2615,7 @@ function getCalendarHTML() {
       }
 
       /* Month view - remove vertical dividers, keep horizontal */
-      .day-column::after {
+      .month-view .day-column::after {
         display: none !important;
       }
 
@@ -2596,7 +2623,7 @@ function getCalendarHTML() {
         border-right: none !important;
       }
 
-      .day-column {
+      .month-view .day-column {
         min-height: 70px !important;
         padding: 2px 0 !important;
       }
@@ -2654,29 +2681,20 @@ function getCalendarHTML() {
         padding: 0 3px !important;
       }
 
-      /* Week view - show only 3 days */
-      .week-grid {
-        display: flex !important;
-        overflow-x: auto !important;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      .week-grid .day-column {
-        min-width: 33.33% !important;
-        flex-shrink: 0;
-        scroll-snap-align: start;
-      }
-
-      .week-header {
-        display: flex !important;
-        overflow-x: auto !important;
-      }
-
-      .week-header .day-header {
-        min-width: 33.33% !important;
-        flex-shrink: 0;
-      }
+      /* Keep date headers, all-day events, and timed events on one seven-day grid. */
+      .week-header-day { padding: 7px 1px; }
+      .week-day-name { font-size: 9px; margin-bottom: 3px; }
+      .week-day-number { font-size: 18px; }
+      .week-view .timed-event { padding: 3px !important; font-size: 10px !important; }
+      .week-view .timed-event-time { font-size: 9px; }
+      .week-view .timed-event-time .event-end-time,
+      .week-view .timed-event-time .event-start-time { display: none; }
+      .week-view .timed-event-time .event-compact-time { display: inline; }
+      .week-view .all-day-column .event-chip,
+      .day-view .all-day-column .event-chip { height: 20px !important; line-height: 20px !important; font-size: 10px !important; }
+      .time-slot-label { padding: 0 5px; font-size: 9px; white-space: nowrap; }
+      .all-day-label { padding: 5px; font-size: 9px; }
+      .nav-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
       /* Day view */
       .day-view-header {
@@ -2861,7 +2879,7 @@ function getCalendarHTML() {
       filterText: '',
       use12HourFormat: false,
       settings: {
-        firstDayOfWeek: parseInt(localStorage.getItem('calendar_firstDayOfWeek') || '0')
+        firstDayOfWeek: 1 // NotePlan defaults to Monday; overwritten by its preference below.
       }
     };
 
@@ -4058,7 +4076,8 @@ function getCalendarHTML() {
                 'width: ' + width + '%; left: ' + left + '%;">';
         html += '<div class="timed-event-title">' + escapeHtml(event.title || 'No Title') + '</div>';
         if (duration >= 45) {
-          html += '<div class="timed-event-time">' + formatTime(start) + ' - ' + formatTime(end) + '</div>';
+          const compactTime = state.use12HourFormat ? formatTime(start).replace(':00', '').replace(' ', '').toLowerCase() : formatTime(start);
+          html += '<div class="timed-event-time"><span class="event-start-time">' + formatTime(start) + '</span><span class="event-compact-time">' + compactTime + '</span><span class="event-end-time"> – ' + formatTime(end) + '</span></div>';
         }
         html += '</div>';
       });
@@ -4833,6 +4852,14 @@ function getCalendarHTML() {
       // Detect user's time format preference (12h vs 24h)
       state.use12HourFormat = detectTimeFormat();
 
+      try {
+        const firstDay = Number(await DataStore.preference('firstDayOfWeek'));
+        if (Number.isInteger(firstDay) && firstDay >= 1 && firstDay <= 7) {
+          state.settings.firstDayOfWeek = firstDay - 1; // NotePlan: Sunday=1; JavaScript: Sunday=0.
+        }
+      } catch (_) {
+        // Older hosts without the preference API use NotePlan's default (Monday).
+      }
       await loadCalendars();
       await refreshEvents();
       initQuickAdd();
