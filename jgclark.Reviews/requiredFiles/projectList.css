@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-09-11 for v2.1.1, @jgclark + @CursorAI
+ * Last updated 2026-09-12 for v2.2.0, @jgclark + @CursorAI
  */
 
 /* ============================================================
@@ -199,6 +199,12 @@ input, label {
 
   .perspective-name {
     font-weight: 600;
+  }
+
+  /* Nudge FA icons up 1px without changing button box height (relative keeps layout size). */
+  .PCButton i {
+    position: relative;
+    top: -1px;
   }
 }
 

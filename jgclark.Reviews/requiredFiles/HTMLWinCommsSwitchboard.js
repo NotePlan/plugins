@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------
 //  HTMLWinCommsSwitchboard.js - in the HTMLWindow process data and logic to/from the plugin
-// Last updated: 2026-08-19 for v2.0.7 by @jgclark + @CursorAI
+// Last updated: 2026-09-12 for v2.2.0 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------------------
 /**
  * This file is loaded by the browser via <script> tag in the HTML file
@@ -236,4 +236,69 @@ function escapeHtmlText(text) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+}
+
+/**
+ * Refresh button + rotate icon in the sticky top bar.
+ * @returns {{ button: HTMLElement | null, icon: HTMLElement | null }}
+ */
+function getRefreshButtonAndIcon() {
+  var wrap = document.getElementById('refresh')
+  if (!wrap) return { button: null, icon: null }
+  var button = wrap.querySelector('.PCButton')
+  var icon = button ? button.querySelector('i.fa-arrow-rotate-right') : wrap.querySelector('i.fa-arrow-rotate-right')
+  return { button: button, icon: icon }
+}
+
+function isRefreshButtonSpinning() {
+  var parts = getRefreshButtonAndIcon()
+  return !!(parts.icon && parts.icon.classList.contains('fa-spin'))
+}
+
+/**
+ * Start the Refresh icon spinning and disable the button.
+ * Force a reflow so the first paint includes fa-spin. requestAnimationFrame does not fire
+ * once generateAllProjectsList beachballs the plugin JSContext.
+ */
+function startRefreshButtonSpin() {
+  var parts = getRefreshButtonAndIcon()
+  if (parts.icon && !parts.icon.classList.contains('fa-spin')) {
+    parts.icon.classList.add('fa-spin')
+    void parts.icon.offsetHeight
+  }
+  if (parts.button) {
+    parts.button.disabled = true
+    parts.button.setAttribute('aria-busy', 'true')
+  }
+}
+
+/**
+ * Stop the Refresh icon spinning (error path). A successful generate replaces the HTML, which also clears it.
+ */
+function stopRefreshButtonSpin() {
+  var parts = getRefreshButtonAndIcon()
+  if (parts.icon) parts.icon.classList.remove('fa-spin')
+  if (parts.button) {
+    parts.button.disabled = false
+    parts.button.removeAttribute('aria-busy')
+  }
+}
+
+/**
+ * Shared frontend entry for Refresh (button, ⌘R, auto-refresh, window re-appear).
+ * Starts the icon spinning in this turn, then asks the plugin to regenerate.
+ */
+function requestProjectListRefresh() {
+  if (isRefreshButtonSpinning()) {
+    console.log('requestProjectListRefresh: already refreshing')
+    return
+  }
+  startRefreshButtonSpin()
+  try {
+    var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0
+    sendMessageToPlugin('refresh', { scrollPos: scrollPos })
+  } catch (e) {
+    console.log('requestProjectListRefresh error', e && e.message)
+    stopRefreshButtonSpin()
+  }
 }

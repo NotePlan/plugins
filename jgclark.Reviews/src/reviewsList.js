@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Project list display, rendering, and display-filter commands
 // Extracted from reviews.js
-// Last updated 2026-08-19 for v2.0.7 by @jgclark + @CursorAI
+// Last updated 2026-09-12 for v2.2.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -204,6 +204,12 @@ let generateProjectListsAndRenderIfOpenInFlight: boolean = false
 let generateProjectListsAfterBannerQueued: boolean = false
 
 /**
+ * True after a Refresh paint hop has queued `afterSpin` until that generate starts.
+ * Prevents a second Refresh from queueing a second generate x-callback.
+ */
+let displayProjectListsAfterSpinQueued: boolean = false
+
+/**
  * When true, another regen was requested while in flight or while afterBanner was already queued;
  * run one more generate after the current one finishes (latest perspective/settings win).
  */
@@ -280,16 +286,49 @@ async function setProjectListPerspectiveRecalcBanner(config: ?{ +usePerspectives
 /**
  * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
  * Now includes support for calling from x-callback, using full JSON '{"a":"b", "x":"y"}' version of settings and values that will override ones in the user's settings.
+ * When the Rich list window is already open, spin the Refresh icon and hop via x-callback (`afterSpin`)
+ * so the WebView can paint before `generateAllProjectsList` beachballs the JSContext.
  * @param {string? | null} argsIn as JSON (optional)
- * @param {number?} scrollPos in pixels (optional, for HTML only)
+ * @param {number | string} scrollPos in pixels (optional, for HTML only; x-callback args arrive as strings)
+ * @param {string} refreshPhase - `afterSpin`: skip the paint hop and generate. Empty: spin + hop when the Rich window is open.
  */
-export async function displayProjectLists(argsIn?: string | null = null, scrollPos: number = 0): Promise<void> {
+export async function displayProjectLists(
+  argsIn?: string | null = null,
+  scrollPos: number | string = 0,
+  refreshPhase: string = '',
+): Promise<void> {
+  const scrollPosNum = typeof scrollPos === 'string' ? Number(scrollPos) || 0 : scrollPos
+  const phase = String(refreshPhase || '')
   try {
+    const richWindowOpen = isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)
+
+    // Same paint-then-hop pattern as generateProjectListsAndRenderIfOpen / paintFirst:
+    // start the icon spinning and return before scanning notes so the WebView can paint.
+    if (richWindowOpen && phase !== 'afterSpin') {
+      await runProjectListWindowJS(`(function(){ if (typeof startRefreshButtonSpin === 'function') startRefreshButtonSpin() })();`)
+      if (displayProjectListsAfterSpinQueued) {
+        logInfo('displayProjectLists', 'refresh icon spinning; afterSpin already queued; skipping duplicate hop')
+        return
+      }
+      displayProjectListsAfterSpinQueued = true
+      const argsForCallback = argsIn == null ? '' : String(argsIn)
+      const url = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', [
+        argsForCallback,
+        String(scrollPosNum),
+        'afterSpin',
+      ])
+      logInfo('displayProjectLists', `refresh icon spinning; queuing generate after paint: ${url}`)
+      NotePlan.openURL(url)
+      return
+    }
+
+    displayProjectListsAfterSpinQueued = false
+
     let config = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     const args = argsIn?.toString() || ''
-    logDebug(pluginJson, `displayProjectLists: starting with JSON args <${args}> and scrollPos ${String(scrollPos)}`)
+    logDebug(pluginJson, `displayProjectLists: starting with JSON args <${args}> and scrollPos ${String(scrollPosNum)} (refreshPhase='${phase}')`)
     if (args !== '') {
       config = overrideSettingsWithEncodedTypedArgs(config, args)
       // clo(config, 'Review settings updated with args:')
@@ -300,9 +339,13 @@ export async function displayProjectLists(argsIn?: string | null = null, scrollP
     // Re-calculate the allProjects list (in foreground)
     await generateAllProjectsList(config, true)
     // Call the relevant rendering function with the updated config
-    await renderProjectLists(config, true, scrollPos)
+    await renderProjectLists(config, true, scrollPosNum)
   } catch (error) {
+    displayProjectListsAfterSpinQueued = false
     logError('displayProjectLists', JSP(error))
+    if (isHTMLWindowOpen(RICH_PROJECT_LIST_WIN_ID)) {
+      await runProjectListWindowJS(`(function(){ if (typeof stopRefreshButtonSpin === 'function') stopRefreshButtonSpin() })();`)
+    }
   }
 }
 

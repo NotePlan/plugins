@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
 // Note: this file is run as a script in the Project List window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
-// Last updated: 2026-05-18 for v2.0.0.b35 by @CursorAI & @jgclark
+// Last updated: 2026-09-12 for v2.2.0 by @CursorAI & @jgclark
 //--------------------------------------------------------------------------------------
 
 // Add event handler
@@ -429,6 +429,19 @@ function addCommandButtonEventListeners() {
     // console.log(`- displaying button for PCB function ${button.dataset.command}`)
     button.addEventListener('click', function (event) {
       event.preventDefault()
+      // Refresh: spin the icon in this turn, then regenerate (same path as ⌘R / auto-refresh).
+      if (button.dataset.command === 'project lists') {
+        if (typeof requestProjectListRefresh === 'function') {
+          requestProjectListRefresh()
+        } else {
+          const scrollPos = typeof window.__reviewsGetScrollPos === 'function'
+            ? window.__reviewsGetScrollPos()
+            : 0
+          sendMessageToPlugin('refresh', { scrollPos: scrollPos })
+        }
+        return
+      }
+
       // console.log(`Attempting to send plugin command '${button.dataset.command}' ...`)
       const scrollPos = typeof window.__reviewsGetScrollPos === 'function'
         ? window.__reviewsGetScrollPos()
