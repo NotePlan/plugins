@@ -215,11 +215,11 @@ export function resolveFolderPathFromChoice(folderChoices: Array<FolderChoice>, 
 
 /**
  * Build frontmatter attribute map for project metadata (separate keys + combined tags key).
- * @param {ConvertToProjectInputs} inputs
+ * @param {ConvertToProjectInputs | CreateNewProjectInputs} inputs
  * @param {ReviewConfig} config
  * @returns {{ [string]: string }}
  */
-function buildFrontmatterAttrs(inputs: ConvertToProjectInputs, config: ReviewConfig): { [string]: string } {
+function buildFrontmatterAttrs(inputs: ConvertToProjectInputs | CreateNewProjectInputs, config: ReviewConfig): { [string]: string } {
   const singleKeyName = checkString(config.projectMetadataFrontmatterKey || 'project')
   const startKey = separateFmKeyFromMentionPref(checkString(DataStore.preference('startMentionStr') || '@start'), 'start')
   const dueKey = separateFmKeyFromMentionPref(checkString(DataStore.preference('dueMentionStr') || '@due'), 'due')
@@ -324,11 +324,11 @@ function buildSharedProjectMetadataFields(
 /**
  * Write project frontmatter and refresh open project lists.
  * @param {TNote} note
- * @param {ConvertToProjectInputs} inputs
+ * @param {ConvertToProjectInputs | CreateNewProjectInputs} inputs
  * @param {ReviewConfig} config
  * @returns {Promise<boolean>}
  */
-async function applyProjectMetadataAndRefreshLists(note: TNote, inputs: ConvertToProjectInputs, config: ReviewConfig): Promise<boolean> {
+async function applyProjectMetadataAndRefreshLists(note: TNote, inputs: ConvertToProjectInputs | CreateNewProjectInputs, config: ReviewConfig): Promise<boolean> {
   const attrs = buildFrontmatterAttrs(inputs, config)
   const possibleEditor = getOpenEditorFromFilename(note.filename)
   const targetForFm: TEditor | TNote = possibleEditor || note

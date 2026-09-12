@@ -34,7 +34,7 @@ function makeFinishedProject(overrides: any = {}): any {
   }
 }
 
-const listConfig = {
+const listConfig: any = {
   displayDates: true,
   displayProgress: true,
   displayNextActions: false,
