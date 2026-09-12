@@ -257,6 +257,8 @@ input, label {
 }
 
 .topbar-right-cluster {
+  display: flex;
+  align-items: center;
   justify-self: end;
   min-width: 0;
 }
@@ -298,11 +300,10 @@ input, label {
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   z-index: 20;
 }
-/* Centred topbar trigger: panel hangs under the middle of the button */
-.topbar-center-cluster .display-filters-dropdown {
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
+/* Right-side topbar trigger: panel hangs under the right edge of the button */
+.topbar-right-cluster .display-filters-dropdown {
+  left: auto;
+  right: 0;
 }
 .display-filters-dropdown.is-open {
   display: block;

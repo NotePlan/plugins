@@ -49,7 +49,7 @@ export {
   cancelProject,
   togglePauseProject
 } from './projects'
-export { convertToProject } from './convertNote.js'
+export { convertToProject, createNewProject } from './newProject.js'
 export {
   generateCSSFromTheme
 } from '@helpers/NPThemeToCSS'
@@ -58,7 +58,7 @@ export {
   showProjectsWeeklyProgressHeatmaps
 } from './projectsWeeklyProgress'
 
-// Note: There are other possible exports, including:
+// Note: Previously there were some test functions exported, including:
 // export { testFonts } from '../experiments/fontTests.js'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge' 
 
@@ -86,7 +86,7 @@ function migrateProgressHeadingSetting(settings: { [string]: any }): { [string]:
 
 /**
  * Open this plugin's settings pane in NotePlan Preferences.
- * Used by the Rich list empty-state gear control, and the "/Projects: open plugin settings" command.
+ * Used by the Rich list top-bar and empty-state gear controls, and the hidden "/Projects: update plugin settings" command.
  * @returns {Promise<void>}
  */
 export async function openSettings(): Promise<void> {

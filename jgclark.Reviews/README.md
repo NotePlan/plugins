@@ -61,7 +61,7 @@ The fields it uses are:
 - `due`: project's due date (optional; not normally relevant for Areas)
 - `completed`: date project was completed (if relevant)
 - `cancelled`: date project was cancelled (if relevant)
-- `Aim`: optional. The plugin doesn't read or display the Aim, but the `/convert to project` form will write it to an `aim:` frontmatter field if you supply one.
+- `Aim`: optional. The plugin doesn't read or display the Aim, but the `/Create new project` and `/convert to project` forms will write it to an `aim:` frontmatter field if you supply one.
 - `Progress: N@YYYY-MM-DD one-line description`: your latest summary of progress for this N% (optional). If present this is shown in the projects list; if not, the % progress is calculated as the number of open and closed tasks. (From v1.3 the default format omits the colon after the date; older lines with a colon are still parsed.)
 
 An example of an Area-type note:
@@ -317,6 +317,9 @@ Another approach comes from user George C:
 
 ## Creating a new Project/Area note
 There are a variety of tools to help you create a new Project or Area note ...
+
+### "/Create new project" command
+(New in v2.2, and requires NotePlan v3.21+.) This creates a **new** project note. It shows the same metadata form as ["/convert to project"](#convert-to-project-command), plus fields for the **project title** and a **folder** dropdown. The folder list defaults to the folder of the note currently open in the Editor (or `/` if there isn't one). After you submit, it writes the metadata to the new note's frontmatter and opens the note in a split view.
 
 ### Templates
 Use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the built-in Templating system, to apply a pre-set Template. For example here's a basic Template that will prompt you with 6 questions:

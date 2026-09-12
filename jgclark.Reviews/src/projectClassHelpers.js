@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class helpers for Project & Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-04-30 for v2.0.0.b27, @Cursor
+// Last updated 2026-09-11 for v2.1.2, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -106,24 +106,23 @@ export function readRawFrontmatterField(note: CoreNoteFields, fieldName: string)
 }
 
 /**
- * Calculate duration string for a date, optionally relative to a start date.
- * If startDate is provided, returns "after X" format. Otherwise returns relative time (e.g., "2 days ago").
- * If duration is less than 1 day then return "today".
- * @param {string|Date} date - The date to calculate duration for (ISO string or Date)
- * @param {?string|Date} startDate - Optional start date for calculating duration between dates
- * @param {boolean} roundShortDurationToToday - Whether to use round to 'today' if duration is measured in hours or less
+ * Duration from project start to a finish date, e.g. "after 3 months".
+ * Returns '' when startDate is missing so callers do not persist relative phrases such as "a day ago".
+ * @param {string|Date} date - The finish date (ISO string or Date)
+ * @param {?string|Date} startDate - Project start date
+ * @param {boolean} [_roundShortDurationToToday] unused; kept so existing call sites stay unchanged
  * @returns {string} Duration string
  */
-export function formatDurationString(date: string | Date, startDate?: string | Date, roundShortDurationToToday: boolean = false): string {
-  if (startDate != null) {
-    return `after ${moment(startDate).to(moment(date), true)}`
-  } else {
-    let duration = moment(date).fromNow()
-    if (roundShortDurationToToday && ['seconds', 'minutes', 'hours'].includes(duration)) {
-      duration = 'today'
-    }
-    return duration
+export function formatDurationString(date: string | Date, startDate?: string | Date, _roundShortDurationToToday: boolean = false): string {
+  if (startDate == null || startDate === '') {
+    return ''
   }
+  const startMom = moment(startDate)
+  const endMom = moment(date)
+  if (!startMom.isValid() || !endMom.isValid()) {
+    return ''
+  }
+  return `after ${startMom.to(endMom, true)}`
 }
 
 /**

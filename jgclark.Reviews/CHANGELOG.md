@@ -1,6 +1,11 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.2.0] - 2026-09-???
+- New **/Create new project** command: form asks for title, folder (defaults to the current Editor note's folder), and the same metadata as the existing **/Convert to project**, then opens the new note in a split view.
+- Change: Completed and cancelled project summary lines both use duration from start (e.g. `Completed after 3 months` / `Cancelled after 3 months`). If there is no start date, they use the finish month (e.g. `Cancelled in Nov`).
+- Change: The top bar of the Project List window has been re-ordered, and now has a cog-wheel button that opens the plugin's settings pane.
+
 ## [2.1.1] - 2026-09-11
 - Fix: "Finish+Next" button in top bar not working (thanks to @cbkadel PR)
 - Fix: clicking title forcing Split View, even when your "Preferred Window Type" setting was "New Window"  (thanks to @cbkadel PR)
