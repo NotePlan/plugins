@@ -11,7 +11,8 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getMatchingProjectTypeTagsOnNote, getReviewSettings, parseMarkdownHeadingSetting, type ReviewConfig } from './reviewHelpers'
+import { getMatchingProjectTypeTagsOnNote } from './reviewHelpers'
+import { getReviewSettings, parseMarkdownHeadingSetting, type ReviewConfig } from './reviewSettings'
 import {
   RE_DONE_DATE_OPT_TIME,
   RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,

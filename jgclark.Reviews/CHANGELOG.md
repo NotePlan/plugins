@@ -2,11 +2,13 @@
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
 ## [2.2.0] - 2026-09-???
-- Dev: INFO-level duration logs for each allProjects list rebuild, incremental update, and access.
 - Fix: Refresh button icon now spins as soon as it is clicked, and stops when list generation finishes (instead of only showing a beachball).
 - New **/Create new project** command: form asks for title, folder (defaults to the current Editor note's folder), and the same metadata as the existing **/Convert to project**, then opens the new note in a split view.
 - Change: Completed and cancelled project summary lines both use duration from start (e.g. `Completed after 3 months` / `Cancelled after 3 months`). If there is no start date, they use the finish month (e.g. `Cancelled in Nov`).
 - Change: The top bar of the Project List window has been re-ordered, and now has a cog-wheel button that opens the plugin's settings pane.
+- Change: Avoids unnecessary refreshes when saving settings.  dev: Saving plugin settings only rebuilds the project list when "What do you want to Review?" or "Customise the metadata terms" settings change. Next-action and progress-calculation settings re-parse existing list rows (no vault scan). Changes in "Display settings for 'project lists' command" re-render an already-open list. Other settings do neither.
+- Dev: INFO-level duration logs for each allProjects list rebuild, incremental update, and access.
+- Dev: Refactor all settings load/normalise, heading-setting parse, and settings-save effects code to new `reviewSettings.js`.
 
 ## [2.1.1] - 2026-09-11
 - Fix: "Finish+Next" button in top bar not working (thanks to @cbkadel PR)

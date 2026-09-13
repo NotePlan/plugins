@@ -7,7 +7,8 @@
 
 import { addNewProjectToAllProjectsListIfInScope, ALWAYS_EXCLUDED_PROJECT_FOLDERS } from './allProjectsListHelpers'
 import { normalizeProgressDateFromForm, separateFmKeyFromMentionPref } from './projectClassHelpers'
-import { formatProgressCommentString, getReviewSettings, type ReviewConfig } from './reviewHelpers'
+import { formatProgressCommentString } from './reviewHelpers'
+import { getReviewSettings, type ReviewConfig } from './reviewSettings'
 import { renderProjectListsIfOpen } from './reviews'
 import { checkString } from '@helpers/checkType'
 import { RE_DATE } from '@helpers/dateTime'

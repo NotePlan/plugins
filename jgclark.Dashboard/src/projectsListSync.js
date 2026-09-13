@@ -10,7 +10,7 @@
 //-----------------------------------------------------------------------------
 
 import { updateAllProjectsListAfterChange } from '../../jgclark.Reviews/src/allProjectsListHelpers'
-import { getReviewSettings } from '../../jgclark.Reviews/src/reviewHelpers'
+import { getReviewSettings } from '../../jgclark.Reviews/src/reviewSettings'
 import { refreshSectionsByCode } from './dashboardHooks'
 import type { TSectionCode } from './types'
 import { logDebug, logInfo, logWarn } from '@helpers/dev'

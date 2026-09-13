@@ -1,7 +1,7 @@
 // @flow
 /* globals describe, expect, test */
 import { buildSortingSpecification, sortProjectsList } from '../allProjectsListHelpers'
-import type { ReviewConfig } from '../reviewHelpers'
+import type { ReviewConfig } from '../reviewSettings'
 
 /**
  * Minimal ReviewConfig for sorting tests (other fields unused by buildSortingSpecification / sortProjectsList).

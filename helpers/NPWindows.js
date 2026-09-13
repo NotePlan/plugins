@@ -239,7 +239,7 @@ export function getWindowIdFromCustomId(
       // logDebug('getWindowIdFromCustomId', `Window '${customId}' is available, so will return its ID '${foundWin.id}'.`)
       return foundWin.id
     }
-    logInfo('getWindowIdFromCustomId', `Window '${foundWin.customId}' is available, but not visible, so will not return it.`)
+    logDebug('getWindowIdFromCustomId', `Window '${foundWin.customId}' is available, but not visible, so will not return it.`)
     return false
   }
   logDebug('getWindowIdFromCustomId', `Did not find window with customId:"${customId}" on platform ${NotePlan.environment.platform}.`)

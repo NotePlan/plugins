@@ -10,6 +10,13 @@ jest.mock('../reviewHelpers', () => {
     ...actual,
     updateRichProjectListIfOpen: jest.fn(() => Promise.resolve()),
     updateDashboardIfOpen: jest.fn(() => Promise.resolve()),
+  }
+})
+
+jest.mock('../reviewSettings', () => {
+  const actual = jest.requireActual<any>('../reviewSettings')
+  return {
+    ...actual,
     getReviewSettings: jest.fn(() => Promise.resolve(reviewSettingsHolder.config)),
   }
 })

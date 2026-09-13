@@ -11,7 +11,7 @@ import moment from 'moment/min/moment-with-locales'
 import { invalidateDashboardPluginSettingsCache } from '../../jgclark.Dashboard/src/dashboardPluginSettings.js'
 import pluginJson from '../plugin.json'
 import { checkForWantedResources } from '../../np.Shared/src/index.js'
-import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
+import { getReviewSettings, type ReviewConfig } from './reviewSettings'
 import {
   filterAndSortProjectsList,
   generateAllProjectsList,

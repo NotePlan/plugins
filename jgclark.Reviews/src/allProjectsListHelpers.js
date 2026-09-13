@@ -13,12 +13,11 @@ import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
 import { calcReviewFieldsForProject, isProjectFinished } from './projectClassCalculations.js'
 import {
   getProjectTypeTagsFromNoteMetadata,
-  getReviewSettings,
   noteHasProjectTypeTag,
   updateDashboardIfOpen,
   updateRichProjectListIfOpen,
 } from './reviewHelpers.js'
-import type { ReviewConfig } from './reviewHelpers.js'
+import { getReviewSettings, type ReviewConfig } from './reviewSettings.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toISODateString } from '@helpers/dateTime'
 import { getFolderFromFilename, getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
@@ -712,8 +711,7 @@ export async function generateAllProjectsList(
   skipRichProjectListIfOpen: boolean = false,
 ): Promise<Array<Project>> {
   try {
-    logDebug('generateAllProjectsList', `starting`)
-    logInfo('generateAllProjectsList', `usePerspectives=${String(configIn?.usePerspectives)} perspective='${configIn?.perspectiveName ?? '-'}' foldersToInclude=[${String(configIn?.foldersToInclude)}] foldersToIgnore=[${String(configIn?.foldersToIgnore)}]`)
+    logDebug('generateAllProjectsList', `starting with usePerspectives=${String(configIn?.usePerspectives)} perspective='${configIn?.perspectiveName ?? '-'}' foldersToInclude=[${String(configIn?.foldersToInclude)}] foldersToIgnore=[${String(configIn?.foldersToIgnore)}]`)
     const startTime = moment().toDate()
 
     // Get all project notes as Project instances
@@ -731,10 +729,84 @@ export async function generateAllProjectsList(
     }
 
     await writeAllProjectsList(projectInstances, scrollPosForRichList, skipUpdateDashboardIfOpen, configIn, skipRichProjectListIfOpen)
-    logAllProjectsListDuration('generateAllProjectsList', startTime, 'rebuilt', `(${String(projectInstances.length)} projects)`)
+    logAllProjectsListDuration('generateAllProjectsList', startTime, 'rebuilt', `(${String(projectInstances.length)} projects @ ${String(Math.round(moment().toDate() - startTime) / projectInstances.length)}ms/project)`)
     return projectInstances
   } catch (error) {
     logError('generateAllProjectsList', JSP(error))
+    return []
+  }
+}
+
+/**
+ * Re-parse every note already stored in allProjectsList.json using current next-action and progress-calculation settings.
+ * Does not enumerate the vault (unlike {@link generateAllProjectsList}). If the list file is missing or empty, falls back to a full generate.
+ * @author @jgclark
+ * @param {ReviewConfig} configIn
+ * @param {boolean} runInForeground? (default: false)
+ * @param {number} scrollPosForRichList - passed through to `writeAllProjectsList` for Rich list HTML scroll (pixels)
+ * @param {boolean} skipUpdateDashboardIfOpen
+ * @param {boolean} skipRichProjectListIfOpen
+ * @returns {Promise<Array<Project>>} Project instances written to disk
+ */
+export async function recalculateAllProjectsListItems(
+  configIn: ReviewConfig,
+  runInForeground: boolean = false,
+  scrollPosForRichList: number = 0,
+  skipUpdateDashboardIfOpen: boolean = false,
+  skipRichProjectListIfOpen: boolean = false,
+): Promise<Array<Project>> {
+  try {
+    const config = configIn ? configIn : await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
+    const startTime = moment().toDate()
+    const snapshotRows = loadRawAllProjectsListSnapshot()
+    if (snapshotRows.length === 0) {
+      logInfo('recalculateAllProjectsListItems', `No existing allProjects list rows; falling back to full generate`)
+      return await generateAllProjectsList(config, runInForeground, scrollPosForRichList, skipUpdateDashboardIfOpen, skipRichProjectListIfOpen)
+    }
+
+    logInfo('recalculateAllProjectsListItems', `Recalculating ${String(snapshotRows.length)} existing allProjects list item(s)`)
+    const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
+    const rebuilt: Array<Project> = []
+    let keptStale = 0
+    if (runInForeground) {
+      CommandBar.showLoading(true, `Recalculating ${String(snapshotRows.length)} project list items`)
+    }
+    for (const row of snapshotRows) {
+      const filename = typeof row?.filename === 'string' ? row.filename : ''
+      if (filename === '') {
+        logWarn('recalculateAllProjectsListItems', `Skipping row with no filename`)
+        continue
+      }
+      const note = getNoteFromFilename(filename)
+      if (!note) {
+        logWarn('recalculateAllProjectsListItems', `Couldn't load '${filename}'; keeping previous list row`)
+        rebuilt.push(calcReviewFieldsForProject({ ...row }))
+        keptStale += 1
+        continue
+      }
+      rebuilt.push(new Project(
+        note,
+        getLeadingProjectTag(row),
+        true,
+        config.nextActionTags,
+        sequentialTagResolved,
+        false,
+      ))
+    }
+    if (runInForeground) {
+      CommandBar.showLoading(false)
+    }
+
+    await writeAllProjectsList(rebuilt, scrollPosForRichList, skipUpdateDashboardIfOpen, config, skipRichProjectListIfOpen)
+    logAllProjectsListDuration('recalculateAllProjectsListItems', startTime, 'updated', `(recalculated ${String(rebuilt.length)} existing items @ ${String(Math.round(moment().toDate() - startTime) / rebuilt.length)}ms/project; kept stale ${String(keptStale)})`)
+    return rebuilt
+  } catch (error) {
+    logError('recalculateAllProjectsListItems', JSP(error))
+    if (runInForeground) {
+      CommandBar.showLoading(false)
+    }
     return []
   }
 }

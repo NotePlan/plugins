@@ -6,7 +6,7 @@
 
 import pluginJson from '../plugin.json'
 import { resolveProjectNoteFromListFilename } from './allProjectsListHelpers'
-import { getReviewSettings } from './reviewHelpers'
+import { getReviewSettings } from './reviewSettings'
 import {
   addProgressUpdate,
   cancelProject,

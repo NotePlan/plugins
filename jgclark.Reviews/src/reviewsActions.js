@@ -13,16 +13,15 @@ import {
   deleteMetadataMentionInNote,
   getProjectMetadataLineIndex,
   getNextActionLineIndex,
-  getReviewSettings,
   isProjectNoteIsMarkedSequential,
   migrateProjectMetadataLineInEditor,
   migrateProjectMetadataLineInNote,
   promptForMissingProjectTypeTag,
-  type ReviewConfig,
   updateBodyMetadataInEditor,
   updateBodyMetadataInNote,
   writeCombinedProjectTagAndReviewedMentions,
 } from './reviewHelpers'
+import { getReviewSettings, type ReviewConfig } from './reviewSettings'
 import {
   getNextNoteToReview,
   getSpecificProjectFromList,

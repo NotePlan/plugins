@@ -2,12 +2,8 @@
 /* globals describe, expect, test, jest, beforeEach, afterEach */
 
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
-import {
-  formatProgressCommentString,
-  getProgressFieldNameForBodyLines,
-  getProgressFrontmatterKey,
-  parseProgressValueString,
-} from '../reviewHelpers'
+import { formatProgressCommentString, parseProgressValueString } from '../reviewHelpers'
+import { getProgressFieldNameForBodyLines, getProgressFrontmatterKey } from '../reviewSettings'
 
 const preferenceValues: { [string]: any } = {}
 global.DataStore = {

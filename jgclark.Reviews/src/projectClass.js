@@ -15,15 +15,17 @@ import {
   getParamMentionFromList,
   PROJECT_METADATA_MIGRATED_MESSAGE,
   formatProgressCommentString,
-  getProgressFieldNameForBodyLines,
-  getProgressFrontmatterKey,
-  getReviewSettings,
   migrateProjectMetadataLineInEditor,
   migrateProjectMetadataLineInNote,
-  parseMarkdownHeadingSetting,
   parseProgressValueString,
   processMostRecentProgressParagraph,
 } from './reviewHelpers'
+import {
+  getProgressFieldNameForBodyLines,
+  getProgressFrontmatterKey,
+  getReviewSettings,
+  parseMarkdownHeadingSetting,
+} from './reviewSettings'
 import {
   formatDurationString,
   getMetadataPresenceState,

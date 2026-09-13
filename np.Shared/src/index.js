@@ -8,8 +8,8 @@
 
 const sharedPluginID = 'np.Shared'
 import pluginJson from '../plugin.json'
-import { getPluginJson, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { getPluginJson, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
 
 export { openReactWindow, showInMainWindow, onMessageFromHTMLView } from './NPReactLocal'

@@ -9,7 +9,7 @@
 import moment from 'moment/min/moment-with-locales'
 import { Project } from './projectClass'
 import { addFAIcon, pluralise } from './reviewHelpers'
-import type { ReviewConfig } from './reviewHelpers'
+import type { ReviewConfig } from './reviewSettings'
 import { checkBoolean, checkString } from '@helpers/checkType'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
