@@ -21,7 +21,7 @@
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import { JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { CaseInsensitiveSet, percent } from '@helpers/general'
 import { noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { findNotesMatchingHashtagOrMention, getNotesChangedInInterval } from '@helpers/NPnote'
@@ -114,6 +114,19 @@ function parseTagMentionCacheTimestamp(value: ?(Date | string)): ?Date {
 function recordTagMentionCacheLastRunTime(when: Date): void {
   DataStore.setPreference(lastTimeThisWasRunPref, when)
   logDebug('recordTagMentionCacheLastRunTime', `set ${lastTimeThisWasRunPref} to ${when.toISOString()} (local ${moment(when).format()})`)
+}
+
+/**
+ * INFO-level duration for a tag-mention cache rebuild, incremental update, or access.
+ * @param {string} functionName
+ * @param {Date} startTime
+ * @param {string} operation
+ * @param {string} details
+ * @returns {void}
+ */
+function logTagMentionCacheDuration(functionName: string, startTime: Date, operation: string, details: string = ''): void {
+  const suffix = details !== '' ? ` ${details}` : ''
+  logInfo(functionName, `${operation} in ${timer(startTime)}${suffix}`)
 }
 
 /**
@@ -706,6 +719,7 @@ export async function getFilenamesOfNotesWithTagOrMentions(
     // Cast: JS coerces both Dates to numbers here, but Flow has no type for "Date used as a number",
     // so `Date - Date` is always unsafe-arithmetic unless one side is cast.
     const cacheLookupTime = (new Date(): any) - startTime
+    logTagMentionCacheDuration('getFilenamesOfNotesWithTagOrMentions', startTime, 'accessed', `(found ${String(matchingNoteFilenamesFromCache.length)} notes for [${String(tagOrMentions)}])`)
     logTimer(
       'getFilenamesOfNotesWithTagOrMentions',
       startTime,
@@ -774,6 +788,7 @@ export async function generateTagMentionCache(
         cachedWantedItems.every((item) => wantedItems.includes(item))) {  // ✅ Order-independent
         logInfo('generateTagMentionCache', `- Not forcing a rebuild, and WANTED_PARA_TYPES are all present already in the cache, so calling updateTagMentionCache() instead.`)
         await updateTagMentionCache()
+        logTagMentionCacheDuration('generateTagMentionCache', startTime, 'rebuilt', `(delegated to update; wanted items already in cache)`)
         return
       } else {
         logDebug('generateTagMentionCache', `- rebuild not forced, but wanted items are different, so will rebuild cache.`)
@@ -834,6 +849,7 @@ export async function generateTagMentionCache(
 
     DataStore.saveData(JSON.stringify(cache), tagMentionCacheFile, true)
     logTimer('generateTagMentionCache', startTime, `- after saving ${String(totalFoundItems)} items to mentionTagCacheFile`)
+    logTagMentionCacheDuration('generateTagMentionCache', startTime, 'rebuilt', `(${String(totalFoundItems)} items in ${String(totalMatchingNotes)} notes)`)
 
     // Keep pref in sync with cache.lastUpdated so the next refresh/updateTagMentionCache sees age ~0 (not stale pref).
     recordTagMentionCacheLastRunTime(startTime)
@@ -880,6 +896,7 @@ export async function updateTagMentionCache(): Promise<void> {
     if (!isTagMentionCacheAvailable()) {
       logWarn('updateTagMentionCache', `${tagMentionCacheFile} file does not exist, so will schedule a re-generation of the cache from scratch.`)
       scheduleTagMentionCacheGeneration()
+      logTagMentionCacheDuration('updateTagMentionCache', startTime, 'updated', `(skipped; cache missing, regeneration scheduled)`)
       return
     }
     // Get the list of wanted tags and mentions
@@ -901,6 +918,7 @@ export async function updateTagMentionCache(): Promise<void> {
     )
     if (lastRun != null && momNow.diff(momPrevious, 'seconds') < 5) {
       logInfo('updateTagMentionCache', `- Not updating cache as it was updated less than 5 seconds ago`)
+      logTagMentionCacheDuration('updateTagMentionCache', startTime, 'updated', `(skipped; updated less than 5 seconds ago)`)
       return
     }
 
@@ -941,6 +959,7 @@ export async function updateTagMentionCache(): Promise<void> {
     recordTagMentionCacheLastRunTime(startTime)
 
     logTimer(`updateTagMentionCache`, startTime, `total runtime`, 1000)
+    logTagMentionCacheDuration('updateTagMentionCache', startTime, 'updated', `(${String(c)} of ${String(recentlychangedNotes.length)} changed notes had wanted items)`)
     return
   } catch (err) {
     logError('updateTagMentionCache', JSP(err))
@@ -1250,15 +1269,25 @@ function findMatchingNotesFromCache(
  * @returns {Array<string>}
  */
 export function getRegularNoteFilenamesFromTagMentionCache(tagOrMentions: Array<string>): Array<string> {
+  const startTime = new Date()
   try {
-    if (!Array.isArray(tagOrMentions) || tagOrMentions.length === 0) return []
-    if (!isTagMentionCacheAvailable()) return []
+    if (!Array.isArray(tagOrMentions) || tagOrMentions.length === 0) {
+      logTagMentionCacheDuration('getRegularNoteFilenamesFromTagMentionCache', startTime, 'accessed', `(no tags requested)`)
+      return []
+    }
+    if (!isTagMentionCacheAvailable()) {
+      logTagMentionCacheDuration('getRegularNoteFilenamesFromTagMentionCache', startTime, 'accessed', `(cache unavailable)`)
+      return []
+    }
     const raw = DataStore.loadData(tagMentionCacheFile, true) ?? ''
     const cache = JSON.parse(raw)
     const regularNotes = cache.regularNotes ?? []
-    return regularNotes.filter((line) => noteItemsMatchItems(line, tagOrMentions)).map((item) => item.filename)
+    const filenames = regularNotes.filter((line) => noteItemsMatchItems(line, tagOrMentions)).map((item) => item.filename)
+    logTagMentionCacheDuration('getRegularNoteFilenamesFromTagMentionCache', startTime, 'accessed', `(found ${String(filenames.length)} regular notes for [${String(tagOrMentions)}])`)
+    return filenames
   } catch (err) {
     logWarn('getRegularNoteFilenamesFromTagMentionCache', err instanceof Error ? err.message : String(err))
+    logTagMentionCacheDuration('getRegularNoteFilenamesFromTagMentionCache', startTime, 'accessed', `(error)`)
     return []
   }
 }
