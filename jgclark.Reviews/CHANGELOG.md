@@ -7,6 +7,7 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 - Change: Completed and cancelled project summary lines both use duration from start (e.g. `Completed after 3 months` / `Cancelled after 3 months`). If there is no start date, they use the finish month (e.g. `Cancelled in Nov`).
 - Change: The top bar of the Project List window has been re-ordered, and now has a cog-wheel button that opens the plugin's settings pane.
 - Change: Avoids unnecessary refreshes when saving settings.  dev: Saving plugin settings only rebuilds the project list when "What do you want to Review?" or "Customise the metadata terms" settings change. Next-action and progress-calculation settings re-parse existing list rows (no vault scan). Changes in "Display settings for 'project lists' command" re-render an already-open list. Other settings do neither.
+- Change: "Show project dates?" setting description update to say it only applies to Markdown output.
 - Dev: INFO-level duration logs for each allProjects list rebuild, incremental update, and access.
 - Dev: Refactor all settings load/normalise, heading-setting parse, and settings-save effects code to new `reviewSettings.js`.
 

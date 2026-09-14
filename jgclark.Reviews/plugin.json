@@ -485,7 +485,7 @@
     {
       "key": "displayDates",
       "title": "Show project dates?",
-      "description": "Whether to show the project's review and due dates (where set).",
+      "description": "Whether Markdown output includes the project's review and due dates (where set), as relative phrases such as 'Due in 3 days' or 'Completed after 3 months'. The Rich project list always shows dates or relative dates (review/due status, review interval, and finished time-ago), so this setting does not change it.",
       "type": "bool",
       "default": true,
       "required": true
@@ -770,24 +770,6 @@
       "description": "For plugin authors to help optimise the plugin.",
       "type": "bool",
       "default": false,
-      "required": true
-    }
-  ],
-  "plugin.settings_disabled": [
-    {
-      "key": "width",
-      "title": "Window width",
-      "description": "Width of the Review List window (pixels)",
-      "type": "hidden",
-      "default": 800,
-      "required": true
-    },
-    {
-      "key": "height",
-      "title": "Window height",
-      "description": "Height of the Review List window (pixels)",
-      "type": "hidden",
-      "default": 1200,
       "required": true
     }
   ]

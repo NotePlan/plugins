@@ -51,7 +51,7 @@ const SEQUENTIAL_TAG_DEFAULT = '#sequential'
  */
 function logAllProjectsListDuration(functionName: string, startTime: Date, operation: string, details: string = ''): void {
   const suffix = details !== '' ? ` ${details}` : ''
-  logInfo(functionName, `${operation} in ${timer(startTime)}${suffix}`)
+  logInfo(functionName, `⏱️ ${operation} in ${timer(startTime)}${suffix}`)
 }
 
 /**
@@ -697,6 +697,7 @@ async function getAllMatchingProjects(
  * Not ordered in any particular way.
  * Output is written to file location set by `allProjectsListFilename`.
  * Note: This is V1 for JSON, borrowing from makeFullReviewList v3
+ * Note: This is taking between 600 and 3,333 ms/project for JGC's large vault in Sep 2026. Eek!
  * @author @jgclark
  * @param {any} configIn
  * @param {boolean} runInForeground? (default: false)
@@ -729,7 +730,7 @@ export async function generateAllProjectsList(
     }
 
     await writeAllProjectsList(projectInstances, scrollPosForRichList, skipUpdateDashboardIfOpen, configIn, skipRichProjectListIfOpen)
-    logAllProjectsListDuration('generateAllProjectsList', startTime, 'rebuilt', `(${String(projectInstances.length)} projects @ ${String(Math.round(moment().toDate() - startTime) / projectInstances.length)}ms/project)`)
+    logAllProjectsListDuration('generateAllProjectsList', startTime, 'rebuilt', `(${String(projectInstances.length)} projects @ ${String(Math.round((moment().toDate() - startTime) / projectInstances.length))}ms/project)`)
     return projectInstances
   } catch (error) {
     logError('generateAllProjectsList', JSP(error))
@@ -740,6 +741,7 @@ export async function generateAllProjectsList(
 /**
  * Re-parse every note already stored in allProjectsList.json using current next-action and progress-calculation settings.
  * Does not enumerate the vault (unlike {@link generateAllProjectsList}). If the list file is missing or empty, falls back to a full generate.
+ * Note: This is taking 577ms/project for JGC in Sep 2026
  * @author @jgclark
  * @param {ReviewConfig} configIn
  * @param {boolean} runInForeground? (default: false)
@@ -800,7 +802,7 @@ export async function recalculateAllProjectsListItems(
     }
 
     await writeAllProjectsList(rebuilt, scrollPosForRichList, skipUpdateDashboardIfOpen, config, skipRichProjectListIfOpen)
-    logAllProjectsListDuration('recalculateAllProjectsListItems', startTime, 'updated', `(recalculated ${String(rebuilt.length)} existing items @ ${String(Math.round(moment().toDate() - startTime) / rebuilt.length)}ms/project; kept stale ${String(keptStale)})`)
+    logAllProjectsListDuration('recalculateAllProjectsListItems', startTime, 'updated', `(recalculated ${String(rebuilt.length)} existing items @ ${String(Math.round((moment().toDate() - startTime) / rebuilt.length))}ms/project; kept stale ${String(keptStale)})`)
     return rebuilt
   } catch (error) {
     logError('recalculateAllProjectsListItems', JSP(error))

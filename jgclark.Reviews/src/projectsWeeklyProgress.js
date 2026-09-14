@@ -968,7 +968,7 @@ async function writeWeeklyProjectProgressToWeeklyNote(config: ReviewConfig, week
   const { showTable, bulletMode } = resolveWeeklyProjectProgressOutputStyle(config)
   const table = showTable ? buildWeeklyProgressMarkdownTable(folders, tags, counts) : ''
   const tagsSummary = buildWeeklyProgressTagCountSummary(tags, notesByTag)
-  const introLine = `${tagsSummary} progressed in ${weekLabel}:`
+  const introLine = `Progress: ${tagsSummary} in ${weekLabel}:`
   let bulletBlock = ''
   if (bulletMode !== 'none' && bulletMode !== '') {
     bulletBlock = buildWeeklyProgressBulletSummary(bulletMode, tags, notesByTag, notesByFolderAndTag)
