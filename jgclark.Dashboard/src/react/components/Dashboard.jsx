@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for 2026-08-21 for v2.4.1, @jgclark + @CursorAI
+// Last updated for 2026-09-14 for v2.5.0.b4, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -232,19 +232,27 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     logChanges('pluginData', pluginData)
   }, [pluginData])
 
-  // At Startup, request the Dashboard Sections content by telling the plugin that Dashboard is loaded
-  // Sections starts out as empty array, so this is the first time it will be populated
+  // At Startup, request the Dashboard Sections content by telling the plugin that Dashboard is loaded.
+  // Sections starts out as empty array, so this is the first time it will be populated.
   useEffect(() => {
     // Note: This executes before globalSharedData is saved into state
     logInfo('Dashboard/useEffect [] (startup only)', `${sections.length} sections (${origSections.length} origSections): [${sections.map((s) => s.sectionCode).join(', ')}]`)
     logDebug('Dashboard', `React: sending reactWindowInitialisedSoStartGeneratingData command to plugin`)
     runPluginCommand('reactWindowInitialisedSoStartGeneratingData', 'jgclark.Dashboard', [''])
-    // WebView Calendar.* calls often return Thenables during early startup. Re-apply week entries in the
-    // NPdateTime relative-dates cache once the bridge is ready (correct week start vs moment fallback).
+    // Do NOT call refreshRelativeDatesISOCache() here. Its Calendar/DataStore bridge traffic
+    // contends on the same JSContext as generation and was aborting firstRun completion
+    // ('generating' stuck while sections from ForceInitialLoad already looked done).
+  }, [])
+
+  // After generation clears firstRun, refresh relative-week ISO cache once (bridge is quiet).
+  const relativeDatesRefreshedAfterGenerationRef = useRef(false)
+  useEffect(() => {
+    if (pluginData.firstRun || relativeDatesRefreshedAfterGenerationRef.current) return
+    relativeDatesRefreshedAfterGenerationRef.current = true
     refreshRelativeDatesISOCache().catch((err) => {
       logWarn('Dashboard', `refreshRelativeDatesISOCache failed: ${err?.message ?? String(err)}`)
     })
-  }, [])
+  }, [pluginData.firstRun])
 
   // Keep the window/tab title in sync. In Main Window / Split View, NotePlan's chrome uses the
   // title from showInMainWindow and does not reliably follow document.title changes that append
@@ -449,7 +457,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       style={dashboardContainerStyle}
       tabIndex={0}
       ref={containerRef}
-      className={`${pluginData.platform ?? ''}${dashboardSettings?.displayDensity === 'Compact' ? ' density-compact' : ''}`.trim()}
+        className={`dashboard-app ${pluginData.platform ?? ''}${dashboardSettings?.displayDensity === 'Compact' ? ' density-compact' : ''}`.trim()}
     >
       {autoUpdateEnabled && (
           <IdleTimer
@@ -464,7 +472,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       )}
       <div className="dashboard">
           <Header lastFullRefresh={lastFullRefresh} onDropdownMenuOpenChange={setDropdownMenuOpen} />
-        <main>
+          <main className="dashboard-sections">
           {sections.map((section, index) => (
             <Section key={`${section.sectionCode}-${index}`} section={section} onButtonClick={handleSectionButtonClick} isViewVisible={isViewVisible} />
           ))}

@@ -1,8 +1,17 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+<!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
+
 ## [2.5.0.b4] 2026-09-10
+- New: Add task / checklist dialogs (Today, Week, etc.) pre-select Under Heading by near-match to the active Perspective name, otherwise the first real heading (not top-of-note / insert-new pseudo options).
 - New: Display Density setting (Normal / Compact). Compact tightens vertical spacing between items and truncates item text at half the Normal length (70 vs 140 characters).
+- Change: Top-bar Refresh, Hard Refresh, and Perspective dropdown share the same control height, with text/icons set 1px higher.
+- Change: Refresh icon spins during first generation ("Generating") as well as during refresh.
+- Fix: Perspective dropdown menu no longer shows a needless horizontal scrollbar (width:100% options plus horizontal margin/padding overflow).
+- Change: Horizontal overscroll bounce disabled. Vertical bounce applies only to Sections (header stays fixed).
+- Change: Main window and Perspective dropdown scrollbar thumbs use `--bg-alt-color`.
+- Fix: Generating no longer sticks after open when ForceInitialLoad is on - defer relative-dates Calendar bridge until after `firstRun` clears, and clear `firstRun` before done-count recount on that path.
 
 ## [2.5.0.b3] 2026-09-08
 - Fix: If a task cannot be opened/highlighted from Dashboard, refresh that section and say so in the toast. The refresh now runs before the toast, so the banner cannot interrupt it.

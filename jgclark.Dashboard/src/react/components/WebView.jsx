@@ -120,13 +120,37 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   }, [])
 
   /**
+   * Scroll lives on `.dashboard-sections` (header stays fixed). Fall back to window for older layouts.
+   * @returns {number} Current vertical scroll offset
+   */
+  const getDashboardScrollTop = (): number => {
+    const sectionsEl = document.querySelector('.dashboard-sections')
+    if (sectionsEl instanceof HTMLElement) return sectionsEl.scrollTop
+    return window.scrollY
+  }
+
+  /**
+   * Restore vertical scroll on the sections container (or window fallback).
+   * @param {number} top - Scroll offset to apply
+   * @returns {void}
+   */
+  const setDashboardScrollTop = (top: number): void => {
+    const sectionsEl = document.querySelector('.dashboard-sections')
+    if (sectionsEl instanceof HTMLElement) {
+      sectionsEl.scrollTop = top
+      return
+    }
+    window.scrollTo(0, top)
+  }
+
+  /**
    * When the data changes, console.log it so we know and scroll the window
    * Fires after components draw
    */
   useLayoutEffect(() => {
-    if (data?.passThroughVars?.lastWindowScrollTop !== undefined && data.passThroughVars.lastWindowScrollTop !== window.scrollY) {
+    if (data?.passThroughVars?.lastWindowScrollTop !== undefined && data.passThroughVars.lastWindowScrollTop !== getDashboardScrollTop()) {
       // debug && logDebug(`WebView`, `FYI data watch (for scroll): underlying data has changed, picked up by useEffect. Scrolling to ${String(data.lastWindowScrollTop)}`)
-      window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
+      setDashboardScrollTop(data.passThroughVars.lastWindowScrollTop)
     } else {
       // logDebug(`WebView`, `FYI, data watch (for scroll): underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
     }
@@ -146,7 +170,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const addPassthroughVars = (data: PassedData): PassedData => {
     const newData = { ...data }
     if (!newData?.passThroughVars) newData.passThroughVars = { lastWindowScrollTop: 0 }
-    newData.passThroughVars.lastWindowScrollTop = window.scrollY
+    newData.passThroughVars.lastWindowScrollTop = getDashboardScrollTop()
     return newData
   }
 

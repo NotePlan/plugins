@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2026-08-19 for v2.4.0.b65 by @jgclark + @CursorAI
+// Last updated 2026-09-14 for v2.5.0.b4 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -440,7 +440,7 @@ export async function restartDashboard(): Promise<void> {
  */
 export async function reactWindowInitialisedSoStartGeneratingData(): Promise<void> {
   try {
-    logDebug('reactWindowInitialisedSoStartGeneratingData', `--> React Window reported back to plugin that it has loaded <--`)
+    logInfo('reactWindowInitialisedSoStartGeneratingData', `--> React Window reported back to plugin that it has loaded <--`)
     const startTime = new Date()
     const config = await getDashboardSettings()
     const logSettings = await getLogSettings()
@@ -448,13 +448,14 @@ export async function reactWindowInitialisedSoStartGeneratingData(): Promise<voi
 
     // Start generating data for the enabled sections
     if (config.FFlag_ForceInitialLoadForBrowserDebugging) {
-      const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+      // Sections are already in the initial payload. Clear Generating (firstRun) before any expensive
+      // work so the UI is interactive even if done-count recount is slow. Avoid a prior
+      // getGlobalSharedData probe -- setPluginData already round-trips once.
+      await setPluginData({ firstRun: false }, 'Setting firstRun to false after force initial load')
+      logTimer('reactWindowInitialisedSoStartGeneratingData', startTime, `----- END OF GENERATION ------`)
+      logDebug('reactWindowInitialisedSoStartGeneratingData', `----- END OF GENERATION ------`)
 
-      // Note: We need to set firstRun to false when we do a force initial load, otherwise the next time the window is opened it will think it's the first run and do a full refresh again.
-      if (reactWindowData?.pluginData) {
-        await setPluginData({ firstRun: false }, 'Setting firstRun to false after force initial load')
-      }
-      // Sections were already in the initial payload; we now do the potentially expensive header recount as the window is up
+      // Header recount after the window is interactive (can take >1s)
       const NPSettings = getNotePlanSettings()
       if (NPSettings.doneDatesAvailable) {
         const totalDoneCount = updateDoneCountsFromChangedNotes('after force initial load, window already shown')
@@ -463,9 +464,9 @@ export async function reactWindowInitialisedSoStartGeneratingData(): Promise<voi
     } else {
       // Note: Full header done-count recount runs at the end of incrementallyRefreshSomeSections
       await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
+      logTimer('reactWindowInitialisedSoStartGeneratingData', startTime, `----- END OF GENERATION ------`)
+      logDebug('reactWindowInitialisedSoStartGeneratingData', `----- END OF GENERATION ------`)
     }
-    logTimer('reactWindowInitialisedSoStartGeneratingData', startTime, `----- END OF GENERATION ------`)
-    logInfo('reactWindowInitialisedSoStartGeneratingData', `----- END OF GENERATION ------`)
 
     // ---------------------------------------------------------------
     // Now is the time to do any other background processing after the initial display is done
@@ -483,6 +484,12 @@ export async function reactWindowInitialisedSoStartGeneratingData(): Promise<voi
     }
   } catch (error) {
     logError('reactWindowInitialisedSoStartGeneratingData', error.message)
+    // Ensure Generating does not stick if we failed mid-path
+    try {
+      await setPluginData({ firstRun: false, refreshing: false }, 'Clearing firstRun after reactWindowInitialised error')
+    } catch (clearErr) {
+      logError('reactWindowInitialisedSoStartGeneratingData', `Also failed to clear firstRun: ${clearErr.message}`)
+    }
   }
 }
 

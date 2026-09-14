@@ -3,9 +3,10 @@
 // Shared perspective-related utilities
 // This file is reserved for shared perspective functions that don't belong
 // in perspectiveHelpers.js (to avoid circular dependency).
+// Last updated 2026-09-10 for v2.5.0.b4 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
-import type { TDashboardSettings } from './types'
+import type { TDashboardSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getFoldersMatching } from '@helpers/folders'
 import { logDebug } from '@helpers/dev'
@@ -27,4 +28,23 @@ export function getCurrentlyAllowedFolders(
   const excludedFolderArr = stringListOrArrayToArray(dashboardSettings.excludedFolders ?? '', ',')
   const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
   return folderListToUse
+}
+
+/**
+ * Sync read of the active Perspective name from DataStore.settings (or '-' if none).
+ * Kept here so dashboardHelpers can call it without importing perspectiveHelpers (circular dependency).
+ * @returns {string}
+ */
+export function getActivePerspectiveNameSync(): string {
+  try {
+    const raw = DataStore.settings?.perspectiveSettings
+    if (raw == null) return '-'
+    const defs: Array<TPerspectiveDef> = typeof raw === 'string' ? JSON.parse(raw) : raw
+    if (!Array.isArray(defs)) return '-'
+    const active = defs.find((p) => p && p.isActive === true)
+    return active && typeof active.name === 'string' && active.name !== '' ? active.name : '-'
+  } catch (error) {
+    logDebug('getActivePerspectiveNameSync', `Failed to read active perspective: ${error.message}`)
+    return '-'
+  }
 }

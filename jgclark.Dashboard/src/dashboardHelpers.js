@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-08-14 for v2.4.0.b63 by @jgclark + @CursorAI
+// Last updated 2026-09-10 for v2.5.0.b4 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -10,7 +10,7 @@ import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { getDashboardSettingsDefaults } from './dashboardSettingsDefaults'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { removeInvalidTagSections } from './dashboardSettingsClean'
-import { getCurrentlyAllowedFolders } from './perspectivesShared'
+import { getActivePerspectiveNameSync, getCurrentlyAllowedFolders } from './perspectivesShared'
 import { normalizePreferredWindowType } from './preferredWindowType'
 import { parseSettings, validateAndFlattenMessageObject } from './shared'
 import type { ValidatedData } from './shared'
@@ -793,11 +793,115 @@ export function isTBSectionEnabled(config: TDashboardSettings): boolean {
 }
 
 /**
- * Default heading for new-task form fields; empty string when setting is <<carry forward>>.
- * @param {TDashboardSettings} config
+ * Whether a heading option is a pseudo-option (top/bottom/insert-new) rather than a real note heading.
+ * @param {string} heading
+ * @returns {boolean}
+ */
+export function isPseudoHeadingOption(heading: string): boolean {
+  if (!heading || typeof heading !== 'string') return true
+  const h = heading.toLowerCase()
+  return (
+    h.includes('top of note') ||
+    h.includes('bottom of note') ||
+    h.includes('insert new heading') ||
+    heading.includes('⏫') ||
+    heading.includes('⏬') ||
+    heading.includes('➕')
+  )
+}
+
+/**
+ * Strip markdown heading markers and trim for comparison.
+ * @param {string} heading
  * @returns {string}
  */
-export function getDefaultHeadingForNewTask(config: TDashboardSettings): string {
+function normalizeHeadingTextForMatch(heading: string): string {
+  return heading.replace(/^#{1,5}\s*/, '').trim()
+}
+
+/**
+ * Score how well a heading matches a perspective name (higher is better; 0 = no match).
+ * @param {string} perspectiveName
+ * @param {string} heading
+ * @returns {number}
+ */
+export function scoreHeadingPerspectiveMatch(perspectiveName: string, heading: string): number {
+  const p = perspectiveName.trim().toLowerCase()
+  const h = normalizeHeadingTextForMatch(heading).toLowerCase()
+  if (!p || !h || p === '-') return 0
+  if (p === h) return 100
+  // Starts-with either direction (e.g. "Home" / "Home tasks")
+  if ((h.startsWith(p) || p.startsWith(h)) && Math.min(p.length, h.length) >= 2) return 80
+  // Substring either direction when the shorter term is meaningful (e.g. "Wider Ministry" / "Ministry")
+  const shorter = p.length <= h.length ? p : h
+  const longer = p.length <= h.length ? h : p
+  if (shorter.length >= 3 && longer.includes(shorter)) return 60
+  // Token overlap (split on whitespace / common separators)
+  const pTokens = p.split(/[\s/_:-]+/).filter((t) => t.length >= 3)
+  const hTokens = h.split(/[\s/_:-]+/).filter((t) => t.length >= 3)
+  if (pTokens.some((pt) => hTokens.includes(pt))) return 50
+  return 0
+}
+
+/**
+ * Pick the best Under Heading pre-select for add-task dialogs: near-match to the active Perspective,
+ * otherwise the first real (non-pseudo) heading.
+ * @param {Array<string>} headings - options as shown in the dropdown (may include pseudo-headings)
+ * @param {string} perspectiveName - active Perspective name (or '-' / empty)
+ * @returns {{ heading: string, reason: string, score: number }}
+ */
+export function pickDefaultHeadingForAddTaskDialog(
+  headings: Array<string>,
+  perspectiveName: string,
+): { heading: string, reason: string, score: number } {
+  const realHeadings = headings.filter((h) => h && String(h).trim() !== '' && !isPseudoHeadingOption(h))
+  logInfo(
+    'pickDefaultHeadingForAddTaskDialog',
+    `Input: perspectiveName="${perspectiveName}", headings=[${headings.join(' | ')}], realHeadings=[${realHeadings.join(' | ')}]`,
+  )
+
+  let bestHeading = ''
+  let bestScore = 0
+  if (perspectiveName && perspectiveName !== '-') {
+    for (const heading of realHeadings) {
+      const score = scoreHeadingPerspectiveMatch(perspectiveName, heading)
+      if (score > bestScore) {
+        bestScore = score
+        bestHeading = heading
+      }
+    }
+  }
+
+  if (bestHeading) {
+    logInfo(
+      'pickDefaultHeadingForAddTaskDialog',
+      `Result: matched "${bestHeading}" (score ${String(bestScore)}) for perspective "${perspectiveName}"`,
+    )
+    return { heading: bestHeading, reason: 'perspective-match', score: bestScore }
+  }
+
+  const fallback = realHeadings[0] || ''
+  logInfo(
+    'pickDefaultHeadingForAddTaskDialog',
+    `Result: no near match for perspective "${perspectiveName}"; falling back to first real heading "${fallback}"`,
+  )
+  return { heading: fallback, reason: fallback ? 'first-real-heading' : 'none', score: 0 }
+}
+
+/**
+ * Default heading for new-task form fields.
+ * When headings are provided, prefers a near-match to the active Perspective, else the first real heading.
+ * Without headings, falls back to newTaskSectionHeading (empty when that setting is <<carry forward>>).
+ * @param {TDashboardSettings} config
+ * @param {Array<string>} headings - optional dropdown options from the destination note
+ * @returns {string}
+ */
+export function getDefaultHeadingForNewTask(config: TDashboardSettings, headings: Array<string> = []): string {
+  if (headings.length > 0) {
+    const perspectiveName = getActivePerspectiveNameSync()
+    const { heading } = pickDefaultHeadingForAddTaskDialog(headings, perspectiveName)
+    if (heading) return heading
+  }
   return config.newTaskSectionHeading !== '<<carry forward>>' ? config.newTaskSectionHeading : ''
 }
 
@@ -810,7 +914,7 @@ export function getDefaultHeadingForNewTask(config: TDashboardSettings): string 
 export function buildAddTaskFormFields(headings: Array<string>, config: TDashboardSettings): Array<TDialogSettingItem> {
   const formFieldsBase: Array<TDialogSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
   if (!headings.length) return formFieldsBase
-  const defaultHeadingToAddTo = getDefaultHeadingForNewTask(config)
+  const defaultHeadingToAddTo = getDefaultHeadingForNewTask(config, headings)
   return formFieldsBase.concat(
     ([
       {

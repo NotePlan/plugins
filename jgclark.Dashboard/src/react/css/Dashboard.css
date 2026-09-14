@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2026-08-21 for v2.4.2 by @jgclark */
+/* Last updated 2026-09-14 for v2.5.0.b4 by @jgclark */
 
 /* ------------------------------------------------------------------ */
 html {
@@ -35,18 +35,80 @@ html {
 /* ------------------------------------------------------------------ */
 
 html {
-	/* Add a gutter to the scrollbar to prevent it from overlapping with the content. Available in Safari, but not sure when it becomes available in NotePlan. */
-	scrollbar-gutter: stable;
-
 	/* Define 'Magic Numbers' -------------------------------- */
 	--itemIndentWidth: 1.7rem;
 	/* For the NP-generated close button on modal windows on mobile */
 	--modalCloseButtonSpacerWidth: 20px;
+
+	height: 100%;
+	/* Scroll lives on .dashboard-sections so the header can stay fixed while sections bounce */
+	overflow: hidden;
+	overscroll-behavior-x: none;
+	overscroll-behavior-y: none;
 }
 
 body {
 	margin: 0px;
 	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	overscroll-behavior-x: none;
+	overscroll-behavior-y: none;
+}
+
+#root,
+#root > .Root {
+	height: 100%;
+	overflow: hidden;
+}
+
+/* Full-height app shell: header outside the scrolling sections region */
+.dashboard-app {
+	display: flex;
+	flex-direction: column;
+	/* Sit below NP Main Window toolbar when --noteplan-toolbar-height is set (was sticky top offset) */
+	height: calc(100% - var(--noteplan-toolbar-height, 0px));
+	max-height: calc(100% - var(--noteplan-toolbar-height, 0px));
+	margin-top: var(--noteplan-toolbar-height, 0px);
+	overflow: hidden;
+	overscroll-behavior-x: none;
+}
+
+.dashboard {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
+	overscroll-behavior-x: none;
+}
+
+/* Sections scroll here - vertical bounce OK; no horizontal bounce */
+.dashboard-sections {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-x: auto;
+	overflow-y: auto;
+	overscroll-behavior-x: none;
+	overscroll-behavior-y: auto;
+	/* Gutter on the scroll container (was on html when the window scrolled) */
+	scrollbar-gutter: stable;
+	/* thumb = grabable knob; track stays quieter */
+	scrollbar-color: var(--bg-alt-color, #e6e9ef) transparent;
+}
+
+.dashboard-sections::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+
+.dashboard-sections::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.dashboard-sections::-webkit-scrollbar-thumb {
+	background: var(--bg-alt-color, #e6e9ef);
+	border-radius: 8px;
 }
 
 /* Add a focus-visible outline to any element that is focussed and the browser decides needs to show a focus ring */

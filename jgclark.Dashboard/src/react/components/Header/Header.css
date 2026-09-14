@@ -1,14 +1,14 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated 2026-01-02 for v2.4.0.b5 by @jgclark */
+/* Last updated 2026-09-14 for v2.5.0.b4 by @jgclark */
 
 /* TODO: SearchPanel transition is not working well yet. Not sure if that's because of this file or SearchPanel.css */
 
-/* Container for header and search panel */
+/* Container for header and search panel - fixed above scrolling sections (not sticky in document scroll) */
 .header-container {
-	position: sticky;
+	position: relative;
+	flex-shrink: 0;
 	width: 100%;
 	z-index: 10;
-	top: var(--noteplan-toolbar-height, 0px);
 	background-color: var(--bg-sidebar-color);
 }
 
@@ -56,6 +56,37 @@
 	box-shadow: 1px 1px 0px 0px rgba(from var(--fg-main-color) r g b / 0.2);
 }
 
+/* Refresh / Hard Refresh / Perspective field: same height; text+icons 1px optically higher */
+.header .refreshButtons .HAButton,
+.header .perspective-selector .dropdown-select-input {
+	box-sizing: border-box;
+	height: 1.4rem;
+	line-height: 1.15;
+}
+
+.header .refreshButtons .HAButton {
+	display: inline-flex;
+	align-items: center;
+	/* was 1px 3px 0px 3px - same total vertical padding, content 1px higher */
+	padding: 0px 3px 1px 3px;
+}
+
+.header .perspective-selector.dropdown-select-container-compact {
+	padding-top: 0;
+	align-items: center;
+}
+
+.header .perspective-selector .dropdown-select-input {
+	/* was 2px 20px 0px 8px - match button height; content 1px higher */
+	padding-top: 0;
+	padding-bottom: 1px;
+	padding-right: 20px;
+}
+
+.header .perspective-selector .dropdown-select-arrow {
+	transform: translateY(calc(-50% - 1px));
+}
+
 /* Refresh button(s) area */
 .refreshButtons {
 	/* allow for 2 buttons at times */
@@ -63,6 +94,7 @@
 	/* ensure it doesn't take more space than it needs */
 	min-width: fit-content;
 	gap: 0.6rem;
+	align-items: center;
 	/* to allow us to control clipping of hardRefreshButton */
 	/* max-width:28%; */
 }

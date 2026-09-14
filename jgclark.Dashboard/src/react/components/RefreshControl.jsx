@@ -30,7 +30,7 @@ const RefreshControl = (props: Props): React$Node => {
     <Button
       text={
         <>
-          <i className={refreshing ? 'fa-regular fa-arrow-rotate-right fa-spin' : 'fa-regular fa-arrow-rotate-right'}></i>
+          <i className={refreshing || firstRun ? 'fa-regular fa-arrow-rotate-right fa-spin' : 'fa-regular fa-arrow-rotate-right'}></i>
           {/* <span className="pad-left">{refreshing ? 'Refreshing' : 'Refresh'}</span> */}
           <span className={refreshing || firstRun ? 'pad-left greyedText' : 'pad-left'}>{firstRun ? 'Generating' : 'Refresh'}</span>
         </>
