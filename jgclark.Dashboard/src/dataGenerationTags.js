@@ -1,14 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-08-12 for v2.4.0.b63 by @CursorAI
+// Last updated 2026-09-15 for v2.4.4 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import type { TDashboardSettings, TSection, TSectionItem, TSectionDetails } from './types'
 import { createSectionItemObject, isLineDisallowedByIgnoreTerms, isNoteFromAllowedTeamspace, makeDashboardParas, resolveAllowedTeamspaceIDs } from './dashboardHelpers'
 import { tagParasFromNote } from './demoData'
-import { isTagCacheEnabled } from './dashboardSettingsClean'
 import { makeTagSectionID } from './react/components/Section/sectionHelpers'
 import {
   addTagMentionCacheDefinitions,
@@ -60,8 +59,7 @@ export async function getTaggedSectionData(
     let isHashtag = false
     let isMention = false
     let source = ''
-    const turnOnAPIComparison = config.FFlag_UseTagCacheAPIComparison ?? false
-    let comparisonDetails = ''
+    let cacheAgeInfo = ''
 
     const ignoreTermsMinusTagCSV: string = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
       .filter((t) => t !== thisTag)
@@ -85,15 +83,14 @@ export async function getTaggedSectionData(
         let filteredTagParas: Array<TParagraph> = []
 
         // Get notes with matching hashtag or mention (as can't get list of paras directly)
-        // Use Cache if wanted (and available), otherwise the API.
+        // Use cache when it already covers this tag; otherwise the API, and schedule a cache rebuild.
         let notesWithTag: Array<TNote> = []
         const cacheIsAvailableForThisTag = isTagMentionCacheAvailableForItem(thisTag)
-        const useTagCache = isTagCacheEnabled(config)
-        if (useTagCache && cacheIsAvailableForThisTag) {
+        if (cacheIsAvailableForThisTag) {
           // Use Cache
           logInfo('getTaggedSectionData', `- using cache for ${thisTag}`)
           let filenamesWithTagFromCache: Array<string> = []
-          ;[filenamesWithTagFromCache, comparisonDetails] = await getFilenamesOfNotesWithTagOrMentions([thisTag], true, turnOnAPIComparison)
+            ;[filenamesWithTagFromCache, cacheAgeInfo] = await getFilenamesOfNotesWithTagOrMentions([thisTag], true)
 
           // This is taking about 2ms per note for JGC
           if (!filenamesWithTagFromCache || filenamesWithTagFromCache.length === 0) {
@@ -109,14 +106,12 @@ export async function getTaggedSectionData(
             })
           }
           logTimer('getTaggedSectionData', thisStartTime, `- from CACHE found ${notesWithTag.length} notes with ${thisTag}`)
-          // cacheLookupTime = new Date() - cachedOperationStartTime
-          source = turnOnAPIComparison ? 'using CACHE + API' : 'using just CACHE'
+          source = '' // now is the default, so don't need to say 'using cache' in the section description
         } else {
           // Use API
           logDebug('getTaggedSectionData', `- using API only for ${thisTag}`)
           // Note: this is slow (1-3ms per note, so 3-9s for 3250 notes).
           notesWithTag = findNotesMatchingHashtagOrMention(thisTag, true, true, true, [], WANTED_PARA_TYPES, '', false, true)
-          // const APILookupTime = new Date() - thisStartTime
           logTimer('getTaggedSectionData', thisStartTime, `- from API only found ${notesWithTag.length} notes with ${thisTag}`)
           source = 'using API'
         }
@@ -236,8 +231,8 @@ export async function getTaggedSectionData(
           logDebug('getTaggedSectionData', `- no items to show for ${thisTag}`)
         }
 
-        // If we wanted to use the cache but it wasn't available or populated correctly, schedule it to be generated at the next opportunity, and ensure thisTag is in the cache definitions.
-        if (isTagCacheEnabled(config) && !cacheIsAvailableForThisTag) {
+        // If the cache wasn't available or populated correctly, schedule it to be generated at the next opportunity, and ensure thisTag is in the cache definitions.
+        if (!cacheIsAvailableForThisTag) {
           logInfo('getTaggedSectionData', `- adding ${thisTag} to the tagCache definitions, and scheduling a regeneration`)
           addTagMentionCacheDefinitions([thisTag])
           scheduleTagMentionCacheGeneration()
@@ -252,7 +247,7 @@ export async function getTaggedSectionData(
       sectionDescription += ` [${timer(thisStartTime)}]`
       // Cache/API source note is only for timing diagnostics (not shown to end users otherwise)
       sectionDescription += `, ${source}`
-      if (comparisonDetails !== '') sectionDescription += ` [${comparisonDetails}]`
+      if (cacheAgeInfo !== '') sectionDescription += ` [${cacheAgeInfo}]`
     }
     const section: TSection = {
       ID: sectionID,

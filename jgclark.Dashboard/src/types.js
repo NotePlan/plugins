@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-08-23 for v2.4.2 by @jgclark + @CursorAI
+// Last updated 2026-09-15 for v2.4.4 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -43,10 +43,7 @@ export type TDashboardSettings = {
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
   FFlag_ShowSectionTimings?: boolean,
-  FFlag_UseTagCache?: boolean, // TODO: remove this in v2.5.0?
-  FFlag_UseTagCacheAPIComparison?: boolean, // TODO: remove this in v2.5.0?
   FFlag_DynamicAddToAnywhere?: boolean, // Use new DynamicDialog-based add task dialog instead of QuickCapture plugin,
-
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN ------------- */
   defaultFileExtension?: string,

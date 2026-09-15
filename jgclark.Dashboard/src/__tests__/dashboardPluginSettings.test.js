@@ -129,7 +129,7 @@ describe(`${PLUGIN_NAME}`, () => {
           perspectiveSettings: [
             {
               name: 'Work',
-              dashboardSettings: { showFeatureFlagMenu: true, FFlag_UseTagCache: true, showTodaySection: true },
+              dashboardSettings: { showFeatureFlagMenu: true, FFlag_DebugPanel: true, showTodaySection: true },
               isModified: false,
               isActive: true,
             },
@@ -139,7 +139,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(needsWrite).toBe(true)
         expect(report.cleanedPerspectiveDefCount).toBe(1)
         expect(settings.perspectiveSettings[0].dashboardSettings.showFeatureFlagMenu).toBeUndefined()
-        expect(settings.perspectiveSettings[0].dashboardSettings.FFlag_UseTagCache).toBeUndefined()
+        expect(settings.perspectiveSettings[0].dashboardSettings.FFlag_DebugPanel).toBeUndefined()
         expect(settings.perspectiveSettings[0].dashboardSettings.showTodaySection).toBe(true)
       })
 

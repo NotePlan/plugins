@@ -185,7 +185,7 @@ Routed in `pluginToHTMLBridge.js` -> `perspectiveClickHandlers.js` (and helpers 
 
 ## Tag mention cache (`np.Shared` + Dashboard wrappers)
 
-The tag/mention cache lives in **np.Shared** (`np.Shared/src/tagMentionCache.js`) so more than one plugin can register items. Dashboard keeps thin wrappers in `src/tagMentionCache.js` (banners, perspective union). TAG section generation uses it from `dataGenerationTags.js` when tag cache is enabled (default since v2.4.0.b44 -- cache is **on** unless `FFlag_UseTagCache: false` is present in top-level `dashboardSettings`; the key is not persisted until explicitly set). The Feature Flags menu (where devs can toggle this) is shown only in DEV logging mode or when hidden `showFeatureFlagMenu: true` is set in `dashboardSettings`.
+The tag/mention cache lives in **np.Shared** (`np.Shared/src/tagMentionCache.js`) so more than one plugin can register items. Dashboard keeps thin wrappers in `src/tagMentionCache.js` (banners, perspective union). TAG section generation uses it from `dataGenerationTags.js` whenever the cache already covers that tag; otherwise it falls back to the NotePlan API and schedules a cache rebuild. The Feature Flags menu is shown only in DEV logging mode or when hidden `showFeatureFlagMenu: true` is set in `dashboardSettings`.
 
 Files are under `data/np.Shared/` (fully specified paths so any plugin context can read them). Shared does not read Dashboard's older cache files.
 
@@ -221,7 +221,8 @@ Only tags/mentions on the union are indexed -- caching every tag in a note was t
 If `tagsToShow` changes in the UI but the user has not saved perspectives yet, the wanted list can be stale until the next save that persists `perspectiveSettings` (e.g. **Save Perspective**). `generateTagMentionCache` documents this; it is usually corrected when TAG sections run:
 
 - `ensureCacheIsReadyForTags()` -- if a requested tag is missing from the wanted list, logs a warning, calls `addTagMentionCacheDefinitions()`, and schedules regeneration.
-- `getTaggedSectionData()` -- if the cache flag is on but the cache is not ready for that tag, adds the tag and schedules generation.
+- `getTaggedSectionData()` -- if the cache is not ready for that tag, adds the tag and schedules generation.
+- `registerTagMentionCacheItems()` schedules that rebuild only. Dashboard runs `generateTagMentionCache` once at the end of refresh. Registering must not start the scan itself: JSContext is single-threaded, so a fire-and-forget generate still blocks, and the later scheduled generate would scan every note twice.
 
 So the steady state is "union of all saved perspectives," with **lazy** additions for tags the dashboard is actively generating before save.
 

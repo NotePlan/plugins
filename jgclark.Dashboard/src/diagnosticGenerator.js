@@ -89,7 +89,7 @@ export async function generateDiagnosticsFile(refreshArg: string = '') {
     output.push('```')
     output.push('')
     output.push('## Tag/Mention Cache')
-    output.push(...getTagMentionCacheDiagnosticsLines(ds))
+    output.push(...getTagMentionCacheDiagnosticsLines())
     output.push('')
     output.push(`## Perspectives`)
     output.push(`Current Perspective = **${getActivePerspectiveName(perspectiveDefs)}**`)
