@@ -11,6 +11,7 @@
 
 ### Helpers
 
+- **helpers/NPVersions.js** — added `runOnAsyncThread` feature gate (NotePlan >= 3.21.3) for `CommandBar.runOnAsyncThread()`.
 - **helpers/NPnote.js** — `getNoteFromIdentifier` improvements:
   - Resolve by filename first when the identifier ends with `DataStore.defaultFileExtension` (e.g. `Note.md` or `folder/Note.md`) via `DataStore.noteByFilename(identifier, 'Notes')`.
   - Fallback chain for project note by title: exact title, then quoted title (e.g. `"Title"`), then case-insensitive + search all folders.
