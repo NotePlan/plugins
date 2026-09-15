@@ -1,8 +1,9 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.4.4] 2026-09-12
+## [2.4.4] 2026-09-15
 - Change: Tag/mention cache now lives in **np.Shared**, with per-plugin registration. Saving a Perspective updates only Dashboard's slot (union of all perspectives' `tagsToShow`) and no longer wipes items other plugins have registered.
+- Fix: Header Refresh no longer regenerates every Tag/Mention section once per visible tag (N²). Duplicate `TAG` codes are collapsed because one `TAG` already means all wanted tags.
 
 ## [2.4.3] 2026-08-28
 - New: Reminder edit dialog Actions row has "Convert to Task" (second control) to convert a reminder into an open task prepended to today's daily note, then delete the Apple Reminder. Carries notes (in parentheses), location as `@mention`, `>date`, `at HH:MM`, and priority markers when set.

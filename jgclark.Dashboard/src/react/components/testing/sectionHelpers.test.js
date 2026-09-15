@@ -68,6 +68,48 @@ describe('sectionHelpers', () => {
     })
   })
 
+  describe('uniqueSectionCodes', () => {
+    test('returns empty array unchanged', () => {
+      expect(sh.uniqueSectionCodes([])).toEqual([])
+    })
+
+    test('returns a unique list unchanged', () => {
+      expect(sh.uniqueSectionCodes(['TB', 'DT', 'TAG', 'W'])).toEqual(['TB', 'DT', 'TAG', 'W'])
+    })
+
+    test('collapses duplicate TAG while preserving first-seen order', () => {
+      expect(sh.uniqueSectionCodes(['TB', 'DT', 'TAG', 'TAG', 'TAG', 'W', 'TAG'])).toEqual(['TB', 'DT', 'TAG', 'W'])
+    })
+  })
+
+  describe('getVisibleSectionCodes', () => {
+    const dashboardSettings = {
+      showTodaySection: true,
+      showWeekSection: true,
+    }
+
+    test('returns one TAG even when several tag sections are visible', () => {
+      const sections = [
+        { sectionCode: 'DT', showSettingName: 'showTodaySection' },
+        { sectionCode: 'TAG', showSettingName: 'showTagSection_@RP' },
+        { sectionCode: 'TAG', showSettingName: 'showTagSection_@JA' },
+        { sectionCode: 'TAG', showSettingName: 'showTagSection_#pastoral' },
+        { sectionCode: 'W', showSettingName: 'showWeekSection' },
+      ]
+      expect(sh.getVisibleSectionCodes(dashboardSettings, sections)).toEqual(['DT', 'TAG', 'W'])
+    })
+
+    test('omits a tag section whose show setting is off', () => {
+      const settings = { ...dashboardSettings, 'showTagSection_@JA': false }
+      const sections = [
+        { sectionCode: 'DT', showSettingName: 'showTodaySection' },
+        { sectionCode: 'TAG', showSettingName: 'showTagSection_@RP' },
+        { sectionCode: 'TAG', showSettingName: 'showTagSection_@JA' },
+      ]
+      expect(sh.getVisibleSectionCodes(settings, sections)).toEqual(['DT', 'TAG'])
+    })
+  })
+
   describe('selectTagSectionsToGenerate', () => {
     const tagSections = [
       { sectionCode: 'TAG', sectionName: '#work', showSettingName: 'showTagSection_#work' },
