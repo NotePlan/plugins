@@ -7,7 +7,6 @@ const { promises: fs } = require('fs')
 const { existsSync } = require('fs')
 const path = require('path')
 const fg = require('fast-glob') //dbw adding for requiredFiles glob wildcard watch (**/)
-const notifier = require('node-notifier')
 const alias = require('@rollup/plugin-alias')
 
 const colors = require('chalk')
@@ -35,7 +34,7 @@ let progress
 
 let watcher
 
-const { getFolderFromCommandLine, writeMinifiedPluginFileContents, getCopyTargetPath, getPluginConfig } = require('./shared')
+const { getFolderFromCommandLine, writeMinifiedPluginFileContents, getCopyTargetPath, getPluginConfig, notifyWithoutBlocking } = require('./shared')
 
 // Command line options
 program
@@ -228,10 +227,7 @@ const dt = () => {
       }
 
       if (NOTIFY) {
-        notifier.notify({
-          title: 'NotePlan Plugin Build',
-          message: `${pluginJsonData['plugin.name']} v${pluginJsonData['plugin.version']}`,
-        })
+        notifyWithoutBlocking('NotePlan Plugin Build', `${pluginJsonData['plugin.name']} v${pluginJsonData['plugin.version']}`)
       }
 
       if (!isBuildTask) {
@@ -333,10 +329,7 @@ const dt = () => {
       } else if (event.code === 'ERROR') {
         messenger.error(`!!!!!!!!!!!!!!!\nRollup ${event.error}\n!!!!!!!!!!!!!!!\n`)
         if (NOTIFY) {
-          notifier.notify({
-            title: 'NotePlan Plugins Build',
-            message: `An error occurred during build process.\nSee console for more information`,
-          })
+          notifyWithoutBlocking('NotePlan Plugins Build', 'An error occurred during build process.\nSee console for more information')
         }
       }
     })

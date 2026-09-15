@@ -1,10 +1,12 @@
 'use strict'
 
 const fs = require('fs/promises')
+const { existsSync } = require('fs')
 const os = require('os')
 const username = os.userInfo().username
 const path = require('path')
 const util = require('util')
+const { spawn } = require('child_process')
 const exec = util.promisify(require('child_process').exec)
 const inquirer = require('inquirer')
 const JSON5 = require('json5')
@@ -169,6 +171,69 @@ async function getPluginConfig(key = null, defaultValue = null) {
   }
 }
 
+let cachedTerminalNotifierPath
+
+/**
+ * Resolve the bundled macOS terminal-notifier binary from node-notifier, if present.
+ * @returns {string} Absolute path, or empty string if missing
+ */
+function getTerminalNotifierPath() {
+  if (cachedTerminalNotifierPath !== undefined) {
+    return cachedTerminalNotifierPath
+  }
+  try {
+    const pkgDir = path.dirname(require.resolve('node-notifier/package.json'))
+    const candidate = path.join(pkgDir, 'vendor', 'mac.noindex', 'terminal-notifier.app', 'Contents', 'MacOS', 'terminal-notifier')
+    cachedTerminalNotifierPath = existsSync(candidate) ? candidate : ''
+  } catch (e) {
+    cachedTerminalNotifierPath = ''
+  }
+  return cachedTerminalNotifierPath
+}
+
+/**
+ * Spawn a process that can outlive this Node process and does not keep the event loop alive.
+ * @param {string} command
+ * @param {Array<string>} args
+ * @returns {void}
+ */
+function spawnDetached(command, args) {
+  const child = spawn(command, args, { detached: true, stdio: 'ignore' })
+  child.unref()
+}
+
+/**
+ * Show a desktop notification without keeping the Node process alive.
+ * node-notifier's default macOS path waits on terminal-notifier until the toast times out (~10s),
+ * which delays `npc plugin:dev --notify` after SUCCESS.
+ * @param {string} title
+ * @param {string} message
+ * @returns {void}
+ */
+function notifyWithoutBlocking(title, message) {
+  const safeTitle = title == null ? '' : String(title)
+  const safeMessage = message == null ? '' : String(message)
+  if (!safeTitle && !safeMessage) {
+    return
+  }
+
+  try {
+    if (process.platform === 'darwin') {
+      const bin = getTerminalNotifierPath()
+      if (bin) {
+        spawnDetached(bin, ['-title', safeTitle, '-message', safeMessage])
+        return
+      }
+      spawnDetached('osascript', ['-e', `display notification ${JSON.stringify(safeMessage)} with title ${JSON.stringify(safeTitle)}`])
+      return
+    }
+    const notifier = require('node-notifier')
+    notifier.notify({ title: safeTitle, message: safeMessage })
+  } catch (e) {
+    // Notifications are optional; never fail the build
+  }
+}
+
 function caseSensitiveImports() {
   return {
     name: 'case-sensitive-imports',
@@ -207,4 +272,5 @@ module.exports = {
   getCopyTargetPath,
   getPluginConfig,
   caseSensitiveImports,
+  notifyWithoutBlocking,
 }

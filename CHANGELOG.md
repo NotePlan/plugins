@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Scripts
+
+- `npc plugin:dev` no longer prints Node's `url.parse()` deprecation warning (DEP0169). The unused `bcrypt` import on `plugin:release` was loading `@mapbox/node-pre-gyp` on every CLI command.
+- `npc plugin:dev --notify` no longer waits after SUCCESS. Desktop notifications are spawned detached so Node does not wait on `terminal-notifier`.
+
 ### Helpers
 
 - **helpers/NPnote.js** — `getNoteFromIdentifier` improvements:
