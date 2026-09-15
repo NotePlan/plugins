@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Shared tag/mention cache for any plugin (owned by np.Shared)
 // Written originally by @jgclark for Dashboard plugin.
-// last updated 2026-09-13 for v1.1.1 by @jgclark + @CursorAI
+// last updated 2026-09-15 for v1.1.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 // Cache body (`tagMentionCache.json`):
 // {
@@ -22,9 +22,9 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-import { CaseInsensitiveSet, percent } from '@helpers/general'
+import { CaseInsensitiveSet } from '@helpers/general'
 import { noteHasFrontMatter } from '@helpers/NPFrontMatter'
-import { findNotesMatchingHashtagOrMention, getNotesChangedInInterval } from '@helpers/NPnote'
+import { getNotesChangedInInterval } from '@helpers/NPnote'
 import { RE_NP_HASHTAG_G, RE_NP_MENTION_G } from '@helpers/regex'
 import { caseInsensitiveArrayIncludes, caseInsensitiveMatch, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
 import { getHashtagsFromString } from '@helpers/stringTransforms'
@@ -44,6 +44,10 @@ const regenerateTagMentionCachePref = 'np.Shared.tagMentionCache.regenerateTagMe
 
 const TAG_CACHE_UPDATE_INTERVAL_HOURS = 1 // how often to update the cache
 const TAG_CACHE_GENERATE_INTERVAL_DAYS = 5 // how often to re-generate the cache from scratch
+// Skip a second full scan if generate just finished with the same wanted items (same JSContext, no real await).
+const TAG_CACHE_SKIP_REDUNDANT_REBUILD_MS = 2 * 60 * 1000
+
+let tagMentionCacheGenerationInProgress = false
 
 // Note: Earlier I tried caching all tags in a note with the blacklist
 // EXCLUDED_TAGS_OR_MENTIONS of ['@done', '@start', '@review', '@reviewed', '@completed', '@cancelled'].
@@ -102,6 +106,35 @@ function parseTagMentionCacheTimestamp(value: ?(Date | string)): ?Date {
   const m = moment(value)
   if (!m.isValid()) return null
   return m.toDate()
+}
+
+/**
+ * Whether two wanted-item lists contain the same tags/mentions (order-independent).
+ * @param {Array<string>} a
+ * @param {Array<string>} b
+ * @returns {boolean}
+ */
+function cacheHasSameWantedItems(a: Array<string>, b: Array<string>): boolean {
+  return a.length === b.length && a.every((item) => b.includes(item)) && b.every((item) => a.includes(item))
+}
+
+/**
+ * True when the cache file already indexes the same wanted items and was generated within the last couple of minutes.
+ * Used so a scheduled generate after a just-finished rebuild does not scan every note again.
+ * @param {Array<string>} wantedItems
+ * @returns {boolean}
+ */
+function shouldSkipRedundantCacheRebuild(wantedItems: Array<string>): boolean {
+  if (!DataStore.fileExists(tagMentionCacheFile)) return false
+  try {
+    const parsedCache = JSON.parse(DataStore.loadData(tagMentionCacheFile, true) ?? '') ?? {}
+    if (!cacheHasSameWantedItems(parsedCache.wantedItems ?? [], wantedItems)) return false
+    const generatedAt = parseTagMentionCacheTimestamp(parsedCache.generatedAt)
+    if (generatedAt == null) return false
+    return Date.now() - generatedAt.getTime() < TAG_CACHE_SKIP_REDUNDANT_REBUILD_MS
+  } catch (err) {
+    return false
+  }
 }
 
 /**
@@ -597,7 +630,9 @@ export function getTagMentionCacheDefinitions(): Array<string> {
 }
 
 /**
- * Replace one plugin's registered items. New union items schedule a cache regen; dropped union items are pruned.
+ * Replace one plugin's registered items. New union items *schedule* a cache regen (Dashboard runs it after
+ * refresh). Dropped union items are pruned. Do not start a full scan here: JSContext is single-threaded, so
+ * a fire-and-forget generate still blocks the caller and a later scheduled generate would scan twice.
  * @param {string} pluginId
  * @param {Array<string>} items
  * @returns {{ union: Array<string>, addedToUnion: Array<string>, removedFromUnion: Array<string> }}
@@ -623,9 +658,10 @@ export function registerTagMentionCacheItems(
     pruneSavedCacheToUnion(union)
   }
   if (addedToUnion.length > 0) {
+    // Schedule only. Starting generate here used to run the full scan on the same JSContext before this
+    // function returned, then Dashboard's end-of-refresh scheduled generate scanned everything again.
     logInfo('registerTagMentionCacheItems', `- ${addedToUnion.length} new union item(s); scheduling cache regeneration`)
-    // eslint-disable-next-line require-await
-    const _promise = generateTagMentionCache('Changed wanted tags & mentions')
+    scheduleTagMentionCacheGeneration()
   }
   return { union, addedToUnion, removedFromUnion }
 }
@@ -692,14 +728,11 @@ export function setTagMentionCacheDefinitions(wantedItems: Array<string>): void 
  * It does not do any filtering by para type.
  * @param {Array<string>} tagOrMentions The tags and/or mentions to search for.
  * @param {boolean} firstUpdateCache If true, the cache will be updated before the search is done. (Default: true)
- * @param {boolean} turnOnAPIComparison? default: true
- * @returns {[Array<string>, string]} An array of note filenames that contain the tag or mention, and a string with details of the comparison.
- * TODO(later): remove the second return value in v2.4.0
+ * @returns {[Array<string>, string]} An array of note filenames that contain the tag or mention, and a cache-age string for diagnostics.
  */
 export async function getFilenamesOfNotesWithTagOrMentions(
   tagOrMentions: Array<string>,
   firstUpdateCache: boolean = true,
-  turnOnAPIComparison: boolean = true,
 ): Promise<[Array<string>, string]> {
   try {
     logInfo(
@@ -716,9 +749,6 @@ export async function getFilenamesOfNotesWithTagOrMentions(
 
     // 3. Find matching notes from cache
     const matchingNoteFilenamesFromCache = findMatchingNotesFromCache(tagOrMentions, cache)
-    // Cast: JS coerces both Dates to numbers here, but Flow has no type for "Date used as a number",
-    // so `Date - Date` is always unsafe-arithmetic unless one side is cast.
-    const cacheLookupTime = (new Date(): any) - startTime
     logTagMentionCacheDuration('getFilenamesOfNotesWithTagOrMentions', startTime, 'accessed', `(found ${String(matchingNoteFilenamesFromCache.length)} notes for [${String(tagOrMentions)}])`)
     logTimer(
       'getFilenamesOfNotesWithTagOrMentions',
@@ -726,19 +756,13 @@ export async function getFilenamesOfNotesWithTagOrMentions(
       `-> found ${String(matchingNoteFilenamesFromCache.length)} notes from CACHE with wanted tags/mentions [${String(tagOrMentions)}]:`,
     )
 
-    // 4. Compare with API if requested
-    let countComparison = ''
-    if (turnOnAPIComparison) {
-      countComparison = compareCacheWithAPI(tagOrMentions, matchingNoteFilenamesFromCache, cacheLookupTime)
-    }
+    // 4. Add cache age info
+    const cacheAgeInfo = buildCacheAgeInfo(cache)
 
-    // 5. Add cache age info
-    countComparison += buildCacheAgeInfo(cache)
-
-    // 6. Schedule regeneration if needed
+    // 5. Schedule regeneration if needed
     scheduleTagMentionCacheGenerationIfTooOld(cache.generatedAt)
 
-    return [matchingNoteFilenamesFromCache, countComparison]
+    return [matchingNoteFilenamesFromCache, cacheAgeInfo]
   } catch (err) {
     logError('getFilenamesOfNotesWithTagOrMentions', JSP(err))
     return [[], 'error']
@@ -765,6 +789,11 @@ export async function generateTagMentionCache(
   forceRebuild: boolean = true,
   progress: TTagMentionCacheProgress = {},
 ): Promise<void> {
+  if (tagMentionCacheGenerationInProgress) {
+    logInfo('generateTagMentionCache', `- already in progress; skipping duplicate start (${generationReason})`)
+    return
+  }
+  tagMentionCacheGenerationInProgress = true
   const startTime = new Date()
   let progressBannerShown = false
   let loadingIndicatorShown = false
@@ -775,6 +804,12 @@ export async function generateTagMentionCache(
     logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}] for ${generationReason}`)
     // logDebug('generateTagMentionCache', `- ${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' ONLY FOR OPEN ITEMS' : ' ON ANY PARA TYPE'}`)
 
+    if (shouldSkipRedundantCacheRebuild(wantedItems)) {
+      logInfo('generateTagMentionCache', `- cache already has all wanted items and was generated recently; skipping rebuild (${generationReason})`)
+      clearTagMentionCacheGenerationPref()
+      return
+    }
+
     // If we're not forcing a rebuild, and the WANTED_PARA_TYPES are the same as (or less than) what is in the cache, then use the quicker 'updateTagMentionCache' function
     if (!forceRebuild) {
       // Get wantedItems from the cache
@@ -782,10 +817,7 @@ export async function generateTagMentionCache(
       const parsedCache = JSON.parse(existingCache) ?? {}
       const cachedWantedItems = parsedCache.wantedItems ?? []
       logInfo('generateTagMentionCache', `- cachedWantedItems: [${String(cachedWantedItems)}]`)
-      // if (wantedItems.every((item, index) => item === cachedWantedItems[index])) { // Cursor says "❌ Order-dependent
-      if (wantedItems.length === cachedWantedItems.length &&
-        wantedItems.every((item) => cachedWantedItems.includes(item)) &&
-        cachedWantedItems.every((item) => wantedItems.includes(item))) {  // ✅ Order-independent
+      if (cacheHasSameWantedItems(wantedItems, cachedWantedItems)) {
         logInfo('generateTagMentionCache', `- Not forcing a rebuild, and WANTED_PARA_TYPES are all present already in the cache, so calling updateTagMentionCache() instead.`)
         await updateTagMentionCache()
         logTagMentionCacheDuration('generateTagMentionCache', startTime, 'rebuilt', `(delegated to update; wanted items already in cache)`)
@@ -871,6 +903,7 @@ export async function generateTagMentionCache(
       progressBannerShown = false
     }
   } finally {
+    tagMentionCacheGenerationInProgress = false
     if (loadingIndicatorShown) {
       CommandBar.showLoading(false)
     }
@@ -979,10 +1012,9 @@ function countCachedItemHits(notesArray: Array<{ items?: Array<string> }>): numb
 
 /**
  * Return markdown lines for the Tag/Mention Cache section in diagnostics output.
- * @param {Object} dashboardSettings - current dashboard settings (for feature flags)
  * @returns {Array<string>}
  */
-export function getTagMentionCacheDiagnosticsLines(dashboardSettings: any): Array<string> {
+export function getTagMentionCacheDiagnosticsLines(): Array<string> {
   const lines: Array<string> = []
   const wantedItemsFromDefinitions = getTagMentionCacheDefinitions()
   const cacheFileExists = isTagMentionCacheAvailable()
@@ -992,11 +1024,6 @@ export function getTagMentionCacheDiagnosticsLines(dashboardSettings: any): Arra
   const registrations = getTagMentionCacheRegistrations()
 
   lines.push('### Settings')
-  const tagCacheFlag = dashboardSettings?.FFlag_UseTagCache
-  lines.push(
-    `- FFlag_UseTagCache: ${tagCacheFlag === undefined ? 'not set (so, cache enabled)' : String(tagCacheFlag)}`,
-  )
-  lines.push(`- FFlag_UseTagCacheAPIComparison: ${String(dashboardSettings?.FFlag_UseTagCacheAPIComparison ?? false)}`)
   lines.push(`- TAG_CACHE_ONLY_FOR_OPEN_ITEMS (code): ${String(TAG_CACHE_ONLY_FOR_OPEN_ITEMS)}`)
   lines.push(`- Update interval: ${String(TAG_CACHE_UPDATE_INTERVAL_HOURS)} hour(s)`)
   lines.push(`- Full regenerate interval: ${String(TAG_CACHE_GENERATE_INTERVAL_DAYS)} day(s)`)
@@ -1293,67 +1320,6 @@ export function getRegularNoteFilenamesFromTagMentionCache(tagOrMentions: Array<
 }
 
 /**
- * Gets deduplicated notes from API for the given tags/mentions.
- * @param {Array<string>} tagOrMentions - Tags/mentions to search for
- * @returns {Array<TNote>} Array of deduplicated notes
- */
-function getDeduplicatedNotesFromAPI(tagOrMentions: Array<string>): Array<TNote> {
-  const matchingNotes: Array<TNote> = []
-  const seenFilenames: Set<string> = new Set()
-
-  for (const tagOrMention of tagOrMentions) {
-    const notes = findNotesMatchingHashtagOrMention(tagOrMention, true, true, true, [], WANTED_PARA_TYPES, '', false, true)
-    notes.forEach((note) => {
-      if (!seenFilenames.has(note.filename)) {
-        matchingNotes.push(note)
-        seenFilenames.add(note.filename)
-      }
-    })
-  }
-
-  return matchingNotes
-}
-
-/**
- * Compares cache results with API results and returns comparison details.
- * @param {Array<string>} tagOrMentions - Tags/mentions that were searched
- * @param {Array<string>} matchingFilenamesFromCache - Filenames found in cache
- * @param {number} cacheLookupTime - Time taken for cache lookup (ms)
- * @returns {string} Comparison details string
- */
-function compareCacheWithAPI(
-  tagOrMentions: Array<string>,
-  matchingFilenamesFromCache: Array<string>,
-  cacheLookupTime: number,
-): string {
-  logInfo('compareCacheWithAPI', `- getting matching notes from API ready for comparison`)
-  const thisStartTime = new Date()
-  const matchingNotesFromAPI = getDeduplicatedNotesFromAPI(tagOrMentions)
-  // Cast: as above -- Flow has no numeric type for a Date operand.
-  const APILookupTime = (new Date(): any) - thisStartTime
-  logTimer('compareCacheWithAPI', thisStartTime, `-> found ${matchingNotesFromAPI.length} notes from API with wanted tags/mentions [${String(tagOrMentions)}]`)
-
-  logInfo('compareCacheWithAPI', `- CACHE took ${percent(cacheLookupTime, APILookupTime)} compared to API (${String(APILookupTime)}ms)`)
-
-  // Compare the two lists and note if different
-  let countComparison = ''
-  if (matchingFilenamesFromCache.length !== matchingNotesFromAPI.length) {
-    logWarn('compareCacheWithAPI', `- # notes from CACHE (${matchingFilenamesFromCache.length}) !== API (${matchingNotesFromAPI.length}).`)
-    countComparison = `😡 ${matchingFilenamesFromCache.length} CACHE notes != ${matchingNotesFromAPI.length} API notes. `
-    // Write a list of filenames that are in one but not the other
-    const filenamesInCache = matchingFilenamesFromCache
-    const filenamesInAPI = matchingNotesFromAPI.map((n) => n.filename)
-    logInfo('compareCacheWithAPI', `- filenames in CACHE but not in API: ${filenamesInCache.filter((f) => !filenamesInAPI.includes(f)).join(', ')}`)
-    logInfo('compareCacheWithAPI', `- filenames in API but not in CACHE: ${filenamesInAPI.filter((f) => !filenamesInCache.includes(f)).join(', ')}`)
-  } else {
-    logInfo('compareCacheWithAPI', `- 😃 # notes from CACHE (${matchingFilenamesFromCache.length}) === API (${matchingNotesFromAPI.length})`)
-    countComparison = `😃 CACHE = API. `
-  }
-
-  return countComparison
-}
-
-/**
  * Builds a string describing the age of the cache.
  * `cache.generatedAt` / `cache.lastUpdated` are ISO UTC strings (see serializeTagMentionCacheTimestamp); moment parses them as absolute instants.
  * @param {Object} cache - The cache object with generatedAt and lastUpdated
@@ -1365,8 +1331,12 @@ function buildCacheAgeInfo(cache: Object): string {
   const momGeneratedAgeMins = momNow.diff(momGeneratedAt, 'minutes', true)
   const momLastUpdated = moment(cache.lastUpdated)
   const momLastUpdatedAgeMins = momNow.diff(momLastUpdated, 'minutes', true)
-  const cacheGenerationAge = Math.round(momGeneratedAgeMins * 10) / 10
-  const cacheUpdatedAge = Math.round(momLastUpdatedAgeMins * 10) / 10
+  const formatAge = (age: number): string => new Intl.NumberFormat(undefined, {
+    maximumSignificantDigits: age < 1 ? 1 : 3,
+    useGrouping: true,
+  }).format(age)
+  const cacheGenerationAge = formatAge(momGeneratedAgeMins)
+  const cacheUpdatedAge = formatAge(momLastUpdatedAgeMins)
   return `Cache age: ${cacheGenerationAge}m, updated ${cacheUpdatedAge}m ago`
 }
 

@@ -3,6 +3,7 @@
 // Tests for Shared tag-mention cache registration and prune
 
 import {
+  generateTagMentionCache,
   getRegularNoteFilenamesFromTagMentionCache,
   getTagMentionCacheDefinitions,
   getUnionOfTagMentionCacheRegistrations,
@@ -138,6 +139,35 @@ describe('register / unregister', () => {
       },
     })
     expect(getTagMentionCacheDefinitions().sort()).toEqual(['#one', '#two'].sort())
+  })
+
+  test('registering a new union item schedules regeneration instead of scanning notes', () => {
+    files[SHARED_WANTED] = JSON.stringify({
+      registrations: { 'jgclark.Dashboard': ['@home'] },
+    })
+    DataStore.calendarNotes = [{ filename: '20260101.md', paragraphs: [] }]
+    DataStore.projectNotes = [{ filename: 'note.md', paragraphs: [] }]
+    registerTagMentionCacheItems('jgclark.Dashboard', ['@home', '@bob'])
+    expect(prefs['np.Shared.tagMentionCache.regenerateTagMentionCache']).toBe(true)
+    expect(CommandBar.showLoading).not.toHaveBeenCalled()
+  })
+
+  test('generateTagMentionCache skips a second rebuild when cache is already fresh for the same items', async () => {
+    files[SHARED_WANTED] = JSON.stringify({
+      registrations: { 'jgclark.Dashboard': ['@bob'] },
+    })
+    const nowIso = new Date().toISOString()
+    files[SHARED_CACHE] = JSON.stringify({
+      generatedAt: nowIso,
+      lastUpdated: nowIso,
+      wantedItems: ['@bob'],
+      regularNotes: [],
+      calendarNotes: [],
+    })
+    DataStore.calendarNotes = [{ filename: '20260101.md', paragraphs: [] }]
+    DataStore.projectNotes = [{ filename: 'note.md', paragraphs: [] }]
+    await generateTagMentionCache('test skip redundant rebuild', true)
+    expect(CommandBar.showLoading).not.toHaveBeenCalled()
   })
 })
 
