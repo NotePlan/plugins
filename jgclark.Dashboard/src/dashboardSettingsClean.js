@@ -3,7 +3,7 @@
 // Clean dashboard settings objects (per-perspective strip list).
 // Extracted from perspectiveHelpers.js to avoid circular imports with
 // dashboardPluginSettings.js / dashboardHelpers.js.
-// Last updated 2026-07-27 for v2.4.0.b55 by @jgclark + @CursorAI
+// Last updated 2026-09-15 for v2.4.4 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { applyDerivedDashboardSettings, normaliseDashboardNumberSettings } from './dashboardSettings'
@@ -13,15 +13,11 @@ import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import type { TDashboardSettings, TDashboardSettingsIn, TSection, TPerspectiveSettings } from './types'
 import { logDebug, logError } from '@helpers/dev'
 
-/** Tag cache is used unless FFlag_UseTagCache is explicitly false in dashboardSettings. */
-export function isTagCacheEnabled(dashboardSettings: TDashboardSettingsIn): boolean {
-  return dashboardSettings?.FFlag_UseTagCache !== false
-}
-
 /** Priority note-index cache is used unless FFlag_UsePriorityCache is explicitly false in dashboardSettings. */
 export function isPriorityCacheEnabled(dashboardSettings: TDashboardSettingsIn): boolean {
   return dashboardSettings?.FFlag_UsePriorityCache !== false
 }
+
 
 /**
  * Build strip patterns for keys that belong in top-level dashboardSettings only (not in perspective defs).

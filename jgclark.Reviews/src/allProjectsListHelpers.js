@@ -4,20 +4,26 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-07-17 for v2.0.6 by @CursorAI
+// Last updated 2026-09-13 for v2.2.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
 import { calcReviewFieldsForProject, isProjectFinished } from './projectClassCalculations.js'
-import { getReviewSettings, updateDashboardIfOpen, updateRichProjectListIfOpen } from './reviewHelpers.js'
-import type { ReviewConfig } from './reviewHelpers.js'
+import {
+  getProjectTypeTagsFromNoteMetadata,
+  noteHasProjectTypeTag,
+  updateDashboardIfOpen,
+  updateRichProjectListIfOpen,
+} from './reviewHelpers.js'
+import { getReviewSettings, type ReviewConfig } from './reviewSettings.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toISODateString } from '@helpers/dateTime'
 import { getFolderFromFilename, getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-import { findNotesMatchingHashtagOrMentionFromList, getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
+import { RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
+import { getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { smartPrependPara } from '@helpers/paragraph'
 
@@ -34,6 +40,19 @@ const MS_PER_HOUR = 1000 * 60 * 60
 const ERROR_FILENAME_PLACEHOLDER = 'error'
 const ERROR_READING_PLACEHOLDER = '<error reading'
 const SEQUENTIAL_TAG_DEFAULT = '#sequential'
+
+/**
+ * INFO-level duration for an allProjects list rebuild, incremental update, or access.
+ * @param {string} functionName
+ * @param {Date} startTime
+ * @param {string} operation
+ * @param {string} details
+ * @returns {void}
+ */
+function logAllProjectsListDuration(functionName: string, startTime: Date, operation: string, details: string = ''): void {
+  const suffix = details !== '' ? ` ${details}` : ''
+  logInfo(functionName, `⏱️ ${operation} in ${timer(startTime)}${suffix}`)
+}
 
 /**
  * Options for writes to allProjectsList.json that may also refresh open windows.
@@ -491,9 +510,7 @@ export function isNoteInCurrentProjectSelection(note: TNote, config: ReviewConfi
     }
   }
 
-  const noteFolder = getFolderFromFilename(note.filename ?? '')
-  const tagMatches = findNotesMatchingHashtagOrMentionFromList(projectTypeTag, [note], true, false, noteFolder, false, [])
-  return tagMatches.some((n) => n.filename === note.filename)
+  return noteHasProjectTypeTag(note, projectTypeTag)
 }
 
 /**
@@ -513,9 +530,11 @@ export async function addNewProjectToAllProjectsListIfInScope(
   scrollPosForRichList: number = 0,
   options?: AllProjectsListWriteOptions,
 ): Promise<boolean> {
+  const startTime = moment().toDate()
   try {
     if (!isNoteInCurrentProjectSelection(note, config, projectTypeTag)) {
-      logDebug('addNewProjectToAllProjectsListIfInScope', `Note '${note.filename ?? '?'}' with tag '${projectTypeTag}' is outside current project selection; skipping list update`)
+      // logDebug('addNewProjectToAllProjectsListIfInScope', `Note '${note.filename ?? '?'}' with tag '${projectTypeTag}' is outside current project selection; skipping list update`)
+      logAllProjectsListDuration('addNewProjectToAllProjectsListIfInScope', startTime, 'updated', `(skipped; note outside current project selection)`)
       return false
     }
 
@@ -534,9 +553,11 @@ export async function addNewProjectToAllProjectsListIfInScope(
     allProjects.push(newProject)
     logInfo('addNewProjectToAllProjectsListIfInScope', `- Added Project '${newProject.title ?? note.filename ?? '?'}' (${projectTypeTag}) to allProjects list`)
     await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true, config, options?.skipRichProjectListIfOpen === true)
+    logAllProjectsListDuration('addNewProjectToAllProjectsListIfInScope', startTime, 'updated', `(added '${newProject.title ?? note.filename ?? '?'}' with ${projectTypeTag}; list now ${String(allProjects.length)})`)
     return true
   } catch (error) {
     logError('addNewProjectToAllProjectsListIfInScope', JSP(error))
+    // logAllProjectsListDuration('addNewProjectToAllProjectsListIfInScope', startTime, 'updated', `(error)`)
     return false
   }
 }
@@ -591,9 +612,10 @@ export async function enumerateMatchingProjectNoteTagPairs(
       CommandBar.showLoading(true, `Generating Project Review list for notes in folder ${folder}`)
     }
 
-    // Get notes that include projectTag in this folder, ignoring subfolders
+    // Match project type tags from frontmatter / metadata line only (not body task hashtags)
+    const projectNotesInFolder = filteredProjectNotes.filter((n) => getFolderFromFilename(n.filename) === folder)
     for (const tag of tags) {
-      const projectNotesArr = findNotesMatchingHashtagOrMentionFromList(tag, filteredProjectNotes, true, false, folder, false, [])
+      const projectNotesArr = projectNotesInFolder.filter((n) => noteHasProjectTypeTag(n, tag))
       for (const n of projectNotesArr) {
         pairs.push({ note: n, projectTypeTag: tag })
       }
@@ -675,6 +697,7 @@ async function getAllMatchingProjects(
  * Not ordered in any particular way.
  * Output is written to file location set by `allProjectsListFilename`.
  * Note: This is V1 for JSON, borrowing from makeFullReviewList v3
+ * Note: This is taking between 600 and 3,333 ms/project for JGC's large vault in Sep 2026. Eek!
  * @author @jgclark
  * @param {any} configIn
  * @param {boolean} runInForeground? (default: false)
@@ -689,8 +712,7 @@ export async function generateAllProjectsList(
   skipRichProjectListIfOpen: boolean = false,
 ): Promise<Array<Project>> {
   try {
-    logDebug('generateAllProjectsList', `starting`)
-    logInfo('generateAllProjectsList', `usePerspectives=${String(configIn?.usePerspectives)} perspective='${configIn?.perspectiveName ?? '-'}' foldersToInclude=[${String(configIn?.foldersToInclude)}] foldersToIgnore=[${String(configIn?.foldersToIgnore)}]`)
+    logDebug('generateAllProjectsList', `starting with usePerspectives=${String(configIn?.usePerspectives)} perspective='${configIn?.perspectiveName ?? '-'}' foldersToInclude=[${String(configIn?.foldersToInclude)}] foldersToIgnore=[${String(configIn?.foldersToIgnore)}]`)
     const startTime = moment().toDate()
 
     // Get all project notes as Project instances
@@ -708,9 +730,85 @@ export async function generateAllProjectsList(
     }
 
     await writeAllProjectsList(projectInstances, scrollPosForRichList, skipUpdateDashboardIfOpen, configIn, skipRichProjectListIfOpen)
+    logAllProjectsListDuration('generateAllProjectsList', startTime, 'rebuilt', `(${String(projectInstances.length)} projects @ ${String(Math.round((moment().toDate() - startTime) / projectInstances.length))}ms/project)`)
     return projectInstances
   } catch (error) {
     logError('generateAllProjectsList', JSP(error))
+    return []
+  }
+}
+
+/**
+ * Re-parse every note already stored in allProjectsList.json using current next-action and progress-calculation settings.
+ * Does not enumerate the vault (unlike {@link generateAllProjectsList}). If the list file is missing or empty, falls back to a full generate.
+ * Note: This is taking 577ms/project for JGC in Sep 2026
+ * @author @jgclark
+ * @param {ReviewConfig} configIn
+ * @param {boolean} runInForeground? (default: false)
+ * @param {number} scrollPosForRichList - passed through to `writeAllProjectsList` for Rich list HTML scroll (pixels)
+ * @param {boolean} skipUpdateDashboardIfOpen
+ * @param {boolean} skipRichProjectListIfOpen
+ * @returns {Promise<Array<Project>>} Project instances written to disk
+ */
+export async function recalculateAllProjectsListItems(
+  configIn: ReviewConfig,
+  runInForeground: boolean = false,
+  scrollPosForRichList: number = 0,
+  skipUpdateDashboardIfOpen: boolean = false,
+  skipRichProjectListIfOpen: boolean = false,
+): Promise<Array<Project>> {
+  try {
+    const config = configIn ? configIn : await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
+    const startTime = moment().toDate()
+    const snapshotRows = loadRawAllProjectsListSnapshot()
+    if (snapshotRows.length === 0) {
+      logInfo('recalculateAllProjectsListItems', `No existing allProjects list rows; falling back to full generate`)
+      return await generateAllProjectsList(config, runInForeground, scrollPosForRichList, skipUpdateDashboardIfOpen, skipRichProjectListIfOpen)
+    }
+
+    logInfo('recalculateAllProjectsListItems', `Recalculating ${String(snapshotRows.length)} existing allProjects list item(s)`)
+    const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
+    const rebuilt: Array<Project> = []
+    let keptStale = 0
+    if (runInForeground) {
+      CommandBar.showLoading(true, `Recalculating ${String(snapshotRows.length)} project list items`)
+    }
+    for (const row of snapshotRows) {
+      const filename = typeof row?.filename === 'string' ? row.filename : ''
+      if (filename === '') {
+        logWarn('recalculateAllProjectsListItems', `Skipping row with no filename`)
+        continue
+      }
+      const note = getNoteFromFilename(filename)
+      if (!note) {
+        logWarn('recalculateAllProjectsListItems', `Couldn't load '${filename}'; keeping previous list row`)
+        rebuilt.push(calcReviewFieldsForProject({ ...row }))
+        keptStale += 1
+        continue
+      }
+      rebuilt.push(new Project(
+        note,
+        getLeadingProjectTag(row),
+        true,
+        config.nextActionTags,
+        sequentialTagResolved,
+        false,
+      ))
+    }
+    if (runInForeground) {
+      CommandBar.showLoading(false)
+    }
+
+    await writeAllProjectsList(rebuilt, scrollPosForRichList, skipUpdateDashboardIfOpen, config, skipRichProjectListIfOpen)
+    logAllProjectsListDuration('recalculateAllProjectsListItems', startTime, 'updated', `(recalculated ${String(rebuilt.length)} existing items @ ${String(Math.round((moment().toDate() - startTime) / rebuilt.length))}ms/project; kept stale ${String(keptStale)})`)
+    return rebuilt
+  } catch (error) {
+    logError('recalculateAllProjectsListItems', JSP(error))
+    if (runInForeground) {
+      CommandBar.showLoading(false)
+    }
     return []
   }
 }
@@ -783,6 +881,7 @@ export async function writeAllProjectsList(
  * @param {Project} projectToUpdate
  */
 export async function updateProjectInAllProjectsList(projectToUpdate: Project): Promise<void> {
+  const startTime = moment().toDate()
   try {
     const allProjects = await getAllProjectsFromList()
     logDebug('updateProjectInAllProjectsList', `Starting with ${allProjects.length} projectInstances`)
@@ -791,6 +890,7 @@ export async function updateProjectInAllProjectsList(projectToUpdate: Project): 
     const projectIndex = allProjects.findIndex((project) => project.filename === projectToUpdate.filename)
     if (projectIndex === -1) {
       logWarn('updateProjectInAllProjectsList', `- couldn't find project with filename '${projectToUpdate.filename}' to update`)
+      // logAllProjectsListDuration('updateProjectInAllProjectsList', startTime, 'updated', `(skipped; '${projectToUpdate.filename}' not in list)`)
       return
     }
     allProjects[projectIndex] = projectToUpdate
@@ -799,8 +899,10 @@ export async function updateProjectInAllProjectsList(projectToUpdate: Project): 
     // write to allProjects JSON file
     await writeAllProjectsList(allProjects)
     logDebug('updateProjectInAllProjectsList', `- done writing to allProjects list 🔸`)
+    logAllProjectsListDuration('updateProjectInAllProjectsList', startTime, 'updated', `(replaced '${projectToUpdate.filename}'; list now ${String(allProjects.length)})`)
   } catch (error) {
     logError('updateProjectInAllProjectsList', JSP(error))
+    // logAllProjectsListDuration('updateProjectInAllProjectsList', startTime, 'updated', `(error)`)
   }
 }
 
@@ -814,11 +916,12 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
   try {
     logDebug('getAllProjectsFromList', `Starting ...`)
     const config = await getReviewSettings()
+    const startTime = moment().toDate()
     if (!config) {
       logError('getAllProjectsFromList', 'No Reviews config found')
+      logAllProjectsListDuration('getAllProjectsFromList', startTime, 'accessed', `(no Reviews config)`)
       return []
     }
-    const startTime = moment().toDate()
     let projectInstances: Array<Project>
 
     // Check if file exists and is fresh enough
@@ -852,6 +955,7 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
       }
     }
     logTimer(`getAllProjectsFromList`, startTime, `- read ${projectInstances.length} Projects from allProjects list`)
+    logAllProjectsListDuration('getAllProjectsFromList', startTime, 'accessed', `(${String(projectInstances.length)} projects)`)
 
     return projectInstances
   }
@@ -905,7 +1009,7 @@ export function resolveProjectNoteFromListFilename(filename: string): ?TNote {
       return archived
     }
   }
-  const titleGuess = filename.replace(/\.md$/i, '').split('/').pop() ?? ''
+  const titleGuess = filename.split('/').pop()?.replace(RE_NOTE_FILE_EXTENSION, '') ?? ''
   if (titleGuess === '') {
     return null
   }
@@ -1057,6 +1161,7 @@ export async function updateAllProjectsListAfterChange(
   scrollPosForRichList: number = 0,
   options?: AllProjectsListWriteOptions,
 ): Promise<void> {
+  const startTime = moment().toDate()
   try {
     if (filename === '') {
       throw new Error('Empty filename passed')
@@ -1079,7 +1184,7 @@ export async function updateAllProjectsListAfterChange(
         const tagsToTry =
           projectTypeTags.length > 0
             ? projectTypeTags
-            : (noteForAdd.hashtags ?? []).filter((tag: string) => tag.startsWith('#') && tag.length > 1)
+            : getProjectTypeTagsFromNoteMetadata(noteForAdd)
         let added = false
         for (const tag of tagsToTry) {
           if (await addNewProjectToAllProjectsListIfInScope(noteForAdd, tag, config, scrollPosForRichList, options)) {
@@ -1087,12 +1192,14 @@ export async function updateAllProjectsListAfterChange(
           }
         }
         if (added) {
-          logInfo('updateAllProjectsListAfterChange', `- Incrementally added '${filename}' to allProjects list`)
+          // logInfo('updateAllProjectsListAfterChange', `- Incrementally added '${filename}' to allProjects list`)
+          logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(incrementally added '${filename}')`)
           return
         }
       }
       logWarn('updateAllProjectsListAfterChange', `Incremental add failed or note out of scope; will regenerate whole list.`)
       await generateAllProjectsList(config, false, scrollPosForRichList)
+      logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(delegated to full rebuild for '${filename}')`)
       return
     }
 
@@ -1107,6 +1214,7 @@ export async function updateAllProjectsListAfterChange(
       const reviewedNote = getNoteFromFilename(filename)
       if (!reviewedNote) {
         logWarn('updateAllProjectsListAfterChange', `Couldn't load note '${filename}' via getNoteFromFilename; not changing allProjects list`)
+        // logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(skipped; could not load '${filename}')`)
         return
       }
       // Note: there had been issue of stale data here in the past. Leaving comment in case it's needed again.
@@ -1131,10 +1239,12 @@ export async function updateAllProjectsListAfterChange(
     }
     // re-form the file
     await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true, config, options?.skipRichProjectListIfOpen === true)
-    logInfo('updateAllProjectsListAfterChange', `- done writing ${allProjects.length} items to updated list 🔸`)
+    // logInfo('updateAllProjectsListAfterChange', `- done writing ${allProjects.length} items to updated list 🔸`)
+    logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(${simplyDelete ? 'deleted' : 'replaced'} '${filename}'; list now ${String(allProjects.length)})`)
   }
   catch (error) {
     logError('updateAllProjectsListAfterChange', JSP(error))
+    // logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(error)`)
   }
 }
 

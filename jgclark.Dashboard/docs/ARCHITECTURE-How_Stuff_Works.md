@@ -183,38 +183,46 @@ Routed in `pluginToHTMLBridge.js` -> `perspectiveClickHandlers.js` (and helpers 
 - **Not** used for ordinary filter/settings toggles; those go through `dispatchDashboardSettings`.
 
 
-## Tag mention cache (`tagMentionCache.js`)
+## Tag mention cache (`np.Shared` + Dashboard wrappers)
 
-The Dashboard keeps a **plugin-local cache** of which notes contain which tags/mentions, so TAG sections can avoid scanning the whole vault on every refresh. Implementation lives in `src/tagMentionCache.js`; TAG section generation uses it from `dataGenerationTags.js` when tag cache is enabled (default since v2.4.0.b44 -- cache is **on** unless `FFlag_UseTagCache: false` is present in top-level `dashboardSettings`; the key is not persisted until explicitly set). The Feature Flags menu (where devs can toggle this) is shown only in DEV logging mode or when hidden `showFeatureFlagMenu: true` is set in `dashboardSettings`.
+The tag/mention cache lives in **np.Shared** (`np.Shared/src/tagMentionCache.js`) so more than one plugin can register items. Dashboard keeps thin wrappers in `src/tagMentionCache.js` (banners, perspective union). TAG section generation uses it from `dataGenerationTags.js` whenever the cache already covers that tag; otherwise it falls back to the NotePlan API and schedules a cache rebuild. The Feature Flags menu is shown only in DEV logging mode or when hidden `showFeatureFlagMenu: true` is set in `dashboardSettings`.
+
+Files are under `data/np.Shared/` (fully specified paths so any plugin context can read them). Shared does not read Dashboard's older cache files.
 
 ### Two files
 
 | File | Role |
 |------|------|
-| `wantedTagMentionsList.json` | **Definitions:** union of tags/mentions the cache should index (`items` array) |
+| `wantedTagMentionsList.json` | **Registrations:** `{ registrations: { "jgclark.Dashboard": [...], "jgclark.Reviews": [...] } }`. The cache indexes the **union** of all plugin lists. |
 | `tagMentionCache.json` | **Body:** per-note hits for those wanted items (`regularNotes`, `calendarNotes`, `wantedItems`, timestamps) |
 
-Only tags/mentions on the wanted list (`wantedTagMentionsList.json`) are indexed -- caching every tag in a note was tried but made the cache file ~20x larger. `TAG_CACHE_ONLY_FOR_OPEN_ITEMS` limits which paragraph types are considered when building the cache.
+Only tags/mentions on the union are indexed -- caching every tag in a note was tried but made the cache file ~20x larger. `TAG_CACHE_ONLY_FOR_OPEN_ITEMS` limits which paragraph types are considered when building the cache. Extraction also includes wanted tags/mentions in any frontmatter field.
+
+### Per-plugin registration
+
+- `registerTagMentionCacheItems(pluginId, items)` replaces **that plugin's** list only.
+- `unregisterTagMentionCacheItems(pluginId)` drops that plugin's list. An item is removed from the cache only when **no** remaining plugin still wants it.
+- Dashboard Save Perspective calls `updateTagMentionCacheDefinitionsFromAllPerspectives()`, which registers the union of every saved perspective's `tagsToShow` into the `jgclark.Dashboard` slot. It does not wipe other plugins.
 
 ### Which perspectives' `tagsToShow` are tracked?
 
-**All saved perspectives -- not only the active one.** The wanted list is the **union** of every perspective def's `tagsToShow`, not the current perspective alone.
+**All saved perspectives -- not only the active one.** Dashboard's registration is the **union** of every perspective def's `tagsToShow`, not the current perspective alone.
 
-- `getListOfWantedTagsAndMentionsFromAllPerspectives()` (in `tagMentionCache.js`) walks every `TPerspectiveDef` and adds each `dashboardSettings.tagsToShow` entry to a `Set`.
-- `updateTagMentionCacheDefinitionsFromAllPerspectives(allDefs)` writes that union to `wantedTagMentionsList.json` via `setTagMentionCacheDefinitions()`.
+- `getListOfWantedTagsAndMentionsFromAllPerspectives()` (Dashboard wrapper) walks every `TPerspectiveDef` and adds each `dashboardSettings.tagsToShow` entry to a `Set`.
 - `saveDashboardPluginSettings()` calls `updateTagMentionCacheDefinitionsFromAllPerspectives()` whenever `perspectiveSettings` is written -- including **Save Perspective** (`doSavePerspective`), perspective switch saves, and JSON bulk edit. This is the main persistence path.
 - `savePerspectiveSettings()` in `perspectiveHelpers.js` also calls the updater before delegating to `saveDashboardPluginSettings()` (copy/rename/add/delete flows).
-- `onUpdateOrInstall` and `repairDashboardSettings` refresh the wanted list from all saved defs before cache rebuild or when repair is run (covers stale files after upgrade).
-- `generateTagMentionCache()` / `updateTagMentionCache()` read the wanted list with `getTagMentionCacheDefinitions()`; they do not read live `dashboardSettings.tagsToShow` for the active perspective directly.
+- `onUpdateOrInstall` and `repairDashboardSettings` refresh Dashboard's registration from all saved defs before cache rebuild or when repair is run (covers stale files after upgrade).
+- `generateTagMentionCache()` / `updateTagMentionCache()` (Shared) read the **union** with `getTagMentionCacheDefinitions()`; they do not read live `dashboardSettings.tagsToShow` for the active perspective directly.
 
-**Switching perspective** does **not** rebuild the wanted list. Only saving perspective settings (or related save paths above) replaces the union from all defs.
+**Switching perspective** does **not** rebuild the wanted list. Only saving perspective settings (or related save paths above) replaces Dashboard's registration from all defs.
 
 ### Unsaved edits and on-demand additions
 
 If `tagsToShow` changes in the UI but the user has not saved perspectives yet, the wanted list can be stale until the next save that persists `perspectiveSettings` (e.g. **Save Perspective**). `generateTagMentionCache` documents this; it is usually corrected when TAG sections run:
 
 - `ensureCacheIsReadyForTags()` -- if a requested tag is missing from the wanted list, logs a warning, calls `addTagMentionCacheDefinitions()`, and schedules regeneration.
-- `getTaggedSectionData()` -- if the cache flag is on but the cache is not ready for that tag, adds the tag and schedules generation.
+- `getTaggedSectionData()` -- if the cache is not ready for that tag, adds the tag and schedules generation.
+- `registerTagMentionCacheItems()` schedules that rebuild only. Dashboard runs `generateTagMentionCache` once at the end of refresh. Registering must not start the scan itself: JSContext is single-threaded, so a fire-and-forget generate still blocks, and the later scheduled generate would scan every note twice.
 
 So the steady state is "union of all saved perspectives," with **lazy** additions for tags the dashboard is actively generating before save.
 

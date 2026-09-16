@@ -2,14 +2,17 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.8.1",
   "plugin.id": "np.Shared",
-  "plugin.name": "🤝 Shared Resources",
-  "plugin.version": "1.0.11",
+  "plugin.name": "Shared Resources",
+  "plugin.version": "1.2.0",
   "plugin.releaseStatus": "full",
   "plugin.description": "Shared resources for NotePlan plugins. (There are no commands for users to run directly.)",
+  "plugin.icon": "fa-handshake",
+  "plugin.iconColor": "amber-500",
+  "plugin.iconStyle": "solid",
   "plugin.author": "@jgclark + @dwertheimer",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md",
+  "plugin.url": "https://noteplan.co/plugins/np.Shared",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Shared/CHANGELOG.md",
   "plugin.requiredFiles": [
     "fontawesome.css",
@@ -65,6 +68,24 @@
       "description": "Handle shared chooser requests (getTeamspaces, etc.) for DynamicDialog",
       "jsFunction": "handleSharedRequest",
       "hidden": true
+    },
+    {
+      "hidden": false,
+      "name": "updateTagMentionCache",
+      "description": "update tag cache for all registered items",
+      "jsFunction": "updateTagMentionCache",
+      "alias": [
+        "utagc"
+      ]
+    },
+    {
+      "hidden": false,
+      "name": "generateTagMentionCache",
+      "description": "generate tag cache for all registered items",
+      "jsFunction": "generateTagMentionCache",
+      "alias": [
+        "gtagc"
+      ]
     }
   ],
   "plugin.settings": [

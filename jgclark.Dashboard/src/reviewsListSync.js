@@ -4,7 +4,7 @@
 // Last updated 2026-08-23 for v2.4.2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
-import { getReviewSettings } from '../../jgclark.Reviews/src/reviewHelpers'
+import { getReviewSettings } from '../../jgclark.Reviews/src/reviewSettings'
 import { RICH_PROJECT_LIST_WIN_ID } from '../../jgclark.Reviews/src/reviews'
 import { invalidateDashboardPluginSettingsCache } from './dashboardPluginSettings'
 import type { TDashboardSettingsIn } from './types'

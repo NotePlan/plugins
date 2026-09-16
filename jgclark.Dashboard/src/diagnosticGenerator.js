@@ -90,7 +90,7 @@ export async function generateDiagnosticsFile(refreshArg: string = '') {
     output.push('```')
     output.push('')
     output.push('## Tag/Mention Cache')
-    output.push(...getTagMentionCacheDiagnosticsLines(ds))
+    output.push(...getTagMentionCacheDiagnosticsLines())
     output.push('')
     output.push('## Priority Note-Index Cache')
     output.push(...getPriorityNoteIndexCacheDiagnosticsLines(ds))

@@ -15,14 +15,17 @@ import {
   getParamMentionFromList,
   PROJECT_METADATA_MIGRATED_MESSAGE,
   formatProgressCommentString,
-  getProgressFieldNameForBodyLines,
-  getProgressFrontmatterKey,
-  getReviewSettings,
   migrateProjectMetadataLineInEditor,
   migrateProjectMetadataLineInNote,
   parseProgressValueString,
   processMostRecentProgressParagraph,
 } from './reviewHelpers'
+import {
+  getProgressFieldNameForBodyLines,
+  getProgressFrontmatterKey,
+  getReviewSettings,
+  parseMarkdownHeadingSetting,
+} from './reviewSettings'
 import {
   formatDurationString,
   getMetadataPresenceState,
@@ -122,9 +125,9 @@ export class Project {
   nextReviewDateStr: ?string // The next review date in YYYY-MM-DD format (can be set by user or calculated)
   nextReviewDays: number = NaN
   completedDate: ?string // ISO date YYYY-MM-DD
-  completedDuration: ?string // string description of time to completion, or how long ago completed
+  completedDuration: ?string // "after X" from start to completion (empty if no start date)
   cancelledDate: ?string // ISO date YYYY-MM-DD
-  cancelledDuration: ?string // string description of time to cancellation, or how long ago cancelled
+  cancelledDuration: ?string // "after X" from start to cancellation (empty if no start date)
   numOpenItems: number = 0
   numCompletedItems: number = 0
   numTotalItems: number = 0
@@ -1212,11 +1215,10 @@ gatherAnyNextActionContent(nextActionTags: Array < string >, paras: Array < Para
 const config = await getReviewSettings()
 const progressKey = separateFmKeyFromMentionPref(checkString(config?.progressStr || 'progress'), 'progress')
 const progressFieldName = progressKey.length > 0 ? progressKey.charAt(0).toUpperCase() + progressKey.slice(1) : 'Progress'
-const progressHeading = config?.progressHeading?.trim() ?? ''
-const progressHeadingLevel = config?.progressHeadingLevel ?? 2
+const { level: progressHeadingLevel, text: progressHeadingText } = parseMarkdownHeadingSetting(config?.progressHeading ?? '')
 const writeMostRecentProgressToFrontmatter = config?.writeMostRecentProgressToFrontmatter ?? false
 
-// Update the project's metadata (label "today" when the chosen date is today)
+      // Update the project's metadata (label "today" when the chosen date is today)
 const progressDateLabel = progressDateStr === todaysDateISOString ? 'today' : progressDateStr
 this.lastProgressComment = `${comment} (${progressDateLabel})`
 const newProgressLineForFrontmatter = formatProgressCommentString(comment, percentStr !== '' ? percentStr : undefined, progressDateStr)
@@ -1228,15 +1230,15 @@ const newProgressLine = `${progressFieldName}: ${newProgressLineForFrontmatter}`
       // discarded on the next frontmatter rewrite (e.g. finishReview).
 
       // If progress heading is configured, use heading-based insertion
-      if (progressHeading !== '') {
-        logDebug('Project::addProgressLine', `Using progress heading: '${progressHeading}'`)
+      if (progressHeadingText !== '') {
+        logDebug('Project::addProgressLine', `Using progress heading: '${progressHeadingText}'`)
 
         // Check if Progress lines already exist
         const existingProgressLines = getFieldParagraphsFromNote(this.note, progressFieldName)
 
         if (existingProgressLines.length > 0) {
           // Progress lines exist - check if heading exists
-          const headingPara = findHeading(this.note, progressHeading)
+          const headingPara = findHeading(this.note, progressHeadingText)
 
           if (headingPara == null) {
             // Heading doesn't exist - insert it above the first Progress line
@@ -1269,21 +1271,21 @@ const newProgressLine = `${progressFieldName}: ${newProgressLineForFrontmatter}`
               }
             }
 
-            logDebug('Project::addProgressLine', `Inserting heading '${progressHeading}' above first Progress line at line ${String(firstProgressLineIndex)}`)
+            logDebug('Project::addProgressLine', `Inserting heading '${progressHeadingText}' above first Progress line at line ${String(firstProgressLineIndex)}`)
 
             // Insert heading above first Progress line
             if (possibleThisEditor) {
-              possibleThisEditor.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
+              possibleThisEditor.insertHeading(progressHeadingText, firstProgressLineIndex, progressHeadingLevel)
               await possibleThisEditor.save()
             } else {
-              this.note.insertHeading(progressHeading, firstProgressLineIndex, progressHeadingLevel)
+              this.note.insertHeading(progressHeadingText, firstProgressLineIndex, progressHeadingLevel)
               await DataStore.updateCache(this.note, true)
             }
           }
 
           // Now add the progress line under the heading (heading is guaranteed to exist)
-          logDebug('Project::addProgressLine', `Adding progress line under heading '${progressHeading}'`)
-          this.note.addParagraphBelowHeadingTitle(newProgressLine, 'text', progressHeading, false, false)
+          logDebug('Project::addProgressLine', `Adding progress line under heading '${progressHeadingText}'`)
+          this.note.addParagraphBelowHeadingTitle(newProgressLine, 'text', progressHeadingText, false, false)
 
           if (possibleThisEditor) {
             await possibleThisEditor.save()
@@ -1292,8 +1294,8 @@ const newProgressLine = `${progressFieldName}: ${newProgressLineForFrontmatter}`
           }
         } else {
           // No Progress lines exist: add new Progress Section heading (if needed) and the first progress line
-          logDebug('Project::addProgressLine', `No existing Progress lines, so creating new Section heading '${progressHeading}' if needed after preamble`)
-          createSectionsAndParaAfterPreamble(this.note, newProgressLine, 'text', [progressHeading], progressHeadingLevel)
+          logDebug('Project::addProgressLine', `No existing Progress lines, so creating new Section heading '${progressHeadingText}' if needed after preamble`)
+          createSectionsAndParaAfterPreamble(this.note, newProgressLine, 'text', [progressHeadingText], progressHeadingLevel)
 
           if (possibleThisEditor) {
             await possibleThisEditor.save()

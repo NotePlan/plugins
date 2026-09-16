@@ -7,7 +7,6 @@ import {
   getWantedTagNamesFromSettings,
   isDashboardGlobalOnlySettingsDiff,
   isDashboardGlobalSettingKey,
-  isTagCacheEnabled,
   removeStaleTagSections,
   syncTagSectionsWithSettings,
 } from '../src/dashboardSettingsClean'
@@ -81,35 +80,22 @@ describe('syncTagSectionsWithSettings', () => {
   })
 })
 
-describe('isTagCacheEnabled', () => {
-  it('returns true when FFlag_UseTagCache is absent or true', () => {
-    expect(isTagCacheEnabled({})).toBe(true)
-    expect(isTagCacheEnabled({ FFlag_UseTagCache: true })).toBe(true)
-  })
-
-  it('returns false only when FFlag_UseTagCache is explicitly false', () => {
-    expect(isTagCacheEnabled({ FFlag_UseTagCache: false })).toBe(false)
-  })
-})
-
 describe('cleanDashboardSettingsInAPerspective', () => {
   it('removes showFeatureFlagMenu and FFlag_* keys', () => {
     const cleaned = cleanDashboardSettingsInAPerspective({
       showTodaySection: true,
       showFeatureFlagMenu: true,
-      FFlag_UseTagCache: true,
       FFlag_DebugPanel: true,
     })
     expect(cleaned.showTodaySection).toBe(true)
     expect(cleaned.showFeatureFlagMenu).toBeUndefined()
-    expect(cleaned.FFlag_UseTagCache).toBeUndefined()
     expect(cleaned.FFlag_DebugPanel).toBeUndefined()
   })
 })
 
 describe('isDashboardGlobalSettingKey', () => {
   it('identifies FFlags and showFeatureFlagMenu as global', () => {
-    expect(isDashboardGlobalSettingKey('FFlag_UseTagCache')).toBe(true)
+    expect(isDashboardGlobalSettingKey('FFlag_DebugPanel')).toBe(true)
     expect(isDashboardGlobalSettingKey('showFeatureFlagMenu')).toBe(true)
     expect(isDashboardGlobalSettingKey('showTodaySection')).toBe(false)
   })
@@ -117,23 +103,23 @@ describe('isDashboardGlobalSettingKey', () => {
 
 describe('isDashboardGlobalOnlySettingsDiff', () => {
   it('returns true when all diff keys are dashboard-global', () => {
-    expect(isDashboardGlobalOnlySettingsDiff(['FFlag_UseTagCache', 'showFeatureFlagMenu'])).toBe(true)
-    expect(isDashboardGlobalOnlySettingsDiff(['FFlag_UseTagCache', 'showTodaySection'])).toBe(false)
+    expect(isDashboardGlobalOnlySettingsDiff(['FFlag_DebugPanel', 'showFeatureFlagMenu'])).toBe(true)
+    expect(isDashboardGlobalOnlySettingsDiff(['FFlag_DebugPanel', 'showTodaySection'])).toBe(false)
   })
 })
 
 describe('mergeDashboardSettingsForPerspectiveDef', () => {
   it('does not let legacy FFlag in perspective def override live top-level value', () => {
     const defaults = getDashboardSettingsDefaults()
-    const prev = { ...defaults, FFlag_UseTagCache: true, showTodaySection: true }
+    const prev = { ...defaults, FFlag_DebugPanel: true, showTodaySection: true }
     const perspectiveDef = {
       name: 'Work',
       isModified: false,
       isActive: true,
-      dashboardSettings: { FFlag_UseTagCache: false, showTodaySection: false },
+      dashboardSettings: { FFlag_DebugPanel: false, showTodaySection: false },
     }
     const merged = mergeDashboardSettingsForPerspectiveDef(perspectiveDef, prev, defaults)
-    expect(merged.FFlag_UseTagCache).toBe(true)
+    expect(merged.FFlag_DebugPanel).toBe(true)
     expect(merged.showTodaySection).toBe(false)
   })
 
@@ -172,9 +158,9 @@ describe('getPerspectiveLiveVsSavedDiff', () => {
       name: 'Work',
       isModified: false,
       isActive: true,
-      dashboardSettings: { ...defaults, FFlag_UseTagCache: false, showQuarterSection: false },
+      dashboardSettings: { ...defaults, FFlag_DebugPanel: false, showQuarterSection: false },
     }
-    const live = { ...defaults, FFlag_UseTagCache: true, showQuarterSection: false }
+    const live = { ...defaults, FFlag_DebugPanel: true, showQuarterSection: false }
     expect(getPerspectiveLiveVsSavedDiff(perspectiveDef, live)).toBeNull()
   })
 })

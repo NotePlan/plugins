@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/flow-session-start.sh",
+        "timeout": 30
+      }
+    ]
+  }
+}

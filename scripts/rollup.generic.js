@@ -1,6 +1,5 @@
 const path = require('path')
 const fs = require('fs')
-const notifier = require('node-notifier')
 const colors = require('chalk')
 const messenger = require('@codedungeon/messenger')
 const replace = require('rollup-plugin-replace')
@@ -15,7 +14,7 @@ const alias = require('@rollup/plugin-alias')
 const postcss = require('rollup-plugin-postcss')
 const debounce = require('lodash.debounce')
 const postcssPrefixSelector = require('postcss-prefix-selector')
-const { caseSensitiveImports } = require('./shared')
+const { caseSensitiveImports, notifyWithoutBlocking } = require('./shared')
 
 const NOTIFY = true
 
@@ -88,19 +87,13 @@ function watch(watchOptions, buildMode = '') {
       const outputFiles = event.output.map((o) => path.basename(o)).join(', .../')
       const msg = `${dt()} Rollup: wrote bundle${event.output.length > 1 ? 's' : ''}: ".../${outputFiles}"`
       if (NOTIFY) {
-        notifier.notify({
-          title: 'React Component Build',
-          message: msg,
-        })
+        notifyWithoutBlocking('React Component Build', msg)
       }
       message('success', msg, 'SUCCESS', true)
     } else if (event.code === 'ERROR') {
       message('critical', `!!!!!!!!!!!!!!!\nRollup ${event.error}\n!!!!!!!!!!!!!!!\n`, 'ERROR', true)
       if (NOTIFY) {
-        notifier.notify({
-          title: 'NotePlan Plugins Build',
-          message: `An error occurred during build process.\nSee console for more information`,
-        })
+        notifyWithoutBlocking('NotePlan Plugins Build', 'An error occurred during build process.\nSee console for more information')
       }
     }
   })

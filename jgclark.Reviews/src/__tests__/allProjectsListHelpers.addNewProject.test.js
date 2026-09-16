@@ -10,6 +10,13 @@ jest.mock('../reviewHelpers', () => {
     ...actual,
     updateRichProjectListIfOpen: jest.fn(() => Promise.resolve()),
     updateDashboardIfOpen: jest.fn(() => Promise.resolve()),
+  }
+})
+
+jest.mock('../reviewSettings', () => {
+  const actual = jest.requireActual<any>('../reviewSettings')
+  return {
+    ...actual,
     getReviewSettings: jest.fn(() => Promise.resolve(reviewSettingsHolder.config)),
   }
 })
@@ -39,7 +46,8 @@ function makeConfig(overrides: any = {}): any {
 function folderFilterFingerprint(config: any): string {
   const include = Array.isArray(config.foldersToInclude) ? config.foldersToInclude.join('\u0001') : ''
   const ignore = Array.isArray(config.foldersToIgnore) ? config.foldersToIgnore.join('\u0001') : ''
-  return `${include}\u0002${ignore}`
+  const teamspaces = Array.isArray(config.includedTeamspaces) ? config.includedTeamspaces.join('\u0001') : ''
+  return `${include}\u0002${ignore}\u0002${teamspaces}`
 }
 
 function makeProjectNote(filename: string, tag: string = '#project'): TNote {
@@ -132,6 +140,20 @@ describe('isNoteInCurrentProjectSelection', () => {
   test('returns false when tag is not in projectTypeTags', () => {
     const note = makeProjectNote('Projects/test.md', '#area')
     expect(isNoteInCurrentProjectSelection((note: any), makeConfig(), '#area')).toBe(false)
+  })
+
+  test('returns false when tag appears only in body tasks, not in frontmatter', () => {
+    const note = new Note({
+      title: 'Reviews Plugin',
+      filename: 'Projects/Reviews Plugin.md',
+      content:
+        '---\nproject: #area\nreview: 1m\n---\n# Reviews Plugin\n* [x] type #goal bug\n+ [x] #projects and #project/company issue\n',
+      hashtags: ['#area', '#goal', '#project', '#projects'],
+    })
+    const config = makeConfig({ projectTypeTags: ['#goal', '#project', '#area'] })
+    expect(isNoteInCurrentProjectSelection((note: any), config, '#goal')).toBe(false)
+    expect(isNoteInCurrentProjectSelection((note: any), config, '#project')).toBe(false)
+    expect(isNoteInCurrentProjectSelection((note: any), config, '#area')).toBe(true)
   })
 })
 

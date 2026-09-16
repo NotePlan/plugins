@@ -2,17 +2,20 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-05-23 for v2.0.1, @CursorAI & @jgclark
+// Last updated 2026-09-13 for v2.2.0, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
-import { getActivePerspectiveDef, loadPerspectiveDefsFromPluginSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
-import type { TPerspectiveDef } from '../../jgclark.Dashboard/src/types'
 import { WEBVIEW_WINDOW_ID as DASHBOARD_WINDOW_ID} from '../../jgclark.Dashboard/src/constants'
 import pluginJson from '../plugin.json'
 import { appendMigrationLogRow } from './migrationLog.js'
 import { type Progress } from './projectClass'
+import {
+  getCombinedProjectFrontmatterKeyName,
+  getFieldKeyStringFromPreference,
+  type ReviewConfig,
+} from './reviewSettings'
 import { checkString } from '@helpers/checkType'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
@@ -28,7 +31,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { backupSettings, pluginIsInstalled } from '@helpers/NPConfiguration'
+import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { endOfFrontmatterLineIndex, ensureFrontmatter, getFrontmatterAttribute, noteHasFrontMatter, removeFrontMatterField, updateFrontMatterVars } from '@helpers/NPFrontMatter'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { getFieldParagraphsFromNote } from '@helpers/paragraph'
@@ -40,88 +43,6 @@ import { chooseOption, showMessage } from '@helpers/userInput'
 // Constants
 const reviewsPluginId = pluginJson['plugin.id']
 const richProjectListWinId = `${reviewsPluginId}.rich-review-list`
-
-//------------------------------
-// Type definitions
-
-export type ReviewConfig = {
-  usePerspectives: boolean,
-  perspectiveName: string,
-  outputStyle: string,
-  reviewsTheme: string,
-  folderToStore: string,
-  foldersToInclude: Array<string>,
-  foldersToIgnore: Array<string>,
-  includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
-  projectTypeTags: Array<string>,
-  numberDaysForFutureToIgnore: number,
-  cancelledMentionStr: string,
-  completedMentionStr: string,
-  confirmNextReview: boolean,
-  displayArchivedProjects: boolean,
-  displayDates: boolean,
-  displayPaused: boolean,
-  displayFinished: boolean,
-  displayGroupedByFolder: boolean,
-  displayNextActions: boolean,
-  displayOrder: string,
-  displayOnlyDue: boolean,
-  displayProgress: boolean,
-  /** Project-type hashtags currently toggled off in Filter + Order (Rich list only). */
-  hiddenProjectTypeTags?: Array<string>,
-  dueMentionStr: string,
-  finishedListHeading: string,
-  hideTopLevelFolder: boolean,
-  ignoreChecklistsInProgress: boolean,
-  reviewedMentionStr: string,
-  reviewIntervalMentionStr: string,
-  sequentialTag: string,
-  showFolderName: boolean,
-  startMentionStr: string,
-  nextReviewMentionStr: string,
-  progressStr: string, // new in 2.0.1
-  archiveUsingFolderStructure: boolean,
-  archiveFolder: string,
-  removeDueDatesOnPause?: boolean,
-  nextActionTags: Array<string>,
-  preferredWindowType: string, // "New Window" |"Main Window" | "Split View"
-  autoUpdateAfterIdleTime?: number,
-  progressHeading?: string,
-  progressHeadingLevel: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8, // must match the levels NotePlan's insertHeading() accepts
-  writeMostRecentProgressToFrontmatter?: boolean,
-  projectMetadataFrontmatterKey?: string,
-  _logLevel: string,
-  _logTimer: boolean,
-}
-
-/**
- * Lookup user's preferred metadata item string ready to use as a frontmatter key. Note: Any leading # or @ is stripped off.
- * @param {string} prefName
- * @param {string} defaultKey
- * @returns {string}
- */
-function getFieldKeyStringFromPreference(prefName: string, defaultKey: string): string {
-  return checkString(DataStore.preference(prefName) || '').replace(/^[@#]/, '') || defaultKey
-}
-
-/**
- * Field name prefix for progress body lines (e.g. 'Progress' when the configured key is 'progress').
- * Uses DataStore preference set by getReviewSettings().
- * @returns {string}
- */
-export function getProgressFieldNameForBodyLines(): string {
-  const key = getFieldKeyStringFromPreference('progressStr', 'progress')
-  return key.charAt(0).toUpperCase() + key.slice(1)
-}
-
-/**
- * Frontmatter key for progress metadata (e.g. 'progress' or 'this_is_progress' when configured).
- * Uses DataStore preference set by getReviewSettings().
- * @returns {string}
- */
-export function getProgressFrontmatterKey(): string {
-  return getFieldKeyStringFromPreference('progressStr', 'progress')
-}
 
 /**
  * Map metadata mention names (e.g. '@reviewed') to separate frontmatter keys (e.g. 'reviewed'), taking account that user may localise the mention strings.
@@ -234,104 +155,6 @@ function getNoteFromNoteLike(noteLike: CoreNoteFields | TEditor): CoreNoteFields
   return (noteLike: any)
 }
 
-/**
- * Get config settings
- * @author @jgclark
- * @param {boolean} externalCall - true if called from an external plugin
- * @return {?ReviewConfig} object with configuration, or null if no settings found
- */
-export async function getReviewSettings(externalCall: boolean = false): Promise<ReviewConfig | null> {
-  try {
-    if (externalCall) {
-      logInfo(pluginJson, `getReviewSettings() Starting from a different plugin ...`)
-    }
-    // Get settings
-    const config: ReviewConfig = await DataStore.loadJSON('../jgclark.Reviews/settings.json')
-
-    // If an external call allow silent return of null if no settings found.
-    // Otherwise complain, as there should be settings.
-    if (config == null || Object.keys(config).length === 0) {
-      if (externalCall) {
-        // Fail silently
-        return null
-      }
-      // Throw an error to trigger the backupSettings call in the catch block
-      throw new Error('No Reviews settings found')
-    }
-    // clo(config, `Review settings for '${pluginJson['plugin.version']}' version:`)
-
-    // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
-    DataStore.setPreference('startMentionStr', config.startMentionStr)
-    DataStore.setPreference('completedMentionStr', config.completedMentionStr)
-    DataStore.setPreference('cancelledMentionStr', config.cancelledMentionStr)
-    DataStore.setPreference('dueMentionStr', config.dueMentionStr)
-    DataStore.setPreference('reviewIntervalMentionStr', config.reviewIntervalMentionStr)
-    DataStore.setPreference('reviewedMentionStr', config.reviewedMentionStr)
-    DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
-    DataStore.setPreference('progressStr', config.progressStr)
-    DataStore.setPreference('numberDaysForFutureToIgnore', config.numberDaysForFutureToIgnore)
-    DataStore.setPreference('ignoreChecklistsInProgress', config.ignoreChecklistsInProgress)
-
-    // Frontmatter metadata preferences
-    // Set a preference for the key name to use for project metadata in the frontmatter. (Dev Note: This is to make the setting available in the Project class.)
-    // Allow any frontmatter key name, defaulting to 'project'
-    const rawSingleMetadataKeyName: string =
-      config.projectMetadataFrontmatterKey && typeof config.projectMetadataFrontmatterKey === 'string'
-        ? config.projectMetadataFrontmatterKey.trim()
-        : ''
-    const singleMetadataKeyName: string = rawSingleMetadataKeyName !== '' ? rawSingleMetadataKeyName : 'project'
-    config.projectMetadataFrontmatterKey = singleMetadataKeyName
-    DataStore.setPreference('projectMetadataFrontmatterKey', singleMetadataKeyName)
-    // Default when Perspectives are off. Callers already gate teamspace filtering on usePerspectives, so this value is unused in that path.
-    if (!config.usePerspectives) {
-      config.includedTeamspaces = ['private']
-    }
-
-    // If we want to use Perspectives, get all perspective settings from Dashboard plugin.
-    if (config.usePerspectives) {
-      const perspectiveSettings: Array<TPerspectiveDef> = await loadPerspectiveDefsFromPluginSettings(false)
-      // Get the current Perspective
-      const currentPerspective: any = getActivePerspectiveDef(perspectiveSettings)
-      if (!currentPerspective) {
-        logWarn('getReviewSettings', `usePerspectives is true but no active Dashboard perspective found (Dashboard perspective list may be empty or corrupt). Using folder/teamspace values from Reviews settings only, same as when usePerspectives is off.`)
-        config.includedTeamspaces = ['private']
-      } else {
-        config.perspectiveName = currentPerspective.name
-        logInfo('getReviewSettings', `Will use Perspective '${config.perspectiveName}', and its folder & teamspace settings`)
-        config.foldersToInclude = stringListOrArrayToArray(currentPerspective.dashboardSettings?.includedFolders ?? '', ',')
-        // logDebug('getReviewSettings', `- foldersToInclude: [${String(config.foldersToInclude)}]`)
-        config.foldersToIgnore = stringListOrArrayToArray(currentPerspective.dashboardSettings?.excludedFolders ?? '', ',')
-        // logDebug('getReviewSettings', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
-        config.includedTeamspaces = currentPerspective.dashboardSettings?.includedTeamspaces ?? ['private']
-        // logDebug('getReviewSettings', `- includedTeamspaces: [${String(config.includedTeamspaces)}]`)
-      }
-    }
-
-    // Ensure following have sensible defaults if missing from settings
-    if (config.displayPaused == null) {
-      config.displayPaused = true
-    }
-    if (config.hiddenProjectTypeTags == null || !Array.isArray(config.hiddenProjectTypeTags)) {
-      config.hiddenProjectTypeTags = []
-    }
-    if (config.autoUpdateAfterIdleTime == null) {
-      config.autoUpdateAfterIdleTime = 0
-    }
-
-    // Ensure reviewsTheme has a default if missing (e.g. before 'Theme to use for Project Lists' setting existed from v1.3.1)
-    if (config.reviewsTheme == null || config.reviewsTheme === undefined) {
-      config.reviewsTheme = ''
-    }
-
-    return config
-  } catch (err) {
-    logError(pluginJson, `getReviewSettings() error: ${err.name}: ${err.message}`)
-    await backupSettings('jgclark.Reviews', 'error_in_file')
-    await showMessage(`Sorry, there's been an error getting the settings for this plugin.\nI have tried to make a copy of the settings file to send to the plugin author on Discord if you wish.\n\nnNow please delete your NotePlan/Plugins/data/jgclark.Reviews/settings.json file. Then re-run the command, which should create a new settings file from the plugin defaults. If the issue persists, please raise an issue on Discord.`, 'OK, thanks', 'Settings Error')
-    return null
-  }
-}
-
 //----------------------------------------------------------------
 
 /**
@@ -382,6 +205,69 @@ export function getNextActionLineIndex(note: CoreNoteFields, naTag: string): num
   logDebug('getNextActionLineIndex', `Found ${NAParas.length} matching ${naTag} paras`)
   const result = NAParas.length > 0 ? NAParas[0].lineIndex : NaN
   return result
+}
+
+/**
+ * Hashtags that define this note's project type: the combined frontmatter key (e.g. `project:`)
+ * plus any legacy body metadata line. Does not include hashtags from tasks or other body content.
+ * @param {CoreNoteFields | TNote} note
+ * @returns {Array<string>} de-duplicated tags in first-seen order
+ */
+export function getProjectTypeTagsFromNoteMetadata(note: CoreNoteFields | TNote): Array<string> {
+  const tags: Array<string> = []
+  const seen = new Set<string>()
+  const addTags = (candidates: Array<string>) => {
+    for (const tag of candidates) {
+      if (!tag || !tag.startsWith('#') || tag.length <= 1) continue
+      const key = tag.toLowerCase()
+      if (!seen.has(key)) {
+        seen.add(key)
+        tags.push(tag)
+      }
+    }
+  }
+
+  const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+  const frontmatterValue = getFrontmatterAttribute(note, combinedKey)
+  addTags(getHashtagsFromString(String(frontmatterValue ?? '')))
+
+  const metadataLineIndex = getProjectMetadataLineIndex(note)
+  const paras = note.paragraphs ?? []
+  if (metadataLineIndex !== false && paras.length > metadataLineIndex) {
+    const metadataLine = paras[metadataLineIndex].content ?? ''
+    addTags(getHashtagsFromString(metadataLine))
+  }
+
+  return tags
+}
+
+/**
+ * Return configured project-type tags present on a note (frontmatter/metadata only), in config order.
+ * @param {CoreNoteFields | TNote} note
+ * @param {Array<string>} projectTypeTags
+ * @returns {Array<string>}
+ */
+export function getMatchingProjectTypeTagsOnNote(
+  note: CoreNoteFields | TNote,
+  projectTypeTags: Array<string>,
+): Array<string> {
+  const metadataTagsLower = getProjectTypeTagsFromNoteMetadata(note).map((t) => t.toLowerCase())
+  return projectTypeTags.filter((tag) => {
+    const normalisedTag = tag.startsWith('#') ? tag : `#${tag}`
+    return metadataTagsLower.includes(normalisedTag.toLowerCase())
+  })
+}
+
+/**
+ * Return true when the note's project metadata includes the given project type tag (case-insensitive).
+ * @param {CoreNoteFields | TNote} note
+ * @param {string} projectTypeTag - e.g. '#project'
+ * @returns {boolean}
+ */
+export function noteHasProjectTypeTag(note: CoreNoteFields | TNote, projectTypeTag: string): boolean {
+  if (projectTypeTag === '') return false
+  const normalisedTag = projectTypeTag.startsWith('#') ? projectTypeTag : `#${projectTypeTag}`
+  return getProjectTypeTagsFromNoteMetadata(note).some((t) => t.toLowerCase() === normalisedTag.toLowerCase())
 }
 
 /**
@@ -603,6 +489,53 @@ function endOfFrontmatterLineIndexFromRawLines(lines: Array<string>): number {
 }
 
 /**
+ * Hashtags that identify legacy body metadata lines: configured Hashtags to Review plus special markers.
+ * Prefs are populated by getReviewSettings(); when unset, only special markers are recognised.
+ * @returns {Array<string>}
+ * @private
+ */
+function getRecognisedProjectMetadataHashtags(): Array<string> {
+  const fromSettingsRaw = DataStore.preference('projectTypeTags')
+  let fromSettings: Array<string> = []
+  if (Array.isArray(fromSettingsRaw)) {
+    fromSettings = fromSettingsRaw.map((t) => checkString(t).trim()).filter((t) => t !== '')
+  } else if (typeof fromSettingsRaw === 'string' && fromSettingsRaw.trim() !== '') {
+    fromSettings = stringListOrArrayToArray(fromSettingsRaw, ',').map((t) => t.trim()).filter((t) => t !== '')
+  }
+  const sequentialTag = checkString(DataStore.preference('sequentialTag') || '#sequential').trim()
+  const specials: Array<string> = ['#paused', '#archive']
+  if (sequentialTag !== '') {
+    specials.push(sequentialTag)
+  }
+  const seen = new Set < string > ()
+  const ordered: Array<string> = []
+  for (const tag of [...fromSettings, ...specials]) {
+    const normalized = tag.startsWith('#') ? tag : `#${tag}`
+    if (!seen.has(normalized)) {
+      seen.add(normalized)
+      ordered.push(normalized)
+    }
+  }
+  return ordered
+}
+
+/**
+ * True when a body line starts with a hashtag and includes at least one recognised project-type / special tag.
+ * Personal / unrelated hashtags (e.g. #admin, #hobby/creative) must not be treated as legacy metadata.
+ * @param {string} lineContent
+ * @returns {boolean}
+ * @private
+ */
+function lineStartsWithRecognisedProjectHashtag(lineContent: string): boolean {
+  const trimmed = lineContent.trim()
+  if (trimmed.match(/^#(?!#)\S/) == null) return false
+  const hashtagsOnLine = getHashtagsFromString(trimmed)
+  if (hashtagsOnLine.length === 0) return false
+  const recognised = getRecognisedProjectMetadataHashtags()
+  return hashtagsOnLine.some((tag) => recognised.includes(tag))
+}
+
+/**
  * Works out which body line (if any) of the current note is project-style metadata line.
  * This scans the note body only (after any YAML frontmatter) and is used as a legacy/fallback
  * signal for where project metadata used to live in plain text.
@@ -611,8 +544,8 @@ function endOfFrontmatterLineIndexFromRawLines(lines: Array<string>): number {
  *
  * A body line (using `rawContent` not `content`) is considered metadata-like when it is:
  * - a line starting 'project:' or 'metadata:'
- * - the first line containing an '@review()' or '@reviewed()' mention
- * - the first line starting with a single leading hashtag (project tag line).
+ * - the first line that is a single '@mention(...)'
+ * - the first line starting with a hashtag that matches Hashtags to Review (or #paused / #sequential / #archive).
  * @author @jgclark
  *
  * @param {TNote} note to use
@@ -636,7 +569,7 @@ export function getMetadataLineIndexFromBody(note: CoreNoteFields | TEditor): nu
       if (
         thisLine.match(/^(project|metadata|review|reviewed):/i) ||
         thisLine.match(/^@\w[\w\-.]*\([^)]*\)\s*$/) ||
-        thisLine.match(/^#(?!#)\S/)
+        lineStartsWithRecognisedProjectHashtag(thisLine)
       ) {
         lineNumber = i
         logDebug('getMetadataLineIndexFromBody', `Found body metadata-like line ${String(i)}: '${thisLine}'`)
@@ -702,7 +635,7 @@ export const PROJECT_METADATA_MIGRATED_MESSAGE = '_Project metadata has been mig
  * Metadata-style lines are defined as lines that:
  * - start with 'project:', 'metadata:', 'review:', or 'reviewed:'
  * - or contain an '@review(...)' / '@reviewed(...)' mention
- * - or start with a hashtag.
+ * - or start with a recognised project-type / special hashtag (not arbitrary personal tags).
  * @param {Array<TParagraph>} paras - all paragraphs in the note/editor
  * @param {number} startIndex - index to start scanning from (usually after frontmatter)
  * @returns {?{ index: number, content: string }} first matching line info, or null if none found
@@ -714,7 +647,7 @@ function findFirstMetadataBodyLine(paras: Array<TParagraph>, startIndex: number)
     const isMetadataStyleLine =
       content.match(/^(project|metadata|review|reviewed):/i) != null ||
       content.match(/(@review|@reviewed)\(.+\)/) != null ||
-      content.match(/^#(?!#)\S/) != null
+      lineStartsWithRecognisedProjectHashtag(content)
 
     if (isMetadataStyleLine) {
       return { index: i, content }
@@ -741,7 +674,7 @@ function isMetadataBodyLikeLine(content: string): boolean {
   return (
     trimmed.match(/^(project|metadata|review|reviewed):/i) != null ||
     trimmed.match(/^@\w[\w\-.]*\([^)]*\)\s*$/) != null ||
-    trimmed.match(/^#(?!#)\S/) != null
+    lineStartsWithRecognisedProjectHashtag(trimmed)
   )
 }
 
@@ -1025,14 +958,6 @@ function parseMetadataMentionsToSeparateFrontmatterKeys(
     }
   }
   return { fmAttrs, keysToRemove, unmappedMentions }
-}
-
-/**
- * Configured combined project frontmatter key name (e.g. 'project'), without trailing colon.
- * @returns {string}
- */
-export function getCombinedProjectFrontmatterKeyName(): string {
-  return checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
 }
 
 /**

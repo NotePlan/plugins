@@ -1,8 +1,33 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
-## [2.0.9] - 2026-08-20 (not yet released)
+## [2.2.0] - 2026-09-14
+- Fix: Refresh button icon now spins as soon as it is clicked, and stops when list generation finishes (instead of only showing a beachball).
+- New **/Create new project** command: form asks for title, folder (defaults to the current Editor note's folder), and the same metadata as the existing **/Convert to project**, then opens the new note in a split view.
+- Change: Completed and cancelled project summary lines both use duration from start (e.g. `Completed after 3 months` / `Cancelled after 3 months`). If there is no start date, they use the finish month (e.g. `Cancelled in Nov`).
+- Change: The top bar of the Project List window has been re-ordered, and now has a cog-wheel button that opens the plugin's settings pane.
+- Change: Avoids unnecessary refreshes when saving settings.  dev: Saving plugin settings only rebuilds the project list when "What do you want to Review?" or "Customise the metadata terms" settings change. Next-action and progress-calculation settings re-parse existing list rows (no vault scan). Changes in "Display settings for 'project lists' command" re-render an already-open list. Other settings do neither.
+- Change: "Show project dates?" setting description update to say it only applies to Markdown output.
+- Dev: INFO-level duration logs for each allProjects list rebuild, incremental update, and access.
+- Dev: Refactor all settings load/normalise, heading-setting parse, and settings-save effects code to new `reviewSettings.js`.
+
+## [2.1.1] - 2026-09-11
+- Fix: "Finish+Next" button in top bar not working (thanks to @cbkadel PR)
+- Fix: clicking title forcing Split View, even when your "Preferred Window Type" setting was "New Window"  (thanks to @cbkadel PR)
+- Fix: Project control dialog now sizes more sensibly.
+- Change: The top bar's last updated label uses a more compact display, e.g. "2m ago".
+- Change: make colours in project display a little clearer.
+
+## [2.1.0] - 2026-08-28
+- **/weeklyProjectsProgress** now also upserts a current-week summary into the weekly note when "Heading for Weekly Project Progress output" is set (default: `## Weekly Project Progress`). It can output as a table, or lists arranged by folder, subfolder or project tag type.
+- Change: "Progress Heading" and "Progress Heading level" are now a single setting — include markdown heading markers in "Progress Heading" (e.g. `## Progress`). On upgrade, existing plain-text heading and level values are migrated automatically into one string.
+- Change: In Project List window, make the scroll-bounce not apply to the top bar.
+- Fix: Project list discovery and **/weeklyProjectsProgress** now classify notes by project type using only the combined frontmatter key (e.g. `project: #area`) and any legacy body metadata line, not hashtags mentioned elsewhere in the note body.
+- Fix: Edge case where .txt files could be ignored.
+
+## [2.0.9] - 2026-08-23
 - Fix: **add progress** no longer loses the body `Progress:` line when also writing the first `progress:` frontmatter key.
+- Fix: review commands no longer treat an unrelated hashtag on the first body line under the title as legacy project metadata (and delete the rest of that line). Only Hashtags to Review (plus `#paused` / `#sequential` / `#archive`) trigger that migration. [Addresses #775 for @hannahlinas]
 
 ## [2.0.8] - 2026-08-20
 - Change: re-build and release, to pick up Dashboard being smarter about how it communicates change of perspective with this plugin.

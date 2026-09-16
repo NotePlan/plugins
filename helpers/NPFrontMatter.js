@@ -183,11 +183,11 @@ export function getFrontmatterAttributes(note: CoreNoteFields): { [string]: stri
 
 /**
  * Gets the value of a given field ('attribute') from frontmatter if it exists
- * @param {TNote} note - The note to check
+ * @param {CoreNoteFields} note - The note to check
  * @param {string} attribute - The attribute/field to get the value of
  * @returns {string|null} The value of the attribute/field or null if not found
  */
-export function getFrontmatterAttribute(note: TNote, attribute: string): string | null {
+export function getFrontmatterAttribute(note: CoreNoteFields, attribute: string): string | null {
   const fmAttributes = getFrontmatterAttributes(note)
   // Note: fmAttributes returns an empty object {} if there are not frontmatter fields
   return Object.keys(fmAttributes).length > 0 && fmAttributes[attribute] ? fmAttributes[attribute] : null

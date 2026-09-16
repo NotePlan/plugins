@@ -17,6 +17,9 @@ const CommandBar = {
   async onMainThread() {
     return
   },
+  async runOnAsyncThread(fn) {
+    return fn()
+  },
   async openURL() {
     return
   },

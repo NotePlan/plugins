@@ -18,6 +18,7 @@ import {
   getNPWeekStr,
   getTodaysDateUnhyphenated,
 } from '@helpers/dateTime'
+import { makeCalendarFilename } from '@helpers/NPFileExtensions'
 import { makeBasicParasFromContent } from '@helpers/NPParagraph'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { isOpen } from '@helpers/utils'
@@ -69,28 +70,28 @@ function haveOpenItemsChanged(note: TNote): boolean {
  * @returns {Array<{string, string}>}
  */
 function makeFilenameToSectionCodeList(): Array<{ filename: string, sectionCode: TSectionCode }> {
-  const todayFilename = `${getTodaysDateUnhyphenated()}.md`
+  const todayFilename = makeCalendarFilename(getTodaysDateUnhyphenated())
   const FTSCList: Array<Object> = [{ sectionCode: 'DT', filename: todayFilename }]
 
   const yesterday = new moment().subtract(1, 'days').toDate()
-  const yesterdayFilename = `${moment(yesterday).format('YYYYMMDD')}.md`
+  const yesterdayFilename = makeCalendarFilename(moment(yesterday).format('YYYYMMDD'))
   FTSCList.push({ sectionCode: 'DY', filename: yesterdayFilename })
 
   const tomorrow = new moment().add(1, 'days').toDate()
-  const tomorrowFilename = `${moment(tomorrow).format('YYYYMMDD')}.md`
+  const tomorrowFilename = makeCalendarFilename(moment(tomorrow).format('YYYYMMDD'))
   FTSCList.push({ sectionCode: 'DO', filename: tomorrowFilename })
 
   const today = new moment().toDate()
   const WDateStr = getNPWeekStr(today)
-  const weekFilename = `${WDateStr}.md`
+  const weekFilename = makeCalendarFilename(WDateStr)
   FTSCList.push({ sectionCode: 'W', filename: weekFilename })
 
   const MDateStr = getNPMonthStr(today)
-  const monthFilename = `${MDateStr}.md`
+  const monthFilename = makeCalendarFilename(MDateStr)
   FTSCList.push({ sectionCode: 'M', filename: monthFilename })
 
   const QDateStr = getNPQuarterStr(today)
-  const quarterFilename = `${QDateStr}.md`
+  const quarterFilename = makeCalendarFilename(QDateStr)
   FTSCList.push({ sectionCode: 'Q', filename: quarterFilename })
 
   return FTSCList

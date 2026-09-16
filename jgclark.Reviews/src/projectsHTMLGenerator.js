@@ -3,18 +3,18 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-08-17 for v2.0.7, @CursorAI & @jgclark
+// Last updated 2026-09-11 for v2.1.2, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import { Project } from './projectClass'
 import { addFAIcon, pluralise } from './reviewHelpers'
-import type { ReviewConfig } from './reviewHelpers'
+import type { ReviewConfig } from './reviewSettings'
 import { checkBoolean, checkString } from '@helpers/checkType'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderDisplayName, getFolderDisplayNameForHTML } from '@helpers/folders'
 import { makePluginCommandButton, redToGreenInterpolation } from '@helpers/HTMLView'
-import { localeRelativeDateFromNumber, nowLocaleShortDateTime } from '@helpers/NPdateTime'
+import { localeRelativeDateFromNumber } from '@helpers/NPdateTime'
 import { getLineMainContentPos } from '@helpers/search'
 import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 // Length truncation now handled in CSS (.nextActionText)
@@ -418,6 +418,28 @@ function formatProjectTitleForStyle(thisProject: Project, style: string, config:
 }
 
 /**
+ * Phrase after "Completed" / "Cancelled" in markdown/list lines written to notes.
+ * Prefers "after 3 months" (duration from start). Skips relative phrases such as "a day ago".
+ * With no start-based duration, uses the finish month (e.g. "in Nov"), then a short word.
+ * @param {?string} duration
+ * @param {?string} finishDate
+ * @param {string} fallback
+ * @returns {string}
+ */
+export function formatFinishedProjectRef(duration: ?string, finishDate: ?string, fallback: string): string {
+  if (duration != null && duration !== '' && duration.startsWith('after ')) {
+    return duration
+  }
+  if (finishDate != null && finishDate !== '') {
+    const finishMom = moment(finishDate)
+    if (finishMom.isValid()) {
+      return `in ${finishMom.format('MMM')}`
+    }
+  }
+  return fallback
+}
+
+/**
  * One Markdown or list-format line for a project (plain text / markdown, not HTML row markup).
  * @param {Project} thisProject
  * @param {any} config
@@ -434,11 +456,9 @@ function formatMarkdownProjectLine(thisProject: Project, config: any, style: str
 
   if (config.displayDates && !thisProject.isPaused) {
     if (thisProject.isCancelled) {
-      const cancellationRef = thisProject.cancelledDuration || "cancelled"
-      parts.push(`\t(Cancelled ${cancellationRef})`)
+      parts.push(`\t(Cancelled ${formatFinishedProjectRef(thisProject.cancelledDuration, thisProject.cancelledDate, 'cancelled')})`)
     } else if (thisProject.isCompleted) {
-      const completionRef = thisProject.completedDuration || "completed"
-      parts.push(`\t(Completed ${completionRef})`)
+      parts.push(`\t(Completed ${formatFinishedProjectRef(thisProject.completedDuration, thisProject.completedDate, 'completed')})`)
     }
   }
 
@@ -511,12 +531,15 @@ function mapReviewDaysToStatus(interval: number): IntervalStatus {
   return { text: '', colorClass: '', icon: '' }
 }
 
+/** ID of the inner scroll container for Rich project list body content */
+export const PROJECT_LIST_SCROLL_ID = 'project-list-scroll'
+
 //-----------------------------------------------------------------------------
 // HTML Structure Generation
 //-----------------------------------------------------------------------------
 
 /**
- * Sticky top bar <div>: refresh, filters dropdown, review command buttons.
+ * Sticky top bar <div>: perspective + count, refresh, review command buttons, filters dropdown, settings.
  * @param {any} config
  * @returns {string}
  */
@@ -525,6 +548,7 @@ export function buildProjectListTopBarHtml(config: any): string {
   const parts: Array<string> = []
   const displayOrder = (typeof config.displayOrder === 'string' && config.displayOrder !== '') ? config.displayOrder : 'review'
   const projectsShownCount = Number.isFinite(config.projectsShownCount) ? config.projectsShownCount : 0
+  const projectsCountHtml = `<span id="richProjectListVisibleCount" class="topbar-project-visible-count">${projectsShownCount} ${pluralise('project', projectsShownCount)}</span>`
   
   // Add buttons for various commands
   const refreshPCButton = makePluginCommandButton(
@@ -567,19 +591,38 @@ export function buildProjectListTopBarHtml(config: any): string {
     `Move on to the next project to review`,
     true
   )
+  const settingsGearButton = makePluginCommandButton(
+    `<i class="fa-solid fa-gear"></i>`,
+    'jgclark.Reviews',
+    'Projects: update plugin settings',
+    '',
+    'Open Projects + Reviews plugin settings',
+    true
+  )
 
   // Start with a sticky top bar (grid with 4 elements spaced out, or 3 if not using perspectives)
   parts.push(`<div class="${topbarClasses}">`)
   if (config.usePerspectives) {
-    const perspectiveSection = `<div id="persp" class="topbar-item">Persp: <span class="perspective-name">${config.perspectiveName}</span></div>`
+    const perspectiveSection = `<div id="persp" class="topbar-item">Persp: <span class="perspective-name">${config.perspectiveName}</span>: ${projectsCountHtml}</div>`
     parts.push(perspectiveSection)
   }
 
-  const refreshSection = `<div id="refresh"><span class="topbar-item pad-right-larger"><span id="richProjectListVisibleCount" class="topbar-project-visible-count">${projectsShownCount} ${pluralise('project', projectsShownCount)}</span></span>${refreshPCButton}\n<span class="topbar-item"><span class="hideable-label">Updated: </span><span id="timer">${nowLocaleShortDateTime()}</span>\n</span></div>`
+  const countBeforeRefresh = config.usePerspectives ? '' : `<span class="topbar-item pad-right-larger">${projectsCountHtml}</span>`
+  const refreshSection = `<div id="refresh">${countBeforeRefresh}${refreshPCButton}\n<span class="topbar-item"><span id="timer">just now</span>\n</span></div>`
   parts.push(refreshSection)
 
-  parts.push(`<div class="topbar-center-cluster">`)
-  // Display filters: centred button opens dropdown; click outside saves, Escape cancels
+  const controlButtons = `
+<div class="topbar-center-cluster">
+  <div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}
+  ${reviewedPCButton}
+  ${finishAndNextReviewPCButton}
+  ${nextReviewPCButton}
+  </div>
+</div>`
+  parts.push(controlButtons)
+
+  parts.push(`<div class="topbar-right-cluster">`)
+  // Display filters: right-side button opens dropdown; click outside saves, Escape cancels
   const displayOnlyDue = config.displayOnlyDue ?? false
   const displayFinished = config.displayFinished ?? false
   const displayPaused = config.displayPaused ?? true
@@ -625,18 +668,9 @@ export function buildProjectListTopBarHtml(config: any): string {
   parts.push(`    </div>`)
   parts.push(`  </div>`)
   parts.push(`</span>`)
+  parts.push(settingsGearButton)
 
   parts.push(`</div>`)
-
-  const controlButtons = `
-<div class="topbar-right-cluster">
-  <div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}
-  ${reviewedPCButton}
-  ${finishAndNextReviewPCButton}
-  ${nextReviewPCButton}
-  </div>
-</div>`
-  parts.push(controlButtons)
 
   // Finish the sticky top bar
   parts.push(`</div>`)
@@ -730,7 +764,7 @@ export function buildEmptyProjectListHelpHtml(config: ReviewConfig, projectsBefo
   const settingsGearButton = makePluginCommandButton(
     `<i class="fa-solid fa-gear"></i>`,
     'jgclark.Reviews',
-    'Projects: open plugin settings',
+    'Projects: update plugin settings',
     '',
     'Open Projects + Reviews plugin settings',
     true
@@ -742,7 +776,7 @@ export function buildEmptyProjectListHelpHtml(config: ReviewConfig, projectsBefo
   ${filterHint}
   <p class="empty-help-text">To get project notes shown here:</p>
   <ol class="empty-help-steps">
-    <li>The <b>note tags</b> I'm looking for are the 'Hashtags to Review' setting (currently ${displayEscapedSettingNameOrValue(tagsList)}). Add one of those tags in the note's <b>frontmatter</b> (under the ${frontmatterKey} key), or run the <b>convert to project</b> command on the note.</li>
+    <li>The <b>note tags</b> I'm looking for are the 'Hashtags to Review' setting (currently ${displayEscapedSettingNameOrValue(tagsList)}). Add one of those tags in the note's <b>frontmatter</b> (under the ${frontmatterKey} key), or run <b>Create new project</b> / <b>convert to project</b>.</li>
     <li>Set a review interval in frontmatter, e.g. <code>review: 2w</code> (for 2 weeks; also supports d/m/q/y).</li>
     <li>Check I'm looking in the right folders. ${folderSentence}</li>
   </ol>
