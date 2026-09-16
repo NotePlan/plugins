@@ -23,6 +23,9 @@ import { showMessage } from '@helpers/userInput'
 export function init(): void {
   try {
     // logDebug(pluginJson, `${pluginJson['plugin.id']} :: init running`)
+    // Do not call installDependsOnPlugins here: init() is synchronous (void) and cannot await
+    // installs / showMessage, and it cannot abort the command NotePlan will run next.
+    // The async install+verify+stop gate lives in showDashboardReact() instead.
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false)
   } catch (error) {
     logError(pluginJson, `init: ${JSP(error)}`)
