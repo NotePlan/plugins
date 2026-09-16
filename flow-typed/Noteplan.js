@@ -1221,6 +1221,7 @@ declare class CommandBar {
   * Error handling: if the passed value is not a function, or the function is async, the Promise resolves 
   * with null and the error message is delivered to a `.catch()` handler if you attached one 
   * (try/catch around `await` won't receive it). Errors thrown inside the function are logged to the plugin console.
+  * Note: JGC suggestion is to use helpers/NPThreads.js::runSyncWorkOnAsyncThread() instead, which wraps this, handles errors properly, adds logging, and provides a fallback for earlier versions.
   * Note: Available from v3.21.3
   * @param {Function} fn - A synchronous function to execute on the background thread. Its return value resolves the Promise.
   * @return {Promise} - Resolves with the function's return value, back on the main thread.
