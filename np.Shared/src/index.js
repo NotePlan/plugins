@@ -127,8 +127,8 @@ export function onSettingsUpdated(): void {
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(sharedPluginID, `onUpdateOrInstall: Starting`)
-    // Try updating settings data
-    const updateSettings = updateSettingData(sharedPluginID)
+    // Try updating settings data (must pass plugin.json object, not the plugin ID string)
+    const updateSettings = updateSettingData(pluginJson)
     logDebug(sharedPluginID, `onUpdateOrInstall: UpdateSettingData code: ${updateSettings}`)
 
     // Tell user the plugin has been updated

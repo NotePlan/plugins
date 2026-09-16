@@ -3,6 +3,7 @@
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
 ## [1.2.0] 2026-09-16
+- Fix: `onUpdateOrInstall` was passing the plugin ID string to `updateSettingData` instead of `pluginJson`, which skipped settings migration with a WARN.
 - New: Shared **tag/mention cache** (`tagMentionCache.js`) moved from Dashboard plugin, now with per-plugin registration. Client plugins call `registerTagMentionCacheItems(pluginId, items)` / `unregisterTagMentionCacheItems(pluginId)`. 
   - The cache indexes the **union of wanted tags/mentions**; an item is dropped only when no plugin still wants it. Also indexes wanted tags/mentions in **any** frontmatter field, and exposes `getRegularNoteFilenamesFromTagMentionCache` for a cheap read.
   - It now uses new `runSyncWorkOnAsyncThread` method (for users on 3.21.3+) to keep app responsive during somewhat lengthy cache (re)generation.

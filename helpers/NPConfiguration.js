@@ -10,7 +10,7 @@ import json5 from 'json5'
 import moment from 'moment/min/moment-with-locales'
 import { showMessage, showMessageYesNo } from './userInput'
 import { castStringFromMixed } from '@helpers/dataManipulation'
-import { logDebug, logWarn, logError, logInfo, JSP, clo, copyObject, timer } from '@helpers/dev'
+import { logDebug, logWarn, logError, logInfo, logTimer, JSP, clo, copyObject, timer } from '@helpers/dev'
 import { caseInsensitiveMatch } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
 import { semverVersionToNumber } from '@helpers/utils'
@@ -428,7 +428,7 @@ async function installPlugin(pluginInfo: any): Promise<PluginObject | void> {
   const newPlugin = await findPluginInList(githubReleasedPlugins, id, minVersion) // minversion can be null/undefined - means just look for any version installed
   if (!newPlugin) {
     logError(`installPlugin() could not find plugin on github: ${id} >= ${minVersion}`)
-    await showMessage(`Could not find ${id} plugin to download >= v${minVersion}.`, 'OK', 'Plugin/Dependency Not Found')
+    await showMessage(`Could not find ${id} plugin >= v${minVersion} to download.`, 'OK', 'Plugin/Dependency Not Found')
     return
   }
   logDebug(`installPlugin(): ${id}, found version: ${newPlugin?.version} (>= ${minVersion}). Will install it now.`)
@@ -490,18 +490,47 @@ export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void>
 }
 
 /**
- * Install plugins which are dependencies of the given plugin
- * @param {any} pluginJson - JSON object containing the original plugin's information, potentially with multiple plugins to check/install.
+ * Install / verify plugins listed in pluginJson['plugin.dependsOn'].
+ * Tries to install any that are missing (or below minVersion), then re-checks.
+ * If any are still unavailable, shows a message and returns false so the caller can stop.
+ * Call from an async command entry point (e.g. showDashboardReact), not from sync init():
+ * init cannot await this work or abort the command that follows.
+ * @param {any} pluginJson - calling plugin's plugin.json (must include plugin.dependsOn entries as { id, minVersion? })
+ * @returns {Promise<boolean>} true if all dependsOn plugins are installed at the required version (or there are none)
  */
-export async function installDependencies(pluginJson: any): Promise<void> {
-  if (!pluginJson['plugin.dependsOn']) return
-  const start = new Date()
+export async function installDependsOnPlugins(pluginJson: any): Promise<boolean> {
+  if (!pluginJson['plugin.dependsOn']) return true
+  const startTime = new Date()
   const pluginDependencies = Array.isArray(pluginJson['plugin.dependsOn']) ? pluginJson['plugin.dependsOn'] : [pluginJson['plugin.dependsOn']]
-  if (pluginDependencies.length) {
-    logInfo(pluginJson, `installDependencies: found ${pluginDependencies.length} plugins to check are installed [${JSON.stringify(pluginDependencies)}] ...`)
-    await installPlugins(pluginDependencies, pluginJson)
+  if (!pluginDependencies.length) return true
+
+  logInfo(pluginJson, `installDependsOnPlugins: Checking ${pluginDependencies.length} plugins are installed [${JSON.stringify(pluginDependencies)}] ...`)
+  await installPlugins(pluginDependencies, pluginJson)
+
+  const missing: Array<string> = []
+  for (const dep of pluginDependencies) {
+    const depInfo = typeof dep === 'string' ? { id: dep, minVersion: '0.0.0' } : dep
+    const id = depInfo?.id
+    if (!id) continue
+    const minVersion = depInfo.minVersion || '0.0.0'
+    if (!pluginIsInstalled(id, minVersion)) {
+      missing.push(minVersion !== '0.0.0' ? `${id} (>= ${minVersion})` : id)
+    }
   }
-  logDebug(pluginJson, `installDependencies() took ${timer(start)}`)
+
+  logTimer(pluginJson, startTime, `installDependsOnPlugins()`)
+
+  if (missing.length) {
+    const pluginName = pluginJson['plugin.name'] || pluginJson['plugin.id'] || 'This plugin'
+    logError(pluginJson, `Required plugin(s) still missing after install attempt: ${missing.join(', ')}. Stopping.`)
+    await showMessage(
+      `Sorry, ${pluginName} requires the following plugin(s):\n${missing.map((m) => `- ${m}`).join('\n')}\n\nPlease install or update them from Plugin Preferences, then try again.`,
+      'OK',
+      pluginName,
+    )
+    return false
+  }
+  return true
 }
 
 /**
@@ -510,7 +539,7 @@ export async function installDependencies(pluginJson: any): Promise<void> {
  */
 export async function checkForDependenciesAndCommandMigrations(pluginJson: any): Promise<void> {
   const start = new Date()
-  await installDependencies(pluginJson)
+  await installDependsOnPlugins(pluginJson)
   await migrateCommandsIfNecessary(pluginJson)
   logDebug(pluginJson, `checkForDependenciesAndCommandMigrations() took ${timer(start)}`)
 }
