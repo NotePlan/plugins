@@ -4,7 +4,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
 ## [2.5.0.b5] 2026-09-16
-- Dev: Merge main through Dashboard 2.4.5 (np.Shared tag/mention cache, `plugin.dependsOn`, async-thread cache rebuild, TAG refresh N^2 fix, file-extension helpers).
+- Dev: Merge main through Dashboard 2.4.6 (Overdue "move all to today" fix, auto-install dependsOn Shared Resources; prior 2.4.5 Shared tag/mention cache work).
 
 ## [2.5.0.b4] 2026-09-10
 - New: Add task / checklist dialogs (Today, Week, etc.) pre-select Under Heading by near-match to the active Perspective name, otherwise the first real heading (not top-of-note / insert-new pseudo options).
@@ -36,12 +36,17 @@ Strip SYNTHETIC_SECTION_CODES before injectSyntheticWinsSection builds Wins from
 - Dev: Consolidate shared section-row CSS (`.sectionItemRow`, `.sectionItemContent`, `.itemIcon`) into `ItemRow.css`; remove duplicate `TaskItem.css` / `TasksFiltered.css`.
 - Dev: Bring Reminder edit / Convert to Task / `ITEM_ORIG_SECTION` refresh and related 2.4.2–2.4.3 work from main onto the 2.5.0 branch.
 
+## [2.4.6] 2026-09-16
+- Fix: "Move all to today" on the Overdue section not working with setting ''. (Thanks @TiffSunbacon101 for helping track this one down.)
+- Change: Now automatically downloads the required 'Shared Resources' plugin version if it can, before warning user.
+
+
 ## [2.4.5] 2026-09-16
-- Dashboard is now responsive while the tag/mention cache is being rebuilt.  Dev: Through the cache (in np.Shared) now using `runOnAsyncThread` method.
-- Dev: Declared `plugin.dependsOn` for np.Shared (>= 1.2.0). Show Dashboard uses shared helper `installDependsOnPlugins` to install/verify and stop with a message if still missing.
+- Dashboard is now responsive while the tag/mention cache is being rebuilt (on Mac).  Dev: Through the cache (in np.Shared) now using `runOnAsyncThread` method.
+- Dev: Declared `plugin.dependsOn` for Shared Resources plugin (>= 1.2.0). It will now verify this and stop with a message if missing.
 
 ## [2.4.4] 2026-09-15
-- Dev: Tag/mention cache now lives in **np.Shared**, with per-plugin registration. Saving a Perspective updates only Dashboard's slot (union of all perspectives' `tagsToShow`) and no longer wipes items other plugins have registered.
+- Dev: Tag/mention cache now lives in **Shared Resources** plugin, with per-plugin registration. Saving a Perspective updates only Dashboard's slot (union of all perspectives' `tagsToShow`) and no longer wipes items other plugins have registered.
 - Fix: Improved performance of Refresh if there are 2 or more Tag/Mention sections enabled. dev: No longer regenerates every Tag/Mention section once per visible tag (N^2 operation). Duplicate `TAG` codes are collapsed because one `TAG` already means all wanted tags.
 - Dev: Removed feature flags `FFlag_UseTagCache` and `FFlag_UseTagCacheAPIComparison`. Tag/mention cache is always used when available; API fallback remains only when the cache does not yet cover that tag.
 - Fix: Adding a new tag/mention no longer rebuilds the tag cache twice (register now schedules; Dashboard runs generate once after refresh).

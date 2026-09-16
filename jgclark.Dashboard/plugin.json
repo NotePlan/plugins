@@ -10,7 +10,12 @@
   "plugin.version": "2.5.0.b5",
   "plugin.releaseStatus": "beta",
   "plugin.hidden": false,
-  "plugin.lastUpdateInfo": "2.5.0: Priority note-index cache; Interactive Processing for Active/Review Projects; merged main 2.4.5 (Shared tag cache, dependsOn).\n2.4.5: Responsive while tag/mention cache rebuilds.\n2.4.4: Tag/mention cache in np.Shared; TAG refresh performance.\n2.4.2: Reminder edit dialog and IP for Reminders.\n2.4.0: Reminders, Active Projects, Wins, Spaces. See changelog.",
+  "plugin.lastUpdateInfo": "2.5.0: Priority note-index cache; Interactive Processing for Active/Review Projects; merged main 2.4.6 (Overdue move-all fix, dependsOn auto-install).
+2.4.6: Overdue move-all fix; auto-load Shared Resources.
+2.4.5: Responsive while tag/mention cache rebuilds.
+2.4.4: Tag/mention cache in np.Shared; TAG refresh performance.
+2.4.2: Reminder edit dialog and IP for Reminders.
+2.4.0: Reminders, Active Projects, Wins, Spaces. See changelog.",
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/plugins/jgclark.Dashboard",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
@@ -18,6 +23,7 @@
   "plugin.dependsOn": [
     {
       "id": "np.Shared",
+      "name": "Shared Resources",
       "minVersion": "1.2.0"
     }
   ],
