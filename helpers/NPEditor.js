@@ -2,7 +2,7 @@
 
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import { getFolderFromFilename } from './folders'
-import { displayTitle, rangeToString } from './general'
+import { createOpenOrDeleteNoteCallbackUrl, displayTitle, rangeToString } from './general'
 import { getOpenEditorFromFilename } from './NPEditorBasics'
 import { getNoteTitleFromTemplate } from './NPFrontMatter'
 import { findParaFromRawContentAndFilename, findParaFromStringAndFilename, findParagraph, getSelectedParagraphsWithCorrectLineIndex } from './NPParagraph'
@@ -405,10 +405,58 @@ function resolveParagraphForHighlight(filename: string, paraContentToTest: strin
 }
 
 /**
+ * Open a note in the main Editor via openNote x-callback (no bare `Editor` API).
+ * Used when `Editor` is missing from the JSContext, and as a fire-and-forget open with optional highlight.
+ * @param {string} filename
+ * @param {number | null} highlightStart
+ * @param {number | null} highlightLength
+ * @param {string} callingFunctionName
+ * @returns {boolean} true if NotePlan.openURL was invoked
+ */
+function openNoteInMainEditorViaCallback(
+  filename: string,
+  highlightStart: number | null,
+  highlightLength: number | null,
+  callingFunctionName: string,
+): boolean {
+  try {
+    if (typeof NotePlan === 'undefined' || typeof NotePlan.openURL !== 'function') {
+      logWarn(callingFunctionName, `NotePlan.openURL unavailable; cannot open '${filename}'`)
+      return false
+    }
+    const callbackUrl = createOpenOrDeleteNoteCallbackUrl(
+      filename,
+      'filename',
+      null,
+      null, // main editor (no subWindow / splitView)
+      false,
+      '',
+      null,
+      highlightStart,
+      highlightLength,
+    )
+    logDebug(callingFunctionName, `Opening main Editor via x-callback (highlightStart=${String(highlightStart)}): ${callbackUrl}`)
+    NotePlan.openURL(callbackUrl)
+    return true
+  } catch (error) {
+    logError(callingFunctionName, error.message)
+    return false
+  }
+}
+
+/**
+ * True when the bare `Editor` global and openNoteByFilename are usable in this JSContext.
+ * @returns {boolean}
+ */
+function isEditorOpenNoteApiAvailable(): boolean {
+  return typeof Editor !== 'undefined' && typeof Editor.openNoteByFilename === 'function'
+}
+
+/**
  * Get the open Editor that matches a given filename.  [Related: getOpenEditorFromFilename(), getLastOpenedOpenEditorFromFilename()]
  * If the original Editor is still open, then return it, otherwise open the note and return the new Editor.
  * - `split`: uses {@link openNoteInSplitViewIfNotOpenAlready}. Cannot await the new pane (NotePlan JSContext Promise constructor is broken), so returns false after triggering a new split open — use {@link highlightParagraphInEditorByContent} / {@link smartOpenNoteInEditorFromFilename} instead when highlight or open-success matters.
- * - `window`: uses `Editor.openNoteByFilename` in the main editor.
+ * - `window`: uses `Editor.openNoteByFilename` in the main editor when available; otherwise openNote x-callback.
  * On failure, return false.
  * @param {string} filename - the filename of the note to find
  * @param {string} newWindowType - the type of window to open the note in ('window' or 'split')
@@ -442,6 +490,12 @@ export async function getOrOpenEditorFromFilename(filename: string, newWindowTyp
     }
 
     logDebug('getOrOpenEditorFromFilename', `Opening filename '${filename}' in the main Editor via Editor.openNoteByFilename`)
+    if (!isEditorOpenNoteApiAvailable()) {
+      logWarn('getOrOpenEditorFromFilename', `Editor.openNoteByFilename unavailable; falling back to openNote x-callback for '${filename}'`)
+      openNoteInMainEditorViaCallback(filename, 0, 0, 'getOrOpenEditorFromFilename')
+      // Pane cannot be awaited after x-callback (same as split path)
+      return false
+    }
     const res = await Editor.openNoteByFilename(filename, false, 0, 0, false, false)
     if (!res) {
       logWarn('getOrOpenEditorFromFilename', `Failed to open note '${filename}' in the main Editor`)
@@ -511,6 +565,7 @@ export function highlightParagraphInEditorPane(
  * Open (or focus) the note, then highlight a paragraph matched by rawContent or content.
  * When opening a new split, highlight is requested via the openNote x-callback (highlightStart) because the Editor pane
  * cannot be awaited reliably in NotePlan's JSContext.
+ * When the bare `Editor` API is missing (some HTMLView callback contexts), falls back to main-editor x-callback.
  * @author @jgclark
  * @param {string} filename - the filename of the note
  * @param {string} paraContentToTest - the content or rawContent of the paragraph to highlight -- it will search for both
@@ -551,6 +606,10 @@ export async function highlightParagraphInEditorByContent(
   }
 
   logDebug('highlightParagraphInEditorByContent', `Opening main Editor for '${filename}' with highlightStart=${String(highlightStart ?? 0)}`)
+  if (!isEditorOpenNoteApiAvailable()) {
+    logWarn('highlightParagraphInEditorByContent', `Editor.openNoteByFilename unavailable; falling back to openNote x-callback for '${filename}'`)
+    return openNoteInMainEditorViaCallback(filename, highlightStart ?? 0, 0, 'highlightParagraphInEditorByContent')
+  }
   const openedNote = await Editor.openNoteByFilename(
     filename,
     false,

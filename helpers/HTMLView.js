@@ -794,6 +794,11 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
  */
 export async function getGlobalSharedData(windowId: string, varName: string = 'globalSharedData'): Promise<any> {
   try {
+    // If HTMLView API isn't available (older platforms / builds, or JSContext without NotePlan globals), skip quietly
+    if (typeof HTMLView === 'undefined' || typeof HTMLView.runJavaScript !== 'function') {
+      logWarn('getGlobalSharedData', `HTMLView API is not available; cannot read '${varName}' from window '${windowId}'`)
+      return undefined
+    }
     // logDebug(pluginJson, `getGlobalSharedData getting var '${varName}' from window ID '${windowId}'`)
     const currentValue = await HTMLView.runJavaScript(`${varName};`, windowId)
     // if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
@@ -815,10 +820,16 @@ export async function getGlobalSharedData(windowId: string, varName: string = 'g
  */
 export async function themeHasChanged(windowID: string, overrideThemeName?: string): Promise<boolean> {
   const reactWindowData = await getGlobalSharedData(windowID)
+  if (!reactWindowData || typeof reactWindowData !== 'object' || !reactWindowData.pluginData) {
+    logWarn('themeHasChanged', `No reactWindowData/pluginData available for window '${windowID}'; skipping theme check`)
+    return false
+  }
   const { pluginData } = reactWindowData
   const { themeName: themeInWindow } = pluginData
 
-  const currentTheme = overrideThemeName ? overrideThemeName : Editor.currentTheme?.name || null
+  const editorThemeName =
+    typeof Editor !== 'undefined' && Editor.currentTheme ? Editor.currentTheme.name : null
+  const currentTheme = overrideThemeName ? overrideThemeName : editorThemeName
 
   if (!currentTheme) {
     logError('themeHasChanged', `Could not find currentTheme: "${currentTheme}", overrideThemeName: "${overrideThemeName || ''}", themeInReactWindow: "${themeInWindow}"`)
@@ -842,6 +853,10 @@ export async function themeHasChanged(windowID: string, overrideThemeName?: stri
  * ...and so can probably be ignored
  */
 export async function updateGlobalSharedData(windowId: string, data: any, mergeData: boolean = true, varName: string = 'globalSharedData'): Promise<any> {
+  if (typeof HTMLView === 'undefined' || typeof HTMLView.runJavaScript !== 'function') {
+    logWarn('updateGlobalSharedData', `HTMLView API is not available; cannot update '${varName}' in window '${windowId}'`)
+    return undefined
+  }
   let newData
   const currentData = await getGlobalSharedData(windowId, varName)
   if (currentData === undefined) {
