@@ -12,10 +12,19 @@ import {
   registerTagMentionCacheItems,
   unregisterTagMentionCacheItems,
 } from '../src/tagMentionCache'
-import { CommandBar, DataStore } from '@mocks/index'
+import { CommandBar, DataStore, NotePlan } from '@mocks/index'
+
+jest.mock('@helpers/NPVersions', () => ({
+  usersVersionHas: jest.fn(() => false),
+}))
+
+const { usersVersionHas } = require('@helpers/NPVersions')
+// Jest mock; Flow sees the real export
+const mockUsersVersionHas: any = usersVersionHas
 
 global.DataStore = DataStore
 global.CommandBar = CommandBar
+global.NotePlan = NotePlan
 DataStore.settings = DataStore.settings || {}
 DataStore.settings._logLevel = 'none'
 
@@ -98,6 +107,8 @@ describe('register / unregister', () => {
     DataStore.calendarNotes = []
     DataStore.projectNotes = []
     CommandBar.showLoading = jest.fn()
+    CommandBar.runOnAsyncThread = jest.fn((fn) => Promise.resolve(fn()))
+    mockUsersVersionHas.mockImplementation(() => false)
   })
 
   test('register replaces only that plugin slot', () => {
@@ -168,6 +179,34 @@ describe('register / unregister', () => {
     DataStore.projectNotes = [{ filename: 'note.md', paragraphs: [] }]
     await generateTagMentionCache('test skip redundant rebuild', true)
     expect(CommandBar.showLoading).not.toHaveBeenCalled()
+  })
+
+  test('generateTagMentionCache uses runOnAsyncThread when usersVersionHas is true', async () => {
+    mockUsersVersionHas.mockImplementation((feature: string) => feature === 'runOnAsyncThread')
+    files[SHARED_WANTED] = JSON.stringify({
+      registrations: { 'jgclark.Dashboard': ['@bob'] },
+    })
+    DataStore.calendarNotes = [{ filename: '20260101.md', type: 'Calendar', content: '', paragraphs: [], frontmatterAttributes: {} }]
+    DataStore.projectNotes = [{ filename: 'note.md', type: 'Notes', content: 'task @bob', paragraphs: [{ type: 'open', content: 'task @bob' }], frontmatterAttributes: {} }]
+    await generateTagMentionCache('test async path', true)
+    expect(CommandBar.runOnAsyncThread).toHaveBeenCalled()
+    expect(files[SHARED_CACHE]).toBeDefined()
+    const saved = JSON.parse(files[SHARED_CACHE])
+    expect(saved.wantedItems).toEqual(['@bob'])
+    expect(CommandBar.showLoading).toHaveBeenCalledWith(false)
+  })
+
+  test('generateTagMentionCache stays on main thread when usersVersionHas is false', async () => {
+    mockUsersVersionHas.mockImplementation(() => false)
+    files[SHARED_WANTED] = JSON.stringify({
+      registrations: { 'jgclark.Dashboard': ['@bob'] },
+    })
+    DataStore.calendarNotes = [{ filename: '20260101.md', type: 'Calendar', content: '', paragraphs: [], frontmatterAttributes: {} }]
+    DataStore.projectNotes = [{ filename: 'note.md', type: 'Notes', content: '', paragraphs: [], frontmatterAttributes: {} }]
+    await generateTagMentionCache('test main-thread path', true)
+    expect(CommandBar.runOnAsyncThread).not.toHaveBeenCalled()
+    expect(files[SHARED_CACHE]).toBeDefined()
+    expect(CommandBar.showLoading).toHaveBeenCalledWith(false)
   })
 })
 

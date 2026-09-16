@@ -2,13 +2,12 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
-## [1.2.0] 2026-09-15
-- New: Shared **tag/mention cache** (`tagMentionCache.js`) with per-plugin registration. Plugins call `registerTagMentionCacheItems(pluginId, items)` / `unregisterTagMentionCacheItems(pluginId)`. 
-  - The cache indexes the union; an item is dropped only when no plugin still wants it. Also indexes wanted tags/mentions in **any** frontmatter field, and exposes `getRegularNoteFilenamesFromTagMentionCache` for a cheap read.
+## [1.2.0] 2026-09-16
+- New: Shared **tag/mention cache** (`tagMentionCache.js`) moved from Dashboard plugin, now with per-plugin registration. Client plugins call `registerTagMentionCacheItems(pluginId, items)` / `unregisterTagMentionCacheItems(pluginId)`. 
+  - The cache indexes the **union of wanted tags/mentions**; an item is dropped only when no plugin still wants it. Also indexes wanted tags/mentions in **any** frontmatter field, and exposes `getRegularNoteFilenamesFromTagMentionCache` for a cheap read.
+  - It now uses new `runSyncWorkOnAsyncThread` method (for users on 3.21.3+) to keep app responsive during somewhat lengthy cache (re)generation.
   - Added INFO-level duration logs for each tag/mention cache rebuild, incremental update, and access.
   - Registering new union items now *schedules* a cache rebuild instead of starting one immediately (avoids a double full-note scan when Dashboard then runs the scheduled generate). `generateTagMentionCache` also skips a second scan if the cache was just rebuilt with the same wanted items.
-  - Docs: a rebuild indexes the **union of all plugin registrations**, not only the caller's. Shared does not self-update; a client (e.g. Dashboard) must call generate/update.
-
 
 ## [1.1.0] 2026-08-31
 - React windows now get app-level NotePlan preferences that React cannot read for itself, baked into `pluginData.notePlanSettings` when the window opens. dev: Inside a WebView `DataStore` is an async bridge proxy, so a scalar preference like `DataStore.defaultFileExtension` can't be read synchronously -- reading it plugin-side and passing it through gives every plugin's React window the value with no per-plugin plumbing. Starts with `defaultFileExtension`. Merged under anything the calling plugin already put in `pluginData.notePlanSettings`, so plugins that set their own (e.g. Dashboard) are unaffected.

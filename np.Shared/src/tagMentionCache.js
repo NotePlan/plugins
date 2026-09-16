@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Shared tag/mention cache for any plugin (owned by np.Shared)
 // Written originally by @jgclark for Dashboard plugin.
-// last updated 2026-09-15 for v1.1.1 by @jgclark + @CursorAI
+// last updated 2026-09-15 for v1.2.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 // Cache body (`tagMentionCache.json`):
 // {
@@ -25,6 +25,7 @@ import { JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@hel
 import { CaseInsensitiveSet } from '@helpers/general'
 import { noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { getNotesChangedInInterval } from '@helpers/NPnote'
+import { runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
 import { RE_NP_HASHTAG_G, RE_NP_MENTION_G } from '@helpers/regex'
 import { caseInsensitiveArrayIncludes, caseInsensitiveMatch, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
 import { getHashtagsFromString } from '@helpers/stringTransforms'
@@ -43,16 +44,20 @@ const lastTimeThisWasRunPref = 'np.Shared.tagMentionCache.lastTimeUpdated'
 const regenerateTagMentionCachePref = 'np.Shared.tagMentionCache.regenerateTagMentionCache'
 
 const TAG_CACHE_UPDATE_INTERVAL_HOURS = 1 // how often to update the cache
-const TAG_CACHE_GENERATE_INTERVAL_DAYS = 5 // how often to re-generate the cache from scratch
+const TAG_CACHE_GENERATE_INTERVAL_HOURS = 5 * 24 // how often to re-generate the cache from scratch
 // Skip a second full scan if generate just finished with the same wanted items (same JSContext, no real await).
 const TAG_CACHE_SKIP_REDUNDANT_REBUILD_MS = 2 * 60 * 1000
-
-let tagMentionCacheGenerationInProgress = false
 
 // Note: Earlier I tried caching all tags in a note with the blacklist
 // EXCLUDED_TAGS_OR_MENTIONS of ['@done', '@start', '@review', '@reviewed', '@completed', '@cancelled'].
 // Cache only explicit wanted tags/mentions from the union of per-plugin registrations.
 const TAG_CACHE_ONLY_FOR_OPEN_ITEMS = true // Note: if false, then for JGC the cache file is 20x larger.
+const SHOW_PROGRESS_DIALOG = true // if true, use CommandBar.showLoading during generate / note-scan progress
+
+let tagMentionCacheGenerationInProgress = false
+
+//--------------------------------------------------------------------------
+// Types
 
 /**
  * Optional progress hooks for generate (Dashboard banners). Shared itself only uses CommandBar.showLoading.
@@ -78,7 +83,7 @@ export type TagMentionLookupContext = {
 }
 
 //-----------------------------------------------------------------
-// private functions for the cache
+// Private functions for the cache
 
 function clearTagMentionCacheGenerationPref(): void {
   logDebug('clearTagMentionCacheGenerationPref', `Clearing tag mention cache generation pref.`)
@@ -206,6 +211,9 @@ function getTagMentionCacheLastRunInfo(cache: Object): { lastRun: ?Date, source:
   }
   return { lastRun: fromFile, source: 'cache.lastUpdated and pref' }
 }
+
+//--------------------------------------------------------------------------
+// Exported functions for the cache
 
 /**
  * Build lookup structures once per cache generate/update run.
@@ -404,11 +412,13 @@ function getWantedTagOrMentionListFromNoteOpenItemsOnly(
  * Process notes for cache build; returns cache rows and stats.
  * @param {Array<TNote>} notes
  * @param {TagMentionLookupContext} ctx
+ * @param {string} noteTypeStr description for showing in the progress dialog.
  * @returns {{ entries: Array<{ filename: string, items: Array<string> }>, matchingNoteCount: number, totalFoundItems: number, notesSkippedByPrefilter: number }}
  */
 function processNotesForTagMentionCache(
   notes: $ReadOnlyArray<TNote>,
   ctx: TagMentionLookupContext,
+  noteTypeStr: string = '',
 ): { entries: Array<{ filename: string, items: Array<string> }>, matchingNoteCount: number, totalFoundItems: number, notesSkippedByPrefilter: number } {
   const entries = []
   let matchingNoteCount = 0
@@ -418,9 +428,9 @@ function processNotesForTagMentionCache(
 
   for (const note of notes) {
     noteCount++
-    // Note: This is not actually being shown, as we get spinning beachball instead.
-    if (noteCount % 100 === 0) {
-      CommandBar.showLoading(true, `Generating tag/mention cache`, noteCount/notes.length)
+    // Progress updates; hide loading in generateTagMentionCache finally (not here) so multi-batch scans keep one indicator.
+    if (SHOW_PROGRESS_DIALOG && noteCount % 100 === 0) {
+      CommandBar.showLoading(true, `Generating tag/mention cache: reading ${noteTypeStr} ${noteCount} / ${notes.length}`, noteCount / notes.length)
     }
     if (!noteMayContainCacheItems(note, ctx)) {
       notesSkippedByPrefilter++
@@ -433,9 +443,33 @@ function processNotesForTagMentionCache(
       matchingNoteCount++
     }
   }
-  CommandBar.showLoading(false)
 
   return { entries, matchingNoteCount, totalFoundItems, notesSkippedByPrefilter }
+}
+
+/**
+ * Reindex recently changed notes into an existing cache object (sync; safe for runOnAsyncThread).
+ * @param {Object} cache
+ * @param {Array<TNote>} recentlyChangedNotes
+ * @param {TagMentionLookupContext} lookupCtx
+ * @returns {{ notesWithWantedItems: number, changedNoteCount: number }}
+ */
+function reindexChangedNotesInTagMentionCache(
+  cache: Object,
+  recentlyChangedNotes: $ReadOnlyArray<TNote>,
+  lookupCtx: TagMentionLookupContext,
+): { notesWithWantedItems: number, changedNoteCount: number } {
+  let notesWithWantedItems = 0
+  for (const note of recentlyChangedNotes) {
+    const isCalendarNote = note.type === 'Calendar'
+    removeNoteFromCache(cache, note.filename, isCalendarNote)
+    const foundWantedItems = getFoundItemsFromNote(note, lookupCtx)
+    if (foundWantedItems.length > 0) {
+      addNoteToCache(cache, note.filename, foundWantedItems, isCalendarNote)
+      notesWithWantedItems++
+    }
+  }
+  return { notesWithWantedItems, changedNoteCount: recentlyChangedNotes.length }
 }
 
 //-----------------------------------------------------------------
@@ -470,7 +504,7 @@ export function scheduleTagMentionCacheGenerationIfTooOld(generatedAtStr: string
   const nowMom = moment()
   const generatedAtMom = moment(generatedAtStr)
   const diffHours = nowMom.diff(generatedAtMom, 'hours', true).toFixed(3) // 3 significant figures
-  if (diffHours >= (TAG_CACHE_GENERATE_INTERVAL_DAYS * 24)) {
+  if (diffHours >= (TAG_CACHE_GENERATE_INTERVAL_HOURS * 24)) {
     logInfo('scheduleTagMentionCacheGenerationIfTooOld', `Tag mention cache is too old (${diffHours}hours), so scheduling a regeneration.`)
     scheduleTagMentionCacheGeneration()
   } else {
@@ -774,11 +808,12 @@ export async function getFilenamesOfNotesWithTagOrMentions(
  * Writes all instances of wanted mentions and tags (from the wantedTagMentionsList) to the tagMentionCacheFile, by filename.
  * Note: this includes all calendar notes, and all regular notes, apart from those in special folders (starts with '@'), including @Templates, @Archive and @Trash folders.
  *
- * **Threading:** The note scan and `DataStore.saveData()` run on the main thread, not via `CommandBar.onAsyncThread()`.
- * This rebuild can take 1–2 minutes, but async-thread execution has proved unreliable here: work can stall or be dropped
- * (notably when invoked as an external/plugin command), so `tagMentionCache.json` never gets a new `generatedAt` and
- * completion logs never appear. `showLoading()` gives user feedback without moving the scan off the main thread.
- * WebView banner messages also require the main thread (see NotePlan docs on `onAsyncThread`).
+ * **Threading:** When `usersVersionHas('runOnAsyncThread')` (gated in `NPVersions.js`; currently `4.0.0` so
+ * this stays on the main thread until the API is reliable), the note scan runs inside
+ * `CommandBar.runOnAsyncThread()` via `runSyncWorkOnAsyncThread`. `showLoading` progress is allowed inside
+ * the callback. Large scan results are stored in outer variables; the async callback only returns a
+ * primitive (`true`) because returning large objects previously hung the Promise (scan finished, await
+ * never resumed). Save / banners / prefs run on the main thread after await.
  *
  * @param {string} generationReason The reason for the generation, for info & logging purposes.
  * @param {boolean} forceRebuild If true, the cache will be rebuilt from scratch, otherwise it will revert to the quicker 'updateTagMentionCache' function if the WANTED_PARA_TYPES are all already in the cache.
@@ -801,7 +836,7 @@ export async function generateTagMentionCache(
     // Note: this doesn't get the current definitions, if the perspective definition has changed and not yet saved. However, getTaggedSectionData() notices this and updates the list and asks for a Cache rebuild, so it quickly gets resolved.
     const wantedItems = getTagMentionCacheDefinitions()
     // const config = await getDashboardSettings()
-    logDebug('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}] for ${generationReason}`)
+    logInfo('generateTagMentionCache', `Starting with wantedItems:[${String(wantedItems)}] for ${generationReason}`)
     // logDebug('generateTagMentionCache', `- ${TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ' ONLY FOR OPEN ITEMS' : ' ON ANY PARA TYPE'}`)
 
     if (shouldSkipRedundantCacheRebuild(wantedItems)) {
@@ -838,23 +873,47 @@ export async function generateTagMentionCache(
       await progress.onProgress(progressMessage)
       progressBannerShown = true
     }
-    logInfo('generateTagMentionCache', `- processing ${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes ...`)
+    logDebug('generateTagMentionCache', `- processing ${String(allCalNotes.length)} calendar + ${String(allRegularNotes.length)} regular notes ...`)
 
     // This is very quick
     const lookupCtx = buildTagMentionLookupContext(wantedItems)
 
-    // Do NOT move the scan below to CommandBar.onAsyncThread. See function JSDoc: async-thread runs have failed to
-    // finish (cache file not saved, no completion logs), especially from external command invocations. Use showLoading
-    // for progress feedback while the main thread does the work; save + WebView banners also require main thread.
-    CommandBar.showLoading(true, `Generating tag/mention cache (${String(allCalNotes.length + allRegularNotes.length)} notes) ...`)
-    loadingIndicatorShown = true
+    if (SHOW_PROGRESS_DIALOG) {
+      CommandBar.showLoading(true, `Generating tag/mention cache (${String(allCalNotes.length + allRegularNotes.length)} notes) ...`)
+      loadingIndicatorShown = true
+    }
+    // Side-channel results: do not return large objects from runOnAsyncThread (that hung the Promise live).
+    type TProcessNotesResult = {
+      entries: Array<{ filename: string, items: Array<string> }>,
+      matchingNoteCount: number,
+      totalFoundItems: number,
+      notesSkippedByPrefilter: number,
+    }
+    let calResultHolder: ?TProcessNotesResult = null
+    let regResultHolder: ?TProcessNotesResult = null
 
-    logInfo('generateTagMentionCache', `- scanning ${String(allCalNotes.length)} calendar notes ...`)
-    const calResult = processNotesForTagMentionCache(allCalNotes, lookupCtx)
+    logDebug('generateTagMentionCache', `- scanning ${String(allCalNotes.length)} calendar notes ...`)
+    await runSyncWorkOnAsyncThread('generateTagMentionCache calendar', () => {
+      calResultHolder = processNotesForTagMentionCache(allCalNotes, lookupCtx, 'calendar note')
+      return true
+    })
+    const calResult: TProcessNotesResult =
+      calResultHolder != null ? calResultHolder : processNotesForTagMentionCache(allCalNotes, lookupCtx, 'calendar note')
+    if (calResultHolder == null) {
+      logWarn('generateTagMentionCache', `- calendar async result missing; scanned on main thread`)
+    }
     logDebug('generateTagMentionCache', `  - pre-filter skipped ${String(calResult.notesSkippedByPrefilter)} calendar notes with no possible wanted items`)
 
-    logInfo('generateTagMentionCache', `- scanning ${String(allRegularNotes.length)} regular notes ...`)
-    const regResult = processNotesForTagMentionCache(allRegularNotes, lookupCtx)
+    logDebug('generateTagMentionCache', `- scanning ${String(allRegularNotes.length)} regular notes ...`)
+    await runSyncWorkOnAsyncThread('generateTagMentionCache regular', () => {
+      regResultHolder = processNotesForTagMentionCache(allRegularNotes, lookupCtx, 'regular note')
+      return true
+    })
+    const regResult: TProcessNotesResult =
+      regResultHolder != null ? regResultHolder : processNotesForTagMentionCache(allRegularNotes, lookupCtx, 'regular note')
+    if (regResultHolder == null) {
+      logWarn('generateTagMentionCache', `- regular async result missing; scanned on main thread`)
+    }
     logDebug('generateTagMentionCache', `  - pre-filter skipped ${String(regResult.notesSkippedByPrefilter)} regular notes with no possible wanted items`)
 
     const calWantedItems = calResult.entries
@@ -866,7 +925,7 @@ export async function generateTagMentionCache(
     // Cast: as above -- Flow has no numeric type for a Date operand.
     const elapsedSecs = Math.max(((new Date(): any) - startTime) / 1000, 0.001)
     const notesPerSec = ((allCalNotes.length + allRegularNotes.length - calResult.notesSkippedByPrefilter - regResult.notesSkippedByPrefilter) / elapsedSecs).toFixed(3)
-    logInfo('generateTagMentionCache', `-> found ${String(ccal)} calendar + ${String(creg)} regular notes with wanted items (${String(totalFoundItems)} matching open items)`)
+    logDebug('generateTagMentionCache', `-> found ${String(ccal)} calendar + ${String(creg)} regular notes with wanted items (${String(totalFoundItems)} matching open items)`)
     logTimer('generateTagMentionCache', startTime, `-> finished cache generation at ${String(notesPerSec)} checked notes/second`)
 
     // Save the filteredMentions and filteredTags to the mentionTagCacheFile
@@ -904,7 +963,7 @@ export async function generateTagMentionCache(
     }
   } finally {
     tagMentionCacheGenerationInProgress = false
-    if (loadingIndicatorShown) {
+    if (SHOW_PROGRESS_DIALOG && loadingIndicatorShown) {
       CommandBar.showLoading(false)
     }
     if (progressBannerShown) {
@@ -918,14 +977,15 @@ export async function generateTagMentionCache(
  * Update the tagMentionCacheFile.
  * It works smartly: it only recalculates notes that have been updated since the last run.
  * Last-run time comes from `cache.lastUpdated` (ISO UTC in JSON) and `lastTimeThisWasRunPref` (Date in preferences); see `getTagMentionCacheLastRunInfo`.
+ * `getNotesChangedInInterval` stays on the main thread; reindexing changed notes uses `runOnAsyncThread` when available
+ * (side-channel stats, primitive return -- see generateTagMentionCache).
  */
-// eslint-disable-next-line require-await
 export async function updateTagMentionCache(): Promise<void> {
   try {
     // const config = await getDashboardSettings()
     const startTime = new Date() // just for timing this function
 
-    logDebug('updateTagMentionCache', `About to read ${tagMentionCacheFile} ...`)
+    // logDebug('updateTagMentionCache', `About to read ${tagMentionCacheFile} ...`)
     if (!isTagMentionCacheAvailable()) {
       logWarn('updateTagMentionCache', `${tagMentionCacheFile} file does not exist, so will schedule a re-generation of the cache from scratch.`)
       scheduleTagMentionCacheGeneration()
@@ -945,17 +1005,17 @@ export async function updateTagMentionCache(): Promise<void> {
     const momPrevious = lastRun != null ? moment(lastRun) : moment(0)
     const momNow = moment()
     const fileAgeMins = momNow.diff(momPrevious, 'minutes', true)
-    logDebug(
+    logInfo(
       'updateTagMentionCache',
-      `Last updated ${fileAgeMins.toFixed(3)} mins ago (source: ${source}; previous: ${momPrevious.format()} / now: ${momNow.format()})`,
+      `Last updated ${fileAgeMins.toFixed(1)} mins ago (source: ${source}; previous: ${momPrevious.format()} / now: ${momNow.format()})`,
     )
     if (lastRun != null && momNow.diff(momPrevious, 'seconds') < 5) {
-      logInfo('updateTagMentionCache', `- Not updating cache as it was updated less than 5 seconds ago`)
+      logInfo('updateTagMentionCache', `- Not updating cache as it was updated less than 5s ago`)
       logTagMentionCacheDuration('updateTagMentionCache', startTime, 'updated', `(skipped; updated less than 5 seconds ago)`)
       return
     }
 
-    // Find all notes updated since the last time this was run
+    // Find changed notes on main thread (DataStore scan + timers); reindex on async when available.
     const jsdateToStartLooking = momPrevious.toDate()
     const numDaysBack = momPrevious.diff(momNow, 'days', true) // don't round to nearest integer
     // Note: This operations takes >500ms for JGC.
@@ -963,24 +1023,17 @@ export async function updateTagMentionCache(): Promise<void> {
     const recentlychangedNotes = getNotesChangedInInterval(numDaysBack).filter((n) => n.changedDate >= jsdateToStartLooking)
     logTimer('updateTagMentionCache', startTime, `Found ${recentlychangedNotes.length} changed notes in that time`)
 
-    // For each note, get wanted tags and mentions, and overwrite the existing cache details
-    let c = 0
-    for (const note of recentlychangedNotes) {
-      const isCalendarNote = note.type === 'Calendar'
-
-      // First clear existing details for this note
-      logDebug('updateTagMentionCache', `- removing existing items for recently changed file '${note.filename}'`)
-      removeNoteFromCache(cache, note.filename, isCalendarNote)
-
-      // Then get wanted tags and mentions on open items, and add them
-      const foundWantedItems = getFoundItemsFromNote(note, lookupCtx)
-      if (foundWantedItems.length > 0) {
-        logDebug('updateTagMentionCache', `-> ${String(foundWantedItems.length)} foundWantedItems [${String(foundWantedItems)}]`)
-        addNoteToCache(cache, note.filename, foundWantedItems, isCalendarNote)
-        c++
-      }
+    let reindexStatsHolder: ?{ notesWithWantedItems: number, changedNoteCount: number } = null
+    await runSyncWorkOnAsyncThread('updateTagMentionCache reindex', () => {
+      reindexStatsHolder = reindexChangedNotesInTagMentionCache(cache, recentlychangedNotes, lookupCtx)
+      return true
+    })
+    const reindexStats =
+      reindexStatsHolder != null ? reindexStatsHolder : reindexChangedNotesInTagMentionCache(cache, recentlychangedNotes, lookupCtx)
+    if (reindexStatsHolder == null) {
+      logWarn('updateTagMentionCache', `- reindex async result missing; reindexed on main thread`)
     }
-    logTimer('updateTagMentionCache', startTime, `-> ${c} recently changed notes with wanted items`)
+    logTimer('updateTagMentionCache', startTime, `-> ${String(reindexStats.notesWithWantedItems)} recently changed notes with wanted items`)
 
     // Update the last updated time and wanted items (which should be the same,)
     cache.lastUpdated = serializeTagMentionCacheTimestamp(startTime)
@@ -992,7 +1045,7 @@ export async function updateTagMentionCache(): Promise<void> {
     recordTagMentionCacheLastRunTime(startTime)
 
     logTimer(`updateTagMentionCache`, startTime, `total runtime`, 1000)
-    logTagMentionCacheDuration('updateTagMentionCache', startTime, 'updated', `(${String(c)} of ${String(recentlychangedNotes.length)} changed notes had wanted items)`)
+    logTagMentionCacheDuration('updateTagMentionCache', startTime, 'updated', `(${String(reindexStats.notesWithWantedItems)} of ${String(reindexStats.changedNoteCount)} changed notes had wanted items)`)
     return
   } catch (err) {
     logError('updateTagMentionCache', JSP(err))
@@ -1026,7 +1079,7 @@ export function getTagMentionCacheDiagnosticsLines(): Array<string> {
   lines.push('### Settings')
   lines.push(`- TAG_CACHE_ONLY_FOR_OPEN_ITEMS (code): ${String(TAG_CACHE_ONLY_FOR_OPEN_ITEMS)}`)
   lines.push(`- Update interval: ${String(TAG_CACHE_UPDATE_INTERVAL_HOURS)} hour(s)`)
-  lines.push(`- Full regenerate interval: ${String(TAG_CACHE_GENERATE_INTERVAL_DAYS)} day(s)`)
+  lines.push(`- Full regenerate interval: ${String(TAG_CACHE_GENERATE_INTERVAL_HOURS)} day(s)`)
   lines.push(`- Regeneration scheduled (pref): ${String(generationScheduled)}`)
   lines.push(`- Last run: ${lastRunPref != null ? String(lastRunPref) : '(not set)'} (from pref)`)
   lines.push(`- Cache files: ${tagMentionCacheFile}`)
