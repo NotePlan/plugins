@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-09-18 for v2.2.1 by @jgclark + @CursorAI
+// Last updated 2026-09-18 for v2.3.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -12,12 +12,19 @@ import pluginJson from '../plugin.json'
 import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
 import { calcReviewFieldsForProject, isProjectFinished } from './projectClassCalculations.js'
 import {
+  getMatchingProjectTypeTagsOnNote,
   getProjectTypeTagsFromNoteMetadata,
   noteHasProjectTypeTag,
   updateDashboardIfOpen,
   updateRichProjectListIfOpen,
 } from './reviewHelpers.js'
 import { getReviewSettings, type ReviewConfig } from './reviewSettings.js'
+import {
+  generateNotesChangedRecentlyCache,
+  getFilenamesChangedSince,
+  isNotesChangedRecentlyCacheGenerationScheduled,
+  updateNotesChangedRecentlyCacheIfTooOld,
+} from '../../np.Shared/src/notesChangedRecentlyCache.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toISODateString } from '@helpers/dateTime'
 import { getFolderFromFilename, getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
@@ -35,9 +42,12 @@ const pluginID = 'jgclark.Reviews'
 const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // fully specified to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
 const maxAgeAllProjectsListInHours = 1
 const generatedDatePrefName = 'Reviews-lastAllProjectsGenerationTime'
+const lastFullScanPrefName = 'Reviews-lastAllProjectsFullScanTime'
 const lastPerspectivePrefName = 'Reviews-lastAllProjectsPerspective'
 const lastFolderFiltersPrefName = 'Reviews-lastAllProjectsFolderFilters'
 const MS_PER_HOUR = 1000 * 60 * 60
+const MS_PER_DAY = MS_PER_HOUR * 24
+const MAX_AGE_FULL_SCAN_MS = MS_PER_DAY
 const ERROR_FILENAME_PLACEHOLDER = 'error'
 const ERROR_READING_PLACEHOLDER = '<error reading'
 const SEQUENTIAL_TAG_DEFAULT = '#sequential'
@@ -385,6 +395,215 @@ function shouldRegenerateAllProjectsList(config: ReviewConfig): boolean {
     return true
   }
   return false
+}
+
+/**
+ * True when generateAllProjectsList must do a full vault enumerate (not incremental merge).
+ * Reasons: force flag, missing/corrupt/empty baseline, perspective or folder fingerprint change, or last full scan older than 24h.
+ * @param {ReviewConfig} config
+ * @param {boolean} [forceFullGenerate]
+ * @returns {boolean}
+ */
+export function shouldUseFullAllProjectsGenerate(config: ReviewConfig, forceFullGenerate: boolean = false): boolean {
+  if (forceFullGenerate) {
+    return true
+  }
+  if (!DataStore.fileExists(allProjectsListFilename)) {
+    logInfo('shouldUseFullAllProjectsGenerate', `No allProjectsList.json; full generate`)
+    return true
+  }
+  const content = DataStore.loadData(allProjectsListFilename, true)
+  const parsed = parseAllProjectsListFileContent(content)
+  if (parsed === null || parsed.length === 0) {
+    logInfo('shouldUseFullAllProjectsGenerate', `Baseline missing/corrupt/empty; full generate`)
+    return true
+  }
+  if (config.usePerspectives && config.perspectiveName) {
+    const lastPref: mixed = DataStore.preference(lastPerspectivePrefName)
+    const lastPerspective = typeof lastPref === 'string' ? lastPref : ''
+    if (lastPerspective !== config.perspectiveName) {
+      logInfo(
+        'shouldUseFullAllProjectsGenerate',
+        `Perspective changed ('${lastPerspective}' -> '${config.perspectiveName}'); full generate`,
+      )
+      return true
+    }
+  }
+  const fingerprint = getFolderFilterFingerprint(config)
+  const lastFingerprintPref: mixed = DataStore.preference(lastFolderFiltersPrefName)
+  const lastFingerprint = typeof lastFingerprintPref === 'string' ? lastFingerprintPref : ''
+  if (fingerprint !== lastFingerprint) {
+    logInfo('shouldUseFullAllProjectsGenerate', `Folder filters changed; full generate`)
+    return true
+  }
+  const fullScanPref: mixed = DataStore.preference(lastFullScanPrefName)
+  const fullScanMs = typeof fullScanPref === 'number' ? fullScanPref : 0
+  if (fullScanMs <= 0 || Date.now() - fullScanMs > MAX_AGE_FULL_SCAN_MS) {
+    logInfo('shouldUseFullAllProjectsGenerate', `Last full scan older than 24h or never; full generate`)
+    return true
+  }
+  return false
+}
+
+/**
+ * Record that a full vault enumerate completed successfully.
+ * @returns {void}
+ */
+function recordAllProjectsFullScanTime(): void {
+  DataStore.setPreference(lastFullScanPrefName, Date.now())
+}
+
+/**
+ * Ensure Shared notes-changed-recently cache is fresh enough for incremental list merge.
+ * @returns {Promise<void>}
+ */
+async function ensureNotesChangedRecentlyCacheForReviews(): Promise<void> {
+  await updateNotesChangedRecentlyCacheIfTooOld()
+  if (isNotesChangedRecentlyCacheGenerationScheduled()) {
+    await generateNotesChangedRecentlyCache('Reviews allProjects list refresh')
+  }
+}
+
+/**
+ * Filenames of project notes changed since last list generation (Shared cache ∪ local changedDate backstop).
+ * @param {Date} sinceDate
+ * @returns {Array<string>}
+ */
+function getChangedProjectFilenamesSince(sinceDate: Date): Array<string> {
+  const fromShared = getFilenamesChangedSince(sinceDate, { noteTypes: ['Notes'] })
+  const sinceMs = sinceDate.getTime()
+  const fromLocal: Array<string> = []
+  const projectNotes = DataStore.projectNotes ?? []
+  for (const note of projectNotes) {
+    if (note?.filename && note.changedDate != null && note.changedDate.getTime() >= sinceMs) {
+      fromLocal.push(note.filename)
+    }
+  }
+  const seen = new Set<string>()
+  const out: Array<string> = []
+  for (const filename of [...fromShared, ...fromLocal]) {
+    if (filename && !seen.has(filename)) {
+      seen.add(filename)
+      out.push(filename)
+    }
+  }
+  return out
+}
+
+/**
+ * Incremental allProjectsList rebuild: merge notes changed since last generation onto the baseline snapshot.
+ * @param {ReviewConfig} config
+ * @param {boolean} runInForeground
+ * @param {number} scrollPosForRichList
+ * @param {boolean} skipUpdateDashboardIfOpen
+ * @param {boolean} skipRichProjectListIfOpen
+ * @returns {Promise<Array<Project>>}
+ */
+async function generateAllProjectsListIncremental(
+  config: ReviewConfig,
+  runInForeground: boolean,
+  scrollPosForRichList: number,
+  skipUpdateDashboardIfOpen: boolean,
+  skipRichProjectListIfOpen: boolean,
+): Promise<Array<Project>> {
+  const startTime = moment().toDate()
+  await ensureNotesChangedRecentlyCacheForReviews()
+
+  const genPref: mixed = DataStore.preference(generatedDatePrefName)
+  const sinceMs = typeof genPref === 'number' && genPref > 0 ? genPref : moment().startOf('day').valueOf()
+  const sinceDate = new Date(sinceMs)
+  const changedFilenames = getChangedProjectFilenamesSince(sinceDate)
+  logInfo(
+    'generateAllProjectsListIncremental',
+    `Incremental merge: ${String(changedFilenames.length)} note(s) changed since ${sinceDate.toISOString()}`,
+  )
+
+  const snapshotRows = loadRawAllProjectsListSnapshot()
+  const byKey: Map<string, any> = new Map()
+  for (const row of snapshotRows) {
+    if (row != null && typeof row.filename === 'string' && row.filename !== '') {
+      byKey.set(makeProjectListCacheKey(row.filename, getLeadingProjectTag(row)), row)
+    }
+  }
+
+  const projectTypeTags: Array<string> =
+    config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
+      ? [config.projectTypeTags]
+      : (config.projectTypeTags ?? [])
+  const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
+  const nextActionTags = config.nextActionTags ?? []
+
+  const changedSet = new Set(changedFilenames)
+  let rebuiltCount = 0
+  let removedCount = 0
+  let loadingShown = false
+  try {
+    if (runInForeground && changedFilenames.length > 0) {
+      CommandBar.showLoading(true, `Refreshing Project Review list\n0/${String(changedFilenames.length)}`, 0)
+      loadingShown = true
+    }
+
+    let index = 0
+    for (const filename of changedFilenames) {
+      index += 1
+      if (loadingShown) {
+        CommandBar.showLoading(true, `Refreshing Project Review list\n${String(index)}/${String(changedFilenames.length)}\n${filename}`, index / changedFilenames.length)
+      }
+
+      // Drop existing rows for this filename before rebuild / delete
+      for (const key of Array.from(byKey.keys())) {
+        if (key.startsWith(`${filename}\u0000`)) {
+          byKey.delete(key)
+          removedCount += 1
+        }
+      }
+
+      const note = getNoteFromFilename(filename)
+      if (!note) {
+        continue
+      }
+
+      const matchingTags = getMatchingProjectTypeTagsOnNote(note, projectTypeTags)
+      for (const tag of matchingTags) {
+        if (!isNoteInCurrentProjectSelection(note, config, tag)) {
+          continue
+        }
+        const np = new Project(note, tag, true, nextActionTags, sequentialTagResolved, false)
+        byKey.set(makeProjectListCacheKey(filename, tag), np)
+        rebuiltCount += 1
+      }
+    }
+
+    // Tombstone: drop baseline rows whose note no longer exists (unchanged filenames only)
+    for (const [key, row] of Array.from(byKey.entries())) {
+      const filename = typeof row?.filename === 'string' ? row.filename : ''
+      if (filename === '' || changedSet.has(filename)) continue
+      const note = getNoteFromFilename(filename)
+      if (!note) {
+        byKey.delete(key)
+        removedCount += 1
+      }
+    }
+  } finally {
+    if (loadingShown) {
+      CommandBar.showLoading(false)
+    }
+  }
+
+  const merged: Array<Project> = []
+  for (const row of byKey.values()) {
+    // Rows may be Project instances or plain JSON objects; calcReviewFieldsForProject accepts both at runtime.
+    merged.push(calcReviewFieldsForProject(({ ...row }: any)))
+  }
+
+  await writeAllProjectsList(merged, scrollPosForRichList, skipUpdateDashboardIfOpen, config, skipRichProjectListIfOpen)
+  logAllProjectsListDuration(
+    'generateAllProjectsListIncremental',
+    startTime,
+    'rebuilt',
+    `(incremental: ${String(merged.length)} projects; rebuilt ${String(rebuiltCount)} row(s); removed ${String(removedCount)}; ${String(changedFilenames.length)} note(s) touched)`,
+  )
+  return merged
 }
 
 //-------------------------------------------------------------------------------
@@ -855,14 +1074,18 @@ async function getAllMatchingProjects(
 
 /**
  * Generate JSON representation of all project notes as Project objects that match the main folder and 'projectTypeTags' settings.
+ * Uses an incremental merge from the Shared notes-changed-recently cache when safe; otherwise a full vault enumerate.
+ * A full scan is forced at least every 24 hours (and when baseline/fingerprint requires it).
  * Not ordered in any particular way.
  * Output is written to file location set by `allProjectsListFilename`.
- * Note: This is V1 for JSON, borrowing from makeFullReviewList v3
- * Note: This is taking between 600 and 3,333 ms/project for JGC's large vault in Sep 2026. Eek!
+ * Note: Full enumerate can take between 600 and 3,333 ms/project for JGC's large vault in Sep 2026.
  * @author @jgclark
  * @param {any} configIn
  * @param {boolean} runInForeground? (default: false)
  * @param {number} scrollPosForRichList - passed through to `writeAllProjectsList` for Rich list HTML scroll (pixels)
+ * @param {boolean} skipUpdateDashboardIfOpen
+ * @param {boolean} skipRichProjectListIfOpen
+ * @param {boolean} forceFullGenerate - when true, always full enumerate (e.g. settings rebuild)
  * @returns {Promise<Array<Project>>} Object containing array of all Projects, the same as what was written to disk
  */
 export async function generateAllProjectsList(
@@ -871,27 +1094,54 @@ export async function generateAllProjectsList(
   scrollPosForRichList: number = 0,
   skipUpdateDashboardIfOpen: boolean = false,
   skipRichProjectListIfOpen: boolean = false,
+  forceFullGenerate: boolean = false,
 ): Promise<Array<Project>> {
   try {
-    logDebug('generateAllProjectsList', `starting with usePerspectives=${String(configIn?.usePerspectives)} perspective='${configIn?.perspectiveName ?? '-'}' foldersToInclude=[${String(configIn?.foldersToInclude)}] foldersToIgnore=[${String(configIn?.foldersToIgnore)}]`)
+    const config = configIn ? configIn : await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
+    logDebug(
+      'generateAllProjectsList',
+      `starting with usePerspectives=${String(config.usePerspectives)} perspective='${config.perspectiveName ?? '-'}' foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(config.foldersToIgnore)}] forceFull=${String(forceFullGenerate)}`,
+    )
+
+    if (!shouldUseFullAllProjectsGenerate(config, forceFullGenerate)) {
+      logInfo('generateAllProjectsList', `Using incremental merge (Shared notes-changed-recently + local backstop)`)
+      return await generateAllProjectsListIncremental(
+        config,
+        runInForeground,
+        scrollPosForRichList,
+        skipUpdateDashboardIfOpen,
+        skipRichProjectListIfOpen,
+      )
+    }
+
     const startTime = moment().toDate()
 
     // Get all project notes as Project instances
-    const projectInstances = await getAllMatchingProjects(configIn, runInForeground)
-    logInfo('generateAllProjectsList', `enumerated ${projectInstances.length} project instance(s) to write`)
+    const projectInstances = await getAllMatchingProjects(config, runInForeground)
+    logInfo('generateAllProjectsList', `enumerated ${projectInstances.length} project instance(s) to write (full scan)`)
 
     // Diagnostic: Project Generation Log (gated by _logTimer / DEV). Remove after v2.1.0.
-    if (configIn?._logTimer === true || configIn?._logLevel === 'DEV') {
+    if (config._logTimer === true || config._logLevel === 'DEV') {
       const logNote: ?TNote = await getOrMakeRegularNoteInFolder('Project Generation Log', '@Meta')
       if (logNote) {
-        const perspName = configIn.usePerspectives ? configIn.perspectiveName : '_no_'
+        const perspName = config.usePerspectives ? config.perspectiveName : '_no_'
         const newLogLine = `${new Date().toLocaleString().slice(0, 17)}: Reviews: (generateAllProjectsList with ${perspName} perspective) -> ${projectInstances.length} Project(s) generated, in ${timer(startTime)}`
         smartPrependPara(logNote, newLogLine, 'list')
       }
     }
 
-    await writeAllProjectsList(projectInstances, scrollPosForRichList, skipUpdateDashboardIfOpen, configIn, skipRichProjectListIfOpen)
-    logAllProjectsListDuration('generateAllProjectsList', startTime, 'rebuilt', `(${String(projectInstances.length)} projects @ ${String(Math.round((moment().toDate() - startTime) / projectInstances.length))}ms/project)`)
+    await writeAllProjectsList(projectInstances, scrollPosForRichList, skipUpdateDashboardIfOpen, config, skipRichProjectListIfOpen)
+    recordAllProjectsFullScanTime()
+    const perProjectMs =
+      projectInstances.length > 0 ? Math.round((moment().toDate() - startTime) / projectInstances.length) : 0
+    logAllProjectsListDuration(
+      'generateAllProjectsList',
+      startTime,
+      'rebuilt',
+      `(full: ${String(projectInstances.length)} projects @ ${String(perProjectMs)}ms/project)`,
+    )
     return projectInstances
   } catch (error) {
     logError('generateAllProjectsList', JSP(error))

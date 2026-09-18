@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-09-13 for v2.2.0 by @jgclark + @CursorAI
+// Last updated 2026-09-18 for v2.3.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -145,7 +145,7 @@ export async function onSettingsUpdated(): Promise<void> {
       if (!config) throw new Error(`Can't get Review settings. Stopping.`)
       if (action === 'rebuild') {
         // Skip the write-time Rich-list invoke; render once in-process below.
-        await generateAllProjectsList(config, true, 0, false, true)
+        await generateAllProjectsList(config, true, 0, false, true, true)
       } else if (action === 'recalculate') {
         await recalculateAllProjectsListItems(config, true, 0, false, true)
       }

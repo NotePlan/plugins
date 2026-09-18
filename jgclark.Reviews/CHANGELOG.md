@@ -1,11 +1,16 @@
 # What's changed in Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.3.0] - 2026-09-18
+Performance Improvements:
+- **Refresh** and Dashboard-triggered list regen now use an **incremental** rebuild when possible: only re-parse project notes that changed since the last list write (via Shared `notes-changed-recently` cache + local `changedDate` backstop). A **full** vault scan still runs at least every **24 hours**, and whenever the list is missing or folder/perspective scope changes.
+- On NotePlan 3.21.3+, large note scans now use a new API to allow the UI to remain more responsive. Dev: project list generation/recalculation and weekly progress scans run heavy loops via `runSyncWorkOnAsyncThread`.
+- **/weeklyProjectsProgress** now runs twice as fast, and shows a progress dialog. Dev: CSV + weekly-note summary now share a single note scan.
+- Requires **Shared Resources** plugin **v1.3.0+** (notes-changed-recently cache).
+
 ## [2.2.1] - 2026-09-18
 - Fix: Excluding the root folder `/` (e.g. via a Dashboard Perspective) no longer incorrectly drops every nested project and leaves only root notes. Folder excludes are also applied when folder includes are set, matching Dashboard.
 - Change: 'Rich' Project list generation/recalculation now shows an updating progress dialog.
-<!-- - Change: On NotePlan 3.21.3+, large note scans now use a new API to allow to UI to remain more responsive. Dev: project list generation/recalculation and weekly progress scans run heavy loops via `runSyncWorkOnAsyncThread` -->
-<!-- - Change: **/weeklyProjectsProgress** now runs twice as fast, and shows a progress dialog. Dev: CSV + weekly-note summary now share a single note scan. -->
 
 ## [2.2.0] - 2026-09-14
 - Fix: Refresh button icon now spins as soon as it is clicked, and stops when list generation finishes (instead of only showing a beachball).

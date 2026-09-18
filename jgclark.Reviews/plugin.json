@@ -5,18 +5,18 @@
   "plugin.name": "Projects + Reviews",
   "plugin.description": "Making it easier to work with Project notes in NotePlan. Start, regularly review, pause, complete and cancel projects. Inspired by the PARA and 'Getting Things Done' methods, but more widely applicable.",
   "plugin.icon": "fa-chart-gantt",
-  "plugin.iconColor": "orange-600",
+  "plugin.iconColor": "orange-700",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.com/plugins/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "2.2.1",
+  "plugin.version": "2.3.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "2.2.1: Fix to root folder exclusion when using Perspectives. New progress dialogs.\n2.2.0: Updated layout of the top bar, and added a Settings button. The Refresh icon now spins while the list is regenerating.\nAvoids unnecessary refreshes when saving settings.\n2.1.1: bug fixes and small improvements.\n2.1.0: **/weeklyProjectsProgress** can upsert a current-week progress table into the weekly note (new settings **Heading for Weekly Project Progress output** and **Show folders with no progress in weekly table?**). Includes Refresh and Show/Hide empty-folder toggle pseudo-buttons.",
+  "plugin.lastUpdateInfo": "2.3.0: Much faster Refresh thanks to a new cache.\nMore responsive while scanning large project folders (on  NotePlan 3.21.3+).\nWeekly progress command ~2x faster.\n2.2.1: Fix to root folder exclusion when using Perspectives. New progress dialogs.\n2.2.0: Updated layout of the top bar, and added a Settings button. The Refresh icon now spins while the list is regenerating.\nAvoids unnecessary refreshes when saving settings.\n2.1.1: bug fixes and small improvements.\n2.1.0: **/weeklyProjectsProgress** can upsert a current-week progress table into the weekly note (new settings **Heading for Weekly Project Progress output** and **Show folders with no progress in weekly table?**). Includes Refresh and Show/Hide empty-folder toggle pseudo-buttons.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {
       "id": "np.Shared",
-      "minVersion": "1.0.11"
+      "minVersion": "1.3.0"
     }
   ],
   "plugin.requiredFiles": [

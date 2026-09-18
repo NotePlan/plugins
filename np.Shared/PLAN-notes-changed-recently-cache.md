@@ -252,9 +252,7 @@ Consumers that need stronger guarantees (Reviews 24h full project list) enforce 
 
 ### Phase C -- Reviews list Refresh
 
-- Incremental `allProjectsList` using Shared filenames + local backstop if needed
-- 24h full list scan policy
-- Wire Refresh + `generateProjectListsAndRenderIfOpen`
+**Done (Reviews v2.3.0):** Incremental `allProjectsList` via Shared filenames + local `changedDate` backstop; 24h full-scan pref; gate inside `generateAllProjectsList` (covers Refresh + `generateProjectListsAndRenderIfOpen`). Settings rebuild forces full generate.
 
 ### Phase D -- Weekly progress (optional fast path)
 
