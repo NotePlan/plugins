@@ -226,6 +226,71 @@ Pass `firstUpdateCache: true` (the default) only when you can afford `updateTagM
 2. On a hot path, if `isTagMentionCacheAvailableForItem` is true for the tags you need, call `getRegularNoteFilenamesFromTagMentionCache`.
 3. If the cache is missing or does not yet include your tags, fall back to your own scan. Decide when *your* plugin should run `generateTagMentionCache` / `updateTagMentionCache` (Dashboard does this after paint and after refresh). Shared will not do it for you.
 
+## Notes-changed-recently cache
+
+Plugins can share a rolling **7 calendar day** list of which notes changed recently, without each caller re-running `getNotesChangedInInterval` on hot paths. Implementation: `np.Shared/src/notesChangedRecentlyCache.js`. Design: `PLAN-notes-changed-recently-cache.md`.
+
+### What it delivers
+
+Answers only: **"which notes changed recently?"** -- not done counts, tags, or project metadata.
+
+Each entry is `{ filename, noteType: 'Notes'|'Calendar', changedAt }` (ISO UTC). The on-disk window is fixed at 7 calendar days (today + 6 prior). Readers who need "today only" or "since timestamp T" filter with the sync getters below.
+
+This does **not** replace `getNotesChangedInInterval` in `helpers/NPnote.js`. Full generate / incremental update **call** that scan (via `getNotesChangedInLastCalendarDays(7)`, which maps to interval arg `6`). Sync getters only read the JSON.
+
+### Data file
+
+| File | Role |
+|------|------|
+| `../../data/np.Shared/notesChangedRecently.json` | Cache body: `generatedAt`, `lastUpdated`, `windowDays`, `notes[]` |
+
+Prefs: `np.Shared.notesChangedRecently.lastUpdated`, `np.Shared.notesChangedRecently.regenerate`.
+
+### Updates
+
+Shared **cannot self-update** (no timer). Clients must call:
+
+- `updateNotesChangedRecentlyCache()` -- incremental upsert + prune; if the file is missing or corrupt, **generates immediately** (entry build on async thread when NotePlan supports it)
+- `generateNotesChangedRecentlyCache(reason?)` -- full 7-day rebuild (vault scan on main thread; build/prune via `runSyncWorkOnAsyncThread` when available)
+- `updateNotesChangedRecentlyCacheIfTooOld(maxAgeHours?)` -- incremental if last update older than ~1 hour (default); generates immediately if cache is missing
+- `scheduleNotesChangedRecentlyCacheGeneration()` / `isNotesChangedRecentlyCacheGenerationScheduled()` -- for age-based full rebuilds (e.g. `generatedAt` older than ~7 days); same schedule-then-run-after-paint pattern as the tag cache
+
+Commands (optional): `/generateNotesChangedRecentlyCache` (`gncrc`), `/updateNotesChangedRecentlyCache` (`uncrc`).
+
+### How to query (sync; never scans)
+
+```javascript
+import {
+  isNotesChangedRecentlyCacheAvailable,
+  getFilenamesChangedToday,
+  getFilenamesChangedRecently,
+  getFilenamesChangedSince,
+  updateNotesChangedRecentlyCacheIfTooOld,
+  generateNotesChangedRecentlyCache,
+  isNotesChangedRecentlyCacheGenerationScheduled,
+} from '../../np.Shared/src/notesChangedRecentlyCache'
+
+// After UI paint / before heavy work:
+await updateNotesChangedRecentlyCacheIfTooOld()
+if (isNotesChangedRecentlyCacheGenerationScheduled()) {
+  await generateNotesChangedRecentlyCache('after paint')
+}
+
+if (isNotesChangedRecentlyCacheAvailable()) {
+  const today = getFilenamesChangedToday({ noteTypes: ['Notes', 'Calendar'] })
+  const recentNotesOnly = getFilenamesChangedRecently({ noteTypes: ['Notes'] })
+  const since = getFilenamesChangedSince(lastRunDate, { noteTypes: ['Notes'] })
+}
+```
+
+If the cache is missing or corrupt, getters return `[]` and do **not** start a scan.
+
+### Typical plugin flow
+
+1. After first paint (or before Refresh), `updateNotesChangedRecentlyCacheIfTooOld()`; if generation is scheduled, run `generateNotesChangedRecentlyCache`.
+2. On a hot path, use `getFilenamesChangedToday` / `getFilenamesChangedSince` / `getFilenamesChangedRecently`.
+3. Keep plugin-specific metrics (done counts, project list rows) in that plugin's own data files.
+
 ## Support
 
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).

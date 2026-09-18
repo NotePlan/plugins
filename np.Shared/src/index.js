@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Shared Resources plugin for NotePlan
 // Jonathan Clark
-// last updated 2026.09.12 for v1.1.1 by @CursorAI
+// last updated 2026.09.18 for v1.3.0 by @CursorAI
 // -----------------------------------------------------------------------------
 
 const sharedPluginID = 'np.Shared'
@@ -28,6 +28,21 @@ export {
   unregisterTagMentionCacheItems,
   updateTagMentionCache,
 } from './tagMentionCache'
+
+export {
+  clearNotesChangedRecentlyGenerationSchedule,
+  generateNotesChangedRecentlyCache,
+  getFilenamesChangedRecently,
+  getFilenamesChangedSince,
+  getFilenamesChangedToday,
+  getNotesChangedRecently,
+  isNotesChangedRecentlyCacheAvailable,
+  isNotesChangedRecentlyCacheGenerationScheduled,
+  scheduleNotesChangedRecentlyCacheGeneration,
+  scheduleNotesChangedRecentlyCacheGenerationIfTooOld,
+  updateNotesChangedRecentlyCache,
+  updateNotesChangedRecentlyCacheIfTooOld,
+} from './notesChangedRecentlyCache'
 
 /**
  * Log the list of resource files that should currently be available by this plugin (i.e. at run-time, not compile-time).

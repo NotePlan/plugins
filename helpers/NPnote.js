@@ -998,11 +998,29 @@ export function getAllNotesOfType(noteTypesToInclude: Array<string> = ['Calendar
 }
 
 /**
- * Return list of all notes changed in the last 'numDays'.
+ * Return notes changed within the last `numCalendarDays` calendar days, **including today**.
+ * Prefer this over `getNotesChangedInInterval` when you think in "how many calendar days" rather than
+ * "how many days back from start of today" (those differ by one: 7 calendar days → interval arg 6).
+ * @author @jgclark
+ * @param {number} numCalendarDays - must be >= 1 (e.g. 1 = today only, 7 = today + 6 prior days)
+ * @param {Array<string>} noteTypesToInclude
+ * @returns {Array<TNote>}
+ */
+export function getNotesChangedInLastCalendarDays(
+  numCalendarDays: number,
+  noteTypesToInclude: Array<string> = ['Calendar', 'Notes'],
+): Array<TNote> {
+  const days = Math.max(1, Math.floor(numCalendarDays))
+  return getNotesChangedInInterval(days - 1, noteTypesToInclude)
+}
+
+/**
+ * Return list of all notes changed in the last 'numDays' (plus the current day).
  * Set 'noteTypesToInclude' to just ['Notes'] or ['Calendar'] to include just those note types.
  * Note: if numDays === 0 then it will only return notes changed in the current day, not the last 24 hours.
+ * Note: `numDays` is days **back from start of today**, not calendar-day count. For calendar-day count use `getNotesChangedInLastCalendarDays`.
  * @author @jgclark
- * @param {number} numDays
+ * @param {number} numDays: how many days back from start of today
  * @param {Array<string>} noteTypesToInclude
  * @returns {Array<TNote>}
  */
