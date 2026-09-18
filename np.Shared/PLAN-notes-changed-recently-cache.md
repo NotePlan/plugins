@@ -256,8 +256,7 @@ Consumers that need stronger guarantees (Reviews 24h full project list) enforce 
 
 ### Phase D -- Weekly progress (optional fast path)
 
-- Quick mode via Shared ∩ folder filter
-- Full scan remains default or explicit for CSV integrity
+**Done (Reviews v2.3.0):** `/weeklyProjectsProgress` upserts the weekly note only, using Shared changed-recently ∩ Area/Project folders (full folder fallback if cache unavailable). `/heatmaps for weekly Projects Progress` always full-scans, writes CSVs, then shows charts.
 
 ### Phase E -- Migrate other callers (optional)
 

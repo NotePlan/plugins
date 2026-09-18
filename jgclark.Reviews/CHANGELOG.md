@@ -4,8 +4,9 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 ## [2.3.0] - 2026-09-18
 Performance Improvements:
 - **Refresh** and Dashboard-triggered list regen now use an **incremental** rebuild when possible: only re-parse project notes that changed since the last list write (via Shared `notes-changed-recently` cache + local `changedDate` backstop). A **full** vault scan still runs at least every **24 hours**, and whenever the list is missing or folder/perspective scope changes.
+- **/weeklyProjectsProgress** now only upserts the **weekly note** summary, scanning recently changed notes via the Shared cache (falls back to a full folder set if the cache is unavailable). It no longer rewrites the multi-week CSVs.
+- **/heatmaps for weekly Projects Progress** does the **full** Area/Project folder scan, writes the progress CSVs, then shows the heatmaps.
 - On NotePlan 3.21.3+, large note scans now use a new API to allow the UI to remain more responsive. Dev: project list generation/recalculation and weekly progress scans run heavy loops via `runSyncWorkOnAsyncThread`.
-- **/weeklyProjectsProgress** now runs twice as fast, and shows a progress dialog. Dev: CSV + weekly-note summary now share a single note scan.
 - Requires **Shared Resources** plugin **v1.3.0+** (notes-changed-recently cache).
 
 ## [2.2.1] - 2026-09-18

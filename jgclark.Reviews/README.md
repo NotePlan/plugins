@@ -1,4 +1,4 @@
-# 🔬 Projects + Reviews plugin
+# Projects + Reviews plugin
 Unlike most task or project management apps, NotePlan has very little enforced structure, and is entirely text/markdown based.  This makes it much more flexible, but makes it less obvious how to use it for managing and tracking complex work, loosely referred to here as 'Projects'.
 
 This plugin lets you easily a single list of active **Projects**, and their progress towards completion. It helps regularly **review** Project notes -- an approach that will be familiar to people who use David Allen's **Getting Things Done** methodology, or any other where **regular reviews** are important.
@@ -286,20 +286,22 @@ When the command finishes, a dialog reports how many notes **actually** had a su
 - **During normal plugin use** (e.g. opening a project or finishing a review when body metadata is merged into frontmatter), a row is written when that migration runs, independently of the batch command.
 
 ### "/weeklyProjectsProgress" command
-This scans your Area/Project folders and writes two CSV files into the plugin's hidden data folder (`NotePlan/Plugins/Data/jgclark.Reviews/`):
+This inserts or updates a summary of **this week's** project-type progress into the **current weekly note**. Here, "progress on a project" counts as completing at least one task in that project. The summary output can be a table, or lists by folder, subfolder or project tag (e.g. `#project` / `#goal`), via 'Weekly project progress output style'. Here's an example of "list by folder":
 
-- one with the number of distinct notes progressed per folder per week (a project note counts as progressed if one or more tasks were completed that week)
-- one with the total number of completed tasks per folder per week
+> Progress: 2 goals, 3 projects and 10 areas in 2026-W37:
+> - **2 goals**: 40th Anniversary Festival・Identifying Spiritual Gifts
+> - **3 projects**: People's Emergency Briefing sessions・Photo Board・Write Power of Attorneys
+> - **10 areas**: 1CB Leadership + Meetings・Congregational Meetings・Finance Group・Lawn Care・Projects & Reviews Plugin・Safeguarding・Sales and Selling・Services・Staff Payroll for 2026・Uniformed Groups
 
-If setting "Heading for Weekly Project Progress output" is set (default: `## Weekly Project Progress`), it also inserts or updates a summary section into the **current weekly note** under that heading. It can output as a table, or lists arranged by folder, subfolder or project tag (defined above), such as `#project` or `#goal`. This is controlled by setting 'Weekly project progress output style'.
+It adds this under a heading set by the "Heading for Weekly Project Progress output" setting (default: `## Weekly Project Progress`).
 
 ### "/heatmaps for weekly Projects Progress" command
-This first runs the same scan as `/weeklyProjectsProgress` (so the CSVs are kept fresh), and then shows a pair of heatmaps in a new window:
+Runs a **full** scan of Area/Project folders for the last ~26 weeks, writes two CSV files into the plugin's hidden data folder (`NotePlan/Plugins/Data/jgclark.Reviews/`):
 
-- notes progressed per week per folder of notes (where a project note counts as being progressed if one or more tasks are completed)
-- tasks completed per week per folder of notes.
+- notes progressed per folder per week (a project note counts as progressed if one or more tasks were completed that week)
+- total completed tasks per folder per week
 
-For those with lots of different projects or project groups, this is a handy way of seeing over time which of them are getting more or less attention.
+Then shows a pair of heatmaps in a new window (notes progressed and tasks completed). For those with lots of different projects or project groups, this is a handy way of seeing over time which of them are getting more or less attention.
 
 
 ## Capturing and Displaying 'Next Actions'

@@ -1,18 +1,25 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Weekly per-folder area/project progress stats written to CSV in @Reviews
-// Writes the weekly progress of projects and areas to a CSV in @Reviews, with a structure:
-// - First table: notes-per-week (distinct notes with at least one completed task)
-// - Second table: tasks-per-week (total completed tasks)
-// Columns: successive week labels (e.g. 2026-W06)
-// Rows: folder names in alphabetical order
+// Weekly Area/Project progress: weekly-note upsert (quick) + CSV/heatmaps (full)
+// - `/weeklyProjectsProgress` updates the weekly note from Shared notes-changed-recently
+// - `/heatmaps for weekly Projects Progress` full-scans, writes CSV in the plugin data folder:
+//   - progress-per-folder.csv: notes-per-week
+//   - task-completion-per-folder.csv: tasks-per-week
+//   then shows heatmaps
 //
-// Last updated 2026-09-18 for v2.2.0 by @jgclark + @CursorAI
+// Last updated 2026-09-18 for v2.3.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getMatchingProjectTypeTagsOnNote } from './reviewHelpers'
 import { getReviewSettings, parseMarkdownHeadingSetting, type ReviewConfig } from './reviewSettings'
+import {
+  generateNotesChangedRecentlyCache,
+  getFilenamesChangedRecently,
+  isNotesChangedRecentlyCacheAvailable,
+  isNotesChangedRecentlyCacheGenerationScheduled,
+  updateNotesChangedRecentlyCacheIfTooOld,
+} from '../../np.Shared/src/notesChangedRecentlyCache.js'
 import {
   RE_DONE_DATE_OPT_TIME,
   RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,
@@ -1093,20 +1100,81 @@ type TGenerateWeeklyProgressLinesResult = {
   weekProgress: ?TWeeklyProgressByFolderAndTag,
 }
 
+type TGenerateWeeklyProgressOptions = {
+  /** 'full' = all Area/Project folder notes; 'changedRecently' = Shared 7-day changed notes ∩ those folders */
+  noteSet?: 'full' | 'changedRecently',
+  /** When false, skip building CSV row arrays (weekly-note-only path). Default true. */
+  buildCsvRows?: boolean,
+}
+
+/**
+ * Ensure Shared notes-changed-recently cache is available; generate if missing/scheduled.
+ * @returns {Promise<boolean>} true when cache is available after ensure
+ */
+async function ensureNotesChangedRecentlyCacheForWeeklyProgress(): Promise<boolean> {
+  await updateNotesChangedRecentlyCacheIfTooOld()
+  if (isNotesChangedRecentlyCacheGenerationScheduled()) {
+    await generateNotesChangedRecentlyCache('Reviews weeklyProjectsProgress')
+  }
+  if (!isNotesChangedRecentlyCacheAvailable()) {
+    await generateNotesChangedRecentlyCache('Reviews weeklyProjectsProgress (cache missing)')
+  }
+  return isNotesChangedRecentlyCacheAvailable()
+}
+
+/**
+ * Notes for weekly progress: full folder set, or Shared changed-recently ∩ folder set.
+ * Folder list always comes from the full target set (for empty-folder table rows).
+ * @param {ReviewConfig} config
+ * @param {'full' | 'changedRecently'} noteSet
+ * @returns {Promise<{ notes: Array<TNote>, folders: Array<string>, usedChangedRecently: boolean }>}
+ */
+async function resolveNotesForWeeklyProgressScan(
+  config: ReviewConfig,
+  noteSet: 'full' | 'changedRecently',
+): Promise<{ notes: Array<TNote>, folders: Array<string>, usedChangedRecently: boolean }> {
+  const { notes: allTargetNotes, folders } = getNotesInTargetProjectFolders(config)
+  if (noteSet !== 'changedRecently') {
+    return { notes: allTargetNotes, folders, usedChangedRecently: false }
+  }
+
+  const cacheOk = await ensureNotesChangedRecentlyCacheForWeeklyProgress()
+  if (!cacheOk) {
+    logWarn(
+      'resolveNotesForWeeklyProgressScan',
+      `notes-changed-recently cache unavailable; falling back to full Area/Project folder note set`,
+    )
+    return { notes: allTargetNotes, folders, usedChangedRecently: false }
+  }
+
+  const changedFilenames = getFilenamesChangedRecently({ noteTypes: ['Notes'] })
+  const changedSet = new Set(changedFilenames)
+  const notes = allTargetNotes.filter((n) => n.filename && changedSet.has(n.filename))
+  logInfo(
+    'resolveNotesForWeeklyProgressScan',
+    `Quick scan: ${String(notes.length)} of ${String(allTargetNotes.length)} Area/Project notes from ${String(changedFilenames.length)} Shared changed-recently filename(s)`,
+  )
+  return { notes, folders, usedChangedRecently: true }
+}
+
 /**
  * Generate weekly Project/Area progress stats per relevant folder for the last N weeks.
- * Single note scan builds CSV row data and, when `targetWeekForNote` is set, weekly-note aggregates.
+ * Full note set builds CSV row data; changed-recently set is for weekly-note aggregates.
  * @author @jgclark (spec) + @cursor (implementation)
  * @param {?ReviewConfig} configIn - when null, loads settings
  * @param {?WeekInfo} targetWeekForNote - when set, also return folder×tag aggregates for that week
+ * @param {TGenerateWeeklyProgressOptions} [options]
  * @returns {Promise<TGenerateWeeklyProgressLinesResult>}
  */
 async function generateProjectsWeeklyProgressLines(
   configIn: ?ReviewConfig = null,
   targetWeekForNote: ?WeekInfo = null,
+  options: TGenerateWeeklyProgressOptions = {},
 ): Promise<TGenerateWeeklyProgressLinesResult> {
   try {
-    logDebug(pluginJson, `generateProjectsWeeklyProgressLines: starting`)
+    const noteSet = options.noteSet ?? 'full'
+    const buildCsvRows = options.buildCsvRows !== false
+    logDebug(pluginJson, `generateProjectsWeeklyProgressLines: starting noteSet=${noteSet} buildCsvRows=${String(buildCsvRows)}`)
     const startTime = new Date()
     const config: ReviewConfig | null = configIn != null ? configIn : ((await getReviewSettings(): any): ReviewConfig)
     if (!config) {
@@ -1125,9 +1193,9 @@ async function generateProjectsWeeklyProgressLines(
       weeksForScan = [...weeks, targetWeekForNote]
     }
 
-    const { notes: notesInTargetFolders, folders } = getNotesInTargetProjectFolders(config)
+    const { notes: notesInTargetFolders, folders } = await resolveNotesForWeeklyProgressScan(config, noteSet)
     logDebug('generateProjectsWeeklyProgressLines', `considering ${String(notesInTargetFolders.length)} regular notes`)
-    logInfo('generateProjectsWeeklyProgressLines', `found ${String(folders.length)} Area/Project folders and ${String(notesInTargetFolders.length)} notes in them`)
+    logInfo('generateProjectsWeeklyProgressLines', `found ${String(folders.length)} Area/Project folders and ${String(notesInTargetFolders.length)} notes to scan`)
 
     if (folders.length === 0) {
       logInfo('generateProjectsWeeklyProgressLines', `no Area/Project folders found: nothing to write`)
@@ -1165,6 +1233,11 @@ async function generateProjectsWeeklyProgressLines(
     }
     const { notesPerWeekMap, tasksPerWeekMap, weekProgress } = scanResult
 
+    if (!buildCsvRows) {
+      logInfo('projectsWeeklyProgressCSV', `Scanned ${String(notesInTargetFolders.length)} notes for weekly note only in ${timer(startTime)}`)
+      return { notesRows: [], tasksRows: [], weekProgress }
+    }
+
     const notesRows: Array<string> = [
       ['Folder / Notes progressed per week', ...weekLabels, 'total'].join(','),
     ]
@@ -1180,8 +1253,8 @@ async function generateProjectsWeeklyProgressLines(
 
       for (const weekLabel of weekLabels) {
         const key = makeFolderWeekKey(folderName, weekLabel)
-        const noteSet = notesPerWeekMap.get(key)
-        const noteCount = noteSet ? noteSet.size : 0
+        const noteSetForWeek = notesPerWeekMap.get(key)
+        const noteCount = noteSetForWeek ? noteSetForWeek.size : 0
         const taskCount = tasksPerWeekMap.get(key) ?? 0
         noteCounts.push(String(noteCount))
         noteCountTotal += noteCount
@@ -1225,58 +1298,89 @@ async function generateProjectsWeeklyProgressLines(
 }
 
 //-----------------------------------------------------------------------------
-// Main command
+// Main commands
 
 /**
- * Generate weekly Area/Project folder progress stats for the last N weeks and write them as CSV to two fixed notes in the (hidden) plugin data folder.
- * The two notes are:
- * - First note: notes-per-week (distinct notes with at least one completed task)
- * - Second note: tasks-per-week (total completed tasks)
- * When weekly-note heading is configured, also upserts that week's summary from the same scan.
+ * Write progress-per-folder and task-completion CSV files from precomputed row arrays.
+ * @param {Array<string>} notesRows
+ * @param {Array<string>} tasksRows
+ * @returns {Promise<void>}
+ */
+async function writeWeeklyProgressCsvFiles(notesRows: Array<string>, tasksRows: Array<string>): Promise<void> {
+  const notesCsvString = notesRows.join('\n')
+  await DataStore.saveData(notesCsvString, PROGRESS_PER_FOLDER_FILENAME, true)
+  const tasksCsvString = tasksRows.join('\n')
+  await DataStore.saveData(tasksCsvString, TASK_COMPLETION_PER_FOLDER_FILENAME, true)
+  logInfo('writeWeeklyProgressCsvFiles', `Written weekly progress CSV to '${PROGRESS_PER_FOLDER_FILENAME}' and '${TASK_COMPLETION_PER_FOLDER_FILENAME}'`)
+}
+
+/**
+ * Upsert this week's Area/Project progress summary into the weekly note (when heading is configured).
+ * Uses the Shared notes-changed-recently cache to scan only recently changed notes (falls back to full folder set if cache unavailable).
+ * Does **not** rewrite the multi-week CSV files -- those are written by `/heatmaps for weekly Projects Progress`.
  *
  * @author @jgclark (spec) + @cursor (implementation)
  * @returns {Promise<void>}
  */
-export async function writeProjectsWeeklyProgressToCSV(...argsIn: any[]): Promise<void> {
+export async function updateWeeklyProjectsProgress(...argsIn: any[]): Promise<void> {
   try {
     const normalisedArgs = normalizeWeeklyProjectProgressArgs(argsIn)
     logDebug(
       pluginJson,
-      `writeProjectsWeeklyProgressToCSV: starting with ${String(normalisedArgs.length)} arg(s)${normalisedArgs.length > 0 ? `: [${normalisedArgs.join(', ')}]` : ''}`,
+      `updateWeeklyProjectsProgress: starting with ${String(normalisedArgs.length)} arg(s)${normalisedArgs.length > 0 ? `: [${normalisedArgs.join(', ')}]` : ''}`,
     )
 
     let config: ReviewConfig | null = ((await getReviewSettings(): any): ReviewConfig)
     if (!config) {
-      throw new Error('writeProjectsWeeklyProgressToCSV: could not load Review settings. Stopping.')
+      throw new Error('updateWeeklyProjectsProgress: could not load Review settings. Stopping.')
     }
 
     if (normalisedArgs.length > 0) {
       config = await applyWeeklyProjectProgressCommandParamsFromArgs(config, argsIn)
     }
     const weekLabel = resolveWeekLabelFromArgs(argsIn) ?? getCurrentWeekLabel()
-    const targetWeekForNote = shouldWriteWeeklyProjectProgressNote(config) ? getWeekInfoFromWeekLabel(weekLabel) : null
+    if (!shouldWriteWeeklyProjectProgressNote(config)) {
+      logInfo(
+        'updateWeeklyProjectsProgress',
+        `weeklyProjectProgressHeading not set; nothing to write (CSV is produced by heatmaps command)`,
+      )
+      await showMessage(
+        "No weekly-note heading is configured.\n\nSet 'Heading for Weekly Project Progress output' to upsert a summary into the weekly note.\n\nMulti-week CSV files are written by '/heatmaps for weekly Projects Progress'.",
+        'OK',
+        'Weekly Project Progress',
+      )
+      return
+    }
+
+    const targetWeekForNote = getWeekInfoFromWeekLabel(weekLabel)
     logDebug(
       pluginJson,
-      `writeProjectsWeeklyProgressToCSV: using weeklyProjectProgressShowEmptyFolders=${String(getWeeklyProjectProgressShowEmptyFolders(config))}, week=${weekLabel}, weeklyNote=${String(targetWeekForNote != null)}`,
+      `updateWeeklyProjectsProgress: using weeklyProjectProgressShowEmptyFolders=${String(getWeeklyProjectProgressShowEmptyFolders(config))}, week=${weekLabel}`,
     )
 
-    const { notesRows, tasksRows, weekProgress } = await generateProjectsWeeklyProgressLines(config, targetWeekForNote)
-
-    const notesCsvString = notesRows.join('\n')
-    await DataStore.saveData(notesCsvString, PROGRESS_PER_FOLDER_FILENAME, true)
-
-    const tasksCsvString = tasksRows.join('\n')
-    await DataStore.saveData(tasksCsvString, TASK_COMPLETION_PER_FOLDER_FILENAME, true)
+    const { weekProgress } = await generateProjectsWeeklyProgressLines(config, targetWeekForNote, {
+      noteSet: 'changedRecently',
+      buildCsvRows: false,
+    })
 
     if (weekProgress != null) {
       await writeWeeklyProjectProgressToWeeklyNote(config, weekLabel, weekProgress)
+      logInfo('updateWeeklyProjectsProgress', `Updated weekly note progress for ${weekLabel}`)
+    } else {
+      logWarn('updateWeeklyProjectsProgress', `No weekProgress aggregates for ${weekLabel}; weekly note not updated`)
     }
-
-    logInfo('writeProjectsWeeklyProgressToCSV', `Written weekly progress CSV to '${PROGRESS_PER_FOLDER_FILENAME}' and '${TASK_COMPLETION_PER_FOLDER_FILENAME}'`)
   } catch (error) {
-    logError('writeProjectsWeeklyProgressToCSV', error.message)
+    logError('updateWeeklyProjectsProgress', error.message)
     throw error
   }
+}
+
+/**
+ * @deprecated Use {@link updateWeeklyProjectsProgress}. Kept so older x-callbacks / plugin.json rebuilds keep working until Rollup picks up the rename.
+ * @returns {Promise<void>}
+ */
+export async function writeProjectsWeeklyProgressToCSV(...argsIn: any[]): Promise<void> {
+  return updateWeeklyProjectsProgress(...argsIn)
 }
 
 //-----------------------------------------------------------------------------
@@ -1473,18 +1577,24 @@ ${drawCalls}
 }
 
 /**
- * Generate weekly Area/Project folder progress stats and display them
- * as heatmaps in one HTML window:
- * - Notes progressed per week
- * - Tasks completed per week
- * This reuses the HTML heatmap pattern from the Summaries plugin.
+ * Full-scan weekly Area/Project progress: write multi-week CSV files, then show heatmaps
+ * (notes progressed and tasks completed) in one HTML window.
+ * This is the authoritative path for CSV / multi-week visualisation; `/weeklyProjectsProgress`
+ * only updates the weekly note from recently changed notes.
  * @returns {Promise<void>}
  */
 export async function showProjectsWeeklyProgressHeatmaps(): Promise<void> {
   try {
-    logDebug(pluginJson, `showProjectsWeeklyProgressHeatmaps: starting`)
+    logDebug(pluginJson, `showProjectsWeeklyProgressHeatmaps: starting (full scan + CSV + heatmaps)`)
 
-    const { notesRows, tasksRows } = await generateProjectsWeeklyProgressLines()
+    const { notesRows, tasksRows } = await generateProjectsWeeklyProgressLines(null, null, {
+      noteSet: 'full',
+      buildCsvRows: true,
+    })
+
+    if (notesRows.length > 0 || tasksRows.length > 0) {
+      await writeWeeklyProgressCsvFiles(notesRows, tasksRows)
+    }
 
     const charts: Array<TWeeklyHeatmapChart> = []
     if (notesRows.length > 0) {

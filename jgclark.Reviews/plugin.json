@@ -11,7 +11,7 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
   "plugin.version": "2.3.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "2.3.0: Much faster Refresh thanks to a new cache.\nMore responsive while scanning large project folders (on  NotePlan 3.21.3+).\nWeekly progress command ~2x faster.\n2.2.1: Fix to root folder exclusion when using Perspectives. New progress dialogs.\n2.2.0: Updated layout of the top bar, and added a Settings button. The Refresh icon now spins while the list is regenerating.\nAvoids unnecessary refreshes when saving settings.\n2.1.1: bug fixes and small improvements.\n2.1.0: **/weeklyProjectsProgress** can upsert a current-week progress table into the weekly note (new settings **Heading for Weekly Project Progress output** and **Show folders with no progress in weekly table?**). Includes Refresh and Show/Hide empty-folder toggle pseudo-buttons.",
+  "plugin.lastUpdateInfo": "2.3.0: Much faster Refresh via Shared notes-changed-recently cache. /weeklyProjectsProgress updates the weekly note from recently changed notes only; /heatmaps does the full scan and writes CSVs. More responsive on NotePlan 3.21.3+.\n2.2.1: Fix to root folder exclusion when using Perspectives. New progress dialogs.\n2.2.0: Updated layout of the top bar, and added a Settings button. The Refresh icon now spins while the list is regenerating.\nAvoids unnecessary refreshes when saving settings.\n2.1.1: bug fixes and small improvements.\n2.1.0: **/weeklyProjectsProgress** can upsert a current-week progress table into the weekly note (new settings **Heading for Weekly Project Progress output** and **Show folders with no progress in weekly table?**). Includes Refresh and Show/Hide empty-folder toggle pseudo-buttons.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {
@@ -207,8 +207,8 @@
         "wpp",
         "progress"
       ],
-      "description": "Generate per-folder Area/Project progress stats as CSV files in the plugin data folder, and upsert a summary table into the current weekly note when 'Heading for Weekly Project Progress output' is set",
-      "jsFunction": "writeProjectsWeeklyProgressToCSV",
+      "description": "Upsert this week's Area/Project progress summary into the weekly note (when 'Heading for Weekly Project Progress output' is set). Scans only recently changed notes via the Shared cache. Multi-week CSVs are written by the heatmaps command.",
+      "jsFunction": "updateWeeklyProjectsProgress",
       "arguments": [
         "optional JSON parameters (e.g. toggle show/hide folders with no progress)"
       ]
@@ -217,7 +217,7 @@
       "hidden": false,
       "name": "heatmaps for weekly Projects Progress",
       "alias": [],
-      "description": "Show per-folder Area/Project progress as two weekly heatmaps (notes progressed and tasks completed) in HTML windows",
+      "description": "Full scan of Area/Project folders: write multi-week progress CSVs, then show notes-progressed and tasks-completed heatmaps",
       "jsFunction": "showProjectsWeeklyProgressHeatmaps"
     },
     {

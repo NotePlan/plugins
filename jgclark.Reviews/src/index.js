@@ -61,6 +61,7 @@ export {
   generateCSSFromTheme
 } from '@helpers/NPThemeToCSS'
 export {
+  updateWeeklyProjectsProgress,
   writeProjectsWeeklyProgressToCSV,
   showProjectsWeeklyProgressHeatmaps
 } from './projectsWeeklyProgress'
