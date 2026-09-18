@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-09-13 for v2.2.0 by @jgclark + @CursorAI
+// Last updated 2026-09-18 for v2.2.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -24,8 +24,9 @@ import { getFolderFromFilename, getFoldersMatching, getFolderListMinusExclusions
 import { displayTitle } from '@helpers/general'
 import { RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
-import { sortListBy } from '@helpers/sorting'
+import { runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
 import { smartPrependPara } from '@helpers/paragraph'
+import { sortListBy } from '@helpers/sorting'
 
 //-----------------------------------------------------------------------------
 
@@ -129,6 +130,17 @@ function loadRawAllProjectsListSnapshot(): Array<any> {
     logWarn('loadRawAllProjectsListSnapshot', error.message)
     return []
   }
+}
+
+/**
+ * Verb for CommandBar progress while rebuilding the project list.
+ * 'Refreshing' when a non-empty list already exists; 'Generating' on first build.
+ * @param {Array<any>} [snapshotRows] - optional pre-loaded snapshot (avoids a second disk read)
+ * @returns {'Generating' | 'Refreshing'}
+ */
+function getProjectListProgressVerb(snapshotRows: ?Array<any> = null): 'Generating' | 'Refreshing' {
+  const rows = snapshotRows != null ? snapshotRows : loadRawAllProjectsListSnapshot()
+  return rows.length > 0 ? 'Refreshing' : 'Generating'
 }
 
 //-------------------------------------------------------------------------------
@@ -384,6 +396,7 @@ function shouldRegenerateAllProjectsList(config: ReviewConfig): boolean {
  * Note: filteredFolderListWithoutSubdirs and foldersToIgnore expect the paths to be without a leading or trailing slash (apart from root folder '/').
  * And it excludes notes whose filenames include any of the paths specified in the foldersToIgnore array.
  * (Note ignored folders can be inside an included folder.)
+ * Special case: ignoring '/' excludes only root-folder notes (filenames with no '/'), not every nested note.
  * Callers should pass getEffectiveFoldersToIgnore(...) so @Archive, @Templates and @Trash are always excluded.
  * @author @jgclark, aided by oCurr
  * @tests available in jest file
@@ -398,15 +411,23 @@ export function filterProjectNotesByFolders(
   foldersToIgnore: Array<string>,
 ): Array<TNote> {
   const folderSet = new Set(filteredFolderListWithoutSubdirs)
-  const ignoreSet = new Set(foldersToIgnore.map(s => `${s}/`.replace('//', '/')))
-  return notesArray.filter(f => {
+  // Root '/' must not become ignore path '/' via `${s}/`.replace('//','/'), or filename.includes('/') would exclude every nested note.
+  const ignoreRoot = foldersToIgnore.some((s) => s === '/')
+  const ignoreSet = new Set(
+    foldersToIgnore
+      .filter((s) => s !== '/')
+      .map((s) => (s.endsWith('/') ? s : `${s}/`)),
+  )
+  return notesArray.filter((f) => {
     // Check if file is in any of the filtered folders
     // For root folder ('/'), match all files without a folder path
     // Also check if filename starts with any other folder path
-    const isRootMatch = folderSet.has('/') && !f.filename.includes('/')
-    const isFolderMatch = Array.from(folderSet).some(folder => folder !== '/' && (f.filename === folder || f.filename.startsWith(`${folder}/`)))
+    const isRootNote = !f.filename.includes('/')
+    const isRootMatch = folderSet.has('/') && isRootNote
+    const isFolderMatch = Array.from(folderSet).some((folder) => folder !== '/' && (f.filename === folder || f.filename.startsWith(`${folder}/`)))
     const isInFolder = isRootMatch || isFolderMatch
-    const isIgnored = Array.from(ignoreSet).some(ignorePath => f.filename.includes(ignorePath))
+    const isIgnored =
+      (ignoreRoot && isRootNote) || Array.from(ignoreSet).some((ignorePath) => f.filename.includes(ignorePath))
     return isInFolder && !isIgnored
   })
 }
@@ -453,6 +474,7 @@ export type ProjectNoteTagPair = {|
 /**
  * Build full folder include list using foldersToInclude / foldersToIgnore, always excluding
  * @Archive, @Templates and @Trash (other @folders may still be included).
+ * When foldersToInclude is set, still apply foldersToIgnore (same as Dashboard's getFoldersMatching(includes, …, excludes)).
  * @param {ReviewConfig} config
  * @returns {Array<string>}
  */
@@ -460,7 +482,7 @@ function getFilteredFolderList(config: ReviewConfig): Array<string> {
   const effectiveIgnores = getEffectiveFoldersToIgnore(config.foldersToIgnore ?? [])
   const useIncludeBranch = (config.foldersToInclude?.length ?? 0) > 0
   return useIncludeBranch
-    ? getFoldersMatching(config.foldersToInclude, false, ALWAYS_EXCLUDED_PROJECT_FOLDERS).sort()
+    ? getFoldersMatching(config.foldersToInclude, false, effectiveIgnores).sort()
     : getFolderListMinusExclusions(effectiveIgnores, false, false).sort()
 }
 
@@ -472,7 +494,9 @@ function getFilteredFolderList(config: ReviewConfig): Array<string> {
 function getFilteredFolderListWithoutSubdirs(config: ReviewConfig): Array<string> {
   const filteredFolderList = getFilteredFolderList(config)
   return filteredFolderList.reduce((acc: Array<string>, f: string) => {
-    const exists = acc.some((s) => f.startsWith(s))
+    // Root '/' is not a path prefix of other folders (unlike f.startsWith('/') which is false for
+    // normal names, but we also require a trailing-/ boundary so 'Projects' does not swallow 'ProjectsX').
+    const exists = acc.some((s) => s !== '/' && (f === s || f.startsWith(`${s}/`)))
     if (!exists) acc.push(f)
     return acc
   }, [])
@@ -563,16 +587,100 @@ export async function addNewProjectToAllProjectsListIfInScope(
 }
 
 /**
+ * Sync: build note/tag pairs from already-filtered notes (nested folder × tag × note loops).
+ * Safe for `runSyncWorkOnAsyncThread` (only `CommandBar.showLoading` for UI).
+ * Progress dialog text shows folder n/m; the progress ring is updated per note (notesProcessed / totalNotes).
+ * @param {Array<TNote>} filteredProjectNotes
+ * @param {Array<string>} filteredFolderList
+ * @param {Array<string>} projectTypeTags
+ * @param {boolean} runInForeground
+ * @param {'Generating' | 'Refreshing'} progressVerb - 'Refreshing' when an existing list is being updated
+ * @returns {Array<ProjectNoteTagPair>}
+ */
+function buildMatchingProjectNoteTagPairsSync(
+  filteredProjectNotes: Array<TNote>,
+  filteredFolderList: Array<string>,
+  projectTypeTags: Array<string>,
+  runInForeground: boolean,
+  progressVerb: 'Generating' | 'Refreshing' = 'Generating',
+): Array<ProjectNoteTagPair> {
+  const pairs: Array<ProjectNoteTagPair> = []
+  const tags = projectTypeTags != null && projectTypeTags.length > 0 ? projectTypeTags : []
+  const totalFolders = filteredFolderList.length
+  const listLabel = `${progressVerb} Project Review list`
+
+  // Index notes by folder once so progress can advance per note (not once per folder).
+  const notesByFolder: Map<string, Array<TNote>> = new Map()
+  for (const note of filteredProjectNotes) {
+    const folderPath = getFolderFromFilename(note.filename)
+    const existing = notesByFolder.get(folderPath)
+    if (existing) {
+      existing.push(note)
+    } else {
+      notesByFolder.set(folderPath, [note])
+    }
+  }
+  let totalNotes = 0
+  for (const folder of filteredFolderList) {
+    totalNotes += notesByFolder.get(folder)?.length ?? 0
+  }
+
+  let loadingShown = false
+  try {
+    if (runInForeground && totalFolders > 0) {
+      if (totalNotes > 0) {
+        CommandBar.showLoading(true, `${listLabel}\n0/${String(totalFolders)} folders`, 0)
+      } else {
+        CommandBar.showLoading(true, `${listLabel}\n0/${String(totalFolders)} folders`)
+      }
+      loadingShown = true
+    }
+    let notesProcessed = 0
+    for (const folder of filteredFolderList) {
+      const projectNotesInFolder = notesByFolder.get(folder) ?? []
+      if (projectNotesInFolder.length === 0) {
+        // Keep folder counter text moving; ring stays on notes-based fraction.
+        if (loadingShown) {
+          const progressFraction = totalNotes > 0 ? notesProcessed / totalNotes : 0
+          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folder}'`, progressFraction)
+        }
+        continue
+      }
+      for (const n of projectNotesInFolder) {
+        notesProcessed += 1
+        for (const tag of tags) {
+          if (noteHasProjectTypeTag(n, tag)) {
+            pairs.push({ note: n, projectTypeTag: tag })
+          }
+        }
+        // Update ring per note so % tracks notes, not folders (even when one folder has many notes).
+        if (loadingShown && totalNotes > 0) {
+          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folder}'`, notesProcessed / totalNotes)
+        }
+      }
+    }
+  } finally {
+    if (loadingShown) {
+      CommandBar.showLoading(false)
+    }
+  }
+  return pairs
+}
+
+/**
  * Enumerate project notes that match the same folder, tag, and teamspace rules as `allProjectsList.json` / `getAllMatchingProjects`.
  * Does not instantiate `Project` or read the projects-list cache.
+ * Heavy nested matching runs on an async thread when NotePlan supports it (3.21.3+).
  * @author @jgclark
  * @param {ReviewConfig} config - Validated review config (caller must not pass null)
  * @param {boolean} runInForeground - When true, shows CommandBar loading per folder (same as list generation)
+ * @param {'Generating' | 'Refreshing'} progressVerb - Progress dialog verb when runInForeground (default: Generating)
  * @returns {Promise<Array<ProjectNoteTagPair>>}
  */
 export async function enumerateMatchingProjectNoteTagPairs(
   config: ReviewConfig,
   runInForeground: boolean = false,
+  progressVerb: 'Generating' | 'Refreshing' = 'Generating',
 ): Promise<Array<ProjectNoteTagPair>> {
   logDebug('enumerateMatchingProjectNoteTagPairs', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
 
@@ -603,34 +711,92 @@ export async function enumerateMatchingProjectNoteTagPairs(
 
   logTimer('enumerateMatchingProjectNoteTagPairs', startTime, `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`)
 
-  const pairs: Array<ProjectNoteTagPair> = []
-  for (const folder of filteredFolderList) {
-    // Either we have defined tag(s) to filter and group by, or just use []
-    const tags = config.projectTypeTags != null && config.projectTypeTags.length > 0 ? config.projectTypeTags : []
-
-    if (runInForeground) {
-      CommandBar.showLoading(true, `Generating Project Review list for notes in folder ${folder}`)
-    }
-
-    // Match project type tags from frontmatter / metadata line only (not body task hashtags)
-    const projectNotesInFolder = filteredProjectNotes.filter((n) => getFolderFromFilename(n.filename) === folder)
-    for (const tag of tags) {
-      const projectNotesArr = projectNotesInFolder.filter((n) => noteHasProjectTypeTag(n, tag))
-      for (const n of projectNotesArr) {
-        pairs.push({ note: n, projectTypeTag: tag })
-      }
-    }
+  const projectTypeTags = config.projectTypeTags != null ? config.projectTypeTags : []
+  // Side-channel: do not return large arrays from runOnAsyncThread (can hang the Promise).
+  let pairsHolder: ?Array<ProjectNoteTagPair> = null
+  await runSyncWorkOnAsyncThread('enumerateMatchingProjectNoteTagPairs', () => {
+    pairsHolder = buildMatchingProjectNoteTagPairsSync(filteredProjectNotes, filteredFolderList, projectTypeTags, runInForeground, progressVerb)
+    return true
+  })
+  const pairs: Array<ProjectNoteTagPair> =
+    pairsHolder != null
+      ? pairsHolder
+      : buildMatchingProjectNoteTagPairsSync(filteredProjectNotes, filteredFolderList, projectTypeTags, runInForeground, progressVerb)
+  if (pairsHolder == null) {
+    logWarn('enumerateMatchingProjectNoteTagPairs', `- async result missing; built pairs on main thread`)
   }
-  if (runInForeground) {
-    CommandBar.showLoading(false)
-  }
+
   logTimer('enumerateMatchingProjectNoteTagPairs', startTime, `- found ${pairs.length} note/tag pairs`)
   return pairs
 }
 
 /**
+ * Sync: construct Project instances from note/tag pairs, using allProjectsList cache hits when unchanged.
+ * Safe for `runSyncWorkOnAsyncThread` (read-only; migrate flag is false). `showLoading` is allowed.
+ * @param {Array<ProjectNoteTagPair>} pairs
+ * @param {Map<string, any>} projectListRowByKey
+ * @param {Array<string>} nextActionTags
+ * @param {string} sequentialTagResolved
+ * @param {boolean} runInForeground
+ * @param {'Generating' | 'Refreshing'} progressVerb - When Refreshing, progress text uses that verb instead of Building
+ * @returns {Array<Project>}
+ */
+function buildProjectsFromPairsSync(
+  pairs: Array<ProjectNoteTagPair>,
+  projectListRowByKey: Map<string, any>,
+  nextActionTags: Array<string>,
+  sequentialTagResolved: string,
+  runInForeground: boolean = false,
+  progressVerb: 'Generating' | 'Refreshing' = 'Generating',
+): Array<Project> {
+  const projectInstances: Array<Project> = []
+  const total = pairs.length
+  const listLabel = progressVerb === 'Refreshing' ? 'Refreshing Project Review list' : 'Building Project Review list'
+  let loadingShown = false
+  try {
+    if (runInForeground && total > 0) {
+      CommandBar.showLoading(true, `${listLabel}\n0/${String(total)}`, 0)
+      loadingShown = true
+    }
+    let index = 0
+    for (const { note: n, projectTypeTag: tag } of pairs) {
+      index += 1
+      if (loadingShown) {
+        const title = (n.title ?? '').trim() !== '' ? (n.title ?? '').trim() : n.filename
+        CommandBar.showLoading(true, `${listLabel}\n${String(index)}/${String(total)}\n${title}`, index / total)
+      }
+      const currentMs = getNoteChangeTimeMsForCache(n, true)
+      const cacheKey = makeProjectListCacheKey(n.filename, tag)
+      const cachedRow = projectListRowByKey.get(cacheKey)
+      let np: Project
+      if (
+        currentMs != null &&
+        cachedRow != null &&
+        typeof cachedRow.noteChangedAtMs === 'number' &&
+        cachedRow.noteChangedAtMs === currentMs
+      ) {
+        // logDebug('getAllMatchingProjects', `- Cache hit for ${tag} '${n.filename}'`)
+        const cloned = { ...cachedRow }
+        cloned.note = n
+        np = calcReviewFieldsForProject(cloned)
+      } else {
+        logDebug('getAllMatchingProjects', `- Cache MISS, so calling Project constructor for ${tag} '${n.filename}'`)
+        np = new Project(n, tag, true, nextActionTags, sequentialTagResolved, false)
+      }
+      projectInstances.push(np)
+    }
+  } finally {
+    if (loadingShown) {
+      CommandBar.showLoading(false)
+    }
+  }
+  return projectInstances
+}
+
+/**
  * Return as Project instances all projects that match config items 'foldersToInclude', 'foldersToIgnore', and 'projectTypeTags'.
  * Note: These may be taken from the Perspective settings before being passed to this function.
+ * Project construction runs on an async thread when NotePlan supports it (3.21.3+).
  * @author @jgclark
  * @param {ReviewConfig} configIn
  * @param {boolean} runInForeground? (default: false)
@@ -650,9 +816,12 @@ async function getAllMatchingProjects(
 
   const startTime = moment().toDate() // use moment to ensure we get a date in the local timezone
 
-  const pairs = await enumerateMatchingProjectNoteTagPairs(config, runInForeground)
-
+  // Load snapshot first so progress dialogs can say Refreshing vs Generating, and for constructor cache hits.
   const snapshotRows = loadRawAllProjectsListSnapshot()
+  const progressVerb = getProjectListProgressVerb(snapshotRows)
+
+  const pairs = await enumerateMatchingProjectNoteTagPairs(config, runInForeground, progressVerb)
+
   const projectListRowByKey: Map<string, any> = new Map()
   for (const row of snapshotRows) {
     if (row != null && typeof row.filename === 'string' && row.filename !== '') {
@@ -662,27 +831,19 @@ async function getAllMatchingProjects(
   }
 
   const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
-  const projectInstances = []
-  for (const { note: n, projectTypeTag: tag } of pairs) {
-    const currentMs = getNoteChangeTimeMsForCache(n, true)
-    const cacheKey = makeProjectListCacheKey(n.filename, tag)
-    const cachedRow = projectListRowByKey.get(cacheKey)
-    let np: Project
-    if (
-      currentMs != null &&
-      cachedRow != null &&
-      typeof cachedRow.noteChangedAtMs === 'number' &&
-      cachedRow.noteChangedAtMs === currentMs
-    ) {
-      // logDebug('getAllMatchingProjects', `- Cache hit for ${tag} '${n.filename}'`)
-      const cloned = { ...cachedRow }
-      cloned.note = n
-      np = calcReviewFieldsForProject(cloned)
-    } else {
-      logDebug('getAllMatchingProjects', `- Cache MISS, so calling Project constructor for ${tag} '${n.filename}'`)
-      np = new Project(n, tag, true, config.nextActionTags, sequentialTagResolved, false)
-    }
-    projectInstances.push(np)
+  const nextActionTags = config.nextActionTags ?? []
+  // Side-channel: do not return large Project arrays from runOnAsyncThread.
+  let projectInstancesHolder: ?Array<Project> = null
+  await runSyncWorkOnAsyncThread('getAllMatchingProjects build', () => {
+    projectInstancesHolder = buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, runInForeground, progressVerb)
+    return true
+  })
+  const projectInstances: Array<Project> =
+    projectInstancesHolder != null
+      ? projectInstancesHolder
+      : buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, runInForeground, progressVerb)
+  if (projectInstancesHolder == null) {
+    logWarn('getAllMatchingProjects', `- async result missing; built projects on main thread`)
   }
 
   logTimer('getAllMatchingProjects', startTime, `- found ${projectInstances.length} available matching project notes`)
@@ -739,9 +900,70 @@ export async function generateAllProjectsList(
 }
 
 /**
+ * Sync: re-parse every snapshot row into Project instances (or keep stale row if note missing).
+ * Safe for `runSyncWorkOnAsyncThread` (read-only; migrate flag is false). `showLoading` is allowed.
+ * @param {Array<any>} snapshotRows
+ * @param {Array<string>} nextActionTags
+ * @param {string} sequentialTagResolved
+ * @param {boolean} runInForeground
+ * @returns {{ rebuilt: Array<Project>, keptStale: number }}
+ */
+function recalculateProjectsFromSnapshotSync(
+  snapshotRows: Array<any>,
+  nextActionTags: Array<string>,
+  sequentialTagResolved: string,
+  runInForeground: boolean,
+): { rebuilt: Array<Project>, keptStale: number } {
+  const rebuilt: Array<Project> = []
+  let keptStale = 0
+  const total = snapshotRows.length
+  let loadingShown = false
+  try {
+    if (runInForeground && total > 0) {
+      CommandBar.showLoading(true, `Recalculating project list\n0/${String(total)}`, 0)
+      loadingShown = true
+    }
+    let index = 0
+    for (const row of snapshotRows) {
+      index += 1
+      const filename = typeof row?.filename === 'string' ? row.filename : ''
+      if (loadingShown) {
+        const label = (typeof row?.title === 'string' && row.title.trim() !== '') ? row.title.trim() : (filename !== '' ? filename : `item ${String(index)}`)
+        CommandBar.showLoading(true, `Recalculating project list\n${String(index)}/${String(total)}\n${label}`, index / total)
+      }
+      if (filename === '') {
+        logWarn('recalculateAllProjectsListItems', `Skipping row with no filename`)
+        continue
+      }
+      const note = getNoteFromFilename(filename)
+      if (!note) {
+        logWarn('recalculateAllProjectsListItems', `Couldn't load '${filename}'; keeping previous list row`)
+        rebuilt.push(calcReviewFieldsForProject({ ...row }))
+        keptStale += 1
+        continue
+      }
+      rebuilt.push(new Project(
+        note,
+        getLeadingProjectTag(row),
+        true,
+        nextActionTags,
+        sequentialTagResolved,
+        false,
+      ))
+    }
+  } finally {
+    if (loadingShown) {
+      CommandBar.showLoading(false)
+    }
+  }
+  return { rebuilt, keptStale }
+}
+
+/**
  * Re-parse every note already stored in allProjectsList.json using current next-action and progress-calculation settings.
  * Does not enumerate the vault (unlike {@link generateAllProjectsList}). If the list file is missing or empty, falls back to a full generate.
  * Note: This is taking 577ms/project for JGC in Sep 2026
+ * Heavy re-parse runs on an async thread when NotePlan supports it (3.21.3+).
  * @author @jgclark
  * @param {ReviewConfig} configIn
  * @param {boolean} runInForeground? (default: false)
@@ -770,35 +992,19 @@ export async function recalculateAllProjectsListItems(
 
     logInfo('recalculateAllProjectsListItems', `Recalculating ${String(snapshotRows.length)} existing allProjects list item(s)`)
     const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
-    const rebuilt: Array<Project> = []
-    let keptStale = 0
-    if (runInForeground) {
-      CommandBar.showLoading(true, `Recalculating ${String(snapshotRows.length)} project list items`)
-    }
-    for (const row of snapshotRows) {
-      const filename = typeof row?.filename === 'string' ? row.filename : ''
-      if (filename === '') {
-        logWarn('recalculateAllProjectsListItems', `Skipping row with no filename`)
-        continue
-      }
-      const note = getNoteFromFilename(filename)
-      if (!note) {
-        logWarn('recalculateAllProjectsListItems', `Couldn't load '${filename}'; keeping previous list row`)
-        rebuilt.push(calcReviewFieldsForProject({ ...row }))
-        keptStale += 1
-        continue
-      }
-      rebuilt.push(new Project(
-        note,
-        getLeadingProjectTag(row),
-        true,
-        config.nextActionTags,
-        sequentialTagResolved,
-        false,
-      ))
-    }
-    if (runInForeground) {
-      CommandBar.showLoading(false)
+    const nextActionTags = config.nextActionTags ?? []
+    // Side-channel: do not return large Project arrays from runOnAsyncThread.
+    let recalcHolder: ?{ rebuilt: Array<Project>, keptStale: number } = null
+    await runSyncWorkOnAsyncThread('recalculateAllProjectsListItems', () => {
+      recalcHolder = recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, runInForeground)
+      return true
+    })
+    const { rebuilt, keptStale } =
+      recalcHolder != null
+        ? recalcHolder
+        : recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, runInForeground)
+    if (recalcHolder == null) {
+      logWarn('recalculateAllProjectsListItems', `- async result missing; recalculated on main thread`)
     }
 
     await writeAllProjectsList(rebuilt, scrollPosForRichList, skipUpdateDashboardIfOpen, config, skipRichProjectListIfOpen)

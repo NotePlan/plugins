@@ -7,7 +7,7 @@
 // Columns: successive week labels (e.g. 2026-W06)
 // Rows: folder names in alphabetical order
 //
-// Last updated 2026-08-28 for v2.1.0 by @jgclark + @CursorAI
+// Last updated 2026-09-18 for v2.2.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -24,6 +24,7 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSetti
 import { createPrettyRunPluginLink } from '@helpers/general'
 import { getRegularNotesFromFilteredFolders, getFolderFromFilename } from '@helpers/folders'
 import { getOpenEditorFromFilename, getOrOpenEditorFromFilename } from '@helpers/NPEditor'
+import { runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
 import { replaceSection } from '@helpers/note'
 import { isDone } from '@helpers/utils'
 import { showHTMLV2 } from '@helpers/HTMLView'
@@ -40,6 +41,8 @@ const TASK_COMPLETION_PER_FOLDER_FILENAME: string = 'task-completion-per-folder.
 const PLUGIN_ID: string = 'jgclark.Reviews'
 export const HIDE_EMPTY_FOLDERS_PARAM: string = 'hide'
 export const SHOW_EMPTY_FOLDERS_PARAM: string = 'show'
+/** How often to refresh CommandBar.showLoading during note scans (every N notes). */
+const SHOW_LOADING_UPDATE_EVERY_N_NOTES: number = 10
 
 //-----------------------------------------------------------------------------
 // Types
@@ -191,24 +194,6 @@ function getNotesInTargetProjectFolders(config: ReviewConfig): { notes: Array<TN
   })
   const folders = getDistinctSortedFolderPathsFromNotes(notesInTargetFolders)
   return { notes: notesInTargetFolders, folders }
-}
-
-/**
- * Return true if the note has at least one completed task in the given week.
- * @param {TNote} note
- * @param {WeekInfo} week
- * @returns {boolean}
- */
-function noteProgressedInWeek(note: TNote, week: WeekInfo): boolean {
-  for (const p of note.paragraphs) {
-    if (!isDone(p)) continue
-    const doneISO = getDoneISODateFromContent(p.content)
-    if (!doneISO) continue
-    if (getWeekLabelForISODate(doneISO, [week]) !== '') {
-      return true
-    }
-  }
-  return false
 }
 
 /**
@@ -828,61 +813,23 @@ async function applyWeeklyProjectProgressCommandParamsFromArgs(config: ReviewCon
 }
 
 /**
- * Aggregate distinct notes progressed in the given week, by folder path and project tag.
- * @param {ReviewConfig} config
- * @param {WeekInfo} week
+ * Convert raw week-progress sets into the maps used by weekly-note markdown builders.
+ * @param {string} weekLabel
+ * @param {Array<string>} folders
+ * @param {Array<string>} projectTypeTags
+ * @param {Map<string, Map<string, Set<string>>>} counts
+ * @param {Map<string, Set<string>>} notesByTagSets
+ * @param {Map<string, Map<string, Set<string>>>} notesByFolderAndTagSets
  * @returns {TWeeklyProgressByFolderAndTag}
  */
-function aggregateNotesProgressedByFolderAndTag(config: ReviewConfig, week: WeekInfo): TWeeklyProgressByFolderAndTag {
-  let projectTypeTags: Array<string> = config.projectTypeTags ?? []
-  if (typeof projectTypeTags === 'string') {
-    projectTypeTags = [projectTypeTags]
-  }
-
-  const { notes, folders } = getNotesInTargetProjectFolders(config)
-  const counts: Map<string, Map<string, Set<string>>> = new Map()
-  const notesByTagSets: Map<string, Set<string>> = new Map()
-  const notesByFolderAndTagSets: Map<string, Map<string, Set<string>>> = new Map()
-
-  if (projectTypeTags.length === 0) {
-    logWarn('aggregateNotesProgressedByFolderAndTag', 'No projectTypeTags configured; weekly table will be empty')
-    return {
-      weekLabel: week.label,
-      folders,
-      tags: projectTypeTags,
-      counts: new Map(),
-      notesByTag: new Map(),
-      notesByFolderAndTag: new Map(),
-    }
-  }
-
-  for (const note of notes) {
-    if (!noteProgressedInWeek(note, week)) continue
-
-    const matchingTags = getMatchingProjectTypeTagsOnNote(note, projectTypeTags)
-    if (matchingTags.length === 0) continue
-
-    const noteTitle = (note.title ?? '').trim() !== '' ? (note.title ?? '').trim() : note.filename
-    const folderPath = getFolderFromFilename(note.filename)
-    for (const tag of matchingTags) {
-      const folderMap = counts.get(folderPath) ?? new Map()
-      const noteSet = folderMap.get(tag) ?? new Set()
-      noteSet.add(note.filename)
-      folderMap.set(tag, noteSet)
-      counts.set(folderPath, folderMap)
-
-      const titleSet = notesByTagSets.get(tag) ?? new Set()
-      titleSet.add(noteTitle)
-      notesByTagSets.set(tag, titleSet)
-
-      const folderTagMap = notesByFolderAndTagSets.get(folderPath) ?? new Map()
-      const folderTitleSet = folderTagMap.get(tag) ?? new Set()
-      folderTitleSet.add(noteTitle)
-      folderTagMap.set(tag, folderTitleSet)
-      notesByFolderAndTagSets.set(folderPath, folderTagMap)
-    }
-  }
-
+function finalizeWeekProgressFromSets(
+  weekLabel: string,
+  folders: Array<string>,
+  projectTypeTags: Array<string>,
+  counts: Map<string, Map<string, Set<string>>>,
+  notesByTagSets: Map<string, Set<string>>,
+  notesByFolderAndTagSets: Map<string, Map<string, Set<string>>>,
+): TWeeklyProgressByFolderAndTag {
   const countNumbers: Map<string, Map<string, number>> = new Map()
   for (const [folder, tagMap] of counts.entries()) {
     const numberMap: Map<string, number> = new Map()
@@ -922,7 +869,7 @@ function aggregateNotesProgressedByFolderAndTag(config: ReviewConfig, week: Week
   }
 
   return {
-    weekLabel: week.label,
+    weekLabel,
     folders,
     tags: projectTypeTags,
     counts: countNumbers,
@@ -932,12 +879,151 @@ function aggregateNotesProgressedByFolderAndTag(config: ReviewConfig, week: Week
 }
 
 /**
- * Upsert a project progress table into a weekly calendar note.
+ * True when weekly-note upsert is configured (heading text present after parse).
  * @param {ReviewConfig} config
- * @param {?string} weekLabelIn - ISO week label (e.g. 2026-W35); defaults to current week
+ * @returns {boolean}
+ */
+function shouldWriteWeeklyProjectProgressNote(config: ReviewConfig): boolean {
+  const headingSetting = config.weeklyProjectProgressHeading?.trim() ?? ''
+  if (!headingSetting) {
+    return false
+  }
+  const { text: headingText } = parseMarkdownHeadingSetting(headingSetting)
+  return headingText !== ''
+}
+
+type TWeeklyProgressCombinedScanResult = {
+  notesPerWeekMap: Map<string, Set<string>>,
+  tasksPerWeekMap: Map<string, number>,
+  weekProgress: ?TWeeklyProgressByFolderAndTag,
+}
+
+/**
+ * Sync: one pass over notes/paragraphs for multi-week CSV maps, and optionally single-week
+ * folder×tag aggregates for the weekly note. Shows one CommandBar loading dialog.
+ * Safe for `runSyncWorkOnAsyncThread` (read-only).
+ * @param {Array<TNote>} notesInTargetFolders
+ * @param {Array<string>} folders
+ * @param {Array<WeekInfo>} weeks
+ * @param {Array<string>} projectTypeTags
+ * @param {?WeekInfo} targetWeekForNote - when set, also build weekProgress for that week
+ * @returns {TWeeklyProgressCombinedScanResult}
+ */
+function scanWeeklyProgressCombinedSync(
+  notesInTargetFolders: Array<TNote>,
+  folders: Array<string>,
+  weeks: Array<WeekInfo>,
+  projectTypeTags: Array<string>,
+  targetWeekForNote: ?WeekInfo,
+): TWeeklyProgressCombinedScanResult {
+  const notesPerWeekMap: Map<string, Set<string>> = new Map()
+  const tasksPerWeekMap: Map<string, number> = new Map()
+  const collectWeekProgress = targetWeekForNote != null
+  const targetWeekLabel = targetWeekForNote?.label ?? ''
+
+  const weekCounts: Map<string, Map<string, Set<string>>> = new Map()
+  const notesByTagSets: Map<string, Set<string>> = new Map()
+  const notesByFolderAndTagSets: Map<string, Map<string, Set<string>>> = new Map()
+
+  if (collectWeekProgress && projectTypeTags.length === 0) {
+    logWarn('scanWeeklyProgressCombinedSync', 'No projectTypeTags configured; weekly note table will be empty')
+  }
+
+  const total = notesInTargetFolders.length
+  let loadingShown = false
+  try {
+    if (total > 0) {
+      CommandBar.showLoading(true, `Scanning notes for weekly project progress\n0/${String(total)}`, 0)
+      loadingShown = true
+    }
+    let index = 0
+    for (const note of notesInTargetFolders) {
+      index += 1
+      if (loadingShown && (index % SHOW_LOADING_UPDATE_EVERY_N_NOTES === 0 || index === total)) {
+        CommandBar.showLoading(true, `Scanning notes for weekly project progress\n${String(index)}/${String(total)}`, index / total)
+      }
+      const folderPath = getFolderFromFilename(note.filename)
+      let progressedInTargetWeek = false
+      for (const p of note.paragraphs) {
+        if (!isDone(p)) continue
+        const doneISO = getDoneISODateFromContent(p.content)
+        if (!doneISO) continue
+
+        const weekLabel = getWeekLabelForISODate(doneISO, weeks)
+        if (!weekLabel) continue
+
+        const key = makeFolderWeekKey(folderPath, weekLabel)
+        const currentTasks = tasksPerWeekMap.get(key) ?? 0
+        tasksPerWeekMap.set(key, currentTasks + 1)
+
+        const noteSet = notesPerWeekMap.get(key) ?? new Set()
+        noteSet.add(note.filename)
+        notesPerWeekMap.set(key, noteSet)
+
+        if (collectWeekProgress && weekLabel === targetWeekLabel) {
+          progressedInTargetWeek = true
+        }
+      }
+
+      if (!collectWeekProgress || !progressedInTargetWeek || projectTypeTags.length === 0) {
+        continue
+      }
+
+      const matchingTags = getMatchingProjectTypeTagsOnNote(note, projectTypeTags)
+      if (matchingTags.length === 0) continue
+
+      const noteTitle = (note.title ?? '').trim() !== '' ? (note.title ?? '').trim() : note.filename
+      for (const tag of matchingTags) {
+        const folderMap = weekCounts.get(folderPath) ?? new Map()
+        const noteSet = folderMap.get(tag) ?? new Set()
+        noteSet.add(note.filename)
+        folderMap.set(tag, noteSet)
+        weekCounts.set(folderPath, folderMap)
+
+        const titleSet = notesByTagSets.get(tag) ?? new Set()
+        titleSet.add(noteTitle)
+        notesByTagSets.set(tag, titleSet)
+
+        const folderTagMap = notesByFolderAndTagSets.get(folderPath) ?? new Map()
+        const folderTitleSet = folderTagMap.get(tag) ?? new Set()
+        folderTitleSet.add(noteTitle)
+        folderTagMap.set(tag, folderTitleSet)
+        notesByFolderAndTagSets.set(folderPath, folderTagMap)
+      }
+    }
+  } finally {
+    if (loadingShown) {
+      CommandBar.showLoading(false)
+    }
+  }
+
+  const weekProgress =
+    collectWeekProgress && targetWeekForNote != null
+      ? finalizeWeekProgressFromSets(
+        targetWeekForNote.label,
+        folders,
+        projectTypeTags,
+        weekCounts,
+        notesByTagSets,
+        notesByFolderAndTagSets,
+      )
+      : null
+
+  return { notesPerWeekMap, tasksPerWeekMap, weekProgress }
+}
+
+/**
+ * Upsert a project progress table into a weekly calendar note using precomputed scan aggregates.
+ * @param {ReviewConfig} config
+ * @param {string} weekLabel - ISO week label (e.g. 2026-W35)
+ * @param {TWeeklyProgressByFolderAndTag} weekProgress
  * @returns {Promise<void>}
  */
-async function writeWeeklyProjectProgressToWeeklyNote(config: ReviewConfig, weekLabelIn: ?string = null): Promise<void> {
+async function writeWeeklyProjectProgressToWeeklyNote(
+  config: ReviewConfig,
+  weekLabel: string,
+  weekProgress: TWeeklyProgressByFolderAndTag,
+): Promise<void> {
   const headingSetting = config.weeklyProjectProgressHeading?.trim() ?? ''
   if (!headingSetting) {
     logDebug('writeWeeklyProjectProgressToWeeklyNote', `weeklyProjectProgressHeading not set; skipping weekly note write`)
@@ -950,10 +1036,8 @@ async function writeWeeklyProjectProgressToWeeklyNote(config: ReviewConfig, week
     return
   }
 
-  const weekLabel = weekLabelIn ?? getCurrentWeekLabel()
   const targetWeek = getWeekInfoFromWeekLabel(weekLabel)
-
-  const { folders: allFolders, tags, counts, notesByTag, notesByFolderAndTag } = aggregateNotesProgressedByFolderAndTag(config, targetWeek)
+  const { folders: allFolders, tags, counts, notesByTag, notesByFolderAndTag } = weekProgress
   const showEmptyFolders = getWeeklyProjectProgressShowEmptyFolders(config)
   const folders = getFoldersForWeeklyProgressTable(allFolders, counts, showEmptyFolders)
   const hiddenFolderCount = allFolders.length - folders.length
@@ -962,8 +1046,6 @@ async function writeWeeklyProjectProgressToWeeklyNote(config: ReviewConfig, week
     `week=${weekLabel}; showEmptyFolders=${String(showEmptyFolders)}; table rows=${String(folders.length)} of ${String(allFolders.length)} folders (${String(hiddenFolderCount)} hidden)`,
   )
   const xCallbackMD = getWeeklyProjectProgressRefreshLinkMD(showEmptyFolders, weekLabel)
-  // Show/Hide toggle disabled pending NotePlan fix for markdown links + table body inserts
-  // const emptyFoldersToggleMD = getEmptyFoldersToggleLinkMD(showEmptyFolders)
   const sectionHeadingWithLinks = `${headingText} ${xCallbackMD}`
   const { showTable, bulletMode } = resolveWeeklyProjectProgressOutputStyle(config)
   const table = showTable ? buildWeeklyProgressMarkdownTable(folders, tags, counts) : ''
@@ -1005,69 +1087,84 @@ async function writeWeeklyProjectProgressToWeeklyNote(config: ReviewConfig, week
   logInfo('writeWeeklyProjectProgressToWeeklyNote', `Updated section '${headingText}' in weekly note '${destNote.filename}' for ${weekLabel}`)
 }
 
+type TGenerateWeeklyProgressLinesResult = {
+  notesRows: Array<string>,
+  tasksRows: Array<string>,
+  weekProgress: ?TWeeklyProgressByFolderAndTag,
+}
+
 /**
- * Generate weekly Project/Area progress stats per relevant folder for the last N weeks. Returns two arrays of strings:
- * - First array: notes-per-week (distinct notes with at least one completed task)
- * - Second array: tasks-per-week (total completed tasks)
+ * Generate weekly Project/Area progress stats per relevant folder for the last N weeks.
+ * Single note scan builds CSV row data and, when `targetWeekForNote` is set, weekly-note aggregates.
  * @author @jgclark (spec) + @cursor (implementation)
- * @returns {Promise<Array<string>>}
+ * @param {?ReviewConfig} configIn - when null, loads settings
+ * @param {?WeekInfo} targetWeekForNote - when set, also return folder×tag aggregates for that week
+ * @returns {Promise<TGenerateWeeklyProgressLinesResult>}
  */
-async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Array<string>]>
-{
+async function generateProjectsWeeklyProgressLines(
+  configIn: ?ReviewConfig = null,
+  targetWeekForNote: ?WeekInfo = null,
+): Promise<TGenerateWeeklyProgressLinesResult> {
   try {
     logDebug(pluginJson, `generateProjectsWeeklyProgressLines: starting`)
     const startTime = new Date()
-    const config: ReviewConfig | null = ((await getReviewSettings(): any): ReviewConfig)
+    const config: ReviewConfig | null = configIn != null ? configIn : ((await getReviewSettings(): any): ReviewConfig)
     if (!config) {
       throw new Error('generateProjectsWeeklyProgressLines: could not load Review settings. Stopping.')
     }
 
-    // 1. Week range (last 12 weeks, including current)
     const weeks: Array<WeekInfo> = getLastNWeeks(DEFAULT_NUM_WEEKS)
     if (weeks.length === 0) {
       throw new Error('No week range could be calculated')
     }
     const weekLabels: Array<string> = weeks.map((w) => w.label)
 
-    // 2. Get all regular notes from filtered folders (respecting existing Projects exclusions)
+    // Ensure target week is included in done-date week matching (may be outside last N weeks).
+    let weeksForScan = weeks
+    if (targetWeekForNote != null && !weeks.some((w) => w.label === targetWeekForNote.label)) {
+      weeksForScan = [...weeks, targetWeekForNote]
+    }
+
     const { notes: notesInTargetFolders, folders } = getNotesInTargetProjectFolders(config)
     logDebug('generateProjectsWeeklyProgressLines', `considering ${String(notesInTargetFolders.length)} regular notes`)
     logInfo('generateProjectsWeeklyProgressLines', `found ${String(folders.length)} Area/Project folders and ${String(notesInTargetFolders.length)} notes in them`)
 
     if (folders.length === 0) {
       logInfo('generateProjectsWeeklyProgressLines', `no Area/Project folders found: nothing to write`)
-      return [[], []]
+      return { notesRows: [], tasksRows: [], weekProgress: null }
     }
 
-    // 4. Aggregation structures
-    const notesPerWeekMap: Map<string, Set<string>> = new Map() // key: folder::week -> set of note filenames
-    const tasksPerWeekMap: Map<string, number> = new Map() // key: folder::week -> task count
-
-    // 5. Scan notes and paragraphs
-    for (const note of notesInTargetFolders) {
-      const folderPath = getFolderFromFilename(note.filename)
-      for (const p of note.paragraphs) {
-        if (!isDone(p)) continue
-        const doneISO = getDoneISODateFromContent(p.content)
-        if (!doneISO) continue
-
-        const weekLabel = getWeekLabelForISODate(doneISO, weeks)
-        if (!weekLabel) continue
-
-        const key = makeFolderWeekKey(folderPath, weekLabel)
-
-        // tasks-per-week
-        const currentTasks = tasksPerWeekMap.get(key) ?? 0
-        tasksPerWeekMap.set(key, currentTasks + 1)
-
-        // notes-per-week (distinct notes)
-        const noteSet = notesPerWeekMap.get(key) ?? new Set()
-        noteSet.add(note.filename)
-        notesPerWeekMap.set(key, noteSet)
-      }
+    let projectTypeTags: Array<string> = config.projectTypeTags ?? []
+    if (typeof projectTypeTags === 'string') {
+      projectTypeTags = [projectTypeTags]
     }
 
-    // 6. Build CSV tables
+    let scanHolder: ?TWeeklyProgressCombinedScanResult = null
+    await runSyncWorkOnAsyncThread('generateProjectsWeeklyProgressLines scan', () => {
+      scanHolder = scanWeeklyProgressCombinedSync(
+        notesInTargetFolders,
+        folders,
+        weeksForScan,
+        projectTypeTags,
+        targetWeekForNote,
+      )
+      return true
+    })
+    const scanResult: TWeeklyProgressCombinedScanResult =
+      scanHolder != null
+        ? scanHolder
+        : scanWeeklyProgressCombinedSync(
+          notesInTargetFolders,
+          folders,
+          weeksForScan,
+          projectTypeTags,
+          targetWeekForNote,
+        )
+    if (scanHolder == null) {
+      logWarn('generateProjectsWeeklyProgressLines', `- async result missing; scanned on main thread`)
+    }
+    const { notesPerWeekMap, tasksPerWeekMap, weekProgress } = scanResult
+
     const notesRows: Array<string> = [
       ['Folder / Notes progressed per week', ...weekLabels, 'total'].join(','),
     ]
@@ -1092,12 +1189,10 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
         taskCountTotal += taskCount
       }
 
-      // Note: surround folder name with quotes in case folder name contains commas
       notesRows.push([`"${folderName}"`].concat(noteCounts).concat(String(noteCountTotal)).join(','))
       tasksRows.push([`"${folderName}"`].concat(taskCounts).concat(String(taskCountTotal)).join(','))
     }
 
-    // Add totals row (sum of each column across all folders)
     if (folders.length > 0) {
       const notesColumnTotals: Array<number> = new Array<number>(weekLabels.length + 1).fill(0)
       const tasksColumnTotals: Array<number> = new Array<number>(weekLabels.length + 1).fill(0)
@@ -1122,7 +1217,7 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
       tasksRows.push(['"TOTAL"', ...tasksColumnTotals.map((n) => String(n))].join(','))
     }
     logInfo('projectsWeeklyProgressCSV', `Generated ${String(notesRows.length)} notes rows and ${String(tasksRows.length)} tasks rows in ${timer(startTime)}`)
-    return [notesRows, tasksRows]
+    return { notesRows, tasksRows, weekProgress }
   } catch (error) {
     logError('projectsWeeklyProgressCSV', error.message)
     throw error
@@ -1137,6 +1232,7 @@ async function generateProjectsWeeklyProgressLines(): Promise<[Array<string>, Ar
  * The two notes are:
  * - First note: notes-per-week (distinct notes with at least one completed task)
  * - Second note: tasks-per-week (total completed tasks)
+ * When weekly-note heading is configured, also upserts that week's summary from the same scan.
  *
  * @author @jgclark (spec) + @cursor (implementation)
  * @returns {Promise<void>}
@@ -1158,22 +1254,23 @@ export async function writeProjectsWeeklyProgressToCSV(...argsIn: any[]): Promis
       config = await applyWeeklyProjectProgressCommandParamsFromArgs(config, argsIn)
     }
     const weekLabel = resolveWeekLabelFromArgs(argsIn) ?? getCurrentWeekLabel()
+    const targetWeekForNote = shouldWriteWeeklyProjectProgressNote(config) ? getWeekInfoFromWeekLabel(weekLabel) : null
     logDebug(
       pluginJson,
-      `writeProjectsWeeklyProgressToCSV: using weeklyProjectProgressShowEmptyFolders=${String(getWeeklyProjectProgressShowEmptyFolders(config))}, week=${weekLabel}`,
+      `writeProjectsWeeklyProgressToCSV: using weeklyProjectProgressShowEmptyFolders=${String(getWeeklyProjectProgressShowEmptyFolders(config))}, week=${weekLabel}, weeklyNote=${String(targetWeekForNote != null)}`,
     )
 
-    const [notesRows, tasksRows] = await generateProjectsWeeklyProgressLines()
+    const { notesRows, tasksRows, weekProgress } = await generateProjectsWeeklyProgressLines(config, targetWeekForNote)
 
-    // First prepare and write the notes-per-week CSV
     const notesCsvString = notesRows.join('\n')
     await DataStore.saveData(notesCsvString, PROGRESS_PER_FOLDER_FILENAME, true)
 
-    // Then prepare and write the tasks-per-week CSV
     const tasksCsvString = tasksRows.join('\n')
     await DataStore.saveData(tasksCsvString, TASK_COMPLETION_PER_FOLDER_FILENAME, true)
 
-    await writeWeeklyProjectProgressToWeeklyNote(config, weekLabel)
+    if (weekProgress != null) {
+      await writeWeeklyProjectProgressToWeeklyNote(config, weekLabel, weekProgress)
+    }
 
     logInfo('writeProjectsWeeklyProgressToCSV', `Written weekly progress CSV to '${PROGRESS_PER_FOLDER_FILENAME}' and '${TASK_COMPLETION_PER_FOLDER_FILENAME}'`)
   } catch (error) {
@@ -1387,7 +1484,7 @@ export async function showProjectsWeeklyProgressHeatmaps(): Promise<void> {
   try {
     logDebug(pluginJson, `showProjectsWeeklyProgressHeatmaps: starting`)
 
-    const [notesRows, tasksRows] = await generateProjectsWeeklyProgressLines()
+    const { notesRows, tasksRows } = await generateProjectsWeeklyProgressLines()
 
     const charts: Array<TWeeklyHeatmapChart> = []
     if (notesRows.length > 0) {
