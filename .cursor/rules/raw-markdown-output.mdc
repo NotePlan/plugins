@@ -20,6 +20,7 @@ Rendered replies hide `#` / `###` and turn `-` lists into bullet symbols (`•`)
 
 - Rely on the chat UI's markdown rendering for copy-pasteable written deliverables.
 - Use Unicode bullet characters (`•`, `●`, etc.) in place of markdown list markers.
+- Use curly/smart quotes or emdash/endash characters -- see the plain-punctuation rule (`.cursor/rules/no-emdash.mdc`).
 
 ```markdown
 <!-- ❌ BAD: rendered in the reply as bullets / headings -->
