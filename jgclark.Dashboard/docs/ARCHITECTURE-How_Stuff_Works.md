@@ -27,7 +27,7 @@ The `pluginData` object holds the data that is populated (and later updated) at 
     logSettings: await getLogSettings(),
     demoMode: useDemoData, // boolean
     platform: NotePlan.environment.platform, // used in dialog positioning
-    themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name,
+    themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : NotePlan.currentTheme?.name,
   }
 ```
 

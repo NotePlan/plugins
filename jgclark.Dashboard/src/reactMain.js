@@ -642,7 +642,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
     logSettings: await getLogSettings(),
     demoMode: useDemoData,
     platform: NotePlan.environment.platform, // used in window/dialog management
-    themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
+    themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : NotePlan.currentTheme?.name || Editor.currentTheme?.name || '<could not get theme>',
     version: pluginJson['plugin.version'],
     pushFromServer: {
       dashboardSettings: true,

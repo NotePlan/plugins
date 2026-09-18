@@ -347,6 +347,7 @@ onMainThread(): Promise < void>;
   +availableThemes: $ReadOnlyArray<Object>;
   /**
    * Editor.currentTheme
+   * Note: from 3.21.3 this can also be accessed via NotePlan.currentTheme, which is always available.
    * Get the current theme name and mode as an object with these keys:
    *  - "name" in the JSON theme
    *  - "filename" of the JSON theme file
@@ -2808,6 +2809,18 @@ static + htmlWindows: Array < HTMLView >;
   // np.Templating/lib/support/modules/notePlanWeather.js deliberately passes `undefined` rather
   // than 0 because 0 did not trigger the lookup.
   static getWeather(units?: ?string, latitude?: ?number, longitude?: ?number): Promise < Object >;
+/**
+ * NotePlan.currentTheme
+ * Note: a preferred alternative to Editor.currentTheme, as this is always available.
+ * Get the current theme name and mode as an object with these keys:
+ *  - "name" in the JSON theme
+ *  - "filename" of the JSON theme file
+ *  - "mode" ("dark" or "light")
+ *  - "values" -- all the JSON in the theme
+ * Note: Available from NotePlan v3.21.3
+ * @return {Object}
+ */
+static + currentTheme: Object;
 }
 
 declare class HTMLView {
