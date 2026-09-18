@@ -1,20 +1,10 @@
 ---
-description: Use Markdown dash lists only; never Unicode bullet characters
+description: Markdown dash lists only (full text in agents/docs/writing-style.md)
 alwaysApply: true
 ---
 
-# List Style (No Bullet Characters)
+# List style
 
-Never use Unicode bullet characters (`•`, `●`, `◦`, etc.) in agent output.
+Follow `agents/docs/writing-style.md`.
 
-Always write lists as Markdown: a hyphen/dash, then a space, then the item text (`- `).
-
-```markdown
-<!-- ❌ BAD -->
-• First item
-• Second item
-
-<!-- ✅ GOOD -->
-- First item
-- Second item
-```
+Never use Unicode bullets (`•`, `●`, `◦`). Always write Markdown lists as `- ` then the item.

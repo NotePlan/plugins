@@ -441,7 +441,7 @@ If the form freezes when submitting and logs show `getTemplatingContext: Getting
 - **You do NOT need to memoize `requestFromPlugin`** in your component - it's passed as a prop and should already have a stable reference
 - If `requestFromPlugin` is included in `useEffect` dependencies, it should work correctly because it's memoized upstream
 - If you create functions that use `requestFromPlugin` and pass them to child components or use them in context, wrap those functions in `useCallback`
-- See `.cursor/rules/noteplan-programming-general.mdc` for detailed memoization guidelines
+- See `agents/docs/react-html.md` for detailed memoization guidelines
 
 **Example pattern (already done in parent):**
 

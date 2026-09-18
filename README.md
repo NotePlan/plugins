@@ -238,12 +238,12 @@ open "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Sho
 nplog --since "$CURSOR" --follow --wait-idle 5 --json   # stream what that action logged
 ```
 
-AI agents working in this repo get this automatically as a Claude Code skill, committed at
-`.claude/skills/nplog/SKILL.md`. That is a hidden directory, so `ls` and Finder won't show
-it — but it ships with the clone and needs no installation.
+AI agents: see root [`AGENTS.md`](AGENTS.md). There are  skills which live in 
+[`agents/skills/`](agents/skills/), with tool-specific
+symlinks under `.claude/skills/` and `.cursor/skills/`.
 
-See [scripts/nplog/README.md](scripts/nplog/README.md) for the key bindings, headless
-options, and how to make the skill available outside this repo.
+See [scripts/nplog/README.md](scripts/nplog/README.md) for key bindings, headless
+options, and how to use the skill outside this repo.
 
 ## Editor Setup
 

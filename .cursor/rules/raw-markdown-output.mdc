@@ -1,35 +1,11 @@
 ---
-description: Show actual markdown source (not rendered) for written CLI output
+description: Show raw markdown source for written deliverables (full text in agents/docs/writing-style.md)
 alwaysApply: true
 ---
 
-# Raw Markdown for Written Output
+# Raw markdown for written output
 
-When the user wants **written output** in the CLI (CHANGELOG summaries, release notes, docs drafts, copy-pasteable text, etc.) -- anything meant to be read or copied as markdown source -- show the **actual markdown characters**, not a rendered version.
+Follow `agents/docs/writing-style.md`.
 
-## Why
-
-Rendered replies hide `#` / `###` and turn `-` lists into bullet symbols (`•`). The user cannot verify or copy the source as intended.
-
-## Do
-
-- Put that content in a fenced code block (e.g. ` ```markdown ` ... ` ``` `) so `#`, `-`, and other markup stay as plain text.
-- Apply this to final deliverable prose, not to agent build plans, tool traces, or normal conversational replies.
-
-## Don't
-
-- Rely on the chat UI's markdown rendering for copy-pasteable written deliverables.
-- Use Unicode bullet characters (`•`, `●`, etc.) in place of markdown list markers.
-- Use curly/smart quotes or emdash/endash characters -- see the plain-punctuation rule (`.cursor/rules/no-emdash.mdc`).
-
-```markdown
-<!-- ❌ BAD: rendered in the reply as bullets / headings -->
-### New
-- Item one
-
-<!-- ✅ GOOD: fenced so source is visible -->
-### New
-- Item one
-```
-
-(The good example must live inside a fenced code block in the real reply.)
+For CHANGELOG / release notes / docs drafts meant to be copied as markdown source, put the
+actual markdown in a fenced code block so `#` and `-` stay visible -- do not rely on rendered chat.

@@ -536,5 +536,5 @@ See `src/react/components/WebView.jsx` in this plugin for a complete, working ex
 - React Hooks documentation: https://react.dev/reference/react
 - `useCallback` reference: https://react.dev/reference/react/useCallback
 - `useMemo` reference: https://react.dev/reference/react/useMemo
-- See `.cursor/rules/noteplan-programming-general.mdc` for NotePlan-specific patterns
+- See `agents/docs/programming.md` and `agents/docs/react-html.md` for NotePlan-specific patterns
 

@@ -1,4 +1,8 @@
-# nplog — maintainer notes
+# nplog -- maintainer notes
+
+Tool-local maintainer / parser notes for `scripts/nplog/`. This is **not** the repo-wide
+agent hub -- that is root [`AGENTS.md`](../../AGENTS.md). Agent how-to for reading logs:
+[`agents/skills/nplog/SKILL.md`](../../agents/skills/nplog/SKILL.md).
 
 Read this before changing how `nplog` renders, or before producing a screenshot for the README.
 

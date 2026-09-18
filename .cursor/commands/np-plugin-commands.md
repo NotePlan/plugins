@@ -1,8 +1,10 @@
 # np-plugin-commands
 
-Write your command content here.
+Common NotePlan plugin build commands (programmer runs these; agents should not `npm run build`).
 
-This command will be available in chat with /np-plugin-commands
+See also `AGENTS.md` and `agents/docs/programming.md`.
 
 - Build plugin: `npc plugin:dev <plugin-id> -nc`
-- Build react runtime: `node ./<plugin-id>/src/react/support/performRollup.node.js`
+- Build React runtime: `node ./<plugin-id>/src/react/support/performRollup.node.js`
+- Typecheck: `npx flow`
+- Test one file: `npx jest path/to/file.test.js --no-watch`

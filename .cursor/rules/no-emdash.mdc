@@ -1,54 +1,11 @@
 ---
-description: Plain ASCII punctuation in markdown and comments (no curly quotes, emdash, or endash)
+description: Plain ASCII punctuation (full text in agents/docs/writing-style.md)
 alwaysApply: true
 ---
 
-# Plain Punctuation (Quotes and Dashes)
+# Plain punctuation
 
-When writing plans, docs, changelogs, comments, or any other markdown (and in code comments), use plain ASCII punctuation only.
+Follow `agents/docs/writing-style.md`.
 
-## Quotes
-
-Do not use smart / curly quotes. Use straight quotes only.
-
-| Avoid | Use |
-|-------|-----|
-| `“` `”` (U+201C / U+201D) | `"` |
-| `‘` `’` (U+2018 / U+2019) | `'` |
-
-```markdown
-<!-- BAD -->
-schema mixes “who changed” with “done counts”
-
-<!-- GOOD -->
-schema mixes "who changed" with "done counts"
-```
-
-Apostrophes in contractions/possessives: use straight `'` (e.g. `Dashboard's`, `don't`), not `’`.
-
-## Dashes
-
-Do not use emdash (`—`, U+2014) or endash (`–`, U+2013).
-
-- Prefer a spaced double hyphen for a dash or mid-sentence break: ` -- `.
-- A single hyphen (`-`) is fine for list markers, compound words, and simple separators where you would normally write a hyphen.
-
-```markdown
-<!-- BAD -->
-Status: design only — not implemented
-Updated sorting – now respects priority markers.
-
-<!-- GOOD -->
-Status: design only -- not implemented
-Updated sorting -- now respects priority markers.
-
-<!-- GOOD (list / hyphen) -->
-- First item
-noteChangedAtMs
-```
-
-For a mid-sentence subclause, use a pair of spaced double hyphens:
-
-```markdown
-The filter -- when enabled -- hides completed items.
-```
+- Straight `"` and `'` only -- no curly quotes
+- Spaced `--` for dashes -- no emdash or endash
