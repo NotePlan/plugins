@@ -50,6 +50,11 @@
     padding-top: 0.6rem;
   }
 
+  /* Compact Display Density: ~10% smaller search panel text (padding/margins unchanged) */
+  .density-compact & .panel-controls {
+    font-size: 0.855rem;
+  }
+
   .controlItem {
     display: flex;
     flex-direction: row;

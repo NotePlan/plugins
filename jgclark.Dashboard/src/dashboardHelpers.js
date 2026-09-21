@@ -856,10 +856,7 @@ export function pickDefaultHeadingForAddTaskDialog(
   perspectiveName: string,
 ): { heading: string, reason: string, score: number } {
   const realHeadings = headings.filter((h) => h && String(h).trim() !== '' && !isPseudoHeadingOption(h))
-  logInfo(
-    'pickDefaultHeadingForAddTaskDialog',
-    `Input: perspectiveName="${perspectiveName}", headings=[${headings.join(' | ')}], realHeadings=[${realHeadings.join(' | ')}]`,
-  )
+  logDebug('pickDefaultHeadingForAddTaskDialog', `Input: perspectiveName="${perspectiveName}", headings=[${headings.join(' | ')}], realHeadings=[${realHeadings.join(' | ')}]`)
 
   let bestHeading = ''
   let bestScore = 0
@@ -874,18 +871,12 @@ export function pickDefaultHeadingForAddTaskDialog(
   }
 
   if (bestHeading) {
-    logInfo(
-      'pickDefaultHeadingForAddTaskDialog',
-      `Result: matched "${bestHeading}" (score ${String(bestScore)}) for perspective "${perspectiveName}"`,
-    )
+    logDebug('pickDefaultHeadingForAddTaskDialog', `Result: matched "${bestHeading}" (score ${String(bestScore)}) for perspective "${perspectiveName}"`)
     return { heading: bestHeading, reason: 'perspective-match', score: bestScore }
   }
 
   const fallback = realHeadings[0] || ''
-  logInfo(
-    'pickDefaultHeadingForAddTaskDialog',
-    `Result: no near match for perspective "${perspectiveName}"; falling back to first real heading "${fallback}"`,
-  )
+  logDebug('pickDefaultHeadingForAddTaskDialog', `Result: no near match for perspective "${perspectiveName}"; falling back to first real heading "${fallback}"`)
   return { heading: fallback, reason: fallback ? 'first-real-heading' : 'none', score: 0 }
 }
 

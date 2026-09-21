@@ -7,15 +7,10 @@
   "plugin.iconColor": "red-600",
   "plugin.description": "A Dashboard for NotePlan, that in one place can show:\n- a compact list of open tasks and checklists from today's note, and scheduled ones from other notes.\n- similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)\n- open Apple Reminders\n- any timeblocks for today\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next notes ready to review (if you use the 'Projects and Reviews' plugin).\nIt includes many other ways of speeding up managing your tasks: see the website for more details.",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.5.0.b5",
+  "plugin.version": "2.5.0.b6",
   "plugin.releaseStatus": "beta",
   "plugin.hidden": false,
-  "plugin.lastUpdateInfo": "2.5.0: Priority note-index cache; Interactive Processing for Active/Review Projects; merged main 2.4.6 (Overdue move-all fix, dependsOn auto-install).
-2.4.6: Overdue move-all fix; auto-load Shared Resources.
-2.4.5: Responsive while tag/mention cache rebuilds.
-2.4.4: Tag/mention cache in np.Shared; TAG refresh performance.
-2.4.2: Reminder edit dialog and IP for Reminders.
-2.4.0: Reminders, Active Projects, Wins, Spaces. See changelog.",
+  "plugin.lastUpdateInfo": "2.5.0: Priority note-index cache; Interactive Processing for Active/Review Projects; merged main 2.4.6 (Overdue move-all fix, dependsOn auto-install).\n2.4.6: Overdue move-all fix; auto-load Shared Resources.\n2.4.5: Responsive while tag/mention cache rebuilds.\n2.4.4: Tag/mention cache in np.Shared; TAG refresh performance.\n2.4.2: Reminder edit dialog and IP for Reminders.\n2.4.0: Reminders, Active Projects, Wins, Spaces. See changelog.",
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/plugins/jgclark.Dashboard",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",

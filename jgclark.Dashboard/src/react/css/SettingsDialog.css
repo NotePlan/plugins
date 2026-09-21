@@ -1,5 +1,5 @@
 /* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
-/* Last updated 2026-07-29 for v2.4.0.b57 by @jgclark + @CursorAI */
+/* Last updated 2026-09-17 for v2.5.0.b6 by @jgclark + @CursorAI */
 
 /* Style for the settings dialog */
 .settings-dialog {
@@ -16,9 +16,7 @@
     /* Center horizontally and vertically: use 50% positioning and translate(-50%, -50%) */
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 86vw;
-    max-width: 700px;
-    min-width: 380px;
+    width: clamp(380px, 86vw, 700px);
     border: none;
     box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     opacity: 1;
@@ -431,4 +429,26 @@
 .iOS .settings-dialog .settings-dialog-header {
     font-size: 1rem;
     line-height: 1rem;
+}
+
+/* Compact: slightly tighter line-height for Settings dialog (between Normal and earlier Compact) */
+.density-compact .settings-dialog {
+    line-height: 1.19;
+}
+
+.density-compact .settings-dialog .ui-heading {
+    line-height: 134%;
+}
+
+.density-compact .settings-dialog .item-description,
+.density-compact .settings-dialog .settings-dialog-filter-input,
+.density-compact .settings-dialog .input-box-input,
+.density-compact .settings-dialog .combobox-input,
+.density-compact .settings-dialog .combobox-dropdown,
+.density-compact .settings-dialog .combobox-option,
+.density-compact .settings-dialog .dropdown-select-dropdiv,
+.density-compact .settings-dialog .dropdown-select-option,
+.density-compact .settings-dialog .switch-line,
+.density-compact .settings-dialog .ui-item {
+    line-height: 1.19;
 }

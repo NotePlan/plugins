@@ -1,5 +1,5 @@
 /* CSS specific to Section components and their children.
-/* Last updated 2026-05-06 for v2.4.0.b33 by @jgclark */
+/* Last updated 2026-09-16 for v2.5.0.b6 by @jgclark */
 
 /* Animation keyframes for section appearance and removal */
 @keyframes sectionFadeIn {
@@ -124,6 +124,33 @@
 	gap: 0.3rem;
 	font-size: 0.9rem;
 	align-self: center;
+}
+
+/* Compact Display Density: ~10% smaller section text/icons (padding/margins unchanged) */
+.density-compact .sectionIcon {
+	font-size: 0.99rem;
+}
+
+.density-compact .sectionName {
+	font-size: 0.9rem;
+}
+
+.density-compact .sectionInfoSecondLine {
+	font-size: 0.81rem;
+}
+
+.density-compact .sectionItemsGrid {
+	font-size: 0.9rem;
+}
+
+/* Compact: slightly tighter line-height for Section chrome (between Normal ~1.2 and earlier Compact 1.15) */
+.density-compact .section,
+.density-compact .sectionInfo,
+.density-compact .sectionName,
+.density-compact .sectionInfoSecondLine,
+.density-compact .sectionDescription,
+.density-compact .sectionItemsGrid {
+	line-height: 1.175;
 }
 
 .sectionDescription {

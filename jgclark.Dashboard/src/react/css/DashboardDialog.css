@@ -1,6 +1,6 @@
 /**
   CSS for the items Actions Dialog 
-  Last updated 2026-08-22 for v2.4.2 by @jgclark & @CursorAI
+  Last updated 2026-09-17 for v2.5.0.b6 by @jgclark & @CursorAI
   */
 
 dialog {
@@ -183,8 +183,6 @@ dialog:modal {
  */
 .reminderControlDialog {
   width: min(38rem, calc(100vw - 1.5rem));
-  min-width: min(38rem, calc(100vw - 1.5rem));
-  max-width: min(38rem, calc(100vw - 1.5rem));
   box-sizing: border-box;
 
   /* A couple of overrides are necessary to look good */
@@ -394,5 +392,61 @@ dialog:modal {
 .combobox-input-container {
 	position: relative;
 	width: 100%;
+}
+
+/* ------------------------------------------------------------------ */
+/* Compact Display Density must not change task / reminder / project / */
+/* add-task edit dialogs (they sit under .dashboard-app.density-compact) */
+/* ------------------------------------------------------------------ */
+.density-compact .itemControlDialog .fa-fw,
+.density-compact .projectControlDialog .fa-fw,
+.density-compact .add-to-any-note-dialog .fa-fw {
+	width: 1rem;
+}
+
+.density-compact .itemControlDialog .PCButton,
+.density-compact .projectControlDialog .PCButton,
+.density-compact .add-to-any-note-dialog .PCButton {
+	font-size: 0.85rem;
+	line-height: 1.2rem;
+}
+
+.density-compact .itemControlDialog .addButton,
+.density-compact .projectControlDialog .addButton,
+.density-compact .add-to-any-note-dialog .addButton {
+	font-size: 0.95rem;
+}
+
+.density-compact .itemControlDialog .dropdown-select-label,
+.density-compact .itemControlDialog .dropdown-select-input,
+.density-compact .itemControlDialog .dropdown-select-dropdiv,
+.density-compact .itemControlDialog .dropdown-select-option,
+.density-compact .itemControlDialog .dropdown-select-option .option-label,
+.density-compact .itemControlDialog .dropdown-select-chooser-dropdown,
+.density-compact .itemControlDialog .dropdown-select-chooser-option,
+.density-compact .itemControlDialog .dropdown-select-chooser-value-display,
+.density-compact .itemControlDialog .combobox-dropdown,
+.density-compact .itemControlDialog .combobox-option,
+.density-compact .projectControlDialog .dropdown-select-label,
+.density-compact .projectControlDialog .dropdown-select-input,
+.density-compact .projectControlDialog .dropdown-select-dropdiv,
+.density-compact .projectControlDialog .dropdown-select-option,
+.density-compact .projectControlDialog .dropdown-select-option .option-label,
+.density-compact .projectControlDialog .dropdown-select-chooser-dropdown,
+.density-compact .projectControlDialog .dropdown-select-chooser-option,
+.density-compact .projectControlDialog .dropdown-select-chooser-value-display,
+.density-compact .projectControlDialog .combobox-dropdown,
+.density-compact .projectControlDialog .combobox-option,
+.density-compact .add-to-any-note-dialog .dropdown-select-label,
+.density-compact .add-to-any-note-dialog .dropdown-select-input,
+.density-compact .add-to-any-note-dialog .dropdown-select-dropdiv,
+.density-compact .add-to-any-note-dialog .dropdown-select-option,
+.density-compact .add-to-any-note-dialog .dropdown-select-option .option-label,
+.density-compact .add-to-any-note-dialog .dropdown-select-chooser-dropdown,
+.density-compact .add-to-any-note-dialog .dropdown-select-chooser-option,
+.density-compact .add-to-any-note-dialog .dropdown-select-chooser-value-display,
+.density-compact .add-to-any-note-dialog .combobox-dropdown,
+.density-compact .add-to-any-note-dialog .combobox-option {
+	line-height: normal;
 }
 

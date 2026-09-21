@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2026-09-14 for v2.5.0.b4 by @jgclark */
+/* Last updated 2026-09-16 for v2.5.0.b6 by @jgclark */
 
 /* ------------------------------------------------------------------ */
 html {
@@ -172,6 +172,43 @@ dialog::backdrop {
 /* Override what Font Awesome adds, which is a fixed width for fixed-with	icons of 1.25rem */
 .fa-fw {
 	width: 1.0rem;
+}
+
+/* Compact Display Density: ~10% smaller FA fixed-width + SVG progress icons (padding/margins unchanged) */
+.density-compact .fa-fw {
+	width: 0.9rem;
+}
+
+.density-compact .svg-pi-wrapper {
+	transform: scale(0.9);
+	transform-origin: center top;
+}
+
+.density-compact .addButton {
+	font-size: 0.855rem;
+}
+
+.density-compact .PCButton {
+	font-size: 0.765rem;
+}
+
+.density-compact .iOS .buttonsWithoutBordersOrBackground,
+.density-compact .iPadOS .buttonsWithoutBordersOrBackground {
+	font-size: 0.9rem !important;
+}
+
+/* Compact: tighter line-height for DropdownSelect menus (Perspective, Settings, etc.) */
+.density-compact .dropdown-select-label,
+.density-compact .dropdown-select-input,
+.density-compact .dropdown-select-dropdiv,
+.density-compact .dropdown-select-option,
+.density-compact .dropdown-select-option .option-label,
+.density-compact .dropdown-select-chooser-dropdown,
+.density-compact .dropdown-select-chooser-option,
+.density-compact .dropdown-select-chooser-value-display,
+.density-compact .combobox-dropdown,
+.density-compact .combobox-option {
+	line-height: 1.175;
 }
 
 

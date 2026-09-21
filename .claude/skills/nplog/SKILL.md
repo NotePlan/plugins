@@ -97,8 +97,7 @@ The NotePlan MCP's `noteplan_plugins action:"log"` reads
 `<Plugins>/<id>/_MCP-console.log`. It looks ideal — already scoped to one plugin — but
 it is **truncated on every plugin invocation**, so it holds only the most recent one.
 For a plugin that refreshes on a timer (the Dashboard does), the run you care about is
-wiped seconds later by an unrelated background refresh. Measured for the same second:
-32 unique lines there vs 66 in the main log.
+wiped seconds later by an unrelated background refresh.
 
 The main log is a strict superset and the only durable record. `nplog` reads that by
 default. Use the MCP's log for a quick human eyeball if you like, never as evidence about

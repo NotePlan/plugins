@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show Note Titles as clickable links. Handles Teamspace indicators and folder names.
 // Used by ItemContent and DialogFor*Items components.
-// Last updated 2026-08-07 for v2.4.0.b61 by @jgclark
+// Last updated 2026-09-16 for v2.5.0.b6 by @jgclark
 //--------------------------------------------------------------------------
 
 import React from 'react'
@@ -20,6 +20,8 @@ type Props = {
   thisSection: TSection,
   alwaysShowNoteTitle: boolean,
   suppressTeamspaceName?: boolean,
+  /** When true, omit folder path even if showFolderName is on (used by Compact density rows). */
+  suppressFolderName?: boolean,
   /** When true, use full (body) font size - for project title chips in PROJACT/PROJREVIEW. Default chip size is compact. */
   normalSize?: boolean,
 }
@@ -32,7 +34,14 @@ type Props = {
  * @param {Props} props
  * @returns {React$Node}
  */
-function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppressTeamspaceName = false, normalSize = false }: Props): React$Node {
+function ItemNoteLink({
+  item,
+  thisSection,
+  alwaysShowNoteTitle = false,
+  suppressTeamspaceName = false,
+  suppressFolderName = false,
+  normalSize = false,
+}: Props): React$Node {
   const { reactSettings, dashboardSettings } = useAppContext()
 
   // ------ COMPUTED VALUES --------------------------------
@@ -57,8 +66,9 @@ function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppress
   }
 
   // For Teamspace calendar notes, filepath can be '/', so we need to check for both empty and '/'.
-  // Only show folder name if showFolderName setting is enabled
-  let folderNamePart = dashboardSettings?.showFolderName && trimmedFilePath !== '/' && trimmedFilePath !== '' ? `${trimmedFilePath} /` : ''
+  // Only show folder name if showFolderName setting is enabled (and not suppressed, e.g. Compact task rows)
+  let folderNamePart =
+    !suppressFolderName && dashboardSettings?.showFolderName && trimmedFilePath !== '/' && trimmedFilePath !== '' ? `${trimmedFilePath} /` : ''
   if (folderNamePart !== '' && !folderNamePart.endsWith('/')) {
     folderNamePart = `/ ${folderNamePart}`
   }

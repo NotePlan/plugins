@@ -1,5 +1,5 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated 2026-09-14 for v2.5.0.b4 by @jgclark */
+/* Last updated 2026-09-16 for v2.5.0.b6 by @jgclark */
 
 /* TODO: SearchPanel transition is not working well yet. Not sure if that's because of this file or SearchPanel.css */
 
@@ -37,6 +37,17 @@
 .header button,
 .header input {
 	font-size: 0.95rem;
+}
+
+/* Compact Display Density: ~10% smaller header text/icons (padding/margins unchanged) */
+.density-compact .header,
+.density-compact .header button,
+.density-compact .header input {
+	font-size: 0.855rem;
+}
+
+.density-compact .HAButton {
+	font-size: 0.81rem;
 }
 
 /* :focus {

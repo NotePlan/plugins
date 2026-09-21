@@ -1,6 +1,6 @@
 /**
  * CSS for the Dropdown menus
- * Last updated 2026-07-29 for v2.4.0.b56 by @jgclark + @CursorAI
+ * Last updated 2026-09-16 for v2.5.0.b6 by @jgclark + @CursorAI
  */
 
 /* Content in just 1 column */
@@ -225,4 +225,16 @@
   display: flex; /* Use flexbox to center content */
   align-items: center; /* Vertically center the text */
   justify-content: center; /* Horizontally center the text */
+}
+
+/* Compact Display Density: tighter line-height for Filters / Feature Flags menu text */
+.density-compact .dropdown-content,
+.density-compact .dropdown .switch-label,
+.density-compact .dropdown .dropdown-heading,
+.density-compact .dropdown .dropdown-title,
+.density-compact .dropdown .dropdown-header,
+.density-compact .dropdown .changes-pending,
+.density-compact .dropdown .input-box-label,
+.density-compact .dropdown .input-box-input {
+  line-height: 1.175;
 }

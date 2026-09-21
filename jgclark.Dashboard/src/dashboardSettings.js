@@ -234,7 +234,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: 'displayDensity',
     label: 'Display Density',
-    description: 'Normal uses the standard spacing and text length. Compact tightens vertical spacing between items and truncates item text sooner, so more fits on screen.',
+    description: 'Normal uses the standard spacing and text length. Compact keeps each task on one row (truncating text and note title as needed), uses smaller text and icons, tightens vertical spacing, and shows note title only in the RHS link (no folder or teamspace name).',
     type: 'dropdown-select',
     options: ['Normal', 'Compact'],
     default: 'Normal',

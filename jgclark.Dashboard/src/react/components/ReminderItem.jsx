@@ -171,10 +171,12 @@ function ReminderItem({ item, thisSection }: Props): Node {
     <div className="sectionItemRow reminderItemRow" id={item.ID}>
       <StatusIcon item={item} respondToClicks={true} iconColor="rgba(from var(--fg-RemindersColor) r g b / 0.6)" />
       <div className="sectionItemContent reminderItemContent">
-        {contentEl}
-        <a className="dialogTriggerIcon">
-          <i className="fa-light fa-edit" onClick={handleClickToOpenEditDialog} title="Reminder actions"></i>
-        </a>
+        <span className="taskItemMainText">
+          {contentEl}
+          <a className="dialogTriggerIcon">
+            <i className="fa-light fa-edit" onClick={handleClickToOpenEditDialog} title="Reminder actions"></i>
+          </a>
+        </span>
         {listnameEl}
       </div>
     </div>

@@ -1,5 +1,5 @@
 /* CSS specific to ItemRow component and its children.
-/* Last updated 2026-09-10 for v2.5.0.b4, @jgclark */
+/* Last updated 2026-09-16 for v2.5.0.b6, @jgclark */
 
 /* Shared layout for task / reminder / project / message rows (was TaskItem.css + TasksFiltered.css) */
 .sectionItemRow {
@@ -40,11 +40,23 @@
 .density-compact .sectionItemContent {
 	padding: 0px 2px;
 	line-height: 1rem; /* ~10% tighter */
+	font-size: 0.9rem; /* ~10% smaller text */
+}
+
+/* Compact task/reminder rows: single-line layout (see ItemContent.css for flex + ellipsis) */
+.density-compact .taskItemContent,
+.density-compact .reminderItemContent {
+	text-wrap: nowrap;
 }
 
 .density-compact .itemIcon {
 	padding-block-start: 0px;
-	line-height: 80% /* ~20% tighter */
+	line-height: 80%; /* ~20% tighter */
+	font-size: 0.9rem !important; /* ~10% smaller icons */
+}
+
+.density-compact .emptyIcon {
+	width: 0.9rem;
 }
 
 /* Need to override some CSS that comes in the theme */
