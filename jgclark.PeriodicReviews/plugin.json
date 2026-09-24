@@ -11,7 +11,7 @@
   "plugin.changelog": "https://noteplan.co/plugins/jgclark.PeriodicReviews/CHANGELOG.md",
   "plugin.version": "2.0.0.b20",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "v2.0.0.b20: Review pre-fill includes the last active paragraph.",
+  "plugin.lastUpdateInfo": "v2.0.0.b20: Planning writes to an unloaded next-period note without opening it.",
   "plugin.requiredFiles": [
     "reviews.css"
   ],

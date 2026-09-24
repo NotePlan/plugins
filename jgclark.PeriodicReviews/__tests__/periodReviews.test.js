@@ -28,6 +28,7 @@ import {
   partitionReviewAnswerLinesForMixedUpsert,
   resolveCalendarNoteForPeriodTitle,
   taskContentIsSummaryWin,
+  writePlanningTasksToNextPeriodNote,
 } from '../src/periodReviews'
 import { buildReviewHTML } from '../src/reviewHTMLViewGenerator'
 import {
@@ -1311,6 +1312,39 @@ Ship: <tasks>`,
       expect(items.length).toBe(1)
       expect(items[0].isDone).toBe(false)
       expect(items[0].content).toContain('Sort new Santander')
+    })
+
+    it('writePlanningTasksToNextPeriodNote should create the next note via calendarNoteByDateString without opening Editor', async () => {
+      const insertHeading = jest.fn()
+      const insertParagraph = jest.fn()
+      const nextNote = {
+        title: '2026-09-25',
+        type: 'Calendar',
+        filename: '20260925.md',
+        paragraphs: [{ type: 'title', content: '2026-09-25', headingLevel: 1, lineIndex: 0 }],
+        insertHeading,
+        insertParagraph,
+        removeParagraph: jest.fn(),
+        appendParagraph: jest.fn(function appendParagraph(content, type) {
+          this.paragraphs.push({ type, content, lineIndex: this.paragraphs.length })
+        }),
+      }
+      DataStore.calendarNotes = []
+      DataStore.calendarNoteByDateString = jest.fn().mockReturnValue(nextNote)
+      DataStore.updateCache = jest.fn()
+      const openSpy = jest.fn()
+      global.Editor = { ...global.Editor, openNoteByTitle: openSpy }
+      await writePlanningTasksToNextPeriodNote(
+        { dayPlanItemsName: 'Big Wins', plannedItemsSuffix: '#win' },
+        '2026-09-24',
+        'day',
+        'Ship it',
+      )
+      expect(openSpy).not.toHaveBeenCalled()
+      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('2026-09-25')
+      expect(insertParagraph).toHaveBeenCalled()
+      DataStore.calendarNotes = undefined
+      DataStore.calendarNoteByDateString = undefined
     })
 
     it('extractPlanSectionItems should use configured priority for fallback marker matching', () => {

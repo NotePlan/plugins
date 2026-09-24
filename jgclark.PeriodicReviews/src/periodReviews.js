@@ -415,21 +415,14 @@ export async function writePlanningTasksToNextPeriodNote(
     const planName = getPlanItemsNameForPeriodType(config, periodType)
     const headingTitle = buildNextPeriodNotePlanSectionHeadingTitle(planName, nextTitle)
     logDebug('writePlanningTasksToNextPeriodNote', `planName='${planName}' headingTitle='${headingTitle}' / nextTitle='${nextTitle}'`)
-    let nextNote: ?TNote = getCalendarNoteByTitle(nextTitle)
+    let nextNote: ?TNote = resolveCalendarNoteForPeriodTitle(nextTitle, periodType)
     if (!nextNote && OPEN_NEXT_PERIOD_NOTE_AFTER_PLANNING) {
-      logDebug('writePlanningTasksToNextPeriodNote', `Note '${nextTitle}' not found, so opening it`)
+      logDebug('writePlanningTasksToNextPeriodNote', `Note '${nextTitle}' not found, so opening it in the editor`)
       await Editor.openNoteByTitle(nextTitle)
-      nextNote = getCalendarNoteByTitle(nextTitle) ?? Editor.note
+      nextNote = resolveCalendarNoteForPeriodTitle(nextTitle, periodType) ?? Editor.note
     }
     if (!nextNote) {
-      if (OPEN_NEXT_PERIOD_NOTE_AFTER_PLANNING) {
-        logError(pluginJson, `writePlanningTasksToNextPeriodNote: could not open calendar note '${nextTitle}'`)
-      } else {
-        logDebug(
-          'writePlanningTasksToNextPeriodNote',
-          `Note '${nextTitle}' not loaded and OPEN_NEXT_PERIOD_NOTE_AFTER_PLANNING is false, so skipping planning write`,
-        )
-      }
+      logError(pluginJson, `writePlanningTasksToNextPeriodNote: could not find or create calendar note '${nextTitle}'`)
       return
     }
 
@@ -546,6 +539,9 @@ async function processReviewQuestions(
         `Starting with open note '${displayTitle(openEditorNote)}' (${openPeriodTitle})` +
           (preferOpenSameKind && !titlesMatch ? ` — keeping editor instead of '${String(periodStringIn)}'` : ''),
       )
+    } else if (config.openCalendarNoteWhenReviewing === false) {
+      logDebug('processReviewQuestions', `openCalendarNoteWhenReviewing is false; resolving '${String(periodStringIn)}' without focusing Editor`)
+      reviewNote = resolveCalendarNoteForPeriodTitle(periodStringIn, periodType)
     } else {
       // use the passed periodStringIn to open the correct note
       logDebug('processReviewQuestions', `Starting by opening current ${periodAdjective} note '${String(periodStringIn)}'`)
