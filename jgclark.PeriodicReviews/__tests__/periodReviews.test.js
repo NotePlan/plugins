@@ -24,6 +24,7 @@ import {
 import {
   closePeriodicReviewWindow,
   extractPlanSectionItems,
+  getParagraphLineContentsForReviewScan,
   partitionReviewAnswerLinesForMixedUpsert,
   resolveCalendarNoteForPeriodTitle,
   taskContentIsSummaryWin,
@@ -577,6 +578,16 @@ Not Great: <string>`,
       expect(initial.q_8).toBe('Calm')
       expect(initial.q_9).toBe('Family time')
       expect(initial.q_10).toBe('something not great')
+    })
+
+    it('should include the last active paragraph (findEndOfActivePartOfNote is inclusive)', () => {
+      const note = {
+        paragraphs: [
+          { type: 'title', content: '2026-09-24', headingLevel: 1, lineIndex: 0 },
+          { type: 'text', content: 'Gratitude: last active line', headingLevel: -1, lineIndex: 1 },
+        ],
+      }
+      expect(getParagraphLineContentsForReviewScan(note)).toEqual(['2026-09-24', 'Gratitude: last active line'])
     })
 
     it('should prefer the first matching line when several exist', () => {

@@ -7,6 +7,7 @@ Note: this is a new plugin, forked from my original **Journalling Helpers** one.
 - Fix: Weekly Review now uses NotePlan week titles (`YYYY-Www`, ISO week-year via `getNPWeekStr`) instead of unpadded `YYYY-W{n}` with calendar year, so weeks 1–9 and year-boundary weeks open the correct note.
 - Fix: Save writes review answers to the calendar note for the review period (via loaded notes / `calendarNoteByDateString`), not whatever `Editor` currently has focused — important for Main Window and Split View.
 - Fix: `<number>` answers of `0` are written back (previously dropped because `Number('0')` is falsy).
+- Fix: pre-fill scan includes the last paragraph of the active note region (`findEndOfActivePartOfNote` is inclusive).
 
 ## [2.0.0.b19] - 2026-09-22
 - Fix: Save/Cancel again work in the review HTML window. WKWebView rejects `noteplan://` via `window.location.href` (`unsupported URL`), so submit/cancel again use jsBridge as primary. Close reliability still relies on close-after-writes plus verified / deferred close on the plugin side.

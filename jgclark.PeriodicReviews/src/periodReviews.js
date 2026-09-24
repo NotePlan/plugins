@@ -590,14 +590,19 @@ async function processReviewQuestions(
 //-------------------------------------------------------------
 
 /**
- * Paragraph text lines to scan for existing review answers: active part of the note (from start through end of active region).
+ * Paragraph text lines to scan for existing review answers: active part of the note (from start through end of active region, inclusive).
+ * @tests in jest file
  * @param {TNote} note
  * @returns {Array<string>}
  */
-function getParagraphLineContentsForReviewScan(note: TNote): Array<string> {
+export function getParagraphLineContentsForReviewScan(note: TNote): Array<string> {
+  const paras = note.paragraphs ?? []
   const endOfActiveLineIndex = findEndOfActivePartOfNote(note)
-  const paragraphTextLines = note.paragraphs.slice(0, endOfActiveLineIndex).map((p) => p.content) ?? []
-  return paragraphTextLines
+  const endInclusive = Number.isNaN(endOfActiveLineIndex) ? -1 : Math.min(endOfActiveLineIndex, paras.length - 1)
+  if (endInclusive < 0) {
+    return []
+  }
+  return paras.slice(0, endInclusive + 1).map((p) => p.content)
 }
 
 /**
