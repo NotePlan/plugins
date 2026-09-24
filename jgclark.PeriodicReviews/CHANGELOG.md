@@ -9,6 +9,7 @@ Note: this is a new plugin, forked from my original **Journalling Helpers** one.
 - Fix: `<number>` answers of `0` are written back (previously dropped because `Number('0')` is falsy).
 - Fix: pre-fill scan includes the last paragraph of the active note region (`findEndOfActivePartOfNote` is inclusive).
 - Fix: planning tasks for the next period are written via `calendarNoteByDateString` when that note is not already loaded, without stealing editor focus.
+- Fix: **Open the calendar note when reviewing it?** is honored. When false, the review uses the period note from DataStore without focusing it in the editor.
 
 ## [2.0.0.b19] - 2026-09-22
 - Fix: Save/Cancel again work in the review HTML window. WKWebView rejects `noteplan://` via `window.location.href` (`unsupported URL`), so submit/cancel again use jsBridge as primary. Close reliability still relies on close-after-writes plus verified / deferred close on the plugin side.

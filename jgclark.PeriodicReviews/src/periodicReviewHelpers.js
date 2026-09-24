@@ -386,6 +386,17 @@ export function shouldUseOpenEditorCalendarNote(
   return preferOpenSameKind || titlesMatch
 }
 
+/**
+ * Whether review commands should `Editor.openNoteByTitle` when no matching calendar note is already open.
+ * Default true when the setting is missing (matches plugin.json).
+ * @tests in jest file
+ * @param {PeriodicReviewConfigType} config
+ * @returns {boolean}
+ */
+export function shouldFocusCalendarNoteWhenReviewing(config: PeriodicReviewConfigType): boolean {
+  return config.openCalendarNoteWhenReviewing !== false
+}
+
 /** Default plan-item labels when the setting key is missing (not when intentionally blank). */
 // TODO: make this look at the plugin.json "default" for the "key" below
 const PLAN_ITEMS_NAME_DEFAULTS: { [string]: string } = {

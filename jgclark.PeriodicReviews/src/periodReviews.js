@@ -21,6 +21,7 @@ import {
   getReviewPeriodTitleStringFromCalendarNote,
   getSectionHeadingForPeriod,
   normalizePlanningTaskLinesFromForm,
+  shouldFocusCalendarNoteWhenReviewing,
   shouldUseOpenEditorCalendarNote,
   summaryTaskLineDedupeKey,
   taskContentIsSummaryWin,
@@ -539,7 +540,7 @@ async function processReviewQuestions(
         `Starting with open note '${displayTitle(openEditorNote)}' (${openPeriodTitle})` +
           (preferOpenSameKind && !titlesMatch ? ` — keeping editor instead of '${String(periodStringIn)}'` : ''),
       )
-    } else if (config.openCalendarNoteWhenReviewing === false) {
+    } else if (!shouldFocusCalendarNoteWhenReviewing(config)) {
       logDebug('processReviewQuestions', `openCalendarNoteWhenReviewing is false; resolving '${String(periodStringIn)}' without focusing Editor`)
       reviewNote = resolveCalendarNoteForPeriodTitle(periodStringIn, periodType)
     } else {

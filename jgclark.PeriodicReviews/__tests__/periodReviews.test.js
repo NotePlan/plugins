@@ -16,6 +16,7 @@ import {
   getReviewPeriodTitleStringFromCalendarNote,
   mergeUniqueSummaryDoneTaskLines,
   normalizePlanningTaskLinesFromForm,
+  shouldFocusCalendarNoteWhenReviewing,
   shouldUseOpenEditorCalendarNote,
   splitMergedSummaryDoneLinesIntoWinsAndOthers,
   substituteReviewPeriodPlaceholders,
@@ -241,6 +242,12 @@ Do: <tasks>`
       filename: '20260517.md',
       title: 'Friday thoughts',
     }
+
+    it('shouldFocusCalendarNoteWhenReviewing should default true and honor false', () => {
+      expect(shouldFocusCalendarNoteWhenReviewing({})).toBe(true)
+      expect(shouldFocusCalendarNoteWhenReviewing({ openCalendarNoteWhenReviewing: true })).toBe(true)
+      expect(shouldFocusCalendarNoteWhenReviewing({ openCalendarNoteWhenReviewing: false })).toBe(false)
+    })
 
     it('shouldUseOpenEditorCalendarNote should prefer open daily note over today when preferOpenSameKind', () => {
       expect(shouldUseOpenEditorCalendarNote(yesterdayDaily, 'day', '2026-05-18', true)).toBe(true)

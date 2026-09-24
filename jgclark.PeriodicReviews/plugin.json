@@ -11,7 +11,7 @@
   "plugin.changelog": "https://noteplan.co/plugins/jgclark.PeriodicReviews/CHANGELOG.md",
   "plugin.version": "2.0.0.b20",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "v2.0.0.b20: Planning writes to an unloaded next-period note without opening it.",
+  "plugin.lastUpdateInfo": "v2.0.0.b20: Honor Open the calendar note when reviewing it?",
   "plugin.requiredFiles": [
     "reviews.css"
   ],
@@ -127,7 +127,7 @@
     {
       "key": "openCalendarNoteWhenReviewing",
       "title": "Open the calendar note when reviewing it?",
-      "description": "If true, the plugin automatically opens the current daily/weekly/monthly/quarterly/yearly note before running review questions.",
+      "description": "If true, the plugin automatically opens the current daily/weekly/monthly/quarterly/yearly note before running review questions. If false, the period note is used without switching the editor (answers still write to that calendar note).",
       "type": "bool",
       "default": true,
       "required": true
