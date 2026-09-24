@@ -11,7 +11,7 @@
   "plugin.changelog": "https://noteplan.co/plugins/jgclark.PeriodicReviews/CHANGELOG.md",
   "plugin.version": "2.0.0.b20",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "v2.0.0.b20: Summary checklists/all-day events, boolean case, plan-name and #win defaults.",
+  "plugin.lastUpdateInfo": "v2.0.0: First release of the new Periodic Reviews plugin, building on earlier 'Journalling Helpers' plugin (v1).",
   "plugin.requiredFiles": [
     "reviews.css"
   ],
