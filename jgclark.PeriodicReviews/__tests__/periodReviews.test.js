@@ -1,4 +1,4 @@
-/* globals describe, expect, it, beforeAll, beforeEach */
+/* globals describe, expect, it, beforeAll, beforeEach, afterEach */
 
 // Last updated: 2026-09-24 for v2.0.0.b20 by @jgclark / @CursorAI
 
@@ -25,6 +25,7 @@ import {
   closePeriodicReviewWindow,
   extractPlanSectionItems,
   partitionReviewAnswerLinesForMixedUpsert,
+  resolveCalendarNoteForPeriodTitle,
   taskContentIsSummaryWin,
 } from '../src/periodReviews'
 import { buildReviewHTML } from '../src/reviewHTMLViewGenerator'
@@ -1155,6 +1156,39 @@ Ship: <tasks>`,
       const result = closePeriodicReviewWindow(false)
       expect(result).toBe(false)
       expect(openURL).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('resolveCalendarNoteForPeriodTitle', () => {
+    const originalCalendarNotes = DataStore.calendarNotes
+    const originalByDateString = DataStore.calendarNoteByDateString
+
+    afterEach(() => {
+      DataStore.calendarNotes = originalCalendarNotes
+      DataStore.calendarNoteByDateString = originalByDateString
+    })
+
+    it('should return the calendar note with matching title from DataStore.calendarNotes', () => {
+      const note = { title: '2026-09-24', type: 'Calendar', filename: '20260924.md' }
+      DataStore.calendarNotes = [note]
+      DataStore.calendarNoteByDateString = jest.fn()
+      expect(resolveCalendarNoteForPeriodTitle('2026-09-24', 'day')).toBe(note)
+      expect(DataStore.calendarNoteByDateString).not.toHaveBeenCalled()
+    })
+
+    it('should use calendarNoteByDateString when the note is not already loaded', () => {
+      const created = { title: '2026-09-25', type: 'Calendar', filename: '20260925.md' }
+      DataStore.calendarNotes = []
+      DataStore.calendarNoteByDateString = jest.fn().mockReturnValue(created)
+      expect(resolveCalendarNoteForPeriodTitle('2026-09-25', 'day')).toBe(created)
+      expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('2026-09-25')
+    })
+
+    it('should not write to a mismatched Editor when the period note cannot be found', () => {
+      DataStore.calendarNotes = []
+      DataStore.calendarNoteByDateString = jest.fn().mockReturnValue(null)
+      global.Editor = { title: 'Some other note', paragraphs: [] }
+      expect(resolveCalendarNoteForPeriodTitle('2026-09-24', 'day')).toBeFalsy()
     })
   })
 

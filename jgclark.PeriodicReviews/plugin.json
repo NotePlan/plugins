@@ -11,7 +11,7 @@
   "plugin.changelog": "https://noteplan.co/plugins/jgclark.PeriodicReviews/CHANGELOG.md",
   "plugin.version": "2.0.0.b20",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "v2.0.0.b20: Weekly Review uses NotePlan week titles (YYYY-Www / ISO week-year).",
+  "plugin.lastUpdateInfo": "v2.0.0.b20: Save writes answers to the review calendar note, not the focused Editor.",
   "plugin.requiredFiles": [
     "reviews.css"
   ],

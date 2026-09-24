@@ -265,16 +265,64 @@ function insertPlanSectionAtActiveStart(note: TNote, headingTitle: string, taskL
 }
 
 /**
- * Calendar note whose title equals `title` (trimmed), if any.
+ * Calendar note whose title (or derived period title) equals `title` (trimmed), if any.
  * @param {string} title
+ * @param {string} [periodType='']
  * @returns {TNote | null}
  */
-function getCalendarNoteByTitle(title: string): TNote | null {
+function getCalendarNoteByTitle(title: string, periodType: string = ''): TNote | null {
   const want = String(title).trim()
+  if (want === '') {
+    return null
+  }
   const notes = DataStore.calendarNotes ?? []
+  const resolvedType = periodType !== '' ? periodType : getPeriodOfNPDateStr(want)
+  const canDeriveTitle = resolvedType !== '' && resolvedType !== '(error)'
   for (const n of notes) {
     if (String(n.title ?? '').trim() === want) {
       return n
+    }
+    if (canDeriveTitle) {
+      const derived = getReviewPeriodTitleStringFromCalendarNote(n, resolvedType)
+      if (derived === want) {
+        return n
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * Calendar note for a period title without requiring it to be focused in Editor.
+ * Tries loaded calendar notes, then `DataStore.calendarNoteByDateString` (can create an empty future note),
+ * then an open editor of the matching period kind whose title matches.
+ * @tests in jest file
+ * @param {string} periodString
+ * @param {string} [periodType='']
+ * @returns {?TNote}
+ */
+export function resolveCalendarNoteForPeriodTitle(periodString: string, periodType: string = ''): ?TNote {
+  const want = String(periodString ?? '').trim()
+  if (want === '') {
+    return null
+  }
+  const fromList = getCalendarNoteByTitle(want, periodType)
+  if (fromList) {
+    return fromList
+  }
+  if (typeof DataStore.calendarNoteByDateString === 'function') {
+    const fromApi = DataStore.calendarNoteByDateString(want)
+    if (fromApi) {
+      return fromApi
+    }
+  }
+  if (periodType !== '') {
+    const openNote = getOpenEditorNoteForReview(periodType)
+    if (openNote != null) {
+      const openTitle = getReviewPeriodTitleStringFromCalendarNote(openNote, periodType)
+      if (openTitle === want) {
+        return openNote
+      }
     }
   }
   return null
@@ -830,14 +878,13 @@ async function writeAnswersToNote(
       }
     }
 
-    // Get the correct Editor for the calendar note
-    // TODO: find the right existing helper/dateTime.js or /NPdateTime.js function to use periodString to get the correct note
-    
-    // $FlowIgnore(incompatible-call) .note is a superset of CoreNoteFields
-    const outputNote = Editor
     const resolvedPeriodType = periodType !== '' ? periodType : getPeriodOfNPDateStr(periodString)
+    const outputNote = resolveCalendarNoteForPeriodTitle(periodString, resolvedPeriodType)
+    if (!outputNote) {
+      logError(pluginJson, `writeAnswersToNote: could not find calendar note '${periodString}' (${resolvedPeriodType}); not writing to Editor`)
+      return
+    }
     const sectionHeading = getSectionHeadingForPeriod(config, resolvedPeriodType)
-    // $FlowIgnore[incompatible-call] .note is a superset of CoreNoteFields
     logDebug(pluginJson, `Appending answers to heading '${sectionHeading}' in note ${displayTitle(outputNote)}`)
     const matchedHeading = findHeadingStartsWith(outputNote, sectionHeading)
     const headingToUse = matchedHeading ? matchedHeading : sectionHeading
@@ -863,9 +910,7 @@ async function writeAnswersToNote(
         true,
         true)
     }
-    if (outputNote.note) {
-      DataStore.updateCache(outputNote.note, true)
-    }
+    DataStore.updateCache(outputNote, true)
   } catch (err) {
     logError(pluginJson, `writeAnswersToNote: ${err.message}`)
   }
