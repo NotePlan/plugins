@@ -47,6 +47,12 @@ describe('canvasClient pure helpers', () => {
     expect(html).not.toContain('<script>x')
   })
 
+  test('renderMarkdown renders checkboxes', () => {
+    const html = client.renderMarkdown('- [ ] todo\n- [x] done')
+    expect(html).toContain('◻️ todo')
+    expect(html).toContain('✅ done')
+  })
+
   test('autoSides picks facing sides', () => {
     const a = { x: 0, y: 0, width: 100, height: 100 }
     const right = { x: 500, y: 0, width: 100, height: 100 }

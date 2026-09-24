@@ -42,6 +42,8 @@
       .map(function (line) {
         var h = line.match(/^(#{1,6})\s+(.*)$/)
         if (h) return '<h' + h[1].length + '>' + inlineMd(h[2]) + '</h' + h[1].length + '>'
+        var cb = line.match(/^\s*[-*]\s+\[( |x|X)\]\s*(.*)$/)
+        if (cb) return '<p class="li">' + (cb[1] === ' ' ? '◻️' : '✅') + ' ' + inlineMd(cb[2]) + '</p>'
         if (/^\s*[-*]\s+/.test(line)) return '<p class="li">•&nbsp;' + inlineMd(line.replace(/^\s*[-*]\s+/, '')) + '</p>'
         if (line.trim() === '') return '<p class="blank"></p>'
         return '<p>' + inlineMd(line) + '</p>'
@@ -620,16 +622,62 @@
 
   // ---------- node creation ----------
 
-  function createTextNode(wx, wy) {
+  var NEW_NODE_DEFAULTS = {
+    text: { width: 250, height: 60, props: { text: '' } },
+    file: { width: 320, height: 180, props: { file: '' } },
+    link: { width: 300, height: 60, props: { url: '' } },
+    group: { width: 500, height: 360, props: { label: '' } },
+  }
+
+  function createNode(kind, wx, wy) {
+    var def = NEW_NODE_DEFAULTS[kind]
     pushUndo()
-    var n = { id: genId(), type: 'text', text: '', x: Math.round(wx - 125), y: Math.round(wy - 30), width: 250, height: 60 }
+    var n = { id: genId(), type: kind, x: Math.round(wx - def.width / 2), y: Math.round(wy - def.height / 2), width: def.width, height: def.height }
+    Object.keys(def.props).forEach(function (k) { n[k] = def.props[k] })
     canvas.nodes.push(n)
     clearSelection()
     selectedNodes.add(n.id)
     renderScene()
     persist()
     var el = world.querySelector('.node[data-id="' + CSS.escape(n.id) + '"]')
-    if (el) editTextNode(el)
+    if (!el) return
+    if (kind === 'text') editTextNode(el)
+    else if (kind === 'file') editCardValue(el, 'file')
+    else if (kind === 'link') editLinkCard(el)
+    else if (kind === 'group') editGroupLabel(el)
+  }
+
+  function createTextNode(wx, wy) {
+    createNode('text', wx, wy)
+  }
+
+  /** ⌘G: wrap the selected nodes in a new group */
+  function groupSelection() {
+    if (!selectedNodes.size) return
+    var xs = [], ys = [], x2 = [], y2 = []
+    canvas.nodes.forEach(function (n) {
+      if (!selectedNodes.has(n.id)) return
+      xs.push(n.x); ys.push(n.y); x2.push(n.x + n.width); y2.push(n.y + n.height)
+    })
+    if (!xs.length) return
+    pushUndo()
+    var PAD = 30
+    var g = {
+      id: genId(),
+      type: 'group',
+      label: '',
+      x: Math.min.apply(null, xs) - PAD,
+      y: Math.min.apply(null, ys) - PAD,
+      width: Math.max.apply(null, x2) - Math.min.apply(null, xs) + PAD * 2,
+      height: Math.max.apply(null, y2) - Math.min.apply(null, ys) + PAD * 2,
+    }
+    canvas.nodes.push(g)
+    clearSelection()
+    selectedNodes.add(g.id)
+    renderScene()
+    persist()
+    var el = world.querySelector('.node[data-id="' + CSS.escape(g.id) + '"]')
+    if (el) editGroupLabel(el)
   }
 
   // ---------- drag / pan / marquee state machine ----------
@@ -640,7 +688,7 @@
   var marqueeEl = null, marqueeStart = null
 
   viewport.addEventListener('mousedown', function (e) {
-    if (e.target.closest('textarea, input, #toolbar')) return
+    if (e.target.closest('textarea, input, #toolbar, #palette')) return
     // inline links inside text content keep native click behavior and never start a drag;
     // card-level links (file/link nodes) fall through so the card can be selected/dragged
     if (e.target.closest('.content a')) return
@@ -726,15 +774,17 @@
       updateSelectionUI()
       return
     }
+    // Obsidian-style: plain drag on the background draws a selection rectangle;
+    // panning is scroll/trackpad (or hold Shift to drag-pan)
     if (e.shiftKey) {
+      mode = 'pan'
+      viewport.classList.add('panning')
+    } else {
       mode = 'marquee'
       marqueeStart = { x: e.clientX, y: e.clientY }
       marqueeEl = document.createElement('div')
       marqueeEl.id = 'marquee'
       viewport.appendChild(marqueeEl)
-    } else {
-      mode = 'pan'
-      viewport.classList.add('panning')
     }
   })
 
@@ -783,11 +833,16 @@
     if (mode === 'drag' && moved) persist()
     if (mode === 'link' && edgeDraft) finishEdge(e)
     if (mode === 'marquee') {
-      var r = marqueeEl.getBoundingClientRect()
-      var w1 = toWorld(r.left, r.top), w2 = toWorld(r.right, r.bottom)
-      canvas.nodes.forEach(function (n) {
-        if (n.x < w2.x && n.x + n.width > w1.x && n.y < w2.y && n.y + n.height > w1.y) selectedNodes.add(n.id)
-      })
+      if (moved) {
+        var r = marqueeEl.getBoundingClientRect()
+        var w1 = toWorld(r.left, r.top), w2 = toWorld(r.right, r.bottom)
+        canvas.nodes.forEach(function (n) {
+          if (n.type === 'group') return // rubber-band selects cards, not surrounding groups
+          if (n.x < w2.x && n.x + n.width > w1.x && n.y < w2.y && n.y + n.height > w1.y) selectedNodes.add(n.id)
+        })
+      } else if (!e.target.closest('.node, a, #toolbar, #palette, .edge-hit, .edge-line')) {
+        clearSelection() // plain click on the background deselects
+      }
       marqueeEl.remove()
       marqueeEl = null
       updateSelectionUI()
@@ -818,6 +873,12 @@
       if (noteTitle) { e.preventDefault(); toPlugin('openNote', { title: noteTitle }) }
       return // external URL cards keep the default ⌘+click open (target=_blank)
     }
+    var paletteBtn = e.target.closest('#palette button')
+    if (paletteBtn) {
+      var c = toWorld(viewport.clientWidth / 2, viewport.clientHeight / 2)
+      createNode(paletteBtn.dataset.new, c.x, c.y)
+      return
+    }
     var openBtn = e.target.closest('.open-btn')
     if (openBtn && !moved) {
       toPlugin('openNote', { title: openBtn.closest('.node').dataset.noteTitle })
@@ -830,6 +891,7 @@
     }
     var swatch = e.target.closest('#toolbar .swatch')
     if (swatch) { applyColor(swatch.dataset.color || null); return }
+    if (e.target.closest('#toolbar .tb-group')) { groupSelection(); return }
     if (e.target.closest('#toolbar .tb-delete')) deleteSelection()
   })
 
@@ -841,6 +903,7 @@
     if (meta && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return }
     if (meta && (e.key === 'Z' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return }
     if (meta && e.key === 'd') { e.preventDefault(); duplicateSelection(); return }
+    if (meta && e.key === 'g') { e.preventDefault(); groupSelection(); return }
     if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); deleteSelection(); return }
     if (e.key === 'Escape') { clearSelection(); updateSelectionUI(); return }
     if (/^[1-6]$/.test(e.key)) { applyColor(e.key); return }
@@ -850,7 +913,7 @@
   window.addEventListener('resize', fit)
 
   // ---------- boot ----------
-  console.log('canvasClient v0.4.4 booted: ' + canvas.nodes.length + ' nodes, ' + canvas.edges.length + ' edges')
+  console.log('canvasClient v0.5.0 booted: ' + canvas.nodes.length + ' nodes, ' + canvas.edges.length + ' edges')
   renderScene()
   fit()
 })()

@@ -34,7 +34,12 @@ window.__fileContents = ${inlineJSON(fileContents)}
 </script>
 <div id="viewport">
   <div id="world"></div>
-  <div id="toolbar">${SWATCHES}<div class="swatch swatch-none" title="No color">×</div><div class="tb-delete" title="Delete (⌫)">🗑</div></div>
+  <div id="toolbar">${SWATCHES}<div class="swatch swatch-none" title="No color">×</div><div class="tb-group" title="Згрупувати виділене (⌘G)">⊞</div><div class="tb-delete" title="Delete (⌫)">🗑</div></div>
+  <div id="palette">
+    <button data-new="text" title="Нова текстова картка (або двоклік по фону)">＋ текст</button>
+    <button data-new="file" title="Нова картка-нотатка">＋ нотатка</button>
+    <button data-new="group" title="Нова група (⌘G — згрупувати виділене)">＋ група</button>
+  </div>
   <div id="hud"><span id="title">${escapeHtml(title)}</span><span id="zoom-level"></span></div>
 </div>
 <script type="text/javascript" src="./canvasClient.js"></script>
@@ -43,7 +48,7 @@ window.__fileContents = ${inlineJSON(fileContents)}
 
 const CSS = `
 html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; }
-#viewport { position: absolute; inset: 0; overflow: hidden; cursor: grab;
+#viewport { position: absolute; inset: 0; overflow: hidden; cursor: default;
   background: var(--bg-main-color, #1e1e1e);
   background-image: radial-gradient(circle, rgba(128,128,128,0.25) 1px, transparent 1px);
   background-size: 24px 24px; }
@@ -95,7 +100,9 @@ html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; }
 .handle-s { bottom: -6px; left: calc(50% - 5px); cursor: ns-resize; }
 .handle-sw { bottom: -6px; left: -6px; cursor: nesw-resize; }
 .handle-w { left: -6px; top: calc(50% - 5px); cursor: ew-resize; }
-#edges { position: absolute; z-index: 1; overflow: visible; }
+/* pointer-events none is load-bearing: the svg spans the whole canvas ABOVE groups
+   (z 1 vs 0), so without it the transparent svg box eats every click on a group */
+#edges { position: absolute; z-index: 1; overflow: visible; pointer-events: none; }
 .edge-line { fill: none; stroke-width: 2; pointer-events: none; }
 .edge-line.selected { stroke-width: 4; filter: drop-shadow(0 0 3px #4da3ff); }
 .edge-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
@@ -118,7 +125,16 @@ html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; }
 #toolbar .swatch[data-color="4"] { background: #08b94e; }
 #toolbar .swatch[data-color="5"] { background: #00bfbc; }
 #toolbar .swatch[data-color="6"] { background: #7852ee; }
+#toolbar .tb-group { cursor: pointer; font-size: 17px; margin-left: 6px; color: var(--fg-main-color, #d4d4d4); }
+#toolbar .tb-group:hover, #toolbar .tb-delete:hover { transform: scale(1.15); }
 #toolbar .tb-delete { cursor: pointer; font-size: 15px; margin-left: 4px; }
+#palette { position: fixed; top: 10px; left: 10px; z-index: 30; display: flex; flex-direction: column;
+  gap: 4px; padding: 6px; border-radius: 10px; background: rgba(30,30,30,0.9);
+  border: 1px solid rgba(128,128,128,0.35); }
+#palette button { border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; text-align: left;
+  font-family: -apple-system, sans-serif; cursor: pointer; background: transparent;
+  color: var(--fg-main-color, #d4d4d4); }
+#palette button:hover { background: rgba(128,128,128,0.25); }
 #hud { position: fixed; bottom: 10px; left: 12px; z-index: 10; font-family: -apple-system, sans-serif;
   font-size: 12px; color: rgba(128,128,128,0.9); user-select: none; }
 #zoom-level { margin-left: 10px; }
@@ -127,6 +143,7 @@ html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; }
   .node { background: var(--bg-alt-color, #ffffff); color: var(--fg-main-color, #222); }
   .node textarea { background: var(--bg-alt-color, #ffffff); }
   #toolbar { background: rgba(250,250,250,0.95); }
+  #palette { background: rgba(250,250,250,0.95); }
   .label-input { background: #fff; color: #222; }
 }
 `

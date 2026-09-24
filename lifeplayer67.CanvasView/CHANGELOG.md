@@ -1,5 +1,19 @@
 # Canvas View Changelog
 
+## [0.5.0] - 2026-09-24 (unreleased)
+
+- Groups fixed: the edges SVG layer sat above groups and swallowed their clicks —
+  now clicks pass through, so groups select, drag, resize and rename normally.
+- Group creation: ⌘G wraps the current selection in a group; the palette also has
+  a "＋ група" button.
+- New-card palette (top-left): create text, note (file) and group cards; the right
+  editor opens immediately after creation. (No separate "link" button — text cards
+  autolink URLs; the link node type is still read/rendered for Obsidian compatibility.)
+- Obsidian-style selection: plain drag on the background draws a rubber-band
+  selection (Shift+drag pans; scroll/trackpad pans as before). The selection toolbar
+  gained a ⊞ button that wraps the selected cards in a group.
+- Markdown: `- [ ]` / `- [x]` checkboxes render in cards.
+
 ## [0.4.1] - 2026-09-24 (unreleased)
 
 - File cards render the linked note's CONTENT (like Obsidian) and edit it inline:
