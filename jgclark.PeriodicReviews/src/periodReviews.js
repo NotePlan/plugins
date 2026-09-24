@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2026-09-24 for v2.0.0.b22 by @jgclark / @CursorAI
+// last update 2026-09-24 for v2.0.0.b23 by @jgclark / @CursorAI
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -340,37 +340,40 @@ export function resolveCalendarNoteForPeriodTitle(periodString: string, periodTy
 }
 
 /**
- * Return task lines for the review summary from:
- * - the configured 'planName' section (if given)
- * - any with the configured "big task marker" priority (if 'planName' is empty, or can't find the 'planName' section)
- * Note: The heading match is partial + case insensitive.
+ * Return task lines for the review summary carry-over from:
+ * - the H2 Save writes onto this note (`{planName} for {this period title}`), when `planSectionHeading` is non-empty and found
+ * - otherwise any tasks in the active note with the configured big-task marker priority (blank planned-items heading, or heading missing)
+ * Heading match is a partial includes() via `findHeading(..., true)`.
  * @tests in jest file
  * @param {TNote} note
- * @param {string} planName (e.g. 'Big Rocks', or empty)
+ * @param {string} planSectionHeading e.g. 'Big Wins for 2026-09-24', or '' when planName is blank
+ * @param {any} [config]
  * @returns {Array<{ content: string, isDone: boolean }>}
  */
 export function extractPlanSectionItems(
   note: TNote,
-  planName: string = '',
+  planSectionHeading: string = '',
   config?: any,
 ): Array<{ content: string, isDone: boolean }> {
   const paras = note.paragraphs ?? []
-  let start = findStartOfActivePartOfNote(note)
+  const start = findStartOfActivePartOfNote(note)
   const end = findEndOfActivePartOfNote(note)
+  const headingKey = String(planSectionHeading ?? '').trim()
   const out: Array<{ content: string, isDone: boolean }> = []
 
-  // Get relevant set of paras to parse
-  if (planName !== '') {
-    const headingPara = findHeading(note, planName, true)
+  if (headingKey !== '') {
+    const headingPara = findHeading(note, headingKey, true)
     if (headingPara != null) {
       const heading = headingPara.content
+      const headingStart = headingPara.lineIndex ?? 0
       logDebug('extractPlanSectionItems', `- matched heading '${heading}'`)
-      start = headingPara.lineIndex ?? 0
-      logDebug('extractPlanSectionItems', `Found heading ${heading}, so processing lines ${String(start + 1)}-${String(end)}`)
-      for (let i = start + 1; i <= end; i++) {
+      logDebug('extractPlanSectionItems', `Found heading ${heading}, so processing lines ${String(headingStart + 1)}-${String(end)}`)
+      for (let i = headingStart + 1; i <= end; i++) {
         const p = paras[i]
+        if (p == null) {
+          continue
+        }
         if (p.type === 'title' && (p.headingLevel ?? 99) <= 2) {
-          // We're now in a different section, so stop processing
           break
         }
         if (!PLAN_SECTION_PARA_TYPES.has(String(p.type))) {
@@ -380,15 +383,17 @@ export function extractPlanSectionItems(
         out.push({ content: p.content, isDone })
       }
       return out
-    } else {
-      logDebug('extractPlanSectionItems', `Can't find a heading including '${planName}', so will now look for any other big-task items (${getBigTaskMarkerFromConfig(config)})`)
     }
+    logDebug('extractPlanSectionItems', `Can't find a heading including '${headingKey}', so will now look for any other big-task items (${getBigTaskMarkerFromConfig(config)})`)
   }
 
   const bigTaskPriority = getBigTaskPriorityFromConfig(config ?? {})
-  logDebug('extractPlanSectionItems', `Will look for priority ${String(bigTaskPriority)} tasks in lines ${String(start + 1)}-${String(end)}`)
-  for (let i = start + 1; i <= end; i++) {
+  logDebug('extractPlanSectionItems', `Will look for priority ${String(bigTaskPriority)} tasks in lines ${String(start)}-${String(end)}`)
+  for (let i = start; i <= end; i++) {
     const p = paras[i]
+    if (p == null) {
+      continue
+    }
     if (!PLAN_SECTION_PARA_TYPES.has(String(p.type))) {
       continue
     }
@@ -713,7 +718,8 @@ async function displayQuestionsWindow(
   const scanLines = getParagraphLineContentsForReviewScan(calendarNote)
   const initialAnswers = buildInitialReviewAnswersByFieldName(parsedQuestions, scanLines)
   const planName = getPlanItemsNameForPeriodType(config, periodType)
-  const carryOverPlanItems = extractPlanSectionItems(calendarNote, '', config) // TEST: trying without sending planName parameter
+  const planSectionHeading = buildNextPeriodNotePlanSectionHeadingTitle(planName, periodString)
+  const carryOverPlanItems = extractPlanSectionItems(calendarNote, planSectionHeading, config)
 
   // Build the HTML body for the review window from this data
   const htmlBody = buildReviewHTML(

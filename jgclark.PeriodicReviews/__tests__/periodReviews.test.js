@@ -1570,5 +1570,46 @@ Ship: <tasks>`,
       expect(items[0].isDone).toBe(false)
       expect(items[0].content).toContain('Priority 3 goal')
     })
+
+    it('extractPlanSectionItems should take all tasks under {planName} for {period} and ignore >> elsewhere', () => {
+      const heading = buildNextPeriodNotePlanSectionHeadingTitle('Big Wins', '2026-09-24')
+      expect(heading).toBe('Big Wins for 2026-09-24')
+      const note = {
+        paragraphs: [
+          { type: 'title', headingLevel: 1, content: '2026-09-24', lineIndex: 0 },
+          { type: 'title', headingLevel: 2, content: heading, lineIndex: 1 },
+          { type: 'open', content: 'Ship the plugin', lineIndex: 2 },
+          { type: 'done', content: 'Inbox zero @done(2026-09-24)', lineIndex: 3 },
+          { type: 'title', headingLevel: 2, content: 'Work', lineIndex: 4 },
+          { type: 'open', content: '>> Unrelated high priority', lineIndex: 5 },
+        ],
+      }
+      const items = extractPlanSectionItems(note, heading)
+      expect(items.map((i) => i.content)).toEqual(['Ship the plugin', 'Inbox zero @done(2026-09-24)'])
+      expect(items[0].isDone).toBe(false)
+      expect(items[1].isDone).toBe(true)
+    })
+
+    it('extractPlanSectionItems should include a big-task on the first active line when plan heading is blank', () => {
+      const note = {
+        paragraphs: [{ type: 'open', content: '>> First line win', lineIndex: 0 }],
+      }
+      const items = extractPlanSectionItems(note, '')
+      expect(items.length).toBe(1)
+      expect(items[0].content).toContain('First line win')
+    })
+
+    it('extractPlanSectionItems should fall back to whole-note big-task scan when the plan heading is missing', () => {
+      const note = {
+        paragraphs: [
+          { type: 'title', headingLevel: 1, content: '2026-09-24', lineIndex: 0 },
+          { type: 'title', headingLevel: 2, content: 'Work', lineIndex: 1 },
+          { type: 'open', content: '>> Orphan win', lineIndex: 2 },
+        ],
+      }
+      const items = extractPlanSectionItems(note, 'Big Wins for 2026-09-24')
+      expect(items.length).toBe(1)
+      expect(items[0].content).toContain('Orphan win')
+    })
   })
 })

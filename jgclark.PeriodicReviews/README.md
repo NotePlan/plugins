@@ -72,7 +72,7 @@ If none is open:
 The review window can move to the previous or next period of the same kind.
 
 The window first shows a **Summary** section:
-- **Carry-over plan items** — tasks in this note that use your configured big-task marker (`>>` / `!!!` / `!!`), including cancelled ones (shown as not done). Expanded by default.
+- **Carry-over plan items** — tasks under this note’s planned-items H2 (`{heading} for {this period}`, e.g. `Big Wins for 2026-09-24`), including those without a big-task marker. If that heading is blank (or missing), tasks anywhere in the note that use your configured big-task marker (`>>` / `!!!` / `!!`) are listed instead, including cancelled ones (shown as not done). Expanded by default.
 - **Daily** reviews also list completed tasks and checklists for the period (from calendar and regular notes that changed, using `@done` dates in range), with `#win` / `#bigwin` / big-task-marker lines first. They also list calendar events for the day (timed and all-day; optionally filtered by **Calendars to include in review summaries**).
 - **Weekly** reviews list **wins** for the week the same way (not a full completed-task list).
 - **Monthly / quarterly / yearly** reviews do not show those completed-task blocks.

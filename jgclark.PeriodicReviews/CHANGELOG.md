@@ -3,6 +3,9 @@ _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
+## [2.0.0.b23] - 2026-09-24
+- Fix: Summary carry-over uses the planned-items H2 on this note (`{planName} for {period title}`). Tasks under that heading are listed even without a big-task marker; unrelated `>>` elsewhere are ignored. If the heading name is blank or the H2 is missing, big-task-marker tasks anywhere in the active note are used (including the first active paragraph).
+
 ## [2.0.0.b22] - 2026-09-24
 - Fix: NotePlan no longer crashes after Save. The review WebView had a 4s `setTimeout` to re-enable Save if the window stayed open; that timer firing while the view was being torn down crashed JavaScriptCore. Save/Cancel also no longer call `HTMLView.close()` from the nested jsBridge handler (UI on an async thread). Close now runs only via the deferred `closePeriodicReviewWindow` command after writes finish, and `HTMLView.close()` is called **once** (not again by window id). Cached closed views still listed in `htmlWindows` with `isVisible === false` are skipped.
 
