@@ -579,7 +579,7 @@ function extractExistingAnswerOnLine(
     if (!token) {
       return ''
     }
-    const re = new RegExp(`(?:^|\\s)${escapeRegExp(token)}(?=\\s|$)`)
+    const re = new RegExp(`(?:^|\\s)${escapeRegExp(token)}(?=\\s|$)`, 'i')
     return re.test(line) ? 'yes' : ''
   }
   const { prefix, suffix } = splitParsedSegmentAtTypeMarker(seg, parsedQuestion.type)
@@ -766,22 +766,22 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
     case 'number': {
       const numericValue = Number(answer)
       if (answer !== '' && Number.isFinite(numericValue)) {
-        return parsedQuestion.originalLine.startsWith('-') ? `- ${answer}` : parsedQuestion.originalLine.replace(/<number>/, answer)
+        return parsedQuestion.originalLine.startsWith('-') ? `- ${answer}` : parsedQuestion.originalLine.replace(/<\s*number\s*>/i, answer)
       }
       return ''
     }
     case 'duration': {
       const durationValue = RE_DURATION_HHMM.test(answer) ? answer : convertNumericHoursToDurationHHMM(answer)
       if (durationValue !== '') {
-        return parsedQuestion.originalLine.startsWith('-') ? `- ${durationValue}` : parsedQuestion.originalLine.replace(/<duration>/, durationValue)
+        return parsedQuestion.originalLine.startsWith('-') ? `- ${durationValue}` : parsedQuestion.originalLine.replace(/<\s*duration\s*>/i, durationValue)
       }
       return ''
     }
     case 'string': {
-      return parsedQuestion.originalLine.startsWith('-') ? `- ${answer}` : parsedQuestion.originalLine.replace(/<string>/, answer)
+      return parsedQuestion.originalLine.startsWith('-') ? `- ${answer}` : parsedQuestion.originalLine.replace(/<\s*string\s*>/i, answer)
     }
     case 'mood': {
-      return parsedQuestion.originalLine.replace(/<mood>/, answer)
+      return parsedQuestion.originalLine.replace(/<\s*mood\s*>/i, answer)
     }
     case 'bullets':
     case 'checklists':

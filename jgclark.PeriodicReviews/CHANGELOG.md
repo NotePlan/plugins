@@ -10,6 +10,7 @@ Note: this is a new plugin, forked from my original **Journalling Helpers** one.
 - Fix: pre-fill scan includes the last paragraph of the active note region (`findEndOfActivePartOfNote` is inclusive).
 - Fix: planning tasks for the next period are written via `calendarNoteByDateString` when that note is not already loaded, without stealing editor focus.
 - Fix: **Open the calendar note when reviewing it?** is honored. When false, the review uses the period note from DataStore without focusing it in the editor.
+- Fix: daily/weekly summary includes completed checklists (`checklistDone`); daily event list includes all-day events; boolean pre-fill is case-insensitive like merge; `<number>`/`<duration>`/`<string>`/`<mood>` write-back is case-insensitive; missing planned-item heading keys match plugin.json defaults (`Big Wins` / `Big Rocks`); missing planned-items suffix defaults to `#win`.
 
 ## [2.0.0.b19] - 2026-09-22
 - Fix: Save/Cancel again work in the review HTML window. WKWebView rejects `noteplan://` via `window.location.href` (`unsupported URL`), so submit/cancel again use jsBridge as primary. Close reliability still relies on close-after-writes plus verified / deferred close on the plugin side.

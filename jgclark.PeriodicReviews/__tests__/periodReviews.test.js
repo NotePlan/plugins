@@ -588,6 +588,12 @@ Not Great: <string>`,
       expect(initial.q_10).toBe('something not great')
     })
 
+    it('should pre-fill boolean tokens case-insensitively', () => {
+      const questions = parseQuestions('#bible<boolean>')
+      const initial = buildInitialReviewAnswersByFieldName(questions, ['Health: #Bible'])
+      expect(initial.q_0).toBe('yes')
+    })
+
     it('should include the last active paragraph (findEndOfActivePartOfNote is inclusive)', () => {
       const note = {
         paragraphs: [
@@ -796,6 +802,14 @@ Ship: <tasks>`,
       const rawLines = raw.split('\n')
       const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: '0' })
       expect(out).toBe('Stats: @weight(0)\n')
+    })
+
+    it('should substitute <NUMBER> tags case-insensitively', () => {
+      const raw = 'Stats: @weight(<NUMBER>)'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: '6.8' })
+      expect(out).toBe('Stats: @weight(6.8)\n')
     })
 
     it('should output duration answers in [H]H:MM format', () => {
@@ -1238,8 +1252,8 @@ Ship: <tasks>`,
 
     it('getPlanItemsNameForPeriodType should use defaults when missing, blank when empty string', () => {
       const minimal = {}
-      expect(getPlanItemsNameForPeriodType(minimal, 'day')).toBe('Big Rocks')
-      expect(getPlanItemsNameForPeriodType(minimal, 'week')).toBe('Top Wins')
+      expect(getPlanItemsNameForPeriodType(minimal, 'day')).toBe('Big Wins')
+      expect(getPlanItemsNameForPeriodType(minimal, 'week')).toBe('Big Rocks')
       const custom = { weekPlanItemsName: 'Wins' }
       expect(getPlanItemsNameForPeriodType(custom, 'week')).toBe('Wins')
       expect(getPlanItemsNameForPeriodType({ dayPlanItemsName: '' }, 'day')).toBe('')
@@ -1273,8 +1287,8 @@ Ship: <tasks>`,
       expect(formatPlannedItemLineForNextNote('foo', '!!', '')).toBe('!! foo')
     })
 
-    it('getEffectivePlannedItemAffixes should default missing suffix to empty and treat blank suffix as disabled', () => {
-      expect(getEffectivePlannedItemAffixes({})).toEqual({ suffix: '' })
+    it('getEffectivePlannedItemAffixes should default missing suffix to #win and treat blank suffix as disabled', () => {
+      expect(getEffectivePlannedItemAffixes({})).toEqual({ suffix: '#win' })
       expect(
         getEffectivePlannedItemAffixes({
           plannedItemsSuffix: '',

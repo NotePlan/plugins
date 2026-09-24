@@ -605,7 +605,7 @@ export function getParagraphLineContentsForReviewScan(note: TNote): Array<string
 /**
  * Collect done task lines for the review summary: wins (#win / #bigwin / configured big-task marker ('>>', '!!!', or '!!')) vs other completed tasks.
  * The HTML view merges them into one list (wins first; each line once).
- * - day: wins and completed are split (completed excludes win lines).
+ * - day: wins and completed are split (completed excludes win lines). Includes `done` and `checklistDone`.
  * - week: only wins are returned; `completed` is empty.
  * - month/quarter/year: no done-task summary lines are returned.
  * @param {string} periodType
@@ -636,7 +636,7 @@ function getDoneTasksForSummary(periodType: string, periodString: string, config
 
     for (const note of notesToScan) {
       for (const para of note.paragraphs) {
-        if (para.type !== 'done') {
+        if (para.type !== 'done' && para.type !== 'checklistDone') {
           continue
         }
         const doneDateMatch = para.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE)
@@ -699,7 +699,7 @@ async function displayQuestionsWindow(
   const { wins: summaryWinTasks, completed: summaryCompletedTasks } = getDoneTasksForSummary(periodType, periodString, config)
   const calendarSet: Array<string> = config.calendarSet ?? []
   // logDebug(pluginJson, `calendarSet: [${String(calendarSet)}]`)
-  const eventsForPeriod: Array<TCalendarItem> = (periodType === 'day') ? await getEventsForDay(periodString, calendarSet) ?? [] : []
+  const eventsForPeriod: Array<TCalendarItem> = (periodType === 'day') ? await getEventsForDay(periodString, calendarSet, { h: 0, m: 0 }, { h: 23, m: 59 }, true) ?? [] : []
   const scanLines = getParagraphLineContentsForReviewScan(calendarNote)
   const initialAnswers = buildInitialReviewAnswersByFieldName(parsedQuestions, scanLines)
   const planName = getPlanItemsNameForPeriodType(config, periodType)

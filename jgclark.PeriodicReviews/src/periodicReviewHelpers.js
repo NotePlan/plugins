@@ -199,7 +199,7 @@ export function getBigTaskPriorityFromConfig(config?: any): number {
 
 /**
  * Effective suffix for lines written to the next period note (after `normalizePlanningTaskLinesFromForm`).
- * Defaults to empty string when not set; blank string disables suffix.
+ * Defaults to `#win` when the setting key is missing (same as plugin.json); blank string disables suffix.
  * @tests in jest file
  * @param {PeriodicReviewConfigType} config
  * @returns {{ suffix: ?string }}
@@ -210,7 +210,7 @@ export function getEffectivePlannedItemAffixes(config: PeriodicReviewConfigType)
     return raw.trim() === '' ? null : raw
   }
   return {
-    suffix: affix(config.plannedItemsSuffix, ''),
+    suffix: affix(config.plannedItemsSuffix, '#win'),
   }
 }
 
@@ -400,8 +400,8 @@ export function shouldFocusCalendarNoteWhenReviewing(config: PeriodicReviewConfi
 /** Default plan-item labels when the setting key is missing (not when intentionally blank). */
 // TODO: make this look at the plugin.json "default" for the "key" below
 const PLAN_ITEMS_NAME_DEFAULTS: { [string]: string } = {
-  day: 'Big Rocks',
-  week: 'Top Wins',
+  day: 'Big Wins',
+  week: 'Big Rocks',
   month: 'Key Outcomes',
   quarter: 'Goals',
   year: 'Theme',
