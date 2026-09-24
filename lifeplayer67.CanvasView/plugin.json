@@ -1,0 +1,56 @@
+{
+  "noteplan.minAppVersion": "3.9.0",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "lifeplayer67.CanvasView",
+  "plugin.name": "Canvas View",
+  "plugin.version": "0.4.0",
+  "plugin.lastUpdateInfo": "File cards now show the note's content and let you edit it inline (saved into the NotePlan note). Double-click the card header to change the linked file; inline editors for URL/path.",
+  "plugin.description": "Edit Obsidian Canvas / JSON Canvas (.canvas) files inside NotePlan: create and connect cards, move, resize, color, label edges, undo/redo — fully compatible with Obsidian.",
+  "plugin.icon": "fa-diagram-project",
+  "plugin.iconColor": "orange-500",
+  "plugin.iconStyle": "solid",
+  "plugin.author": "lifeplayer67",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.requiredFiles": ["canvasClient.js"],
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/lifeplayer67.CanvasView/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/lifeplayer67.CanvasView/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "name": "open canvas",
+      "description": "Open a JSON Canvas (.canvas) file in a viewer window",
+      "jsFunction": "openCanvas",
+      "alias": ["canvas", "jsoncanvas", "obsidian canvas"],
+      "arguments": ["path to the .canvas file (absolute, or relative to the canvas folder setting)"]
+    },
+    {
+      "name": "onMessageFromHTMLView",
+      "description": "Canvas View: callback to receive messages from the HTML window",
+      "jsFunction": "onMessageFromHTMLView",
+      "hidden": true
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Canvas View settings"
+    },
+    {
+      "key": "canvasFolder",
+      "title": "Canvas folder",
+      "description": "Subfolder of your NotePlan Notes folder that holds your .canvas files (e.g. 'Canvases'). Relative paths given to the 'open canvas' command are resolved against it; absolute paths (starting with /) are used as-is.",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log level",
+      "description": "Set how much logging output will be displayed when executing Canvas View commands in NotePlan Plugin Console.",
+      "type": "string",
+      "choices": ["DEBUG", "INFO", "WARN", "ERROR", "none"],
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}
