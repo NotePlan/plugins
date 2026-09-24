@@ -1,14 +1,15 @@
 {
-  "noteplan.minAppVersion": "3.0.23",
+  "noteplan.minAppVersion": "3.18.1",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "np.statistics",
-  "plugin.name": "🔢 Note Statistics",
+  "plugin.name": "Note Statistics",
   "plugin.description": "Show statistics for notes, tasks, words, and hashtags and mentions over periods of time. See website for more details, including how to tailor some of the stats.",
-  "plugin.icon": "",
+  "plugin.icon": "fa-chart-column",
+  "plugin.iconColor": "blue-500",
   "plugin.author": "Jonathan & Eduard",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.statistics/",
-  "plugin.version": "0.7.0",
-  "plugin.lastUpdateInfo": "0.7.0: '/note stats' now includes basic stats about Teamspaces.\n0.6.1: now includes count of number of notes with open tasks/checklists.\n0.6.0: now includes Checklists in counts.",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "1.0.0: '/note stats' writes a refreshable note, with Private and Teamspace counts separated.\n0.7.0: '/note stats' now includes basic stats about Teamspaces.\n0.6.1: now includes count of number of notes with open tasks/checklists.\n0.6.0: now includes Checklists in counts.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -19,7 +20,7 @@
         "nc",
         "count"
       ],
-      "description": "Counts of all the notes in NotePlan",
+      "description": "Writes counts of all the notes in NotePlan to a note",
       "jsFunction": "showNoteCount"
     },
     {
@@ -50,6 +51,16 @@
       ],
       "description": "Shows word count and other stats for the current note",
       "jsFunction": "showWordCount"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "key": "noteStatsFilename",
+      "title": "/note stats: filepath for results note",
+      "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Note Stats.md')",
+      "type": "string",
+      "default": "Note Stats.md",
+      "required": false
     }
   ]
 }
