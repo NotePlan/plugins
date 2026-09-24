@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Review question parsing, pre-fill extraction, and answer → note text.
 // Jonathan Clark
-// last update 2026-04-26 for v2.0.0.b12 by @jgclark + @Cursor
+// last update 2026-09-24 for v2.0.0.b20 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import type { ParsedQuestionType } from './periodicReviewHelpers'
@@ -764,7 +764,8 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
       return ''
     }
     case 'number': {
-      if (answer != null && Number(answer)) {
+      const numericValue = Number(answer)
+      if (answer !== '' && Number.isFinite(numericValue)) {
         return parsedQuestion.originalLine.startsWith('-') ? `- ${answer}` : parsedQuestion.originalLine.replace(/<number>/, answer)
       }
       return ''

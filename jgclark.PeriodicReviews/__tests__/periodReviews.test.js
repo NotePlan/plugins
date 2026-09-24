@@ -771,6 +771,14 @@ Ship: <tasks>`,
       expect(out).toBe('Count: 42\n')
     })
 
+    it('should write <number> answer 0 (not treat it as empty)', () => {
+      const raw = 'Stats: @weight(<number>)'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', { q_0: '0' })
+      expect(out).toBe('Stats: @weight(0)\n')
+    })
+
     it('should output duration answers in [H]H:MM format', () => {
       const raw = '@focus(<duration>)'
       const parsedQuestions = parseQuestions(raw)
