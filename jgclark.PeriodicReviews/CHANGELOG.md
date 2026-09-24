@@ -3,10 +3,22 @@ _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
+## [2.0.0.b20] - 2026-09-24
+- Fix: Weekly Review now uses NotePlan week titles (`YYYY-Www`, ISO week-year via `getNPWeekStr`) instead of unpadded `YYYY-W{n}` with calendar year, so weeks 1–9 and year-boundary weeks open the correct note.
+
+## [2.0.0.b19] - 2026-09-22
+- Fix: Save/Cancel again work in the review HTML window. WKWebView rejects `noteplan://` via `window.location.href` (`unsupported URL`), so submit/cancel again use jsBridge as primary. Close reliability still relies on close-after-writes plus verified / deferred close on the plugin side.
+
+## [2.0.0.b18] - 2026-09-22
+- Fix: `getOpenEditorNoteForReview` now passes `noteToMatch` (not the unused `matchNote` key) into `getOpenEditorNote`, so sidebar / split-view review commands correctly find an open day/week/month note instead of falling back to the current calendar period.
+
+## [2.0.0.b17] - 2026-09-21
+- Fix: review window now dismisses after Save in all cases. Prefer `noteplan://x-callback-url/runPlugin` for submit/cancel (jsBridge only for oversized payloads), close **after** answer + planning writes, verify close and retry by window id / deferred close-only command, guard against open-time Save click-through, and unlock Save if the window is still open after a few seconds.
+
 ## [2.0.0.b16] - 2026-09-01
 - Fix: **Daily Review** and **Weekly Review** (and other period commands) again keep the editor on the open calendar note of the same kind instead of jumping to the current period. Teamspace calendar filenames are now recognised, and the plugin falls back to `Editor` when `Editor.note` is unset. Split-view: when a sidebar click moves focus to a non-calendar pane, open editors are scanned for a matching calendar note instead of opening today's note in the wrong split (via shared `getOpenEditorNote()` in `@helpers/NPEditor.js`).
 - Fix: mixed-line review upsert now preserves existing @mentions, hashtags, and free text not in the template, appending new template tokens instead of replacing the whole line. Template tokens already on the line are updated in place.
-- Fix: review window now closes reliably after Save (including main-window and split-view modes). Close runs before opening the next period note for planning tasks, with fallback matching for the review window customId.
+- Fix: review window close attempts after Save (including main-window and split-view modes), with fallback matching for the review window customId. (Further close reliability in b17.)
 - Dev: `OPEN_NEXT_PERIOD_NOTE_AFTER_PLANNING` toggle (currently `false`) controls whether planning-task write opens the next calendar note in the editor when it is not already loaded.
 - Fix: `<duration>` pre-fill and write-back now accept legacy numeric hour values in `@token(...)` (e.g. `@sleep(7)` → `@sleep(7:00)`, `@sleep(7.5)` → `@sleep(7:30)`).
 - Re-order settings under new section headings. Update README.

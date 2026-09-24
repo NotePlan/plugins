@@ -2,14 +2,19 @@
 //---------------------------------------------------------------
 // Helper functions for Journalling plugin for NotePlan
 // Jonathan Clark
-// last update 2026-08-11 for v2.0.0.b15 by @jgclark / @CursorAI
+// last update 2026-09-24 for v2.0.0.b20 by @jgclark / @CursorAI
 //---------------------------------------------------------------
 
 import {
   getCalendarNoteTimeframe,
   getDateStringFromCalendarFilename,
   getNextNPPeriodString,
+  getNPMonthStr,
+  getNPQuarterStr,
+  getNPWeekStr,
+  getNPYearStr,
   getPeriodOfNPDateStr,
+  hyphenatedDateString,
   RE_DONE_DATE_OPT_TIME,
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
@@ -246,6 +251,30 @@ export function substituteReviewPeriodPlaceholders(input: string, periodString: 
 }
 
 /**
+ * NotePlan calendar title for the current period of `periodType` (week uses ISO week-year `YYYY-Www`).
+ * @tests in jest file
+ * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
+ * @param {Date} [now=new Date()]
+ * @returns {string}
+ */
+export function getCurrentPeriodStringForReview(periodType: string, now: Date = new Date()): string {
+  switch (periodType) {
+    case 'day':
+      return hyphenatedDateString(now)
+    case 'week':
+      return getNPWeekStr(now)
+    case 'month':
+      return getNPMonthStr(now)
+    case 'quarter':
+      return getNPQuarterStr(now)
+    case 'year':
+      return getNPYearStr(now)
+    default:
+      return ''
+  }
+}
+
+/**
  * Title-case adjective for UI strings (window title, review heading, messages).
  * @tests in jest file
  * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
@@ -322,7 +351,7 @@ export function getOpenEditorNoteForReview(periodType?: string): ?TNote {
     return getOpenEditorNote()
   }
   return getOpenEditorNote({
-    matchNote: (note) => {
+    noteToMatch: (note) => {
       const kind = getCalendarNoteTimeframeForReview(note)
       return kind !== false && kind === periodType
     },

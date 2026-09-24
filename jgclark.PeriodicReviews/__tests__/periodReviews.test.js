@@ -1,6 +1,6 @@
 /* globals describe, expect, it, beforeAll, beforeEach */
 
-// Last updated: 2026-04-13 for v2.0.0.b10 by @jgclark
+// Last updated: 2026-09-24 for v2.0.0.b20 by @jgclark / @CursorAI
 
 import {
   buildNextPeriodNotePlanSectionHeadingTitle,
@@ -8,6 +8,7 @@ import {
   formatPlannedItemLineForNextNote,
   getBigTaskMarkerFromConfig,
   getBigTaskPriorityFromConfig,
+  getCurrentPeriodStringForReview,
   getEffectivePlannedItemAffixes,
   getOpenEditorNoteForReview,
   getPeriodAdjectiveFromType,
@@ -215,6 +216,19 @@ Do: <tasks>`
     })
     it('should return Calendar for unknown period type', () => {
       expect(getPeriodAdjectiveFromType('unknown')).toBe('(error: unknown period type)')
+    })
+  })
+
+  describe('getCurrentPeriodStringForReview', () => {
+    it('should return padded ISO week-year titles (not unpadded calendar-year weeks)', () => {
+      expect(getCurrentPeriodStringForReview('week', new Date('2026-01-26T12:00:00'))).toBe('2026-W05')
+      expect(getCurrentPeriodStringForReview('week', new Date('2025-12-29T12:00:00'))).toBe('2026-W01')
+    })
+    it('should return NotePlan titles for other period types', () => {
+      expect(getCurrentPeriodStringForReview('day', new Date('2026-09-24T12:00:00'))).toBe('2026-09-24')
+      expect(getCurrentPeriodStringForReview('month', new Date('2026-09-24T12:00:00'))).toBe('2026-09')
+      expect(getCurrentPeriodStringForReview('quarter', new Date('2026-09-24T12:00:00'))).toBe('2026-Q3')
+      expect(getCurrentPeriodStringForReview('year', new Date('2026-09-24T12:00:00'))).toBe('2026')
     })
   })
 
@@ -455,6 +469,33 @@ Mood: <mood>`
         [],
       )
       expect(html).toContain('summary-content summary-content-single summary-content-completed-tasks')
+    })
+
+    it('should use jsBridge for submit/cancel and include click-through / unlock guards', () => {
+      const raw = `Mood: <mood>`
+      const parsedQuestions = parseQuestions(raw)
+      const html = buildReviewHTML(
+        { moods: 'Calm,Busy' },
+        parsedQuestions,
+        raw.split('\n'),
+        [],
+        [],
+        '2026-09-21',
+        'day',
+        [],
+        'onReviewWindowAction',
+        'Big Wins',
+        {},
+        [],
+      )
+      expect(html).toContain('Sending via jsBridge')
+      expect(html).toContain('click-through guard')
+      expect(html).toContain('CLICK_THROUGH_GUARD_MS')
+      expect(html).toContain('UNLOCK_IF_STILL_OPEN_MS')
+      expect(html).toContain('unlocking hasSentReviewAction after timeout')
+      expect(html).toContain('x-callback fallback')
+      // WKWebView rejects noteplan:// via location.href; jsBridge must be primary
+      expect(html).toContain('unsupported URL')
     })
   })
 
@@ -1072,17 +1113,48 @@ Ship: <tasks>`,
       const close = jest.fn()
       const htmlWindowsWas = global.NotePlan?.htmlWindows
       const editorsWas = global.NotePlan?.editors
-      global.NotePlan = { htmlWindows: [{ customId: 'jgclark.PeriodicReviews.period-review', close }], editors: [] }
-      closePeriodicReviewWindow()
+      global.NotePlan = { htmlWindows: [{ customId: 'jgclark.PeriodicReviews.period-review', id: 'win-1', close }], editors: [] }
+      // Simulate successful close: after close(), window list is empty when find runs again
+      close.mockImplementation(() => {
+        global.NotePlan.htmlWindows = []
+      })
+      const result = closePeriodicReviewWindow()
       expect(close).toHaveBeenCalledTimes(1)
+      expect(result).toBe(true)
       global.NotePlan = { htmlWindows: htmlWindowsWas ?? [], editors: editorsWas ?? [] }
     })
 
     it('should close an editor window whose customId contains period-review when no htmlWindow matches', () => {
       const close = jest.fn()
-      global.NotePlan = { htmlWindows: [], editors: [{ customId: 'jgclark.PeriodicReviews.period-review-split', close }] }
-      closePeriodicReviewWindow()
+      close.mockImplementation(() => {
+        global.NotePlan.editors = []
+      })
+      global.NotePlan = { htmlWindows: [], editors: [{ customId: 'jgclark.PeriodicReviews.period-review-split', id: 'ed-1', close }] }
+      const result = closePeriodicReviewWindow()
       expect(close).toHaveBeenCalledTimes(1)
+      expect(result).toBe(true)
+    })
+
+    it('should schedule deferred close via openURL when window remains after close()', () => {
+      const close = jest.fn()
+      const openURL = jest.fn()
+      const stickyWindow = { customId: 'jgclark.PeriodicReviews.period-review', id: 'win-sticky', close }
+      global.NotePlan = { htmlWindows: [stickyWindow], editors: [], openURL }
+      const result = closePeriodicReviewWindow(true)
+      expect(close).toHaveBeenCalled()
+      expect(result).toBe(false)
+      expect(openURL).toHaveBeenCalledTimes(1)
+      expect(openURL.mock.calls[0][0]).toContain('closePeriodicReviewWindow')
+    })
+
+    it('should not schedule deferred close when allowDeferredRetry is false', () => {
+      const close = jest.fn()
+      const openURL = jest.fn()
+      const stickyWindow = { customId: 'jgclark.PeriodicReviews.period-review', id: 'win-sticky', close }
+      global.NotePlan = { htmlWindows: [stickyWindow], editors: [], openURL }
+      const result = closePeriodicReviewWindow(false)
+      expect(result).toBe(false)
+      expect(openURL).not.toHaveBeenCalled()
     })
   })
 

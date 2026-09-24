@@ -9,9 +9,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.co/plugins/jgclark.PeriodicReviews/",
   "plugin.changelog": "https://noteplan.co/plugins/jgclark.PeriodicReviews/CHANGELOG.md",
-  "plugin.version": "2.0.0.b16",
+  "plugin.version": "2.0.0.b20",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "v2.0.0: First release of the new Periodic Reviews plugin, building on earlier 'Journalling Helpers' plugin (v1).",
+  "plugin.lastUpdateInfo": "v2.0.0.b20: Weekly Review uses NotePlan week titles (YYYY-Www / ISO week-year).",
   "plugin.requiredFiles": [
     "reviews.css"
   ],
@@ -97,6 +97,12 @@
         "actionName ('cancel' or 'submit')",
         "payload (object or string)"
       ]
+    },
+    {
+      "hidden": true,
+      "name": "closePeriodicReviewWindow",
+      "description": "Close-only fallback for the review window (used when nested close fails)",
+      "jsFunction": "closePeriodicReviewWindowCommand"
     }
   ],
   "plugin.commands_disabled": [],

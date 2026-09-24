@@ -2,16 +2,16 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2026-08-11 for v2.0.0.b15 by @jgclark / @CursorAI
+// last update 2026-09-24 for v2.0.0.b20 by @jgclark / @CursorAI
 //---------------------------------------------------------------
 
-import strftime from 'strftime'
 import pluginJson from '../plugin.json'
 import {
   buildNextPeriodNotePlanSectionHeadingTitle,
   formatPlannedItemLineForNextNote,
   getBigTaskMarkerFromConfig,
   getBigTaskPriorityFromConfig,
+  getCurrentPeriodStringForReview,
   getEffectivePlannedItemAffixes,
   getJournalSettings,
   getPeriodAdjectiveFromType,
@@ -39,9 +39,7 @@ import { stylesheetinksInHeader, faLinksInHeader, buildReviewHTML } from './revi
 import {
   // convertISOToYYYYMMDD,
   getNextNPPeriodString,
-  getNPQuarterStr,
   getPreviousNPPeriodString,
-  getWeek,
   getPeriodOfNPDateStr,
   RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,
 } from '@helpers/dateTime'
@@ -53,7 +51,7 @@ import { getEventsForDay } from '@helpers/NPCalendar'
 import { getFirstDateInPeriod, getLastDateInPeriod } from '@helpers/NPdateTime'
 import { getNotesChangedInInterval } from '@helpers/NPnote'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { getWindowFromCustomId } from '@helpers/NPWindows'
+import { closeWindowFromId, getWindowFromCustomId } from '@helpers/NPWindows'
 import { isParaAMatchForHeading } from '@helpers/headings'
 import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { escapeRegExp } from '@helpers/regex'
@@ -65,42 +63,107 @@ import { getInput, showMessage } from '@helpers/userInput'
 
 const REVIEW_WINDOW_CUSTOM_ID = 'jgclark.PeriodicReviews.period-review'
 const REVIEW_WINDOW_CALLBACK_COMMAND = 'onReviewWindowAction'
+const REVIEW_WINDOW_CLOSE_COMMAND = 'closePeriodicReviewWindow'
 const REVIEW_WINDOW_CUSTOM_ID_FRAGMENT = 'period-review'
 
 /** When true, open the next period calendar note in the editor while writing planning tasks (if it is not already loaded). */
 const OPEN_NEXT_PERIOD_NOTE_AFTER_PLANNING = false
 
 /**
- * Close the periodic review HTML window (floating, main-window, or split view).
- * @tests in jest file
+ * Find the open periodic review window (HTML floating, main-window HTML, or Editor split).
+ * @returns {TEditor | HTMLView | false}
+ */
+function findPeriodicReviewWindow(): TEditor | HTMLView | false {
+  let found: TEditor | HTMLView | false = getWindowFromCustomId(REVIEW_WINDOW_CUSTOM_ID)
+  if (found) {
+    return found
+  }
+  for (const htmlWindow of NotePlan.htmlWindows ?? []) {
+    const customId = String(htmlWindow.customId ?? '').toLowerCase()
+    if (customId.includes(REVIEW_WINDOW_CUSTOM_ID_FRAGMENT)) {
+      return htmlWindow
+    }
+  }
+  for (const editorWindow of NotePlan.editors ?? []) {
+    const customId = String(editorWindow.customId ?? '').toLowerCase()
+    if (customId.includes(REVIEW_WINDOW_CUSTOM_ID_FRAGMENT)) {
+      return editorWindow
+    }
+  }
+  return false
+}
+
+/**
+ * Schedule a close-only plugin command via x-callback so close runs outside a nested jsBridge invoke.
  * @returns {void}
  */
-export function closePeriodicReviewWindow(): void {
-  let windowToClose: TEditor | HTMLView | false = getWindowFromCustomId(REVIEW_WINDOW_CUSTOM_ID)
+function scheduleDeferredClosePeriodicReviewWindow(): void {
+  const callbackUrl =
+    `noteplan://x-callback-url/runPlugin?pluginID=${encodeURIComponent(pluginJson['plugin.id'])}` +
+    `&command=${encodeURIComponent(REVIEW_WINDOW_CLOSE_COMMAND)}`
+  logWarn(pluginJson, `closePeriodicReviewWindow: window still open after close(); scheduling deferred close via x-callback`)
+  if (typeof NotePlan.openURL === 'function') {
+    NotePlan.openURL(callbackUrl)
+  } else {
+    logWarn(pluginJson, 'closePeriodicReviewWindow: NotePlan.openURL unavailable; cannot schedule deferred close')
+  }
+}
+
+/**
+ * Close the periodic review HTML window (floating, main-window, or split view).
+ * Verifies the window is gone after `.close()`; if not, retries by window id and optionally
+ * schedules a deferred close-only command via x-callback (avoids nested jsBridge close failures).
+ * @tests in jest file
+ * @param {boolean} [allowDeferredRetry=true] - when false, do not fire another deferred close (prevents loops)
+ * @returns {boolean} true if the review window appears closed (or was not found)
+ */
+export function closePeriodicReviewWindow(allowDeferredRetry: boolean = true): boolean {
+  const windowToClose = findPeriodicReviewWindow()
   if (!windowToClose) {
-    for (const htmlWindow of NotePlan.htmlWindows ?? []) {
-      const customId = String(htmlWindow.customId ?? '').toLowerCase()
-      if (customId.includes(REVIEW_WINDOW_CUSTOM_ID_FRAGMENT)) {
-        windowToClose = htmlWindow
-        break
-      }
+    logWarn(pluginJson, `closePeriodicReviewWindow: no review window found to close (customId '${REVIEW_WINDOW_CUSTOM_ID}')`)
+    return true
+  }
+
+  const customId = String(windowToClose.customId ?? REVIEW_WINDOW_CUSTOM_ID)
+  const windowId = String(windowToClose.id ?? '')
+  const wasVisible = typeof windowToClose.isVisible === 'boolean' ? windowToClose.isVisible : undefined
+  logDebug(
+    pluginJson,
+    `closePeriodicReviewWindow: closing customId='${customId}' id='${windowId}' isVisible=${String(wasVisible)} allowDeferredRetry=${String(allowDeferredRetry)}`,
+  )
+  windowToClose.close()
+
+  let stillOpen = findPeriodicReviewWindow()
+  if (!stillOpen) {
+    logDebug(pluginJson, `closePeriodicReviewWindow: closed window customId='${customId}'`)
+    return true
+  }
+
+  if (windowId !== '') {
+    logWarn(pluginJson, `closePeriodicReviewWindow: still open after close(); retrying by id='${windowId}'`)
+    closeWindowFromId(windowId)
+    stillOpen = findPeriodicReviewWindow()
+    if (!stillOpen) {
+      logDebug(pluginJson, `closePeriodicReviewWindow: closed window via id='${windowId}'`)
+      return true
     }
   }
-  if (!windowToClose) {
-    for (const editorWindow of NotePlan.editors ?? []) {
-      const customId = String(editorWindow.customId ?? '').toLowerCase()
-      if (customId.includes(REVIEW_WINDOW_CUSTOM_ID_FRAGMENT)) {
-        windowToClose = editorWindow
-        break
-      }
-    }
+
+  if (allowDeferredRetry) {
+    scheduleDeferredClosePeriodicReviewWindow()
+  } else {
+    logWarn(pluginJson, `closePeriodicReviewWindow: window still open after retries (customId='${customId}'); deferred retry disabled`)
   }
-  if (windowToClose) {
-    windowToClose.close()
-    logDebug(pluginJson, `closePeriodicReviewWindow: closed window customId='${String(windowToClose.customId ?? REVIEW_WINDOW_CUSTOM_ID)}'`)
-    return
-  }
-  logWarn(pluginJson, `closePeriodicReviewWindow: no review window found to close (customId '${REVIEW_WINDOW_CUSTOM_ID}')`)
+  return false
+}
+
+/**
+ * Plugin entrypoint for the deferred close-only x-callback.
+ * Does not schedule another deferred retry (avoids loops).
+ * @returns {boolean}
+ */
+export function closePeriodicReviewWindowCommand(): boolean {
+  return closePeriodicReviewWindow(false)
 }
 
 /** Paragraph types treated as tasks under a plan H2 (carry-over + rewrite). Includes cancelled so big-task plan lines stay in the summary as not done. */
@@ -366,38 +429,35 @@ async function runReviewQuestionsForCurrentPeriod(periodType: string, getPeriodS
  * Gather answers to daily journal questions, and inserts at the cursor.
  */
 export async function dailyReviewQuestions(): Promise<void> {
-  await runReviewQuestionsForCurrentPeriod('day', () => strftime('%Y-%m-%d'))
+  await runReviewQuestionsForCurrentPeriod('day', () => getCurrentPeriodStringForReview('day'))
 }
 
 /**
  * Gather answers to weekly journal questions, and inserts at the cursor.
  */
 export async function weeklyReviewQuestions(): Promise<void> {
-  await runReviewQuestionsForCurrentPeriod('week', () => {
-    const currentWeekNum = getWeek(new Date())
-    return `${strftime('%Y')}-W${currentWeekNum}`
-  })
+  await runReviewQuestionsForCurrentPeriod('week', () => getCurrentPeriodStringForReview('week'))
 }
 
 /**
  * Gather answers to monthly journal questions, and inserts at the cursor.
  */
 export async function monthlyReviewQuestions(): Promise<void> {
-  await runReviewQuestionsForCurrentPeriod('month', () => strftime('%Y-%m'))
+  await runReviewQuestionsForCurrentPeriod('month', () => getCurrentPeriodStringForReview('month'))
 }
 
 /**
  * Gather answers to quarterly journal questions, and inserts at the cursor.
  */
 export async function quarterlyReviewQuestions(): Promise<void> {
-  await runReviewQuestionsForCurrentPeriod('quarter', () => getNPQuarterStr(new Date()))
+  await runReviewQuestionsForCurrentPeriod('quarter', () => getCurrentPeriodStringForReview('quarter'))
 }
 
 /**
  * Gather answers to yearly journal questions, and inserts at the cursor.
  */
 export async function yearlyReviewQuestions(): Promise<void> {
-  await runReviewQuestionsForCurrentPeriod('year', () => strftime('%Y'))
+  await runReviewQuestionsForCurrentPeriod('year', () => getCurrentPeriodStringForReview('year'))
 }
 
 //---------------------------------------------------------
@@ -869,7 +929,7 @@ export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed =
   // logDebug(pluginJson, `onReviewWindowAction payloadLength=${String(payload?.length ?? 0)} payloadPreview="${String(payload ?? '').slice(0, 100)}"`)
   if (actionName === 'cancel') {
     logDebug('Journalling/onReviewWindowAction', `Cancelled by user.`)
-    closePeriodicReviewWindow()
+    closePeriodicReviewWindow(true)
     return {}
   }
 
@@ -962,17 +1022,19 @@ export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed =
     } else if (!hasPlanningContent) {
       logWarn(pluginJson, 'No template question answers were collected from the review window')
     }
-    if (isSubmit) {
-      closePeriodicReviewWindow()
-    }
     await writePlanningTasksToNextPeriodNote(config, periodString, periodType, planningText)
+    // Close last (after all writes). Closing mid-handler from a nested jsBridge invoke is unreliable.
+    if (isSubmit) {
+      const closed = closePeriodicReviewWindow(true)
+      if (!closed) {
+        logWarn(pluginJson, 'onReviewWindowAction: review window still open after submit close attempt')
+      }
+    }
     logDebug('Journalling/onReviewWindowAction', `Finished.`)
     return {}
   } catch (err) {
     logError(pluginJson, `onReviewWindowAction: ${err.message}`)
-    if (isSubmit) {
-      closePeriodicReviewWindow()
-    }
+    // Leave the window open on error so the user can fix/retry (WebView unlocks Save after a short timeout).
     return {}
   }
 }
