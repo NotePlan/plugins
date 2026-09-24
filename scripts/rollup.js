@@ -58,6 +58,25 @@ const CI = options.ci || false
 const REPORT_MEMORY_USAGE = options.pressure || false
 
 /**
+ * Show a desktop notification without failing the build.
+ * node-notifier's macOS binary is x86_64 only. On Apple Silicon without Rosetta,
+ * spawn fails with EBADARCH (-86, "Unknown system error -86") and throws out of notify().
+ * @param {string} title
+ * @param {string} messageText
+ */
+function safeNotify(title, messageText) {
+  if (!NOTIFY) return
+  try {
+    notifier.notify({ title, message: messageText })
+  } catch (error) {
+    if (!safeNotify.warned) {
+      safeNotify.warned = true
+      console.log(colors.yellow(`Notification skipped: ${error.message}. The build itself is unaffected. Install Rosetta if you want -n notifications on this Mac.`))
+    }
+  }
+}
+
+/**
  * Most of the rollup plugins will the same for all files, so we can just create them once
  */
 const defaultPlugins = DEBUGGING
@@ -228,12 +247,7 @@ const dt = () => {
         }
       }
 
-      if (NOTIFY) {
-        notifier.notify({
-          title: 'NotePlan Plugin Build',
-          message: `${pluginJsonData['plugin.name']} v${pluginJsonData['plugin.version']}`,
-        })
-      }
+      safeNotify('NotePlan Plugin Build', `${pluginJsonData['plugin.name']} v${pluginJsonData['plugin.version']}`)
 
       if (!isBuildTask) {
         // Use the `message` function to display a green "SUCCESS" line
@@ -337,12 +351,7 @@ const dt = () => {
         console.log('no copyTargetPath', copyTargetPath)
       } else if (event.code === 'ERROR') {
         messenger.error(`!!!!!!!!!!!!!!!\nRollup ${event.error}\n!!!!!!!!!!!!!!!\n`)
-        if (NOTIFY) {
-          notifier.notify({
-            title: 'NotePlan Plugins Build',
-            message: `An error occurred during build process.\nSee console for more information`,
-          })
-        }
+        safeNotify('NotePlan Plugins Build', 'An error occurred during build process.\nSee console for more information')
       }
     })
 

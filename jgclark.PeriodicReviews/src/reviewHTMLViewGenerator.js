@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // HTMLView generation helpers for single-window review mode
 // Jonathan Clark + Cursor
-// last update 2026-04-26 for v2.0.0.b13 by @jgclark + @Cursor
+// last update 2026-09-24 for v2.0.0.b22 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import moment from 'moment'
@@ -50,7 +50,7 @@ import {
 const useFlexbox = true
 
 // Types of questions that use a block layout in the review window.
-const blockRowTypes = ['string', 'subheading', 'h2', 'h3', 'bullets', 'checklists', 'tasks']
+const blockRowTypes = ['string', 'subheading', 'h2', 'h3', 'bullets', 'checklists', 'tasks', 'lines']
 
 /** Remove @done(…) from summary lines (date with optional time), global. */
 const RE_DONE_MENTION_STRIP_FOR_SUMMARY_G = new RegExp(RE_DONE_DATE_OPT_TIME.source, 'gi')
@@ -639,7 +639,8 @@ function makeReviewQuestionRowDiv(
     }
     case 'bullets':
     case 'checklists':
-    case 'tasks': {
+    case 'tasks':
+    case 'lines': {
       control = `<textarea class="review-input" id="${fieldName}" name="${fieldName}" rows="3">${escapeHTML(initialValue)}</textarea>`
       break
     }
@@ -745,49 +746,57 @@ export function buildReviewHTML(
 
       <script>
       let hasSentReviewAction = false
+      let reviewActionsReady = false
+      // WKWebView rejects noteplan:// via window.location.href ("unsupported URL"), so jsBridge is primary.
+      // Close is scheduled on the plugin side (x-callback close-only command) after writes — do not
+      // HTMLView.close() from the nested jsBridge invoke, and do not setTimeout here after Save.
+      // A timer that fires after the WebView is torn down crashes NotePlan (JSC timerDidFire EXC_BAD_ACCESS).
+      const CLICK_THROUGH_GUARD_MS = 400
       const sendToPlugin = (commandName = '${callbackCommandName}', pluginID = '${pluginJson['plugin.id']}', commandArgs = []) => {
         const actionName = String(commandArgs?.[0] ?? '')
         const locksForm = actionName === 'submit' || actionName === 'cancel'
+        if (locksForm && !reviewActionsReady) {
+          console.log("sendToPlugin: ignoring early action (click-through guard)")
+          return
+        }
         // Prevent duplicate submit/cancel if handlers get attached more than once.
         if (locksForm && hasSentReviewAction) {
           console.log("sendToPlugin: hasSentReviewAction is true; stopping.")
           return
         }
         const payload = commandArgs?.[1] ?? {}
-        
-        // Primary path: use NotePlan's jsBridge to invoke DataStore from the native side.
-        // This avoids URL length limits for large review payloads.
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.jsBridge) {
+        const jsBridgeAvailable = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.jsBridge)
+
+        if (jsBridgeAvailable) {
+          // Primary path: NotePlan jsBridge (works inside HTMLView; x-callback via location.href does not).
           const commandArgsArray = [actionName, JSON.stringify(payload)]
           const code = '(async function() { await DataStore.invokePluginCommandByName(%%commandName%%, %%pluginID%%, %%commandArgs%%);})()'
             .replace('%%commandName%%', JSON.stringify(commandName))
             .replace('%%pluginID%%', JSON.stringify(pluginID))
             .replace('%%commandArgs%%', JSON.stringify(commandArgsArray))
-          console.log("window.sendToPlugin: Sending via jsBridge:", commandName, pluginID)
+          console.log("window.sendToPlugin: Sending via jsBridge:", commandName, pluginID, actionName)
           window.webkit.messageHandlers.jsBridge.postMessage({
             code: code,
             onHandle: '',
             id: '1',
           })
-          if (locksForm) {
-            hasSentReviewAction = true
-          }
-          return
+        } else {
+          // Fallback for contexts without jsBridge (rarely used for floating HTMLView).
+          const callbackUrl = 'noteplan://x-callback-url/runPlugin?pluginID='
+            + encodeURIComponent(pluginID)
+            + '&command='
+            + encodeURIComponent(commandName)
+            + '&arg0='
+            + encodeURIComponent(actionName)
+            + '&arg1='
+            + encodeURIComponent(JSON.stringify(payload))
+          console.log("window.sendToPlugin: Sending via x-callback fallback: " + callbackUrl.slice(0, 200) + (callbackUrl.length > 200 ? '...' : ''))
+          window.location.href = callbackUrl
         }
-
-        // Fallback path: x-callback-url for contexts without jsBridge.
-        const callbackUrl = 'noteplan://x-callback-url/runPlugin?pluginID='
-          + encodeURIComponent(pluginID)
-          + '&command='
-          + encodeURIComponent(commandName)
-          + '&arg0='
-          + encodeURIComponent(actionName)
-          + '&arg1='
-          + encodeURIComponent(JSON.stringify(payload))
-        console.log("window.sendToPlugin: Sending callbackURL: "+callbackUrl)
-        window.location.href = callbackUrl
         if (locksForm) {
           hasSentReviewAction = true
+          if (submitButton) submitButton.disabled = true
+          if (cancelButton) cancelButton.disabled = true
         }
       }
       const reviewForm = document.getElementById('review-form')
@@ -857,11 +866,13 @@ export function buildReviewHTML(
       }
 
       if (cancelButton) {
+        cancelButton.disabled = true
         cancelButton.addEventListener('click', function () {
           cancel()
         })
       }
       if (submitButton) {
+        submitButton.disabled = true
         submitButton.addEventListener('click', function () {
           submitReview()
         })
@@ -881,6 +892,12 @@ export function buildReviewHTML(
           navigatePeriod('next')
         })
       }
+      // Guard against open-time click-through on Save/Cancel.
+      setTimeout(function () {
+        reviewActionsReady = true
+        if (submitButton && !hasSentReviewAction) submitButton.disabled = false
+        if (cancelButton && !hasSentReviewAction) cancelButton.disabled = false
+      }, CLICK_THROUGH_GUARD_MS)
     </script>
   `
 }

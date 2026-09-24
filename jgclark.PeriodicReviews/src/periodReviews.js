@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2026-09-24 for v2.0.0.b20 by @jgclark / @CursorAI
+// last update 2026-09-24 for v2.0.0.b22 by @jgclark / @CursorAI
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -52,7 +52,6 @@ import { getEventsForDay } from '@helpers/NPCalendar'
 import { getFirstDateInPeriod, getLastDateInPeriod } from '@helpers/NPdateTime'
 import { getNotesChangedInInterval } from '@helpers/NPnote'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { closeWindowFromId, getWindowFromCustomId } from '@helpers/NPWindows'
 import { isParaAMatchForHeading } from '@helpers/headings'
 import { findEndOfActivePartOfNote, findHeading, findHeadingStartsWith, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { escapeRegExp } from '@helpers/regex'
@@ -71,57 +70,72 @@ const REVIEW_WINDOW_CUSTOM_ID_FRAGMENT = 'period-review'
 const OPEN_NEXT_PERIOD_NOTE_AFTER_PLANNING = false
 
 /**
+ * True when this window object is still a live UI (not a cached closed HTMLView in htmlWindows).
+ * @param {TEditor | HTMLView} win
+ * @returns {boolean}
+ */
+function reviewWindowIsLive(win: TEditor | HTMLView): boolean {
+  if (typeof win.isVisible === 'boolean') {
+    return win.isVisible
+  }
+  return true
+}
+
+/**
  * Find the open periodic review window (HTML floating, main-window HTML, or Editor split).
+ * Ignores cached closed HTMLViews (still listed in htmlWindows with isVisible === false).
  * @returns {TEditor | HTMLView | false}
  */
 function findPeriodicReviewWindow(): TEditor | HTMLView | false {
-  let found: TEditor | HTMLView | false = getWindowFromCustomId(REVIEW_WINDOW_CUSTOM_ID)
-  if (found) {
-    return found
-  }
+  const targetId = REVIEW_WINDOW_CUSTOM_ID.toLowerCase()
   for (const htmlWindow of NotePlan.htmlWindows ?? []) {
     const customId = String(htmlWindow.customId ?? '').toLowerCase()
-    if (customId.includes(REVIEW_WINDOW_CUSTOM_ID_FRAGMENT)) {
-      return htmlWindow
+    if (customId === targetId || customId.includes(REVIEW_WINDOW_CUSTOM_ID_FRAGMENT)) {
+      if (reviewWindowIsLive(htmlWindow)) {
+        return htmlWindow
+      }
     }
   }
   for (const editorWindow of NotePlan.editors ?? []) {
     const customId = String(editorWindow.customId ?? '').toLowerCase()
-    if (customId.includes(REVIEW_WINDOW_CUSTOM_ID_FRAGMENT)) {
-      return editorWindow
+    if (customId === targetId || customId.includes(REVIEW_WINDOW_CUSTOM_ID_FRAGMENT)) {
+      if (reviewWindowIsLive(editorWindow)) {
+        return editorWindow
+      }
     }
   }
   return false
 }
 
 /**
- * Schedule a close-only plugin command via x-callback so close runs outside a nested jsBridge invoke.
+ * Ask NotePlan to run the close-only command after the current jsBridge invoke returns.
+ * Do not call HTMLView.close() from onReviewWindowAction.
  * @returns {void}
  */
 function scheduleDeferredClosePeriodicReviewWindow(): void {
   const callbackUrl =
     `noteplan://x-callback-url/runPlugin?pluginID=${encodeURIComponent(pluginJson['plugin.id'])}` +
     `&command=${encodeURIComponent(REVIEW_WINDOW_CLOSE_COMMAND)}`
-  logWarn(pluginJson, `closePeriodicReviewWindow: window still open after close(); scheduling deferred close via x-callback`)
+  logDebug(pluginJson, 'scheduleDeferredClosePeriodicReviewWindow: requesting closePeriodicReviewWindow via x-callback')
   if (typeof NotePlan.openURL === 'function') {
     NotePlan.openURL(callbackUrl)
   } else {
-    logWarn(pluginJson, 'closePeriodicReviewWindow: NotePlan.openURL unavailable; cannot schedule deferred close')
+    logWarn(pluginJson, 'scheduleDeferredClosePeriodicReviewWindow: NotePlan.openURL unavailable; cannot schedule deferred close')
   }
 }
 
 /**
- * Close the periodic review HTML window (floating, main-window, or split view).
- * Verifies the window is gone after `.close()`; if not, retries by window id and optionally
- * schedules a deferred close-only command via x-callback (avoids nested jsBridge close failures).
+ * Close the periodic review HTML window with a single `.close()` call.
+ * Do not retry `.close()` / close-by-id in the same turn: HTMLViews often remain in
+ * `NotePlan.htmlWindows` after close (cached). A second close() on that object crashes NotePlan.
  * @tests in jest file
- * @param {boolean} [allowDeferredRetry=true] - when false, do not fire another deferred close (prevents loops)
- * @returns {boolean} true if the review window appears closed (or was not found)
+ * @param {boolean} [allowDeferredRetry=true] - when the window is still live after one close, schedule the close-only command
+ * @returns {boolean} true if the review window is gone or not live
  */
 export function closePeriodicReviewWindow(allowDeferredRetry: boolean = true): boolean {
   const windowToClose = findPeriodicReviewWindow()
   if (!windowToClose) {
-    logWarn(pluginJson, `closePeriodicReviewWindow: no review window found to close (customId '${REVIEW_WINDOW_CUSTOM_ID}')`)
+    logDebug(pluginJson, `closePeriodicReviewWindow: no live review window (customId '${REVIEW_WINDOW_CUSTOM_ID}')`)
     return true
   }
 
@@ -132,28 +146,24 @@ export function closePeriodicReviewWindow(allowDeferredRetry: boolean = true): b
     pluginJson,
     `closePeriodicReviewWindow: closing customId='${customId}' id='${windowId}' isVisible=${String(wasVisible)} allowDeferredRetry=${String(allowDeferredRetry)}`,
   )
-  windowToClose.close()
+  try {
+    windowToClose.close()
+  } catch (err) {
+    logWarn(pluginJson, `closePeriodicReviewWindow: close() threw: ${String((err && err.message) || err)}`)
+  }
 
-  let stillOpen = findPeriodicReviewWindow()
-  if (!stillOpen) {
-    logDebug(pluginJson, `closePeriodicReviewWindow: closed window customId='${customId}'`)
+  const stillLive = findPeriodicReviewWindow()
+  if (!stillLive) {
+    logDebug(pluginJson, `closePeriodicReviewWindow: window no longer live customId='${customId}'`)
     return true
   }
 
-  if (windowId !== '') {
-    logWarn(pluginJson, `closePeriodicReviewWindow: still open after close(); retrying by id='${windowId}'`)
-    closeWindowFromId(windowId)
-    stillOpen = findPeriodicReviewWindow()
-    if (!stillOpen) {
-      logDebug(pluginJson, `closePeriodicReviewWindow: closed window via id='${windowId}'`)
-      return true
-    }
-  }
-
+  logWarn(
+    pluginJson,
+    `closePeriodicReviewWindow: window still live after one close() (customId='${customId}' id='${windowId}'); will not call close() again, as that can crash NotePlan.`,
+  )
   if (allowDeferredRetry) {
     scheduleDeferredClosePeriodicReviewWindow()
-  } else {
-    logWarn(pluginJson, `closePeriodicReviewWindow: window still open after retries (customId='${customId}'); deferred retry disabled`)
   }
   return false
 }
@@ -976,7 +986,8 @@ export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed =
   // logDebug(pluginJson, `onReviewWindowAction payloadLength=${String(payload?.length ?? 0)} payloadPreview="${String(payload ?? '').slice(0, 100)}"`)
   if (actionName === 'cancel') {
     logDebug('Journalling/onReviewWindowAction', `Cancelled by user.`)
-    closePeriodicReviewWindow(true)
+    // Do not HTMLView.close() here: this handler runs nested in jsBridge after awaits elsewhere on submit.
+    scheduleDeferredClosePeriodicReviewWindow()
     return {}
   }
 
@@ -1070,12 +1081,10 @@ export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed =
       logWarn(pluginJson, 'No template question answers were collected from the review window')
     }
     await writePlanningTasksToNextPeriodNote(config, periodString, periodType, planningText)
-    // Close last (after all writes). Closing mid-handler from a nested jsBridge invoke is unreliable.
+    // Close via a separate command after this jsBridge invoke returns. Closing HTMLView from this
+    // async nested handler (and then running a WebView setTimeout) has crashed NotePlan.
     if (isSubmit) {
-      const closed = closePeriodicReviewWindow(true)
-      if (!closed) {
-        logWarn(pluginJson, 'onReviewWindowAction: review window still open after submit close attempt')
-      }
+      scheduleDeferredClosePeriodicReviewWindow()
     }
     logDebug('Journalling/onReviewWindowAction', `Finished.`)
     return {}

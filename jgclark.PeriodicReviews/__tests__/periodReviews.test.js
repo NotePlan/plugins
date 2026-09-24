@@ -1,6 +1,6 @@
 /* globals describe, expect, it, beforeAll, beforeEach, afterEach */
 
-// Last updated: 2026-09-24 for v2.0.0.b20 by @jgclark / @CursorAI
+// Last updated: 2026-09-24 for v2.0.0.b21 by @jgclark / @CursorAI
 
 import {
   buildNextPeriodNotePlanSectionHeadingTitle,
@@ -37,6 +37,7 @@ import {
   buildOutputFromReviewWindowAnswers,
   convertNumericHoursToDurationHHMM,
   getBooleanClearDirectivesFromAnswers,
+  getLinesAnswerPrefixFromParsedQuestion,
   getStringQuestionMatchKeyFromOutputLine,
   getStringQuestionMatchKeyFromParsedQuestion,
   getTemplateLineUpsertKey,
@@ -110,6 +111,21 @@ Do: <tasks>`
       expect(questions[1].type).toBe('checklists')
       expect(questions[2].type).toBe('tasks')
       expect(questions[0].question).toBe('Wins')
+    })
+
+    it('should parse <lines> type', () => {
+      const questions = parseQuestions('Learned<lines>')
+      expect(questions.length).toBe(1)
+      expect(questions[0].type).toBe('lines')
+      expect(questions[0].question).toBe('Learned')
+      expect(getLinesAnswerPrefixFromParsedQuestion(questions[0])).toBe('Learned: ')
+      expect(getLinesAnswerPrefixFromParsedQuestion(parseQuestions('Learned: <lines>')[0])).toBe('Learned: ')
+      expect(getLinesAnswerPrefixFromParsedQuestion(parseQuestions('Programming: <lines>')[0])).toBe('Programming: ')
+      const mixed = parseQuestions('Programming: @prog(<number>) <lines>')
+      expect(mixed).toHaveLength(2)
+      expect(mixed[1].type).toBe('lines')
+      expect(getLinesAnswerPrefixFromParsedQuestion(mixed[1])).toBe('')
+      expect(getLinesAnswerPrefixFromParsedQuestion(mixed[1], mixed)).toBe('Programming: ')
     })
 
     it('should parse duration type', () => {
@@ -481,7 +497,7 @@ Mood: <mood>`
       expect(html).toContain('summary-content summary-content-single summary-content-completed-tasks')
     })
 
-    it('should use jsBridge for submit/cancel and include click-through / unlock guards', () => {
+    it('should use jsBridge for submit/cancel and include click-through guard (no WebView unlock timer)', () => {
       const raw = `Mood: <mood>`
       const parsedQuestions = parseQuestions(raw)
       const html = buildReviewHTML(
@@ -501,11 +517,33 @@ Mood: <mood>`
       expect(html).toContain('Sending via jsBridge')
       expect(html).toContain('click-through guard')
       expect(html).toContain('CLICK_THROUGH_GUARD_MS')
-      expect(html).toContain('UNLOCK_IF_STILL_OPEN_MS')
-      expect(html).toContain('unlocking hasSentReviewAction after timeout')
+      expect(html).not.toContain('UNLOCK_IF_STILL_OPEN_MS')
+      expect(html).not.toContain('unlocking hasSentReviewAction after timeout')
       expect(html).toContain('x-callback fallback')
       // WKWebView rejects noteplan:// via location.href; jsBridge must be primary
       expect(html).toContain('unsupported URL')
+    })
+
+    it('should render a textarea for <lines> questions', () => {
+      const raw = 'Learned<lines>'
+      const parsedQuestions = parseQuestions(raw)
+      const html = buildReviewHTML(
+        { moods: 'Calm' },
+        parsedQuestions,
+        raw.split('\n'),
+        [],
+        [],
+        '2026-09-24',
+        'day',
+        [],
+        'onReviewWindowAction',
+        'Big Wins',
+        { q_0: 'first thing\nsecond thing' },
+        [],
+      )
+      expect(html).toContain('Learned')
+      expect(html).toContain('<textarea class="review-input" id="q_0"')
+      expect(html).toContain('first thing\nsecond thing')
     })
   })
 
@@ -630,6 +668,18 @@ Ship: <tasks>`,
       expect(initial.q_2).toBe('task one\ntask two')
     })
 
+    it('should extract <lines> answers from all matching prefix lines', () => {
+      const questions = parseQuestions('Learned<lines>')
+      const lines = [
+        'Learned: first thing',
+        'Learned: second thing',
+        'Learned: third thing',
+        'Other: ignore',
+      ]
+      const initial = buildInitialReviewAnswersByFieldName(questions, lines)
+      expect(initial.q_0).toBe('first thing\nsecond thing\nthird thing')
+    })
+
     it('should extract duration answers from review-style lines', () => {
       const config = { dailyReviewQuestions: '@focus(<duration>)' }
       const questions = parseQuestions(config.dailyReviewQuestions)
@@ -698,6 +748,17 @@ Ship: <tasks>`,
       const initial = buildInitialReviewAnswersByFieldName(questions, lines)
       expect(initial.q_0).toBe('2.5')
       expect(initial.q_1).toBe("Things I've already noted.")
+    })
+
+    it('should pre-fill <lines> from mixed Programming line, stripping @prog from the first row', () => {
+      const questions = parseQuestions('Programming: @prog(<number>) <lines>')
+      const lines = [
+        'Programming: @prog(2.5) first note',
+        'Programming: second note',
+      ]
+      const initial = buildInitialReviewAnswersByFieldName(questions, lines)
+      expect(initial.q_0).toBe('2.5')
+      expect(initial.q_1).toBe('first note\nsecond note')
     })
   })
 
@@ -860,6 +921,78 @@ Ship: <tasks>`,
       expect(out).toBe('Ship:\n* task one\n* task two\n')
     })
 
+    it('should prefix each <lines> answer with the label and a colon', () => {
+      const raw = 'Learned<lines>'
+      const parsedQuestions = parseQuestions(raw)
+      const rawLines = raw.split('\n')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, rawLines, '2026-03-27', 'day', {
+        q_0: 'first thing\nsecond thing\nthird thing',
+      })
+      expect(out).toBe('Learned: first thing\nLearned: second thing\nLearned: third thing\n')
+    })
+
+    it('should prefix each Programming: <lines> row (not only the first)', () => {
+      const raw = 'Programming: <lines>'
+      const parsedQuestions = parseQuestions(raw)
+      expect(parsedQuestions[0].type).toBe('lines')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, raw.split('\n'), '2026-09-24', 'day', {
+        q_0: "Got Cursor to fix lots of small bugs in Periodic Reviews, and added the <lines> type.\nGot Cursor to rewrite Statistic's \"Note Counts\" to write to a note instead.",
+      })
+      expect(out).toBe(
+        "Programming: Got Cursor to fix lots of small bugs in Periodic Reviews, and added the <lines> type.\nProgramming: Got Cursor to rewrite Statistic's \"Note Counts\" to write to a note instead.\n",
+      )
+    })
+
+    it('should prefix each <lines> row from Programming: @prog(<number>) <lines> even when @prog is empty', () => {
+      const raw = 'Programming: @prog(<number>) <lines>'
+      const parsedQuestions = parseQuestions(raw)
+      expect(parsedQuestions).toHaveLength(2)
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, raw.split('\n'), '2026-09-24', 'day', {
+        q_1: "Got Cursor to fix lots of small bugs in Periodic Reviews, and added the <lines> type.\nGot Cursor to rewrite Statistic's \"Note Counts\" to write to a note instead.",
+      })
+      expect(out).toBe(
+        "Programming: Got Cursor to fix lots of small bugs in Periodic Reviews, and added the <lines> type.\nProgramming: Got Cursor to rewrite Statistic's \"Note Counts\" to write to a note instead.\n",
+      )
+    })
+
+    it('should write a single <lines> row on the same line as intervening @prog(<number>)', () => {
+      const raw = 'Programming: @prog(<number>) <lines>'
+      const parsedQuestions = parseQuestions(raw)
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, raw.split('\n'), '2026-09-24', 'day', {
+        q_0: '2.5',
+        q_1: "Things I've already noted.",
+      })
+      expect(out).toBe("Programming: @prog(2.5) Things I've already noted.\n")
+    })
+
+    it('should keep intervening @prog on the first <lines> row and prefix further rows', () => {
+      const raw = 'Programming: @prog(<number>) <lines>'
+      const parsedQuestions = parseQuestions(raw)
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, raw.split('\n'), '2026-09-24', 'day', {
+        q_0: '2.5',
+        q_1: 'first note\nsecond note',
+      })
+      expect(out).toBe('Programming: @prog(2.5) first note\nProgramming: second note\n')
+    })
+
+    it('should write a single <lines> row on the same line as intervening <int>', () => {
+      const raw = 'Count: <int> <lines>'
+      const parsedQuestions = parseQuestions(raw)
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, raw.split('\n'), '2026-09-24', 'day', {
+        q_0: '3',
+        q_1: 'widgets shipped',
+      })
+      expect(out).toBe('Count: 3 widgets shipped\n')
+    })
+
+    it('should skip empty <lines> answers and treat Learned: <lines> the same as Learned<lines>', () => {
+      const parsedQuestions = parseQuestions('Learned: <lines>')
+      const out = buildOutputFromReviewWindowAnswers(parsedQuestions, ['Learned: <lines>'], '2026-03-27', 'day', {
+        q_0: 'first thing\n\nsecond thing\n',
+      })
+      expect(out).toBe('Learned: first thing\nLearned: second thing\n')
+    })
+
     it('should emit boolean tag when answer is true', () => {
       const raw = '#bible<boolean>'
       const parsedQuestions = parseQuestions(raw)
@@ -923,6 +1056,12 @@ Ship: <tasks>`,
       expect(getTemplateLineUpsertKey(parsed, 0)).toBe('health:')
       expect(getTemplateLineUpsertKeyFromOutputLine('Health: @sleep(7:30) @fruitveg(5) #waterlitre', parsed)).toBe('health:')
       expect(getTemplateLineUpsertKeyFromOutputLine("Programming: Things I've already noted.", parseQuestions('Programming: @prog(<number>) <string>'))).toBe('programming:')
+    })
+
+    it('should return a prefix upsert key for <lines> output', () => {
+      const parsed = parseQuestions('Learned<lines>')
+      expect(getTemplateLineUpsertKey(parsed, 0)).toBe('learned:')
+      expect(getTemplateLineUpsertKeyFromOutputLine('Learned: first thing', parsed)).toBe('learned:')
     })
 
     it('should return boolean clear directives for unchecked booleans', () => {
@@ -1002,6 +1141,24 @@ Ship: <tasks>`,
       expect(updates[0].para.lineIndex).toBe(3)
       expect(updates[0].content).toBe('Gratitude: new')
       expect(appendLines).toEqual(['Learn: new'])
+    })
+
+    it('should update existing <lines> rows in order and append extra lines', () => {
+      const parsedQuestions = parseQuestions('Learned<lines>')
+      const paragraphs = [
+        { type: 'title', content: 'Journal', lineIndex: 0, headingLevel: 2 },
+        { type: 'text', content: 'Learned: old first', lineIndex: 1 },
+        { type: 'text', content: 'Learned: old second', lineIndex: 2 },
+      ]
+      const answerLines = ['Learned: first thing', 'Learned: second thing', 'Learned: third thing']
+      const { updates, appendLines } = partitionReviewAnswerLinesForMixedUpsert(
+        paragraphs,
+        'Journal',
+        answerLines,
+        parsedQuestions,
+      )
+      expect(updates.map((u) => u.content)).toEqual(['Learned: first thing', 'Learned: second thing'])
+      expect(appendLines).toEqual(['Learned: third thing'])
     })
 
     it('should upsert mixed Health line and clear unchecked boolean tokens, including || separators', () => {
@@ -1183,10 +1340,41 @@ Ship: <tasks>`,
       const stickyWindow = { customId: 'jgclark.PeriodicReviews.period-review', id: 'win-sticky', close }
       global.NotePlan = { htmlWindows: [stickyWindow], editors: [], openURL }
       const result = closePeriodicReviewWindow(true)
-      expect(close).toHaveBeenCalled()
+      expect(close).toHaveBeenCalledTimes(1)
       expect(result).toBe(false)
       expect(openURL).toHaveBeenCalledTimes(1)
       expect(openURL.mock.calls[0][0]).toContain('closePeriodicReviewWindow')
+    })
+
+    it('should treat a cached htmlWindow with isVisible false as already closed', () => {
+      const close = jest.fn()
+      const openURL = jest.fn()
+      global.NotePlan = {
+        htmlWindows: [{ customId: 'jgclark.PeriodicReviews.period-review', id: 'win-cached', close, isVisible: false }],
+        editors: [],
+        openURL,
+      }
+      expect(closePeriodicReviewWindow(false)).toBe(true)
+      expect(close).not.toHaveBeenCalled()
+      expect(openURL).not.toHaveBeenCalled()
+    })
+
+    it('should call close() only once even if the window stays in htmlWindows', () => {
+      const close = jest.fn()
+      const openURL = jest.fn()
+      const stickyWindow = { customId: 'jgclark.PeriodicReviews.period-review', id: 'win-sticky', close, isVisible: true }
+      global.NotePlan = { htmlWindows: [stickyWindow], editors: [], openURL }
+      const result = closePeriodicReviewWindow(false)
+      expect(close).toHaveBeenCalledTimes(1)
+      expect(result).toBe(false)
+      expect(openURL).not.toHaveBeenCalled()
+    })
+
+    it('should return true without throwing when no review window is open', () => {
+      const openURL = jest.fn()
+      global.NotePlan = { htmlWindows: [], editors: [], openURL }
+      expect(closePeriodicReviewWindow(false)).toBe(true)
+      expect(openURL).not.toHaveBeenCalled()
     })
 
     it('should not schedule deferred close when allowDeferredRetry is false', () => {
@@ -1195,6 +1383,7 @@ Ship: <tasks>`,
       const stickyWindow = { customId: 'jgclark.PeriodicReviews.period-review', id: 'win-sticky', close }
       global.NotePlan = { htmlWindows: [stickyWindow], editors: [], openURL }
       const result = closePeriodicReviewWindow(false)
+      expect(close).toHaveBeenCalledTimes(1)
       expect(result).toBe(false)
       expect(openURL).not.toHaveBeenCalled()
     })

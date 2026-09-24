@@ -22,6 +22,8 @@ export {
   quarterlyReviewQuestions,
   yearlyReviewQuestions,
   onReviewWindowAction,
+  closePeriodicReviewWindow,
+  closePeriodicReviewWindowCommand,
 } from './periodReviews'
 
 export {

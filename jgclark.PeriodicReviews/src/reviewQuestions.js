@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Review question parsing, pre-fill extraction, and answer → note text.
 // Jonathan Clark
-// last update 2026-09-24 for v2.0.0.b20 by @jgclark + @Cursor
+// last update 2026-09-24 for v2.0.0.b21 by @jgclark + @Cursor
 //---------------------------------------------------------------
 
 import type { ParsedQuestionType } from './periodicReviewHelpers'
@@ -12,7 +12,7 @@ import { isInt } from '@helpers/userInput'
 
 /** `<type>` names in review question templates — single source for parse + HTML segment splitting. (`integer` before `int` so `<integer>` matches as one token.) */
 export const REVIEW_QUESTION_TYPE_NAMES_ALT =
-  'string|integer|int|number|duration|boolean|mood|subheading|bullets|checklists|tasks'
+  'string|integer|int|number|duration|boolean|mood|subheading|bullets|checklists|tasks|lines'
 
 /**
  * Strip `:`, parentheses, and angle-bracket type tokens (`<string>`, `<int>`, …) from a segment when deriving the human label.
@@ -203,6 +203,168 @@ function stripMultilineAnswerPrefixes(rawBlock: string, linePrefix: string): str
 }
 
 /**
+ * True when this parsed question should emit one prefixed note line per answer row.
+ * @param {ParsedQuestionType} parsedQuestion
+ * @returns {boolean}
+ */
+export function isLinesQuestion(parsedQuestion: ParsedQuestionType): boolean {
+  if (String(parsedQuestion.type ?? '').trim().toLowerCase() === 'lines') {
+    return true
+  }
+  return /<\s*lines\s*>/i.test(String(parsedQuestion.originalLine ?? ''))
+}
+
+/**
+ * Output prefix for each `<lines>` answer row: the template's leading static label, with `: ` added when needed.
+ * `Learned<lines>`, `Programming: <lines>`, and mixed `Programming: @prog(<number>) <lines>` all yield `Programming: ` / `Learned: `.
+ * The `<lines>` segment itself is often a bare tag after parse, so pass same-line siblings when available.
+ * @tests in jest file
+ * @param {ParsedQuestionType} parsedQuestion
+ * @param {Array<ParsedQuestionType>} [lineSiblings] other questions on the same template line (including parsedQuestion)
+ * @returns {string}
+ */
+export function getLinesAnswerPrefixFromParsedQuestion(
+  parsedQuestion: ParsedQuestionType,
+  lineSiblings: Array<ParsedQuestionType> = [],
+): string {
+  const firstOnLine = lineSiblings[0] ?? parsedQuestion
+  const fromLineLabel = extractLeadingStaticLabelFromSegment(String(firstOnLine.originalLine ?? ''))
+    .trim()
+    .replace(/:+$/u, '')
+    .trim()
+  if (fromLineLabel !== '') {
+    return `${fromLineLabel}: `
+  }
+  const { prefix } = splitParsedSegmentAtTypeMarker(String(parsedQuestion.originalLine ?? ''), 'lines')
+  const fromOriginal = prefix
+    .replace(/[@#][^\s(<]+(?:\s*\([^)]*\))?/g, '')
+    .replace(/<\s*lines\s*>/gi, '')
+    .trim()
+    .replace(/:+$/u, '')
+    .trim()
+  const fromQuestion = String(parsedQuestion.question ?? '')
+    .trim()
+    .replace(/:+$/u, '')
+    .trim()
+  const questionLooksLikeToken = fromQuestion.startsWith('@') || fromQuestion.startsWith('#')
+  const label = fromOriginal !== '' ? fromOriginal : questionLooksLikeToken ? '' : fromQuestion
+  if (label === '') {
+    return ''
+  }
+  return `${label}: `
+}
+
+/**
+ * Non-empty answer rows for a `<lines>` textarea (trimmed; blank rows dropped).
+ * @param {string} answerRaw
+ * @returns {Array<string>}
+ */
+function getLinesAnswerBodies(answerRaw: string): Array<string> {
+  return String(answerRaw ?? '')
+    .split(/\r\n|\n|\r/)
+    .map((l) => l.trim())
+    .filter((l) => l !== '')
+}
+
+/**
+ * One note line per non-empty answer row, each starting with the `<lines>` label prefix.
+ * Mixed templates (`Programming: @prog(<number>) <lines>`) are combined later so intervening fields sit on the first row.
+ * @param {ParsedQuestionType} parsedQuestion
+ * @param {string} answerRaw
+ * @param {Array<ParsedQuestionType>} [lineSiblings]
+ * @returns {string}
+ */
+function formatLinesAnswerFromPayload(
+  parsedQuestion: ParsedQuestionType,
+  answerRaw: string,
+  lineSiblings: Array<ParsedQuestionType> = [],
+): string {
+  const prefix = getLinesAnswerPrefixFromParsedQuestion(parsedQuestion, lineSiblings)
+  const lines = getLinesAnswerBodies(answerRaw)
+  if (lines.length === 0) {
+    return ''
+  }
+  return lines.map((l) => `${prefix}${l}`).join('\n')
+}
+
+/**
+ * Rest of a note line after a `<lines>` prefix, or '' if the line does not match.
+ * @param {string} line
+ * @param {string} prefix e.g. 'Learned: '
+ * @returns {string}
+ */
+function extractBodyAfterLinesPrefix(line: string, prefix: string): string {
+  const trimmed = String(line ?? '').trim()
+  const prefixCore = String(prefix ?? '').trim()
+  if (trimmed === '' || prefixCore === '') {
+    return ''
+  }
+  const prefixRE = new RegExp(`^${escapeRegExp(prefixCore)}\\s*`, 'i')
+  if (!prefixRE.test(trimmed)) {
+    return ''
+  }
+  return trimmed.replace(prefixRE, '').trim()
+}
+
+/**
+ * True when a `<lines>`-prefixed note line is only a sibling @/# token (e.g. `Programming: @prog(2.5)`), not a free-text row.
+ * @param {string} body text after the label prefix
+ * @param {ParsedQuestionType} parsedQuestion
+ * @param {Array<ParsedQuestionType>} siblingsOnLine
+ * @returns {boolean}
+ */
+function isLinesBodyOnlySiblingToken(
+  body: string,
+  parsedQuestion: ParsedQuestionType,
+  siblingsOnLine: Array<ParsedQuestionType>,
+): boolean {
+  const trimmed = String(body ?? '').trim()
+  if (trimmed === '') {
+    return false
+  }
+  for (const sib of siblingsOnLine) {
+    if (sib === parsedQuestion) {
+      continue
+    }
+    const token = String(sib.question ?? '').trim()
+    if (!(token.startsWith('@') || token.startsWith('#'))) {
+      continue
+    }
+    const tokenOnlyRE = new RegExp(`^${escapeRegExp(token)}\\s*\\([^)]*\\)\\s*$`, 'i')
+    if (tokenOnlyRE.test(trimmed)) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Free-text after a `<lines>` label, with same-line @/# tokens stripped (so `@prog(2.5) first` → `first`).
+ * @param {string} line
+ * @param {ParsedQuestionType} linesQuestion
+ * @param {Array<ParsedQuestionType>} siblingsOnLine
+ * @returns {string}
+ */
+function extractResidualLinesBodyOnMixedLine(
+  line: string,
+  linesQuestion: ParsedQuestionType,
+  siblingsOnLine: Array<ParsedQuestionType>,
+): string {
+  const prefix = getLinesAnswerPrefixFromParsedQuestion(linesQuestion, siblingsOnLine)
+  let body = extractBodyAfterLinesPrefix(line, prefix)
+  if (body === '' && siblingsOnLine.length > 1) {
+    body = extractResidualStringOnMixedLine(line, linesQuestion, siblingsOnLine)
+  }
+  for (const sib of siblingsOnLine) {
+    if (sib === linesQuestion) {
+      continue
+    }
+    body = stripSiblingTokenFromResidualText(body, sib)
+  }
+  return body.replace(/\s+/g, ' ').trim()
+}
+
+/**
  * Split a question segment at the typed marker (same idea as reviewHTMLViewGenerator.splitSegmentAtTypeMarker).
  * @param {string} segment
  * @param {string} questionType
@@ -367,6 +529,13 @@ export function getTemplateLineUpsertKey(parsedQuestions: Array<ParsedQuestionTy
   if (lineQuestions.length === 0) {
     return ''
   }
+  const linesQuestion = lineQuestions.find((pq) => isLinesQuestion(pq))
+  if (linesQuestion != null) {
+    const linesKey = normalizeStringMatchKey(getLinesAnswerPrefixFromParsedQuestion(linesQuestion, lineQuestions))
+    if (linesKey !== '') {
+      return linesKey
+    }
+  }
   const labelKey = normalizeStringMatchKey(extractLeadingStaticLabelFromSegment(String(lineQuestions[0].originalLine ?? '')))
   if (labelKey !== '') {
     return labelKey
@@ -431,6 +600,26 @@ export function mergeTemplateAnswerLineIntoExistingLine(
   for (const pq of lineQuestions) {
     const t = String(pq.type).toLowerCase()
     if (t === 'subheading' || t === 'h2' || t === 'h3') {
+      continue
+    }
+    if (isLinesQuestion(pq)) {
+      const newVal = extractResidualLinesBodyOnMixedLine(answer, pq, lineQuestions)
+      if (lineQuestions.length === 1) {
+        result = String(answerLine ?? '').trim()
+        continue
+      }
+      if (newVal === '') {
+        continue
+      }
+      const oldResidual = extractResidualLinesBodyOnMixedLine(result, pq, lineQuestions)
+      if (oldResidual !== '') {
+        const idx = result.lastIndexOf(oldResidual)
+        if (idx >= 0) {
+          result = `${result.slice(0, idx)}${newVal}${result.slice(idx + oldResidual.length)}`.replace(/\s+/g, ' ').trim()
+        }
+      } else {
+        result = `${result} ${newVal}`.replace(/\s+/g, ' ')
+      }
       continue
     }
     const token = String(pq.question ?? '').trim()
@@ -574,6 +763,9 @@ function extractExistingAnswerOnLine(
   if (t === 'subheading' || t === 'h2' || t === 'h3') {
     return ''
   }
+  if (t === 'lines' || isLinesQuestion(parsedQuestion)) {
+    return extractResidualLinesBodyOnMixedLine(line, parsedQuestion, siblingsOnLine)
+  }
   if (t === 'boolean') {
     const token = parsedQuestion.question
     if (!token) {
@@ -688,6 +880,22 @@ function extractExistingAnswerForReviewForm(
   textLines: Array<string>,
   allParsedQuestions: Array<ParsedQuestionType>,
 ): string {
+  if (isLinesQuestion(parsedQuestion)) {
+    const siblingsOnLine = allParsedQuestions.filter((q) => q.lineIndex === parsedQuestion.lineIndex)
+    const prefix = getLinesAnswerPrefixFromParsedQuestion(parsedQuestion, siblingsOnLine)
+    const bodies: Array<string> = []
+    for (let i = 0; i <= textLines.length - 1; i++) {
+      const rawBody = extractBodyAfterLinesPrefix(textLines[i], prefix)
+      if (rawBody === '' || isLinesBodyOnlySiblingToken(rawBody, parsedQuestion, siblingsOnLine)) {
+        continue
+      }
+      const body = extractResidualLinesBodyOnMixedLine(textLines[i], parsedQuestion, siblingsOnLine)
+      if (body !== '') {
+        bodies.push(body)
+      }
+    }
+    return bodies.join('\n')
+  }
   const siblingsOnLine = allParsedQuestions.filter((q) => q.lineIndex === parsedQuestion.lineIndex)
   for (let i = 0; i <= textLines.length - 1; i++) {
     const line = textLines[i]
@@ -742,10 +950,15 @@ function groupQuestionsByLine(parsedQuestions: Array<ParsedQuestionType>): { [nu
  * Convert answer payload from single window into output line for one parsed question.
  * @param {ParsedQuestionType} parsedQuestion
  * @param {string | boolean} answerRaw
+ * @param {Array<ParsedQuestionType>} [lineSiblings] questions that share this template line
  * @returns {string}
  */
-function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answerRaw: string | boolean): string {
-  const t = parsedQuestion.type
+function answerFromReviewWindowPayload(
+  parsedQuestion: ParsedQuestionType,
+  answerRaw: string | boolean,
+  lineSiblings: Array<ParsedQuestionType> = [],
+): string {
+  const t = String(parsedQuestion.type ?? '').trim().toLowerCase()
   if (t === 'boolean') {
     const on = answerRaw === true || answerRaw === 'yes'
     return on ? parsedQuestion.question : ''
@@ -753,6 +966,10 @@ function answerFromReviewWindowPayload(parsedQuestion: ParsedQuestionType, answe
   const answer = (typeof answerRaw === 'string' ? answerRaw : String(answerRaw ?? '')).trim()
   if (answer === '' && t !== 'subheading' && t !== 'h2' && t !== 'h3') {
     return ''
+  }
+  // Prefer `<lines>` handling even if type was mis-parsed, so each row gets the label prefix.
+  if (isLinesQuestion(parsedQuestion)) {
+    return formatLinesAnswerFromPayload(parsedQuestion, answer, lineSiblings)
   }
   switch (t) {
     case 'int': {
@@ -854,6 +1071,36 @@ function joinRenderedLineSegments(
 }
 
 /**
+ * Join same-template-line answers when one of them is `<lines>`.
+ * Intervening `<number>` / `<int>` / `@token(...)` fields sit on the first output line with the first `<lines>` row (like `<string>`).
+ * Further `<lines>` rows are prefixed on their own lines.
+ * @param {Array<ParsedQuestionType>} lineQuestions
+ * @param {Array<string>} nonLinesRendered rendered segments other than `<lines>` (template order, non-empty)
+ * @param {boolean} firstSegmentRendered whether the first template segment produced output
+ * @param {Array<string>} linesBodies non-empty `<lines>` answer rows (no prefix)
+ * @param {string} linesPrefix e.g. `Programming: `
+ * @returns {string}
+ */
+function combineMixedLineAnswersWithLines(
+  lineQuestions: Array<ParsedQuestionType>,
+  nonLinesRendered: Array<string>,
+  firstSegmentRendered: boolean,
+  linesBodies: Array<string>,
+  linesPrefix: string,
+): string {
+  const firstBody = linesBodies[0] ?? ''
+  let firstLine = ''
+  if (nonLinesRendered.length === 0) {
+    firstLine = firstBody === '' ? '' : `${linesPrefix}${firstBody}`
+  } else {
+    const firstParts = firstBody === '' ? nonLinesRendered.slice() : nonLinesRendered.concat([firstBody])
+    firstLine = joinRenderedLineSegments(lineQuestions, firstParts, firstSegmentRendered)
+  }
+  const restLines = linesBodies.slice(1).map((b) => `${linesPrefix}${b}`)
+  return [firstLine, ...restLines].filter((l) => String(l ?? '').trim() !== '').join('\n')
+}
+
+/**
  * Build output from answers returned by single-window mode.
  * @tests in __tests__/periodReviews.test.js
  * @param {Array<ParsedQuestionType>} parsedQuestions
@@ -877,19 +1124,41 @@ export function buildOutputFromReviewWindowAnswers(
 
   for (let lineIndex = 0; lineIndex < lineCount; lineIndex++) {
     const lineQuestions = questionsByLine[lineIndex] ?? []
-    const lineAnswers: Array<string> = []
+    const linesQuestion = lineQuestions.find((pq) => isLinesQuestion(pq))
+    const nonLinesRendered: Array<string> = []
     let firstSegmentRendered = false
+    let linesBodies: Array<string> = []
     for (let i = 0; i < lineQuestions.length; i++) {
       const globalIndex = parsedQuestions.findIndex((q) => q === lineQuestions[i])
       const parsedQuestion = lineQuestions[i]
-      const answer = answerFromReviewWindowPayload(parsedQuestion, answersByIndex[`q_${globalIndex}`] ?? '')
+      const rawAnswer = answersByIndex[`q_${globalIndex}`] ?? ''
+      if (isLinesQuestion(parsedQuestion)) {
+        linesBodies = getLinesAnswerBodies(typeof rawAnswer === 'string' ? rawAnswer : String(rawAnswer ?? ''))
+        continue
+      }
+      const answer = answerFromReviewWindowPayload(parsedQuestion, rawAnswer, lineQuestions)
       if (answer !== '') {
         if (i === 0) {
           firstSegmentRendered = true
         }
-        lineAnswers.push(answer)
+        nonLinesRendered.push(answer)
       }
     }
+    if (linesQuestion != null && (nonLinesRendered.length > 0 || linesBodies.length > 0)) {
+      const prefix = getLinesAnswerPrefixFromParsedQuestion(linesQuestion, lineQuestions)
+      const combinedLine = combineMixedLineAnswersWithLines(
+        lineQuestions,
+        nonLinesRendered,
+        firstSegmentRendered,
+        linesBodies,
+        prefix,
+      )
+      if (combinedLine !== '') {
+        output += `${substituteReviewPeriodPlaceholders(combinedLine, periodString, periodType)}\n`
+      }
+      continue
+    }
+    const lineAnswers = nonLinesRendered
     if (lineAnswers.length > 0) {
       const hasMultiline = lineAnswers.some((a) => a.includes('\n'))
       let combinedLine = hasMultiline

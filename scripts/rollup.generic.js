@@ -19,6 +19,25 @@ const { caseSensitiveImports } = require('./shared')
 
 const NOTIFY = true
 
+/**
+ * Show a desktop notification without failing the build.
+ * node-notifier's macOS binary is x86_64 only. On Apple Silicon without Rosetta,
+ * spawn fails with EBADARCH (-86) and throws out of notify().
+ * @param {string} title
+ * @param {string} messageText
+ */
+function safeNotify(title, messageText) {
+  if (!NOTIFY) return
+  try {
+    notifier.notify({ title, message: messageText })
+  } catch (error) {
+    if (!safeNotify.warned) {
+      safeNotify.warned = true
+      console.log(colors.yellow(`Notification skipped: ${error.message}. The build itself is unaffected.`))
+    }
+  }
+}
+
 const message = (type, msg, leftwords, useIcon = false) => {
   if (!messenger[type]) {
     messenger.error(`Invalid message type in your code: "${type}" (should be one of: success, warn, critical, note, log)`, 'Coding Error', true)
@@ -87,21 +106,11 @@ function watch(watchOptions, buildMode = '') {
     if (event.code === 'BUNDLE_END') {
       const outputFiles = event.output.map((o) => path.basename(o)).join(', .../')
       const msg = `${dt()} Rollup: wrote bundle${event.output.length > 1 ? 's' : ''}: ".../${outputFiles}"`
-      if (NOTIFY) {
-        notifier.notify({
-          title: 'React Component Build',
-          message: msg,
-        })
-      }
+      safeNotify('React Component Build', msg)
       message('success', msg, 'SUCCESS', true)
     } else if (event.code === 'ERROR') {
       message('critical', `!!!!!!!!!!!!!!!\nRollup ${event.error}\n!!!!!!!!!!!!!!!\n`, 'ERROR', true)
-      if (NOTIFY) {
-        notifier.notify({
-          title: 'NotePlan Plugins Build',
-          message: `An error occurred during build process.\nSee console for more information`,
-        })
-      }
+      safeNotify('NotePlan Plugins Build', 'An error occurred during build process.\nSee console for more information')
     }
   })
 

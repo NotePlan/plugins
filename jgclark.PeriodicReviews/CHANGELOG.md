@@ -3,6 +3,12 @@ _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.
 
 Note: this is a new plugin, forked from my original **Journalling Helpers** one. That will remain available for users who need to run NotePlan 3.19 or earlier -- which doesn't support integrated plugin windows -- but will be retired in due course.
 
+## [2.0.0.b22] - 2026-09-24
+- Fix: NotePlan no longer crashes after Save. The review WebView had a 4s `setTimeout` to re-enable Save if the window stayed open; that timer firing while the view was being torn down crashed JavaScriptCore. Save/Cancel also no longer call `HTMLView.close()` from the nested jsBridge handler (UI on an async thread). Close now runs only via the deferred `closePeriodicReviewWindow` command after writes finish, and `HTMLView.close()` is called **once** (not again by window id). Cached closed views still listed in `htmlWindows` with `isVisible === false` are skipped.
+
+## [2.0.0.b21] - 2026-09-24
+- New: `<lines>` review question type. The label is repeated as a prefix on each answer line (`Learned<lines>` with three lines writes `Learned: first` / `Learned: second` / `Learned: third`). `Learned: <lines>` and `Programming: <lines>` are treated the same. Mixed templates such as `Programming: @prog(<number>) <lines>` put intervening `<number>`/`<int>` fields on the first output line with the first `<lines>` row (a single `<lines>` answer is therefore one note line, like the question). Further `<lines>` rows are prefixed on following lines. Empty lines are skipped. Pre-fill collects existing note lines with that prefix (and strips a same-line `@token(...)` from the first row).
+
 ## [2.0.0.b20] - 2026-09-24
 - Fix: Weekly Review now uses NotePlan week titles (`YYYY-Www`, ISO week-year via `getNPWeekStr`) instead of unpadded `YYYY-W{n}` with calendar year, so weeks 1–9 and year-boundary weeks open the correct note.
 - Fix: Save writes review answers to the calendar note for the review period (via loaded notes / `calendarNoteByDateString`), not whatever `Editor` currently has focused — important for Main Window and Split View.

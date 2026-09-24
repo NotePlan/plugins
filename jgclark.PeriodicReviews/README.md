@@ -97,6 +97,7 @@ The terms in angle brackets define both the input controls and how lines are wri
 - `<bullets>` — multi-line; each non-empty line is prefixed with a markdown bullet (`- `)
 - `<checklists>` — same, with checklist markers (`+ `)
 - `<tasks>` — same, with task markers (`* `)
+- `<lines>` — multi-line; each non-empty line is written as `{label}: {text}` (e.g. `Learned<lines>` or `Learned: <lines>` with three answers becomes three lines: `Learned: first thing`, `Learned: second thing`, `Learned: third thing`). On mixed templates such as `Programming: @prog(<number>) <lines>`, intervening `<number>` / `<int>` fields sit on the **first** output line with the first `<lines>` row (`Programming: @prog(2.5) first note`). Extra `<lines>` rows are prefixed on following lines. A one-line `<lines>` answer is therefore a single note line, like the question template. Existing note lines that start with that prefix are pre-filled (markers/prefix stripped in the form).
 - `<mood>` — pick from your configured mood list.
 
 You can include headings and placeholders:
@@ -114,6 +115,7 @@ Notes:
 - If matching answers already exist in the **active** part of the note, they appear **pre-filled** in the form. The **first** matching line wins.
 - When you save, **single-line** template answers (including mixed `@token` / boolean / string lines) update the existing matching line in the review section rather than duplicating it. Extra `@mentions`, `#hashtags`, or free text that are not part of the template are kept; template tokens on that line are updated in place. Unchecked booleans are cleared from that line.
 - Multiline `<bullets>` / `<checklists>` / `<tasks>` are written as a label plus following lines. Re-saving currently **appends** those extra lines rather than replacing the previous list — edit or delete the old list in the note if you re-run the review.
+- `<lines>` answers are written as note lines that start with the label. If the template also has intervening `<number>` / `<int>` fields, those sit on the first output line with the first `<lines>` row. On save, matching lines in the review section are updated in order; extra new lines are appended. Extra old prefix lines are not deleted if you reduce the number of answers.
 
 ### Other Settings
 

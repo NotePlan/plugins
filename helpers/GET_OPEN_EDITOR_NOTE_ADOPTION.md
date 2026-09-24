@@ -7,7 +7,7 @@ Plan captured 2026-08-31 after adding shared helpers in `@helpers/NPEditor.js` (
 | Function | File | Role |
 |----------|------|------|
 | `getNoteFromEditorWindow(editorWindow)` | `helpers/NPEditor.js` | Resolves `Editor.note`, with calendar fallback when `.note` is unset |
-| `getOpenEditorNote(options?)` | `helpers/NPEditor.js` | Uses global `Editor` when it matches; otherwise scans `NotePlan.editors`. Options: `noteType`, `matchNote`, `preferSelection` |
+| `getOpenEditorNote(options?)` | `helpers/NPEditor.js` | Uses global `Editor` when it matches; otherwise scans `NotePlan.editors`. Options: `noteType`, `noteToMatch`, `preferSelection` |
 | `getOpenEditorNoteForReview(periodType?)` | `jgclark.PeriodicReviews` | Thin wrapper; filters by calendar period kind |
 
 Related existing helpers (different job - find pane by filename, not “best current note”):
@@ -30,7 +30,7 @@ These assume global `Editor` / `Editor.note` is the calendar (or “current”) 
 
 | Plugin | Location | Why / approach |
 |--------|----------|----------------|
-| **jgclark.EventHelpers** | `src/eventsToNotes.js` → `validateEditorState()` | Requires `Editor.note` + calendar/daily/weekly. Use `getOpenEditorNote({ noteType: 'Calendar', matchNote: … })`. |
+| **jgclark.EventHelpers** | `src/eventsToNotes.js` → `validateEditorState()` | Requires `Editor.note` + calendar/daily/weekly. Use `getOpenEditorNote({ noteType: 'Calendar', noteToMatch: … })`. |
 | **jgclark.PeriodicReviews** | `src/templatesStartEnd.js` → `ensureCorrectNoteOpen()` | Uses `Editor.note && isNoteType(Editor.note)`; otherwise opens today. Same split bug as the review command. |
 | **jgclark.DailyJournal** | `src/templatesStartEnd.js` → same pattern | Duplicate of Periodic Reviews helper. |
 | **np.MeetingNotes** | `src/NPMeetingNotes.js` → `getNoteFromEditor()` for `<current>` | Local helper only checks `Editor.note` and throws if null. Replace with `getOpenEditorNote()` / `getNoteFromEditorWindow(Editor)`. |
@@ -92,5 +92,5 @@ Optional: use `getNoteFromEditorWindow(Editor)` only for the null-`.note` calend
 
 ## Already done
 
-- Periodic Reviews review commands use `getOpenEditorNoteForReview(periodType)` → `getOpenEditorNote({ matchNote })`.
-- CHANGELOG note under Periodic Reviews **2.0.0.b16**.
+- Periodic Reviews review commands use `getOpenEditorNoteForReview(periodType)` → `getOpenEditorNote({ noteToMatch })`.
+- CHANGELOG note under Periodic Reviews **2.0.0.b16** (filter option name corrected in b18).
