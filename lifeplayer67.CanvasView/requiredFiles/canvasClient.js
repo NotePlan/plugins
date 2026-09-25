@@ -92,6 +92,12 @@
     return n.id !== g.id && n.x >= g.x && n.y >= g.y && n.x + n.width <= g.x + g.width && n.y + n.height <= g.y + g.height
   }
 
+  /** Groups activate only by their frame: is the point within `margin` of the border? */
+  function isGroupBorderHit(g, wx, wy, margin) {
+    var interior = wx > g.x + margin && wx < g.x + g.width - margin && wy > g.y + margin && wy < g.y + g.height - margin
+    return !interior
+  }
+
   /** Filter the note index for the autocomplete picker: title-prefix > title > path matches */
   function filterNotes(index, q) {
     var query = String(q || '').toLowerCase().trim()
@@ -113,6 +119,7 @@
     autoSides: autoSides,
     nearestSide: nearestSide,
     nodeInsideGroup: nodeInsideGroup,
+    isGroupBorderHit: isGroupBorderHit,
     genId: genId,
     filterNotes: filterNotes,
   }
@@ -774,7 +781,7 @@
   var px = 0, py = 0, moved = false
   var marqueeEl = null, marqueeStart = null
 
-  var placeKind = null, ghostEl = null
+  var placeKind = null, ghostEl = null, interiorGroupClick = false
 
   viewport.addEventListener('mousedown', function (e) {
     // Obsidian-style drag-to-add: grab a palette button and drop it on the canvas
@@ -817,8 +824,16 @@
       var lEl = e.target.closest('.node.link')
       if (lEl) { editLinkCard(lEl); return }
       var gEl = e.target.closest('.node.group')
-      if (gEl) { editGroupLabel(gEl); return }
-      var eEl = e.target.closest('.edge-hit, .edge-line, .edge-label')
+      if (gEl) {
+        // frame/label double-click renames the group; its interior acts like the
+        // background — a new text card appears right there, inside the group
+        var gdp = toWorld(e.clientX, e.clientY)
+        var gdn = nodeById[gEl.dataset.id]
+        if (e.target.closest('.group-label') || (gdn && isGroupBorderHit(gdn, gdp.x, gdp.y, 14 / scale))) editGroupLabel(gEl)
+        else createTextNode(gdp.x, gdp.y)
+        return
+      }
+      var eEl = e.target.closest('.edge-hit, .edge-label, .edge-line')
       if (eEl) { editEdgeLabel(eEl.dataset.edgeId); return }
       if (!e.target.closest('.node')) {
         var wpt = toWorld(e.clientX, e.clientY)
@@ -843,6 +858,18 @@
       return
     }
     var nodeEl = e.target.closest('.node')
+    // An UNSELECTED group's empty interior behaves like the background (so you can
+    // rubber-band its children); it activates only by its frame or label. Once the
+    // group IS selected, dragging anywhere inside its bounds moves it.
+    interiorGroupClick = false
+    if (nodeEl && nodeEl.classList.contains('group') && !e.target.closest('.group-label') && !selectedNodes.has(nodeEl.dataset.id)) {
+      var gp = toWorld(e.clientX, e.clientY)
+      var gn = nodeById[nodeEl.dataset.id]
+      if (gn && !isGroupBorderHit(gn, gp.x, gp.y, 14 / scale)) {
+        nodeEl = null
+        interiorGroupClick = true
+      }
+    }
     if (nodeEl) {
       var n = nodeById[nodeEl.dataset.id]
       if (!e.shiftKey && !selectedNodes.has(n.id)) {
@@ -885,6 +912,11 @@
       viewport.classList.add('panning')
     } else {
       mode = 'marquee'
+      // starting a rubber-band (or a plain background click) drops the old selection right away
+      if (selectedNodes.size || selectedEdges.size) {
+        clearSelection()
+        updateSelectionUI()
+      }
       marqueeStart = { x: e.clientX, y: e.clientY }
       marqueeEl = document.createElement('div')
       marqueeEl.id = 'marquee'
@@ -958,11 +990,16 @@
         var r = marqueeEl.getBoundingClientRect()
         var w1 = toWorld(r.left, r.top), w2 = toWorld(r.right, r.bottom)
         canvas.nodes.forEach(function (n) {
-          if (n.type === 'group') return // rubber-band selects cards, not surrounding groups
+          if (n.type === 'group') {
+            // a group joins the selection only when the rubber band encloses it fully —
+            // intersection would grab the surrounding group on every band drawn inside it
+            if (n.x >= w1.x && n.y >= w1.y && n.x + n.width <= w2.x && n.y + n.height <= w2.y) selectedNodes.add(n.id)
+            return
+          }
           if (n.x < w2.x && n.x + n.width > w1.x && n.y < w2.y && n.y + n.height > w1.y) selectedNodes.add(n.id)
         })
-      } else if (!e.target.closest('.node, a, #toolbar, #palette, .edge-hit, .edge-line')) {
-        clearSelection() // plain click on the background deselects
+      } else if (interiorGroupClick || !e.target.closest('.node, a, #toolbar, #palette, .edge-hit, .edge-line')) {
+        clearSelection() // plain click on the background (or a group's interior) deselects
       }
       marqueeEl.remove()
       marqueeEl = null
@@ -1033,7 +1070,7 @@
   window.addEventListener('resize', fit)
 
   // ---------- boot ----------
-  console.log('canvasClient v0.6.1 booted: ' + canvas.nodes.length + ' nodes, ' + canvas.edges.length + ' edges')
+  console.log('canvasClient v0.6.4 booted: ' + canvas.nodes.length + ' nodes, ' + canvas.edges.length + ' edges')
   renderScene()
   fit()
 })()

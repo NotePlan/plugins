@@ -1,5 +1,16 @@
 # Canvas View Changelog
 
+## [0.6.4] - 2026-09-25 (unreleased)
+
+Obsidian-style group interaction:
+
+- An unselected group's interior behaves like the background: rubber-band its
+  children, double-click to create a card inside; the group activates only by
+  its frame (~14 px, zoom-independent) or its label.
+- Once selected, the group drags from anywhere inside its bounds.
+- Starting any background action (click or rubber-band) drops the old selection
+  immediately; a rubber band that fully encloses a group selects the group too.
+
 ## [0.6.0] - 2026-09-24 (unreleased)
 
 Obsidian parity push:

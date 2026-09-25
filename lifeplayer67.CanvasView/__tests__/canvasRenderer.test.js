@@ -88,6 +88,13 @@ describe('canvasClient pure helpers', () => {
     expect(client.filterNotes(idx, '').length).toBeLessThanOrEqual(8)
   })
 
+  test('isGroupBorderHit: frame activates, interior does not', () => {
+    const g = { x: 0, y: 0, width: 500, height: 400 }
+    expect(client.isGroupBorderHit(g, 5, 200, 14)).toBe(true) // left frame
+    expect(client.isGroupBorderHit(g, 250, 395, 14)).toBe(true) // bottom frame
+    expect(client.isGroupBorderHit(g, 250, 200, 14)).toBe(false) // deep interior
+  })
+
   test('genId makes 16-char hex ids like Obsidian', () => {
     expect(client.genId()).toMatch(/^[0-9a-f]{16}$/)
   })

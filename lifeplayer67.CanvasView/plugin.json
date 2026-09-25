@@ -3,7 +3,7 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "lifeplayer67.CanvasView",
   "plugin.name": "Canvas View",
-  "plugin.version": "0.6.0",
+  "plugin.version": "0.6.4",
   "plugin.lastUpdateInfo": "Obsidian parity push: drag-to-add palette, note autocomplete picker, images render in file cards, website previews in link cards, opens in split view inside the main window.",
   "plugin.description": "Edit Obsidian Canvas / JSON Canvas (.canvas) files inside NotePlan: create and connect cards, move, resize, color, label edges, undo/redo — fully compatible with Obsidian.",
   "plugin.icon": "fa-diagram-project",
