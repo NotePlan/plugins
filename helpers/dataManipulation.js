@@ -459,6 +459,105 @@ export function getIntegerValue(input: string | number, defaultValue: number = 0
 }
 
 /**
+ * Locale for number display: explicit argument, else NotePlan's language and region, else en-US.
+ * Note: This is the same fallback as getLocale() in NPConfiguration when no config locale is set. It does not call getLocale() to avoid a dependency cycle.
+ * Note: It also guards `typeof NotePlan === 'undefined'`, the same as getLocale(), so this stays safe in tests where NotePlan is not declared.
+ * @param {string} [locale]
+ * @returns {string}
+ */
+function resolveNumberLocale(locale?: string): string {
+  if (typeof locale === 'string' && locale.trim() !== '') return locale
+  if (typeof NotePlan === 'undefined' || NotePlan == null || NotePlan.environment == null) return 'en-US'
+  const region = NotePlan.environment.regionCode ?? ''
+  const language = NotePlan.environment.languageCode ?? ''
+  if (region !== '') return `${language}-${region}`
+  return 'en-US'
+}
+
+/**
+ * Format a finite number with Intl so grouping and decimal separators follow the locale.
+ * E.g. en-GB uses "," for thousands and "." for the decimal (12,350.5). de-DE uses "." and "," (12.350,5).
+ * @param {number} num
+ * @param {string} [locale] - BCP 47 tag. Omitted: NotePlan environment, else en-US.
+ * @param {number} [minimumFractionDigits] - Used when maximumSignificantDigits is omitted. Default 0.
+ * @param {number} [maximumFractionDigits] - Default 0.
+ * @param {number} [maximumSignificantDigits] - When set, fraction-digit options are not used.
+ * @returns {string}
+ */
+export function formatLocalizedNumber(
+  num: number,
+  locale?: string,
+  minimumFractionDigits?: number,
+  maximumFractionDigits?: number,
+  maximumSignificantDigits?: number,
+): string {
+  if (typeof num !== 'number' || !Number.isFinite(num)) return '0'
+  const loc = resolveNumberLocale(locale)
+  const minFD = Math.max(0, minimumFractionDigits ?? 0)
+  const maxFD = Math.max(minFD, maximumFractionDigits ?? minFD)
+  const options: Intl$NumberFormatOptions = {
+    useGrouping: true,
+  }
+  if (typeof maximumSignificantDigits === 'number' && maximumSignificantDigits >= 1) {
+    options.maximumSignificantDigits = Math.floor(maximumSignificantDigits)
+  } else {
+    options.minimumFractionDigits = minFD
+    options.maximumFractionDigits = maxFD
+  }
+  try {
+    return new Intl.NumberFormat(loc, options).format(num)
+  } catch (err) {
+    return new Intl.NumberFormat('en-US', options).format(num)
+  }
+}
+
+/**
+ * Format a number for at most `sigFigs` significant figures (default 4). Integers with that many digits or fewer are unchanged (1234 stays 1234 before grouping).
+ * Larger magnitudes round to that many significant figures (12345 -> 12350).
+ * When there is a fractional part and the absolute value is at least 1, at most one decimal place,
+ * and fewer if that would exceed `sigFigs` (12.345 -> 12.3, 1234.6 -> 1235).
+ * A result that would show only a trailing zero after the decimal is written as a whole number (1.0123 -> 1, 101.983 -> 102, 1,234.0 -> 1,234).
+ * Absolute values below 1 use 1 significant figure (0.123 -> 0.1, 0.00123 -> 0.001).
+ * Grouping and decimal characters follow the locale via Intl. Non-finite input returns "0". A missing or invalid `sigFigs` uses 4.
+ * @param {number} num
+ * @param {number} [sigFigs] - Significant figures to keep (default 4)
+ * @param {string} [locale] - BCP 47 tag. Omitted: NotePlan environment, else en-US.
+ * @returns {string}
+ */
+export function formatWithSigFigs(num: number, sigFigs?: number, locale?: string): string {
+  if (typeof num !== 'number' || !Number.isFinite(num) || num === 0) return '0'
+  const figs = (typeof sigFigs === 'number' && Number.isFinite(sigFigs) && sigFigs >= 1) ? Math.floor(sigFigs) : 4
+  const abs = Math.abs(num)
+  const sigFigThreshold = Math.pow(10, figs)
+  const signed = (rounded: number): number => (num < 0 ? -rounded : rounded)
+
+  if (abs >= sigFigThreshold) {
+    const magnitude = Math.floor(Math.log10(abs))
+    const factor = Math.pow(10, magnitude - figs + 1)
+    const rounded = Math.round(abs / factor) * factor
+    return formatLocalizedNumber(signed(Math.round(rounded)), locale, 0, 0)
+  }
+
+  if (abs >= 1) {
+    if (Number.isInteger(abs)) return formatLocalizedNumber(num, locale, 0, 0)
+    const integerDigits = Math.floor(Math.log10(abs)) + 1
+    const decimalPlaces = Math.max(0, Math.min(1, figs - integerDigits))
+    const factor = Math.pow(10, decimalPlaces)
+    const rounded = Math.round(abs * factor) / factor
+    if (Number.isInteger(rounded)) return formatLocalizedNumber(signed(rounded), locale, 0, 0)
+    return formatLocalizedNumber(signed(rounded), locale, decimalPlaces, decimalPlaces)
+  }
+
+  const magnitude = Math.floor(Math.log10(abs))
+  const factor = Math.pow(10, magnitude)
+  const rounded = Math.round(abs / factor) * factor
+  if (rounded === 0) return '0'
+  if (rounded >= 1) return formatLocalizedNumber(signed(Math.round(rounded)), locale, 0, 0)
+  const decimals = Math.max(0, -Math.floor(Math.log10(rounded)))
+  return formatLocalizedNumber(signed(rounded), locale, decimals, decimals)
+}
+
+/**
  * For parameter casting: Convert input to positive integer value. Uses getIntegerValue internally and ensures the result is positive (> 0).
  * Returns the defaultValue if the converted value is not positive.
  * @param {string|number} input - The input to convert

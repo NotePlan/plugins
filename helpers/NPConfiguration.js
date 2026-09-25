@@ -310,15 +310,20 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
 }
 
 /**
- * Get locale: from configIn.locale (if present), else get from NP environment (from 3.3.2), else default to 'en-US'
+ * Get locale: from configIn.locale (if present), else get from NP environment (from 3.3.2), else default to 'en-US'.
+ * `typeof NotePlan` is checked first so an undeclared NotePlan (as in Jest) falls back to en-US instead of throwing an error.
  * TODO: In time point to np.Shared config item
  * @author @jgclark
  * @param {Object} tempConfig
  * @returns {string}
  */
 export function getLocale(configIn: Object): string {
-  const envRegion = NotePlan?.environment ? NotePlan?.environment?.regionCode : ''
-  const envLanguage = NotePlan?.environment ? NotePlan?.environment?.languageCode : ''
+  let envRegion = ''
+  let envLanguage = ''
+  if (typeof NotePlan !== 'undefined' && NotePlan != null && NotePlan.environment != null) {
+    envRegion = NotePlan.environment.regionCode ?? ''
+    envLanguage = NotePlan.environment.languageCode ?? ''
+  }
   let tempLocale = castStringFromMixed(configIn, 'locale') ?? null
   tempLocale = tempLocale != null && tempLocale !== '' ? tempLocale : envRegion !== '' ? `${envLanguage}-${envRegion}` : 'en-US'
   return tempLocale

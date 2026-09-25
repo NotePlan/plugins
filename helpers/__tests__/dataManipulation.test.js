@@ -2,7 +2,7 @@
 /* globals describe, expect, test, toEqual, beforeAll */
 
 import colors from 'chalk'
-import { renameKey, renameKeys, stringListOrArrayToArray, getStringArrayValue } from '../dataManipulation'
+import { renameKey, renameKeys, stringListOrArrayToArray, getStringArrayValue, formatLocalizedNumber, formatWithSigFigs } from '../dataManipulation'
 import { clo, logDebug } from '../dev'
 
 const FILE = `${colors.yellow('helpers/dataManipulation')}`
@@ -367,6 +367,55 @@ describe(`${FILE}`, () => {
     })
     test('splits comma-separated string', () => {
       expect(getStringArrayValue('-priority,content', [])).toEqual(['-priority', 'content'])
+    })
+  })
+
+  describe('formatWithSigFigs()', () => {
+    test('rounds integers above 4 digits to 4 significant figures', () => {
+      expect(formatWithSigFigs(12345, 4, 'en-GB')).toBe('12,350')
+      expect(formatWithSigFigs(10001, 4, 'en-GB')).toBe('10,000')
+      expect(formatWithSigFigs(-12345, 4, 'en-GB')).toBe('-12,350')
+    })
+    test('leaves integers of 4 digits or fewer unrounded, with grouping', () => {
+      expect(formatWithSigFigs(1234, 4, 'en-GB')).toBe('1,234')
+      expect(formatWithSigFigs(9999, 4, 'en-GB')).toBe('9,999')
+      expect(formatWithSigFigs(12, 4, 'en-GB')).toBe('12')
+      expect(formatWithSigFigs(0, 4, 'en-GB')).toBe('0')
+    })
+    test('uses at most one decimal place when the absolute value is at least 1', () => {
+      expect(formatWithSigFigs(12.345, 4, 'en-GB')).toBe('12.3')
+      expect(formatWithSigFigs(-12.345, 4, 'en-GB')).toBe('-12.3')
+    })
+    test('omits a trailing decimal zero', () => {
+      expect(formatWithSigFigs(1.0123, 4, 'en-GB')).toBe('1')
+      expect(formatWithSigFigs(101.983, 4, 'en-GB')).toBe('102')
+      expect(formatWithSigFigs(1234.04, 5, 'en-GB')).toBe('1,234')
+      expect(formatWithSigFigs(-101.983, 4, 'en-GB')).toBe('-102')
+    })
+    test('drops the decimal when 4 significant figures are already used by the integer part', () => {
+      expect(formatWithSigFigs(1234.6, 4, 'en-GB')).toBe('1,235')
+    })
+    test('uses 1 significant figure below 1', () => {
+      expect(formatWithSigFigs(0.123, 4, 'en-GB')).toBe('0.1')
+      expect(formatWithSigFigs(0.00123, 4, 'en-GB')).toBe('0.001')
+      expect(formatWithSigFigs(0.0015, 4, 'en-GB')).toBe('0.002')
+      expect(formatWithSigFigs(-0.00123, 4, 'en-GB')).toBe('-0.001')
+    })
+    test('other locales swap thousands and decimal separators', () => {
+      expect(formatWithSigFigs(12345, 4, 'de-DE')).toBe('12.350')
+      expect(formatWithSigFigs(101.983, 4, 'de-DE')).toBe('102')
+      expect(formatWithSigFigs(0.00123, 4, 'de-DE')).toBe('0,001')
+      expect(formatLocalizedNumber(12350, 'fr-FR', 0, 0)).toBe(new Intl.NumberFormat('fr-FR').format(12350))
+    })
+    test('non-finite input returns 0', () => {
+      expect(formatWithSigFigs(NaN, 4, 'en-GB')).toBe('0')
+      expect(formatWithSigFigs(Infinity, 4, 'en-GB')).toBe('0')
+    })
+    test('second argument sets the significant-figure cap and defaults to 4', () => {
+      expect(formatWithSigFigs(12345, 3, 'en-GB')).toBe('12,300')
+      expect(formatWithSigFigs(1234, 3, 'en-GB')).toBe('1,230')
+      expect(formatWithSigFigs(12345, 4, 'en-GB')).toBe('12,350')
+      expect(formatWithSigFigs(12345, 0, 'en-GB')).toBe('12,350')
     })
   })
 })
