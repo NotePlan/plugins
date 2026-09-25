@@ -1,4 +1,4 @@
-# ⏱ Habits and Summaries plugin
+# Habits & Summaries plugin
 
 As NotePlan is such a flexible app, there are [various ways people use it to track habits](https://help.noteplan.co/article/144-habit-tracking).
 

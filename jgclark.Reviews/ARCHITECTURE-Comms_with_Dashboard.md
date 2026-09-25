@@ -34,7 +34,7 @@ Both directions use **NotePlan’s `DataStore.invokePluginCommandByName(commandN
 
 **Important:**
 
-- `generateProjectListsAndRenderIfOpen` (called when switching Dashboard perspective, if Reviews is installed) **always** regenerates `allProjectsList.json` on the `afterBanner` hop. The `paintFirst` hop only shows the updating banner and re-queues. That is file/data work and does **not** open the Projects Rich window. It then calls `renderProjectListsIfOpen`, which **does not** open the window (`shouldOpen: false`).
+- `generateProjectListsAndRenderIfOpen` (called when switching Dashboard perspective, if Reviews is installed) regenerates `allProjectsList.json` on the `afterBanner` hop via `generateAllProjectsList`. From Reviews v2.3.0 that may be an **incremental** merge (Shared notes-changed-recently cache) when a full scan is not required (full scan at least every 24h, or on missing list / folder / perspective change). The `paintFirst` hop only shows the updating banner and re-queues. That is file/data work and does **not** open the Projects Rich window. It then calls `renderProjectListsIfOpen`, which **does not** open the window (`shouldOpen: false`).
 - `updateProjectsListIfProjectSection` (after `REMOVE_LINE_FROM_JSON` in the bridge when the line was in `PROJACT` / `PROJREVIEW`) updates the shared JSON via Reviews helpers; it does not open any window. It calls `updateAllProjectsListAfterChange` with `skipUpdateDashboardIfOpen: true`, so `writeAllProjectsList` still runs `updateRichProjectListIfOpen` (Rich HTML, if open) but **skips** `updateDashboardIfOpen`. Dashboard then runs `refreshSectionsByCode` in-process (`projectsListSync.js`), and `processActionOnReturn` re-fetches shared data before sending `UPDATE_DATA` so PROJ* rows match the new JSON (avoids same-plugin invoke ordering; see **Scenario 2** and **Races and ordering**).
 - Opening the Dashboard or the Rich Project List for the user is reserved for explicit commands / UI (e.g. `displayProjectLists` with `shouldOpen: true`), not for these cross-plugin hooks.
 
@@ -128,35 +128,42 @@ flowchart LR
   end
 ```
 
-### Scenario 4 — Reviews settings saved → regenerate list and refresh Dashboard (if open)
+### Scenario 4 — Reviews settings saved → rebuild, redisplay, or no-op
 
 **Trigger:** NotePlan runs `onSettingsUpdated` for Reviews after settings change.
 
-**Mechanism:** `onSettingsUpdated` → `generateAllProjectsList` → `writeAllProjectsList` → same chain as **Scenario 3** (`updateRichProjectListIfOpen` → invoke Reviews render, then `updateDashboardIfOpen` → invoke Dashboard). Rich list is refreshed via `renderProjectListsIfOpen` only if that window is already open.
+**Mechanism:** `onSettingsUpdated` compares the newly saved raw `settings.json` with a `Reviews-lastSettingsSnapshot` preference (`getSettingsUpdateAction` in `reviewSettings.js`):
+
+- **Rebuild** when any key in "What do you want to Review?" or "Customise the metadata terms" changed (or there is no previous snapshot): `generateAllProjectsList` (skipping the write-time Rich-list invoke) → `writeAllProjectsList` → `updateDashboardIfOpen` if Dashboard is open, then one in-process `renderProjectListsIfOpen` if the Rich/Markdown list is already open.
+- **Recalculate** when next-action or progress-calculation settings changed (`nextActionTags`, `sequentialTag`, `ignoreChecklistsInProgress`, `numberDaysForFutureToIgnore`): `recalculateAllProjectsListItems` re-parses only notes already in `allProjectsList.json` (no vault scan), then the same write + Dashboard + in-process render path as rebuild.
+- **Redisplay** when only keys in "Display settings for 'project lists' command" changed: `renderProjectListsIfOpen` only. `allProjectsList.json` is not rewritten, so Dashboard is not refreshed.
+- **None** for other settings (progress writing, archive, weekly progress, log level, etc.): snapshot is updated and the function returns.
 
 When `usePerspectives` is true, folder/teamspace filters for list generation usually come from Dashboard perspectives; changing those is handled on the Dashboard side (**Scenario 1**), not by Reviews `onSettingsUpdated` alone.
 
-After the chain below, `onSettingsUpdated` still awaits `renderProjectListsIfOpen` (Reviews only, no extra hop to Dashboard).
-
 ```mermaid
-flowchart LR
+flowchart TD
   subgraph noteplan [NotePlan]
     hook["onSettingsUpdated Reviews"]
   end
   subgraph reviewsPlugin [jgclark.Reviews]
     onSet["onSettingsUpdated in index.js"]
+    classify["getSettingsUpdateAction"]
     genAll["generateAllProjectsList"]
     writeList["writeAllProjectsList"]
-    updRich["updateRichProjectListIfOpen"]
-    invokeRich["invoke renderProjectListsIfOpen"]
+    renderIfOpen["renderProjectListsIfOpen"]
     updDash["updateDashboardIfOpen"]
-    invokePToD["DataStore.invokePluginCommandByName"]
-    hook --> onSet --> genAll --> writeList --> updRich --> invokeRich --> updDash --> invokePToD
+    hook --> onSet --> classify
+    classify -->|rebuild| genAll --> writeList
+    classify -->|recalculate| recalc["recalculateAllProjectsListItems"] --> writeList
+    writeList --> renderIfOpen
+    writeList --> updDash
+    classify -->|redisplay| renderIfOpen
+    classify -->|none| done["update snapshot only"]
   end
   subgraph dashboardPlugin [jgclark.Dashboard]
     refreshByCode["refreshSectionsByCode"]
-    refreshSome["refreshSomeSections"]
-    invokePToD --> refreshByCode --> refreshSome
+    updDash --> refreshByCode
   end
 ```
 
@@ -239,5 +246,5 @@ Reviews must pass `[['PROJACT', 'PROJREVIEW', 'PROJ']]` into `invokePluginComman
 
 ## Related source files
 
-- Reviews: `src/reviewHelpers.js` (`updateDashboardIfOpen`, `updateRichProjectListIfOpen`, `getReviewSettings`), `src/allProjectsListHelpers.js` (`writeAllProjectsList`), `src/reviews.js` (`generateProjectListsAndRenderIfOpen`, `renderProjectListsIfOpen`, `renderProjectListsHTML`), `src/index.js` (`onSettingsUpdated`)
+- Reviews: `src/reviewHelpers.js` (`updateDashboardIfOpen`, `updateRichProjectListIfOpen`), `src/reviewSettings.js` (`getReviewSettings`, `getSettingsUpdateAction`), `src/allProjectsListHelpers.js` (`writeAllProjectsList`), `src/reviews.js` (`generateProjectListsAndRenderIfOpen`, `renderProjectListsIfOpen`, `renderProjectListsHTML`), `src/index.js` (`onSettingsUpdated`)
 - Dashboard: `src/perspectiveHelpers.js` (`switchToPerspective`), `src/projectsListSync.js` (`updateProjectsListIfProjectSection`, in-process `refreshSectionsByCode` after list write), `src/clickHandlers.js` (task handlers), `src/pluginToHTMLBridge.js` (`processActionOnReturn` / `REMOVE_LINE_FROM_JSON`), `src/dashboardHooks.js` (`refreshSectionsByCode`), `src/refreshClickHandlers.js` (`refreshSomeSections`)

@@ -1,4 +1,10 @@
-# What's Changed in 🔢 Statistics plugin?
+# What's Changed in Statistics plugin?
+
+## [1.0.0] - 2026-09-24
+### Changes
+- **/note stats** writes its results to a note (default `Note Stats.md`) instead of the CommandBar. The note has a refresh link that runs the command again. The filepath can be changed in plugin settings.
+- Private and Teamspace notes are counted separately. Each Teamspace has its own calendar, regular, and recent-activity counts. A combined total covers private and Teamspace calendar and regular notes.
+- It now requires NotePlan 3.18.1 or later.
 
 ## [0.7.0] - 2025-04-22
 ### New

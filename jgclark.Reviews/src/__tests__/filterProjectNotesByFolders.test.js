@@ -170,6 +170,19 @@ describe('filterProjectNotesByFolders', () => {
       expect(result.some(n => n.filename.startsWith('Archive/'))).toBe(false)
     })
 
+    test('ignoring root "/" excludes only root notes, not nested folder notes', () => {
+      // Regression: previously `${'/'} /`.replace('//','/') became '/', and filename.includes('/')
+      // dropped every nested note, leaving only root - the opposite of excluding root.
+      const filteredFolders = ['/', 'Projects', 'Areas']
+      const foldersToIgnore = ['/']
+      const result = filterProjectNotesByFolders(mockProjectNotes, filteredFolders, foldersToIgnore)
+
+      expect(result.some(n => n.filename === 'root-note.md')).toBe(false)
+      expect(result.some(n => n.filename === 'another-root.md')).toBe(false)
+      expect(result.some(n => n.filename === 'Projects/project1.md')).toBe(true)
+      expect(result.some(n => n.filename === 'Areas/area1.md')).toBe(true)
+    })
+
     test('should exclude nested ignored folders', () => {
       const filteredFolders = ['Projects']
       const foldersToIgnore = ['Projects/Archive']

@@ -2,21 +2,21 @@
   "noteplan.minAppVersion": "3.9.3",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Reviews",
-  "plugin.name": "🔬 Projects + Reviews",
+  "plugin.name": "Projects + Reviews",
   "plugin.description": "Making it easier to work with Project notes in NotePlan. Start, regularly review, pause, complete and cancel projects. Inspired by the PARA and 'Getting Things Done' methods, but more widely applicable.",
   "plugin.icon": "fa-chart-gantt",
-  "plugin.iconColor": "orange-600",
+  "plugin.iconColor": "orange-700",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.com/plugins/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "2.1.0",
+  "plugin.version": "2.3.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "2.1.0: **/weeklyProjectsProgress** can upsert a current-week progress table into the weekly note (new settings **Heading for Weekly Project Progress output** and **Show folders with no progress in weekly table?**). Includes Refresh and Show/Hide empty-folder toggle pseudo-buttons.\n2.0.9: Fix review commands deleting custom content on a hashtag line under the title when the hashtag is not a configured project type tag (#775).\nFix add-progress body line being lost when first writing progress to frontmatter.\n2.0.8: Rebuild to pick up inter-process communication improvements from Dashboard.\n2.0.7: Updating banner on Dashboard perspective change now appears immediately.\nSmall visual improvements and more dev tidy up.\n2.0.6: small bug fixes and dev refactoring.\n2.0.5: Switch progress comment dates having format YYYY-MM-DD again.\nTurn back on saving of updated window size & position when resizing/moving it\n2.0.4: Now prompts user to pick a project type tag from **Hashtags to Review** settings (or Cancel), if none present in the note.\n2.0.3: Bug fixes and icon updates.\n2.0.2: New help text when no projects are shown, to help new users get started.\n2.0.1: New setting: 'Project progress string'. When converting an existing note to being a Project, user is now asked for optional starting comment and %.\n2.0.0: Significantly modernised layout for Rich project list.\nFrontmatter metadata support, including configurable combined key and migration from body.\nSee the CHANGELOG for lots of other improvements and fixes.\n1.3.1: Fixed edge case with adding progress updates and frontmatter.\n1.3.0: Please see CHANGELOG.md for details of the many Display improvements, Processing improvements and fixes.",
+  "plugin.lastUpdateInfo": "2.3.0: Much faster Refresh via Shared notes-changed-recently cache. /weeklyProjectsProgress updates the weekly note from recently changed notes only; /heatmaps does the full scan and writes CSVs. More responsive on NotePlan 3.21.3+.\n2.2.1: Fix to root folder exclusion when using Perspectives. New progress dialogs.\n2.2.0: Updated layout of the top bar, and added a Settings button. The Refresh icon now spins while the list is regenerating.\nAvoids unnecessary refreshes when saving settings.\n2.1.1: bug fixes and small improvements.\n2.1.0: **/weeklyProjectsProgress** can upsert a current-week progress table into the weekly note (new settings **Heading for Weekly Project Progress output** and **Show folders with no progress in weekly table?**). Includes Refresh and Show/Hide empty-folder toggle pseudo-buttons.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {
       "id": "np.Shared",
-      "minVersion": "1.0.4"
+      "minVersion": "1.3.0"
     }
   ],
   "plugin.requiredFiles": [
@@ -48,7 +48,8 @@
       "jsFunction": "displayProjectLists",
       "arguments": [
         "setting keys and their values in JSON format (optional)",
-        "position to scroll window to (optional, only for HTML view)"
+        "position to scroll window to (optional, only for HTML view)",
+        "refreshPhase (afterSpin after the paint hop; optional)"
       ],
       "sidebarView": {
         "windowID": "jgclark.Reviews.rich-review-list",
@@ -190,14 +191,24 @@
       ]
     },
     {
+      "name": "Create new project",
+      "alias": [
+        "cnp",
+        "new project",
+        "create project"
+      ],
+      "description": "Create a new project note by asking for a title, folder (defaults to the current Editor note's folder), and standard project metadata, then open it in a split view. Requires NotePlan v3.21+ for the form.",
+      "jsFunction": "createNewProject"
+    },
+    {
       "hidden": false,
       "name": "weeklyProjectsProgress",
       "alias": [
         "wpp",
         "progress"
       ],
-      "description": "Generate per-folder Area/Project progress stats as CSV files in the plugin data folder, and upsert a summary table into the current weekly note when 'Heading for Weekly Project Progress output' is set",
-      "jsFunction": "writeProjectsWeeklyProgressToCSV",
+      "description": "Upsert this week's Area/Project progress summary into the weekly note (when 'Heading for Weekly Project Progress output' is set). Scans only recently changed notes via the Shared cache. Multi-week CSVs are written by the heatmaps command.",
+      "jsFunction": "updateWeeklyProjectsProgress",
       "arguments": [
         "optional JSON parameters (e.g. toggle show/hide folders with no progress)"
       ]
@@ -206,7 +217,7 @@
       "hidden": false,
       "name": "heatmaps for weekly Projects Progress",
       "alias": [],
-      "description": "Show per-folder Area/Project progress as two weekly heatmaps (notes progressed and tasks completed) in HTML windows",
+      "description": "Full scan of Area/Project folders: write multi-week progress CSVs, then show notes-progressed and tasks-completed heatmaps",
       "jsFunction": "showProjectsWeeklyProgressHeatmaps"
     },
     {
@@ -474,7 +485,7 @@
     {
       "key": "displayDates",
       "title": "Show project dates?",
-      "description": "Whether to show the project's review and due dates (where set).",
+      "description": "Whether Markdown output includes the project's review and due dates (where set), as relative phrases such as 'Due in 3 days' or 'Completed after 3 months'. The Rich project list always shows dates or relative dates (review/due status, review interval, and finished time-ago), so this setting does not change it.",
       "type": "bool",
       "default": true,
       "required": true
@@ -559,40 +570,6 @@
       "description": "If set, each time a Progress line is added the latest line will also be written into the note's frontmatter as a 'progress' field.",
       "type": "bool",
       "default": false,
-      "required": true
-    },
-    {
-      "type": "heading",
-      "title": "'weeklyProjectsProgress' command settings"
-    },
-    {
-      "key": "weeklyProjectProgressHeading",
-      "title": "Heading for Weekly Project Progress output",
-      "description": "When set, '/weeklyProjectsProgress' upserts a markdown table into the current weekly note under this heading. Include the markdown heading markers (e.g. '## Weekly Project Progress'). Leave blank to skip writing to the weekly note.",
-      "type": "string",
-      "default": "## Weekly Project Progress",
-      "required": false
-    },
-    {
-      "key": "weeklyProjectProgressBulletSummary",
-      "title": "Weekly project progress output style",
-      "description": "How '/weeklyProjectsProgress' presents progressed notes in the weekly note: a bullet list grouped by tag, folder, or sub-folder; or a markdown table with one row per sub-folder.",
-      "type": "string",
-      "choices": [
-        "List by tag",
-        "List by folder",
-        "List by sub-folder",
-        "Table by sub-folder"
-      ],
-      "default": "List by sub-folder",
-      "required": true
-    },
-    {
-      "key": "weeklyProjectProgressShowEmptyFolders",
-      "title": "Show folders with no progress in weekly table?",
-      "description": "When set, the weekly note table includes folder rows even if no notes progressed there that week. When off, only folders with at least one progressed note are shown. Can also be toggled from a pseudo-button in the weekly note output.",
-      "type": "hidden",
-      "default": true,
       "required": true
     },
     {
@@ -724,6 +701,40 @@
       "required": true
     },
     {
+      "type": "heading",
+      "title": "'weeklyProjectsProgress' command settings"
+    },
+    {
+      "key": "weeklyProjectProgressHeading",
+      "title": "Heading for Weekly Project Progress output",
+      "description": "When set, '/weeklyProjectsProgress' upserts a markdown table into the current weekly note under this heading. Include the markdown heading markers (e.g. '## Weekly Project Progress'). Leave blank to skip writing to the weekly note.",
+      "type": "string",
+      "default": "## Weekly Project Progress",
+      "required": false
+    },
+    {
+      "key": "weeklyProjectProgressBulletSummary",
+      "title": "Weekly project progress output style",
+      "description": "How '/weeklyProjectsProgress' presents progressed notes in the weekly note: a bullet list grouped by tag, folder, or sub-folder; or a markdown table with one row per sub-folder.",
+      "type": "string",
+      "choices": [
+        "List by tag",
+        "List by folder",
+        "List by sub-folder",
+        "Table by sub-folder"
+      ],
+      "default": "List by sub-folder",
+      "required": true
+    },
+    {
+      "key": "weeklyProjectProgressShowEmptyFolders",
+      "title": "Show folders with no progress in weekly table?",
+      "description": "When set, the weekly note table includes folder rows even if no notes progressed there that week. When off, only folders with at least one progressed note are shown. Can also be toggled from a pseudo-button in the weekly note output.",
+      "type": "hidden",
+      "default": true,
+      "required": true
+    },
+    {
       "type": "separator"
     },
     {
@@ -759,24 +770,6 @@
       "description": "For plugin authors to help optimise the plugin.",
       "type": "bool",
       "default": false,
-      "required": true
-    }
-  ],
-  "plugin.settings_disabled": [
-    {
-      "key": "width",
-      "title": "Window width",
-      "description": "Width of the Review List window (pixels)",
-      "type": "hidden",
-      "default": 800,
-      "required": true
-    },
-    {
-      "key": "height",
-      "title": "Window height",
-      "description": "Height of the Review List window (pixels)",
-      "type": "hidden",
-      "default": 1200,
       "required": true
     }
   ]

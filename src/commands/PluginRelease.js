@@ -2,7 +2,6 @@
 const { colors, helpers, print, strings, system, prompt, filesystem, path } = require('@codedungeon/gunner')
 const Messenger = require('@codedungeon/messenger')
 const appUtils = require('../utils/app')
-const security = require('../utils/security.lib')
 const pluginUtils = require('./support/plugin-utils')
 const pluginRelease = require('./support/plugin-release')
 const releasePrompts = require('./support/plugin-release/release-prompts')

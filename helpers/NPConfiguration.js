@@ -10,7 +10,7 @@ import json5 from 'json5'
 import moment from 'moment/min/moment-with-locales'
 import { showMessage, showMessageYesNo } from './userInput'
 import { castStringFromMixed } from '@helpers/dataManipulation'
-import { logDebug, logWarn, logError, logInfo, JSP, clo, copyObject, timer } from '@helpers/dev'
+import { logDebug, logWarn, logError, logInfo, logTimer, JSP, clo, copyObject, timer } from '@helpers/dev'
 import { caseInsensitiveMatch } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
 import { semverVersionToNumber } from '@helpers/utils'
@@ -310,15 +310,20 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
 }
 
 /**
- * Get locale: from configIn.locale (if present), else get from NP environment (from 3.3.2), else default to 'en-US'
+ * Get locale: from configIn.locale (if present), else get from NP environment (from 3.3.2), else default to 'en-US'.
+ * `typeof NotePlan` is checked first so an undeclared NotePlan (as in Jest) falls back to en-US instead of throwing an error.
  * TODO: In time point to np.Shared config item
  * @author @jgclark
  * @param {Object} tempConfig
  * @returns {string}
  */
 export function getLocale(configIn: Object): string {
-  const envRegion = NotePlan?.environment ? NotePlan?.environment?.regionCode : ''
-  const envLanguage = NotePlan?.environment ? NotePlan?.environment?.languageCode : ''
+  let envRegion = ''
+  let envLanguage = ''
+  if (typeof NotePlan !== 'undefined' && NotePlan != null && NotePlan.environment != null) {
+    envRegion = NotePlan.environment.regionCode ?? ''
+    envLanguage = NotePlan.environment.languageCode ?? ''
+  }
   let tempLocale = castStringFromMixed(configIn, 'locale') ?? null
   tempLocale = tempLocale != null && tempLocale !== '' ? tempLocale : envRegion !== '' ? `${envLanguage}-${envRegion}` : 'en-US'
   return tempLocale
@@ -406,6 +411,73 @@ export function checkPluginCommandNameAvailable(commandName: string, pluginID: s
 }
 
 /**
+ * Resolve a user-facing plugin title (display name), not the pluginID.
+ * Prefers an explicit name/title on the dependency entry, then installed/online plugin.name, then id.
+ * @param {string} pluginID
+ * @param {{ name?: string, title?: string, ... } | null | void} depInfo - optional dependsOn / install entry (extra fields allowed)
+ * @param {Array<any> | null} onlinePlugins - optional list from DataStore.listPlugins (avoids repeat fetches)
+ * @returns {string}
+ */
+export function getPluginTitle(pluginID: string, depInfo: ?{ name?: string, title?: string, ... } = null, onlinePlugins: ?Array<any> = null): string {
+  if (depInfo?.name) return depInfo.name
+  if (depInfo?.title) return depInfo.title
+  const installed = DataStore.installedPlugins().find((p) => p.id === pluginID)
+  if (installed?.name) return installed.name
+  if (onlinePlugins && Array.isArray(onlinePlugins)) {
+    const online = onlinePlugins.find((p) => p.id === pluginID)
+    if (online?.name) return online.name
+  }
+  return pluginID
+}
+
+/**
+ * Format a dependency for user-facing messages: "Title" or "Title (>= minVersion)".
+ * @param {string} title
+ * @param {string} minVersion
+ * @returns {string}
+ */
+function formatPluginTitleWithMinVersion(title: string, minVersion: string): string {
+  return minVersion && minVersion !== '0.0.0' ? `${title} (>= ${minVersion})` : title
+}
+
+/**
+ * Normalize plugin.dependsOn / offerToDownloadPlugin entries to { id, minVersion, name?, title? }.
+ * @param {any} dep
+ * @returns {{ id: string, minVersion: string, name?: string, title?: string } | null}
+ */
+function normalizePluginDep(dep: any): ?{ id: string, minVersion: string, name?: string, title?: string } {
+  const depInfo = typeof dep === 'string' ? { id: dep, minVersion: '0.0.0' } : dep
+  const id = depInfo?.id
+  if (!id || typeof id !== 'string') return null
+  return {
+    id,
+    minVersion: depInfo.minVersion || '0.0.0',
+    name: depInfo.name,
+    title: depInfo.title,
+  }
+}
+
+/**
+ * List dependsOn entries that are missing or below minVersion.
+ * @param {Array<any>} pluginDependencies
+ * @returns {Array<{ id: string, minVersion: string, name?: string, title?: string, reason: 'missing' | 'outdated' }>}
+ */
+function getMissingPluginDeps(pluginDependencies: Array<any>): Array<{ id: string, minVersion: string, name?: string, title?: string, reason: 'missing' | 'outdated' }> {
+  const missing: Array<{ id: string, minVersion: string, name?: string, title?: string, reason: 'missing' | 'outdated' }> = []
+  for (const dep of pluginDependencies) {
+    const depInfo = normalizePluginDep(dep)
+    if (!depInfo) continue
+    if (pluginIsInstalled(depInfo.id, depInfo.minVersion)) continue
+    const anyInstalled = DataStore.installedPlugins().find((p) => p.id === depInfo.id)
+    missing.push({
+      ...depInfo,
+      reason: anyInstalled ? 'outdated' : 'missing',
+    })
+  }
+  return missing
+}
+
+/**
  * Attempts to install a plugin if it's not already installed, and optionally shows a message to the user.
  * @param {any} pluginInfo - Information about the plugin to be installed.
  * @param {boolean} showMessageToUser - Whether to show a message to the user. Defaults to false.
@@ -427,8 +499,9 @@ async function installPlugin(pluginInfo: any): Promise<PluginObject | void> {
   const githubReleasedPlugins = await DataStore.listPlugins(false, true, false) // Released plugins .isOnline is true for all of them
   const newPlugin = await findPluginInList(githubReleasedPlugins, id, minVersion) // minversion can be null/undefined - means just look for any version installed
   if (!newPlugin) {
-    logError(`installPlugin() could not find plugin on github: ${id} >= ${minVersion}`)
-    await showMessage(`Could not find ${id} plugin to download >= v${minVersion}.`, 'OK', 'Plugin/Dependency Not Found')
+    const title = getPluginTitle(id, pluginInfo, githubReleasedPlugins)
+    logError(`installPlugin() could not find plugin on github: ${id} (${title}) >= ${minVersion}`)
+    await showMessage(`Could not find ${title} plugin >= v${minVersion} to download.`, 'OK', 'Plugin/Dependency Not Found')
     return
   }
   logDebug(`installPlugin(): ${id}, found version: ${newPlugin?.version} (>= ${minVersion}). Will install it now.`)
@@ -490,18 +563,74 @@ export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void>
 }
 
 /**
- * Install plugins which are dependencies of the given plugin
- * @param {any} pluginJson - JSON object containing the original plugin's information, potentially with multiple plugins to check/install.
+ * Install / verify plugins listed in pluginJson['plugin.dependsOn'].
+ * If any are missing or below minVersion:
+ * 1) tell the user (using plugin titles, not pluginIDs)
+ * 2) automatically try install/update via DataStore.installOrUpdatePluginsByID (progress UI, no success/fail prompts)
+ * 3) only if still missing after that, ask the user to install/update manually
+ * Call from an async command entry point (e.g. showDashboardReact), not from sync init():
+ * init cannot await this work or abort the command that follows.
+ * @param {any} pluginJson - calling plugin's plugin.json (must include plugin.dependsOn entries as { id, minVersion?, name?/title? })
+ * @returns {Promise<boolean>} true if all dependsOn plugins are installed at the required version (or there are none)
  */
-export async function installDependencies(pluginJson: any): Promise<void> {
-  if (!pluginJson['plugin.dependsOn']) return
-  const start = new Date()
+export async function installDependsOnPlugins(pluginJson: any): Promise<boolean> {
+  if (!pluginJson['plugin.dependsOn']) return true
+  const startTime = new Date()
   const pluginDependencies = Array.isArray(pluginJson['plugin.dependsOn']) ? pluginJson['plugin.dependsOn'] : [pluginJson['plugin.dependsOn']]
-  if (pluginDependencies.length) {
-    logInfo(pluginJson, `installDependencies: found ${pluginDependencies.length} plugins to check are installed [${JSON.stringify(pluginDependencies)}] ...`)
-    await installPlugins(pluginDependencies, pluginJson)
+  if (!pluginDependencies.length) return true
+
+  const pluginName = pluginJson['plugin.name'] || pluginJson['plugin.id'] || 'This plugin'
+  logInfo(pluginJson, `installDependsOnPlugins: Checking ${pluginDependencies.length} plugins are installed [${JSON.stringify(pluginDependencies)}] ...`)
+
+  const missingBefore = getMissingPluginDeps(pluginDependencies)
+  if (!missingBefore.length) {
+    logTimer(pluginJson, startTime, `installDependsOnPlugins() - all present`)
+    return true
   }
-  logDebug(pluginJson, `installDependencies() took ${timer(start)}`)
+
+  // Resolve titles (prefer dependsOn name/title, then installed/online .name)
+  let onlinePlugins: ?Array<any> = null
+  try {
+    onlinePlugins = await DataStore.listPlugins(false, true, false)
+  } catch (error) {
+    logWarn(pluginJson, `installDependsOnPlugins: listPlugins failed while resolving titles: ${JSP(error)}`)
+  }
+
+  const missingLabels = missingBefore.map((m) => formatPluginTitleWithMinVersion(getPluginTitle(m.id, m, onlinePlugins), m.minVersion))
+  const needsUpdate = missingBefore.some((m) => m.reason === 'outdated')
+  const needsInstall = missingBefore.some((m) => m.reason === 'missing')
+  const autoVerb = needsInstall && needsUpdate ? 'install or update' : needsUpdate ? 'update' : 'install'
+
+  logInfo(pluginJson, `installDependsOnPlugins: missing/outdated: ${missingBefore.map((m) => `${m.id} (${m.reason})`).join(', ')}. Will auto-${autoVerb}.`)
+  await showMessage(
+    `${pluginName} requires the following plugin(s):\n${missingLabels.map((label) => `- ${label}`).join('\n')}\n\nI'll try to ${autoVerb} ${missingLabels.length === 1 ? 'it' : 'them'} automatically.`,
+    'OK',
+    pluginName,
+  )
+
+  // Background-style install/update: progress prompt only; we handle messaging ourselves
+  const idsToInstall = missingBefore.map((m) => m.id)
+  try {
+    const result = await DataStore.installOrUpdatePluginsByID(idsToInstall, false, true, false)
+    logInfo(pluginJson, `installDependsOnPlugins: installOrUpdatePluginsByID result code=${result?.code} message=${result?.message || ''}`)
+  } catch (error) {
+    logError(pluginJson, `installDependsOnPlugins: installOrUpdatePluginsByID threw: ${JSP(error)}`)
+  }
+
+  const stillMissing = getMissingPluginDeps(pluginDependencies)
+  logTimer(pluginJson, startTime, `installDependsOnPlugins()`)
+
+  if (stillMissing.length) {
+    const stillLabels = stillMissing.map((m) => formatPluginTitleWithMinVersion(getPluginTitle(m.id, m, onlinePlugins), m.minVersion))
+    logError(pluginJson, `Required plugin(s) still missing after install attempt: ${stillMissing.map((m) => m.id).join(', ')}. Stopping.`)
+    await showMessage(
+      `Sorry, ${pluginName} still needs the following plugin(s):\n${stillLabels.map((label) => `- ${label}`).join('\n')}\n\nPlease install or update them from Plugin Preferences, then try again.`,
+      'OK',
+      pluginName,
+    )
+    return false
+  }
+  return true
 }
 
 /**
@@ -510,7 +639,7 @@ export async function installDependencies(pluginJson: any): Promise<void> {
  */
 export async function checkForDependenciesAndCommandMigrations(pluginJson: any): Promise<void> {
   const start = new Date()
-  await installDependencies(pluginJson)
+  await installDependsOnPlugins(pluginJson)
   await migrateCommandsIfNecessary(pluginJson)
   logDebug(pluginJson, `checkForDependenciesAndCommandMigrations() took ${timer(start)}`)
 }

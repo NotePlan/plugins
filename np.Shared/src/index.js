@@ -3,17 +3,46 @@
 // -----------------------------------------------------------------------------
 // Shared Resources plugin for NotePlan
 // Jonathan Clark
-// last updated 15.7.2023 for v0.4.4, @jgclark
+// last updated 2026.09.18 for v1.3.0 by @CursorAI
 // -----------------------------------------------------------------------------
 
 const sharedPluginID = 'np.Shared'
 import pluginJson from '../plugin.json'
-import { getPluginJson, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { getPluginJson, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
 
 export { openReactWindow, showInMainWindow, onMessageFromHTMLView } from './NPReactLocal'
 export { handleSharedRequest } from './sharedRequestRouter'
+export {
+  addTagMentionCacheDefinitions,
+  addTagMentionCacheItemsForPlugin,
+  generateTagMentionCache,
+  getRegularNoteFilenamesFromTagMentionCache,
+  getTagMentionCacheDefinitions,
+  getTagMentionCacheRegistrations,
+  getUnionOfTagMentionCacheRegistrations,
+  parseTagMentionCacheRegistrationsJson,
+  pruneTagMentionCacheToUnion,
+  registerTagMentionCacheItems,
+  unregisterTagMentionCacheItems,
+  updateTagMentionCache,
+} from './tagMentionCache'
+
+export {
+  clearNotesChangedRecentlyGenerationSchedule,
+  generateNotesChangedRecentlyCache,
+  getFilenamesChangedRecently,
+  getFilenamesChangedSince,
+  getFilenamesChangedToday,
+  getNotesChangedRecently,
+  isNotesChangedRecentlyCacheAvailable,
+  isNotesChangedRecentlyCacheGenerationScheduled,
+  scheduleNotesChangedRecentlyCacheGeneration,
+  scheduleNotesChangedRecentlyCacheGenerationIfTooOld,
+  updateNotesChangedRecentlyCache,
+  updateNotesChangedRecentlyCacheIfTooOld,
+} from './notesChangedRecentlyCache'
 
 /**
  * Log the list of resource files that should currently be available by this plugin (i.e. at run-time, not compile-time).
@@ -113,8 +142,8 @@ export function onSettingsUpdated(): void {
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(sharedPluginID, `onUpdateOrInstall: Starting`)
-    // Try updating settings data
-    const updateSettings = updateSettingData(sharedPluginID)
+    // Try updating settings data (must pass plugin.json object, not the plugin ID string)
+    const updateSettings = updateSettingData(pluginJson)
     logDebug(sharedPluginID, `onUpdateOrInstall: UpdateSettingData code: ${updateSettings}`)
 
     // Tell user the plugin has been updated

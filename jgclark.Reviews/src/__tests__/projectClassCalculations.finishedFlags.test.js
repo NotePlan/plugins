@@ -53,6 +53,7 @@ describe('projectClassCalculations finished flags', () => {
   test('calcReviewFieldsForProject does not recalculate next review for cancelled projects', () => {
     const project = makeProjectLike({
       cancelledDate: '2026-03-01',
+      startDate: '2025-12-01',
       isCancelled: false,
       reviewedDate: '2026-01-01',
       reviewInterval: '1w',
@@ -60,6 +61,6 @@ describe('projectClassCalculations finished flags', () => {
     const result = calcReviewFieldsForProject(project)
     expect(result.isCancelled).toBe(true)
     expect(Number.isNaN(result.nextReviewDays)).toBe(true)
-    expect(result.cancelledDuration).toBeTruthy()
+    expect(result.cancelledDuration).toMatch(/^after /)
   })
 })

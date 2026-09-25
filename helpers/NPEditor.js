@@ -345,6 +345,9 @@ export function getOpenEditorNote(options?: {|
  */
 export async function getFirstRegularNoteAmongOpenEditors(): Promise<?TNote> {
   try {
+    if (Editor && Editor.type === 'Notes' && Editor.filename && Editor.note) {
+      return Editor.note
+    }
     const focusedNote = Editor?.note
     if (focusedNote && focusedNote.type === 'Notes') {
       return focusedNote

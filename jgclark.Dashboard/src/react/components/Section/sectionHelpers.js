@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
+// Last updated 2026-09-15 for v2.4.4 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TDashboardSettingsIn, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
@@ -75,7 +75,26 @@ export const showSectionSettingItems: Array<TSettingItem> = allSectionDetails.re
 }, [])
 
 /**
- * Return list of currently visible sections.
+ * First-seen unique section codes, preserving order.
+ * One TAG already means "generate all wanted tags", so a per-instance list (TAG once per visible tag section) must be collapsed before incremental refresh.
+ * @param {Array<TSectionCode>} sectionCodes
+ * @returns {Array<TSectionCode>}
+ */
+export function uniqueSectionCodes(sectionCodes: Array<TSectionCode>): Array<TSectionCode> {
+  const seen: Set<TSectionCode> = new Set()
+  const output: Array<TSectionCode> = []
+  for (const code of sectionCodes) {
+    if (!seen.has(code)) {
+      seen.add(code)
+      output.push(code)
+    }
+  }
+  return output
+}
+
+/**
+ * Return list of currently visible section codes (unique; one TAG even if several tag sections are visible).
+ * Used by Header Refresh: incremental refresh treats each code as a generation pass, and one TAG already generates every wanted tag.
  * @param {TDashboardSettings} dashboardSettings - Shared settings to determine visibility of sections.
  * @param {Array<TSection>} sections - The sections to filter.
  * @returns {Array<TSectionCode>}
@@ -92,7 +111,7 @@ export function getVisibleSectionCodes(dashboardSettings: TDashboardSettings, se
     }
   }
   // logDebug('sectionHelpers/getVisibleSectionCodes', `Visible section codes: ${String(output)}`)
-  return output
+  return uniqueSectionCodes(output)
 }
 
 /**

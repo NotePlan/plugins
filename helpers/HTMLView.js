@@ -358,7 +358,7 @@ const getBasicColors = (themeJSON: any) => {
 }
 
 /**
- * Get the current theme as a JSON string that can be passed to Javascsript in the HTML window for CSS-in-JS styling
+ * Get the current theme as a JSON string that can be passed to Javascript in the HTML window for CSS-in-JS styling
  * Mainly, we are doing this to get the Editor object with the core styles, but we can also get the custom styles (optionally)
  * @author @dwertheimer
  * @param {boolean} cleanIt - clean properties we know we won't use to save space (default: true, set to false for no pruning/cleaning)
@@ -366,15 +366,15 @@ const getBasicColors = (themeJSON: any) => {
  * @returns {any} - object to be stringified or null if there are no styles to send
  */
 export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boolean = false): any {
-  const theme = { ...Editor.currentTheme }
+  const theme = NotePlan.currentTheme || { ...Editor.currentTheme }
   // logDebug(pluginJson, `getThemeJS currentTheme="${theme?.name}"`)
   if (!includeSpecificStyles && theme?.values?.styles) delete theme.values.styles
   if (cleanIt) theme.values = pruneTheme(theme.values)
   if (!theme.values) {
-    // clo(Editor.currentTheme, `getThemeJS Editor.currentTheme="${theme?.name || ''}"`)
+    // clo(NotePlan.currentTheme || Editor.currentTheme, `getThemeJS currentTheme = "${theme?.name || ''}"`)
     throw 'No theme values found in theme, cannot continue'
   }
-  theme.values.base = getBasicColors(Editor.currentTheme.values)
+  theme.values.base = getBasicColors(theme.values)
   return theme
 }
 
@@ -805,10 +805,9 @@ export async function getGlobalSharedData(windowId: string, varName: string = 'g
 
 /**
  * Check to see if the theme has changed since we initially drew the window
- * This can happen when your computer goes from light to dark mode or you change the theme
- * We want the dashboard to always match.
+ * This can happen when your computer goes from light to dark mode or you change the theme.
  * Note: if/when we get a themeChanged trigger, then this can be simplified.
- * Note: assumes you have a field in pluginData called themeName
+ * Note: assumes you have a field in pluginData called themeName.
  * @param {string} windowID - The ID of the window to check.
  * @param {string} overrideThemeName (optional) - The theme name to check against. If not provided, the current Editor theme will be used.
  * @returns {Promise<boolean>} - true if the theme has changed, false otherwise.
@@ -818,7 +817,7 @@ export async function themeHasChanged(windowID: string, overrideThemeName?: stri
   const { pluginData } = reactWindowData
   const { themeName: themeInWindow } = pluginData
 
-  const currentTheme = overrideThemeName ? overrideThemeName : Editor.currentTheme?.name || null
+  const currentTheme = overrideThemeName ? overrideThemeName : NotePlan.currentTheme?.name || Editor.currentTheme?.name || null
 
   if (!currentTheme) {
     logError('themeHasChanged', `Could not find currentTheme: "${currentTheme}", overrideThemeName: "${overrideThemeName || ''}", themeInReactWindow: "${themeInWindow}"`)

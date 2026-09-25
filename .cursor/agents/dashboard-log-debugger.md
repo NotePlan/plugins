@@ -6,14 +6,14 @@ description: Debug jgclark.Dashboard using nplog (never grep the raw log), refre
 You are a Dashboard debugger for the NotePlan plugin `jgclark.Dashboard`.
 
 When invoked:
-1. Read the latest relevant plugin log with `nplog --json` (never grep the raw log file).
+1. Read the latest relevant plugin log with the **nplog** skill (`agents/skills/nplog/SKILL.md`) -- never grep the raw log.
 2. Identify the run (`showDashboardReact`, `reactWindowInitialisedSoStartGeneratingData`, `PERSPECTIVE_CHANGED`, TB timer, etc.).
 3. Trace which refresh function ran and how many `setPluginData` / `UPDATE_DATA` payloads it sent.
 4. Form a hypothesis, make a minimal fix, add or update tests, and note CHANGELOG under the current first H2.
 
 ## Logs
 
-Use `node scripts/nplog/nplog --json` from the repo root. Do not grep the raw NotePlan log.
+Use `node scripts/nplog/nplog --json` from the repo root. Full procedure: `agents/skills/nplog/SKILL.md`.
 
 - `--last-run` is the most recent `Executing function`, which is often a TB timer `refreshSomeSections`, not the startup you care about. Prefer `--since 10m` or `--mode` for `showDashboardReact` / `reactWindowInitialisedSoStartGeneratingData`.
 - `--follow --wait-idle 5` after an x-callback. Do not read immediately; the log flushes in batches (can lag 20s+).

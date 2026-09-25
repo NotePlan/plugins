@@ -1,6 +1,12 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [1.2.0] - 2026-09-25
+- On NotePlan 3.21.3+, long note scans (`/chart progress summary`, `/progress update`, `/period stats`, `/today progress`, heatmaps, and weekly stats) run on a background thread so the app stays responsive. A progress dialog updates while notes are scanned.
+- Numeric output is now internationalized and shown to at most 4 significant figures. E.g. "1234.567" is now shown as "1,234" (UK/US) or "1.234" (DE), and "23.456" as "23.5" (UK/US) or "23,5" (DE).
+- The Plugin name is now **Habits & Summaries** (and the stopwatch emoji is replaced by the chart icon).
+- The Habit & Summary Charts window now reloads when it is shown again after being hidden (with NP v3.21+). dev: uses onWillAppear trigger.
+
 ## [1.1.0] - 2026-08-07
 After a very long period in beta, I'm now releasing new command **Chart Summary Stats**.  This shows your configured items as lovely **Habit & Summary Charts**: bar charts, heatmaps and summary statistics in a window (also available from the NotePlan sidebar). It was first prototyped by @grdn and then re-impemented here.
 

@@ -4,12 +4,12 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 2026-01-29 for v1.0.2 by @Cursor
+// Last updated 2026-09-25 for v1.2.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import type { SummariesConfig } from './summarySettings'
-import { gatherOccurrences, generateProgressUpdate, getSummariesSettings, type OccurrencesToLookFor } from './summaryHelpers'
+import { gatherOccurrencesAsync, generateProgressUpdate, getSummariesSettings, type OccurrencesToLookFor } from './summaryHelpers'
 import { validateDateRangeAndConvertToISODateStrings } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, timer, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import { createPrettyRunPluginLink, formatWithFields, getTagParamsFromString } from '@helpers/general'
@@ -237,11 +237,7 @@ async function computeDateRange(config: SummariesConfig, period: any): Promise<{
 
 async function createProgressOutput(settingsForGO: OccurrencesToLookFor, periodString: string, fromDateStr: string, toDateStr: string, config: SummariesConfig): Promise<string> {
   const startTime = new Date()
-  CommandBar.showLoading(true, `Creating Progress Update`)
-  await CommandBar.onAsyncThread()
-  const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, settingsForGO)
-  CommandBar.showLoading(false)
-  await CommandBar.onMainThread()
+  const tmOccurrencesArray = await gatherOccurrencesAsync(periodString, fromDateStr, toDateStr, settingsForGO)
   const output = (await generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines, false)).join('\n')
   logDebug('createProgressOutput', `- created progress update in ${timer(startTime)}`)
   return output

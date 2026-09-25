@@ -2,15 +2,23 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
-## [1.1.0] 2026-08-31, @ClaudeAI
+## [1.3.0] 2026-09-18
+- New: Shared **notes-changed-recently cache** (`notesChangedRecentlyCache.js`) -- rolling **7 calendar day** index of which notes changed (`filename`, `noteType`, `changedAt` only). Any plugin can read sync getters or call generate/update. Does **not** replace `getNotesChangedInInterval`; generate/update call the new helper `getNotesChangedInLastCalendarDays(7)` (clearer than interval arg `6`). See README and `PLAN-notes-changed-recently-cache.md`.
+- Missing/corrupt cache: `update` / `updateIfTooOld` **generate immediately** (entry build/prune on async thread when available); vault scan stays on the main thread.
+- Commands: `/generateNotesChangedRecentlyCache` (`gncrc`), `/updateNotesChangedRecentlyCache` (`uncrc`).
 
-### Added
-- React windows now get app-level NotePlan preferences that React cannot read for itself, baked into `pluginData.notePlanSettings` when the window opens. Inside a WebView `DataStore` is an async bridge proxy, so a scalar preference like `DataStore.defaultFileExtension` can't be read synchronously -- reading it plugin-side and passing it through gives every plugin's React window the value with no per-plugin plumbing. Starts with `defaultFileExtension`. Merged *under* anything the calling plugin already put in `pluginData.notePlanSettings`, so plugins that set their own (e.g. Dashboard) are unaffected.
+## [1.2.0] 2026-09-16
+- Fix: `onUpdateOrInstall` was passing the plugin ID string to `updateSettingData` instead of `pluginJson`, which skipped settings migration with a WARN.
+- New: Shared **tag/mention cache** (`tagMentionCache.js`) moved from Dashboard plugin, now with per-plugin registration. Client plugins call `registerTagMentionCacheItems(pluginId, items)` / `unregisterTagMentionCacheItems(pluginId)`. 
+  - The cache indexes the **union of wanted tags/mentions**; an item is dropped only when no plugin still wants it. Also indexes wanted tags/mentions in **any** frontmatter field, and exposes `getRegularNoteFilenamesFromTagMentionCache` for a cheap read.
+  - It now uses new `runSyncWorkOnAsyncThread` method (for users on 3.21.3+) to keep app responsive during somewhat lengthy cache (re)generation.
+  - Added INFO-level duration logs for each tag/mention cache rebuild, incremental update, and access.
+  - Registering new union items now *schedules* a cache rebuild instead of starting one immediately (avoids a double full-note scan when Dashboard then runs the scheduled generate). `generateTagMentionCache` also skips a second scan if the cache was just rebuilt with the same wanted items.
 
-## [1.0.11] 2026-07-17, @jgclark
+## [1.1.0] 2026-08-31
+- React windows now get app-level NotePlan preferences that React cannot read for itself, baked into `pluginData.notePlanSettings` when the window opens. dev: Inside a WebView `DataStore` is an async bridge proxy, so a scalar preference like `DataStore.defaultFileExtension` can't be read synchronously -- reading it plugin-side and passing it through gives every plugin's React window the value with no per-plugin plumbing. Starts with `defaultFileExtension`. Merged under anything the calling plugin already put in `pluginData.notePlanSettings`, so plugins that set their own (e.g. Dashboard) are unaffected.
 
-### Changed
-
+## [1.0.11] 2026-07-17
 - Upgraded Font Awesome Pro assets from **6.0.0-alpha3** to **7.0.1**: `fontawesome.css`, `*.min.flat4NP.css` style loaders, and `fa-*.woff2` webfonts (Regular, Solid, Light, Duotone).
 - `getAvailableReminderLists` now uses `getAllAccessibleReminderLists()` from `@helpers/NPReminders` (same titles, plus NotePlan 3.20+ colour/enabled-list support in the helper).
 

@@ -3,7 +3,7 @@
 // Create heatmap charts to use through NP HTML window.
 // Uses AnyChart to generate the heatmap.
 // Jonathan Clark, @jgclark
-// Last updated 2026-02-03 for v1.1.0 by @jgclark
+// Last updated 2026-09-25 for v1.2.0 by @jgclark
 //-----------------------------------------------------------------------------
 // Note: there is a ChartJS official-style plugin: kurkle/chartjs-chart-matrix
 // that also does Heatmaps.
@@ -15,7 +15,7 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 // import { createSingleTagTrackingConfig } from './configHelpers'
 import {
-  gatherOccurrences,
+  gatherOccurrencesAsync,
   getSummariesSettings,
   type OccurrencesToLookFor,
   TMOccurrences,
@@ -31,6 +31,7 @@ import {
   todaysDateISOString, // const
   withinDateRange,
 } from '@helpers/dateTime'
+import { formatLocalizedNumber } from '@helpers/dataManipulation'
 import { getNPWeekData, localeDateStr, pad, setMomentLocaleFromEnvironment } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logInfo, logTimer,logWarn, timer } from '@helpers/dev'
 import { showHTMLV2 } from '@helpers/HTMLView'
@@ -165,9 +166,7 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
 
     // Gather data for the tagName of interest
     // start a timer and spinner
-    CommandBar.showLoading(true, `Generating ${tagName} stats ...`)
     const startTime = new Date()
-    await CommandBar.onAsyncThread()
 
     // Gather data for the tagName of interest
     const occConfig: OccurrencesToLookFor = {
@@ -182,7 +181,7 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
       // GOMentionsExclude: [],
       GOChecklistRefNote: "",
     }
-    const tagOccurrences: Array<TMOccurrences> = await gatherOccurrences(`${heatmapDef.numberIntervals} days`, heatmapDef.fromDateStr, heatmapDef.toDateStr, occConfig)
+    const tagOccurrences: Array<TMOccurrences> = await gatherOccurrencesAsync(`${heatmapDef.numberIntervals} days`, heatmapDef.fromDateStr, heatmapDef.toDateStr, occConfig)
 
     if (tagOccurrences.length === 0) {
       clo(occConfig, 'occConfig when no data found')
@@ -192,8 +191,6 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
     const thisTagOcc = tagOccurrences[0]
 
     // end timer & spinner
-    await CommandBar.onMainThread()
-    CommandBar.showLoading(false)
     logTimer('showTagHeatmap', startTime, `Generation of ${tagName} stats`)
 
     const thisStatsMap = new Map([...thisTagOcc.valuesMap].sort())
@@ -260,9 +257,7 @@ export async function calcTagStatsMap(
 
     if (intervalType === 'day') {
       // start a timer and spinner
-      CommandBar.showLoading(true, `Generating ${tagName} stats ...`)
       const startTime = new Date()
-      await CommandBar.onAsyncThread()
 
       // Gather data for the tagName of interest
       // dateCounterMap.set(key, value)
@@ -278,15 +273,13 @@ export async function calcTagStatsMap(
         // GOMentionsExclude: [],
         GOChecklistRefNote: "",
       }
-      const tagOccurrences: Array<TMOccurrences> = await gatherOccurrences('day ?', fromDateStr, toDateStr, occConfig)
+      const tagOccurrences: Array<TMOccurrences> = await gatherOccurrencesAsync('day ?', fromDateStr, toDateStr, occConfig)
       if (tagOccurrences.length === 0) {
         throw new Error(`No data found for ${tagName} in the specified period (${fromDateStr} - ${toDateStr}). Please check that the tag/mention exists in your notes.`)
       }
       const thisTagOcc = tagOccurrences[0]
 
       // end timer & spinner
-      await CommandBar.onMainThread()
-      CommandBar.showLoading(false)
       logDebug('generateTaskCompletionStats', `Duration: ${timer(startTime)}`)
       // thisTagOcc.logValuesMap()
 
@@ -507,7 +500,7 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
   const fromDateLocale = localeDateStr(moment(fromDateStr, 'YYYY-MM-DD')) // uses moment's locale info
   await generateHeatMap(
     'NotePlan Task Completion Heatmap',
-    `Task Completion Heatmap (${total.toLocaleString()} since ${fromDateLocale})`,
+    `Task Completion Heatmap (${formatLocalizedNumber(total)} since ${fromDateLocale})`,
     statsMap,
     '["#F4FFF4", "#10B010"]',
     'day',

@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
+// Last updated 2026-09-15 for v2.4.4 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
@@ -21,6 +21,7 @@ import {
 import { applyDemoModeGenerationOverrides, getSomeSectionsData, sectionCodesNeedRemindersFetch } from './dataGeneration'
 import { getRemindersGeneratedData, type TRemindersGeneratedData } from './dataGenerationReminders'
 import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
+import { uniqueSectionCodes } from './react/components/Section/sectionHelpers'
 import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from './tagMentionCache'
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData, TSection } from './types'
 // TAnyObject is a global from flow-typed/Noteplan.js (do not import from ./types)
@@ -87,9 +88,14 @@ export async function incrementallyRefreshSomeSections(
 ): Promise<TBridgeClickHandlerResult> {
   try {
     const start = new Date()
-    const { sectionCodes } = data
-    if (!sectionCodes || sectionCodes.length === 0) {
+    const incomingSectionCodes = data.sectionCodes
+    if (!incomingSectionCodes || incomingSectionCodes.length === 0) {
       throw new Error('No sections to incrementally refresh. If this happens again, please report it to the developer.')
+    }
+    // Header Refresh used to send one TAG per visible tag section. One TAG already generates every wanted tag, so collapse duplicates here.
+    const sectionCodes = uniqueSectionCodes(incomingSectionCodes)
+    if (sectionCodes.length !== incomingSectionCodes.length) {
+      logInfo('incrementallyRefreshSomeSections', `Collapsed duplicate section codes (${incomingSectionCodes.length} -> ${sectionCodes.length}): [${String(incomingSectionCodes)}] -> [${String(sectionCodes)}]`)
     }
 
     if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {

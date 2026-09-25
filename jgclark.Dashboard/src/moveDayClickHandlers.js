@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions to move items from one day to another
-// Last updated 2026-08-01 for v2.4.0.b60 by @jgclark + @CursorAI
+// Last updated 2026-09-16 for v2.4.5 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -589,8 +589,9 @@ export async function scheduleAllOverdueOpenToToday(
               logWarn('scheduleAllOverdueOpenToToday', `-> failed to moveFromCalToCal ${thisNoteDateStr} -> ${todayDateStr}`)
             }
           } else {
-            dashboardPara.content = replaceArrowDatesInString(dashboardPara.content, `>${newDateStr}`)
-            logDebug('scheduleAllOverdueOpenToToday', `- in note '${dashboardPara.filename ?? '?'}', so changing para to "${dashboardPara.content}"`)
+            // Must mutate the live TParagraph (p), not the dashboard copy -- otherwise updateParagraph writes unchanged content
+            p.content = replaceArrowDatesInString(p.content, `>${newDateStr}`)
+            logDebug('scheduleAllOverdueOpenToToday', `- in note '${dashboardPara.filename ?? '?'}', so changing para to "${p.content}"`)
             numberChanged++
             thisNote.updateParagraph(p)
           }

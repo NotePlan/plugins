@@ -13,7 +13,7 @@ import {
   endSuppressMigrationLogForBatchConstruction,
 } from './migrationLog.js'
 import { Project } from './projectClass.js'
-import { getReviewSettings } from './reviewHelpers.js'
+import { getReviewSettings } from './reviewSettings.js'
 import { logDebug, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 

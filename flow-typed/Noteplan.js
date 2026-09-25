@@ -299,6 +299,7 @@ declare interface TEditor extends CoreNoteFields {
   showLoading(visible: boolean, text?: ?string, progress?: number): void;
   /**
    * Editor.onAsyncThread()
+   * (Note: Developer suggestion is to use CommandBar.runOnAsyncThread() instead of this from v3.21.3)
    * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
    * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
    * Otherwise the loading window will be also blocked.
@@ -312,13 +313,15 @@ declare interface TEditor extends CoreNoteFields {
   onAsyncThread(): Promise<void>;
   /**
    * Editor.onMainThread()
+   * (Note: Developer suggestion is to use CommandBar.runOnAsyncThread() instead of this from v3.21.3)
    * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
    * Call this after `onAsyncThread`, once your background work is done.
    * It is safe to call Editor and other user interface functions on the main thread.
    * Note: Available from v3.0.26
    * @return {Promise}
    */
-  onMainThread(): Promise<void>;
+onMainThread(): Promise < void>;
+
   /**
    * Editor.save()
    * Save content of Editor to file. This can be used before updateCache() to ensure latest changes are available quickly.
@@ -344,6 +347,7 @@ declare interface TEditor extends CoreNoteFields {
   +availableThemes: $ReadOnlyArray<Object>;
   /**
    * Editor.currentTheme
+   * Note: from 3.21.3 this can also be accessed via NotePlan.currentTheme, which is always available.
    * Get the current theme name and mode as an object with these keys:
    *  - "name" in the JSON theme
    *  - "filename" of the JSON theme file
@@ -1209,7 +1213,6 @@ declare class CommandBar {
    * @param {$ReadOnlyArray<string>?} buttons
    */
   static prompt(title: string, message: string, buttons?: $ReadOnlyArray<string>): Promise<number>;
-
   /**
    * CommandBar.textPrompt()
    * Show a native text input prompt to the user with title and message text.
@@ -1223,6 +1226,34 @@ declare class CommandBar {
    * @param {string?} defaultValue
    */
   static textPrompt(title: string, message: string, defaultValue?: string): Promise<string | false>;
+
+  /**
+   * CommandBar.runOnAsyncThread()
+  * Runs the given function on a background thread and returns its result as a Promise. 
+  * This is the recommended way to do heavy work (parsing, loops over many notes, etc.) without freezing the user interface.
+  * It replaces the `onAsyncThread()` / `onMainThread()` pair with a single scoped call: 
+  * only the code inside the function runs in the background, and after `await` you are automatically back 
+  * on the main thread. There is no way to forget to switch back.
+  *
+  * Rules for the function you pass in:
+  * - It must be a synchronous function (no `async`, no `await` inside -- you'll get an error otherwise). 
+  *   Do bridge calls before or after `runOnAsyncThread`, not inside it.
+  * - Don't touch the user interface inside it (no Editor.* calls other than reading cached values, 
+  *   no prompts, no HTMLView). Cache what you need in variables beforehand.
+  * - `CommandBar.showLoading` is safe to call inside for progress updates.
+  *
+  * You can call it multiple times in a row, e.g. to interleave background work with prompts or editor updates.
+  *
+  * Error handling: if the passed value is not a function, or the function is async, the Promise resolves 
+  * with null and the error message is delivered to a `.catch()` handler if you attached one 
+  * (try/catch around `await` won't receive it). Errors thrown inside the function are logged to the plugin console.
+  * Note: JGC suggestion is to use helpers/NPThreads.js::runSyncWorkOnAsyncThread() instead, which wraps this, handles errors properly, adds logging, and provides a fallback for earlier versions.
+  * Note: Available from v3.21.3
+  * @param {Function} fn - A synchronous function to execute on the background thread. Its return value resolves the Promise.
+  * @return {Promise} - Resolves with the function's return value, back on the main thread.
+  */
+  static runOnAsyncThread(fn: () => mixed): Promise<any>;
+
   /**
    * CommandBar.showForm()
    * Plugin developers can present multi-field forms inside the Command Bar using CommandBar.showForm(). This lets you collect structured input from the user (text, numbers, dates, toggles, and dropdowns) in a single step, instead of chaining multiple showInput or showOptions calls.
@@ -2803,6 +2834,18 @@ static + htmlWindows: Array < HTMLView >;
   // np.Templating/lib/support/modules/notePlanWeather.js deliberately passes `undefined` rather
   // than 0 because 0 did not trigger the lookup.
   static getWeather(units?: ?string, latitude?: ?number, longitude?: ?number): Promise < Object >;
+/**
+ * NotePlan.currentTheme
+ * Note: a preferred alternative to Editor.currentTheme, as this is always available.
+ * Get the current theme name and mode as an object with these keys:
+ *  - "name" in the JSON theme
+ *  - "filename" of the JSON theme file
+ *  - "mode" ("dark" or "light")
+ *  - "values" -- all the JSON in the theme
+ * Note: Available from NotePlan v3.21.3
+ * @return {Object}
+ */
+static + currentTheme: Object;
 }
 
 declare class HTMLView {

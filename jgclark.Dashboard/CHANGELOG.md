@@ -1,6 +1,20 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.4.6] 2026-09-16
+- Fix: "Move all to today" on the Overdue section not working with setting ''. (Thanks @TiffSunbacon101 for helping track this one down.)
+- Change: Now automatically downloads the required 'Shared Resources' plugin version if it can, before warning user.
+
+## [2.4.5] 2026-09-16
+- Dashboard is now responsive while the tag/mention cache is being rebuilt (on Mac).  Dev: Through the cache (in np.Shared) now using `runOnAsyncThread` method.
+- Dev: Declared `plugin.dependsOn` for Shared Resources plugin (>= 1.2.0). It will now verify this and stop with a message if missing.
+
+## [2.4.4] 2026-09-15
+- Dev: Tag/mention cache now lives in **Shared Resources** plugin, with per-plugin registration. Saving a Perspective updates only Dashboard's slot (union of all perspectives' `tagsToShow`) and no longer wipes items other plugins have registered.
+- Fix: Improved performance of Refresh if there are 2 or more Tag/Mention sections enabled. dev: No longer regenerates every Tag/Mention section once per visible tag (N^2 operation). Duplicate `TAG` codes are collapsed because one `TAG` already means all wanted tags.
+- Dev: Removed feature flags `FFlag_UseTagCache` and `FFlag_UseTagCacheAPIComparison`. Tag/mention cache is always used when available; API fallback remains only when the cache does not yet cover that tag.
+- Fix: Adding a new tag/mention no longer rebuilds the tag cache twice (register now schedules; Dashboard runs generate once after refresh).
+
 ## [2.4.3] 2026-08-28
 - New: Reminder edit dialog Actions row has "Convert to Task" (second control) to convert a reminder into an open task prepended to today's daily note, then delete the Apple Reminder. Carries notes (in parentheses), location as `@mention`, `>date`, `at HH:MM`, and priority markers when set.
 - Dev: Task and Reminder dialogs can now use a logical `ITEM_ORIG_SECTION` in `sectionCodesToRefresh` (resolved from the open item's section at click time) instead of always prepending the source section. This reduce unnecessary refresh work.

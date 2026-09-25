@@ -122,7 +122,11 @@ export const autoRefreshScript: string = `
       try {
         var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0;
         console.log('Auto-refreshing Project List at scrollPos ' + String(scrollPos));
-        sendMessageToPlugin('refresh', { scrollPos: scrollPos });
+        if (typeof requestProjectListRefresh === 'function') {
+          requestProjectListRefresh();
+        } else {
+          sendMessageToPlugin('refresh', { scrollPos: scrollPos });
+        }
       } catch (e) {
         console.log('Auto-refresh error', e && e.message);
       }
@@ -167,6 +171,10 @@ export const shortcutsScript: string = `
 // send 'refresh' command
 shortcut.add("meta+r", function() {
   console.log("Shortcut '⌘r' triggered: will call refresh");
+  if (typeof requestProjectListRefresh === 'function') {
+    requestProjectListRefresh();
+    return;
+  }
   var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0;
   sendMessageToPlugin('refresh', { scrollPos: scrollPos });
 });
@@ -503,6 +511,10 @@ window.addEventListener('onViewDidAppear', () => {
 function refreshData() {
   console.log('refreshData called for Project List window');
   try {
+    if (typeof requestProjectListRefresh === 'function') {
+      requestProjectListRefresh();
+      return;
+    }
     var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0;
     sendMessageToPlugin('refresh', { scrollPos: scrollPos });
   } catch (e) {

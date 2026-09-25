@@ -10,7 +10,11 @@ import {
   noteMayContainCacheItems,
   trimMentionSuffix,
 } from '../src/tagMentionCache'
-import { asTNote } from '@mocks/index'
+import { asTNote, DataStore } from '@mocks/index'
+
+global.DataStore = DataStore
+DataStore.settings = DataStore.settings || {}
+DataStore.settings._logLevel = 'none'
 
 // NB: the JSDoc `@returns {any}` that used to be here does nothing — Flow reads annotations, not
 // JSDoc — so this returned a bare object literal and every call site reported one error per
@@ -72,6 +76,11 @@ describe('noteMayContainCacheItems', () => {
   it('returns false for empty wanted list', () => {
     expect(noteMayContainCacheItems(mockNote('@friend'), buildTagMentionLookupContext([]))).toBe(false)
   })
+
+  it('returns true when wanted hashtag is only in an arbitrary frontmatter field', () => {
+    const note = mockNote('plain body', [{ type: 'open', content: '- task' }], { category: '#home' })
+    expect(noteMayContainCacheItems(note, ctx)).toBe(true)
+  })
 })
 
 describe('getCacheItemsFromNote (open-items fast path)', () => {
@@ -104,5 +113,32 @@ describe('getCacheItemsFromNote (open-items fast path)', () => {
       { 'note-tag': '#tagged, other' },
     )
     expect(getCacheItemsFromNote(note, ['#tagged']).sort()).toEqual(['#tagged'])
+  })
+
+  it('includes wanted hashtag from project metadata frontmatter', () => {
+    const note = mockNote(
+      'no hash in body',
+      [{ type: 'open', content: '- task' }],
+      { project: '#area #goal' },
+    )
+    expect(getCacheItemsFromNote(note, ['#area']).sort()).toEqual(['#area'])
+  })
+
+  it('includes wanted hashtag from any frontmatter field', () => {
+    const note = mockNote(
+      'no hash in body',
+      [{ type: 'open', content: '- task' }],
+      { status: 'blocked #tagged' },
+    )
+    expect(getCacheItemsFromNote(note, ['#tagged'])).toEqual(['#tagged'])
+  })
+
+  it('includes wanted mention from any frontmatter field', () => {
+    const note = mockNote(
+      'no mention in body',
+      [{ type: 'open', content: '- task' }],
+      { owner: '@wanted (home)' },
+    )
+    expect(getCacheItemsFromNote(note, ['@wanted'])).toEqual(['@wanted'])
   })
 })

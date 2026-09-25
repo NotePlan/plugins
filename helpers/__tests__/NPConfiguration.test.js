@@ -1,11 +1,11 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable import/order */
 /* global jest, it, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
-import { migrateCommandsIfNecessary, pluginIsInstalled, findPluginInList, pluginUpdated } from '../NPConfiguration' // Adjust the import path
+import { migrateCommandsIfNecessary, pluginIsInstalled, findPluginInList, pluginUpdated, getLocale } from '../NPConfiguration'
 
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
-import { logDebug } from '@helpers/dev' // Adjust the import path
+import { logDebug } from '@helpers/dev'
 import { showMessageYesNo } from '@helpers/userInput'
 
 const PLUGIN_NAME = `helpers`
@@ -144,6 +144,19 @@ describe(`${PLUGIN_NAME}`, () => {
       })
 
       // Additional tests for other scenarios...
+    })
+
+    describe('getLocale', () => {
+      it('returns en-US when NotePlan is not declared', () => {
+        const previous = global.NotePlan
+        delete global.NotePlan
+        expect(getLocale({})).toBe('en-US')
+        global.NotePlan = previous
+      })
+
+      it('uses config.locale when set', () => {
+        expect(getLocale({ locale: 'de-DE' })).toBe('de-DE')
+      })
     })
     // end of function tests
   }) // end of describe(`${FILENAME}`

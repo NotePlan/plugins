@@ -15,15 +15,17 @@ import {
   getParamMentionFromList,
   PROJECT_METADATA_MIGRATED_MESSAGE,
   formatProgressCommentString,
-  getProgressFieldNameForBodyLines,
-  getProgressFrontmatterKey,
-  getReviewSettings,
   migrateProjectMetadataLineInEditor,
   migrateProjectMetadataLineInNote,
-  parseMarkdownHeadingSetting,
   parseProgressValueString,
   processMostRecentProgressParagraph,
 } from './reviewHelpers'
+import {
+  getProgressFieldNameForBodyLines,
+  getProgressFrontmatterKey,
+  getReviewSettings,
+  parseMarkdownHeadingSetting,
+} from './reviewSettings'
 import {
   formatDurationString,
   getMetadataPresenceState,
@@ -123,9 +125,9 @@ export class Project {
   nextReviewDateStr: ?string // The next review date in YYYY-MM-DD format (can be set by user or calculated)
   nextReviewDays: number = NaN
   completedDate: ?string // ISO date YYYY-MM-DD
-  completedDuration: ?string // string description of time to completion, or how long ago completed
+  completedDuration: ?string // "after X" from start to completion (empty if no start date)
   cancelledDate: ?string // ISO date YYYY-MM-DD
-  cancelledDuration: ?string // string description of time to cancellation, or how long ago cancelled
+  cancelledDuration: ?string // "after X" from start to cancellation (empty if no start date)
   numOpenItems: number = 0
   numCompletedItems: number = 0
   numTotalItems: number = 0

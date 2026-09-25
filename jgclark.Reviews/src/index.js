@@ -3,20 +3,26 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-07-17 for v2.0.6 by @jgclark + @CursorAI
+// Last updated 2026-09-18 for v2.3.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { generateAllProjectsList } from './allProjectsListHelpers'
+import { generateAllProjectsList, recalculateAllProjectsListItems } from './allProjectsListHelpers'
 import { migrateAllProjects } from './migration'
 import { renderProjectListsIfOpen } from './reviews'
-import { getReviewSettings } from './reviewHelpers'
+import {
+  getLastSettingsSnapshot,
+  getReviewSettings,
+  getSettingsUpdateAction,
+  persistLastSettingsSnapshot,
+  seedLastSettingsSnapshotIfMissing,
+} from './reviewSettings'
 import { JSP, compareObjects, logDebug, logError, logInfo } from '@helpers/dev'
 import { backupSettings, pluginUpdated, saveSettings, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
-export { getReviewSettings } from './reviewHelpers' // Keep exported while hidden test:getReviewSettings command exists
+export { getReviewSettings } from './reviewSettings' // Keep exported while hidden test:getReviewSettings command exists
 export {
   finishReview,
   finishReviewAndStartNextReview,
@@ -38,7 +44,8 @@ export {
   generateAllProjectsList,
   getNextNoteToReview,
   getNextProjectsToReview,
-  logAllProjectsList
+  logAllProjectsList,
+  recalculateAllProjectsListItems,
 } from './allProjectsListHelpers'
 export { migrateAllProjects } from './migration'
 // export { NOP } from './reviewHelpers'
@@ -49,16 +56,17 @@ export {
   cancelProject,
   togglePauseProject
 } from './projects'
-export { convertToProject } from './convertNote.js'
+export { convertToProject, createNewProject } from './newProject.js'
 export {
   generateCSSFromTheme
 } from '@helpers/NPThemeToCSS'
 export {
+  updateWeeklyProjectsProgress,
   writeProjectsWeeklyProgressToCSV,
   showProjectsWeeklyProgressHeatmaps
 } from './projectsWeeklyProgress'
 
-// Note: There are other possible exports, including:
+// Note: Previously there were some test functions exported, including:
 // export { testFonts } from '../experiments/fontTests.js'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge' 
 
@@ -86,7 +94,7 @@ function migrateProgressHeadingSetting(settings: { [string]: any }): { [string]:
 
 /**
  * Open this plugin's settings pane in NotePlan Preferences.
- * Used by the Rich list empty-state gear control, and the "/Projects: open plugin settings" command.
+ * Used by the Rich list top-bar and empty-state gear controls, and the hidden "/Projects: update plugin settings" command.
  * @returns {Promise<void>}
  */
 export async function openSettings(): Promise<void> {
@@ -117,14 +125,35 @@ export async function testSettingsUpdated(): Promise<void> {
 }
 
 export async function onSettingsUpdated(): Promise<void> {
-  // Re-generate the allProjects list in case there's a change in a relevant setting (same as displayProjectLists).
+  // Compare the newly saved raw settings.json against the last snapshot, then:
+  // - rebuild the allProjects list when review-scope or metadata-term settings changed
+  // - recalculate existing list rows when next-action or progress-calculation settings changed
+  // - redisplay open project lists when only display settings changed
+  // - otherwise do neither
   // Only refresh the project list window if it is already open; do not open it from saving settings alone.
   try {
-    const config = await getReviewSettings()
-    if (!config) throw new Error(`Can't get Review settings. Stopping.`)
-    logDebug(pluginJson, 'Have updated Review settings; recalculating review list and refreshing project list UI if already open...')
-    await generateAllProjectsList(config, true)
-    await renderProjectListsIfOpen(config)
+    const rawSettings: { [string]: any } = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    if (rawSettings == null || Object.keys(rawSettings).length === 0) {
+      throw new Error(`Can't get Review settings. Stopping.`)
+    }
+
+    const previousRaw = getLastSettingsSnapshot()
+    const action = getSettingsUpdateAction(previousRaw, rawSettings)
+    logInfo(pluginJson, `Have updated Review settings; action='${action}' (previous snapshot ${previousRaw == null ? 'missing' : 'present'})`)
+
+    if (action === 'rebuild' || action === 'recalculate' || action === 'redisplay') {
+      const config = await getReviewSettings()
+      if (!config) throw new Error(`Can't get Review settings. Stopping.`)
+      if (action === 'rebuild') {
+        // Skip the write-time Rich-list invoke; render once in-process below.
+        await generateAllProjectsList(config, true, 0, false, true, true)
+      } else if (action === 'recalculate') {
+        await recalculateAllProjectsListItems(config, true, 0, false, true)
+      }
+      await renderProjectListsIfOpen(config)
+    }
+
+    persistLastSettingsSnapshot(rawSettings)
   } catch (error) {
     logError(pluginJson, error.message)
   }
@@ -147,6 +176,9 @@ export async function onUpdateOrInstall(): Promise<void> {
 
     const updateSettingsResult = updateSettingData(pluginJson)
     logInfo(pluginID, `- updateSettingData returned code: ${updateSettingsResult}`)
+
+    const settingsAfterUpdate = (await DataStore.loadJSON(`../${pluginID}/settings.json`)) || migratedSettings
+    seedLastSettingsSnapshotIfMissing(settingsAfterUpdate)
 
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'Plugin Installed or Updated.' })

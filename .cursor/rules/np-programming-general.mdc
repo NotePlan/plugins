@@ -1,60 +1,13 @@
 ---
-description: 
+description: NotePlan plugin programming conventions (full text in agents/docs/programming.md)
 alwaysApply: true
 ---
 
-## Critical Rules
-CRITICAL: Never use dynamic imports. Rollup will not process them correctly. Always use static imports at the top of files.
+# Programming conventions
 
-## NotePlan domain facts
-- NotePlan's supported task priority markers are exactly `!`, `!!`, `!!!`, and `>>`. The corresponding `paragraph.priority` values are 1, 2, 3, and 4. `!!!!` (four exclamation marks) is NOT a supported priority marker.
-- "priority marker" or just "Marker" is user-facing language. Users think in terms of the symbols (`>>`, `!!!`, `!!`, `!`), not the underlying numeric `.priority` values. Use the symbols in settings/labels/descriptions, but key code logic off `.priority` when possible.
-- Prefer `@flow-typed/Noteplan.js` over the public website when looking up NotePlan plugin APIs (Calendar, CalendarItem, Editor, DataStore, etc.). That file is usually more detailed and closer to what Eduard ships. Offer to sync missing notes into it when you learn them from gists/changelogs, but ensure developer specifically checks and approves the change.
+Follow `agents/docs/programming.md`. Hub: `AGENTS.md`.
 
-## Code Style Guidelines
-- Use Flow for static typing
-- No semicolons (enforced by ESLint/Prettier)
-- Single quotes for strings
-- Max line length: 180 characters
-- Keep `logDebug`, `logInfo`, `logWarn`, `logError`, and `clo()` calls on a single line when possible; do not wrap them across multiple lines to satisfy the max line length rule
-- Use template literals instead of string concatenation
-- Use ES6+ features (const/let, arrow functions)
-- Use async/await and handle promises properly (no floating promises)
-- Follow existing naming patterns in the codebase
-- Proper error handling with try/catch blocks
-- Follow import order: external libs -> internal libs -> local files. Within that put in alphabetical order of source filename.
-- Keep code DRY and modular with clear function responsibilities
-- Add JSDoc comments for all functions
-- Always research the `helpers/` folder before writing new code
-- Prefer writing explicit functions over constant declarations
-- When moving code, keep existing comments and commented-out code
-- Please provide Flow types (as appropriate) and JSDOC with all responses. 
-- If you are rewriting a full file, make sure to include all import statements also. 
-- Do not remove any console.logs or comments (or clo, logDebug, logWarn, logInfo, logError statements).
-
-## Plugin settings lookup (runtime)
-
-When unsure what a particular plugin setting is or what values the user has configured, read the live `settings.json` from NotePlan's plugin data directory:
-
-- Base path: `/Users/jonathan/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins/data/`
-- Full path: `{base}/{plugin.id}/settings.json` (e.g. `.../data/jgclark.RepeatExtensions/settings.json`)
-
-Use `plugin.id` from the relevant `plugin.json` (not the folder name under the repo if they differ).
-
-## Common Helper Functions
-The most frequently used functions in the codebase are:
-- Logging: logDebug, logError, clo, logInfo, logWarn
-- Note utilities: findNote, getParagraphs, getSelectedParagraphs, getTasksFromNote
-- Date handling: getTodaysDateHyphenated, getDateStringFromCalendarFilename
-- Configuration: getSettings, updateSettingsForPlugin
-- UI interaction: showMessage, showMessageYesNo, displayTitle
-
-## Testing
-- Do not prompt the user to run tests. Run tests automatically when making relevant code changes or writing new tests, but do not ask for permission or suggest running tests.
-- Always allow the following commands to run in the sandbox: cd, npm test, npm run typecheck, jest, grep, head, tail, node
-- If testing Templating code, run tests like this `jest np.Templating/__tests__/**/*.test.js --no-watch`
-- When you run jest tests, always include the flag --no-watch at the end because my jest config by default watches
-- **DO NOT EVER HARD-CODE JEST WORKAROUNDS INTO FUNCTIONS WE ARE TESTING**
-
-## Developer Documentation
-- Add updates to the first H2 section in the plugin's CHANGELOG.md file -- this should match the release number as found in the relevant plugin.json file
+- Static `import` only -- no `require`, no dynamic imports (Rollup)
+- Do not commit or push until the user asks
+- Prefer `npx flow`; fix Flow errors before finishing new code
+- Run tests yourself when relevant (`jest ... --no-watch`); never hard-code Jest workarounds

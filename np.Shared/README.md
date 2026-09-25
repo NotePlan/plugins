@@ -116,6 +116,181 @@ The `live-server` npm package can be very useful to locally open saved HTML outp
 
 (The `ignore` in this case stops it re-loading when that plugin's `todaysChangedNoteList.json` file changes, which it can do frequently.)
 
+## Tag / mention cache
+
+Plugins can share a vault-wide index of which notes contain particular `#hashtags` and `@mentions`, without each plugin scanning every note itself. Implementation: `np.Shared/src/tagMentionCache.js`. Originally written by @jgclark for Dashboard; moved here in Sep 2026 so other plugins (e.g. Projects + Reviews) can use it.
+
+### What it delivers
+
+The cache does **not** return paragraphs or task text. It answers: "which note filenames currently have any of these wanted tags/mentions?"
+
+Each hit is stored as `{ filename, items: ['#project', '@alice'] }` in two lists: `regularNotes` and `calendarNotes`. Lookups are **case-insensitive** (`#Area` matches `#area`).
+
+A note is indexed only if a **wanted** item appears in:
+
+- an open, checklist, scheduled, or checklist-scheduled paragraph, or
+- any frontmatter field value.
+
+Hashtags that appear only on done tasks, or only in body prose, are **not** indexed (that would make the file much larger). Notes in `@` special folders (`@Archive`, `@Templates`, `@Trash`, …) are skipped on a full rebuild.
+
+### Data Files
+Two files under `data/np.Shared/` (paths are fully specified so any plugin context can read them):
+
+| File | Role |
+|------|------|
+| `wantedTagMentionsList.json` | Per-plugin registrations. Each plugin writes **only its own slot**. |
+| `tagMentionCache.json` | The index: `generatedAt`, `lastUpdated`, `wantedItems`, `regularNotes`, `calendarNotes`. |
+
+The cache body's `wantedItems` (and every rebuild / incremental update) is the **union of all slots**. An item stays in the union until **no** registered plugin still wants it.
+
+When any client runs `generateTagMentionCache` or `updateTagMentionCache`, the scan covers **every plugin's registrations**, not just the caller's. E.g. for the following registration, a single update from Reviews for `#project` will also cover `@bob`.
+```
+{
+  "registrations": {
+    "jgclark.Dashboard": ["@bob"],
+    "jgclark.Reviews": ["#project"]
+  }
+}
+```
+
+### Updates
+Unfortunately, Shared **cannot self-update the cache**, as it has no timer and no long-lived context. It only exposes functions (`generateTagMentionCache`, `updateTagMentionCache`, age checks, `scheduleTagMentionCacheGeneration`). Therefore **clients must manage updates and rebuilds to ensure it is ready when needed**.  If no client calls generate/update, the cache is not refreshed and will go stale.
+
+- Registering or unregistering only writes that plugin's slot. New union items **schedule** a rebuild (`scheduleTagMentionCacheGeneration`); they do **not** start a scan. Shared never starts `generateTagMentionCache` by itself.
+- Dashboard checks `isTagMentionCacheGenerationScheduled()` after first paint and after section refresh, then runs `generateTagMentionCache` (with a progress banner). TAG lookups via `getFilenamesOfNotesWithTagOrMentions` can incrementally update if the client passes `firstUpdateCache: true` (default) and the cache is more than about **1 hour** old, and they *schedule* a full rebuild if it is more than about **5 days** old. Dashboard still has to run that scheduled rebuild.
+- A full rebuild can take 1-2 minutes. Do not start one from `registerTagMentionCacheItems`, and do not `await` one on a UI refresh path if you can schedule it instead. JSContext is single-threaded, so a fire-and-forget generate still blocks the caller.
+
+
+### Register your items
+
+Import from Shared (Rollup will bundle the module). Use your `plugin.id` so other plugins' lists are left alone.
+
+```javascript
+import {
+  registerTagMentionCacheItems,
+  unregisterTagMentionCacheItems,
+  addTagMentionCacheItemsForPlugin,
+  getTagMentionCacheDefinitions,
+  isTagMentionCacheAvailable,
+  isTagMentionCacheAvailableForItem,
+} from '../../np.Shared/src/tagMentionCache'
+
+// Replace this plugin's list (does not wipe other plugins)
+registerTagMentionCacheItems('jgclark.Reviews', ['#project', '#area', '#goal'])
+
+// Add without removing existing items for this plugin
+addTagMentionCacheItemsForPlugin('jgclark.Reviews', ['#area'])
+
+// Drop this plugin's list. Items remain if another plugin still registered them.
+unregisterTagMentionCacheItems('jgclark.Reviews')
+```
+
+`getTagMentionCacheDefinitions()` returns the current **union** (all plugins). `isTagMentionCacheAvailable()` is true when `tagMentionCache.json` exists. `isTagMentionCacheAvailableForItem('#project')` is true when that item is already in the cache body's `wantedItems` (so a lookup will not miss it for being unregistered).
+
+If you register items that are not yet in the union, Shared only **schedules** a full rebuild. Your plugin (or Dashboard) must run `generateTagMentionCache` when it is ready. A 5-day-old cache is also only flagged; a client has to run generate.
+
+`addTagMentionCacheDefinitions` / `setTagMentionCacheDefinitions` are Dashboard-compat helpers that write only the `jgclark.Dashboard` slot.
+
+### How to query
+
+**Cheap read (preferred on a refresh path).** Regular notes only. Does not update or rebuild. Returns `[]` if the cache file is missing.
+
+```javascript
+import { getRegularNoteFilenamesFromTagMentionCache } from '../../np.Shared/src/tagMentionCache'
+
+const filenames = getRegularNoteFilenamesFromTagMentionCache(['#project', '#area'])
+// e.g. ['Projects/Home.md', 'Areas/Health.md']
+```
+
+Resolve a note with `DataStore.projectNoteByFilename(filename)` (or your usual helper) if you need the `TNote`.
+
+**Full lookup (calendar + regular).** Can incrementally update the cache first.
+
+```javascript
+import { getFilenamesOfNotesWithTagOrMentions } from '../../np.Shared/src/tagMentionCache'
+
+// firstUpdateCache=false: do not rebuild or incrementally update on this call
+const [filenames, cacheAgeInfo] = await getFilenamesOfNotesWithTagOrMentions(
+  ['#project', '@alice'],
+  false,
+)
+```
+
+Pass `firstUpdateCache: true` (the default) only when you can afford `updateTagMentionCache()` (it walks notes changed since last run). The second return value is a short cache-age string for diagnostics.
+
+**One note.** `getCacheItemsFromNote(note, wantedItems)` returns the wanted tags/mentions found on that note using the same rules as a cache build (open items + any frontmatter field).
+
+### Typical plugin flow
+
+1. On settings load, `registerTagMentionCacheItems(yourPluginId, yourTags)`.
+2. On a hot path, if `isTagMentionCacheAvailableForItem` is true for the tags you need, call `getRegularNoteFilenamesFromTagMentionCache`.
+3. If the cache is missing or does not yet include your tags, fall back to your own scan. Decide when *your* plugin should run `generateTagMentionCache` / `updateTagMentionCache` (Dashboard does this after paint and after refresh). Shared will not do it for you.
+
+## Notes-changed-recently cache
+
+Plugins can share a rolling **7 calendar day** list of which notes changed recently, without each caller re-running `getNotesChangedInInterval` on hot paths. Implementation: `np.Shared/src/notesChangedRecentlyCache.js`. Design: `PLAN-notes-changed-recently-cache.md`.
+
+### What it delivers
+
+Answers only: **"which notes changed recently?"** -- not done counts, tags, or project metadata.
+
+Each entry is `{ filename, noteType: 'Notes'|'Calendar', changedAt }` (ISO UTC). The on-disk window is fixed at 7 calendar days (today + 6 prior). Readers who need "today only" or "since timestamp T" filter with the sync getters below.
+
+This does **not** replace `getNotesChangedInInterval` in `helpers/NPnote.js`. Full generate / incremental update **call** that scan (via `getNotesChangedInLastCalendarDays(7)`, which maps to interval arg `6`). Sync getters only read the JSON.
+
+### Data file
+
+| File | Role |
+|------|------|
+| `../../data/np.Shared/notesChangedRecently.json` | Cache body: `generatedAt`, `lastUpdated`, `windowDays`, `notes[]` |
+
+Prefs: `np.Shared.notesChangedRecently.lastUpdated`, `np.Shared.notesChangedRecently.regenerate`.
+
+### Updates
+
+Shared **cannot self-update** (no timer). Clients must call:
+
+- `updateNotesChangedRecentlyCache()` -- incremental upsert + prune; if the file is missing or corrupt, **generates immediately** (entry build on async thread when NotePlan supports it)
+- `generateNotesChangedRecentlyCache(reason?)` -- full 7-day rebuild (vault scan on main thread; build/prune via `runSyncWorkOnAsyncThread` when available)
+- `updateNotesChangedRecentlyCacheIfTooOld(maxAgeHours?)` -- incremental if last update older than ~1 hour (default); generates immediately if cache is missing
+- `scheduleNotesChangedRecentlyCacheGeneration()` / `isNotesChangedRecentlyCacheGenerationScheduled()` -- for age-based full rebuilds (e.g. `generatedAt` older than ~7 days); same schedule-then-run-after-paint pattern as the tag cache
+
+Commands (optional): `/generateNotesChangedRecentlyCache` (`gncrc`), `/updateNotesChangedRecentlyCache` (`uncrc`).
+
+### How to query (sync; never scans)
+
+```javascript
+import {
+  isNotesChangedRecentlyCacheAvailable,
+  getFilenamesChangedToday,
+  getFilenamesChangedRecently,
+  getFilenamesChangedSince,
+  updateNotesChangedRecentlyCacheIfTooOld,
+  generateNotesChangedRecentlyCache,
+  isNotesChangedRecentlyCacheGenerationScheduled,
+} from '../../np.Shared/src/notesChangedRecentlyCache'
+
+// After UI paint / before heavy work:
+await updateNotesChangedRecentlyCacheIfTooOld()
+if (isNotesChangedRecentlyCacheGenerationScheduled()) {
+  await generateNotesChangedRecentlyCache('after paint')
+}
+
+if (isNotesChangedRecentlyCacheAvailable()) {
+  const today = getFilenamesChangedToday({ noteTypes: ['Notes', 'Calendar'] })
+  const recentNotesOnly = getFilenamesChangedRecently({ noteTypes: ['Notes'] })
+  const since = getFilenamesChangedSince(lastRunDate, { noteTypes: ['Notes'] })
+}
+```
+
+If the cache is missing or corrupt, getters return `[]` and do **not** start a scan.
+
+### Typical plugin flow
+
+1. After first paint (or before Refresh), `updateNotesChangedRecentlyCacheIfTooOld()`; if generation is scheduled, run `generateNotesChangedRecentlyCache`.
+2. On a hot path, use `getFilenamesChangedToday` / `getFilenamesChangedSince` / `getFilenamesChangedRecently`.
+3. Keep plugin-specific metrics (done counts, project list rows) in that plugin's own data files.
+
 ## Support
 
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).

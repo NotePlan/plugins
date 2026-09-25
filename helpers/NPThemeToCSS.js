@@ -45,14 +45,14 @@ function loadThemeData(themeNameIn: string = ''): { themeName: string, themeJSON
     }
   }
 
-  // If that hasn't worked, then currentTheme
+  // If that hasn't worked, then currentTheme, which we get from NotePlan.currentTheme (v3.21.3+) or Editor.currentTheme
   if (!themeName) {
-    themeName = Editor.currentTheme.name ?? ''
+    themeName = NotePlan.currentTheme?.name || Editor.currentTheme?.name || ''
     themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
     logDebug('loadThemeData', `Translating your current theme '${themeName}'`)
     if (themeName !== '') {
-      themeJSON = Editor.currentTheme.values
-      currentThemeMode = Editor.currentTheme.mode
+      themeJSON = NotePlan.currentTheme?.values || Editor.currentTheme?.values || {}
+      currentThemeMode = NotePlan.currentTheme?.mode || Editor.currentTheme?.mode || 'light'
       logDebug('loadThemeData', `-> mode '${currentThemeMode}'`)
     } else {
       logWarn('loadThemeData', `Cannot get settings for your current theme '${themeName}'`)

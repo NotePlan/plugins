@@ -3,10 +3,11 @@
 // TMOccurrences class and related types/functions for tracking hashtag/mention occurrences
 // Extracted to avoid circular dependency with gatherOccurrencesHelpers.js
 // Jonathan Clark
-// Last updated 2026-08-03 for v1.1.0+ by @jgclark
+// Last updated 2026-09-25 for v1.2.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
+import { formatLocalizedNumber, formatWithSigFigs } from '@helpers/dataManipulation'
 import {
   getAPIDateStrFromDisplayDateStr,
   getISODateStringFromYYYYMMDD,
@@ -320,14 +321,16 @@ export class TMOccurrences {
     // Format count, total, and average with proper null/NaN handling
     // WARNING: KNOWN BUG - dead guards: `this.count` and `this.total` are declared (and always assigned) as `number`, so `!== ''` can never be false and adds nothing.
     // If the intent was to catch an unset value, the class fields would need to be `?number` and the guards written as `!= null`. Casts are type-only; see LEFT report.
-    const countStr = (!isNaN(this.count)) ? this.count.toLocaleString() : `none`
-    const totalStr = (!isNaN(this.total) && this.total > 0) ? `total ${this.total.toLocaleString()}` : 'total 0'
+    const countStr = (!isNaN(this.count)) ? formatLocalizedNumber(this.count) : `none`
+    const totalStr = (!isNaN(this.total) && this.total > 0) ? `total ${formatWithSigFigs(this.total)}` : 'total 0'
     // This is the average per item, not the average per day. In general I feel this is more useful for numeric amounts
-    const itemAvgStr = (!isNaN(this.total) && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 }) : ''
+    const itemAvgValue = (!isNaN(this.total) && this.count > 0) ? (this.total / this.count) : NaN
+    const itemAvgStr = !isNaN(itemAvgValue) ? formatLocalizedNumber(itemAvgValue, undefined, 0, 0, 2) : ''
+    const itemAvgCsv = !isNaN(itemAvgValue) ? String(itemAvgValue) : ''
 
     switch (style) {
       case 'CSV': {
-        output = `${this.term},${this.dateStr},${this.count},${this.total},${itemAvgStr}`
+        output = `${this.term},${this.dateStr},${this.count},${this.total},${itemAvgCsv}`
         break
       }
       case 'single': { // Note: not currently used
@@ -361,7 +364,7 @@ export class TMOccurrences {
           // Otherwise the output depends on the type
           switch (this.type) {
             case 'yesno': {
-              output = `${countStr} / ${this.numDays}`
+              output = `${countStr} / ${formatLocalizedNumber(this.numDays)}`
               break
             }
             case 'count': {
@@ -379,7 +382,7 @@ export class TMOccurrences {
             }
             default: { // 'all'
               if (totalStr !== '') output += totalStr
-              if (itemAvgStr !== '') output += `, avg ${itemAvgStr}`
+              if (itemAvgStr !== '') output += `; avg ${itemAvgStr}`
               output += ` (from ${countStr})`
               break
             }

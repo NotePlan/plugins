@@ -27,7 +27,11 @@ import {
   WEEKLY_PROJECT_PROGRESS_OUTPUT_TABLE_BY_SUBFOLDER,
 } from '../projectsWeeklyProgress'
 
-const baseConfig = { projectTypeTags: ['#project'] }
+const baseConfig: any = { projectTypeTags: ['#project'] }
+
+function asConfig(partial: Object = {}): any {
+  return partial
+}
 
 describe('normalizeWeeklyProjectProgressParam', () => {
   test('returns empty string for null/undefined/empty', () => {
@@ -124,26 +128,26 @@ describe('formatProjectTypeTagCountLabel', () => {
 
 describe('resolveWeeklyProjectProgressOutputStyle', () => {
   test('maps user-facing list styles to bullet modes', () => {
-    expect(resolveWeeklyProjectProgressOutputStyle({ weeklyProjectProgressBulletSummary: 'List by tag' }))
+    expect(resolveWeeklyProjectProgressOutputStyle(asConfig({ weeklyProjectProgressBulletSummary: 'List by tag' })))
       .toEqual({ showTable: false, bulletMode: 'byTag' })
-    expect(resolveWeeklyProjectProgressOutputStyle({ weeklyProjectProgressBulletSummary: 'List by folder' }))
+    expect(resolveWeeklyProjectProgressOutputStyle(asConfig({ weeklyProjectProgressBulletSummary: 'List by folder' })))
       .toEqual({ showTable: false, bulletMode: 'byFolder' })
-    expect(resolveWeeklyProjectProgressOutputStyle({ weeklyProjectProgressBulletSummary: 'List by sub-folder' }))
+    expect(resolveWeeklyProjectProgressOutputStyle(asConfig({ weeklyProjectProgressBulletSummary: 'List by sub-folder' })))
       .toEqual({ showTable: false, bulletMode: 'bySubFolder' })
   })
 
   test('table by sub-folder shows table only', () => {
-    expect(resolveWeeklyProjectProgressOutputStyle({ weeklyProjectProgressBulletSummary: WEEKLY_PROJECT_PROGRESS_OUTPUT_TABLE_BY_SUBFOLDER }))
+    expect(resolveWeeklyProjectProgressOutputStyle(asConfig({ weeklyProjectProgressBulletSummary: WEEKLY_PROJECT_PROGRESS_OUTPUT_TABLE_BY_SUBFOLDER })))
       .toEqual({ showTable: true, bulletMode: 'none' })
   })
 
   test('defaults to list by sub-folder', () => {
-    expect(resolveWeeklyProjectProgressOutputStyle({}))
+    expect(resolveWeeklyProjectProgressOutputStyle(asConfig()))
       .toEqual({ showTable: false, bulletMode: 'bySubFolder' })
   })
 
   test('still accepts legacy internal tokens', () => {
-    expect(resolveWeeklyProjectProgressOutputStyle({ weeklyProjectProgressBulletSummary: 'byTag' }))
+    expect(resolveWeeklyProjectProgressOutputStyle(asConfig({ weeklyProjectProgressBulletSummary: 'byTag' })))
       .toEqual({ showTable: false, bulletMode: 'byTag' })
   })
 })

@@ -4,8 +4,15 @@
 
 ## [Unreleased]
 
+### Scripts
+
+- `npc plugin:dev` no longer prints Node's `url.parse()` deprecation warning (DEP0169). The unused `bcrypt` import on `plugin:release` was loading `@mapbox/node-pre-gyp` on every CLI command.
+- `npc plugin:dev --notify` no longer waits after SUCCESS. Desktop notifications are spawned detached so Node does not wait on `terminal-notifier`.
+
 ### Helpers
 
+- **helpers/NPVersions.js** — added `runOnAsyncThread` feature gate (NotePlan >= 3.21.3) for `CommandBar.runOnAsyncThread()`.
+- **helpers/NPThreads.js** — new `runSyncWorkOnAsyncThread()` helper for `CommandBar.runOnAsyncThread()` (with main-thread fallback).
 - **helpers/NPnote.js** — `getNoteFromIdentifier` improvements:
   - Resolve by filename first when the identifier ends with `DataStore.defaultFileExtension` (e.g. `Note.md` or `folder/Note.md`) via `DataStore.noteByFilename(identifier, 'Notes')`.
   - Fallback chain for project note by title: exact title, then quoted title (e.g. `"Title"`), then case-insensitive + search all folders.

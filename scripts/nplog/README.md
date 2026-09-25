@@ -10,9 +10,10 @@ output, and puts a **regex filter box** on screen that you can retype at any mom
 restarting anything.
 
 It also has a [headless `--json` mode](#headless-mode-scripts-ci-and-ai-agents) for scripts
-and AI agents, and ships an accompanying Claude Code skill at
-[`.claude/skills/nplog/SKILL.md`](../../.claude/skills/nplog/SKILL.md) (a hidden directory —
-`ls` won't show it) so agents use the tool rather than grepping the log by hand.
+and AI agents. The canonical agent skill is
+[`agents/skills/nplog/SKILL.md`](../../agents/skills/nplog/SKILL.md) (see also root
+[`AGENTS.md`](../../AGENTS.md)), with symlinks under `.claude/skills/` and `.cursor/skills/`
+so agents use the tool rather than grepping the log by hand.
 
 <img width="1774" height="892" alt="CleanShot 2026-07-29 at 16 08 46@2x" src="https://github.com/user-attachments/assets/dca65479-0b7b-440b-ad86-957090563e9a" />
 
@@ -80,30 +81,28 @@ nplog --file scripts/nplog/sample.log
 
 ## Using it from an AI agent
 
-This repo ships a Claude Code **skill** at
-[`.claude/skills/nplog/SKILL.md`](../../.claude/skills/nplog/SKILL.md), so an agent
-reaches for this tool instead of grepping the log by hand.
+Canonical skill: [`agents/skills/nplog/SKILL.md`](../../agents/skills/nplog/SKILL.md).
+Hub for all agent docs: [`AGENTS.md`](../../AGENTS.md).
 
-**Claude Code needs no installation.** Project skills under `.claude/skills/` are picked
-up automatically for anyone working in this repo — clone, and it is there. (Verified: the
-skill became available to a running session within moments of the file being created.)
+**Claude Code / Cursor in this repo:** each tool folder has a `SKILL.md` file
+symlink to `agents/skills/.../SKILL.md` (e.g. `.claude/skills/nplog/SKILL.md`).
+Do not replace those with directory symlinks -- git cannot stage paths through
+a directory symlink.
 
-To make it available in *every* directory, not just this repo, link it into your user
-skills folder:
+To make the Claude skill available in *every* directory, not just this repo:
 
 ```bash
 mkdir -p ~/.claude/skills
-ln -s "$PWD/.claude/skills/nplog" ~/.claude/skills/nplog
+ln -s "$PWD/agents/skills/nplog" ~/.claude/skills/nplog
 ```
 
-A symlink rather than a copy, so `git pull` keeps it current. Note the skill invokes the
-tool as `node scripts/nplog/nplog`, which assumes the repo root is the working directory;
-if you link it globally, run `scripts/nplog/install.sh` too so a bare `nplog` is on
-`PATH` from anywhere.
+A symlink rather than a copy, so `git pull` keeps it current. The skill invokes
+`node scripts/nplog/nplog`, which assumes the repo root is the working directory; if you
+link it globally, run `scripts/nplog/install.sh` too so a bare `nplog` is on `PATH`.
 
-**Other AI tools** (Cursor, Windsurf, plain API agents) do not read `.claude/skills/`.
-Point them at that file, or at the [Headless mode](#headless-mode-scripts-ci-and-ai-agents)
-section below — the CLI itself is tool-agnostic.
+**Other AI tools** (Windsurf, plain API agents): point them at
+`agents/skills/nplog/SKILL.md` or at the [Headless mode](#headless-mode-scripts-ci-and-ai-agents)
+section below -- the CLI itself is tool-agnostic.
 
 ## Usage
 
@@ -463,7 +462,7 @@ an untouched file "finished". When speed matters more than durability, opt in ex
 with [`--plugin`](#--plugin-fastest-data-for-one-plugin) below.
 
 Agents working in this repo get this as a skill — see
-[`.claude/skills/nplog/SKILL.md`](../../.claude/skills/nplog/SKILL.md).
+[`agents/skills/nplog/SKILL.md`](../../agents/skills/nplog/SKILL.md).
 
 ### `--plugin`: fastest data for one plugin
 
@@ -474,7 +473,7 @@ nplog --plugin jgclark.Dashboard
 Tails that plugin's `_MCP-console.log` instead of the main log — same interactive viewer,
 filters, context modes, and `--json` headless mode, just a different, much lower-latency
 source. In practice it wins the race against the main log's flush lag essentially every time
-(see the investigation in [`utils/AGENTS.md`](AGENTS.md) if you want the numbers).
+(see the investigation in [`AGENTS.md`](AGENTS.md) if you want the numbers).
 
 **Repeat `--plugin` to watch several at once**, threaded together by timestamp:
 

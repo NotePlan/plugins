@@ -1,4 +1,4 @@
-# 🔬 Projects + Reviews plugin
+# Projects + Reviews plugin
 Unlike most task or project management apps, NotePlan has very little enforced structure, and is entirely text/markdown based.  This makes it much more flexible, but makes it less obvious how to use it for managing and tracking complex work, loosely referred to here as 'Projects'.
 
 This plugin lets you easily a single list of active **Projects**, and their progress towards completion. It helps regularly **review** Project notes -- an approach that will be familiar to people who use David Allen's **Getting Things Done** methodology, or any other where **regular reviews** are important.
@@ -61,7 +61,7 @@ The fields it uses are:
 - `due`: project's due date (optional; not normally relevant for Areas)
 - `completed`: date project was completed (if relevant)
 - `cancelled`: date project was cancelled (if relevant)
-- `Aim`: optional. The plugin doesn't read or display the Aim, but the `/convert to project` form will write it to an `aim:` frontmatter field if you supply one.
+- `Aim`: optional. The plugin doesn't read or display the Aim, but the `/Create new project` and `/convert to project` forms will write it to an `aim:` frontmatter field if you supply one.
 - `Progress: N@YYYY-MM-DD one-line description`: your latest summary of progress for this N% (optional). If present this is shown in the projects list; if not, the % progress is calculated as the number of open and closed tasks. (From v1.3 the default format omits the colon after the date; older lines with a colon are still parsed.)
 
 An example of an Area-type note:
@@ -93,7 +93,7 @@ Other details about the metadata:
 - If you also add the `#paused` tag to the metadata line, then that stops that note from being included in active reviews, but can show up in the lists. Pausing or un-pausing also updates the metadata `reviewed: <date>`.
 - From v1.3 you can add `project: #sequential` in the frontmatter: the plugin then treats the first open task/checklist in the note as the 'next action', without needing to use next-action tags on individual tasks.
 - If there are multiple copies of a metadata field, only the first one is used.
-- You can of course use any other frontmatter keys and values you wish. For example, you might want to use `status: started` or `status: complete` and use `status` as part of the ['Cards'  Kanban-style folder view definition](https://help.noteplan.co/article/239-card-kanban-view).
+- You can of course use any other frontmatter keys and values you wish. For example, you might want to use `status: started` or `status: complete` and use `status` as part of the ['Cards'  Kanban-style folder view definition](https://help.noteplan.co/article/239-card-kanban-view). For more on this see [Using with Folder Views](#using-with-folder-views) section below.
 
 ## Project lifecycles
 Here's the underlying lifecycle that this plugin supports:
@@ -102,28 +102,6 @@ Here's the underlying lifecycle that this plugin supports:
 
 (An Area tends not to have a Due date, and so rarely get Completed.)
 
-
-<!--
-#### Combined frontmatter key (default `project`)
-
-The combined key (settable via the **Frontmatter metadata key** setting; default `project`, with `metadata` a common alternative) holds **only hashtags** — for example `#project` and any markers such as `#sequential` or `#paused`. Date/interval values live in their own separate keys (`start`, `due`, `reviewed`, `review`, `nextReview`, `completed`, `cancelled`).
-
-When a note still has a metadata line in the body but **no** value in the combined frontmatter key, the plugin will migrate that body line into the configured frontmatter key and **remove the metadata line from the body**. When any command later updates that project note, it writes to frontmatter and removes the previous body metadata line if present. All tags such as `#project` are preserved during migration.
-
-The plugin:
-
-- **Reads** from these separate fields if they already exist in frontmatter (using whatever key names your current settings imply), and overlays them on top of what it finds in the combined line.
-- **Writes back** to these fields **only if they already exist**. It will not create new separate keys on its own; it simply keeps any existing ones in sync when it updates metadata, again using the key names derived from your current `*MentionStr` settings.
-
-You can therefore:
-
-- Use only the combined frontmatter key, or
-- Use both the combined key and any separate fields you choose to add, or
-- Continue to use just the body metadata line (the plugin will migrate it into frontmatter and remove it from the body when it next needs to update metadata).
-
-The first hashtag in the note defines its type, so as well as `#project`, `#area` you could have a `#goal` or whatever makes most sense for you. 
--->
-
 ### You might also like ...
 - [my description of using PARA in NotePlan at scale](https://noteplan.co/n/BCC8CAFA-273F-4513-9A88-53CA811F3C8D)
 - [Antony's description of his process which includes this and other plugins](https://noteplan.co/n/381AC6DF-FB8F-49A5-AF8D-1B43B3092922).
@@ -131,6 +109,7 @@ The first hashtag in the note defines its type, so as well as `#project`, `#area
 - [Inside Look: How George, CMO of Verge.io, Uses NotePlan for Effective Project Management](https://www.youtube.com/watch?v=J-FlyffE9iA) featuring a rather earlier version of this plugin and my Dashboard plugin.
 
   [![thumbnail](effective-PM-with-George-thumbnail.jpg)](https://www.youtube.com/watch?v=J-FlyffE9iA)
+
 
 ## Selecting notes to include
 There are 2 parts of this:
@@ -205,17 +184,17 @@ To add a progress comment, either run the **/add progress update** command, or c
 The settings relating to Progress calculations and comments are:
 - Ignore tasks set more than these days in the future: If set more than 0, then when the progress percentage is calculated it will ignore items scheduled more than this number of days in the future. (Default is 1 day: all items with future scheduled dates are ignored.)
 - Ignore checklists in progress? If set, then checklists in progress will not be counted as part of the project's completion percentage.
-- Progress Heading: Optional heading under which `Progress: ...` lines are stored in the project note. Include the markdown heading markers (e.g. `## Progress`). Leave blank to disable. If you set this when the note already has progress lines, the plugin finds them and inserts the heading above. Tip: if this ends with `…` the section will start folded.
+- Progress Heading: Optional heading under which `Progress: ...` lines are stored in the project note. Include the markdown heading markers (e.g. `## Progress`). Leave blank to disable. If you set this when the note already has progress lines, the plugin finds them and inserts the heading above. Tip: if this ends with `…` (ellipsis character, not 3 periods) the section will start folded.
 - Also write most recent Progress line to frontmatter?: (from v1.3) When on, the current progress line is also written to frontmatter so it can be used in Folder Views (default: off).
 
 Note: Progress comments are written as `@YYYY-MM-DD`. Compact `@YYYYMMDD` lines from earlier versions still parse.
 
 ## Other Plugin settings
-- Open 'Rich' Project List in what sort of window?: Choose how the Rich project list opens on NotePlan v3.20+. The options are `New Window` (default — separate window), `Main Window` (take over the main window), or `Split View` (a split view in the main window).
+- Open 'Rich' Project List in what sort of window?: Choose how the Rich project list opens on NotePlan v3.20+. The options are `New Window` (default -- separate window), `Main Window` (take over the main window), or `Split View` (a split view in the main window).
 - Automatic Update interval: If set to any number > 0, the Rich Project Lists window will automatically refresh after that many minutes. The current scroll position is preserved as closely as possible. Set to 0 to disable.
 - Next action tag(s): optional list of #hashtags to include in a task or checklist to indicate it's the next action in this project (comma-separated; default `#na`). If there are no tagged items and the note has `#sequential` in the frontmatter `project:` field, the first open task/checklist is shown as the next action. Only the first matching item is shown. (Also see the next setting.)
 - Sequential project marker: the marker to identify sequential projects (default `#sequential`).
-- Display next actions in output? This requires the 'Next action tag(s)' setting to be set or use `#sequential` markers. There is also a 'Show next actions?' toggle control for this in the Filter… menu.
+- Display next actions in output? This requires the 'Next action tag(s)' setting to be set or use `#sequential` markers. There is also a 'Show next actions?' toggle control for this in the Filter... menu.
 - Display order for projects: The sort options are by `due` date, `review` date, `title`, or `firstTag` (the first project tag, in the order they're listed in 'Hashtags to Review').
 - Show projects grouped by folder? Whether to group the projects by their folder.
 - Hide higher-level folder names in headings? If 'Show projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in headings.
@@ -262,9 +241,9 @@ This sets a completion date on the open project note and will update the review 
 
 It also opens a single **closeout form** (from NotePlan v3.21+) asking three things:
 
-1. **Archive project note?** — if yes, the note is moved to NotePlan's `@Archive` folder (or whatever folder you've set in the **Folder to Archive completed/cancelled project notes to** setting). If "Archive using folder structure?" is on, the note's existing folder structure is replicated under the Archive folder.
-2. **Add summary line to a calendar note?** — choose `Quarterly`, `Yearly`, or `none`. A summary line is appended under the **Finished List Heading** (default `Finished Projects/Areas`) in the current quarterly or yearly calendar note.
-3. **Final progress comment (optional)** — if you supply text, it is added as a `Progress: ...` line on today's date before the project closes out.
+1. **Archive project note?** -- if yes, the note is moved to NotePlan's `@Archive` folder (or whatever folder you've set in the **Folder to Archive completed/cancelled project notes to** setting). If "Archive using folder structure?" is on, the note's existing folder structure is replicated under the Archive folder.
+2. **Add summary line to a calendar note?** -- choose `Quarterly`, `Yearly`, or `none`. A summary line is appended under the **Finished List Heading** (default `Finished Projects/Areas`) in the current quarterly or yearly calendar note.
+3. **Final progress comment (optional)** -- if you supply text, it is added as a `Progress: ...` line on today's date before the project closes out.
 
 On older versions of NotePlan (without Command Bar forms) the same three questions are asked as separate prompts.
 
@@ -290,11 +269,11 @@ It will also update the project's `reviewed: date` metadata.
 ![Example of Convert form](convert-2.0.png)
 
 The fields on the form are:
-- **Project type tag** — a choice from your **Hashtags to review** setting (e.g. `#project`, `#area`). This becomes the value of your configured **Frontmatter metadata key** (default `project:`), which must contain **only hashtags** (and optional markers such as `#sequential` — see below).
-- **Start date**, **Due date** (optional), **Last reviewed date** — written to the separate frontmatter fields derived from your mention settings (e.g. `start`, `due`, `reviewed`).
-- **Review interval** — e.g. `1w`, `2m`; stored in the separate field derived from your review-interval mention setting (e.g. `review`).
-- **Aim** (optional) — if you enter text, it is written to an `aim:` frontmatter field.
-- **Treat project as sequential?** (optional checkbox) — only shown if your **Sequential project marker** setting is non-empty. If you turn it on, that marker (default `#sequential`) is added to the `project:` metadata field so the first open task/checklist is treated as the next action, as described [above](#capturing-and-displaying-next-actions).
+- **Project type tag** -- a choice from your **Hashtags to review** setting (e.g. `#project`, `#area`). This becomes the value of your configured **Frontmatter metadata key** (default `project:`), which must contain **only hashtags** (and optional markers such as `#sequential` -- see below).
+- **Start date**, **Due date** (optional), **Last reviewed date** -- written to the separate frontmatter fields derived from your mention settings (e.g. `start`, `due`, `reviewed`).
+- **Review interval** -- e.g. `1w`, `2m`; stored in the separate field derived from your review-interval mention setting (e.g. `review`).
+- **Aim** (optional) -- if you enter text, it is written to an `aim:` frontmatter field.
+- **Treat project as sequential?** (optional checkbox) -- only shown if your **Sequential project marker** setting is non-empty. If you turn it on, that marker (default `#sequential`) is added to the `project:` metadata field so the first open task/checklist is treated as the next action, as described [above](#capturing-and-displaying-next-actions).
 
 ### "/migrate all projects" command
 (New for v2.) This runs a **batch metadata migration** on every project note that matches your current set of relevant project-like notes. This is the same command that was offered for you to use when upgrading from v1.x to v2.0.
@@ -303,28 +282,30 @@ When the command finishes, a dialog reports how many notes **actually** had a su
 
 **Migration log (`migration_log.tsv`):** Rows are appended to `NotePlan/Plugins/Data/jgclark.Reviews/migration_log.tsv` (same folder as `allProjectsList.json`). Columns are **`filename`**, **`title`**, **`date`** (ISO timestamp when the row was written), and **`detail`** (`ok` or an error message). The file is append-only.
 
-- **During `/migrate all projects`:** you get **at most one row per project note/tag pair** in that run. A row is written only when a migration step actually changed the note (or reported an error), or when the `Project` constructor throws — **notes that needed no migration do not get a log row.** Nested migration steps still do not add extra or duplicate rows.
+- **During `/migrate all projects`:** you get **at most one row per project note/tag pair** in that run. A row is written only when a migration step actually changed the note (or reported an error), or when the `Project` constructor throws -- **notes that needed no migration do not get a log row.** Nested migration steps still do not add extra or duplicate rows.
 - **During normal plugin use** (e.g. opening a project or finishing a review when body metadata is merged into frontmatter), a row is written when that migration runs, independently of the batch command.
 
 ### "/weeklyProjectsProgress" command
-This scans your Area/Project folders and writes two CSV files into the plugin's hidden data folder (`NotePlan/Plugins/Data/jgclark.Reviews/`):
+This inserts or updates a summary of **this week's** project-type progress into the **current weekly note**. Here, "progress on a project" counts as completing at least one task in that project. The summary output can be a table, or lists by folder, subfolder or project tag (e.g. `#project` / `#goal`), via 'Weekly project progress output style'. Here's an example of "list by folder":
 
-- one with the number of distinct notes progressed per folder per week (a project note counts as progressed if one or more tasks were completed that week)
-- one with the total number of completed tasks per folder per week
+> Progress: 2 goals, 3 projects and 10 areas in 2026-W37:
+> - **2 goals**: 40th Anniversary Festival・Identifying Spiritual Gifts
+> - **3 projects**: People's Emergency Briefing sessions・Photo Board・Write Power of Attorneys
+> - **10 areas**: 1CB Leadership + Meetings・Congregational Meetings・Finance Group・Lawn Care・Projects & Reviews Plugin・Safeguarding・Sales and Selling・Services・Staff Payroll for 2026・Uniformed Groups
 
-If setting "Heading for Weekly Project Progress output" is set (default: `## Weekly Project Progress`), it also inserts or updates a summary section into the **current weekly note** under that heading. It can output as a table, or lists arranged by folder, subfolder or project tag (defined above), such as `#project` or `#goal`. This is controlled by setting 'Weekly project progress output style'.
+It adds this under a heading set by the "Heading for Weekly Project Progress output" setting (default: `## Weekly Project Progress`).
 
 ### "/heatmaps for weekly Projects Progress" command
-This first runs the same scan as `/weeklyProjectsProgress` (so the CSVs are kept fresh), and then shows a pair of heatmaps in a new window:
+Runs a **full** scan of Area/Project folders for the last ~26 weeks, writes two CSV files into the plugin's hidden data folder (`NotePlan/Plugins/Data/jgclark.Reviews/`):
 
-- notes progressed per week per folder of notes (where a project note counts as being progressed if one or more tasks are completed)
-- tasks completed per week per folder of notes.
+- notes progressed per folder per week (a project note counts as progressed if one or more tasks were completed that week)
+- total completed tasks per folder per week
 
-For those with lots of different projects or project groups, this is a handy way of seeing over time which of them are getting more or less attention.
+Then shows a pair of heatmaps in a new window (notes progressed and tasks completed). For those with lots of different projects or project groups, this is a handy way of seeing over time which of them are getting more or less attention.
 
 
 ## Capturing and Displaying 'Next Actions'
-Part of the "Getting Things Done" methodology is to be clear what your **next action** is. If you put a standard tag on such actionable tasks/checklists (e.g. `#na` or `#next` — default is `#na`) and set that in the plugin settings, the project list shows that next action after the progress summary. Only the first matching item is shown; if there are no tagged items and the note has `project: #sequential` in frontmatter, the first open task/checklist in the note is shown instead. You can set several next-action tags (e.g. `#na` for things you can do, `#waiting` for things you're waiting on others).
+Part of the "Getting Things Done" methodology is to be clear what your **next action** is. If you put a standard tag on such actionable tasks/checklists (e.g. `#na` or `#next` -- default is `#na`) and set that in the plugin settings, the project list shows that next action after the progress summary. Only the first matching item is shown; if there are no tagged items and the note has `project: #sequential` in frontmatter, the first open task/checklist in the note is shown instead. You can set several next-action tags (e.g. `#na` for things you can do, `#waiting` for things you're waiting on others).
 
 Note: **Future-scheduled tasks are ignored** when choosing a next action using the 'sequential' method.
 
@@ -338,6 +319,9 @@ Another approach comes from user George C:
 
 ## Creating a new Project/Area note
 There are a variety of tools to help you create a new Project or Area note ...
+
+### "/Create new project" command
+(New in v2.2, and requires NotePlan v3.21+.) This creates a **new** project note. It shows the same metadata form as ["/convert to project"](#convert-to-project-command), plus fields for the **project title** and a **folder** dropdown. The folder list defaults to the folder of the note currently open in the Editor (or `/` if there isn't one). After you submit, it writes the metadata to the new note's frontmatter and opens the note in a split view.
 
 ### Templates
 Use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the built-in Templating system, to apply a pre-set Template. For example here's a basic Template that will prompt you with 6 questions:
@@ -361,6 +345,71 @@ For more details, see [Templating including frontmatter](https://noteplan.co/tem
 
 ### Converting an existing note
 To add project metadata to a note you _already have_, use the ["convert to project" command](#convert-to-project-command) above.
+
+
+## Using with Folder Views
+
+NotePlan [folder views](https://help.noteplan.co/article/238-notes-table-and-other-views) (List, Table, and [Cards / Kanban](https://help.noteplan.co/article/239-card-kanban-view)) read **frontmatter** on the notes in a folder. This plugin already stores project metadata there, and it can be configured to be used in folder views as well.
+
+### Fields this plugin writes
+
+These keys are written or updated by the plugin and can be added as folder-view fields, filters, or (where useful) group columns:
+
+- `project`: the project's hashtags (e.g. `#project`, `#area`, `#sequential`, `#paused`)
+- `start`, `due`, `reviewed`, `review`, `nextReview`
+- `completed` / `cancelled`: an ISO date (`YYYY-MM-DD`) set when you run **/complete project** or **/cancel project**
+- `progress`: the latest progress line, but only if **Also write most recent Progress line to frontmatter?** is on
+
+Any other frontmatter keys you add yourself (including `status` and NotePlan's card `order` field) are left alone.
+
+### Adding a `status` (or similar) flag for Kanban columns
+
+The plugin does *not* create or update a `status` field. That is yours to maintain, which is what makes a Cards view work as a Kanban board.
+
+Add a key such as `status` (or `stage`, or any name you prefer) to each project note:
+
+```markdown
+---
+title: Secret Undertaking
+project: #project
+review: 2w
+start: 2021-04-05
+due: 2021-11-30
+status: started
+---
+```
+
+Typical values might be `backlog`, `started`, `waiting`, `complete`, `cancelled` -- use whatever column names you want, and keep the spelling consistent.
+
+Then in that folder:
+
+1. Open the folder and switch the view from List to **Cards**.
+2. Use **Group** and choose `status` (or your chosen key).
+3. Drag cards between columns to change status; NotePlan writes the new value back to that note's frontmatter.
+
+You can change the value on the card itself once at least two notes have different values (the view learns the options from the notes it can see).
+
+### How this relates to complete, cancel, and pause
+
+- **/complete project** and **/cancel project** set `completed:` or `cancelled:` to today's date. They do **not** change `status`. If you use Kanban columns, update `status` yourself (or drag the card) so the column matches.
+- If you archive the note as part of closeout, it leaves the folder and therefore leaves that folder view.
+- `#paused` lives on the `project:` hashtag list (`project: #project #paused`), not as `status: paused`. You can still give paused notes their own status value if you want a "Paused" column.
+
+A simple approach that stays in sync: use `status` for the *active* pipeline (`backlog` / `started` / `waiting`), and treat `completed` / `cancelled` dates as the finished flags. Hide the finished cards with a folder-view filter (see below) rather than expecting the plugin to move them to a "Done" column.
+
+### Hiding finished projects
+
+Do **not** overwrite `completed` with `yes` / `no`. This plugin uses `completed: YYYY-MM-DD`, and it will remove that key when the project is not completed.
+
+Instead, either:
+
+- hide the `complete` / `cancelled` **status** columns in the Cards view, or
+- filter the view so notes with a `completed` or `cancelled` date are hidden.
+
+### Showing progress on cards
+
+Turn on **Also write most recent Progress line to frontmatter?** in the plugin settings, then add the `progress` field to the folder view. The card will show the same latest `Progress: ...` line that the Rich list uses.
+
 
 ## Using with Dashboard plugin
 My separate [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) shows a simpler version of the data from the Projects Review List in its 2 'Projects' sections:

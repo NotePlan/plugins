@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2026-08-28 for v2.1.x, @jgclark + @CursorAI
+ * Last updated 2026-09-12 for v2.2.0, @jgclark + @CursorAI
  */
 
 /* ============================================================
@@ -18,12 +18,12 @@ html {
   --project-completed-color: var(--project-no-percent-color); /* just for the new border-left style */
   --project-cancelled-color: var(--project-no-percent-color); /* just for the new border-left style */
   --project-paused-color: #AAA;
-  --fg-dimmer-color: rgb(from var(--fg-main-color) r g b / 0.6);
+  --fg-dimmer-color: rgb(from var(--fg-main-color) r g b / 0.65);
   --bg-lozenge-color: rgb(from var(--bg-main-color) r g b / 0.8);
   --bg-hover-color: rgb(from var(--fg-main-color) r g b / 0.03);
-  --fg-due-color: hsla(45, 85%, 38%, 1); 
-  --fg-overdue-color: hsla(0, 85%, 38%, 1); 
-  --fg-soon-color: hsla(210, 85%, 38%, 1); 
+  --fg-due-color: hsla(45, 85%, 40%, 1); 
+  --fg-overdue-color: hsla(0, 85%, 40%, 1); 
+  --fg-soon-color: hsla(210, 85%, 45%, 1); 
   --fg-not-due-color: hsla(120, 85%, 30%, 1); 
   --code-color: #0091f8;
 
@@ -200,6 +200,12 @@ input, label {
   .perspective-name {
     font-weight: 600;
   }
+
+  /* Nudge FA icons up 1px without changing button box height (relative keeps layout size). */
+  .PCButton i {
+    position: relative;
+    top: -1px;
+  }
 }
 
 /* Icon-only narrow top bar: hide command button captions; <i> icons stay visible */
@@ -257,6 +263,8 @@ input, label {
 }
 
 .topbar-right-cluster {
+  display: flex;
+  align-items: center;
   justify-self: end;
   min-width: 0;
 }
@@ -298,11 +306,10 @@ input, label {
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   z-index: 20;
 }
-/* Centred topbar trigger: panel hangs under the middle of the button */
-.topbar-center-cluster .display-filters-dropdown {
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
+/* Right-side topbar trigger: panel hangs under the right edge of the button */
+.topbar-right-cluster .display-filters-dropdown {
+  left: auto;
+  right: 0;
 }
 .display-filters-dropdown.is-open {
   display: block;
@@ -546,7 +553,7 @@ input, label {
 /* ---- PROGRESS ----------------------------------------- */
 /* Progress line row: last progress comment, styled like Dashboard ProjectItem */
 .projectProgressRow {
-  color: var(--fg-dimmer-color);
+  color: var(--fg-main-color);
   font-size: 0.95rem;
   display: flex;
   align-items: baseline;
@@ -651,10 +658,10 @@ dialog::backdrop {
   background: rgba(0,0,0,0.5);
 }
 
-/* Project control dialog: fit content width, cap at 80% of window */
+/* Project control dialog: as wide as content needs, cap at 90% of window */
 .projectControlDialog {
   width: max-content;
-  max-width: 80vw;
+  max-width: 90vw;
 }
 
 .dialogProjectFolder {

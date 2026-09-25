@@ -7,7 +7,7 @@
  *
  * Note: definitions of tags, habits, etc. are now taken from the settings for Progress Updates command.
  *
- * Last updated: 2026-08-07 for v1.1.0 by @jgclark and @CursorAI
+ * Last updated: 2026-09-25 for v1.2.0 by @jgclark and @CursorAI
  */
 
 // =====================================================================
@@ -34,12 +34,12 @@ In short: Chart.js doesn't have a built-in "sparkline" type, but you can create 
 
 import moment from 'moment/min/moment-with-locales'
 import { logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
-import { gatherOccurrences, getSummariesSettings } from './summaryHelpers.js'
+import { gatherOccurrencesAsync, getSummariesSettings } from './summaryHelpers.js'
 import type { SummariesConfig } from './summarySettings.js'
 import type { OccurrencesToLookFor } from './TMOccurrences.js'
 import { TMOccurrences } from './TMOccurrences.js'
 import { colorToModernSpecWithOpacity } from '@helpers/colors'
-import { stringListOrArrayToArray } from '@helpers/dataManipulation'
+import { formatLocalizedNumber, stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { showHTMLV2, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { validateDateRangeAndConvertToISODateStrings } from '@helpers/dateTime'
@@ -226,10 +226,10 @@ export async function chartSummaryStats(periodOrDays?: any): Promise<void> {
         tags = occs.filter((o) => o.type !== 'yesno').map((o) => o.term)
       } else {
         logWarn('chartSummaryStats', 'useDemoData true but demoData.json missing or invalid; using live data')
-        occs = gatherOccurrences(periodString, fromDateStr, toDateStr, occToLookFor)
+        occs = await gatherOccurrencesAsync(periodString, fromDateStr, toDateStr, occToLookFor)
       }
     } else {
-      occs = gatherOccurrences(periodString, fromDateStr, toDateStr, occToLookFor)
+      occs = await gatherOccurrencesAsync(periodString, fromDateStr, toDateStr, occToLookFor)
       if (config._logLevel === 'DEBUG') {
         // TODO: Commenting out because this crashes NP, for reasons I don't understand. I have manually created the data instead from this clo call:
         // clo(payload, 'payload')
@@ -657,10 +657,7 @@ function formatToSigFigs(num: number, sigFigs?: number): string {
   const magnitude = Math.floor(Math.log10(Math.abs(num)))
   const decimals = Math.max(0, figs - magnitude - 1)
   const roundedNum = Number(num.toFixed(decimals))
-  return roundedNum.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: decimals
-  })
+  return formatLocalizedNumber(roundedNum, undefined, 0, decimals)
 }
 
 /**
@@ -1111,6 +1108,7 @@ async function makeChartSummaryHTML(
     chartAxisTextColor: getChartAxisTextColor(),
     // Use same theme-mode detection as NPThemeToCSS (via Editor.currentTheme.mode)
     currentThemeMode: Editor.currentTheme?.mode ?? 'light',
+    locale: getLocale({}),
     tagDisplayStats
   }
   const script = generateClientScript(tagDataWithTooltips, yesNoData, tags, yesNoHabits, configForWindowScripts)

@@ -27,6 +27,7 @@ import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSett
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import { getGlobalSharedData, type HtmlWindowOptions } from '@helpers/HTMLView'
+import { installDependsOnPlugins } from '@helpers/NPConfiguration'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
@@ -347,6 +348,13 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
 export async function showDashboardReact(callMode: string = 'full', perspectiveName: string = '', useDemoData: boolean = false): Promise<void> {
   try {
     logInfo(pluginJson, `showDashboardReact starting up (mode '${callMode}') with perpsectiveName '${perspectiveName}' ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
+
+    // plugin.dependsOn gate (np.Shared): must run here, not in init().
+    // init() is sync (void) so it cannot await installs or showMessage, and cannot cancel the
+    // command NotePlan is about to invoke. Only this async entry point can install+verify and
+    // return early before openReactWindow if a required plugin is still missing.
+    if (!(await installDependsOnPlugins(pluginJson))) return
+
     // Persist live position/size before we re-open/rebuild (covers pure moves while the window stayed open).
     // Dashboard goes through np.Shared openReactWindow, so we do not rely solely on showHTMLV2's save-if-open path.
     if (isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
@@ -634,7 +642,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
     logSettings: await getLogSettings(),
     demoMode: useDemoData,
     platform: NotePlan.environment.platform, // used in window/dialog management
-    themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
+    themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : NotePlan.currentTheme?.name || Editor.currentTheme?.name || '<could not get theme>',
     version: pluginJson['plugin.version'],
     pushFromServer: {
       dashboardSettings: true,
