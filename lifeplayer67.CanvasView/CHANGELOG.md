@@ -1,5 +1,15 @@
 # Canvas View Changelog
 
+## [0.9.5] - 2026-09-25 (unreleased)
+
+- Markdown in cards is rendered by showdown (the converter NotePlan's own helpers
+  use): full lists, GFM tables, tasklists, emoji, hashtags/mentions/highlights;
+  local images embed as data URIs. Identical styling for text and note cards.
+- Notes open beside the canvas (split view by default; setting for new window
+  or main editor).
+- Editor polish: caret lands where you double-clicked and is scrolled into view;
+  card bodies scroll only when the card is selected (Obsidian behaviour).
+
 ## [0.8.0] - 2026-09-25 (unreleased)
 
 - New command: `/new canvas` — creates an empty `.canvas` file (in the Canvas
