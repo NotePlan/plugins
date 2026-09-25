@@ -3,8 +3,8 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "lifeplayer67.CanvasView",
   "plugin.name": "Canvas View",
-  "plugin.version": "0.5.0",
-  "plugin.lastUpdateInfo": "Groups work: click/drag/edit fixed, ⌘G groups the selection. New-card palette (text/note/link/group). Checkboxes render in markdown.",
+  "plugin.version": "0.6.0",
+  "plugin.lastUpdateInfo": "Obsidian parity push: drag-to-add palette, note autocomplete picker, images render in file cards, website previews in link cards, opens in split view inside the main window.",
   "plugin.description": "Edit Obsidian Canvas / JSON Canvas (.canvas) files inside NotePlan: create and connect cards, move, resize, color, label edges, undo/redo — fully compatible with Obsidian.",
   "plugin.icon": "fa-diagram-project",
   "plugin.iconColor": "orange-500",
@@ -41,6 +41,14 @@
       "description": "Subfolder of your NotePlan Notes folder that holds your .canvas files (e.g. 'Canvases'). Relative paths given to the 'open canvas' command are resolved against it; absolute paths (starting with /) are used as-is.",
       "type": "string",
       "default": "",
+      "required": false
+    },
+    {
+      "key": "openInSplitView",
+      "title": "Open canvas in the main window (split view)",
+      "description": "When on, the canvas opens as a split pane inside the main NotePlan window (like a note). When off, it opens in a separate floating window.",
+      "type": "bool",
+      "default": true,
       "required": false
     },
     {

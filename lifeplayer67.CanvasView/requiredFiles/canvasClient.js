@@ -92,6 +92,20 @@
     return n.id !== g.id && n.x >= g.x && n.y >= g.y && n.x + n.width <= g.x + g.width && n.y + n.height <= g.y + g.height
   }
 
+  /** Filter the note index for the autocomplete picker: title-prefix > title > path matches */
+  function filterNotes(index, q) {
+    var query = String(q || '').toLowerCase().trim()
+    if (query === '') return index.slice(0, 8)
+    var starts = [], titleHas = [], pathHas = []
+    index.forEach(function (n) {
+      var t = n.t.toLowerCase(), f = n.f.toLowerCase()
+      if (t.indexOf(query) === 0) starts.push(n)
+      else if (t.indexOf(query) >= 0) titleHas.push(n)
+      else if (f.indexOf(query) >= 0) pathHas.push(n)
+    })
+    return starts.concat(titleHas, pathHas).slice(0, 8)
+  }
+
   var pure = {
     resolveColor: resolveColor,
     escapeHtml: escapeHtml,
@@ -100,6 +114,7 @@
     nearestSide: nearestSide,
     nodeInsideGroup: nodeInsideGroup,
     genId: genId,
+    filterNotes: filterNotes,
   }
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = pure
@@ -113,7 +128,16 @@
   if (!canvas.edges) canvas.edges = []
   var canvasPath = window.__canvasPath
   var fileContents = window.__fileContents || {}
+  var noteIndex = window.__noteIndex || []
   var nodeById = {}
+
+  // Replies from the plugin (routed through onMessageFromPlugin in the bridge shim)
+  window.__onPluginMessage = function (type, data) {
+    if (type === 'NOTE_CONTENT') {
+      fileContents[data.id] = { found: data.found, title: data.title, content: data.content || '' }
+      renderScene()
+    }
+  }
 
   var viewport = document.getElementById('viewport')
   var world = document.getElementById('world')
@@ -195,12 +219,15 @@
       var title = base.replace(/\.[^.]+$/, '')
       extra = ' data-note-title="' + escapeHtml(title) + '"'
       var fc = fileContents[n.id]
-      var body = fc && fc.found
-        ? '<div class="content file-content">' + renderMarkdown(fc.content || '') + '</div>'
-        : '<div class="content file-missing">Нотатки ще немає в NotePlan.<br>Подвійний клік — написати (нотатка створиться).<br>Подвійний клік по заголовку — змінити шлях.</div>'
+      var body
+      if (fc && fc.media) body = '<img class="card-img" src="' + fc.media + '">'
+      else if (fc && fc.found) body = '<div class="content file-content">' + renderMarkdown(fc.content || '') + '</div>'
+      else body = '<div class="content file-missing">Нотатки ще немає в NotePlan.<br>Подвійний клік — написати (нотатка створиться).<br>Подвійний клік по заголовку — вибрати іншу.</div>'
       inner = '<div class="file-head"><span>📄</span> <span class="fh-name">' + escapeHtml(base) + '</span><span class="open-btn" title="Відкрити нотатку в NotePlan (або ⌘+клік по картці)">↗</span></div>' + body
     } else if (n.type === 'link') {
-      inner = '<a href="' + escapeHtml(n.url || '') + '" target="_blank">🔗 ' + escapeHtml(n.url || '') + '</a>'
+      var url = String(n.url || '')
+      var frame = /^https?:\/\//.test(url) ? '<iframe class="web-frame" src="' + escapeHtml(url) + '" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>' : ''
+      inner = '<div class="file-head"><span>🔗</span> <span class="fh-name">' + escapeHtml(url) + '</span><a class="open-btn ext-open" href="' + escapeHtml(url) + '" target="_blank" title="Відкрити в браузері">↗</a></div>' + frame
     }
     return '<div class="node ' + n.type + sel + '" data-id="' + escapeHtml(n.id) + '"' + extra + ' style="' + style + '">' + inner + anchors + '</div>'
   }
@@ -270,6 +297,8 @@
   }
 
   function fit() {
+    // a restored split pane can report 0×0 for a few frames — wait until it has a size
+    if (!viewport.clientWidth || !viewport.clientHeight) { setTimeout(fit, 120); return }
     var b = drawEdges()
     var w = b[2] - b[0], h = b[3] - b[1]
     scale = Math.min(viewport.clientWidth / w, viewport.clientHeight / h, 1.5)
@@ -642,9 +671,67 @@
     var el = world.querySelector('.node[data-id="' + CSS.escape(n.id) + '"]')
     if (!el) return
     if (kind === 'text') editTextNode(el)
-    else if (kind === 'file') editCardValue(el, 'file')
+    else if (kind === 'file') openNotePicker(el)
     else if (kind === 'link') editLinkCard(el)
     else if (kind === 'group') editGroupLabel(el)
+  }
+
+  /** Autocomplete picker over the NotePlan note index; free text = raw file path */
+  function openNotePicker(el) {
+    if (el.querySelector('.picker-input')) return
+    var n = nodeById[el.dataset.id]
+    var input = document.createElement('input')
+    input.className = 'card-input picker-input'
+    input.value = n.file || ''
+    input.placeholder = 'Назва нотатки або шлях…'
+    var list = document.createElement('div')
+    list.className = 'picker'
+    el.appendChild(input)
+    el.appendChild(list)
+    setTimeout(function () { input.focus(); input.select() }, 0)
+    var items = [], active = 0
+    function refresh() {
+      items = filterNotes(noteIndex, input.value)
+      active = 0
+      list.innerHTML = items
+        .map(function (it, i) {
+          return '<div class="picker-row' + (i === 0 ? ' active' : '') + '" data-i="' + i + '"><span>' + escapeHtml(it.t) + '</span><span class="p-path">' + escapeHtml(it.f) + '</span></div>'
+        })
+        .join('')
+    }
+    function highlight() {
+      list.querySelectorAll('.picker-row').forEach(function (row, i) { row.classList.toggle('active', i === active) })
+    }
+    function close() { input.remove(); list.remove() }
+    function commit(filename) {
+      var v = filename != null ? filename : input.value.trim()
+      close()
+      if (v === '' || v === (n.file || '')) { renderScene(); return }
+      pushUndo()
+      n.file = v
+      delete fileContents[n.id]
+      renderScene()
+      persist()
+      var t = v.split('/').pop().replace(/\.[^.]+$/, '')
+      if (!/\.(png|jpe?g|gif|webp|svg)$/i.test(v)) toPlugin('getNoteContent', { id: n.id, title: t })
+    }
+    input.addEventListener('input', refresh)
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowDown') { active = Math.min(active + 1, items.length - 1); highlight(); ev.preventDefault() }
+      else if (ev.key === 'ArrowUp') { active = Math.max(active - 1, 0); highlight(); ev.preventDefault() }
+      else if (ev.key === 'Enter') { commit(items[active] ? items[active].f : null) }
+      else if (ev.key === 'Escape') { close(); renderScene() }
+      ev.stopPropagation()
+    })
+    input.addEventListener('blur', function () {
+      // slight delay so a click on a picker row lands before we close
+      setTimeout(function () { if (document.body.contains(input)) { close(); renderScene() } }, 150)
+    })
+    list.addEventListener('mousedown', function (ev) {
+      var row = ev.target.closest('.picker-row')
+      if (row) { ev.preventDefault(); commit(items[Number(row.dataset.i)].f) }
+    })
+    refresh()
   }
 
   function createTextNode(wx, wy) {
@@ -687,7 +774,24 @@
   var px = 0, py = 0, moved = false
   var marqueeEl = null, marqueeStart = null
 
+  var placeKind = null, ghostEl = null
+
   viewport.addEventListener('mousedown', function (e) {
+    // Obsidian-style drag-to-add: grab a palette button and drop it on the canvas
+    var paletteBtn = e.target.closest('#palette button')
+    if (paletteBtn) {
+      mode = 'place'
+      placeKind = paletteBtn.dataset.new
+      px = e.clientX; py = e.clientY; moved = false
+      ghostEl = document.createElement('div')
+      ghostEl.id = 'ghost'
+      ghostEl.textContent = paletteBtn.textContent
+      ghostEl.style.left = e.clientX + 'px'
+      ghostEl.style.top = e.clientY + 'px'
+      document.body.appendChild(ghostEl)
+      e.preventDefault()
+      return
+    }
     if (e.target.closest('textarea, input, #toolbar, #palette')) return
     // inline links inside text content keep native click behavior and never start a drag;
     // card-level links (file/link nodes) fall through so the card can be selected/dragged
@@ -706,7 +810,7 @@
       if (tEl) { editTextNode(tEl); return }
       var fEl = e.target.closest('.node.file')
       if (fEl) {
-        if (e.target.closest('.file-head')) editCardValue(fEl, 'file')
+        if (e.target.closest('.file-head')) openNotePicker(fEl)
         else editNoteContent(fEl)
         return
       }
@@ -812,6 +916,9 @@
       doResize(e)
     } else if (mode === 'link') {
       updateEdgeDraft(e)
+    } else if (mode === 'place') {
+      ghostEl.style.left = e.clientX + 'px'
+      ghostEl.style.top = e.clientY + 'px'
     } else if (mode === 'marquee') {
       var x1 = Math.min(marqueeStart.x, e.clientX), y1 = Math.min(marqueeStart.y, e.clientY)
       var x2 = Math.max(marqueeStart.x, e.clientX), y2 = Math.max(marqueeStart.y, e.clientY)
@@ -830,6 +937,20 @@
   }, true)
 
   window.addEventListener('mouseup', function (e) {
+    if (mode === 'place') {
+      if (ghostEl) ghostEl.remove()
+      ghostEl = null
+      if (moved && !e.target.closest('#palette')) {
+        var wp = toWorld(e.clientX, e.clientY)
+        createNode(placeKind, wp.x, wp.y)
+      } else if (!moved) {
+        var cc = toWorld(viewport.clientWidth / 2, viewport.clientHeight / 2)
+        createNode(placeKind, cc.x, cc.y)
+      }
+      placeKind = null
+      mode = null
+      return
+    }
     if (mode === 'drag' && moved) persist()
     if (mode === 'link' && edgeDraft) finishEdge(e)
     if (mode === 'marquee') {
@@ -861,6 +982,11 @@
   document.addEventListener('click', function (e) {
     var link = e.target.closest('a')
     if (link && link.closest('.node')) {
+      // explicit open buttons (↗ on link cards) open on plain click
+      if (link.classList.contains('ext-open')) {
+        if (moved) e.preventDefault()
+        return
+      }
       var noteTitle = link.dataset.noteTitle
       var isInline = !!link.closest('.content')
       if (isInline) {
@@ -872,12 +998,6 @@
       if (moved || (!e.metaKey && !e.ctrlKey)) { e.preventDefault(); return }
       if (noteTitle) { e.preventDefault(); toPlugin('openNote', { title: noteTitle }) }
       return // external URL cards keep the default ⌘+click open (target=_blank)
-    }
-    var paletteBtn = e.target.closest('#palette button')
-    if (paletteBtn) {
-      var c = toWorld(viewport.clientWidth / 2, viewport.clientHeight / 2)
-      createNode(paletteBtn.dataset.new, c.x, c.y)
-      return
     }
     var openBtn = e.target.closest('.open-btn')
     if (openBtn && !moved) {
@@ -913,7 +1033,7 @@
   window.addEventListener('resize', fit)
 
   // ---------- boot ----------
-  console.log('canvasClient v0.5.0 booted: ' + canvas.nodes.length + ' nodes, ' + canvas.edges.length + ' edges')
+  console.log('canvasClient v0.6.1 booted: ' + canvas.nodes.length + ' nodes, ' + canvas.edges.length + ' edges')
   renderScene()
   fit()
 })()

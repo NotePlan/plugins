@@ -24,21 +24,28 @@ const SWATCHES = ['1', '2', '3', '4', '5', '6']
   .map((c) => `<div class="swatch" data-color="${c}" title="Color ${c}"></div>`)
   .join('')
 
-export function renderCanvasHTML(canvas: TCanvasData, title: string, canvasPath: string, fileContents: { [string]: Object } = {}): string {
+export function renderCanvasHTML(
+  canvas: TCanvasData,
+  title: string,
+  canvasPath: string,
+  fileContents: { [string]: Object } = {},
+  noteIndex: Array<{ t: string, f: string }> = [],
+): string {
   return `
 <style>${CSS}</style>
 <script>
 window.__canvas = ${inlineJSON(canvas)}
 window.__canvasPath = ${inlineJSON(canvasPath)}
 window.__fileContents = ${inlineJSON(fileContents)}
+window.__noteIndex = ${inlineJSON(noteIndex)}
 </script>
 <div id="viewport">
   <div id="world"></div>
   <div id="toolbar">${SWATCHES}<div class="swatch swatch-none" title="No color">×</div><div class="tb-group" title="Згрупувати виділене (⌘G)">⊞</div><div class="tb-delete" title="Delete (⌫)">🗑</div></div>
   <div id="palette">
-    <button data-new="text" title="Нова текстова картка (або двоклік по фону)">＋ текст</button>
-    <button data-new="file" title="Нова картка-нотатка">＋ нотатка</button>
-    <button data-new="group" title="Нова група (⌘G — згрупувати виділене)">＋ група</button>
+    <button data-new="text" title="Тягніть на канвас або клікніть (двоклік по фону теж працює)">＋ текст</button>
+    <button data-new="file" title="Тягніть на канвас або клікніть — з автокомплітом нотаток">＋ нотатка</button>
+    <button data-new="group" title="Тягніть на канвас або клікніть (⌘G — згрупувати виділене)">＋ група</button>
   </div>
   <div id="hud"><span id="title">${escapeHtml(title)}</span><span id="zoom-level"></span></div>
 </div>
@@ -83,6 +90,19 @@ html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; }
 .card-input { position: absolute; inset: 0; width: 100%; height: 100%; box-sizing: border-box;
   border: none; outline: 2px solid #4da3ff; border-radius: 6px; padding: 10px 12px; font: inherit;
   background: var(--bg-alt-color, #262626); color: inherit; z-index: 6; }
+.picker-input { inset: auto 0 auto 0; top: 0; height: 40px; }
+.picker { position: absolute; top: 42px; left: 0; right: 0; z-index: 40; border-radius: 8px;
+  background: var(--bg-alt-color, #262626); border: 1px solid rgba(128,128,128,0.4);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4); overflow: hidden; }
+.picker-row { padding: 6px 10px; font-size: 13px; cursor: pointer; display: flex; gap: 8px; align-items: baseline; }
+.picker-row .p-path { font-size: 11px; opacity: 0.55; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-row.active, .picker-row:hover { background: rgba(77,163,255,0.25); }
+.card-img { max-width: 100%; max-height: calc(100% - 30px); object-fit: contain; display: block; }
+.web-frame { width: 100%; height: calc(100% - 30px); border: none; border-radius: 0 0 6px 6px;
+  pointer-events: none; background: #fff; }
+#ghost { position: fixed; z-index: 50; pointer-events: none; padding: 8px 14px; border-radius: 8px;
+  border: 2px dashed #4da3ff; background: rgba(77,163,255,0.15); font-family: -apple-system, sans-serif;
+  font-size: 13px; color: var(--fg-main-color, #d4d4d4); transform: translate(-50%, -50%); }
 .anchor { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: #4da3ff;
   opacity: 0; transition: opacity 0.12s; z-index: 6; cursor: crosshair; }
 .node:hover .anchor { opacity: 0.9; }

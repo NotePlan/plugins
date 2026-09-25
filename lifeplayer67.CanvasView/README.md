@@ -27,6 +27,26 @@ Obsidian Canvas — right inside NotePlan.
 - Creating/deleting nodes and edges; group dragging with children
 - Importer command: convert a canvas into a structured NotePlan note
 
+## Platform limitations (API wishlist)
+
+Feature parity with Obsidian Canvas is limited by a few NotePlan plugin-API gaps.
+Native support (or new APIs) for these would close the remaining distance:
+
+1. **No directory listing API.** `DataStore.loadData` reads a known path, but plugins
+   cannot enumerate folder contents — so an autocomplete over media/attachment files
+   (like Obsidian's "drag to add media") is not implementable. A `DataStore.listFiles(folder)`
+   would solve it.
+2. **Website previews are best-effort.** Link cards embed sites via `<iframe>`, and
+   WKWebView honours `X-Frame-Options`/CSP — many sites render blank. Obsidian bypasses
+   this with per-card native webviews; an equivalent would need NotePlan-side support.
+3. **No custom file-type editors.** A plugin cannot register itself as the editor for
+   `.canvas` files, so canvases can't open from the sidebar like notes — the closest
+   integration is the HTML split view this plugin uses. First-class JSON Canvas support
+   in NotePlan (an open format: https://jsoncanvas.org) would be the ideal endgame.
+4. **No note-change events.** Note contents shown inside file cards are read when the
+   canvas opens; edits made in the NotePlan editor while the canvas is open aren't
+   pushed to the window (workaround: reopen the canvas).
+
 ## Support
 
 Please report issues in the [NotePlan/plugins repository](https://github.com/NotePlan/plugins/issues)

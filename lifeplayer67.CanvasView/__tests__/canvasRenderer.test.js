@@ -74,6 +74,20 @@ describe('canvasClient pure helpers', () => {
     expect(client.nodeInsideGroup(g, g)).toBe(false)
   })
 
+  test('filterNotes ranks prefix > title > path matches and caps at 8', () => {
+    const idx = [
+      { t: 'Заплановане', f: 'Work/Заплановане.md' },
+      { t: 'Плани', f: 'Notes/Плани.md' },
+      { t: 'Інше', f: 'Архів/плани-старі.md' },
+      ...Array.from({ length: 10 }, (_, i) => ({ t: `Нотатка ${i}`, f: `n${i}.md` })),
+    ]
+    const res = client.filterNotes(idx, 'план')
+    expect(res[0].t).toEqual('Плани')
+    expect(res[1].t).toEqual('Заплановане')
+    expect(res[2].t).toEqual('Інше')
+    expect(client.filterNotes(idx, '').length).toBeLessThanOrEqual(8)
+  })
+
   test('genId makes 16-char hex ids like Obsidian', () => {
     expect(client.genId()).toMatch(/^[0-9a-f]{16}$/)
   })

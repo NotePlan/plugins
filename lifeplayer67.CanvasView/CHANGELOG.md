@@ -1,5 +1,20 @@
 # Canvas View Changelog
 
+## [0.6.0] - 2026-09-24 (unreleased)
+
+Obsidian parity push:
+
+- Drag-to-add: grab a palette button and drop it where the card should appear
+  (clicking still creates at the center).
+- Note picker with autocomplete: adding a note card (or double-clicking a file
+  card's header) opens a search over all NotePlan notes — arrows + Enter to pick,
+  free text is kept as a raw path.
+- Images: file cards pointing at png/jpg/gif/webp/svg render the image.
+- Link cards embed a live website preview (iframe; sites that forbid embedding
+  via X-Frame-Options show blank — see README limitations).
+- The canvas now opens in a split pane inside the main NotePlan window by default
+  (setting: "Open canvas in the main window").
+
 ## [0.5.0] - 2026-09-24 (unreleased)
 
 - Groups fixed: the edges SVG layer sat above groups and swallowed their clicks —
