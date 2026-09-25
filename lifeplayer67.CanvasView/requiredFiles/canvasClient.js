@@ -21,34 +21,51 @@
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   }
 
-  function inlineMd(s) {
-    // NB: <b> and <emph> (not <strong>/<em>) — NotePlan's theme CSS targets 'p b'
-    // and 'p emph', so this markup inherits the user's theme colors for bold/italic
-    return s
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
-      .replace(/\*([^*]+)\*/g, '<emph>$1</emph>')
-      .replace(/\[\[([^\]|]+)(\|([^\]]+))?\]\]/g, function (_, target, __, alias) {
-        var title = String(target).split('/').pop().replace(/\.md$/, '')
-        return '<a href="#" class="note-link" data-note-title="' + escapeHtml(title) + '">' + (alias || title) + '</a>'
+  // Markdown is rendered by showdown — the same library and options NotePlan's own
+  // helpers use for note HTML — so cards match the app instead of a hand-rolled subset.
+  // In the window it's loaded via <script src="./showdown.min.js">; under Jest we
+  // require() it from the repo.
+  var showdownLib = typeof showdown !== 'undefined' ? showdown : typeof module !== 'undefined' && typeof require === 'function' ? require('showdown') : null
+  var mdConverter = null
+
+  function getConverter() {
+    if (!mdConverter) {
+      mdConverter = new showdownLib.Converter({
+        emoji: true,
+        footnotes: true,
+        ghCodeBlocks: true,
+        strikethrough: true,
+        tables: true,
+        tasklists: true,
+        metadata: false,
+        requireSpaceBeforeHeadingText: true,
+        simpleLineBreaks: true,
+        simplifiedAutoLink: true,
       })
-      .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-      .replace(/(^|[^">\]])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank">$2</a>')
+    }
+    return mdConverter
   }
 
-  function renderMarkdown(md) {
-    return escapeHtml(md)
-      .split('\n')
-      .map(function (line) {
-        var h = line.match(/^(#{1,6})\s+(.*)$/)
-        if (h) return '<h' + h[1].length + '>' + inlineMd(h[2]) + '</h' + h[1].length + '>'
-        var cb = line.match(/^\s*[-*]\s+\[( |x|X)\]\s*(.*)$/)
-        if (cb) return '<p class="li">' + (cb[1] === ' ' ? '◻️' : '✅') + ' ' + inlineMd(cb[2]) + '</p>'
-        if (/^\s*[-*]\s+/.test(line)) return '<p class="li">•&nbsp;' + inlineMd(line.replace(/^\s*[-*]\s+/, '')) + '</p>'
-        if (line.trim() === '') return '<p class="blank"></p>'
-        return '<p>' + inlineMd(line) + '</p>'
-      })
-      .join('')
+  function renderMarkdown(md, assetBase) {
+    // block raw HTML injection, keep markdown punctuation intact
+    var safe = String(md).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    // Obsidian image embeds -> plain md images before conversion
+    safe = safe.replace(/!\[\[([^\]]+)\]\]/g, '![]($1)')
+    var html = getConverter().makeHtml(safe)
+    // theme CSS targets 'p b' / 'p emph', not strong/em
+    html = html.replace(/<(\/?)strong>/g, '<$1b>').replace(/<(\/?)em>/g, '<$1emph>')
+    // wikilinks -> clickable note links (showdown leaves them as literal text)
+    html = html.replace(/\[\[([^\]|]+)(\|([^\]]+))?\]\]/g, function (_, target, __, alias) {
+      var title = String(target).split('/').pop().replace(/\.md$/, '')
+      return '<a href="#" class="note-link" data-note-title="' + escapeHtml(title) + '">' + (alias || title) + '</a>'
+    })
+    // external links open outside; relative image srcs resolve against the Notes folder
+    html = html.replace(/<a href="http/g, '<a target="_blank" href="http')
+    html = html.replace(/<img src="(?!https?:|data:)([^"]+)"/g, function (_, src) {
+      var encoded = /%[0-9A-Fa-f]{2}/.test(src) ? src : encodeURI(src)
+      return '<img class="md-img" src="' + (assetBase || '../../Notes/') + encoded + '"'
+    })
+    return html
   }
 
   function genId() {
@@ -141,7 +158,7 @@
   // Replies from the plugin (routed through onMessageFromPlugin in the bridge shim)
   window.__onPluginMessage = function (type, data) {
     if (type === 'NOTE_CONTENT') {
-      fileContents[data.id] = { found: data.found, title: data.title, content: data.content || '' }
+      fileContents[data.id] = { found: data.found, title: data.title, content: data.content || '', html: data.html || '' }
       // don't nuke an open editor or an in-flight drag; flush on mouseup instead
       if (mode || document.querySelector('.node textarea, .card-input, .label-input')) pendingRender = true
       else renderScene()
@@ -232,7 +249,7 @@
       var fc = fileContents[n.id]
       var body
       if (fc && fc.media) body = '<img class="card-img" src="' + fc.media + '">'
-      else if (fc && fc.found) body = '<div class="content file-content">' + renderMarkdown(fc.content || '') + '</div>'
+      else if (fc && fc.found) body = '<div class="content file-content">' + (fc.html || renderMarkdown(fc.content || '')) + '</div>'
       else body = '<div class="content file-missing">No such note in NotePlan yet.<br>Double-click to write it (the note gets created).<br>Double-click the header to pick another.</div>'
       inner = '<div class="file-head"><span>📄</span> <span class="fh-name">' + escapeHtml(base) + '</span><span class="open-btn" title="Open the note in NotePlan (or ⌘+click the card)">↗</span></div>' + body
     } else if (n.type === 'link') {
@@ -323,10 +340,16 @@
   }
 
   viewport.addEventListener('wheel', function (e) {
-    // let a scrollable card body scroll natively instead of panning the canvas
+    // editors always scroll natively; so does a scrollable card body
+    if (e.target.closest('textarea, input')) return
     if (!e.ctrlKey && !e.metaKey) {
+      // Obsidian-style: a card's body scrolls only once the card is selected;
+      // otherwise two-finger scroll over a card pans the canvas as usual
       var scrollable = e.target.closest('.file-content')
-      if (scrollable && scrollable.scrollHeight > scrollable.clientHeight) return
+      if (scrollable && scrollable.scrollHeight > scrollable.clientHeight) {
+        var card = scrollable.closest('.node')
+        if (card && selectedNodes.has(card.dataset.id)) return
+      }
     }
     e.preventDefault()
     if (e.ctrlKey || e.metaKey) {
@@ -556,16 +579,53 @@
 
   // ---------- text / label editing ----------
 
-  function editTextNode(el) {
+  /** Focus a card editor with the caret at `caret`, scrolled into view (WebKit
+   * does not scroll a textarea to a programmatic selection by itself). */
+  function focusEditorAtCaret(ta, caret) {
+    ta.focus()
+    ta.setSelectionRange(caret, caret)
+    var lineIndex = (ta.value.slice(0, caret).match(/\n/g) || []).length
+    var lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 18
+    ta.scrollTop = Math.max(0, lineIndex * lineHeight - ta.clientHeight / 2)
+  }
+
+  /**
+   * Best-effort caret placement: map the double-click point in the RENDERED card
+   * to an offset in the raw markdown by matching a snippet of the clicked text node.
+   * Falls back to 0 (top of the editor) when the snippet isn't found verbatim
+   * (e.g. the click landed on styled text whose source contains markdown syntax).
+   */
+  function caretIndexFromClick(ev, source) {
+    try {
+      if (!ev || !document.caretRangeFromPoint) return 0
+      var range = document.caretRangeFromPoint(ev.clientX, ev.clientY)
+      if (!range || !range.startContainer || range.startContainer.nodeType !== 3) return 0
+      var txt = range.startContainer.textContent || ''
+      var off = range.startOffset
+      for (var len = 24; len >= 4; len -= 5) {
+        var start = Math.max(0, off - Math.floor(len / 2))
+        var snip = txt.slice(start, start + len)
+        if (snip.trim().length < 3) continue
+        var idx = source.indexOf(snip)
+        if (idx >= 0) return idx + (off - start)
+      }
+      return 0
+    } catch (e) {
+      return 0
+    }
+  }
+
+  function editTextNode(el, ev) {
     if (el.querySelector('textarea')) return
     console.log('canvasClient: editTextNode open for ' + el.dataset.id)
     var n = nodeById[el.dataset.id]
+    var caret = caretIndexFromClick(ev, n.text || '')
     var content = el.querySelector('.content')
     var ta = document.createElement('textarea')
     ta.value = n.text || ''
     if (content) content.style.display = 'none'
     el.appendChild(ta)
-    setTimeout(function () { ta.focus() }, 0)
+    setTimeout(function () { focusEditorAtCaret(ta, caret) }, 0)
     var cancelled = false
     function commit() {
       if (cancelled) return
@@ -635,9 +695,10 @@
   }
 
   /** Edit the CONTENT of the note behind a file card; saves into the NotePlan note itself */
-  function editNoteContent(el) {
+  function editNoteContent(el, ev) {
     var n = nodeById[el.dataset.id]
     var fc = fileContents[n.id]
+    var caret = ev ? caretIndexFromClick(ev, (fc && fc.content) || '') : 0
     if (!fc) {
       var base = String(n.file || '').split('/').pop()
       fc = fileContents[n.id] = { found: false, title: base.replace(/\.[^.]+$/, '') }
@@ -647,7 +708,7 @@
     var ta = document.createElement('textarea')
     ta.value = fc.content || ''
     el.appendChild(ta)
-    setTimeout(function () { ta.focus() }, 0)
+    setTimeout(function () { focusEditorAtCaret(ta, caret) }, 0)
     var cancelled = false
     function commit() {
       if (cancelled) return
@@ -883,11 +944,11 @@
       // editor textarea, blurring it in the same frame — the editor dies instantly.
       e.preventDefault()
       var tEl = e.target.closest('.node.text')
-      if (tEl) { editTextNode(tEl); return }
+      if (tEl) { editTextNode(tEl, e); return }
       var fEl = e.target.closest('.node.file')
       if (fEl) {
         if (e.target.closest('.file-head')) openNotePicker(fEl)
-        else editNoteContent(fEl)
+        else editNoteContent(fEl, e)
         return
       }
       var lEl = e.target.closest('.node.link')
@@ -1170,7 +1231,7 @@
   window.addEventListener('resize', fit)
 
   // ---------- boot ----------
-  console.log('canvasClient v0.8.0 booted: ' + canvas.nodes.length + ' nodes, ' + canvas.edges.length + ' edges')
+  console.log('canvasClient v0.9.5 booted: ' + canvas.nodes.length + ' nodes, ' + canvas.edges.length + ' edges')
   renderScene()
   fit()
 })()

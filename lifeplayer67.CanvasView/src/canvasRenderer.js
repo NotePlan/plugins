@@ -49,6 +49,7 @@ window.__noteIndex = ${inlineJSON(noteIndex)}
   </div>
   <div id="hud"><span id="title">${escapeHtml(title)}</span><span id="zoom-level"></span></div>
 </div>
+<script type="text/javascript" src="./showdown.min.js"></script>
 <script type="text/javascript" src="./canvasClient.js"></script>
 `
 }
@@ -98,6 +99,16 @@ html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; }
 .picker-row .p-path { font-size: 11px; opacity: 0.55; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .picker-row.active, .picker-row:hover { background: rgba(77,163,255,0.25); }
 .card-img { max-width: 100%; max-height: calc(100% - 30px); object-fit: contain; display: block; }
+/* shared content styling so text cards and note cards look identical */
+.node .content img { max-width: 100%; border-radius: 4px; margin: 4px 0; }
+.node .content table { border-collapse: collapse; margin: 6px 0; font-size: 0.95em; }
+.node .content th, .node .content td { border: 1px solid rgba(128,128,128,0.4); padding: 3px 8px; text-align: left; }
+.node .content th { font-weight: 600; background: rgba(128,128,128,0.12); }
+.node .content ul, .node .content ol { margin: 2px 0 2px 4px; padding-left: 16px; }
+.node .content ul { list-style: disc; }
+.node .content li { margin: 1px 0; }
+.node .content p { margin: 0; }
+.node .content blockquote { margin: 4px 0; padding-left: 8px; border-left: 3px solid rgba(128,128,128,0.5); opacity: 0.9; }
 .web-frame { width: 100%; height: calc(100% - 30px); border: none; border-radius: 0 0 6px 6px;
   pointer-events: none; background: #fff; }
 #ghost { position: fixed; z-index: 50; pointer-events: none; padding: 8px 14px; border-radius: 8px;

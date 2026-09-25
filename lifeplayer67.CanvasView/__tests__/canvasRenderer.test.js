@@ -38,19 +38,33 @@ describe('canvasClient pure helpers', () => {
   })
 
   test('renderMarkdown handles heading, bold, wikilink and escapes HTML', () => {
-    const html = client.renderMarkdown('# Hi\n**yo** [[Some/Path/Note.md|alias]]\n<script>x</script>')
-    expect(html).toContain('<h1>Hi</h1>')
-    // <b>/<emph> inside <p>, matching NotePlan theme CSS selectors 'p b' / 'p emph'
-    expect(html).toContain('<p><b>yo</b>')
+    const html = client.renderMarkdown('# Hi\n\n**yo** [[Some/Path/Note.md|alias]]\n<script>x</script>')
+    expect(html).toMatch(/<h1[^>]*>Hi<\/h1>/)
+    // <b>/<emph> matching NotePlan theme CSS selectors 'p b' / 'p emph'
+    expect(html).toContain('<b>yo</b>')
     expect(html).toContain('data-note-title="Note"')
     expect(html).toContain('>alias</a>')
     expect(html).not.toContain('<script>x')
   })
 
-  test('renderMarkdown renders checkboxes', () => {
+  test('renderMarkdown renders tables', () => {
+    const html = client.renderMarkdown('| Col A | Col B |\n|---|---|\n| a1 | b1 |\n| a2 | b2 |')
+    expect(html).toContain('<table>')
+    expect(html).toMatch(/<th[^>]*>Col A<\/th>/)
+    expect(html).toContain('b2</td>')
+  })
+
+  test('renderMarkdown renders images: external as-is, relative against assetBase', () => {
+    const html = client.renderMarkdown('![pic](https://x.y/i.png)\n\n![](%D0%9F_attachments/IMG.jpg)\n\n![[embed.png]]', '../../Notes/Sub/')
+    expect(html).toContain('src="https://x.y/i.png"')
+    expect(html).toContain('src="../../Notes/Sub/%D0%9F_attachments/IMG.jpg"') // pre-encoded: not encoded twice
+    expect(html).toContain('src="../../Notes/Sub/embed.png"')
+  })
+
+  test('renderMarkdown renders checkboxes as GFM tasklists', () => {
     const html = client.renderMarkdown('- [ ] todo\n- [x] done')
-    expect(html).toContain('◻️ todo')
-    expect(html).toContain('✅ done')
+    expect(html).toContain('type="checkbox"')
+    expect(html).toContain('checked')
   })
 
   test('autoSides picks facing sides', () => {

@@ -5,7 +5,7 @@
 
 import pluginJson from '../plugin.json'
 import { renderCanvasHTML, type TCanvasData } from './canvasRenderer'
-import { showHTMLV2, sendToHTMLWindow } from '@helpers/HTMLView'
+import { showHTMLV2, sendToHTMLWindow, getNoteContentAsHTML } from '@helpers/HTMLView'
 import { logDebug, logError, clo } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 
@@ -19,6 +19,7 @@ function windowIdFor(fullPath: string): string {
 type TSettings = {
   canvasFolder: string,
   openInSplitView: boolean,
+  openNoteIn: string,
 }
 
 function getSettings(): TSettings {
@@ -26,6 +27,7 @@ function getSettings(): TSettings {
   return {
     canvasFolder: (settings.canvasFolder ?? '').trim(),
     openInSplitView: settings.openInSplitView !== false,
+    openNoteIn: settings.openNoteIn ?? 'Split view',
   }
 }
 
@@ -79,7 +81,14 @@ function loadCanvas(fullPath: string): ?TCanvasData {
   }
 }
 
+/** Note HTML via the shared converter, remapped to the theme's 'p b' / 'p emph' selectors */
+async function noteContentHTML(content: string, note: TNote): Promise<string> {
+  const html = await getNoteContentAsHTML(content, note)
+  return html.replace(/<(\/?)strong>/g, '<$1b>').replace(/<(\/?)em>/g, '<$1emph>')
+}
+
 // HTML pieces for the two-way comms bridge (np.Shared must be installed).
+
 // onMessageFromPlugin must be defined before pluginToHTMLCommsBridge.js loads.
 const COMMS_BRIDGE_HTML = `
 <script>
@@ -194,7 +203,15 @@ async function showCanvasWindow(fullPath: string, settings: TSettings): Promise<
       }
       const noteTitle = (filePath.split('/').pop() ?? '').replace(/\.[^.]+$/, '')
       const matches = DataStore.projectNoteByTitle(noteTitle) ?? []
-      fileContents[node.id] = matches.length > 0 ? { found: true, title: noteTitle, content: matches[0].content ?? '' } : { found: false, title: noteTitle }
+      fileContents[node.id] =
+        matches.length > 0
+          ? {
+              found: true,
+              title: noteTitle,
+              content: matches[0].content ?? '',
+              html: await noteContentHTML(matches[0].content ?? '', matches[0]),
+            }
+          : { found: false, title: noteTitle }
     }
 
     // Note index for the autocomplete picker in the window
@@ -272,6 +289,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
           found: matches.length > 0,
           title: noteTitle,
           content: matches.length > 0 ? matches[0].content ?? '' : '',
+          html: matches.length > 0 ? await noteContentHTML(matches[0].content ?? '', matches[0]) : '',
         })
         break
       }
@@ -292,13 +310,21 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
             found: matches.length > 0,
             title: String(item.title),
             content: matches.length > 0 ? matches[0].content ?? '' : '',
+            html: matches.length > 0 ? await noteContentHTML(matches[0].content ?? '', matches[0]) : '',
           })
         }
         break
       }
       case 'openNote': {
         const title = String(payload.title ?? '')
-        const note = await Editor.openNoteByTitle(title)
+        // keep the canvas pane on screen: open the note beside it, not instead of it
+        const mode = getSettings().openNoteIn
+        const note =
+          mode === 'New window'
+            ? await Editor.openNoteByTitle(title, true)
+            : mode === 'Main editor'
+              ? await Editor.openNoteByTitle(title)
+              : await Editor.openNoteByTitle(title, false, 0, 0, true)
         if (note == null) {
           await showMessage(`No note titled '${title}' found in NotePlan. Import it first, then the link will work.`, 'OK', 'Canvas View')
         }

@@ -12,7 +12,7 @@
   "plugin.author": "lifeplayer67",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "plugin.requiredFiles": ["canvasClient.js"],
+  "plugin.requiredFiles": ["canvasClient.js", "showdown.min.js"],
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/lifeplayer67.CanvasView/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/lifeplayer67.CanvasView/CHANGELOG.md",
   "plugin.commands": [
@@ -56,6 +56,15 @@
       "description": "When on, the canvas opens as a split pane inside the main NotePlan window (like a note). When off, it opens in a separate floating window.",
       "type": "bool",
       "default": true,
+      "required": false
+    },
+    {
+      "key": "openNoteIn",
+      "title": "Open notes from cards in",
+      "description": "Where a note opens when you ⌘+click a card or press its ↗ button. 'Split view' keeps the canvas on screen.",
+      "type": "string",
+      "choices": ["Split view", "New window", "Main editor"],
+      "default": "Split view",
       "required": false
     },
     {
