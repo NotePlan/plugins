@@ -229,6 +229,27 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
         })
         break
       }
+      case 'setClipboard': {
+        Clipboard.string = String(payload.text ?? '')
+        break
+      }
+      case 'getClipboard': {
+        await sendToHTMLWindow(windowIdFor(String(payload.path ?? '')), 'CLIPBOARD', { text: Clipboard.string ?? '' })
+        break
+      }
+      case 'refreshNotes': {
+        const windowId = windowIdFor(String(payload.path ?? ''))
+        for (const item of payload.items ?? []) {
+          const matches = DataStore.projectNoteByTitle(String(item.title)) ?? []
+          await sendToHTMLWindow(windowId, 'NOTE_CONTENT', {
+            id: item.id,
+            found: matches.length > 0,
+            title: String(item.title),
+            content: matches.length > 0 ? matches[0].content ?? '' : '',
+          })
+        }
+        break
+      }
       case 'openNote': {
         const title = String(payload.title ?? '')
         const note = await Editor.openNoteByTitle(title)

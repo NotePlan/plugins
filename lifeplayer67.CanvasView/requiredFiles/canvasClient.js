@@ -142,7 +142,11 @@
   window.__onPluginMessage = function (type, data) {
     if (type === 'NOTE_CONTENT') {
       fileContents[data.id] = { found: data.found, title: data.title, content: data.content || '' }
-      renderScene()
+      // don't nuke an open editor or an in-flight drag; flush on mouseup instead
+      if (mode || document.querySelector('.node textarea, .card-input, .label-input')) pendingRender = true
+      else renderScene()
+    } else if (type === 'CLIPBOARD') {
+      pasteSnippet(String(data.text || ''))
     }
   }
 
@@ -319,6 +323,11 @@
   }
 
   viewport.addEventListener('wheel', function (e) {
+    // let a scrollable card body scroll natively instead of panning the canvas
+    if (!e.ctrlKey && !e.metaKey) {
+      var scrollable = e.target.closest('.file-content')
+      if (scrollable && scrollable.scrollHeight > scrollable.clientHeight) return
+    }
     e.preventDefault()
     if (e.ctrlKey || e.metaKey) {
       var factor = Math.exp(-e.deltaY * 0.01)
@@ -378,6 +387,66 @@
     clearSelection()
     renderScene()
     persist()
+  }
+
+  /** ⌘C: put the selection on the system clipboard as a JSON Canvas snippet */
+  function copySelection() {
+    if (!selectedNodes.size) return
+    var nodes = canvas.nodes.filter(function (n) { return selectedNodes.has(n.id) })
+    var edges = canvas.edges.filter(function (e) {
+      return (selectedNodes.has(e.fromNode) && selectedNodes.has(e.toNode)) || selectedEdges.has(e.id)
+    })
+    toPlugin('setClipboard', { text: JSON.stringify({ nodes: nodes, edges: edges }, null, '\t') })
+  }
+
+  /** ⌘V (after the plugin sends the clipboard back): paste a snippet at the view center */
+  function pasteSnippet(text) {
+    var snippet
+    try { snippet = JSON.parse(text) } catch (e) { return }
+    if (!snippet || !Array.isArray(snippet.nodes) || !snippet.nodes.length) return
+    pushUndo()
+    var xs = snippet.nodes.map(function (n) { return n.x }), ys = snippet.nodes.map(function (n) { return n.y })
+    var x2 = snippet.nodes.map(function (n) { return n.x + n.width }), y2 = snippet.nodes.map(function (n) { return n.y + n.height })
+    var cx = (Math.min.apply(null, xs) + Math.max.apply(null, x2)) / 2
+    var cy = (Math.min.apply(null, ys) + Math.max.apply(null, y2)) / 2
+    var target = toWorld(viewport.clientWidth / 2, viewport.clientHeight / 2)
+    var dx = Math.round(target.x - cx), dy = Math.round(target.y - cy)
+    var idMap = {}
+    clearSelection()
+    snippet.nodes.forEach(function (n) {
+      var c = JSON.parse(JSON.stringify(n))
+      idMap[n.id] = c.id = genId()
+      c.x += dx
+      c.y += dy
+      canvas.nodes.push(c)
+      selectedNodes.add(c.id)
+    })
+    ;(snippet.edges || []).forEach(function (e) {
+      if (!idMap[e.fromNode] || !idMap[e.toNode]) return
+      var c = JSON.parse(JSON.stringify(e))
+      c.id = genId()
+      c.fromNode = idMap[e.fromNode]
+      c.toNode = idMap[e.toNode]
+      canvas.edges.push(c)
+    })
+    renderScene()
+    persist()
+  }
+
+  /** F: zoom to the selection (or fit everything when nothing is selected) */
+  function fitSelection() {
+    if (!selectedNodes.size) { fit(); return }
+    var sel = canvas.nodes.filter(function (n) { return selectedNodes.has(n.id) })
+    var pad = 80
+    var minX = Math.min.apply(null, sel.map(function (n) { return n.x })) - pad
+    var minY = Math.min.apply(null, sel.map(function (n) { return n.y })) - pad
+    var maxX = Math.max.apply(null, sel.map(function (n) { return n.x + n.width })) + pad
+    var maxY = Math.max.apply(null, sel.map(function (n) { return n.y + n.height })) + pad
+    var w = maxX - minX, h = maxY - minY
+    scale = Math.min(viewport.clientWidth / w, viewport.clientHeight / h, 2)
+    tx = (viewport.clientWidth - w * scale) / 2 - minX * scale
+    ty = (viewport.clientHeight - h * scale) / 2 - minY * scale
+    apply()
   }
 
   function duplicateSelection() {
@@ -1012,6 +1081,10 @@
     dragUndoPushed = false
     viewport.classList.remove('panning')
     mode = null
+    if (pendingRender && !document.querySelector('.node textarea, .card-input, .label-input')) {
+      pendingRender = false
+      renderScene()
+    }
   })
 
   // ---------- clicks: note links & toolbar ----------
@@ -1061,16 +1134,43 @@
     if (meta && (e.key === 'Z' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return }
     if (meta && e.key === 'd') { e.preventDefault(); duplicateSelection(); return }
     if (meta && e.key === 'g') { e.preventDefault(); groupSelection(); return }
+    if (meta && e.key === 'c') { e.preventDefault(); copySelection(); return }
+    if (meta && e.key === 'v') { e.preventDefault(); toPlugin('getClipboard', {}); return }
+    if (e.key === 'f' && !meta) { fitSelection(); return }
     if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); deleteSelection(); return }
     if (e.key === 'Escape') { clearSelection(); updateSelectionUI(); return }
     if (/^[1-6]$/.test(e.key)) { applyColor(e.key); return }
     if (e.key === '0') applyColor(null)
   })
 
+  // Re-pull note contents when the user comes back to the canvas, so file cards
+  // don't go stale after edits in the NotePlan editor. In the embedded split view
+  // the window 'focus' event is unreliable, so the pointer ENTERING the pane is
+  // the primary trigger (that's exactly "I clicked over to the canvas").
+  var lastRefresh = 0
+  var pendingRender = false
+  function refreshNoteCards() {
+    var now = Date.now()
+    if (now - lastRefresh < 2000) return
+    if (document.querySelector('.node textarea, .card-input, .label-input')) return
+    lastRefresh = now
+    var items = []
+    canvas.nodes.forEach(function (n) {
+      var fc = fileContents[n.id]
+      if (n.type === 'file' && fc && fc.found && !fc.media) items.push({ id: n.id, title: fc.title })
+    })
+    if (items.length) {
+      console.log('canvasClient: refreshing ' + items.length + ' note card(s)')
+      toPlugin('refreshNotes', { items: items })
+    }
+  }
+  viewport.addEventListener('mouseenter', refreshNoteCards)
+  window.addEventListener('focus', refreshNoteCards)
+
   window.addEventListener('resize', fit)
 
   // ---------- boot ----------
-  console.log('canvasClient v0.6.4 booted: ' + canvas.nodes.length + ' nodes, ' + canvas.edges.length + ' edges')
+  console.log('canvasClient v0.7.2 booted: ' + canvas.nodes.length + ' nodes, ' + canvas.edges.length + ' edges')
   renderScene()
   fit()
 })()

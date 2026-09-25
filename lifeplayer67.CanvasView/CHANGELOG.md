@@ -1,5 +1,15 @@
 # Canvas View Changelog
 
+## [0.7.0] - 2026-09-25 (unreleased)
+
+- Copy & paste: ⌘C puts the selection on the system clipboard as a JSON Canvas
+  snippet, ⌘V pastes it at the view center with fresh ids — works across canvases
+  (and from any app that puts JSON Canvas on the clipboard).
+- File cards refresh their note content when the canvas window regains focus, so
+  edits made in the NotePlan editor show up without reopening (throttled; never
+  interrupts an open card editor).
+- F zooms to the selection; with nothing selected it fits the whole canvas.
+
 ## [0.6.4] - 2026-09-25 (unreleased)
 
 Obsidian-style group interaction:

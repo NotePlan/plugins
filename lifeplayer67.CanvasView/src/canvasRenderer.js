@@ -85,7 +85,7 @@ html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; }
 .fh-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .open-btn { cursor: pointer; opacity: 0.55; font-size: 15px; padding: 0 2px; }
 .open-btn:hover { opacity: 1; }
-.file-content { font-size: 12px; }
+.file-content { font-size: 12px; overflow-y: auto !important; max-height: calc(100% - 34px); }
 .file-missing { opacity: 0.65; font-style: italic; font-size: 12px; }
 .card-input { position: absolute; inset: 0; width: 100%; height: 100%; box-sizing: border-box;
   border: none; outline: 2px solid #4da3ff; border-radius: 6px; padding: 10px 12px; font: inherit;
