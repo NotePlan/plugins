@@ -5,7 +5,10 @@ Obsidian Canvas — right inside NotePlan.
 
 ## Commands
 
-- `/open canvas` — opens a `.canvas` file in an editor window with pan & zoom.
+- `/new canvas` — creates an empty `.canvas` file (in the *Canvas folder* setting, or
+  `Canvases/` by default) and opens it.
+- `/open canvas` — pick any indexed `.canvas` file from a list and open it in the
+  canvas editor (opens as a split pane inside the main window by default).
   - Scroll / trackpad to pan, ⌘+scroll (or ctrl+scroll) to zoom, drag the background to pan,
     double-click the background to re-fit.
   - Drag a node to move it; double-click a text node to edit its markdown
@@ -14,6 +17,22 @@ Obsidian Canvas — right inside NotePlan.
   - File and link cards: plain click selects, ⌘+click opens (the note in NotePlan / the
     URL in your browser), double-click edits the file path or URL. `[[wikilinks]]` inside
     text cards open on plain click. Notes are matched by title and must exist in NotePlan.
+
+## Editor cheat-sheet
+
+| Action | How |
+|---|---|
+| Create a card | double-click the background, or drag/click a palette button (`+ card`, `+ note`, `+ group`) |
+| Connect cards | hover a card, drag from a side anchor dot onto another card |
+| Select | click; ⇧+click adds; drag on the background rubber-bands (a band fully enclosing a group selects the group) |
+| Move | drag a card; a selected group drags from anywhere inside; an unselected group only by its frame or label |
+| Edit | double-click: text card → markdown, note card body → the note itself, note card header → note picker, group frame/label → rename, edge → label |
+| Open | ↗ button or ⌘+click (note in NotePlan / URL in browser); links inside text open on plain click |
+| Colors | toolbar swatches or keys 1–6, 0 clears |
+| Group / duplicate / delete | ⌘G / ⌘D / ⌫ |
+| Copy & paste | ⌘C / ⌘V (JSON Canvas snippet via the system clipboard — works across canvases) |
+| Undo / redo | ⌘Z / ⇧⌘Z |
+| Navigate | scroll pans, ⌘+scroll zooms, ⇧+drag pans, F zooms to selection, double-click background re-fits |
 
 ## Settings
 

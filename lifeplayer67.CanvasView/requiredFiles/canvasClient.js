@@ -233,12 +233,12 @@
       var body
       if (fc && fc.media) body = '<img class="card-img" src="' + fc.media + '">'
       else if (fc && fc.found) body = '<div class="content file-content">' + renderMarkdown(fc.content || '') + '</div>'
-      else body = '<div class="content file-missing">Нотатки ще немає в NotePlan.<br>Подвійний клік — написати (нотатка створиться).<br>Подвійний клік по заголовку — вибрати іншу.</div>'
-      inner = '<div class="file-head"><span>📄</span> <span class="fh-name">' + escapeHtml(base) + '</span><span class="open-btn" title="Відкрити нотатку в NotePlan (або ⌘+клік по картці)">↗</span></div>' + body
+      else body = '<div class="content file-missing">No such note in NotePlan yet.<br>Double-click to write it (the note gets created).<br>Double-click the header to pick another.</div>'
+      inner = '<div class="file-head"><span>📄</span> <span class="fh-name">' + escapeHtml(base) + '</span><span class="open-btn" title="Open the note in NotePlan (or ⌘+click the card)">↗</span></div>' + body
     } else if (n.type === 'link') {
       var url = String(n.url || '')
       var frame = /^https?:\/\//.test(url) ? '<iframe class="web-frame" src="' + escapeHtml(url) + '" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>' : ''
-      inner = '<div class="file-head"><span>🔗</span> <span class="fh-name">' + escapeHtml(url) + '</span><a class="open-btn ext-open" href="' + escapeHtml(url) + '" target="_blank" title="Відкрити в браузері">↗</a></div>' + frame
+      inner = '<div class="file-head"><span>🔗</span> <span class="fh-name">' + escapeHtml(url) + '</span><a class="open-btn ext-open" href="' + escapeHtml(url) + '" target="_blank" title="Open in browser">↗</a></div>' + frame
     }
     return '<div class="node ' + n.type + sel + '" data-id="' + escapeHtml(n.id) + '"' + extra + ' style="' + style + '">' + inner + anchors + '</div>'
   }
@@ -759,7 +759,7 @@
     var input = document.createElement('input')
     input.className = 'card-input picker-input'
     input.value = n.file || ''
-    input.placeholder = 'Назва нотатки або шлях…'
+    input.placeholder = 'Note title or path…'
     var list = document.createElement('div')
     list.className = 'picker'
     el.appendChild(input)
@@ -1170,7 +1170,7 @@
   window.addEventListener('resize', fit)
 
   // ---------- boot ----------
-  console.log('canvasClient v0.7.2 booted: ' + canvas.nodes.length + ' nodes, ' + canvas.edges.length + ' edges')
+  console.log('canvasClient v0.8.0 booted: ' + canvas.nodes.length + ' nodes, ' + canvas.edges.length + ' edges')
   renderScene()
   fit()
 })()

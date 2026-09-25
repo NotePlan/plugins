@@ -4,7 +4,7 @@
 // Entry point: exports the plugin's commands and lifecycle hooks.
 // -----------------------------------------------------------------------------
 
-export { openCanvas, onMessageFromHTMLView } from './NPCanvasView'
+export { openCanvas, newCanvas, onMessageFromHTMLView } from './NPCanvasView'
 
 import pluginJson from '../plugin.json'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'

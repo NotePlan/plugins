@@ -41,11 +41,11 @@ window.__noteIndex = ${inlineJSON(noteIndex)}
 </script>
 <div id="viewport">
   <div id="world"></div>
-  <div id="toolbar">${SWATCHES}<div class="swatch swatch-none" title="No color">×</div><div class="tb-group" title="Згрупувати виділене (⌘G)">⊞</div><div class="tb-delete" title="Delete (⌫)">🗑</div></div>
+  <div id="toolbar">${SWATCHES}<div class="swatch swatch-none" title="No color">×</div><div class="tb-group" title="Group the selection (⌘G)">⊞</div><div class="tb-delete" title="Delete (⌫)">🗑</div></div>
   <div id="palette">
-    <button data-new="text" title="Тягніть на канвас або клікніть (двоклік по фону теж працює)">＋ текст</button>
-    <button data-new="file" title="Тягніть на канвас або клікніть — з автокомплітом нотаток">＋ нотатка</button>
-    <button data-new="group" title="Тягніть на канвас або клікніть (⌘G — згрупувати виділене)">＋ група</button>
+    <button data-new="text" title="Drag onto the canvas or click (double-click the background works too)">+ card</button>
+    <button data-new="file" title="Drag onto the canvas or click — with note autocomplete">+ note</button>
+    <button data-new="group" title="Drag onto the canvas or click (⌘G groups the selection)">+ group</button>
   </div>
   <div id="hud"><span id="title">${escapeHtml(title)}</span><span id="zoom-level"></span></div>
 </div>

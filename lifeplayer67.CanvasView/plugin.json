@@ -3,8 +3,8 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "lifeplayer67.CanvasView",
   "plugin.name": "Canvas View",
-  "plugin.version": "0.7.0",
-  "plugin.lastUpdateInfo": "Obsidian parity push: drag-to-add palette, note autocomplete picker, images render in file cards, website previews in link cards, opens in split view inside the main window.",
+  "plugin.version": "0.8.0",
+  "plugin.lastUpdateInfo": "New '/new canvas' command. Copy/paste snippets, live note refresh, scrollable file cards, zoom to selection, Obsidian-style groups.",
   "plugin.description": "Edit Obsidian Canvas / JSON Canvas (.canvas) files inside NotePlan: create and connect cards, move, resize, color, label edges, undo/redo — fully compatible with Obsidian.",
   "plugin.icon": "fa-diagram-project",
   "plugin.iconColor": "orange-500",
@@ -22,6 +22,13 @@
       "jsFunction": "openCanvas",
       "alias": ["canvas", "jsoncanvas", "obsidian canvas"],
       "arguments": ["path to the .canvas file (absolute, or relative to the canvas folder setting)"]
+    },
+    {
+      "name": "new canvas",
+      "description": "Create a new empty JSON Canvas file and open it",
+      "jsFunction": "newCanvas",
+      "alias": ["create canvas"],
+      "arguments": ["name for the new .canvas file (a folder prefix is allowed, e.g. 'Projects/Ideas')"]
     },
     {
       "name": "onMessageFromHTMLView",

@@ -106,7 +106,7 @@ export async function openCanvas(pathArg?: string): Promise<void> {
       const canvasNotes = DataStore.projectNotes.filter((n) => n.filename.toLowerCase().endsWith('.canvas'))
       if (canvasNotes.length > 0) {
         const options = canvasNotes.map((n) => n.filename)
-        const res = await CommandBar.showOptions(options, 'Який canvas відкрити?')
+        const res = await CommandBar.showOptions(options, 'Open which canvas?')
         if (res == null) return
         fullPath = `../../../Notes/${options[res.index]}`
       } else {
@@ -120,7 +120,51 @@ export async function openCanvas(pathArg?: string): Promise<void> {
       }
     }
     if (fullPath === '') fullPath = resolveCanvasPath(path, settings.canvasFolder)
-    logDebug(pluginJson, `openCanvas: loading '${fullPath}'`)
+    await showCanvasWindow(fullPath, settings)
+  } catch (error) {
+    logError(pluginJson, `openCanvas: ${error.message}`)
+    clo(error, 'openCanvas error')
+  }
+}
+
+/**
+ * Create a new empty .canvas file and open it.
+ * @param {string?} nameArg name for the canvas, optionally with a folder ('Ideas' or 'Projects/Ideas')
+ */
+export async function newCanvas(nameArg?: string): Promise<void> {
+  try {
+    const settings = getSettings()
+    let name = (nameArg ?? '').trim()
+    if (name === '') {
+      const answer = await CommandBar.textPrompt('Canvas View', "Name for the new canvas (a folder is fine too, e.g. 'Projects/Ideas')", '')
+      if (answer === false || answer == null || String(answer).trim() === '') return
+      name = String(answer).trim()
+    }
+    const withExt = /\.canvas$/i.test(name) ? name : `${name}.canvas`
+    const defaultFolder = settings.canvasFolder !== '' ? settings.canvasFolder.replace(/^\/+|\/+$/g, '') : 'Canvases'
+    const relPath = withExt.includes('/') ? withExt : `${defaultFolder}/${withExt}`
+    const fullPath = `../../../Notes/${relPath}`
+    const existing = DataStore.loadData(fullPath, true)
+    if (existing == null || existing === '') {
+      const ok = DataStore.saveData(JSON.stringify({ nodes: [], edges: [] }, null, '\t'), fullPath, true)
+      if (!ok) {
+        await showMessage(`Could not create '${relPath}'.`, 'OK', 'Canvas View')
+        return
+      }
+      logDebug(pluginJson, `newCanvas: created '${relPath}'`)
+    } else {
+      logDebug(pluginJson, `newCanvas: '${relPath}' already exists — opening it`)
+    }
+    await showCanvasWindow(fullPath, settings)
+  } catch (error) {
+    logError(pluginJson, `newCanvas: ${error.message}`)
+  }
+}
+
+/** Load a canvas by its resolved path and open the editor window/pane for it */
+async function showCanvasWindow(fullPath: string, settings: TSettings): Promise<void> {
+  try {
+    logDebug(pluginJson, `showCanvasWindow: loading '${fullPath}'`)
 
     let canvas: ?TCanvasData
     try {
@@ -145,10 +189,10 @@ export async function openCanvas(pathArg?: string): Promise<void> {
       const filePath = String(node.file ?? '')
       if (IMAGE_EXT_RE.test(filePath)) {
         const dataURI = loadImageDataURI(filePath)
-        fileContents[node.id] = dataURI != null ? { found: true, media: dataURI } : { found: false, title: filePath.split('/').pop() }
+        fileContents[node.id] = dataURI != null ? { found: true, media: dataURI } : { found: false, title: filePath.split('/').pop() ?? '' }
         continue
       }
-      const noteTitle = filePath.split('/').pop().replace(/\.[^.]+$/, '')
+      const noteTitle = (filePath.split('/').pop() ?? '').replace(/\.[^.]+$/, '')
       const matches = DataStore.projectNoteByTitle(noteTitle) ?? []
       fileContents[node.id] = matches.length > 0 ? { found: true, title: noteTitle, content: matches[0].content ?? '' } : { found: false, title: noteTitle }
     }
@@ -158,7 +202,7 @@ export async function openCanvas(pathArg?: string): Promise<void> {
       .filter((n) => (n.title ?? '') !== '')
       .map((n) => ({ t: n.title ?? '', f: n.filename }))
 
-    const title = fullPath.split('/').pop().replace(/\.canvas$/i, '')
+    const title = (fullPath.split('/').pop() ?? '').replace(/\.canvas$/i, '')
     const body = COMMS_BRIDGE_HTML + renderCanvasHTML(canvas, `${title} — ${nodeCount} nodes, ${edgeCount} edges`, fullPath, fileContents, noteIndex)
 
     await showHTMLV2(body, {
@@ -176,8 +220,8 @@ export async function openCanvas(pathArg?: string): Promise<void> {
       // theme — it defines --bg-main-color/--fg-main-color/etc., which our CSS consumes
     })
   } catch (error) {
-    logError(pluginJson, `openCanvas: ${error.message}`)
-    clo(error, 'openCanvas error')
+    logError(pluginJson, `showCanvasWindow: ${error.message}`)
+    clo(error, 'showCanvasWindow error')
   }
 }
 
@@ -188,13 +232,15 @@ export async function openCanvas(pathArg?: string): Promise<void> {
 export async function onMessageFromHTMLView(actionType: string, data: any): Promise<void> {
   try {
     // Tolerate the one-array calling convention too: onMessageFromHTMLView(['action', {...}])
-    if (Array.isArray(actionType)) {
-      // $FlowIgnore[incompatible-type]
-      ;[actionType, data] = actionType
+    let action = actionType
+    let rawData = data
+    if (Array.isArray(action)) {
+      rawData = action[1]
+      action = String(action[0])
     }
-    const payload = typeof data === 'string' ? JSON.parse(data) : data ?? {}
-    logDebug(pluginJson, `onMessageFromHTMLView: '${actionType}'`)
-    switch (actionType) {
+    const payload = typeof rawData === 'string' ? JSON.parse(rawData) : rawData ?? {}
+    logDebug(pluginJson, `onMessageFromHTMLView: '${action}'`)
+    switch (action) {
       case 'saveCanvas': {
         const jsonStr = String(payload.json)
         JSON.parse(jsonStr) // validate before touching the file — never write a broken canvas
@@ -259,7 +305,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
         break
       }
       default:
-        logError(pluginJson, `onMessageFromHTMLView: unknown actionType '${actionType}'`)
+        logError(pluginJson, `onMessageFromHTMLView: unknown actionType '${action}'`)
     }
   } catch (error) {
     logError(pluginJson, `onMessageFromHTMLView: ${error.message}`)

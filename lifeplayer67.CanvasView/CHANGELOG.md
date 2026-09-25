@@ -1,5 +1,12 @@
 # Canvas View Changelog
 
+## [0.8.0] - 2026-09-25 (unreleased)
+
+- New command: `/new canvas` — creates an empty `.canvas` file (in the Canvas
+  folder setting, or `Canvases/` by default; a folder prefix in the name works)
+  and opens it. Opening an existing name just opens it.
+- All UI strings are in English for the community release.
+
 ## [0.7.0] - 2026-09-25 (unreleased)
 
 - Copy & paste: ⌘C puts the selection on the system clipboard as a JSON Canvas
