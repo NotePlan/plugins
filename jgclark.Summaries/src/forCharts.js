@@ -3,13 +3,13 @@
 // Create heatmap chart to use with NP HTML, and before then
 // weekly stats for a number of weeks, and format ready to use by gnuplot.
 // Jonathan Clark, @jgclark
-// Last updated 2026-02-03 for v1.0.2+ by @jgclark
+// Last updated 2026-09-25 for v1.2.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import {
-  gatherOccurrences,
+  gatherOccurrencesAsync,
   getSummariesSettings,
   TMOccurrences,
 } from './summaryHelpers'
@@ -31,11 +31,177 @@ import {
 } from '@helpers/NPdateTime'
 import { clo, clof, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getRegularNotesFromFilteredFolders } from '@helpers/folders'
+import { runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
 
 //-----------------------------------------------------------------------------
 // Constants
 
 const MONTHS_TO_LOOK_BACK_FOR_TASKS = 6
+/** How often to refresh CommandBar.showLoading during note scans (every N notes). */
+const SHOW_LOADING_UPDATE_EVERY_N_NOTES: number = 10
+
+/**
+ * Show the start of a note-scan phase (0 / total).
+ * @param {string} label
+ * @param {number} total
+ * @returns {boolean} true when a loading dialog was shown
+ */
+function beginScanPhase(label: string, total: number): boolean {
+  if (total <= 0) return false
+  CommandBar.showLoading(true, `${label}\n0/${String(total)}`, 0)
+  return true
+}
+
+/**
+ * Refresh the loading dialog every N notes, and on the last note.
+ * @param {string} label
+ * @param {number} index - 1-based note index
+ * @param {number} total
+ * @returns {boolean} true when the dialog was updated
+ */
+function reportScanProgress(label: string, index: number, total: number): boolean {
+  if (total <= 0) return false
+  if (index % SHOW_LOADING_UPDATE_EVERY_N_NOTES === 0 || index === total) {
+    CommandBar.showLoading(true, `${label}\n${String(index)}/${String(total)}`, index / total)
+    return true
+  }
+  return false
+}
+
+type TTaskCompletionScanResult = {
+  dateCounterMap: Map<string, number>,
+  totalProjectDone: number,
+}
+
+/**
+ * Sync: count completed tasks in the given notes. Safe for `runSyncWorkOnAsyncThread` (read-only).
+ * `CommandBar.showLoading` is allowed. Does not call DataStore.
+ * @param {Array<TNote>} projNotes
+ * @param {Array<TNote>} periodCalendarNotes
+ * @param {Array<TNote>} beforePeriodCalendarNotes
+ * @param {string} fromDateStr
+ * @param {string} toDateStr
+ * @returns {TTaskCompletionScanResult}
+ */
+function scanTaskCompletionsSync(
+  projNotes: Array<TNote>,
+  periodCalendarNotes: Array<TNote>,
+  beforePeriodCalendarNotes: Array<TNote>,
+  fromDateStr: string,
+  toDateStr: string,
+): TTaskCompletionScanResult {
+  // Initialise a Map to hold count of completed dates
+  // v1.  Start with a simple empty Map
+  const dateCounterMap = new Map < string, number> ()
+  // Set up a function that sums occurences(in value) of key(date).
+  // const addToObj = key => {
+  //   dateCounterMap.set(key, (dateCounterMap.has(key) ? (dateCounterMap.get(key)) + 1 : 1))
+  // }
+
+  // v2. Initialise a Map for all dates of interest, with NaN values (to distinguish from zero).
+  const fromDateMoment = moment(fromDateStr, 'YYYY-MM-DD')
+  const toDateMoment = moment(toDateStr, 'YYYY-MM-DD')
+  const daysInInterval = toDateMoment.diff(fromDateMoment, 'days')
+  // logDebug('generateTaskCompletionStats', `- daysInInterval = ${daysInInterval}`)
+  for (let i = 0; i <= daysInInterval; i++) {
+    const thisDate = moment(fromDateStr, 'YYYY-MM-DD').add(i, 'days').format('YYYY-MM-DD')
+    dateCounterMap.set(thisDate, NaN)
+    // logDebug('', `- init dateCounterMap(${thisDate}) = ${String(dateCounterMap.get(thisDate))}`)
+  }
+
+  // Function that sums occurences(in value) of key(date).
+  const addToObj = (key: string) => {
+    // Map.get() is always `V | void` in Flow, and the has()/isNaN() test above does not refine it, so the real element type (number) can
+    // only be asserted here. Cast rather than a line suppression, so any other error on this line still shows up.
+    dateCounterMap.set(key, (dateCounterMap.has(key) && !isNaN(dateCounterMap.get(key)) ? ((dateCounterMap.get(key): any): number) + 1 : 1))
+    // logDebug('', `\tupdated ${key} to ${String(dateCounterMap.get(key))}`)
+  }
+
+  let loadingShown = false
+  try {
+    const projectLabel = 'Scanning project notes for completed tasks'
+    if (beginScanPhase(projectLabel, projNotes.length)) loadingShown = true
+    let index = 0
+    for (const n of projNotes) {
+      index += 1
+      if (reportScanProgress(projectLabel, index, projNotes.length)) loadingShown = true
+      const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
+      for (const dp of doneParas) {
+        let doneDate = null
+        if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
+          // get completed date from @done(date [time])
+          const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
+          doneDate = reReturnArray[1]
+        }
+        // If we've found a task done in the right period, save
+        if (doneDate && withinDateRange(getAPIDateStrFromDisplayDateStr(doneDate), getAPIDateStrFromDisplayDateStr(fromDateStr), getAPIDateStrFromDisplayDateStr(toDateStr))) {
+          addToObj(doneDate)
+        }
+      }
+    }
+    // let projectDataArray = Object.entries(dateCounterObj)
+    let totalProjectDone = 0
+    for (const item of dateCounterMap) {
+      if (!isNaN(item[1]) && item[1] !== '') {
+        totalProjectDone += Number(item[1])
+      }
+    }
+    logDebug('generateTaskCompletionStats', `-> ${totalProjectDone} done tasks from all Project notes`)
+
+    const periodLabel = 'Scanning calendar notes for completed tasks'
+    if (beginScanPhase(periodLabel, periodCalendarNotes.length)) loadingShown = true
+    index = 0
+    for (const n of periodCalendarNotes) {
+      index += 1
+      if (reportScanProgress(periodLabel, index, periodCalendarNotes.length)) loadingShown = true
+      const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
+      for (const dp of doneParas) {
+        let doneDate = null
+        if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
+          // get completed date (and ignore time)
+          const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
+          doneDate = reReturnArray[1] // date part
+        }
+        else {
+          // We have a completed task but not a done date
+          doneDate = moment(n.date).format('YYYY-MM-DD') // the note's date
+        }
+        // If we've found a task done in the right period, save
+        if (doneDate && withinDateRange(doneDate, fromDateStr, toDateStr)) {
+          addToObj(doneDate)
+        }
+      }
+    }
+
+    const earlierLabel = 'Scanning earlier calendar notes for completed tasks'
+    if (beginScanPhase(earlierLabel, beforePeriodCalendarNotes.length)) loadingShown = true
+    index = 0
+    for (const n of beforePeriodCalendarNotes) {
+      index += 1
+      if (reportScanProgress(earlierLabel, index, beforePeriodCalendarNotes.length)) loadingShown = true
+      const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
+      for (const dp of doneParas) {
+        let doneDate = null
+        if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
+          // get completed date (and ignore time)
+          const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
+          doneDate = reReturnArray[1] // date part
+        }
+        // If we've found a task done in the right period, save
+        if (doneDate && withinDateRange(doneDate, fromDateStr, toDateStr)) {
+          addToObj(doneDate)
+        }
+      }
+    }
+
+    return { dateCounterMap, totalProjectDone }
+  }
+  finally {
+    if (loadingShown) {
+      CommandBar.showLoading(false)
+    }
+  }
+}
 
 //-----------------------------------------------------------------------------
 
@@ -108,119 +274,44 @@ export async function generateTaskCompletionStats(
   toDateStr: string = getTodaysDateHyphenated()
 ): Promise<Map<string, number>> {
   try {
-    // Initialise a Map to hold count of completed dates
-    // v1.  Start with a simple empty Map
-    const dateCounterMap = new Map < string, number> ()
-    // Set up a function that sums occurences(in value) of key(date).
-    // const addToObj = key => {
-    //   dateCounterMap.set(key, (dateCounterMap.has(key) ? (dateCounterMap.get(key)) + 1 : 1))
-    // }
-
-    // v2. Initialise a Map for all dates of interest, with NaN values (to distinguish from zero).
-    const fromDateMoment = moment(fromDateStr, 'YYYY-MM-DD')
-    const toDateMoment = moment(toDateStr, 'YYYY-MM-DD')
-    const daysInInterval = toDateMoment.diff(fromDateMoment, 'days')
-    // logDebug('generateTaskCompletionStats', `- daysInInterval = ${daysInInterval}`)
-    for (let i = 0; i <= daysInInterval; i++) {
-      const thisDate = moment(fromDateStr, 'YYYY-MM-DD').add(i, 'days').format('YYYY-MM-DD')
-      dateCounterMap.set(thisDate, NaN)
-      // logDebug('', `- init dateCounterMap(${thisDate}) = ${String(dateCounterMap.get(thisDate))}`)
-    }
-
-    // Function that sums occurences(in value) of key(date).
-    const addToObj = (key: string) => {
-      // Map.get() is always `V | void` in Flow, and the has()/isNaN() test above does not refine it, so the real element type (number) can
-      // only be asserted here. Cast rather than a line suppression, so any other error on this line still shows up.
-      dateCounterMap.set(key, (dateCounterMap.has(key) && !isNaN(dateCounterMap.get(key)) ? ((dateCounterMap.get(key): any): number) + 1 : 1))
-      // logDebug('', `\tupdated ${key} to ${String(dateCounterMap.get(key))}`)
-    }
-
-    // start a timer and spinner
-    CommandBar.showLoading(true, `Generating Task Completion stats ...`)
-    await CommandBar.onAsyncThread()
+    // start a timer
     const startTime = new Date()
 
-    // do completed task (not checklist) counts from all Regular Notes
+    // Note lists are read on the main thread; the paragraph scan runs on the async thread.
     const projNotes = getRegularNotesFromFilteredFolders(foldersToExclude, true)
     logDebug('generateTaskCompletionStats', `Summarising for ${projNotes.length} project notes`)
-    for (const n of projNotes) {
-      const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
-      for (const dp of doneParas) {
-        let doneDate = null
-        if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
-          // get completed date from @done(date [time])
-          const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
-          doneDate = reReturnArray[1]
-        }
-        // If we've found a task done in the right period, save
-        if (doneDate && withinDateRange(getAPIDateStrFromDisplayDateStr(doneDate), getAPIDateStrFromDisplayDateStr(fromDateStr), getAPIDateStrFromDisplayDateStr(toDateStr))) {
-          addToObj(doneDate)
-        }
-      }
-    }
-    // let projectDataArray = Object.entries(dateCounterObj)
-    let totalProjectDone = 0
-    for (const item of dateCounterMap) {
-      if (!isNaN(item[1]) && item[1] !== '') {
-        totalProjectDone += Number(item[1])
-      }
-    }
-    logDebug('generateTaskCompletionStats', `-> ${totalProjectDone} done tasks from all Project notes`)
 
     // Do completed task (not checklist) counts from all Calendar Notes from that period
     // n.date is `?Date` on a note, but toISODateString() takes a non-maybe Date. Calendar notes always have one, so the real type is asserted here.
     const periodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(((n.date: any): Date)), fromDateStr, toDateStr))
+    let beforePeriodCalendarNotes: Array<TNote> = []
     if (periodCalendarNotes.length > 0) {
-      for (const n of periodCalendarNotes) {
-        const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
-        for (const dp of doneParas) {
-          let doneDate = null
-          if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
-            // get completed date (and ignore time)
-            const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
-            doneDate = reReturnArray[1] // date part
-          }
-          else {
-            // We have a completed task but not a done date
-            doneDate = moment(n.date).format('YYYY-MM-DD') // the note's date
-          }
-          // If we've found a task done in the right period, save
-          if (doneDate && withinDateRange(doneDate, fromDateStr, toDateStr)) {
-            addToObj(doneDate)
-          }
-        }
-      }
-
       // As tasks can be completed on dates later than the daily note it resides in, we need to look at calendar notes from (say) the previous 6 months of daily and weekly notes.
       // This time, only get proper '@done(...)' dates.
       const earlierFromDateStr = moment(fromDateStr, 'YYYY-MM-DD').subtract(MONTHS_TO_LOOK_BACK_FOR_TASKS, 'months').format('YYYY-MM-DD')
       logDebug('generateTaskCompletionStats', `Looking back ${MONTHS_TO_LOOK_BACK_FOR_TASKS} months for tasks completed on dates later than their daily note`)
       const earlierToDateStr = moment(fromDateStr, 'YYYY-MM-DD').subtract(1, 'days').format('YYYY-MM-DD')
       // As above: n.date is `?Date` in the API types, but a calendar note always has one.
-      const beforePeriodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(((n.date: any): Date)), earlierFromDateStr, earlierToDateStr))
+      beforePeriodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(((n.date: any): Date)), earlierFromDateStr, earlierToDateStr))
       logDebug('generateTaskCompletionStats', `Summarising for ${beforePeriodCalendarNotes.length} calendar notes (looking 6 months before given fromDate)`)
-
-      for (const n of beforePeriodCalendarNotes) {
-        const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
-        for (const dp of doneParas) {
-          let doneDate = null
-          if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
-            // get completed date (and ignore time)
-            const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
-            doneDate = reReturnArray[1] // date part
-          }
-          // If we've found a task done in the right period, save
-          if (doneDate && withinDateRange(doneDate, fromDateStr, toDateStr)) {
-            addToObj(doneDate)
-          }
-        }
-      }
     } else {
       logWarn(pluginJson, `No matching Calendar notes found between ${fromDateStr} and ${toDateStr}`)
     }
-    // end timer & spinner
-    await CommandBar.onMainThread()
-    CommandBar.showLoading(false)
+
+    // Side-channel: do not return large maps from runOnAsyncThread (can hang the Promise).
+    let scanHolder: ?TTaskCompletionScanResult = null
+    await runSyncWorkOnAsyncThread('generateTaskCompletionStats', () => {
+      scanHolder = scanTaskCompletionsSync(projNotes, periodCalendarNotes, beforePeriodCalendarNotes, fromDateStr, toDateStr)
+      return true
+    })
+    const scanResult: TTaskCompletionScanResult =
+      scanHolder != null
+        ? scanHolder
+        : scanTaskCompletionsSync(projNotes, periodCalendarNotes, beforePeriodCalendarNotes, fromDateStr, toDateStr)
+    if (scanHolder == null) {
+      logWarn('generateTaskCompletionStats', 'async result missing; scanned on main thread')
+    }
+    const { dateCounterMap, totalProjectDone } = scanResult
     logDebug('generateTaskCompletionStats', `Duration: ${timer(startTime)}`)
 
     // Object manipulation details for this version from https://javascript.info/keys-values-entries
@@ -266,6 +357,7 @@ export async function generateTaskCompletionStats(
     return outputMap
   }
   catch (error) {
+    CommandBar.showLoading(false)
     logError(pluginJson, error.message)
     const emptyMap = new Map < string, number > ()
     return emptyMap
@@ -404,13 +496,8 @@ export async function weeklyStatsCSV(): Promise<void> {
     const weeklyStatsItems = config.weeklyStatsItems ?? []
     const occConfig = createTotalTrackingConfig(weeklyStatsItems)
 
-    // Pop up UI wait dialog as this can be a long-running process
-    CommandBar.showLoading(true, `Preparing weekly stats over ${numWeeks} weeks`)
-    await CommandBar.onAsyncThread()
-
     // Gather all the appropriate occurrences of the wanted terms
-    CommandBar.showLoading(true, `Gathering relevant #hashtags and @mentions`)
-    const occs: Array<TMOccurrences> = await gatherOccurrences(
+    const occs: Array<TMOccurrences> = await gatherOccurrencesAsync(
       'period',
       fromDateStr, toDateStr, // YYYY-MM-DD
       occConfig)
@@ -443,7 +530,6 @@ export async function weeklyStatsCSV(): Promise<void> {
       logInfo('weeklyStatsCSV', `no data found in weekly summaries`)
     }
 
-    await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 
     // Write out to fixed note in plugin data directory
@@ -452,6 +538,7 @@ export async function weeklyStatsCSV(): Promise<void> {
     logInfo(pluginJson, `  written results to data file '${filename}'`)
   }
   catch (err) {
+    CommandBar.showLoading(false)
     logError(pluginJson, `weeklyStatsCSV failed: ${err.message}`)
     throw err
   }
@@ -509,13 +596,8 @@ export async function weeklyStatsMermaid(): Promise<void> {
       a.startsWith('@'))
     const occConfig = createTotalTrackingConfig(weeklyStatsItems)
 
-    // Pop up UI wait dialog as this can be a long-running process
-    CommandBar.showLoading(true, `Preparing weekly stats over ${numWeeks} weeks`)
-    await CommandBar.onAsyncThread()
-
     // Gather all the appropriate occurrences of the wanted terms
-    CommandBar.showLoading(true, `Gathering relevant #hashtags and @mentions`)
-    const occs: Array<TMOccurrences> = await gatherOccurrences(
+    const occs: Array<TMOccurrences> = await gatherOccurrencesAsync(
       'period',
       fromDateStr, toDateStr, // YYYY-MM-DD
       occConfig)
@@ -561,18 +643,19 @@ export async function weeklyStatsMermaid(): Promise<void> {
         outputArray.push(`\tline "${occ.term}" [${thisOccValueArr.join(', ')}]`)
       }
 
+      CommandBar.showLoading(false)
       // Write out to fixed note in plugin data directory
       DataStore.saveData(outputArray.join('\n'), filename, true)
       logInfo('weeklyStatsMermaid', `Written results to data file '${filename}'`)
       logDebug('weeklyStatsMermaid', `Output:\n${outputArray.join('\n')}`)
     } else {
+      CommandBar.showLoading(false)
       logInfo(pluginJson, `No relevant data found in time range ${fromDateStr} - ${toDateStr}. No output file written.`)
     }
-    await CommandBar.onMainThread()
-    CommandBar.showLoading(false)
 
   }
   catch (err) {
+    CommandBar.showLoading(false)
     logError(pluginJson, `weeklyStatsMermaid failed: ${err.message}`)
     throw err
   }

@@ -7,12 +7,61 @@
  * 
  * Note: this file is run as a script in an HTMLView window, _so DO NOT USE TYPE ANNOTATIONS, or IMPORTs_.
  * 
- * Last updated: 2026-08-07 for v1.1.0 by @jgclark
+ * Last updated: 2026-09-25 for v1.2.0 by @jgclark
  */
 //-----------------------------------------------------------
 
 (function() {
   'use strict'
+
+  /**
+   * Re-run chart summary for the period currently shown in the window.
+   * @param {string} periodArg - Period code, or customRange|from|to
+   */
+  function runChartSummaryCommand(periodArg) {
+    const pluginID = 'jgclark.Summaries'
+    const command = 'chartSummaryStats'
+    const url = 'noteplan://x-callback-url/runPlugin?pluginID=' + encodeURIComponent(pluginID) + '&command=' + encodeURIComponent(command) + '&arg0=' + encodeURIComponent(periodArg)
+    const link = document.createElement('a')
+    link.href = url
+    link.style.display = 'none'
+    document.body.appendChild(link)
+    link.click()
+    setTimeout(function() {
+      document.body.removeChild(link)
+    }, 100)
+  }
+
+  /**
+   * NotePlan hides an HTMLView rather than destroying it (from v3.21.0), so data goes stale until the window is shown again.
+   * Dashboard and Projects listen for onViewDidAppear to refresh, and onViewWillDisappear when the view is hidden.
+   * The first show is ignored: reload only after the view has been hidden.
+   */
+  let chartViewWasHidden = false
+  window.addEventListener('onViewWillDisappear', function() {
+    chartViewWasHidden = true
+  })
+  window.addEventListener('onViewDidAppear', function() {
+    if (!chartViewWasHidden) return
+    chartViewWasHidden = false
+    refreshChartsAfterReappear()
+  })
+
+  function refreshChartsAfterReappear() {
+    const select = document.getElementById('period-select')
+    if (!select) return
+    const period = select.value
+    if (period === 'customRange') {
+      const fromInput = document.getElementById('custom-from-date')
+      const toInput = document.getElementById('custom-to-date')
+      const fromDate = fromInput ? fromInput.value : ''
+      const toDate = toInput ? toInput.value : ''
+      if (!fromDate || !toDate || fromDate > toDate) return
+      runChartSummaryCommand('customRange|' + fromDate + '|' + toDate)
+      return
+    }
+    if (period && typeof period === 'string') runChartSummaryCommand(period)
+  }
 
   /**
    * Period dropdown + custom range must be on window as soon as this script loads.
@@ -34,17 +83,7 @@
     if (isCustomRange) return
 
     if (period && typeof period === 'string') {
-      const pluginID = 'jgclark.Summaries'
-      const command = 'chartSummaryStats'
-      const url = 'noteplan://x-callback-url/runPlugin?pluginID=' + encodeURIComponent(pluginID) + '&command=' + encodeURIComponent(command) + '&arg0=' + encodeURIComponent(period)
-      const link = document.createElement('a')
-      link.href = url
-      link.style.display = 'none'
-      document.body.appendChild(link)
-      link.click()
-      setTimeout(function() {
-        document.body.removeChild(link)
-      }, 100)
+      runChartSummaryCommand(period)
     } else {
       alert('Please select a valid period')
     }
@@ -67,18 +106,7 @@
       alert('Start date must be before or equal to end date')
       return
     }
-    const pluginID = 'jgclark.Summaries'
-    const command = 'chartSummaryStats'
-    const periodArg = 'customRange|' + fromDate + '|' + toDate
-    const url = 'noteplan://x-callback-url/runPlugin?pluginID=' + encodeURIComponent(pluginID) + '&command=' + encodeURIComponent(command) + '&arg0=' + encodeURIComponent(periodArg)
-    const link = document.createElement('a')
-    link.href = url
-    link.style.display = 'none'
-    document.body.appendChild(link)
-    link.click()
-    setTimeout(function() {
-      document.body.removeChild(link)
-    }, 100)
+    runChartSummaryCommand('customRange|' + fromDate + '|' + toDate)
   }
 
   /**
@@ -109,6 +137,27 @@
       const hours = Math.floor(decimalHours) % 24
       const minutes = Math.round((decimalHours % 1) * 60)
       return String(hours) + ':' + String(minutes).padStart(2, '0')
+    }
+
+    function formatChartNumber(value, minimumFractionDigits, maximumFractionDigits) {
+      const n = Number(value)
+      if (!Number.isFinite(n)) return '0'
+      const locale = config.locale || undefined
+      const minFD = minimumFractionDigits == null ? 0 : minimumFractionDigits
+      const maxFD = maximumFractionDigits == null ? minFD : maximumFractionDigits
+      try {
+        return new Intl.NumberFormat(locale, {
+          useGrouping: true,
+          minimumFractionDigits: minFD,
+          maximumFractionDigits: maxFD,
+        }).format(n)
+      } catch (e) {
+        return new Intl.NumberFormat('en-US', {
+          useGrouping: true,
+          minimumFractionDigits: minFD,
+          maximumFractionDigits: maxFD,
+        }).format(n)
+      }
     }
 
     function isTimeTag(tag) {
@@ -249,7 +298,7 @@
       if (headerStatTotalEl) headerStatTotalEl.textContent = stat.totalDisplay
       if (stat.daysCount !== undefined) {
         const headerStatDaysEl = document.getElementById('chart-header-days-value-' + i)
-        if (headerStatDaysEl) headerStatDaysEl.textContent = String(stat.daysCount)
+        if (headerStatDaysEl) headerStatDaysEl.textContent = formatChartNumber(stat.daysCount, 0, 0)
       }
     })
 
@@ -373,11 +422,11 @@
                   const value = context.parsed.y
                   if (context.datasetIndex === 0) {
                     if (isTimeTag(tag) && value > 0) return tag + ': ' + formatTime(value)
-                    return tag + ': ' + value.toFixed(1)
+                    return tag + ': ' + formatChartNumber(value, 1, 1)
                   }
                   if (value !== null) {
                     if (isTimeTag(tag)) return avgLineLabel + ': ' + formatTime(value)
-                    return avgLineLabel + ': ' + value.toFixed(1)
+                    return avgLineLabel + ': ' + formatChartNumber(value, 1, 1)
                   }
                   return null
                 }
@@ -396,7 +445,7 @@
                 color: axisTextColor,
                 callback: function(value) {
                   if (isTimeTag(tag) && value > 0) return formatTime(value)
-                  return value
+                  return formatChartNumber(value, 0, 2)
                 }
               },
               grid: { color: gridColor }
@@ -491,12 +540,12 @@
 
         const statCompletion = document.createElement('span')
         statCompletion.className = 'yesno-habit-stat-completion'
-        statCompletion.textContent = completionRate + '%'
+        statCompletion.textContent = formatChartNumber(completionRate, 0, 0) + '%'
         row.appendChild(statCompletion)
 
         const statStreak = document.createElement('span')
         statStreak.className = 'yesno-habit-stat-streak'
-        statStreak.textContent = 'streak: ' + streak
+        statStreak.textContent = 'streak: ' + formatChartNumber(streak, 0, 0)
         row.appendChild(statStreak)
         // container.appendChild(row)
       })

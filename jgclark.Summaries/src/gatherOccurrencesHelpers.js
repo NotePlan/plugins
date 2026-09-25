@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Helper functions for gatherOccurrences
-// Last updated 2026-01-30 for v1.0.3+ by @jgclark
+// Last updated 2026-09-25 for v1.2.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { TMOccurrences } from './TMOccurrences'
@@ -64,6 +64,7 @@ export function mergeAverageAndTotalDuplicates(combinedTerms: Array<[string, str
  * @param {string} fromDateStr - Start of the reporting period in YYYY-MM-DD form
  * @param {string} toDateStr - End of the reporting period in YYYY-MM-DD form (inclusive)
  * @param {boolean} isHashtag - If `true` treat terms as hashtags, otherwise as mentions
+ * @param {?(termName: string, termIndex: number, termTotal: number) => void} onProgress - Called once per term, for loading progress
  * @returns {Array<TMOccurrences>} One populated `TMOccurrences` instance per input term
  */
 export function processTerms(
@@ -71,14 +72,19 @@ export function processTerms(
   calendarNotesInPeriod: Array<TNote>,
   fromDateStr: string,
   toDateStr: string,
-  isHashtag: boolean
+  isHashtag: boolean,
+  onProgress: ?(termName: string, termIndex: number, termTotal: number) => void = null,
 ): Array<TMOccurrences> {
   const tmOccurrencesArr: Array<TMOccurrences> = []
-  
+  const termTotal = combinedTerms.length
+  let termIndex = 0
+
   for (const termTuple of combinedTerms) {
+    termIndex += 1
     const [thisName, thisType] = termTuple
+    if (onProgress) onProgress(thisName, termIndex, termTotal)
     const thisOcc = new TMOccurrences(thisName, thisType, fromDateStr, toDateStr)
-    
+
     if (isHashtag) {
       addHashtagsToOccurenceFromNotes(thisOcc, calendarNotesInPeriod, thisName)
     } else {
@@ -102,7 +108,7 @@ export function processTerms(
 function addHashtagsToOccurenceFromNotes(
   thisOcc: TMOccurrences,
   calendarNotesInPeriod: Array<TNote>,
-  wantedTerm: string
+  wantedTerm: string,
 ): void {
   const RE_HASHTAG_CAPTURE_TERMINAL_SLASH_AND_FLOAT = /\/(-?\d+(\.\d+)?)$/
   
@@ -133,7 +139,7 @@ function addHashtagsToOccurenceFromNotes(
 function addMentionsToOccurenceFromNotes(
   thisOcc: TMOccurrences,
   calendarNotesInPeriod: Array<TNote>,
-  wantedTerm: string
+  wantedTerm: string,
 ): void {
   const normalizedWanted = wantedTerm.trim().startsWith('@') ? wantedTerm.trim() : `@${wantedTerm.trim()}`
   for (const n of calendarNotesInPeriod) {

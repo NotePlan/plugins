@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 2026-01-30 for v1.0.3 by @jgclark
+// Last updated 2026-09-25 for v1.2.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -12,7 +12,7 @@
 import pluginJson from '../plugin.json'
 import type { SummariesConfig } from './summarySettings'
 import {
-  gatherOccurrences,
+  gatherOccurrencesAsync,
   generateProgressUpdate,
   getSummariesSettings,
   type OccurrencesToLookFor,
@@ -193,8 +193,6 @@ async function gatherStatsData(
   overrideGOSettingsStr: string
 ): Promise<Array<TMOccurrences>> {
   const startTime = new Date()
-  CommandBar.showLoading(true, `Gathering Data from Calendar notes`)
-  await CommandBar.onAsyncThread()
 
   // Main work: calculate the occurrences, using config settings and the time period info
   let settingsForGO: OccurrencesToLookFor
@@ -222,7 +220,7 @@ async function gatherStatsData(
       GOChecklistRefNote: overrideSettings.progressChecklistReferenceNote ?? '',
     }
   }
-  const tmOccurrencesArray: Array<TMOccurrences> = await gatherOccurrences(periodString,
+  const tmOccurrencesArray: Array<TMOccurrences> = await gatherOccurrencesAsync(periodString,
     fromDateStr,
     toDateStr,
     settingsForGO)
@@ -251,7 +249,6 @@ async function generateStatsOutput(
   const startTime = new Date()
   const output = (await generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.PSShowSparklines, true)).join('\n')
   CommandBar.showLoading(false)
-  await CommandBar.onMainThread()
   logInfo('statsPeriod', `Created period stats in ${timer(startTime)}`)
   return output
 }

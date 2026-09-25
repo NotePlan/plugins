@@ -2,12 +2,12 @@
 //-----------------------------------------------------------------------------
 // Progress update for Today only
 // Jonathan Clark, @jgclark
-// Last updated 2026-01-30 for v1.0.3 by @jgclark
+// Last updated 2026-09-25 for v1.2.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import type { SummariesConfig } from './summarySettings'
-import { gatherOccurrences, generateProgressUpdate, getSummariesSettings, type OccurrencesToLookFor } from './summaryHelpers'
+import { gatherOccurrencesAsync, generateProgressUpdate, getSummariesSettings, type OccurrencesToLookFor } from './summaryHelpers'
 import { todaysDateISOString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -125,14 +125,10 @@ export async function makeTodayProgress(itemsToShowArr: Array<string> = [], sour
     }
 
     const startTime = new Date()
-    CommandBar.showLoading(true, `Calculating Today's Progress`)
-    await CommandBar.onAsyncThread()
 
     // Main work: calculate the progress update as an array of strings
-    const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, settingsForGO)
+    const tmOccurrencesArray = await gatherOccurrencesAsync(periodString, fromDateStr, toDateStr, settingsForGO)
 
-    CommandBar.showLoading(false)
-    await CommandBar.onMainThread()
     const output = (await generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', false, false)).join('\n')
 
     logDebug('makeTodayProgress', `- created progress update in ${timer(startTime)}`)
