@@ -54,6 +54,6 @@ export function usersVersionHas(feature: string): boolean {
   }
 
   const hasFeature = userVersionNumber >= semverVersionToNumber(requiredVersion)
-  !hasFeature && logWarn('usersVersionHas', `NotePlan version ${NotePlan.environment.version} (${String(userVersionNumber)}) does not have requested feature: "${feature}"`)
+  if (!hasFeature) logWarn('usersVersionHas', `NotePlan version ${NotePlan.environment.version} (${String(userVersionNumber)}) does not have requested feature: "${feature}"`)
   return hasFeature
 }

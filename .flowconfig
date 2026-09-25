@@ -30,8 +30,8 @@ emoji=true
 exact_by_default=true
 experimental.const_params=true
 module.use_strict=true
-suppress_type=$FlowIgnore
-suppress_type=$FlowFixMe
+# suppress_type was removed in Flow 0.280. $FlowFixMe is built in.
+# $FlowIgnore is no longer a suppression comment as of Flow 0.281.
 # suppress_type=$FlowTODO
 module.name_mapper='^@plugins' ->'<PROJECT_ROOT>'
 module.name_mapper='^@helpers' ->'<PROJECT_ROOT>/helpers'

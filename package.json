@@ -152,7 +152,7 @@
     "enquirer": "^2.4.1",
     "fast-glob": "^3.3.2",
     "findup-sync": "4.0.0",
-    "flow-bin": "^0.245.2",
+    "flow-bin": "^0.286.0",
     "front-matter": "4.0.2",
     "fuse.js": "^6.5.3",
     "git-state": "4.1.0",

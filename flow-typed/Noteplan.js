@@ -1196,10 +1196,10 @@ declare class CommandBar {
    * with null and the error message is delivered to a `.catch()` handler if you attached one 
    * (try/catch around `await` won't receive it). Errors thrown inside the function are logged to the plugin console.
    * Note: Available from v3.21.3
-   * @param {Function} function - A synchronous function to execute on the background thread. Its return value resolves the Promise.
+   * @param {Function} fn - A synchronous function to execute on the background thread. Its return value resolves the Promise.
    * @return {Promise} - Resolves with the function's return value, back on the main thread.
-  */
-  static runOnAsyncThread(function): Promise < any >;
+   */
+  static runOnAsyncThread(fn): Promise < any >;
 
   /**
    * CommandBar.prompt()
