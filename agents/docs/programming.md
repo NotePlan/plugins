@@ -63,6 +63,10 @@ NotePlan provides globals available to all plugins (`DataStore`, `CommandBar`, `
 - Lint: `npm run lint` or `npm run lint-fix`
 - Type check: prefer `npx flow` (or `npm run typecheck:fast` when Flow server is warm).
   Do not use `npm run typecheck...` unless the user asks for that script by name.
+- A full `flow check` must save indented multi-line JSON to `/tmp/flow-check-now.json`
+  (overwrite that file). Run `npx --no-install flow check --json`, then pretty-print
+  the JSON with indent 2. A full check often takes about 12 minutes; wait at least
+  that long before treating it as hung.
 - Tests: `npm run test`; single: `npx jest path/to/file.test.js -t "test name" --no-watch`
 - Always pass `--no-watch` to jest (default config watches)
 - Templating tests: `jest np.Templating/__tests__/**/*.test.js --no-watch`
@@ -74,6 +78,7 @@ NotePlan provides globals available to all plugins (`DataStore`, `CommandBar`, `
   not ask permission or suggest running tests.
 - Prefer `npx flow` over `npm run typecheck...` unless the user names that script.
   Before finishing a task where you added new code, check there are no Flow type errors.
+  When you run `flow check`, write indented JSON to `/tmp/flow-check-now.json` as above.
 - Allow in sandbox: `cd`, `npm test`, `npx flow`, `jest`, `npx jest`, `grep`,
   `head`, `tail`, `node`
 - **Never hard-code Jest workarounds into functions under test**
