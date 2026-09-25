@@ -1,4 +1,4 @@
-# 🖥️ Window Tools
+# Window Tools
 
 This plugin gives some tools to help manage NotePlan's windows more easily:
 - **save different layouts** ('Window Sets') of your NotePlan windows on macOS, and then **restore them** in just a few clicks. This includes ordinary notes, calendar notes, folder views, special 'html' windows created by some Plugins, and the size of the main app sidebar. ([More details below](#window-set-commands).)

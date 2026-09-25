@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Helper functions for WindowTools plugin
 // Jonathan Clark
-// last update 2026-03-06 for v1.5.1 by @jgclark
+// last update 2026-09-25 for v1.5.0.a3 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -22,6 +22,8 @@ import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 const previousPluginID = 'jgclark.WindowSets'
 const pluginID = 'jgclark.WindowTools'
+// Stops a second onEditorWillSave from starting while the first sync is still running.
+let noteToPrefSyncInFlight = false
 
 //-----------------------------------------------------------------
 // Types
@@ -40,14 +42,14 @@ export type PluginWindowCommand = {
  * Note: used by saveWindowSet to help automatically identify plugins' HTMLWindows
  */
 export const pluginWindowsAndCommands: Array<PluginWindowCommand> = [
-  { pluginWindowId: 'jgclark.Dashboard.main', pluginID: 'jgclark.Dashboard', pluginCommandName: 'Show Dashboard' },
-  { pluginWindowId: 'jgclark.Reviews.rich-review-list', pluginID: 'jgclark.Reviews', pluginCommandName: 'project lists' },
-  { pluginWindowId: 'jgclark.Summaries.heatmap', pluginID: 'jgclark.Summaries', pluginCommandName: 'heatmap for task completion' },
-  { pluginWindowId: 'jgclark.Summaries.chartSummaryStats', pluginID: 'jgclark.Summaries', pluginCommandName: 'chart progress summary' },
-  { pluginWindowId: 'form-browser-window main', pluginID: 'dwertheimer.forms', pluginCommandName: 'Sidebar Browser' },
-  { pluginWindowId: 'dwertheimer.Forms Form Builder React Window Service Form', pluginID: 'dwertheimer.forms', pluginCommandName: 'Form Builder/Editor' },
-  { pluginWindowId: 'main:emetzger.LinearCalendar:Linear Calendar', pluginID: 'emetzger.LinearCalendar', pluginCommandName: 'showLinearCalendar' },
-  { pluginWindowId: 'main:emetzger.Calendar:Calendar', pluginID: 'emetzger.Calendar', pluginCommandName: 'showCalendar' },
+  { pluginID: 'dwertheimer.Forms', pluginWindowId: 'dwertheimer.Forms Form Builder React Window Service Form', pluginCommandName: 'Form Builder/Editor' },
+  { pluginID: 'dwertheimer.forms', pluginWindowId: 'form-browser-window main', pluginCommandName: 'Sidebar Browser' },
+  { pluginID: 'jgclark.Dashboard', pluginWindowId: 'jgclark.Dashboard.main', pluginCommandName: 'Show Dashboard' },
+  { pluginID: 'jgclark.Reviews', pluginWindowId: 'jgclark.Reviews.rich-review-list', pluginCommandName: 'project lists' },
+  { pluginID: 'jgclark.Summaries', pluginWindowId: 'jgclark.Summaries.heatmap', pluginCommandName: 'heatmap for task completion' },
+  { pluginID: 'jgclark.Summaries', pluginWindowId: 'jgclark.Summaries.chartSummaryStats', pluginCommandName: 'chart progress summary' },
+  { pluginID: 'emetzger.LinearCalendar', pluginWindowId: 'main:emetzger.LinearCalendar:Linear Calendar', pluginCommandName: 'showLinearCalendar' },
+  { pluginID: 'emetzger.Calendar', pluginWindowId: 'main:emetzger.Calendar:Calendar', pluginCommandName: 'showCalendar' },
 ]
 
 // Data types
@@ -124,7 +126,9 @@ export async function getPluginSettings(): Promise<WindowSetsConfig> {
       if (previousConfig == null || Object.keys(previousConfig).length === 0) {
         throw new Error(`Cannot find settings for '${pluginID}' plugin, or from previous  '${previousPluginID}' plugin.`)
       }
-      const res = DataStore.saveJSON(previousConfig) // "defaults to plugin's settings.json file"
+      // Copy before the old file is marked, so the settings we return do not include that comment.
+      const migrated: WindowSetsConfig = { ...previousConfig }
+      const res = DataStore.saveJSON(migrated) // "defaults to plugin's settings.json file"
       // Note: this triggers onSettingsUpdated() call
       logDebug(pluginJson, `result ${String(res)} from creating new settings file.`)
 
@@ -133,6 +137,7 @@ export async function getPluginSettings(): Promise<WindowSetsConfig> {
       previousConfig.comment = '**This is a file from a previous version of the plugin. This folder can be deleted.**'
       // eslint-disable-next-line no-unused-vars
       const res2 = DataStore.saveJSON(previousConfig, `../${previousPluginID}/settings.json`)
+      return migrated
     }
 
     return config
@@ -152,11 +157,119 @@ export async function getPluginSettings(): Promise<WindowSetsConfig> {
 
 //---------------------------------------------------------------
 /**
- * Write the supplied WindowSets to the specified NP note, replacing previous content
+ * Same folder test as getOrMakeRegularNoteInFolder. A folder of '/' matches every note.
+ * @param {string} filename
+ * @param {string} noteFolder
+ * @returns {boolean}
+ */
+function noteFilenameIsInFolder(filename: string, noteFolder: string): boolean {
+  if (noteFolder === '/') {
+    return true
+  }
+  return filename.startsWith(noteFolder)
+}
+
+/**
+ * True when this note is the configured Window Set definition.
+ * Title can be the note title, the frontmatter title, or the filename, because Editor.title is the first line and that line is often the frontmatter fence.
+ * @param {CoreNoteFields} note
+ * @param {string} noteFolder
+ * @param {string} noteTitle
+ * @returns {boolean}
+ */
+function noteIsConfiguredWindowSetNote(note: CoreNoteFields, noteFolder: string, noteTitle: string): boolean {
+  const filename = note.filename ?? ''
+  if (!noteFilenameIsInFolder(filename, noteFolder)) {
+    return false
+  }
+  const fm: any = note.frontmatterAttributes
+  const fmTitle = fm && typeof fm.title === 'string' ? fm.title : ''
+  const baseName = filename.split('/').pop() ?? ''
+  const baseWithoutExt = baseName.replace(/\.[^.]+$/, '')
+  const candidates = [note.title ?? '', fmTitle, baseWithoutExt]
+  return candidates.some((candidate) => candidate !== '' && caseInsensitiveMatch(noteTitle, candidate))
+}
+
+/**
+ * Notes with this title in the configured folder. Does not create a note.
+ * @param {string} noteTitle
+ * @param {string} noteFolder
+ * @returns {Array<TNote>}
+ */
+function findWindowSetNotes(noteTitle: string, noteFolder: string): Array<TNote> {
+  const potentialNotes = DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
+  if (noteFolder === '/') {
+    return potentialNotes.slice()
+  }
+  return potentialNotes.filter((n) => n.filename.startsWith(noteFolder))
+}
+
+/**
+ * Read the WS array from the first JSON code block.
+ * Returns null when the note has no JSON block yet.
+ * Throws when a JSON block is present but cannot be used.
+ * @param {CoreNoteFields} note
+ * @param {string} noteTitle used in error text
+ * @returns {Array<WindowSet> | null}
+ */
+function readWindowSetsFromNote(note: CoreNoteFields, noteTitle: string): Array<WindowSet> | null {
+  logDebug('getCodeBlocks', `Reading from note '${displayTitle(note)}' for code blocks`)
+  const noteCBs = getCodeBlocksOfType(note, ['json'])
+  if (noteCBs.length === 0) {
+    return null
+  }
+  if (noteCBs.length > 1) {
+    logWarn(pluginJson, `There's more than 1 JSON code block in note '${noteTitle}'. Only the first is used for WindowSet definitions.`)
+  }
+  let parsed: any
+  try {
+    parsed = JSON.parse(noteCBs[0].code)
+  } catch (error) {
+    throw new Error(`The JSON in note '${noteTitle}' could not be parsed (${error.message}).`)
+  }
+  if (!parsed || !Array.isArray(parsed.WS)) {
+    throw new Error(`The JSON in note '${noteTitle}' has no "WS" array.`)
+  }
+  return parsed.WS
+}
+
+/**
+ * True when this set belongs to the given Mac, using the same case-insensitive match as the pref filter.
+ * @param {WindowSet} windowSet
+ * @param {string} machineName
+ * @returns {boolean}
+ */
+function windowSetIsForMachine(windowSet: WindowSet, machineName: string): boolean {
+  return caseInsensitiveMatch(windowSet.machineName ?? '', machineName)
+}
+
+/**
+ * Keep other Macs' sets, and replace this Mac's sets as one group.
+ * The group stays where this Mac's first set was, or goes at the end if this Mac had none.
+ * @param {Array<WindowSet>} existingFromNote
+ * @param {Array<WindowSet>} setsForThisMachine
+ * @param {string} thisMachineName
+ * @returns {Array<WindowSet>}
+ */
+function mergeWindowSetsForNote(existingFromNote: Array<WindowSet>, setsForThisMachine: Array<WindowSet>, thisMachineName: string): Array<WindowSet> {
+  const firstThisMachineIndex = existingFromNote.findIndex((windowSet) => windowSetIsForMachine(windowSet, thisMachineName))
+  const others = existingFromNote.filter((windowSet) => !windowSetIsForMachine(windowSet, thisMachineName))
+  if (firstThisMachineIndex === -1) {
+    return others.concat(setsForThisMachine)
+  }
+  const merged = others.slice()
+  // Items before the first this-Mac set are all other Macs, so this index is also the insert point in `others`.
+  merged.splice(firstThisMachineIndex, 0, ...setsForThisMachine)
+  return merged
+}
+
+/**
+ * Write this Mac's Window Sets into the definition note.
+ * Sets for other Macs already in the note are kept. Invalid JSON is left unchanged.
  * @param {string} noteFolder to write to
  * @param {string} noteTitle to write to
- * @param {Array<WindowSet>} windowSets
- * @returns
+ * @param {Array<WindowSet>} windowSets this Mac's sets
+ * @returns {Promise<boolean>}
  */
 export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: string = '', windowSetsArg: Array<WindowSet> = []): Promise<boolean> {
   try {
@@ -171,8 +284,12 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     }
     // logDebug('writeWSsToNote', `- ${displayTitle(WSNote)} / ${noteTitle}`)
 
+    const existingFromNote = readWindowSetsFromNote(WSNote, noteTitle) ?? []
+    const thisMachineName = NotePlan.environment.machineName
+    const mergedWindowSets = mergeWindowSetsForNote(existingFromNote, windowSets, thisMachineName)
+
     // Make string from WindowSet object
-    const windowSetsStr = JSON.stringify(windowSets, null, 2)
+    const windowSetsStr = JSON.stringify(mergedWindowSets, null, 2)
     // logDebug('writeWSsToNote', `writeWSsToNote() windowSetsStr:\n${windowSetsStr}`)
     // Make note lines
     const outputLines = []
@@ -182,7 +299,7 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     // outputLines.push(`Last updated at ${currentDateTime} by WindowSets plugin`)
     outputLines.push(`triggers: onEditorWillSave => jgclark.WindowTools.onEditorWillSave`)
     outputLines.push(`---`)
-    outputLines.push(`These are the definitions of your currently available **Window Sets**, for use with the [🖥️ WindowTools plugin](https://noteplan.co/plugins/jgclark.WindowTools). You can update the settings if you wish.`)
+    outputLines.push(`These are the definitions of your currently available **Window Sets**, for use with the [Window Tools plugin](https://noteplan.co/plugins/jgclark.WindowTools). You can update the settings if you wish.`)
     outputLines.push(`They are specified in JSON, which has to be well-formatted to be usable. In particular check that there aren't any extra commas after the final item of any section.`)
     outputLines.push(`Note: please leave the trigger in the frontmatter above, or changes will not be saved behind the scenes. (See the [documentation](https://noteplan.co/plugins/jgclark.WindowTools) for more detail on this.)`)
     outputLines.push(``)
@@ -208,6 +325,7 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     return true
   } catch (error) {
     logError(pluginJson, `writeWSsToNote: ${error.message}`)
+    await showMessage(`Could not update the Window Set note. ${error.message} The note was left unchanged.`, 'OK', 'Window Sets', false)
     return false
   }
 }
@@ -228,37 +346,34 @@ export async function writeWSNoteToPrefs(calledFromSaveTrigger: boolean = false)
     // Get note from config, or if triggered, then need to get it directly from Editor, to ensure we can get the latest version
     let noteForWS: CoreNoteFields
     if (calledFromSaveTrigger && Editor) {
+      if (!noteIsConfiguredWindowSetNote(Editor, config.folderForDefinitions, config.noteTitleForDefinitions)) {
+        logDebug(pluginJson, `Save is for '${Editor.filename ?? ''}', not the Window Set note '${config.folderForDefinitions}/${config.noteTitleForDefinitions}'. Stopping.`)
+        return
+      }
       noteForWS = Editor
       logDebug(pluginJson, `got Editor`)
     }
     else {
-      const noteForWSs = DataStore.projectNoteByTitle(config.noteTitleForDefinitions) // TODO: look in the correct folder too
-      if (noteForWSs) {
-        noteForWS = noteForWSs[0]
-      } else {
-        logWarn('writeWSNoteToPrefs', `No note found with title '${config.noteTitleForDefinitions}'`)
-        throw new Error(`Can't find Window Set note from Editor or '${config.noteTitleForDefinitions}'`)
+      const notesInFolder = findWindowSetNotes(config.noteTitleForDefinitions, config.folderForDefinitions)
+      if (notesInFolder.length === 0) {
+        logWarn('writeWSNoteToPrefs', `No note found with title '${config.noteTitleForDefinitions}' in folder '${config.folderForDefinitions}'`)
+        throw new Error(`Can't find Window Set note '${config.noteTitleForDefinitions}' in folder '${config.folderForDefinitions}'`)
       }
+      if (notesInFolder.length > 1) {
+        logWarn(pluginJson, `Found ${String(notesInFolder.length)} notes titled '${config.noteTitleForDefinitions}' in folder '${config.folderForDefinitions}'. Using '${notesInFolder[0].filename}'.`)
+      }
+      noteForWS = notesInFolder[0]
     }
 
-    // Get just the codeblock
-    logDebug('getCodeBlocks', `Reading from note '${displayTitle(noteForWS)}' for code blocks`)
-    const noteCBs = getCodeBlocksOfType(noteForWS, ['json'])
-    if (noteCBs.length === 0) {
+    const WSs = readWindowSetsFromNote(noteForWS, config.noteTitleForDefinitions)
+    if (WSs == null) {
       throw new Error(`No JSON code blocks found in note '${config.noteTitleForDefinitions}'`)
     }
-    if (noteCBs.length > 1) {
-      logWarn(pluginJson, `There's more than 1 JSON code block in note '${config.noteTitleForDefinitions}'. Only the first is used for WindowSet definitions.`)
-    }
-    const firstCBStr = noteCBs[0].code
-
-    // Get object from this JSON string
-    const WSs: Array<WindowSet> = JSON.parse(firstCBStr).WS
 
     // Only keep WSs that are for this machineName
     const thisMachineName = NotePlan.environment.machineName
     // logDebug('writeWSNoteToPrefs', `- WSs before filtering: ${WSs.map((w) => w.name + ' (' + w.machineName + ')').join(', ')}`)
-    const WSsForThisMachine = WSs.filter((w) => caseInsensitiveMatch(w.machineName, thisMachineName))
+    const WSsForThisMachine = WSs.filter((w) => windowSetIsForMachine(w, thisMachineName))
     // logDebug('writeWSNoteToPrefs', `- WSs after filtering: ${WSsForThisMachine.map((w) => w.name + ' (' + w.machineName + ')').join(', ')}`)
 
     // check bounds for each WS
@@ -278,6 +393,7 @@ export async function writeWSNoteToPrefs(calledFromSaveTrigger: boolean = false)
     }
   } catch (error) {
     logError(pluginJson, `writeWSNoteToPrefs: ${error.name}: ${error.message}`)
+    await showMessage(`Could not update saved Window Sets from the definition note. ${error.message}`, 'OK', 'Window Sets', false)
   }
 }
 
@@ -298,18 +414,23 @@ export async function onEditorWillSave(): Promise<void> {
       return
     }
 
-    // first check to see if this has been called in the last 3secs: if so don't proceed, as this could be a double call.
-    const noteReadOnly: CoreNoteFields = Editor.note
-    const timeSinceLastEdit: number = Date.now() - Number(noteReadOnly.versions[0].date)
-    if (timeSinceLastEdit <= 3000) {
-      logDebug('onEditorWillSave', `onEditorWillSave fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
+    // This trigger writes the preference only, so a later save must still sync.
+    // Ignore only a second call that starts while the first sync is still running.
+    if (noteToPrefSyncInFlight) {
+      logDebug('onEditorWillSave', `onEditorWillSave fired, but ignored, because a note-to-pref sync is already running`)
       return
     }
+    noteToPrefSyncInFlight = true
     // write from note to local preference, indicating that this is from a trigger, so work around stale data problem
     logDebug('onEditorWillSave', `Will write note to local pref`)
-    await writeWSNoteToPrefs(true)
+    try {
+      await writeWSNoteToPrefs(true)
+    } finally {
+      noteToPrefSyncInFlight = false
+    }
 
   } catch (error) {
+    noteToPrefSyncInFlight = false
     logError(pluginJson, `onEditorWillSave: ${error.name}: ${error.message}`)
   }
 }
@@ -412,7 +533,7 @@ export function logWindowSet(windowSet: WindowSet, machineName: string): void {
 
 /**
  * List user's available saved windows sets to console
- * V3: reads from local preference
+ * V3: reads from local preference, so only lists those for this machineName
  * @author @jgclark
  */
 export async function logWindowSets(): Promise<void> {
@@ -425,10 +546,10 @@ export async function logWindowSets(): Promise<void> {
 
     const windowSets: Array<WindowSet> = await readWindowSetDefinitions()
     if (windowSets.length === 0) {
-      logInfo('logWindowSets', `No saved windowSets object found in local pref.`)
+      logInfo('logWindowSets', `No saved windowSets object found in local pref on ${thisMachineName}.`)
       return
     }
-    logInfo('logWindowSets', `${String(windowSets.length)} saved windowSets found in local pref.`)
+    logInfo('logWindowSets', `${String(windowSets.length)} saved windowSets found in local pref on ${thisMachineName}.`)
 
     logInfo('logWindowSets', `Window Sets:`)
     for (const set of windowSets) {

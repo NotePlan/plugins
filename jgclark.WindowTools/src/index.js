@@ -9,7 +9,7 @@
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import * as wsh from './WTHelpers'
+import * as wsh from './WSHelpers'
 import { JSP, logDebug, logInfo, logError } from "@helpers/dev"
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 
@@ -45,7 +45,7 @@ export {
   readWindowSetDefinitions,
   writeWSNoteToPrefs,
   writeWSsToNote,
-} from './WTHelpers'
+} from './WSHelpers'
 
 export {
   logPreferenceAskUser,

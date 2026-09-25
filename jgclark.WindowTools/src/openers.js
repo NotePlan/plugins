@@ -6,7 +6,7 @@
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getPluginSettings } from './WTHelpers'
+import { getPluginSettings } from './WSHelpers'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { chooseNoteV2, getNoteFromIdentifier } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'

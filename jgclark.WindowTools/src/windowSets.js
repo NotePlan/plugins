@@ -2,11 +2,12 @@
 //---------------------------------------------------------------
 // Main functions for WindowSets plugin
 // Jonathan Clark
-// last update 2025-11-07 for v1.4.0 by @jgclark
+// last update 2026-09-25 for v1.5.0.a3 by @jgclark
 //---------------------------------------------------------------
 // ARCHITECTURE:
-// - 1 local preference 'windowSets' that contains JS Array<WindowSet>
-// - 1 global user-visible note (by default @WindowSets/Window Sets) with JSON version of local preference that is updated to stay in sync with the local pref
+// - 1 local preference 'windowSets' that contains JS Array<WindowSet> for this Mac
+// - 1 global user-visible note (by default @WindowSets/Window Sets) with JSON for every Mac.
+//   This Mac's sets stay in sync with the local pref. Other Macs' sets in the note are left in place.
 //   - onEditorWillSave() is run by trigger to decide whether to run writeWSNoteToPrefs
 //   - writeWSNoteToPrefs() sends note to pref -- and can be run manually by /wnp
 //   - writeWSsToNote() sends pref to note -- and can be run manually by /wpn
@@ -19,7 +20,7 @@
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import * as wth from './WTHelpers'
+import * as wth from './WSHelpers'
 import { checkPluginCommandNameAvailable } from '@helpers/NPConfiguration'
 import {
   getDateStringFromCalendarFilename,

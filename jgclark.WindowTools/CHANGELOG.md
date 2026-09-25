@@ -1,8 +1,16 @@
-# What's changed in 🖥️  Window Tools?
+# What's changed in Window Tools?
 _Please see the [Plugin documentation](https://noteplan.co/plugins/jgclark.WindowSets/) for more details._
 
 <!-- - TODO: Extend to deal with closed main sidebars.
 - TODO: Can now save a folder as part of a window set. (Note: not yet a particular 'folder view'.) -->
+## [1.5.0.a3] - 2026-09-25
+- The plugin name is now **Window Tools** (the desktop emoji is replaced by a window icon).
+- Updated names of some other plugin HTML windows
+- Fixes to Saving and Deleting a Window Set
+  - Doing it on one Mac keeps Window Sets for other Macs in the definition note.
+  - Saving the definition note updates this Mac's sets even when the previous save was only a few seconds ago. The note is read from its configured folder.
+  - If that note's JSON cannot be read, it is left unchanged and a message explains that the saved sets were not updated.
+
 ## [1.5.0.a2] - 2026-03-06
 - dev: under-the-hood changes to deal with changes in NP's window handling:
   - ignores new class of invisible HTMLWindows (well, as far as the API is accurate)

@@ -7,7 +7,7 @@
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import * as wth from './WTHelpers'
+import * as wth from './WSHelpers'
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getNoteTitleFromFilename } from '@helpers/NPnote'
