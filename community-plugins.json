@@ -82,5 +82,12 @@
     "author": "EduardMe",
     "description": "Import Apple Reminders into the current note as linked tasks with reminder pills that sync two-way (requires NotePlan 3.21.2+)",
     "repo": "EduardMe/noteplan-reminder-import-plugin"
+  },
+  {
+    "id": "llc.NextcloudCalendars",
+    "name": "Agendas Nextcloud",
+    "author": "Laurent Lassalle-Carrère",
+    "description": "Fetches shared CalDAV calendars from a Nextcloud server and writes a daily agenda block into your calendar notes",
+    "repo": "Bono2007/noteplan-nextcloud-calendars"
   }
 ]
