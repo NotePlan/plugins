@@ -1,0 +1,80 @@
+{
+  "noteplan.minAppVersion": "3.9.0",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "lifeplayer67.CanvasView",
+  "plugin.name": "Canvas View",
+  "plugin.version": "0.9.5",
+  "plugin.lastUpdateInfo": "Full markdown rendering via showdown (tables, lists, images), notes open beside the canvas, caret-at-click editing, Obsidian-style card scrolling.",
+  "plugin.description": "Edit Obsidian Canvas / JSON Canvas (.canvas) files inside NotePlan: create and connect cards, move, resize, color, label edges, undo/redo — fully compatible with Obsidian.",
+  "plugin.icon": "fa-diagram-project",
+  "plugin.iconColor": "orange-500",
+  "plugin.iconStyle": "solid",
+  "plugin.author": "lifeplayer67",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.requiredFiles": ["canvasClient.js", "showdown.min.js"],
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/lifeplayer67.CanvasView/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/lifeplayer67.CanvasView/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "name": "open canvas",
+      "description": "Open a JSON Canvas (.canvas) file in a viewer window",
+      "jsFunction": "openCanvas",
+      "alias": ["canvas", "jsoncanvas", "obsidian canvas"],
+      "arguments": ["path to the .canvas file (absolute, or relative to the canvas folder setting)"]
+    },
+    {
+      "name": "new canvas",
+      "description": "Create a new empty JSON Canvas file and open it",
+      "jsFunction": "newCanvas",
+      "alias": ["create canvas"],
+      "arguments": ["name for the new .canvas file (a folder prefix is allowed, e.g. 'Projects/Ideas')"]
+    },
+    {
+      "name": "onMessageFromHTMLView",
+      "description": "Canvas View: callback to receive messages from the HTML window",
+      "jsFunction": "onMessageFromHTMLView",
+      "hidden": true
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Canvas View settings"
+    },
+    {
+      "key": "canvasFolder",
+      "title": "Canvas folder",
+      "description": "Subfolder of your NotePlan Notes folder that holds your .canvas files (e.g. 'Canvases'). Relative paths given to the 'open canvas' command are resolved against it; absolute paths (starting with /) are used as-is.",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "openInSplitView",
+      "title": "Open canvas in the main window (split view)",
+      "description": "When on, the canvas opens as a split pane inside the main NotePlan window (like a note). When off, it opens in a separate floating window.",
+      "type": "bool",
+      "default": true,
+      "required": false
+    },
+    {
+      "key": "openNoteIn",
+      "title": "Open notes from cards in",
+      "description": "Where a note opens when you ⌘+click a card or press its ↗ button. 'Split view' keeps the canvas on screen.",
+      "type": "string",
+      "choices": ["Split view", "New window", "Main editor"],
+      "default": "Split view",
+      "required": false
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log level",
+      "description": "Set how much logging output will be displayed when executing Canvas View commands in NotePlan Plugin Console.",
+      "type": "string",
+      "choices": ["DEBUG", "INFO", "WARN", "ERROR", "none"],
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}
