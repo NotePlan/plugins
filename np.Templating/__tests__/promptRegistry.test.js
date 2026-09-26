@@ -216,6 +216,7 @@ describe('PromptRegistry Pattern Generation', () => {
         return ''
       },
     }
+    // $FlowFixMe[incompatible-type]
     registerPromptType(promptType)
 
     // Verify the custom pattern was preserved
@@ -339,8 +340,11 @@ describe('PromptRegistry Variable Assignment', () => {
     mockGetTags.mockClear()
 
     // Register prompt types
+    // $FlowFixMe[incompatible-type]
     registerPromptType(mockPromptTag)
+    // $FlowFixMe[incompatible-type]
     registerPromptType(mockPromptKey)
+    // $FlowFixMe[incompatible-type]
     registerPromptType(mockPromptMention)
 
     // Mock the processPrompts function for our tests

@@ -142,6 +142,7 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
       if (tagName === '') {
         throw new Error(`Invalid heatmap definition: tagName is required`)
       }
+    // $FlowFixMe[invalid-compare]
     } else if (typeof heatmapDefArg === "object" && heatmapDefArg !== null) {
       heatmapDef = heatmapDefArg
       tagName = heatmapDefArg.tagName ?? ''
@@ -213,7 +214,7 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
     const weeklyAverage = numItems > 0 ? total / (numItems / DAYS_PER_WEEK) : 0 // not as simple as count/7
 
     const locale = getLocale({})
-    const IntlOpts = { maximumFractionDigits: 1, minimumSignificantDigits: 2, maximumSignificantDigits: 3 }
+    const IntlOpts: Intl$NumberFormatOptions = { maximumFractionDigits: 1, minimumSignificantDigits: 2, maximumSignificantDigits: 3 }
     const fromDateLocale = moment(heatmapDef.fromDateStr, 'YYYY-MM-DD').format('L') ?? '?' // uses moment's locale info
     logDebug('showTagHeatmap', `fromDateLocale: ${fromDateLocale}`)
     const statsStr = `total: ${total.toLocaleString(locale, IntlOpts)}, count: ${count.toLocaleString(locale, IntlOpts)}, daily ave: ${dailyAverage.toLocaleString(locale, IntlOpts)}, weekly ave: ${weeklyAverage.toLocaleString(locale, IntlOpts)}`

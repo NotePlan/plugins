@@ -56,6 +56,7 @@ export const sectionPriorityForDeduping = ['TB', 'REM', 'TAG', 'WINS', 'DT', 'DY
 // When 'Calendar note terms to include' is set, Hide Duplicates reorders so these sections beat TAG.
 // Membership only - final order still comes from sectionPriorityForDeduping (WINS before calendar periods).
 // See adjustDedupPriorityForCalendarFocus in sectionHelpers.js
+// $FlowFixMe[incompatible-type]
 export const sectionsPriorityBeforeTagWhenCalendarFocus: Array<TSectionCode> = ['WINS', ...allCalendarSectionCodes, 'OVERDUE']
 
 // Those sections we can't or shouldn't attempt to dedupe:

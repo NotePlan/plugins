@@ -43,7 +43,7 @@ export type ContainedMultiSelectChooserProps = {
  * ContainedMultiSelectChooser Component
  * A contained multi-select chooser with border, header row, and scrollable list
  * @param {ContainedMultiSelectChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function ContainedMultiSelectChooser({
   label,
@@ -72,7 +72,7 @@ export function ContainedMultiSelectChooser({
   renderAsDropdown = false,
   fieldKey,
   isLoading = false,
-}: ContainedMultiSelectChooserProps): React$Node {
+}: ContainedMultiSelectChooserProps): React.Node {
   const searchInputRef = useRef<?HTMLInputElement>(null)
   const listContainerRef = useRef<?HTMLDivElement>(null)
   const [showCreateMode, setShowCreateMode] = useState<boolean>(false)
@@ -574,6 +574,7 @@ export function ContainedMultiSelectChooser({
     setIsCreating(true)
     try {
       // Call onCreate callback (e.g., to create tag/mention in plugin)
+      // $FlowFixMe[constant-condition]
       if (onCreate) {
         logDebug('ContainedMultiSelectChooser', `[CREATE MODE] Calling onCreate("${trimmedValue}")`)
         await onCreate(trimmedValue)

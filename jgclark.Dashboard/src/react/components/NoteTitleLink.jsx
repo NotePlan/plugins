@@ -40,7 +40,7 @@ function NoteTitleLink({
   iconClassName = '',
   showTitle = true,
   onClickLabel,
-}: Props): React$Node {
+}: Props): React.Node {
   const { sendActionToPlugin } = useAppContext()
 
   // ------ COMPUTED VALUES --------------------------------

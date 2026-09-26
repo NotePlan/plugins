@@ -8,7 +8,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import './InfoIcon.css'
 
 export type InfoIconProps = {
-  text: string | React$Node, // The tooltip text to display
+  text: string | React.Node, // The tooltip text to display
   position?: 'top' | 'bottom' | 'left' | 'right', // Tooltip position relative to icon
   className?: string,
   // Custom icon support
@@ -27,7 +27,7 @@ export type InfoIconProps = {
  * InfoIcon Component
  * Displays an (i) icon that shows a tooltip on hover or click
  * @param {InfoIconProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function InfoIcon({
   text,
@@ -40,7 +40,7 @@ export function InfoIcon({
   showOnClick = true,
   showImmediately = false,
   onClick: onClickHandler,
-}: InfoIconProps): React$Node {
+}: InfoIconProps): React.Node {
   const [isVisible, setIsVisible] = useState(showImmediately)
   const iconRef = useRef<?HTMLSpanElement>(null)
   const tooltipRef = useRef<?HTMLDivElement>(null)

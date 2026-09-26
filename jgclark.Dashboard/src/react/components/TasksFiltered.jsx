@@ -35,6 +35,7 @@ const TasksFiltered = ({ item, onToggleShowAll }: Props): Node => {
         ...dashboardSettings,
         ['filterPriorityItems']: false,
       }
+      // $FlowFixMe[incompatible-type]
       dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: newPayload, reason: `Turning off filterPriorityItems` })
     }
   }

@@ -160,6 +160,7 @@ export const firstValue = (val: any): string | number => {
   if (retVal == null) {
     return retVal
   } else {
+    // $FlowFixMe[invalid-compare]
     retVal = typeof retVal === 'number' || (typeof retVal !== 'object' && !isNaN(retVal) && retVal !== '') ? Number(retVal) : retVal
     return typeof retVal === 'string' && retVal !== 'NaN' ? retVal.toLowerCase() : retVal
   }
@@ -233,7 +234,7 @@ export function addPriorityToParagraphs(paras: Array<TParagraph>): Array<any> {
     const thisPriority = getNumericPriorityFromPara(paras[c])
     // Deliberately monkey-patches an extra field onto TParagraph (see comment above); no real type can describe that,
     // which is why the return type is Array<any>. The typed alternative is SortableParagraphSubset.
-    // $FlowIgnore[prop-missing]
+    // $FlowFixMe[prop-missing]
     paras[c].priority = thisPriority
   }
   return paras
@@ -357,6 +358,7 @@ function indentsOf(task: SortableParagraphSubset): number {
 }
 
 export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreIndents: boolean = false, useCalculatedScheduled: boolean = false): GroupedTasks {
+  // $FlowFixMe[incompatible-type]
   const tasks: GroupedTasks = (TASK_TYPES.reduce((acc, t) => ({ ...acc, ...{ [t]: [] } }), {}): any)
   // Ancestor chain for the paragraph currently being read, shallowest first. A paragraph belongs to the
   // nearest preceding item with a strictly smaller indent level. Previously this was a single `lastParent`

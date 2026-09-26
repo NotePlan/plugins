@@ -37,7 +37,7 @@ const CalendarPicker = ({
   label,
   leaveOpen,
   size = 0.75,
-}: Props): React$Node => {
+}: Props): React.Node => {
   // Ensure startingSelectedDate is a Date object if provided
   const normalizeDate = (date: Date | void | string | number): Date | void => {
     if (!date) return undefined

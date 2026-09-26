@@ -22,6 +22,7 @@ function normalizeSharedInvokeResult(raw: any, pluginJson: any): any {
   }
   const inner = raw.data
   if (
+    // $FlowFixMe[invalid-compare]
     raw.success === true &&
     inner != null &&
     typeof inner === 'object' &&

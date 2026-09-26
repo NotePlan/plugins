@@ -73,7 +73,7 @@ export type ChooserConfig = {
       getOptionColor: (item: any) => ?string,
       getOptionShortDescription: (item: any) => ?string,
     },
-  ) => React$Node, // Optional function to completely customize option rendering
+  ) => React.Node, // Optional function to completely customize option rendering
 }
 
 export type SearchableChooserProps = {
@@ -95,7 +95,7 @@ export type SearchableChooserProps = {
  * A searchable dropdown that can be configured for different data types
  * Note: Flow doesn't support generic function components well, so we use `any` for the generic type
  * @param {SearchableChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function SearchableChooser({
   label,
@@ -109,7 +109,7 @@ export function SearchableChooser({
   closeDropdown = false,
   onOpen,
   isLoading = false,
-}: SearchableChooserProps): React$Node {
+}: SearchableChooserProps): React.Node {
   const {
     items,
     filterFn,
@@ -475,6 +475,7 @@ export function SearchableChooser({
         }
         // If the new focus is another input field, close this dropdown
         // This ensures only one dropdown is open at a time
+        // $FlowFixMe[invalid-compare]
         if (relatedTarget instanceof HTMLInputElement && relatedTarget !== inputRef.current) {
           logDebug('SearchableChooser', `[${classNamePrefix}] Closing dropdown: focus moved to another input`)
           setIsOpen(false)
@@ -585,6 +586,7 @@ export function SearchableChooser({
       const itemToSelect =
         hoveredIndex != null && hoveredIndex >= 0 && hoveredIndex < filteredItems.length ? filteredItems[hoveredIndex] : filteredItems.length > 0 ? filteredItems[0] : null
 
+      // $FlowFixMe[constant-condition]
       logDebug('SearchableChooser', `[${classNamePrefix}] Enter with dropdown open, itemToSelect=${itemToSelect ? (getOptionText ? getOptionText(itemToSelect) : 'found') : 'null'}`)
       if (itemToSelect) {
         handleItemSelect(itemToSelect)
@@ -619,6 +621,7 @@ export function SearchableChooser({
   }
 
   const handleItemSelect = (item: any, event?: SyntheticMouseEvent<HTMLDivElement>) => {
+    // $FlowFixMe[constant-condition]
     logDebug('SearchableChooser', `[${classNamePrefix}] handleItemSelect called, isOpen=${String(isOpen)}, item=${getOptionText ? getOptionText(item) : JSON.stringify(item)}`)
     // Check if Option/Alt key is pressed
     if (event && (event.altKey || event.metaKey) && onOptionClick) {
@@ -661,6 +664,7 @@ export function SearchableChooser({
   }
 
   // Run lookup when value is set (including '' for Private/empty-id items) - displayValue alone is falsy for ''
+  // $FlowFixMe[invalid-compare]
   if (value !== undefined && value !== null && items && items.length > 0 && !isManualEntryValue) {
     // Try to find the item that matches this value
     // For notes, we need to match by filename; for folders, by path
@@ -987,6 +991,7 @@ export function SearchableChooser({
                     const isSelected = hoveredIndex === index // For keyboard navigation highlighting
                     const showOptionClickHint: boolean = Boolean(optionKeyPressed && isHovered && !!onOptionClick)
                     const optionClickIcon = optionClickIconProp || 'plus'
+                    // $FlowFixMe[constant-condition]
                     const finalTitle = optionShortDesc ? `${optionTitle}${optionShortDesc ? ` - ${optionShortDesc}` : ''}` : optionTitle
 
                     // If custom renderOption is provided, use it
@@ -1040,6 +1045,7 @@ export function SearchableChooser({
                           <div className={`searchable-chooser-option-first-line ${classNamePrefix}-option-first-line`}>
                             {optionIcon && (
                               <i
+                                // $FlowFixMe[constant-condition]
                                 className={typeof optionIcon === 'string' && optionIcon.startsWith('fa-') ? optionIcon : `fa-solid fa-${optionIcon || ''}`}
                                 style={{
                                   marginRight: '0.5rem',
@@ -1108,6 +1114,7 @@ export function SearchableChooser({
                         <span className={`searchable-chooser-option-left ${classNamePrefix}-option-left`}>
                           {optionIcon && (
                             <i
+                              // $FlowFixMe[constant-condition]
                               className={typeof optionIcon === 'string' && optionIcon.startsWith('fa-') ? optionIcon : `fa-solid fa-${optionIcon || ''}`}
                               style={{
                                 marginRight: '0.5rem',

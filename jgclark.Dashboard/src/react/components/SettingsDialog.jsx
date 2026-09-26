@@ -45,7 +45,7 @@ const SettingsDialog = ({
   className,
   labelPosition = 'right',
   style, // Destructure style prop
-}: SettingsDialogProps): React$Node => {
+}: SettingsDialogProps): React.Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
@@ -140,6 +140,7 @@ const SettingsDialog = ({
     // logDebug('SettingsDialog/handleFieldChange', `setting '${String(thisItem?.key ?? '?')}' has changed`) // ✅
     // logDebug('SettingsDialog/handleFieldChange', `- will impact controlled items [${String(thisItem?.controlsOtherKeys)}] ...`) // ✅
     if (thisItem && thisItem.controlsOtherKeys) {
+      // $FlowFixMe[incompatible-type]
       const controlledItems = items.filter((item) => thisItem.controlsOtherKeys?.includes(item.key))
       controlledItems.forEach((item) => {
         // logDebug('SettingsDialog/handleFieldChange', `- triggering change to disabled state for setting ${String(item.key)}`) // ✅
@@ -150,6 +151,7 @@ const SettingsDialog = ({
 
   // Handle "Save & Close" action
   const handleSave = () => {
+    // $FlowFixMe[constant-condition]
     if (onSaveChanges) {
       // Because the settings dialog has the JSON editor for perspectives, which are not technically dashboard settings,
       // we need to make sure it gets updated
@@ -350,6 +352,7 @@ const SettingsDialog = ({
                     <OrderingPanel
                       sections={sections}
                       dashboardSettings={dashboardSettings}
+                      // $FlowFixMe[incompatible-type]
                       defaultOrder={defaultSectionDisplayOrder}
                       onSave={(newOrder) => {
                         // Track the section order change (will be saved when "Save & Close" is clicked)

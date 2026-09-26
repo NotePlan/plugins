@@ -12,7 +12,7 @@ type SwitchProps = {
   className?: string,
 };
 
-const Switch = ({ label, checked, onChange, disabled = false, labelPosition = 'right', description = '', className = '' }: SwitchProps): React$Node => {
+const Switch = ({ label, checked, onChange, disabled = false, labelPosition = 'right', description = '', className = '' }: SwitchProps): React.Node => {
   return (
     <div className={`switch-line ${className} ${labelPosition === 'right' ? 'label-right' : 'label-left'} ${disabled ? 'disabled' : ''} `} title={description || null}>
       {labelPosition === 'left' && <label className="switch-label" htmlFor={label}>{label}</label>}

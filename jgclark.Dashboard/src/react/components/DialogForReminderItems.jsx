@@ -41,9 +41,9 @@ type EditableInputHandle = { getValue: () => string }
  * Reminder actions dialog used by Interactive Processing and by the row edit icon (non-IP).
  * Does not use validateAndFlattenMessageObject (that helper requires a note filename / para).
  * @param {Props} props
- * @returns {?React$Node}
+ * @returns {?React.Node}
  */
-const DialogForReminderItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
+const DialogForReminderItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React.Node => {
   //----------------------------------------------------------------------
   // Refs & state (before any early return - Rules of Hooks)
   //----------------------------------------------------------------------
@@ -426,6 +426,7 @@ actionButtons.push(
         <div className="buttonGrid reminderButtonGrid">
           <div className="preText reminderDialogRowLabel">Reminder:</div>
           <div id="reminderControlLine1" className="reminderDialogEditLine">
+            // $FlowFixMe[incompatible-type]
             <EditableInput
               ref={inputRef}
               initialValue={reminder.title || ''}
@@ -439,6 +440,7 @@ actionButtons.push(
 
           <div className="preText reminderDialogRowLabel">Notes:</div>
           <div id="reminderControlLineNotes" className="reminderDialogEditLine">
+            // $FlowFixMe[incompatible-type]
             <EditableInput
               ref={notesInputRef}
               initialValue={reminder.notes || ''}

@@ -39,7 +39,7 @@ export type TagChooserProps = {
  * TagChooser Component
  * A multi-select chooser for hashtags
  * @param {TagChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function TagChooser({
   label,
@@ -63,7 +63,7 @@ export function TagChooser({
   requestFromPlugin,
   fieldKey,
   initialHashtags,
-}: TagChooserProps): React$Node {
+}: TagChooserProps): React.Node {
   // Initialize from preloaded data if available (for static HTML testing)
   const hasInitialHashtags = Array.isArray(initialHashtags) && initialHashtags.length > 0
   const [hashtags, setHashtags] = useState<Array<string>>(() => {

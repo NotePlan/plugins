@@ -22,7 +22,7 @@
 //   const result = someFunctionTakingATNote(asTNote(note))
 //
 // These are type-level no-ops: they compile away entirely and cost nothing at runtime. Prefer
-// them to sprinkling `$FlowIgnore[prop-missing]` above every call — a suppression hides *all*
+// them to sprinkling `$FlowFixMe[prop-missing]` above every call — a suppression hides *all*
 // errors on the line, including real ones, and (as several files in this repo show) is easy to
 // place on the wrong line where it silently suppresses nothing at all.
 //-----------------------------------------------------------------------------

@@ -112,7 +112,7 @@ const mergeStyles = (baseStyles: { [string]: mixed }, overrideStyles: { [string]
  * @param {string} [props.className] - Additional class names for the dropdown.
  * @param {boolean} [props.isEditable] - Whether the dropdown input is editable.
  * @param {boolean} [props.disableAutoScroll] - Whether to skip the auto-scrolling logic.
- * @returns {React$Node} The rendered dropdown component.
+ * @returns {React.Node} The rendered dropdown component.
  */
 const DropdownSelect = ({
   label,
@@ -132,7 +132,7 @@ const DropdownSelect = ({
   disabled = false,
   disableAutoScroll = false,
   placeholder,
-}: DropdownSelectProps): React$Node => {
+}: DropdownSelectProps): React.Node => {
   // Normalize options to a consistent format
 
   const normalizeOption: (option: string | Option) => Option = (option) => {
@@ -410,6 +410,7 @@ const DropdownSelect = ({
   // Update selectedValue when value prop changes - find matching option by value
   useEffect(() => {
     const valToUse = controlledValue !== undefined ? controlledValue : value
+    // $FlowFixMe[invalid-compare]
     if (valToUse !== undefined && valToUse !== null && valToUse !== '') {
       const foundOption = findOptionByValue(valToUse, normalizedOptions)
       if (foundOption) {

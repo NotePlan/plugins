@@ -292,6 +292,7 @@ async function handleExistingNotes(_noteTitle: string, renderedContent: string, 
         noteTitle = (await appendPrependNewNote(noteTitle, res, folder, renderedContent)) ?? '<error>'
         break
       case 'open':
+      // $FlowFixMe[invalid-compare]
       case null:
         return ''
     }

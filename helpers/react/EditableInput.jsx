@@ -40,7 +40,7 @@ type RefType = {
  * Ref Methods:
  * - `getValue`: Returns the current text value of the input.
  */
-const EditableInputBox: React$AbstractComponent<Props, RefType> = React.forwardRef<Props, RefType>((props, ref) => {
+const EditableInputBox: any = React.forwardRef<Props, RefType>((props, ref) => {
   const [inputValue, setInputValue] = React.useState(props.initialValue || '')
   const useTextArea = props.useTextArea || false
   const divRef = React.useRef<HTMLDivElement | null>(null)

@@ -847,11 +847,11 @@ export const savedSearch1 = {
  * so `Array<Project>` was never the right type for them.
  */
 export type TDemoProjectItem = {
-  filename: $PropertyType<Project, 'filename'>,
-  title?: $PropertyType<Project, 'title'>,
-  reviewInterval?: $PropertyType<Project, 'reviewInterval'>,
-  percentComplete?: $PropertyType<Project, 'percentComplete'>,
-  lastProgressComment?: $PropertyType<Project, 'lastProgressComment'>,
+  filename: Project['filename'],
+  title?: Project['title'],
+  reviewInterval?: Project['reviewInterval'],
+  percentComplete?: Project['percentComplete'],
+  lastProgressComment?: Project['lastProgressComment'],
 }
 export const nextProjectNoteItems: Array<TDemoProjectItem> = [
   {

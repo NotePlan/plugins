@@ -53,6 +53,7 @@ export function logProgress(stepDescription: string, templateData: string, sessi
 
   // Ensure templateData is a string and handle edge cases
   let safeTemplateData = templateData
+  // $FlowFixMe[invalid-compare]
   if (templateData === null || templateData === undefined) {
     logDebug(`🔄 TEMPLATE PROCESSOR PROBLEM FYI: logProgress called with null/undefined templateData`)
     safeTemplateData = ''
@@ -83,18 +84,22 @@ export function logProgress(stepDescription: string, templateData: string, sessi
     }
   } else if (verbose) {
     logDebug(
+      // $FlowFixMe[constant-condition]
       `📄 ${msg}Template Text (${safeTemplateData.length} chars): ${safeTemplateData ? safeTemplateData.substring(0, 200) : ''}${
+        // $FlowFixMe[constant-condition]
         safeTemplateData ? (safeTemplateData.length > 200 ? '...' : '') : ''
       }`,
     )
   } else if (isKeyStep) {
     logDebug(`📄 ${msg}Template Text (${safeTemplateData.length} chars)`)
 
+    // $FlowFixMe[constant-condition]
     if (sessionData && (verbose || isKeyStep)) {
       const sessionKeys = Object.keys(sessionData)
       logDebug(`📊 ${msg}Session Data Keys: [${sessionKeys.length} keys]`)
 
       // Only log full session data details in verbose mode
+      // $FlowFixMe[constant-condition]
       if (verbose && sessionKeys.length > 0) {
         logDebug(`📊 ${msg}Session Data Details: ${JSON.stringify(sessionData)}`)
       }
@@ -818,6 +823,7 @@ export async function preProcessTags(_templateData: string, sessionData?: {} = {
   let templateData = _templateData
   if (typeof _templateData !== 'string') {
     logDebug(pluginJson, `preProcessTags: templateData is not a string: ${typeof _templateData} - ${String(_templateData).substring(0, 100)}`)
+    // $FlowFixMe[invalid-compare]
     templateData = typeof _templateData === 'undefined' || _templateData === null ? '' : String(_templateData)
   }
 
@@ -829,6 +835,7 @@ export async function preProcessTags(_templateData: string, sessionData?: {} = {
   }
 
   // Handle null/undefined gracefully
+  // $FlowFixMe[invalid-compare]
   if (context.templateData === null || context.templateData === undefined) {
     return {
       newTemplateData: '',

@@ -659,6 +659,7 @@ export function getFolderViewData(): Object | null {
     }
 
     // Check if the data is already parsed (object) or needs parsing (string)
+    // $FlowFixMe[invalid-compare]
     if (typeof folderData === 'object' && folderData !== null) {
       // Data is already parsed, return it directly
       logDebug('folders/getFolderViewData', 'Data already parsed, returning directly')

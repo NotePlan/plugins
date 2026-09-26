@@ -39,7 +39,7 @@ export type MentionChooserProps = {
  * MentionChooser Component
  * A multi-select chooser for mentions
  * @param {MentionChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function MentionChooser({
   label,
@@ -63,7 +63,7 @@ export function MentionChooser({
   requestFromPlugin,
   fieldKey,
   initialMentions,
-}: MentionChooserProps): React$Node {
+}: MentionChooserProps): React.Node {
   // Initialize from preloaded data if available (for static HTML testing)
   const hasInitialMentions = Array.isArray(initialMentions) && initialMentions.length > 0
   const [mentions, setMentions] = useState<Array<string>>(() => {

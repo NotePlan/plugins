@@ -84,7 +84,7 @@ type CommandTableProps = {
   viewOption: string,
 }
 
-function CommandTable({ commands, viewOption }: CommandTableProps): React$Node {
+function CommandTable({ commands, viewOption }: CommandTableProps): React.Node {
   return (
     <table className="w3-table">
       {viewOption !== 'commandsOnly' && (
@@ -116,7 +116,7 @@ type PluginSectionProps = {
 /**
  * HTML OUTPUT FOR EACH PLUGIN
  */
-function PluginSection({ plugin, viewOption, index }: PluginSectionProps): React$Node {
+function PluginSection({ plugin, viewOption, index }: PluginSectionProps): React.Node {
   const installedDisplayString = plugin.isInstalled ? (
     '(installed)'
   ) : (
@@ -186,7 +186,7 @@ type Props = {
   pluginList?: Array<Plugin>,
 }
 
-function PluginListingPage(props: Props): React$Node {
+function PluginListingPage(props: Props): React.Node {
   const { pluginList } = props
   // console.log('PluginListingPage props', props)
 

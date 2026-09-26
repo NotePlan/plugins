@@ -1199,7 +1199,7 @@ declare class CommandBar {
    * @param {Function} fn - A synchronous function to execute on the background thread. Its return value resolves the Promise.
    * @return {Promise} - Resolves with the function's return value, back on the main thread.
    */
-  static runOnAsyncThread(fn): Promise < any >;
+  static runOnAsyncThread(fn: () => any): Promise < any >;
 
   /**
    * CommandBar.prompt()
@@ -3023,11 +3023,11 @@ type Window = HTMLView | TEditor
 // }
 
 type FetchOptions = {
-  /* all optional */
-  headers?: { [string]: string } /* key/value pairs of headers for the request */,
-  method?: string /* GET, POST, PUT, DELETE, etc. */,
-  body?: string /* body for a POST or PUT request. is a string so needs to be JSON.stringified */,
-  timeout?: number /* timeout in ms */,
+  /* all optional. Readonly so a partial literal is allowed (Flow 0.286 treats optional props as invariant). */
+  +headers?: { [string]: string } /* key/value pairs of headers for the request */,
+  +method?: string /* GET, POST, PUT, DELETE, etc. */,
+  +body?: string /* body for a POST or PUT request. is a string so needs to be JSON.stringified */,
+  +timeout?: number /* timeout in ms */,
 }
 
 /**

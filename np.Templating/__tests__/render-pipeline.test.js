@@ -153,6 +153,7 @@ jest.mock('../lib/rendering/templateProcessor', () => {
   }
 
   const mockNormalizeTemplateData = (templateData: string) => {
+    // $FlowFixMe[invalid-compare]
     if (templateData === null || templateData === undefined) return ''
 
     let result = templateData.toString().replace(/[""]/g, '"').replace(/['']/g, "'")

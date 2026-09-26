@@ -20,7 +20,7 @@ type Props = {
   shouldStartOpen?: boolean, // Default is false, so the calendar is closed when it is first rendered
 }
 
-const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate, positionFunction, resetDateToDefault, shouldStartOpen = false }: Props): React$Node => {
+const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate, positionFunction, resetDateToDefault, shouldStartOpen = false }: Props): React.Node => {
   const [selectedDate, setSelectedDate] = useState <? Date > (startingSelectedDate)
   const [isOpen, setIsOpen] = useState(shouldStartOpen)
 

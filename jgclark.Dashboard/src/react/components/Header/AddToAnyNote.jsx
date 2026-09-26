@@ -22,9 +22,9 @@ type Props = {
  * Handles the "Add task to any note" dialog with space/note/heading selection
  * Memoized to prevent unnecessary re-renders when context changes
  * @param {Props} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
-const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React$Node => {
+const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
     const { dispatch } = useAppContext()
     // ----------------------------------------------------------------------
     // State
@@ -632,7 +632,7 @@ const arePropsEqual = (prevProps: Props, nextProps: Props): boolean => {
 }
 
 // Memoize the component with custom comparison function
-const AddToAnyNote: React$ComponentType<Props> = React.memo(AddToAnyNoteComponent, arePropsEqual)
+const AddToAnyNote: React.ComponentType<Props> = React.memo(AddToAnyNoteComponent, arePropsEqual)
 
 AddToAnyNote.displayName = 'AddToAnyNote'
 

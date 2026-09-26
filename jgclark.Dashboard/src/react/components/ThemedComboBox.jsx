@@ -21,7 +21,7 @@ type ComboBoxProps = {
   defaultValue?: OptionType,
 };
 
-const ThemedComboBox = ({ label, description = '', options, value, onChange, onSelect, inputRef, compactDisplay, defaultValue }: ComboBoxProps): React$Node => {
+const ThemedComboBox = ({ label, description = '', options, value, onChange, onSelect, inputRef, compactDisplay, defaultValue }: ComboBoxProps): React.Node => {
   logDebug('ThemedComboBox', `label='${label}', compactDisplay? ${String(compactDisplay)}`)
 
   const optionsWithID: Array<OptionType> = options.map((option, index) => ({ label: option, value: option, id: index }))

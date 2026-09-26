@@ -27,7 +27,7 @@ export type MarkdownPreviewProps = {
  * MarkdownPreview Component
  * Displays markdown content as rendered HTML
  * @param {MarkdownPreviewProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function MarkdownPreview({
   label,
@@ -40,7 +40,7 @@ export function MarkdownPreview({
   disabled = false,
   compactDisplay = false,
   className = '',
-}: MarkdownPreviewProps): React$Node {
+}: MarkdownPreviewProps): React.Node {
   const [htmlContent, setHtmlContent] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<?string>(null)

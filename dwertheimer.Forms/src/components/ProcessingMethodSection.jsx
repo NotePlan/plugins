@@ -64,7 +64,7 @@ export function ProcessingMethodSection({
   tagInserterFieldKey,
   setTagInserterFieldKey,
   fields,
-}: ProcessingMethodSectionProps): React$Node {
+}: ProcessingMethodSectionProps): React.Node {
   // Get pluginData from context for buffer buster logging
   const { pluginData } = useAppContext()
 

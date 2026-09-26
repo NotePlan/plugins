@@ -89,6 +89,7 @@ async function getLatLongForLocation(searchLocationStr: string = ''): Promise<Lo
  * @returns {Promise<Array<{}>} - array of potential locations
  */
 export async function getLatLongListForName(name: string, params: WeatherParams): Promise<any> {
+  // $FlowFixMe[constant-condition]
   if (validateWeatherParams(params)) {
     const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(name)}&appid=${params.appid}&limit=5`
     logDebug(`weather-utils::getLatLongForName`, `url: ${url}`)
@@ -262,6 +263,7 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
       let locTime = ''
       if (location.lat && location.lon && location.label) {
         logDebug(pluginJson, `weatherByLatLong: have lat/lon for ${location.label}`)
+        // $FlowFixMe[incompatible-type]
         const weather = await getWeatherForLocation(location, DataStore.settings)
         if (weather) {
           locTime = UTCToLocalTimeString(new Date(), 'LT', weather['timezone_offset'])
@@ -309,6 +311,7 @@ export async function setDefaultLocation(incoming: string = ''): Promise<void> {
       getConfigErrorText()
     } else {
       const location = await insertWeatherByLocation('', true)
+      // $FlowFixMe[constant-condition]
       if (location) {
         clo(location, `setDefaultLocation: location: ${location}`)
         DataStore.settings = {

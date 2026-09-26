@@ -23,7 +23,7 @@ type Props = {
   dateFormat?: string, // moment.js format string (e.g., 'YYYY-MM-DD', 'MM/DD/YYYY'). If '__object__', returns Date object. Default: 'YYYY-MM-DD' (ISO 8601)
 }
 
-const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = false, dateFormat = 'YYYY-MM-DD' }: Props): React$Node => {
+const GenericDatePicker = ({ onSelectDate, startingSelectedDate, disabled = false, dateFormat = 'YYYY-MM-DD' }: Props): React.Node => {
   const inputRef = useRef<?HTMLInputElement>(null)
 
   // Set locale from NotePlan environment if available

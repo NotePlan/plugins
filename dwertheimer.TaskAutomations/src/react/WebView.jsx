@@ -517,6 +517,7 @@ export function WebView({ data, dispatch }: Props): Node {
   typeCounts['All'] = data.overdueParas.length
   const filterOptions = filterTypes.map((item) => ({ label: `${item}  (${typeCounts[item] || 0})`, value: item }))
   const selectedOption = filterOptions.find((option) => option.value === filterValue.current)
+  // $FlowFixMe[incompatible-type]
   const ThisTypeFilter = <TypeFilter options={filterOptions} onChange={handleTypeFilterChange} defaultValue={selectedOption} />
 
   /**

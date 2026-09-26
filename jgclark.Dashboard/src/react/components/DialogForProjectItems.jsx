@@ -35,7 +35,7 @@ type DialogButtonProps = {
   notOnMobile: boolean, // If true, the button will only be shown on macOS, because of limitations on iOS/iPadOS
 }
 
-const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
+const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React.Node => {
   const [animationClass, setAnimationClass] = useState('')
   const [resetCalendar, setResetCalendar] = useState(false)
 

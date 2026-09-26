@@ -31,6 +31,7 @@ export async function fileRootNotes(): Promise<void> {
     // Remove any listed in config.rootNotesToIgnore (by title)
     const excludedNotes = config.rootNotesToIgnore ?? []
     logDebug('excludedNotes', String(excludedNotes))
+    // $FlowFixMe[incompatible-type]
     const rootNotesToUse = rootNotes.filter((n) => !excludedNotes.includes(n.title))
     logDebug('rootNotesToUse', rootNotesToUse.map((n) => n.title))
 
@@ -93,6 +94,7 @@ export async function fileRootNotes(): Promise<void> {
           logWarn('fileRootNotes', `Can't an untitled note to the plugin setting "rootNotesToIgnore"`)
         } else {
           const ignoreRes = appendStringToSettingArray(pluginJson['plugin.id'], "rootNotesToIgnore", thisTitle, false)
+          // $FlowFixMe[constant-condition]
           if (ignoreRes) {
             logInfo('fileRootNotes', `Ignoring '${thisTitle}' from now on; this note has been appended it to the plugin's settings`)
           } else {

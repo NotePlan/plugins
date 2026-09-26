@@ -315,6 +315,7 @@ export function parasToText(paras: Array<TParagraph>): string {
  * @param {TParagraph} p - paragraph to print
  */
 export function printParagraph(p: TParagraph) {
+  // $FlowFixMe[invalid-compare]
   if (p === null) {
     logError('paragraph/printParagraph', `paragraph is undefined`)
     return
@@ -470,7 +471,7 @@ export function smartCreateSectionsAndPara(
   try {
     // Work out which of the given headings already exist.
     // Form a parallel array of existing headings, with empty strings for any that don't exist.
-    const existingHeadingParas = []
+    const existingHeadingParas: Array<TParagraph | string> = []
     let notExistingHeadings = 0
     for (const h of headingArray) {
       const existingHeading = findHeading(destNote, h)
@@ -491,7 +492,7 @@ export function smartCreateSectionsAndPara(
       // Get start of active part of note
       // Add the headings
       for (let i = 0; i < existingHeadingParas.length; i++) {
-        if (existingHeadingParas[i] !== '') {
+        if (typeof existingHeadingParas[i] !== 'string') {
           const thisHeadingPara = existingHeadingParas[i]
           latestInsertionLineIndex = thisHeadingPara.lineIndex + 1
           logDebug(
@@ -545,7 +546,7 @@ export function createSectionsAndParaAfterPreamble(
   try {
     // Work out which of the given headings already exist.
     // Form a parallel array of existing headings, with empty strings for any that don't exist.
-    const existingHeadingParas = []
+    const existingHeadingParas: Array<TParagraph | string> = []
     let notExistingHeadings = 0
     for (const h of headingArray) {
       const existingHeading = findHeading(destNote, h)
@@ -566,7 +567,7 @@ export function createSectionsAndParaAfterPreamble(
       // Get start of active part of note
       // Add the headings
       for (let i = 0; i < existingHeadingParas.length; i++) {
-        if (existingHeadingParas[i] !== '') {
+        if (typeof existingHeadingParas[i] !== 'string') {
           const thisHeadingPara = existingHeadingParas[i]
           latestInsertionLineIndex = thisHeadingPara.lineIndex + 1
           logDebug(

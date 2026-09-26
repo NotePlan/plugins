@@ -4,6 +4,7 @@ import { showMessage } from '@helpers/userInput'
 import { log, JSP, clo, logDebug, logError } from '@helpers/dev'
 
 export async function pluginTester(): Promise<void> {
+  // $FlowFixMe[constant-condition]
   const test = 'Evaluation is ' ?? 'NOT '
   const test2 = ['working', 'correctly ']?.join(' ')
   console.log(`1) Test of ??: ${test}${test2}`)

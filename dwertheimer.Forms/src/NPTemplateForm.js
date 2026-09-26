@@ -87,7 +87,7 @@ function validateFormFields(formFields: Array<Object>): boolean {
 export async function openTemplateForm(templateTitle?: string): Promise<void> {
   try {
     let selectedTemplate // will be a filename
-    if (templateTitle?.trim().length) {
+    if (templateTitle != null && templateTitle.trim().length) {
       const options = getFormTemplateList()
       const duplicates = findDuplicateFormTemplates(templateTitle)
 
@@ -405,7 +405,7 @@ export async function openFormBuilder(templateTitle?: string): Promise<void> {
     let isNewForm = false // Track if this is a newly created form
     const receivingTemplateTitle: string = '' // Track receiving template title for newly created forms
 
-    if (templateTitle?.trim().length) {
+    if (templateTitle != null && templateTitle.trim().length) {
       logDebug(pluginJson, `openFormBuilder: Using provided templateTitle`)
       const options = getFormTemplateList()
       const duplicates = findDuplicateFormTemplates(templateTitle)

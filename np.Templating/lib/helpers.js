@@ -86,6 +86,7 @@ export function debug(debugInfo: any, preamble: string = '', logInfo: string = '
   //            see npc plugin:dev command for --debug option
   const DEBUG_MODE = true
 
+  // $FlowFixMe[constant-condition]
   if (DEBUG_MODE) {
     const spaces = logInfo.length === 0 ? SPACER_LENGTH : Math.round((SPACER_LENGTH - (logInfo.length - 2)) / 2)
     const premambe = logInfo.length === 0 ? `${LINE_CHAR}`.repeat(spaces - 4) : `${LINE_CHAR}`.repeat(spaces) + ` ${logInfo} ` + `${LINE_CHAR}`.repeat(spaces)

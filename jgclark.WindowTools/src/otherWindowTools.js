@@ -215,6 +215,7 @@ export async function swapSplitWindows(): Promise<void> {
       const thisFilename = Editor.filename
       // Find first item in subWinDetails that matches thisFilename
       const thisWD = subWinDetails.find(obj => obj.filename === thisFilename)
+      // $FlowFixMe[incompatible-type]
       splitNumberToMove = subWinDetails.indexOf(thisWD)
       logDebug('swapSplitWindows', `Will swap sub-window #${String(splitNumberToMove)}`)
     }

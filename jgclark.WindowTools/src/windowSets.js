@@ -382,6 +382,7 @@ async function chooseWindowSetNameForSave(savedWindowSets: Array<wth.WindowSet>,
         alpha: 0.8,
         darkAlpha: 0.8,
       })
+      // $FlowFixMe[incompatible-type]
       const chosenOption = await chooseDecoratedOptionWithModifiers(`Select Window Set to add or update for ${thisMachineName}?`, decoratedSetChoices, newWSChoice)
       chosenSetIndex = chosenOption.index
       if (chosenSetIndex === -1) {

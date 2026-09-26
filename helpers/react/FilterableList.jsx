@@ -12,7 +12,7 @@ import './FilterableList.css'
 type Props = {
   items: Array<any>,
   displayType: 'noteplan-sidebar' | 'chips',
-  renderItem: (item: any, index: number) => React$Node,
+  renderItem: (item: any, index: number) => React.Node,
   onItemClick?: (item: any, event: MouseEvent) => void, // Called on mouse click or Enter key (actual selection/action)
   onItemSelect?: (item: any, index: number) => void, // Called when selectedIndex changes (for preview behavior, e.g. Forms)
   selectedIndex?: ?number,
@@ -26,7 +26,7 @@ type Props = {
   filterText: string,
   onFilterChange: (text: string) => void,
   filterPlaceholder?: string,
-  renderFilter?: () => React$Node,
+  renderFilter?: () => React.Node,
   onFilterKeyDown?: (event: any) => void, // SyntheticKeyboardEvent<HTMLInputElement>
   filterInputRef?: any, // Ref for the filter input element
   // Filter function - defaults to case-insensitive search on item label
@@ -45,7 +45,7 @@ export type { CursorDecoration } from './List.jsx'
 /**
  * FilterableList Component
  * @param {Props} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function FilterableList({
   items,

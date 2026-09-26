@@ -1111,6 +1111,7 @@ export function getDaysTilDue(paragraph: TParagraph, toISODate: string = dt.getT
       const daysTilDue = dt.calculateDaysOverdue(endDate, toISODate)
       return daysTilDue
     } else {
+      // $FlowFixMe[constant-condition]
       logError(`getDaysTilDue: could not get end of period for ${endDate || ''}`)
       return NaN
     }
@@ -1220,7 +1221,7 @@ export function rawContentMatchesIgnoringLeadingIndent(a: string, b: string): bo
  * @returns {mixed} the value of that field (undefined if the paragraph doesn't have it)
  */
 function getParagraphFieldValue(paragraph: TParagraph, field: string): mixed {
-  // $FlowIgnore[prop-missing] deliberate dynamic field access; see JSDoc above
+  // $FlowFixMe[prop-missing] deliberate dynamic field access; see JSDoc above
   return paragraph[field]
 }
 

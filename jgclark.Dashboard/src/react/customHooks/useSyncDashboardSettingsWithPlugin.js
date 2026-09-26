@@ -97,6 +97,7 @@ export const useSyncDashboardSettingsWithPlugin = (
           } else {
             // logDebug(`useSyncDashboardSettingsWithPlugin SENDING: dashboardSettings.lastChange=${JSON.stringify(dashboardSettings.lastChange)}`, dashboardSettings)
             logDebug(`useSyncDashboardSettingsWithPlugin SENDING: dashboardSettings.lastChange=${JSON.stringify(dashboardSettings.lastChange)} ...`)
+            // $FlowFixMe[constant-condition]
             sendActionToPlugin &&
               sendActionToPlugin(
                 'dashboardSettingsChanged',

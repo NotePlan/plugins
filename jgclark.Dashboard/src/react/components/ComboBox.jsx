@@ -28,7 +28,7 @@ type ComboBoxProps = {
 //--------------------------------------------------------------------------
 // ComboBox Component Definition
 //--------------------------------------------------------------------------
-const ComboBox = ({ label, options, value, onChange, inputRef, compactDisplay = false }: ComboBoxProps): React$Node => {
+const ComboBox = ({ label, options, value, onChange, inputRef, compactDisplay = false }: ComboBoxProps): React.Node => {
   //----------------------------------------------------------------------
   // State
   //----------------------------------------------------------------------

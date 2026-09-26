@@ -28,7 +28,7 @@ import { logDebug } from './dev'
  *  console.log(e.message)
  * }
  */
-export function validateConfigProperties(config: { [string]: mixed }, validations: { [string]: mixed }): { [string]: mixed } {
+export function validateConfigProperties(config: { [string]: mixed }, validations: $ReadOnly<{ [string]: mixed }>): { [string]: mixed } {
   let failed = ''
   const propsToValidate = Object.keys(validations)
   if (propsToValidate.length) {
@@ -43,6 +43,7 @@ export function validateConfigProperties(config: { [string]: mixed }, validation
 
       if (configFieldValue === null || configFieldValue === undefined) {
         if (!isOptional) {
+          // $FlowFixMe[constant-condition]
           logDebug(`validateConfigProperties: configFieldValue: ${configFieldValue ?? 'null'} for ${v} is null or undefined`)
           failed = `Config required field: "${v}" is missing;\n`
         }

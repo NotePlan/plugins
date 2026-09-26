@@ -10,7 +10,7 @@ type ButtonProps = {
   onClick: (value: string) => void,
 }
 
-export const Button = ({ label, value, isDefault, isSelected, disabled, onClick }: ButtonProps): React$Node => {
+export const Button = ({ label, value, isDefault, isSelected, disabled, onClick }: ButtonProps): React.Node => {
   // Build button class: base class + default/selected state
   let buttonClass = 'ui-button'
   if (isSelected) {
@@ -35,7 +35,7 @@ type ButtonGroupProps = {
   vertical?: boolean,
 }
 
-export const ButtonGroup = ({ options, selectedValue, disabled, onClick, vertical }: ButtonGroupProps): React$Node => {
+export const ButtonGroup = ({ options, selectedValue, disabled, onClick, vertical }: ButtonGroupProps): React.Node => {
   // If a value is selected, ignore isDefault flags - only show selected state
   // Default styling should only appear when no selection has been made
   const hasSelection = selectedValue != null && selectedValue !== ''

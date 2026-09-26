@@ -44,7 +44,7 @@ export type FrontmatterKeyChooserProps = {
  * FrontmatterKeyChooser Component
  * A multi-select chooser for frontmatter key values
  * @param {FrontmatterKeyChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function FrontmatterKeyChooser({
   label,
@@ -73,7 +73,7 @@ export function FrontmatterKeyChooser({
   requestFromPlugin,
   fieldKey,
   initialValues,
-}: FrontmatterKeyChooserProps): React$Node {
+}: FrontmatterKeyChooserProps): React.Node {
   // Initialize from preloaded data if available (for static HTML testing)
   const hasInitialValues = Array.isArray(initialValues) && initialValues.length > 0
   const [values, setValues] = useState<Array<string>>(() => {
@@ -125,6 +125,7 @@ export function FrontmatterKeyChooser({
 
     // If we have a key but haven't loaded yet (or key changed), set loading to true immediately
     // This prevents the placeholder from flipping from "Type to search values..." to "Loading Values..."
+    // $FlowFixMe[constant-condition]
     if (frontmatterKey && lastLoadedKeyRef.current !== frontmatterKey) {
       setLoading(true)
       setLoaded(false) // Reset loaded state when key changes

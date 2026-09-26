@@ -42,7 +42,7 @@ type RenderItemProps = {
  * Renders a UI element based on its type.
  *
  * @param {RenderItemProps} props - The properties for rendering the item.
- * @returns {React$Node} The rendered item.
+ * @returns {React.Node} The rendered item.
  */
 export function renderItem({
   index,
@@ -59,7 +59,7 @@ export function renderItem({
   className = '',
   disabled = false,
   showDescAsTooltips = false, // if true, then don't show the description as text, but only tooltip
-}: RenderItemProps): React$Node {
+}: RenderItemProps): React.Node {
   const element = () => {
     const thisLabel = item.label || '?'
     // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}' / ${showDescAsTooltips ? 'tooltip' : 'text'}`)

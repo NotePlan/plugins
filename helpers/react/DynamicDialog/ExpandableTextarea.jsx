@@ -29,7 +29,7 @@ export type ExpandableTextareaProps = {
  * ExpandableTextarea Component
  * A textarea that automatically expands as the user types
  * @param {ExpandableTextareaProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function ExpandableTextarea({
   label,
@@ -46,7 +46,7 @@ export function ExpandableTextarea({
   onFocus,
   onKeyDown,
   ref: refCallback,
-}: ExpandableTextareaProps): React$Node {
+}: ExpandableTextareaProps): React.Node {
   const [textareaValue, setTextareaValue] = useState(value)
   const textareaRef = useRef<?HTMLTextAreaElement>(null)
 

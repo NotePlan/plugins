@@ -531,7 +531,9 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
       return filename || false
     } else {
       // this could have been TR calling itself programmatically with newNoteTitle but no template
+      // $FlowFixMe[incompatible-type]
       logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation calling DataStore.newNote with newNoteTitle:${newNoteTitle} and folder:${folder || null}`)
+      // $FlowFixMe[incompatible-type]
       const filename = DataStore.newNote(newNoteTitle, folder || null)
       if (filename) {
         logDebug(pluginJson, `NPTemplateRunner::handleNewNoteCreation created note with title:"${newNoteTitle}"  in folder:"${data['folder'] || null}" filename:"${filename}"`)
@@ -542,6 +544,7 @@ export async function handleNewNoteCreation(selectedTemplate: string, data: Obje
           // This ensures template tags are rendered before being written to the note
           // This makes the behavior consistent with the write-existing path which renders at line 764
           let renderedContent: any = content
+          // $FlowFixMe[constant-condition]
           if (content && content.includes('<%')) {
             try {
               renderedContent = await NPTemplating.render(content, data)

@@ -796,6 +796,7 @@ async function applyWeeklyProjectProgressCommandParamsFromArgs(config: ReviewCon
           `Set weeklyProjectProgressShowEmptyFolders to ${String(updatedConfig.weeklyProjectProgressShowEmptyFolders)} from param '${decodeParamToken(arg)}'`,
         )
         await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+        // $FlowFixMe[incompatible-type]
         return updatedConfig
       }
     }

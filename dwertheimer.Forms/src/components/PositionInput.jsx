@@ -22,7 +22,7 @@ type PositionInputProps = {
  * PositionInput Component
  * Input field with datalist for predefined position choices
  * @param {PositionInputProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function PositionInput({
   type,
@@ -40,6 +40,7 @@ export function PositionInput({
     : ['-', 'center', 'top', 'bottom']
 
   // Convert value to string for input
+  // $FlowFixMe[invalid-compare]
   const stringValue = value === null || value === undefined ? '' : String(value)
 
   const handleChange = (e: any) => {

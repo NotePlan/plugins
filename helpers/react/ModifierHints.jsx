@@ -37,7 +37,7 @@ type Props = {
  * ModifierHints Component
  * Tracks modifier keys and displays hints when they are pressed
  * @param {Props} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function ModifierHints({
   optionHint,

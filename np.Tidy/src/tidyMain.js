@@ -452,6 +452,7 @@ export async function removeOrphanedBlockIDs(params: string = ''): Promise<void>
       const recentMatchedNotes = getNotesChangedInIntervalFromList(allMatchedNotes.filter(Boolean), config.numDays ?? 0)
       const recentMatchedNoteFilenames = recentMatchedNotes.map((n) => n.filename)
       // logDebug('recentMatchedNotes', String(recentMatchedNotes.length))
+      // $FlowFixMe[incompatible-type]
       parasWithBlockID = parasWithBlockID.filter((p) => recentMatchedNoteFilenames.includes(p.note?.filename))
       logDebug('removeOrphanedBlockIDs', `Current total: ${String(parasWithBlockID.length)} blockIDs in notes from last ${config.numDays} days`)
     }

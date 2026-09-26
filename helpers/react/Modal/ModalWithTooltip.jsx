@@ -29,7 +29,7 @@ function ModalWithTooltip({
   onClose,
   tooltipTextNoModifier = 'This is the tooltip!',
   tooltipTextCmdModifier = 'This is the tooltip with ⌘ key!'
-}: Props): React$Node {
+}: Props): React.Node {
   const [isTooltipVisible, setTooltipVisible] = useState(false)
   const [tooltipText, setTooltipText] = useState(tooltipTextNoModifier)
 

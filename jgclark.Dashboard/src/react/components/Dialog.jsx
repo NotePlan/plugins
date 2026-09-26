@@ -20,7 +20,7 @@ type Props = {
   isOpen: boolean,
   isTask: boolean,
   onClose: (xWasClicked: boolean) => void,
-  children?: React$Node,
+  children?: React.Node,
   details: any,
 }
 
@@ -28,9 +28,9 @@ type Props = {
  * Display a Dialog for a Task, Reminder, or Project if reactSettings.dialogData.isOpen is true.
  * Reminder vs task is chosen from details.item.itemType so Interactive Processing can switch mid-session (#779).
  * @param {Props} props The properties for the Dialog component.
- * @return {?React$Node} Renderable React node or null.
+ * @return {?React.Node} Renderable React node or null.
  */
-const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
+const Dialog = ({ isOpen, onClose, isTask, details }: Props): React.Node => {
   const { reactSettings, pluginData } = useAppContext()
 
   function onDialogClose(xWasClicked: boolean) {

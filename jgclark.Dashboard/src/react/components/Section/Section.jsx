@@ -34,7 +34,7 @@ type SectionProps = {
 //--------------------------------------------------------------------------
 // Section Component Definition
 //--------------------------------------------------------------------------
-const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps): React$Node => {
+const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps): React.Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------

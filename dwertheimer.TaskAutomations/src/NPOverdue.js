@@ -109,7 +109,9 @@ export async function updateDatePlusTags(incoming: string): Promise<void> {
       replaceDate,
       overdueOnly: true,
     }
+    // $FlowFixMe[incompatible-type]
     const notesToReview = getNotesAndTasksToReview(options)
+    // $FlowFixMe[incompatible-type]
     await reviewOverdueTasksByNote(notesToReview, options)
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -171,8 +173,10 @@ export async function runInteractiveReviewForDate(asOfDateString?: string = getT
     replaceDate,
     overdueOnly: true,
   }
+  // $FlowFixMe[incompatible-type]
   const notesToReview = getNotesAndTasksToReview(options)
   // clo(notesToReview, `runInteractiveReviewForDate notesToReview`)
+  // $FlowFixMe[incompatible-type]
   await reviewOverdueTasksByNote(notesToReview, options)
   await askToReviewForgottenTasks(true, asOfDateString)
   await askToReviewWeeklyTasks(true, asOfDateString)
@@ -254,8 +258,10 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
         noteTaskList: (overdues: any),
         overdueOnly: true,
       }
+      // $FlowFixMe[incompatible-type]
       const notesToReview = getNotesAndTasksToReview(options)
       clo(notesToReview, 'reviewOverdueTasksInNote: notesToReview')
+      // $FlowFixMe[incompatible-type]
       await reviewOverdueTasksByNote(notesToReview, options)
       // find tasks in Editor note that are not in overdues (match by lineIndex property)
       logDebug(pluginJson, `reviewOverdueTasksInNote: after reviewOverdueTasksByNote`)
@@ -264,6 +270,8 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
       // if there are more tasks in the note than the overdue ones we found, ask if we should review the rest
       if (diffTasks && diffTasks.length) {
         if ((await showMessageYesNo(`Review other open tasks in this note?`, ['Yes', 'No'], 'Task Review', true)) === 'Yes') {
+          // $FlowFixMe[constant-condition]
+          // $FlowFixMe[incompatible-type]
           await reviewOverdueTasksByNote([diffTasks], { ...options, noteTaskList: [diffTasks] || [], overdueOnly: false })
         }
       }
@@ -320,6 +328,7 @@ export async function reviewEditorReferencedTasks(byTask: boolean = true, weekly
       noteTaskList: arrayOfOpenNotesAndTasks,
       overdueOnly: false,
     }
+    // $FlowFixMe[incompatible-type]
     await reviewOverdueTasksByNote(arrayOfOpenNotesAndTasks, options)
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -438,6 +447,7 @@ export async function searchForOpenTasks(byTask: boolean = false, ignoreSchedule
       noteFolder: false,
       overdueOnly: false,
     }
+    // $FlowFixMe[incompatible-type]
     await reviewOverdueTasksByNote(notes, options)
   } catch (error) {
     logError(pluginJson, JSP(error))

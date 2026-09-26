@@ -578,6 +578,7 @@ export function sortSections(
   // Build order map for TAG sections based on tagsToShow order
   const tagOrderMap: { [key: string]: number } = {}
   if (tagsToShowOrder) {
+    // $FlowFixMe[constant-condition]
     const tags = (tagsToShowOrder ?? '')
       .split(',')
       .map((t) => t.trim())

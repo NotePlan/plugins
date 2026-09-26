@@ -667,6 +667,7 @@ export async function getNote(notePath: string = ''): Promise<string> {
   const noteFolder = noteParts.join('/')
 
   if (noteName && noteName.length > 0) {
+    // $FlowFixMe[constant-condition]
     const foundNotes = DataStore.projectNoteByTitle(noteName || '', true, noteFolder.length === 0)
     if (typeof foundNotes !== 'undefined' && Array.isArray(foundNotes)) {
       if (foundNotes.length === 1) {

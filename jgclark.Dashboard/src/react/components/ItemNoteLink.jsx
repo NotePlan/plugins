@@ -30,9 +30,9 @@ type Props = {
  * Dashboard React component to show Note Titles as clickable links.
  * Handles Teamspace indicators and folder names.
  * @param {Props} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
-function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppressTeamspaceName = false, normalSize = false }: Props): React$Node {
+function ItemNoteLink({ item, thisSection, alwaysShowNoteTitle = false, suppressTeamspaceName = false, normalSize = false }: Props): React.Node {
   const { reactSettings, dashboardSettings } = useAppContext()
 
   // ------ COMPUTED VALUES --------------------------------

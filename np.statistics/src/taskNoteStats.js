@@ -37,6 +37,7 @@ export async function showTaskCountForNote() {
     display,
     `Task count for '${displayTitle(note)}'. Select anything to copy.`,
   )
+  // $FlowFixMe[invalid-compare]
   if (re !== null) {
     Clipboard.string = display.join("\n")
   }
@@ -136,6 +137,7 @@ export async function showTaskCountForAll(): Promise<void> {
     display,
     'Task stats.  (Select to open/copy)',
   )
+  // $FlowFixMe[invalid-compare]
   if (re !== null) {
     if (re.index <= 5) {
       // We want to copy the statistics

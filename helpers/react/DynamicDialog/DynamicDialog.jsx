@@ -259,7 +259,7 @@ export type TDynamicDialogProps = {
   isModal?: boolean, // default is true, but can be overridden to run full screen
   hideDependentItems?: boolean,
   submitOnEnter?: boolean,
-  children?: React$Node, // children nodes (primarily for banner message)
+  children?: React.Node, // children nodes (primarily for banner message)
   hideHeaderButtons?: boolean, // hide the header buttons (cancel and submit) if you want to add your own buttons
   externalChangesMade?: boolean, // New prop to accept external changesMade state
   setChangesMade?: (changesMade: boolean) => void, // New prop to allow external components to update changesMade
@@ -325,7 +325,7 @@ const DynamicDialog = ({
   preloadedHashtags = [],
   preloadedEvents = [],
   preloadedFrontmatterValues = {},
-}: TDynamicDialogProps): React$Node => {
+}: TDynamicDialogProps): React.Node => {
   if (!isOpen) return null
   const items = passedItems || []
 
@@ -375,6 +375,7 @@ const DynamicDialog = ({
     // Support both old (dependsOnKey) and new (requiresKey) property names for backward compatibility
     const requiresKey = item.requiresKey ?? item.dependsOnKey
     if (!requiresKey) return true
+    // $FlowFixMe[constant-condition]
     const yesRender = !requiresKey || !hideDependentItems || (requiresKey && stateOfControllingSetting(item))
     return yesRender
   }
@@ -408,12 +409,14 @@ const DynamicDialog = ({
   // Ensure all fields from items are included in updatedSettings, even if empty
   // Conditional-values are resolved only at submit on the backend; do not add them here
   useEffect(() => {
+    // $FlowFixMe[constant-condition]
     if (!isOpen) return // Only update when dialog is open
     
     const currentKeys = Object.keys(updatedSettings)
     const itemKeys = items
       .filter((item) => item.key && (item: any).type !== 'conditional-values' && (item: any).type !== 'templatejs-block')
       .map((item) => item.key)
+    // $FlowFixMe[incompatible-type]
     const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
 
     if (missingKeys.length > 0) {
@@ -536,6 +539,7 @@ const DynamicDialog = ({
     const wasOpen = previousIsOpenRef.current
     const isNowOpen = isOpen
 
+    // $FlowFixMe[constant-condition]
     if (isNowOpen && !wasOpen) {
       previousSettingsRef.current = { ...updatedSettings }
     }
@@ -546,6 +550,7 @@ const DynamicDialog = ({
 
   // Reset user interaction flag when dialog opens
   useEffect(() => {
+    // $FlowFixMe[constant-condition]
     if (isOpen) {
       userHasInteractedRef.current = false
     }
@@ -553,6 +558,7 @@ const DynamicDialog = ({
 
   // Track user clicks on input fields to prevent auto-focus from stealing focus
   useEffect(() => {
+    // $FlowFixMe[constant-condition]
     if (!isOpen) return
 
     const handleInputClick = (e: MouseEvent) => {
@@ -577,6 +583,7 @@ const DynamicDialog = ({
 
   // Auto-focus the first focusable field when dialog opens
   useEffect(() => {
+    // $FlowFixMe[constant-condition]
     if (!FOCUS_FIRST_FIELD || !isOpen) return
 
     // Wait for DOM to be ready, then find and focus the first focusable field
@@ -625,6 +632,7 @@ const DynamicDialog = ({
   // and focus went to a later field instead
   // BUT: Only do this if the user hasn't manually interacted with the form yet
   useEffect(() => {
+    // $FlowFixMe[constant-condition]
     if (!FOCUS_FIRST_FIELD || !isOpen) return
 
     const checkAndRefocus = () => {
@@ -673,6 +681,7 @@ const DynamicDialog = ({
         firstReadyInput instanceof HTMLInputElement &&
         firstReadyIndex >= 0 &&
         currentlyFocusedIndex > firstReadyIndex &&
+        // $FlowFixMe[invalid-compare]
         currentlyFocused !== firstReadyInput
       ) {
         // Only refocus if the currently focused field is not the first ready field
@@ -707,6 +716,7 @@ const DynamicDialog = ({
   // Watch for dependency changes and clear values (generic - no hardcoded reload logic)
   // Handles cascading dependencies recursively (e.g., space -> note -> heading)
   useEffect(() => {
+    // $FlowFixMe[constant-condition]
     if (!isOpen) return // Don't clear values when dialog is closed
     if (isClearingValuesRef.current) return // Skip if we're currently clearing values (prevent infinite loops)
 
@@ -788,6 +798,7 @@ const DynamicDialog = ({
     } else {
       // Only update previous settings if we didn't make changes (to track future changes)
       // But only if dialog is open (don't track when closed)
+      // $FlowFixMe[constant-condition]
       if (isOpen) {
         previousSettingsRef.current = { ...currentSettings }
       }
@@ -849,6 +860,7 @@ const DynamicDialog = ({
       const itemKeys = items
         .filter((item) => item.key && (item: any).type !== 'conditional-values' && (item: any).type !== 'templatejs-block')
         .map((item) => item.key)
+      // $FlowFixMe[incompatible-type]
       const missingKeys = itemKeys.filter((key) => !currentKeys.includes(key))
 
       if (missingKeys.length > 0) {
@@ -977,6 +989,7 @@ const DynamicDialog = ({
   //----------------------------------------------------------------------
 
   useEffect(() => {
+    // $FlowFixMe[constant-condition]
     if (isOpen) {
       document.addEventListener('keydown', handleEscapeKey)
     } else if (dialogRef.current instanceof HTMLDialogElement) {
@@ -1002,6 +1015,7 @@ const DynamicDialog = ({
 
   // Submit on Enter (unless submitOnEnter is set to false)
   useEffect(() => {
+    // $FlowFixMe[constant-condition]
     if (isOpen) {
       document.addEventListener('keydown', handleEnterKey)
       document.addEventListener('keydown', handleEscapeKey)

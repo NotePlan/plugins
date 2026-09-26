@@ -20,7 +20,7 @@ type InputBoxProps = {
   className?: string,
 }
 
-const InputBox = ({ label, value, onChange, onSave, inputType, showSaveButton = true, compactDisplay, className = '', readOnly = false, disabled = false }: InputBoxProps): React$Node => {
+const InputBox = ({ label, value, onChange, onSave, inputType, showSaveButton = true, compactDisplay, className = '', readOnly = false, disabled = false }: InputBoxProps): React.Node => {
   // logDebug('InputBox', `label='${label}', compactDisplay? ${String(compactDisplay)}`)
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)

@@ -1,6 +1,7 @@
 // @flow
 import { log, logError, clo, JSP, timer } from '@helpers/dev'
 
+// $FlowFixMe[invalid-compare]
 export const isWeatherKeyValid = (key: string): boolean => key !== null && /[a-f0-9]{32}/.test(key)
 
 export const getWeatherURLLatLong = (lat: string, lon: string, appid: string, units: string): string =>
@@ -41,7 +42,7 @@ export const extractDailyForecastData = (weather: { [string]: any }): Array<any>
       const { day, night } = feels_like //day/night = feels like
       const date = new Date(dy.dt * 1000).toDateString().split(' ')[0]
       const itemsToRound = ['min', 'max', 'day', 'night', 'uvi']
-      const returnVal = {
+      const returnVal: { [string]: any } = {
         sunrise,
         sunset,
         temp,

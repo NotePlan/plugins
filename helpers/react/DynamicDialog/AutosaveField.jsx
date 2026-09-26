@@ -103,7 +103,7 @@ const AutosaveField = ({
   disabled = false,
   invisible = false,
   onRegisterTrigger,
-}: AutosaveFieldProps): React$Node => {
+}: AutosaveFieldProps): React.Node => {
   const [lastSaveTime, setLastSaveTime] = useState<?Date>(null)
   const [timeAgo, setTimeAgo] = useState<string>('Never saved')
   const [isSaving, setIsSaving] = useState(false)

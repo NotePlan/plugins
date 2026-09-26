@@ -94,6 +94,7 @@ export function cleanTimeBlockLine(line: string, config: { [key: string]: any })
     new RegExp(`\\[\\[.*?\\]\\]`, 'g'),
     new RegExp(`\\[.*?\\]\\(.*?\\)`, 'g'),
   ]
+  // $FlowFixMe[incompatible-type]
   let clean = cleanText(line, cleanerRegexes)
   clean = removeDurationParameter(clean, durationMarker)
   clean = removeDateTagsAndToday(clean, true)
@@ -553,6 +554,7 @@ export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, 
               end: endTime,
               title: `${taskTitle}${schedulingCount ? ` (${schedulingCount})` : ''}`,
             }
+            // $FlowFixMe[incompatible-type]
             const newTimeBlockWithMap = blockTimeAndCreateTimeBlockText({ timeMap: newMap, blockList: newBlockList, timeBlockTextList }, blockData, config)
             // Re-assign newMap, newBlockList, and timeBlockTextList for next loop run
             ;({ timeMap: newMap, blockList: newBlockList, timeBlockTextList } = newTimeBlockWithMap)

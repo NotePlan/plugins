@@ -676,6 +676,7 @@ export async function openCalendarNoteInSplit(filename: string, cursorPointIn?: 
   // For some reason need to add a bit to get to the right place.
   const cursorPoint = (typeof cursorPointIn === 'string') ? parseInt(cursorPointIn) + 21 : cursorPointIn + 21
   const res = Editor.openNoteByDateString(filename.split('.')[0], false, cursorPoint, cursorPoint, true)
+  // $FlowFixMe[constant-condition]
   if (res) {
     // Make sure it all fits on the screen
     await constrainMainWindow()

@@ -124,6 +124,7 @@ export function parsePromptParameters(
               logDebug(pluginJson, `${promptType} parsed options parts: ${JSON.stringify(optionParts)}`)
 
               // Special case for testing: split a single string with all parameters if the regex didn't work
+              // $FlowFixMe[invalid-compare]
               if (optionParts.length === 1 && optionParts[0].includes(',')) {
                 const manualParts = optionParts[0].split(',').map((p: string) => p.trim())
                 const filteredManualParts = manualParts.filter((s: string) => s !== '')
@@ -187,6 +188,7 @@ export function parsePromptParameters(
         logDebug(pluginJson, `${promptType} parsed options parts: ${JSON.stringify(optionParts)}`)
 
         // Special case for testing: split a single string with all parameters if the regex didn't work
+        // $FlowFixMe[invalid-compare]
         if (optionParts.length === 1 && optionParts[0].includes(',')) {
           const manualParts = optionParts[0].split(',').map((p: string) => p.trim())
           const filteredManualParts = manualParts.filter((s: string) => s !== '')

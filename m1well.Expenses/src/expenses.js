@@ -235,6 +235,7 @@ const individualTracking = async (): Promise<boolean> => {
   const expenseRow: ExpenseTrackingRow = {
     date: currentDate,
     category: category.value,
+    // $FlowFixMe[constant-condition]
     text: text ? ((text: any): string) : '', // this is stupid, but now we have to do this cast ...
     amount: config.amountFormat === 'full' ? amount : Math.round(amount),
   }
@@ -300,6 +301,7 @@ const shortcutsTracking = async (): Promise<boolean> => {
     amount: config.amountFormat === 'full' ? amount : Math.round(amount),
   }
   if (note) {
+    // $FlowFixMe[incompatible-type]
     note.appendParagraph(createTrackingExpenseRowWithConfig(expenseRow, config), 'text')
     await CommandBar.showOptions(['OK'], 'Shortcut Expenses saved')
   }
@@ -347,6 +349,7 @@ const fixedTracking = async (): Promise<boolean> => {
         text: exp.text,
         amount: config.amountFormat === 'full' ? exp.amount : Math.round(exp.amount),
       }
+      // $FlowFixMe[incompatible-type]
       lines.push(createTrackingExpenseRowWithConfig(expenseRow, config))
     })
 

@@ -16,23 +16,23 @@ import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard'
 
 type TooltipProps = {
   metaKey?: {
-    text: React$Node,
+    text: React.Node,
     style?: { [string]: string | number },
   },
   shiftKey?: {
-    text: React$Node,
+    text: React.Node,
     style?: { [string]: string | number },
   },
   ctrlKey?: {
-    text: React$Node,
+    text: React.Node,
     style?: { [string]: string | number },
   },
   altKey?: {
-    text: React$Node,
+    text: React.Node,
     style?: { [string]: string | number },
   },
   disappearAfter?: number, // ms
-  children: React$Node,
+  children: React.Node,
   enabled?: boolean,
   label?: string, // for debugging
 };
@@ -45,12 +45,12 @@ const TooltipOnKeyPress = ({
   disappearAfter = 0,
   children,
   enabled = true,
-}: TooltipProps): React$Node => {
+}: TooltipProps): React.Node => {
   const [tooltipState, setTooltipState] = useState<{
     x: number,
     y: number,
     visible: boolean,
-    text: React$Node | null,
+    text: React.Node | null,
     iconBounds?: ClientRect,
     width: number,
     height: number,

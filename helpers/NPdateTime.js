@@ -611,7 +611,7 @@ export async function getPeriodStartEndDates(
   logDebug('getPeriodStartEndDates', `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString} / ${periodAndPartStr}`)
   // Note: index 2 is declared TPeriodCode, but a YYYY-MM-DD date can also be passed in and is passed back out here.
   // That can't be expressed without widening the exported TPeriodCode type to plain `string` for all its other users.
-  // $FlowIgnore[incompatible-return] see above
+  // $FlowFixMe[incompatible-type] see above
   return [fromDate, toDate, periodShortCode, periodString, periodAndPartStr, periodNumber]
 }
 

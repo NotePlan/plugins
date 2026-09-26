@@ -254,6 +254,7 @@ export async function chartSummaryStats(periodOrDays?: any): Promise<void> {
     if (occs.length === 0 || rawDates.length === 0) {
       tagData = {
         dates: [],
+        // $FlowFixMe[incompatible-type]
         counts: tags.reduce((acc, tag) => ({ ...acc, [tag]: [] }), {}),
         rawDates: [],
         timeTags: Array.isArray(config.chartTimeTags) ? config.chartTimeTags : []
@@ -261,6 +262,7 @@ export async function chartSummaryStats(periodOrDays?: any): Promise<void> {
       yesNoHabits = usedDemoData ? [] : stringListOrArrayToArray(config.progressYesNo ?? [], ',')
       yesNoData = {
         dates: [],
+        // $FlowFixMe[incompatible-type]
         counts: yesNoHabits.reduce((acc: { [string]: Array<number> }, habit: string) => ({ ...acc, [habit]: [] }), {}),
         rawDates: []
       }
@@ -372,6 +374,7 @@ async function computeChartDateRangeForPeriod(
     : 'last4w'
   // The includes() test proves periodIn is one of allowedPeriods (so a TPeriodCode), but Flow can't refine a string from Array.includes().
   // The cast is confined to that one validated point, so selectedPeriod is properly typed from here on.
+  // $FlowFixMe[incompatible-type]
   const selectedPeriod: TPeriodCode = allowedPeriods.includes(periodIn) ? ((periodIn: any): TPeriodCode) : configDefaultPeriod
 
   let fromDateStr = ''
@@ -1291,4 +1294,3 @@ ${chartsHTML}
   
   return body
 }
-

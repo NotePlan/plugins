@@ -204,6 +204,7 @@ function replaceMarkdownLinks(content: string, markdownLinkTracker: Array<string
  */
 function getAllNoteTitlesSortedByLength(): Array<string> {
   return DataStore.projectNotes
+    // $FlowFixMe[invalid-compare]
     .filter((note) => note.title !== null && note.title !== '')
     .map((note) => note.title ?? '')
     .sort((a, b) => (b.length ?? 0) - (a.length ?? 0)) // sort by length to match longer titles first

@@ -191,6 +191,7 @@ function prepareContextInfo(renderData: Object): string {
     const value = renderData[key]
     if (typeof value === 'function') {
       return { key, description: `${key}()` }
+    // $FlowFixMe[invalid-compare]
     } else if (typeof value === 'object' && value !== null) {
       // For objects, show all keys and indicate which ones are functions
       // Get own properties (enumerable and non-enumerable)
@@ -225,6 +226,7 @@ function prepareContextInfo(renderData: Object): string {
         const objValue = value[objKey]
         // Check if it's a function, including inherited ones
         const isFunction = typeof objValue === 'function' || (value.constructor && value.constructor.prototype && typeof value.constructor.prototype[objKey] === 'function')
+        // $FlowFixMe[constant-condition]
         return isFunction ? `${objKey}()` : objKey
       })
 

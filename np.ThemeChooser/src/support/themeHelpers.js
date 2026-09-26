@@ -40,6 +40,7 @@ const isLinkColorProp = (prop: string, parentPath: string): boolean => {
   const typeIsBlankString = get(Editor.currentTheme.values, `${parentPath}.type`) === ''
   return (
     prop === 'color' &&
+    // $FlowFixMe[incompatible-type]
     ['link', 'schedule-to-date-link', 'done-date', 'schedule-from-date-link', 'note-title-link', 'hashtag', 'attag', 'phonenumber'].indexOf(lastPart) > -1 &&
     !typeIsBlankString
   )

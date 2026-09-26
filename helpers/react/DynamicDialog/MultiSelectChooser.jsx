@@ -39,7 +39,7 @@ export type MultiSelectChooserProps = {
  * MultiSelectChooser Component
  * A scrollable list with checkboxes for multi-selection
  * @param {MultiSelectChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function MultiSelectChooser({
   label,
@@ -49,7 +49,7 @@ export function MultiSelectChooser({
   compactDisplay = false,
   placeholder = 'Type to search...',
   config,
-}: MultiSelectChooserProps): React$Node {
+}: MultiSelectChooserProps): React.Node {
   const {
     items,
     filterFn,

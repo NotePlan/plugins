@@ -41,7 +41,7 @@ function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = 
   // `Array<Project>` returned by getAllMatchingProjects()/getAllProjectsFromList(), which jgclark.Dashboard/src/dataGenerationProjects.js
   // also consumes. It also has to keep the props mutable (callers assign `.nextReviewDateStr` / `.note` before calling) and omit
   // `projectTagOrder` / `migrationLogDetailFromConstructor`, which this copy silently drops.
-  // $FlowIgnore[incompatible-return]
+  // $FlowFixMe[incompatible-type]
   return {
     note: project.note,
     filename: project.filename,

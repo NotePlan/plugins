@@ -474,14 +474,6 @@ declare module 'browserify/test/double_bundle_error/two' {
   declare module.exports: any;
 }
 
-declare module 'browserify/test/double_bundle_json' {
-  declare module.exports: any;
-}
-
-declare module 'browserify/test/double_bundle_json' {
-  declare module.exports: any;
-}
-
 declare module 'browserify/test/double_bundle_parallel_cache' {
   declare module.exports: any;
 }
@@ -906,14 +898,6 @@ declare module 'browserify/test/ignore/by-relative' {
   declare module.exports: any;
 }
 
-declare module 'browserify/test/ignore/double-skip' {
-  declare module.exports: any;
-}
-
-declare module 'browserify/test/ignore/double-skip' {
-  declare module.exports: any;
-}
-
 declare module 'browserify/test/ignore/double-skip/skip' {
   declare module.exports: any;
 }
@@ -1210,10 +1194,6 @@ declare module 'browserify/test/quotes/two' {
   declare module.exports: any;
 }
 
-declare module 'browserify/test/relative_dedupe' {
-  declare module.exports: any;
-}
-
 declare module 'browserify/test/relative_dedupe/a/a' {
   declare module.exports: any;
 }
@@ -1235,10 +1215,6 @@ declare module 'browserify/test/relative_dedupe/b/b' {
 }
 
 declare module 'browserify/test/relative_dedupe/b' {
-  declare module.exports: any;
-}
-
-declare module 'browserify/test/relative_dedupe' {
   declare module.exports: any;
 }
 
@@ -1387,14 +1363,6 @@ declare module 'browserify/test/stream/foo' {
 }
 
 declare module 'browserify/test/stream/main' {
-  declare module.exports: any;
-}
-
-declare module 'browserify/test/subdep' {
-  declare module.exports: any;
-}
-
-declare module 'browserify/test/subdep' {
   declare module.exports: any;
 }
 
@@ -1900,13 +1868,13 @@ declare module 'browserify/test/double_bundle_error/two.js' {
   declare module.exports: $Exports<'browserify/test/double_bundle_error/two'>;
 }
 declare module 'browserify/test/double_bundle_json.js' {
-  declare module.exports: $Exports<'browserify/test/double_bundle_json'>;
+  declare module.exports: any;
 }
 declare module 'browserify/test/double_bundle_json/index' {
-  declare module.exports: $Exports<'browserify/test/double_bundle_json'>;
+  declare module.exports: any;
 }
 declare module 'browserify/test/double_bundle_json/index.js' {
-  declare module.exports: $Exports<'browserify/test/double_bundle_json'>;
+  declare module.exports: any;
 }
 declare module 'browserify/test/double_bundle_parallel_cache.js' {
   declare module.exports: $Exports<'browserify/test/double_bundle_parallel_cache'>;
@@ -2230,13 +2198,13 @@ declare module 'browserify/test/ignore/by-relative.js' {
   declare module.exports: $Exports<'browserify/test/ignore/by-relative'>;
 }
 declare module 'browserify/test/ignore/double-skip.js' {
-  declare module.exports: $Exports<'browserify/test/ignore/double-skip'>;
+  declare module.exports: any;
 }
 declare module 'browserify/test/ignore/double-skip/index' {
-  declare module.exports: $Exports<'browserify/test/ignore/double-skip'>;
+  declare module.exports: any;
 }
 declare module 'browserify/test/ignore/double-skip/index.js' {
-  declare module.exports: $Exports<'browserify/test/ignore/double-skip'>;
+  declare module.exports: any;
 }
 declare module 'browserify/test/ignore/double-skip/skip.js' {
   declare module.exports: $Exports<'browserify/test/ignore/double-skip/skip'>;
@@ -2482,7 +2450,7 @@ declare module 'browserify/test/quotes/two.js' {
   declare module.exports: $Exports<'browserify/test/quotes/two'>;
 }
 declare module 'browserify/test/relative_dedupe.js' {
-  declare module.exports: $Exports<'browserify/test/relative_dedupe'>;
+  declare module.exports: any;
 }
 declare module 'browserify/test/relative_dedupe/a/a.js' {
   declare module.exports: $Exports<'browserify/test/relative_dedupe/a/a'>;
@@ -2509,10 +2477,10 @@ declare module 'browserify/test/relative_dedupe/b/index.js' {
   declare module.exports: $Exports<'browserify/test/relative_dedupe/b'>;
 }
 declare module 'browserify/test/relative_dedupe/index' {
-  declare module.exports: $Exports<'browserify/test/relative_dedupe'>;
+  declare module.exports: any;
 }
 declare module 'browserify/test/relative_dedupe/index.js' {
-  declare module.exports: $Exports<'browserify/test/relative_dedupe'>;
+  declare module.exports: any;
 }
 declare module 'browserify/test/relative_dedupe/main.js' {
   declare module.exports: $Exports<'browserify/test/relative_dedupe/main'>;
@@ -2635,13 +2603,13 @@ declare module 'browserify/test/stream/main.js' {
   declare module.exports: $Exports<'browserify/test/stream/main'>;
 }
 declare module 'browserify/test/subdep.js' {
-  declare module.exports: $Exports<'browserify/test/subdep'>;
+  declare module.exports: any;
 }
 declare module 'browserify/test/subdep/index' {
-  declare module.exports: $Exports<'browserify/test/subdep'>;
+  declare module.exports: any;
 }
 declare module 'browserify/test/subdep/index.js' {
-  declare module.exports: $Exports<'browserify/test/subdep'>;
+  declare module.exports: any;
 }
 declare module 'browserify/test/symlink_dedupe.js' {
   declare module.exports: $Exports<'browserify/test/symlink_dedupe'>;

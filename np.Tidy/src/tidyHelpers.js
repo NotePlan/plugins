@@ -86,9 +86,11 @@ export function returnRegexMatchedParas(notesIn: Array<TNote>, regexIn: RegExp):
     let matchCount = 0
     for (const thisNote of notesIn) {
       const { paragraphs, title, type } = thisNote
+      // $FlowFixMe[invalid-compare]
       if (thisNote === null || paragraphs === null) {
         let lineCount = paragraphs.length
         // check if the last paragraph is undefined, and if so delete it from our copy
+        // $FlowFixMe[invalid-compare]
         if (paragraphs[lineCount] === null) {
           lineCount--
         }
@@ -135,6 +137,7 @@ export function percentWithTerm(value: number, total: number, term: string): str
   }
   const locale = getLocale({})
   const intlOptions = { maximumFractionDigits: 1, minimumSignificantDigits: 2, maximumSignificantDigits: 2 }
+  // $FlowFixMe[incompatible-type]
   const percentStr = ((value / total) * 100).toLocaleString(locale, intlOptions)
   return `${value.toLocaleString(locale)} ${term} (${percentStr}%)`
 }

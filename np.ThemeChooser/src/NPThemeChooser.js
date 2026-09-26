@@ -193,6 +193,7 @@ export async function copyCurrentTheme(
         await showMessage(`Theme "${themeName}" already exists. Please choose a different name.`)
         return
       } else {
+        // $FlowFixMe[constant-condition]
         theme.name = themeName || ''
         const success = Editor.addTheme(JSON.stringify(theme), `${themeName}.json`)
         logDebug(pluginJson, `copyCurrentTheme saving theme success: ${String(success)}`)

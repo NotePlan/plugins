@@ -95,6 +95,7 @@ export const waitFor = async (
     await new Promise((resolve) => setTimeout(resolve, interval))
     elapsed = performance.now() - startTime
   }
+  // $FlowFixMe[constant-condition]
   if (runOnFail) await runOnFail(elapsed)
   console.error(`!!! Timeout waiting for condition${conditionDesc ? ` (${conditionDesc})` : ''}: after ${timeout}ms !!!`)
   throw new Error(`!!! Timeout waiting for condition${conditionDesc ? ` (${conditionDesc})` : ''}: after ${timeout}ms !!!`)

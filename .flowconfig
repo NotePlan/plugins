@@ -23,6 +23,8 @@ flow-typed
 #invalid-computed-prop=off
 #unnecessary-optional-chain=warn
 #unused-promise=warn  # was not working for @jgclark at v0.202
+# Flow 0.285+ reports Object.assign as this lint. The calls are existing copies.
+unsafe-object-assign=off
 
 [options]
 autoimports=false

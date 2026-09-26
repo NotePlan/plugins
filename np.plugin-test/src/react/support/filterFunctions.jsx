@@ -49,6 +49,7 @@ export function filterCommands({ pluginList, filter = '', categoryFilter = '', r
         // logDebug(`command.name: ${command.name} command.desc: ${command.desc}`)
         const commandMatchesFilter = filters.some((filter) => command.name.toLowerCase().includes(filter) || command.desc.toLowerCase().includes(filter))
 
+        // $FlowFixMe[constant-condition]
         const commandMatchesCategoryFilter = CATEGORY_FILTER_APPLIES_TO_COMMANDS
           ? categoryFilter
             ? categoryFilters.some((categoryFilter) => command.name.toLowerCase().includes(categoryFilter))
@@ -63,6 +64,7 @@ export function filterCommands({ pluginList, filter = '', categoryFilter = '', r
         } else if (filter) {
           // console.log('filter', filter, 'commandMatchesFilter', commandMatchesFilter)
           return commandMatchesFilter
+        // $FlowFixMe[constant-condition]
         } else if (CATEGORY_FILTER_APPLIES_TO_COMMANDS && categoryFilter) {
           return commandMatchesCategoryFilter
         } else {

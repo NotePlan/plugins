@@ -23,7 +23,7 @@ export type PatternChooserProps = {
 /**
  * Single-value SearchableChooser for pattern names.
  * @param {PatternChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function PatternChooser({
   label,
@@ -34,7 +34,7 @@ export function PatternChooser({
   placeholder = 'Type to search patterns...',
   width,
   showValue = false,
-}: PatternChooserProps): React$Node {
+}: PatternChooserProps): React.Node {
   const config: ChooserConfig = useMemo(
     () => ({
       items: PATTERNS,

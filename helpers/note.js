@@ -188,6 +188,7 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
   //   noteName = convertedName
   // }
 
+  // $FlowFixMe[constant-condition]
   const hasExtension = noteName ? RE_NOTE_FILE_EXTENSION.test(noteName) : false
   const hasFolder = noteName.includes('/')
   const isCalendarNote = isValidCalendarNoteFilename(noteName) || isValidCalendarNoteTitleStr(noteName)
@@ -203,6 +204,7 @@ export async function getNote(name?: string, onlyLookInRegularNotes?: boolean | 
       hasExtension ? '' : ' (no extension)'
     } ${hasFolder ? '' : ' (no folder)'} ${isCalendarNote ? ' (calendar note)' : ''}`,
   )
+  // $FlowFixMe[constant-condition]
   if (!noteName) {
     logError('note/getNote', `  Empty name`)
     return null
@@ -672,6 +674,7 @@ export function updateDatePlusTags(note: TNote, options: { openOnly: boolean, pl
           // logDebug(`note/updateDatePlusTags`, `fullDate: ${fullDate} isoDate: ${isoDate} todayHyph: ${todayHyphenated} operator: ${operator}`)
           if (pastDue && (plusOnlyTypes === false || (plusOnlyTypes === true && operator === '+'))) {
             // logDebug(`note/updateDatePlusTags`, `type: ${todo.type} fullDate: ${fullDate} isoDate: ${isoDate} operator: ${operator}`)
+            // $FlowFixMe[constant-condition]
             if (operator || (pastDue && i === 0)) {
               const replacement = madeChange ? '' : ` >today` //if there are multiple dates and we already have one >today, eliminate the rest
               if (operator) {

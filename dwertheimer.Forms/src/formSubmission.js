@@ -77,6 +77,7 @@ function deepSanitizeNulls(obj: any): any {
   }
 
   // Handle objects - but check for null first (typeof null === 'object' in JavaScript!)
+  // $FlowFixMe[invalid-compare]
   if (obj === null) {
     return ''
   }
@@ -87,6 +88,7 @@ function deepSanitizeNulls(obj: any): any {
       if (obj.hasOwnProperty(key)) {
         const value = obj[key]
         // Convert null/undefined to empty string
+        // $FlowFixMe[invalid-compare]
         if (value === null || value === undefined) {
           sanitized[key] = ''
         } else {
@@ -344,6 +346,7 @@ function replaceSmartQuotesLocal(text: string): string {
  */
 function sanitizeTemplateJSCode(code: string): string {
   if (!code || typeof code !== 'string') {
+    // $FlowFixMe[constant-condition]
     return code || ''
   }
   let sanitized = replaceSmartQuotesLocal(code)

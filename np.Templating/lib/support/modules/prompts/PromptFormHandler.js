@@ -48,6 +48,7 @@ export function extractPromptFormObjectSource(source: string): ?string {
       continue
     }
     if (inString) {
+      // $FlowFixMe[invalid-compare]
       if (c === '\\') {
         escape = true
         continue
@@ -55,12 +56,14 @@ export function extractPromptFormObjectSource(source: string): ?string {
       if (c === quote) inString = false
       continue
     }
+    // $FlowFixMe[invalid-compare]
     if (c === '"' || c === "'") {
       inString = true
       quote = c
       continue
     }
     if (c === '{') depth++
+    // $FlowFixMe[invalid-compare]
     else if (c === '}') {
       depth--
       if (depth === 0) return trimmed.slice(start, i + 1)
@@ -79,6 +82,7 @@ function validateFormConfig(raw: any): {| ok: true, config: Object |} | {| ok: f
     return { ok: false, error: 'promptForm argument must be a single object' }
   }
   const fieldsRaw = raw.fields
+  // $FlowFixMe[invalid-compare]
   if (!Array.isArray(fieldsRaw) || fieldsRaw.length === 0) {
     return { ok: false, error: 'promptForm.fields must be a non-empty array' }
   }
@@ -90,9 +94,11 @@ function validateFormConfig(raw: any): {| ok: true, config: Object |} | {| ok: f
     }
     const type = typeof f.type === 'string' ? f.type.trim() : ''
     const key = typeof f.key === 'string' ? f.key.trim() : ''
+    // $FlowFixMe[constant-condition]
     if (!key) {
       return { ok: false, error: `promptForm.fields[${String(idx)}] needs a non-empty key` }
     }
+    // $FlowFixMe[constant-condition]
     if (!type) {
       return { ok: false, error: `promptForm.fields[${String(idx)}] needs a type` }
     }
@@ -100,14 +106,18 @@ function validateFormConfig(raw: any): {| ok: true, config: Object |} | {| ok: f
     if (!allowed.includes(type)) {
       return { ok: false, error: `promptForm.fields[${String(idx)}]: unsupported type "${type}"` }
     }
+    // $FlowFixMe[invalid-compare]
     const titleBase = typeof f.title === 'string' && f.title.trim() !== '' ? f.title.trim() : typeof f.label === 'string' ? f.label.trim() : key
     const title = titleBase || key
+    // $FlowFixMe[invalid-compare]
     if (type === 'hidden' && f.default === undefined) {
       return { ok: false, error: `promptForm.fields[${String(idx)}] (hidden) should include default` }
     }
     fields.push({ ...f, type, key, title })
   }
+  // $FlowFixMe[invalid-compare]
   const title = typeof raw.title === 'string' && raw.title.trim() !== '' ? raw.title.trim() : DEFAULT_FORM_TITLE
+  // $FlowFixMe[invalid-compare]
   const submitText = typeof raw.submitText === 'string' && raw.submitText.trim() !== '' ? raw.submitText.trim() : DEFAULT_SUBMIT_TEXT
   return { ok: true, config: { title, submitText, fields } }
 }
@@ -192,6 +202,7 @@ async function runPromptFormSequential(config: Object, sessionData: any): Promis
       ]
       const pick = await chooseOptionWithModifiers(label || 'Choose', opts, false)
       if (!pick || pick.value == null) return false
+      // $FlowFixMe[invalid-compare]
       values[key] = pick.value === 'true' || pick.value === true
       continue
     }

@@ -513,6 +513,7 @@ export function sortParagraphsByType(
   sortOrder: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
   interleaveTaskTypes: boolean = true,
 ): GroupedTasks {
+  // $FlowFixMe[incompatible-type]
   const sortedList: GroupedTasks = (TASK_TYPES.reduce((acc, ty) => ({ ...acc, [ty]: [] }), {}): any)
   logDebug(`\tInitialized sortedList with keys: ${Object.keys(sortedList).join(', ')}`)
   if (paragraphs?.length) {
@@ -756,7 +757,7 @@ export async function writeOutTasks(
 
       for (const group of writeSequence) {
         try {
-          await insertTodos(note, group.tasks, `### ${headings[group.key]}:`, group.separator, subHeadingCategory, title, true, insertAtTopOfNote)
+          await insertTodos(note, group.tasks, `### ${getHeadingLabel(headings, group.key)}:`, group.separator, subHeadingCategory, title, true, insertAtTopOfNote)
         } catch (e) {
           logError(pluginJson, JSON.stringify(e))
         }
@@ -973,6 +974,7 @@ export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<
       },
       { [ROOT]: [] },
     ) // start with root heading
+    // $FlowFixMe[incompatible-type]
     return tasksObj
   } catch (e) {
     logError(pluginJson, JSP(e))
@@ -994,6 +996,7 @@ export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<
  */
 export async function sortTasks(
   _withUserInput: string | boolean = true,
+  // $FlowFixMe[incompatible-type]
   _sortFields: ?(string | Array<mixed>) = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
   _withHeadings: string | boolean | null = null,
   _subHeadingCategory: string | boolean | null = null,

@@ -55,7 +55,7 @@ type FavoritesViewProps = {
 /**
  * FavoritesView Component
  * @param {FavoritesViewProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 function FavoritesViewComponent({
   data,

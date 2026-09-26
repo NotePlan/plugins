@@ -50,7 +50,7 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
 
       const methodsToOverride = ['log', 'error', 'info']
       methodsToOverride.forEach((methodName) => {
-        const originalMethod = console[methodName]
+        const originalMethod = ((console: any): PatchableConsole)[methodName]
         // console's methods are declared read-only (method syntax) and it has no indexer, so the
         // monkey-patch cannot be typed against `typeof console` - see PatchableConsole in DebugPanel.
         ;((console: any): PatchableConsole)[methodName] = (...args) => {

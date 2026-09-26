@@ -42,7 +42,7 @@ export type FolderChooserProps = {
  * FolderChooser Component
  * A searchable dropdown for selecting folders with support for creating new folders
  * @param {FolderChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function FolderChooser({
   label,
@@ -64,7 +64,7 @@ export function FolderChooser({
   onFoldersChanged,
   shortDescriptionOnLine2 = false,
   staticOptions = [],
-}: FolderChooserProps): React$Node {
+}: FolderChooserProps): React.Node {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')

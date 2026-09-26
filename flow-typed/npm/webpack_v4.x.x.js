@@ -615,27 +615,18 @@ declare module 'webpack' {
   };
 
   declare class EnvironmentPlugin {
-    constructor(env: { [string]: mixed, ... } | string[]): $ElementType<
-      $NonMaybeType<$PropertyType<ResolveOptions, 'plugins'>>,
-      number
-    >;
+    constructor(env: { [string]: mixed, ... } | string[]): $NonMaybeType<ResolveOptions['plugins']>[number];
   }
 
   declare class DefinePlugin {
-    constructor({ [string]: string, ... }): $ElementType<
-      $NonMaybeType<$PropertyType<ResolveOptions, 'plugins'>>,
-      number
-    >;
+    constructor({ [string]: string, ... }): $NonMaybeType<ResolveOptions['plugins']>[number];
   }
 
   declare class IgnorePlugin {
     constructor(RegExp | {|
       resourceRegExp: RegExp,
       contextRegExp?: RegExp,
-    |}, void | RegExp): $ElementType<
-      $NonMaybeType<$PropertyType<ResolveOptions, 'plugins'>>,
-      number
-    >;
+    |}, void | RegExp): $NonMaybeType<ResolveOptions['plugins']>[number];
   }
 
   declare class SourceMapDevToolPlugin {
@@ -658,27 +649,18 @@ declare module 'webpack' {
       noSources?: ?boolean,
       publicPath?: ?string,
       fileContext?: ?string,
-    |}): $ElementType<
-      $NonMaybeType<$PropertyType<ResolveOptions, 'plugins'>>,
-      number
-    >;
+    |}): $NonMaybeType<ResolveOptions['plugins']>[number];
   }
 
   declare class HotModuleReplacementPlugin {
-    constructor(): $ElementType<
-      $NonMaybeType<$PropertyType<ResolveOptions, 'plugins'>>,
-      number
-    >;
+    constructor(): $NonMaybeType<ResolveOptions['plugins']>[number];
   }
 
   declare class ContextReplacementPlugin {
     constructor(
       resourceRegExp: RegExp,
       newContentRegExp?: RegExp
-    ): $ElementType<
-      $NonMaybeType<$PropertyType<ResolveOptions, 'plugins'>>,
-      number
-    >;
+    ): $NonMaybeType<ResolveOptions['plugins']>[number];
   }
 
   declare function builder(

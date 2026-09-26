@@ -265,6 +265,7 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
     Y: Boolean(dashboardSettings.showYearSection),
   }
 
+  // $FlowFixMe[constant-condition]
   if (gatherWins) {
     // Track max source generatedDate so hideEmptySections can tell local REMOVE_LINE (source dates unchanged -> WINS date stable -> keep congrats)
     // from a refresh (source dates updated -> WINS date changes -> hide empty WINS).
@@ -313,6 +314,7 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
       FAIconClass: 'fa-regular fa-fw fa-crosshairs',
       sectionTitleColorPart: 'WinsSectionColor',
       actionButtons: [],
+      // $FlowFixMe[incompatible-type]
       doneCounts: winsDoneCounts,
       // Derived from calendar source sections - see comment on maxGeneratedDateMs above
       generatedDate: maxGeneratedDateMs > 0 ? new Date(maxGeneratedDateMs) : undefined,

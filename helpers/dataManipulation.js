@@ -181,6 +181,7 @@ export function renameKey(obj: any, oldKey: string, newKey: string): any {
   if (obj && typeof obj === 'object') {
     return Object.keys(obj).reduce((acc: { [key: string]: any }, key) => {
       const value = obj[key]
+      // $FlowFixMe[invalid-compare]
       const newKeyName = key === oldKey ? newKey : key
 
       acc[newKeyName] = renameKey(value, oldKey, newKey)

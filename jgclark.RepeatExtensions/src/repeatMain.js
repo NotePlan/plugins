@@ -305,6 +305,7 @@ export async function generateRepeats(
       throw new Error(`Couldn't get either passed Note argument or Editor.note: stopping`)
     }
     const { paragraphs } = noteToUse
+    // $FlowFixMe[invalid-compare]
     if (paragraphs === null) {
       // No note open, or no paragraphs (perhaps empty note), so don't do anything.
       logInfo(pluginJson, 'No note open, or empty note.')
@@ -313,6 +314,7 @@ export async function generateRepeats(
     let lineCount = paragraphs.length
 
     // check if the last paragraph is undefined, and if so delete it from our copy
+    // $FlowFixMe[invalid-compare]
     if (paragraphs[lineCount] === null) {
       lineCount--
     }

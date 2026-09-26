@@ -31,7 +31,7 @@ function itemRowKey(item: TSectionItem): string {
   return `${item.ID}_${contentKey}`
 }
 
-function ItemGrid({ items, thisSection, onToggleShowAll }: Props): React$Node {
+function ItemGrid({ items, thisSection, onToggleShowAll }: Props): React.Node {
   const visibleItems = items.length
     ? items.map((item) => (
         // Using a complex key to ensure React updates components when item content changes (not just when ID changes)

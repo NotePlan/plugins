@@ -74,6 +74,7 @@ describe('pruneNotesChangedRecentlyEntries', () => {
         changedAt: moment('2026-09-18').startOf('day').add(10, 'hours').toISOString(),
       },
     ]
+    // $FlowFixMe[incompatible-type]
     const pruned = pruneNotesChangedRecentlyEntries(notes, windowStart)
     expect(pruned.map((n) => n.filename)).toEqual(['keep.md', 'today.md'])
   })
@@ -86,14 +87,17 @@ describe('filterNotesChangedRecentlyEntries', () => {
   ]
 
   test('returns all when noteTypes omitted', () => {
+    // $FlowFixMe[incompatible-type]
     expect(filterNotesChangedRecentlyEntries(notes, {})).toHaveLength(2)
   })
 
   test('filters to Notes only', () => {
+    // $FlowFixMe[incompatible-type]
     expect(filterNotesChangedRecentlyEntries(notes, { noteTypes: ['Notes'] }).map((n) => n.filename)).toEqual(['a.md'])
   })
 
   test('filters to Calendar only', () => {
+    // $FlowFixMe[incompatible-type]
     expect(filterNotesChangedRecentlyEntries(notes, { noteTypes: ['Calendar'] }).map((n) => n.filename)).toEqual([
       '20260918.md',
     ])

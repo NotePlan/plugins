@@ -71,6 +71,7 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
 			if (!data?.item?.para) {
 				throw new Error(`'item.para' is missing in data.`)
 			}
+			// $FlowFixMe[invalid-compare]
 			if (para?.content === null || para?.content === undefined) {
 				throw new Error("'content' is null or undefined.")
 			}

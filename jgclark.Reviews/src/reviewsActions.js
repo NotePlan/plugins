@@ -57,6 +57,7 @@ import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInp
 async function getFocusedEditorForFilename(filename: string, logContext: string): Promise<?TEditor> {
   try {
     const possibleThisEditor = getOpenEditorFromFilename(filename)
+    // $FlowFixMe[invalid-compare]
     if (!possibleThisEditor || possibleThisEditor === false) {
       return null
     }
@@ -67,7 +68,7 @@ async function getFocusedEditorForFilename(filename: string, logContext: string)
     if (Editor?.filename === filename) {
       return possibleThisEditor
     }
-    // $FlowIgnore[method-unbinding] existence check before call; TEditor always defines this when present
+    // $FlowFixMe[method-unbinding] existence check before call; TEditor always defines this when present
     if (typeof possibleThisEditor.focus === 'function') {
       possibleThisEditor.focus()
       logDebug(logContext, `Focused editor pane for '${filename}'`)
