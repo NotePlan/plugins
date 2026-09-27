@@ -9,7 +9,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.co/plugins/jgclark.PeriodicReviews/",
   "plugin.changelog": "https://noteplan.co/plugins/jgclark.PeriodicReviews/CHANGELOG.md",
-  "plugin.version": "2.0.0.b23",
+  "plugin.version": "2.0.0.b24",
   "plugin.releaseStatus": "beta",
   "plugin.lastUpdateInfo": "v2.0.0: First release of the new Periodic Reviews plugin, building on earlier 'Journalling Helpers' plugin (v1).",
   "plugin.requiredFiles": [
@@ -214,7 +214,7 @@
       "title": "Name for Weekly Planned Items Heading",
       "description": "Used in the review window and as the H2 title prefix for planned tasks written to the next week's note (e.g. 'Big Rocks' becomes 'Big Rocks for 2026-W15'). Leave blank to write planned items only, with no heading.",
       "type": "string",
-      "default": "Big Rocks",
+      "default": "",
       "required": false
     },
     {
@@ -230,7 +230,7 @@
       "title": "Name for Monthly Planned items",
       "description": "Used in the review window and as the H2 title prefix for planned items written to the next month's note (e.g. 'Key Outcomes' becomes 'Key Outcomes for 2026-04'). Leave blank to write planned items only, with no heading.",
       "type": "string",
-      "default": "Key Outcomes",
+      "default": "",
       "required": false
     },
     {
@@ -246,7 +246,7 @@
       "title": "Name for Quarterly Planned items",
       "description": "Used in the review window and as the H2 title prefix for planned items written to the next quarter's note (e.g. 'Goals' becomes 'Goals for 2026-Q2'). Leave blank to write planned items only, with no heading.",
       "type": "string",
-      "default": "Goals",
+      "default": "",
       "required": false
     },
     {
@@ -262,7 +262,7 @@
       "title": "Name for Yearly Planned items",
       "description": "Used in the review window and as the H2 title prefix for planned items written to the next year's note (e.g. 'Theme' becomes 'Theme for 2027'). Leave blank to write planned items only, with no heading.",
       "type": "string",
-      "default": "Theme",
+      "default": "",
       "required": false
     },
     {

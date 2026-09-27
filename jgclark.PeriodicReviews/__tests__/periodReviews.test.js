@@ -1439,15 +1439,16 @@ Ship: <tasks>`,
       expect(buildNextPeriodNotePlanSectionHeadingTitle('  ', '2026-W14')).toBe('')
     })
 
-    it('getPlanItemsNameForPeriodType should use defaults when missing, blank when empty string', () => {
-      const minimal = {}
-      expect(getPlanItemsNameForPeriodType(minimal, 'day')).toBe('Big Wins')
-      expect(getPlanItemsNameForPeriodType(minimal, 'week')).toBe('Big Rocks')
+    it('getPlanItemsNameForPeriodType should be blank when missing, null, or empty', () => {
+      expect(getPlanItemsNameForPeriodType({}, 'day')).toBe('')
+      expect(getPlanItemsNameForPeriodType({}, 'week')).toBe('')
+      expect(getPlanItemsNameForPeriodType({ dayPlanItemsName: null }, 'day')).toBe('')
       const custom = { weekPlanItemsName: 'Wins' }
       expect(getPlanItemsNameForPeriodType(custom, 'week')).toBe('Wins')
       expect(getPlanItemsNameForPeriodType({ dayPlanItemsName: '' }, 'day')).toBe('')
       expect(getPlanItemsNameForPeriodType({ dayPlanItemsName: '  ' }, 'day')).toBe('')
       expect(getPlanItemsNameForPeriodType({ weekPlanItemsName: '' }, 'week')).toBe('')
+      expect(getPlanItemsNameForPeriodType({ dayPlanItemsName: 'Big Wins' }, 'day')).toBe('Big Wins')
     })
 
     it('normalizePlanningTaskLinesFromForm should strip only the configured marker', () => {
@@ -1458,6 +1459,13 @@ Ship: <tasks>`,
       expect(normalizePlanningTaskLinesFromForm('!! p2', '>>')).toEqual(['!! p2'])
       expect(normalizePlanningTaskLinesFromForm('!!! p3', '!!!')).toEqual(['p3'])
       expect(normalizePlanningTaskLinesFromForm('!! p2', '!!')).toEqual(['p2'])
+    })
+
+    it('normalizePlanningTaskLinesFromForm should split into multiple lines on \n', () => {
+      expect(normalizePlanningTaskLinesFromForm('Have useful conversations.\nHave people receive Gift of Tongues.', '>>')).toEqual([
+        'Have useful conversations.',
+        'Have people receive Gift of Tongues.',
+      ])
     })
 
     it('should resolve marker and numeric priority from bigTaskMarkerStyle setting', () => {
@@ -1552,6 +1560,37 @@ Ship: <tasks>`,
       )
       expect(openSpy).not.toHaveBeenCalled()
       expect(DataStore.calendarNoteByDateString).toHaveBeenCalledWith('2026-09-25')
+      expect(insertParagraph).toHaveBeenCalled()
+      DataStore.calendarNotes = undefined
+      DataStore.calendarNoteByDateString = undefined
+    })
+
+    it('writePlanningTasksToNextPeriodNote should not insert a heading when dayPlanItemsName is blank', async () => {
+      const insertHeading = jest.fn()
+      const insertParagraph = jest.fn()
+      const nextNote = {
+        title: '2026-09-27',
+        type: 'Calendar',
+        filename: '20260927.md',
+        paragraphs: [{ type: 'title', content: '2026-09-27', headingLevel: 1, lineIndex: 0 }],
+        insertHeading,
+        insertParagraph,
+        removeParagraph: jest.fn(),
+        appendParagraph: jest.fn(function appendParagraph(content, type) {
+          this.paragraphs.push({ type, content, lineIndex: this.paragraphs.length })
+        }),
+      }
+      DataStore.calendarNotes = []
+      DataStore.calendarNoteByDateString = jest.fn().mockReturnValue(nextNote)
+      DataStore.updateCache = jest.fn()
+      global.Editor = { ...global.Editor, openNoteByTitle: jest.fn() }
+      await writePlanningTasksToNextPeriodNote(
+        { dayPlanItemsName: '', plannedItemsSuffix: '#win' },
+        '2026-09-26',
+        'day',
+        'Ship it',
+      )
+      expect(insertHeading).not.toHaveBeenCalled()
       expect(insertParagraph).toHaveBeenCalled()
       DataStore.calendarNotes = undefined
       DataStore.calendarNoteByDateString = undefined

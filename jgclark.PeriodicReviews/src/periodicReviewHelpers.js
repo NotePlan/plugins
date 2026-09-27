@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Helper functions for Journalling plugin for NotePlan
 // Jonathan Clark
-// last update 2026-09-24 for v2.0.0.b20 by @jgclark / @CursorAI
+// last update 2026-09-26 for v2.0.0.b24 by @jgclark / @CursorAI
 //---------------------------------------------------------------
 
 import {
@@ -155,7 +155,7 @@ export function getSectionHeadingForPeriod(config: PeriodicReviewConfigType, per
 }
 
 /**
- * Normalize non-empty lines from the planning textarea for storage (strip task markers and leading configured big-task marker only).
+ * Normalize non-empty lines from the planning textarea for storage (strip task markers, a leading configured big-task marker, and trim).
  * @tests in jest file
  * @param {string} planningFormText
  * @param {string} bigTaskMarker marker currently configured by `bigTaskMarkerStyle`
@@ -171,7 +171,7 @@ export function normalizePlanningTaskLinesFromForm(planningFormText: string, big
       let t = l.trim()
       t = t.replace(/^\*\s*/, '')
       t = t.replace(markerPrefixRE, '')
-      return t
+      return t.trim()
     })
     .filter((t) => t !== '')
 }
@@ -397,16 +397,6 @@ export function shouldFocusCalendarNoteWhenReviewing(config: PeriodicReviewConfi
   return config.openCalendarNoteWhenReviewing !== false
 }
 
-/** Default plan-item labels when the setting key is missing (not when intentionally blank). */
-// TODO: make this look at the plugin.json "default" for the "key" below
-const PLAN_ITEMS_NAME_DEFAULTS: { [string]: string } = {
-  day: 'Big Wins',
-  week: 'Big Rocks',
-  month: 'Key Outcomes',
-  quarter: 'Goals',
-  year: 'Theme',
-}
-
 /** Settings keys for `getPlanItemsNameForPeriodType`. */
 const PLAN_ITEMS_NAME_CONFIG_KEYS: { [string]: string } = {
   day: 'dayPlanItemsName',
@@ -417,9 +407,9 @@ const PLAN_ITEMS_NAME_CONFIG_KEYS: { [string]: string } = {
 }
 
 /**
- * Configured label for planned items for a calendar period (e.g. "Big 3 Rocks").
- * Blank / whitespace means no heading name (planned items are written without an H2).
- * Missing setting keys still use built-in defaults.
+ * Configured label for planned items for a calendar period (e.g. "Big Wins").
+ * A non-empty saved value is used as the H2 prefix. Blank, whitespace, null, or a missing key writes planned items with no H2.
+ * plugin.json may still default `dayPlanItemsName` to "Big Wins" for new installs; a value the user has cleared stays empty.
  * @tests in jest file
  * @param {JournalConfigType} config
  * @param {string} periodType — 'day' | 'week' | 'month' | 'quarter' | 'year'
@@ -427,15 +417,13 @@ const PLAN_ITEMS_NAME_CONFIG_KEYS: { [string]: string } = {
  */
 export function getPlanItemsNameForPeriodType(config: PeriodicReviewConfigType, periodType: string): string {
   const key = PLAN_ITEMS_NAME_CONFIG_KEYS[periodType]
-  const fallback = PLAN_ITEMS_NAME_DEFAULTS[periodType] ?? 'Plans'
   if (key == null) {
-    return fallback
+    return ''
   }
   // $FlowFixMe[invalid-computed-prop]
   const raw = (config: any)[key]
-  // Explicit string wins (including blank). Only non-string / missing uses fallback.
   if (typeof raw !== 'string') {
-    return fallback
+    return ''
   }
   return raw.trim()
 }

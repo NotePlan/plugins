@@ -252,7 +252,7 @@ function removePlanSectionFromNoteIfPresent(note: TNote, headingTitle: string): 
 /**
  * Insert optional plan heading and open tasks at the start of the active body.
  * Blank `headingTitle` skips the H2 and writes only task lines.
- * Uses `insertParagraph(..., 'open')`, which adds the task `*` marker — pass full line text (prefix/suffix already applied), not a second task marker.
+ * Uses `insertParagraph(..., 'open')`, which adds the task `*` marker -- pass full line text (prefix/suffix already applied), not a second task marker.
  * @param {TNote} note
  * @param {string} headingTitle empty string = no heading
  * @param {Array<string>} taskLines full paragraph content (not rawContent) per planned item (after prefix/suffix formatting)
@@ -527,7 +527,7 @@ export async function yearlyReviewQuestions(): Promise<void> {
  * @author @jgclark
  * @param {string} periodStringIn the calendar note title string for the review period
  * @param {string} periodType for journal questions: 'day', 'week', 'month', 'quarter', 'year'
- * @param {{ preferOpenNoteOfMatchingPeriodType?: boolean }} options when `preferOpenNoteOfMatchingPeriodType` is true (commands that target the “current” period), keep the editor focused if it already has any calendar note of that period type (e.g. do not switch a daily note from yesterday to today). When false or omitted, the open note is only reused if its title matches `periodStringIn` (needed for refresh / prev-next navigation).
+ * @param {{ preferOpenNoteOfMatchingPeriodType?: boolean }} options when `preferOpenNoteOfMatchingPeriodType` is true (commands that target the "current" period), keep the editor focused if it already has any calendar note of that period type (e.g. do not switch a daily note from yesterday to today). When false or omitted, the open note is only reused if its title matches `periodStringIn` (needed for refresh / prev-next navigation).
  */
 async function processReviewQuestions(
   periodStringIn: string = '',
@@ -541,7 +541,7 @@ async function processReviewQuestions(
     const config: PeriodicReviewConfigType = await getJournalSettings()
     let reviewNote: ?TNote = null
 
-    // Reuse the editor note when it is a calendar note of the requested period *kind* (day/week/…).
+    // Reuse the editor note when it is a calendar note of the requested period *kind* (day/week/...).
     // For refresh / navigatePeriod we require an exact title match so we actually move to the requested period.
     const openEditorNote = getOpenEditorNoteForReview(periodType)
     const useOpenNote = shouldUseOpenEditorCalendarNote(openEditorNote, periodType, periodStringIn, preferOpenSameKind)
@@ -553,7 +553,7 @@ async function processReviewQuestions(
       logDebug(
         'processReviewQuestions',
         `Starting with open note '${displayTitle(openEditorNote)}' (${openPeriodTitle})` +
-          (preferOpenSameKind && !titlesMatch ? ` — keeping editor instead of '${String(periodStringIn)}'` : ''),
+        (preferOpenSameKind && !titlesMatch ? ` -- keeping editor instead of '${String(periodStringIn)}'` : ''),
       )
     } else if (!shouldFocusCalendarNoteWhenReviewing(config)) {
       logDebug('processReviewQuestions', `openCalendarNoteWhenReviewing is false; resolving '${String(periodStringIn)}' without focusing Editor`)
@@ -983,7 +983,7 @@ function normalizeReviewWindowInvokeArgs(actionNameIn: mixed, payloadIn: mixed):
  * Callback function for HTML single-window review actions.
  * Must return a value when invoked via DataStore.invokePluginCommandByName or NotePlan can fail silently after logging execution.
  * @param {mixed} actionNameIn
- * @param {mixed} payload — JSON string or object (NotePlan may pass either)
+ * @param {mixed} payload -- JSON string or object (NotePlan may pass either)
  * @returns {Promise<{||}>}
  */
 export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed = ''): Promise<{||}> {
@@ -1100,3 +1100,4 @@ export async function onReviewWindowAction(actionNameIn: mixed, payload: mixed =
     return {}
   }
 }
+

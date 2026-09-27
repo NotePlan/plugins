@@ -133,7 +133,7 @@ Then for the **day period**, there are 3 settings:
 - **Daily Review/Journal Questions**: Multi-line string that includes both the Journal/Review questions and how to lay out the answers in the daily note (details above).
 
 Then for each **other time period**, there are 2 settings:
-- **Name for [period] Planned items**: Used in the review window and as the H2 title prefix for planned items written to the next [period]'s note (e.g. 'Theme' becomes 'Theme for 2027'). Leave blank to write planned items only, with no heading. Defaults: week `Big Rocks`, month `Key Outcomes`, quarter `Goals`, year `Theme`.
+- **Name for [period] Planned items**: Used in the review window and as the H2 title prefix for planned items written to the next [period]'s note (e.g. 'Theme' becomes 'Theme for 2027'). Leave blank to write planned items only, with no heading. Examples: week `Big Rocks`, month `Key Outcomes`, quarter `Goals`, year `Theme`.
 - **[period] Review/Journal Questions**: String that includes both the Journal/Review questions and how to lay out the answers in the [period] note (details above).
 
 If a question is left empty, that line is omitted from the output. If a line in the note already starts with the same question text, it is treated as an existing answer, and prefilled.
