@@ -12,7 +12,7 @@
 
 import pluginJson from '../plugin.json'
 import { getMatchingProjectTypeTagsOnNote } from './reviewHelpers'
-import { getReviewSettings, parseMarkdownHeadingSetting, type ReviewConfig } from './reviewSettings'
+import { getReviewSettings, parseMarkdownHeadingSetting, type ReviewConfig, type ReviewConfigInput } from './reviewSettings'
 import {
   generateNotesChangedRecentlyCache,
   getFilenamesChangedRecently,
@@ -525,7 +525,7 @@ export const WEEKLY_PROJECT_PROGRESS_OUTPUT_TABLE_BY_SUBFOLDER: string = 'Table 
  * @param {ReviewConfig} config
  * @returns {TWeeklyProjectProgressOutputStyle}
  */
-export function resolveWeeklyProjectProgressOutputStyle(config: ReviewConfig): TWeeklyProjectProgressOutputStyle {
+export function resolveWeeklyProjectProgressOutputStyle(config: ReviewConfigInput): TWeeklyProjectProgressOutputStyle {
   const style = config.weeklyProjectProgressBulletSummary?.trim() ?? WEEKLY_PROJECT_PROGRESS_OUTPUT_LIST_BY_SUBFOLDER
   switch (style) {
     case WEEKLY_PROJECT_PROGRESS_OUTPUT_LIST_BY_TAG:
@@ -671,10 +671,9 @@ export function resolveWeekLabelFromArgs(argsIn: Array<any>): ?string {
  * Resolve the desired show-empty-folders value from a command param, if specified.
  * Uses explicit hide/show tokens.
  * @param {string} paramsStr
- * @param {ReviewConfig} config
  * @returns {?boolean}
  */
-export function resolveShowEmptyFoldersFromParam(paramsStr: string, config: ReviewConfig): ?boolean {
+export function resolveShowEmptyFoldersFromParam(paramsStr: string): ?boolean {
   if (!paramsStr) {
     return null
   }
@@ -702,10 +701,10 @@ export function resolveShowEmptyFoldersFromParam(paramsStr: string, config: Revi
  * @param {string} paramsStr
  * @returns {ReviewConfig}
  */
-export function applyShowEmptyFoldersParamToConfig(config: ReviewConfig, paramsStr: string): ReviewConfig {
-  const resolved = resolveShowEmptyFoldersFromParam(paramsStr, config)
+export function applyShowEmptyFoldersParamToConfig<T: ReviewConfigInput>(config: T, paramsStr: string): T {
+  const resolved = resolveShowEmptyFoldersFromParam(paramsStr)
   if (resolved == null) {
-    return overrideSettingsWithEncodedTypedArgs(config, paramsStr)
+    return (overrideSettingsWithEncodedTypedArgs(config, paramsStr): T)
   }
   return {
     ...config,
@@ -789,7 +788,7 @@ async function applyWeeklyProjectProgressCommandParamsFromArgs(config: ReviewCon
     }
 
     for (const arg of normalisedArgs) {
-      const resolvedShowEmpty = resolveShowEmptyFoldersFromParam(arg, config)
+      const resolvedShowEmpty = resolveShowEmptyFoldersFromParam(arg)
       if (resolvedShowEmpty != null) {
         const updatedConfig = { ...config, weeklyProjectProgressShowEmptyFolders: resolvedShowEmpty }
         logInfo(
@@ -797,6 +796,7 @@ async function applyWeeklyProjectProgressCommandParamsFromArgs(config: ReviewCon
           `Set weeklyProjectProgressShowEmptyFolders to ${String(updatedConfig.weeklyProjectProgressShowEmptyFolders)} from param '${decodeParamToken(arg)}'`,
         )
         await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+        // $FlowFixMe[incompatible-type]
         return updatedConfig
       }
     }

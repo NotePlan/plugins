@@ -430,4 +430,4 @@ const CollapsibleObjectViewer = ({
   )
 }
 
-export default (CollapsibleObjectViewer: React.AbstractComponent<Props>)
+export default (CollapsibleObjectViewer: React.ComponentType<Props>)

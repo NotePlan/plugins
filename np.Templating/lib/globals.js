@@ -95,6 +95,7 @@ const globals = {
     const resolvedLatitude = latitude === undefined || latitude === null ? undefined : latitude
     const resolvedLongitude = longitude === undefined || longitude === null ? undefined : longitude
     logDebug(`weather format: "${weatherFormat}", units: "${resolvedUnits ?? 'default'}", lat: ${resolvedLatitude ?? 'auto'}, lon: ${resolvedLongitude ?? 'auto'}`)
+    // $FlowFixMe[invalid-compare]
     const resolvedFormat = weatherFormat === undefined || weatherFormat === null || weatherFormat.trim().length === 0 ? undefined : weatherFormat
     return await getNotePlanWeather(resolvedFormat, resolvedUnits, resolvedLatitude, resolvedLongitude)
   },

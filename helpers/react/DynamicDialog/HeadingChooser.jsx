@@ -42,7 +42,7 @@ export type HeadingChooserProps = {
  * HeadingChooser Component
  * A searchable dropdown for selecting headings from a note
  * @param {HeadingChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function HeadingChooser({
   label,
@@ -60,7 +60,7 @@ export function HeadingChooser({
   includeArchive = false,
   showValue = false,
   shortDescriptionOnLine2 = false,
-}: HeadingChooserProps): React$Node {
+}: HeadingChooserProps): React.Node {
   const [headings, setHeadings] = useState<Array<string>>(staticHeadings)
   const lastLoadedNoteFilenameRef = useRef<?string>(null) // Track the last note filename we loaded headings for
   const lastHeadingsRef = useRef<Array<string>>([]) // Track previous headings to detect when new data loads
@@ -130,6 +130,7 @@ export function HeadingChooser({
         setHeadings([])
         lastLoadedNoteFilenameRef.current = null // Clear ref
       }
+    // $FlowFixMe[constant-condition]
     } else if (noteFilename && !requestFromPlugin) {
       logError('HeadingChooser', `noteFilename provided (${noteFilename}) but requestFromPlugin is not available`)
       setHeadings([])

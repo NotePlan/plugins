@@ -197,6 +197,7 @@ async function askOpenType(): Promise<'subWindow' | 'splitView' | 'reuseSplitVie
   if (reuse === false) return false
   if (choice === 'subWindow') return reuse === 'yes' ? 'useExistingSubWindow' : 'subWindow'
   if (choice === 'splitView') return reuse === 'yes' ? 'reuseSplitView' : 'splitView'
+  // $FlowFixMe[incompatible-type]
   return choice
 }
 
@@ -215,6 +216,7 @@ async function askTimeframe(): Promise<'week' | 'month' | 'quarter' | 'year' | n
   const choice = await chooseWizardOption('Which calendar view?', opts)
   // showOptions ESC: false guard not reached; use explicit Cancel row for cancel-with-continue
   if (choice === false) return false
+  // $FlowFixMe[incompatible-type]
   return choice === '__none__' ? null : choice
 }
 
@@ -445,6 +447,7 @@ export async function runShortcut(): Promise<string> {
  */
 export async function getHeadingLink(allowPrettyLink: boolean = true): Promise<string> {
   const selectedPara = await getSelectedParagraph()
+  // $FlowFixMe[invalid-compare]
   if (selectedPara && selectedPara?.note?.title !== null && (selectedPara.type !== 'title' || (selectedPara.type === 'title' && selectedPara.content))) {
     // if a heading is selected, use that. otherwise look for the heading this note is in
     const heading = selectedPara.type === 'title' ? selectedPara.content : selectedPara.heading
@@ -481,6 +484,7 @@ export async function getHeadingLink(allowPrettyLink: boolean = true): Promise<s
  */
 export async function lineLink(): Promise<string> {
   const selectedPara = await getSelectedParagraph()
+  // $FlowFixMe[invalid-compare]
   if (selectedPara && selectedPara?.note?.title !== null) {
     if (selectedPara.type === 'title') {
       await getHeadingLink(true)

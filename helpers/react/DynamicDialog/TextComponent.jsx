@@ -7,7 +7,7 @@ type TextComponentProps = {
   disabled?: boolean, // Add disabled prop
 }
 
-const TextComponent = ({ textType, label, disabled }: TextComponentProps): React$Node => {
+const TextComponent = ({ textType, label, disabled }: TextComponentProps): React.Node => {
   const className = `text-component ${textType} ${disabled ? 'disabled' : ''}`
   return <div className={className}>{label}</div>
 }

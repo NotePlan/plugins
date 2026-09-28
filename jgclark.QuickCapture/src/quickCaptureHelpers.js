@@ -55,6 +55,7 @@ export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = 
       if (useDefaultsIfNecessary) {
         logInfo('QuickCapture', 'No QuickCapture settings found, but will use defaults instead.')
         await showMessage(`Cannot find settings for the 'QuickCapture' plugin. I will use defaults instead, but to avoid this, please install it in the Plugin Preferences.`)
+        // $FlowFixMe[incompatible-type]
         config = defaultConfig
         
       } else {
@@ -67,6 +68,7 @@ export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = 
       config.shouldAppend = config.addInboxPosition === 'append'
       // clo(config, `QuickCapture Settings:`)
     }
+    // $FlowFixMe[incompatible-type]
     return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}. Will return default config to allow processing to continue.`)

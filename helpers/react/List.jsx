@@ -21,7 +21,7 @@ export type CursorDecoration = ModifierHint
 type Props = {
   items: Array<any>,
   displayType: 'noteplan-sidebar' | 'chips',
-  renderItem: (item: any, index: number) => React$Node,
+  renderItem: (item: any, index: number) => React.Node,
   onItemClick?: (item: any, event: MouseEvent) => void, // Called on mouse click or Enter key (actual selection/action)
   onItemSelect?: (item: any, index: number) => void, // Called when selectedIndex changes (for preview behavior, e.g. Forms)
   selectedIndex?: ?number,
@@ -41,7 +41,7 @@ type Props = {
 /**
  * List Component
  * @param {Props} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function List({
   items,

@@ -69,6 +69,9 @@ export type ReviewConfig = {
   _logTimer: boolean,
 }
 
+/** Partial settings object for helpers/tests that only need a subset of Review settings. */
+export type ReviewConfigInput = $ReadOnly<Partial<ReviewConfig>>
+
 /**
  * Keys in "What do you want to Review?" and "Customise the metadata terms".
  * Changing any of these changes which notes are projects, or how their metadata is read.

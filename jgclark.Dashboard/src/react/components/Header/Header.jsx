@@ -45,7 +45,7 @@ type Props = {
  * @param {Date} props.lastFullRefresh - The timestamp of the last full refresh.
  * @returns {React.Node} The rendered Header component.
  */
-const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Node => {
+const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React.Node => {
   // ----------------------------------------------------------------------
   // Context
   // ----------------------------------------------------------------------
@@ -146,6 +146,7 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
       }
       dispatchDashboardSettings({
         type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
+        // $FlowFixMe[incompatible-type]
         payload: newSettings,
         reason: lastChange,
       })
@@ -175,6 +176,7 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
     (e: any): void => {
       const isChecked = e?.target?.checked || false
       logDebug('Header/handleLocalSwitchChange', `Changing setting ${key} to ${isChecked}`)
+      // $FlowFixMe[incompatible-type]
       setTempDashboardSettings((prevSettings) => ({
         ...prevSettings,
         [key]: isChecked,
@@ -188,6 +190,7 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React$Nod
     (key: string) =>
     (newValue: string): void => {
       logDebug('Header/handleLocalSaveInput', `Changing setting ${key} to ${newValue}`)
+      // $FlowFixMe[incompatible-type]
       setTempDashboardSettings((prevSettings) => ({
         ...prevSettings,
         [key]: newValue,

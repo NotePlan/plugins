@@ -234,6 +234,7 @@ export async function bridgeSaveDisplayFilters(data: {
       displayOrder: data.displayOrder,
       hiddenProjectTypeTags: Array.isArray(data.hiddenProjectTypeTags) ? data.hiddenProjectTypeTags : [],
     }
+    // $FlowFixMe[incompatible-type]
     await saveDisplayFilters(filterData, scrollPos)
   } catch (error) {
     logError('bridgeSaveDisplayFilters', error.message)

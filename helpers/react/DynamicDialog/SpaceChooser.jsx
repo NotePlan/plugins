@@ -38,7 +38,7 @@ export type SpaceChooserProps = {
  * SpaceChooser Component
  * A searchable dropdown for selecting a Space (Private or Teamspace)
  * @param {SpaceChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function SpaceChooser({
   label,
@@ -53,7 +53,7 @@ export function SpaceChooser({
   includeAllOption = false,
   shortDescriptionOnLine2 = false,
   initialSpaces,
-}: SpaceChooserProps): React$Node {
+}: SpaceChooserProps): React.Node {
   // Initialize from preloaded data if available (for static HTML testing)
   const hasInitialSpaces = Array.isArray(initialSpaces) && initialSpaces.length > 0
   const [spaces, setSpaces] = useState<Array<SpaceOption>>(() => {

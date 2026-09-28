@@ -50,7 +50,7 @@ type Props = {
 //--------------------------------------------------------------------------
 // Dashboard Component Definition
 //--------------------------------------------------------------------------
-const Dashboard = ({ pluginData }: Props): React$Node => {
+const Dashboard = ({ pluginData }: Props): React.Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
@@ -113,10 +113,12 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
 
       // Sections other than the standard task-based ones need to be ignored here
+      // $FlowFixMe[incompatible-type]
       const dedupedSections = getSectionsWithoutDuplicateLines(workingSections.slice(), ['filename', 'content'], sectionPriorityForDeduping, dontDedupeSectionCodes, dashboardSettings)
       workingSections = dedupedSections
     }
 
+    // $FlowFixMe[incompatible-type]
     const sortedSections = sortSections(workingSections.slice(), defaultSectionDisplayOrder, dashboardSettings?.customSectionDisplayOrder, dashboardSettings?.tagsToShow)
     const totalVisibleAfterSort = countTotalVisibleSectionItems(sortedSections, dashboardSettings)
     // logDebug('Dashboard:sortSections', `after sort: ${sortedSections.length} (${getDisplayListOfSectionCodes(sortedSections)}) with ${String(countTotalSectionItems(sortedSections, dontDedupeSectionCodes))} items`)
@@ -309,7 +311,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     if (pluginData.startDelayedRefreshTimer) {
       logDebug('Dashboard', `plugin sent pluginData.startDelayedRefreshTimer=true, setting up delayed timer.`)
       updatePluginData({ ...pluginData, startRefreshTimer: false }, 'Got message from plugin; resetting refresh timer')
-      !reactSettings?.interactiveProcessing && refreshTimer() // start the cache-busting timer if !interactiveProcessing
+      if (!reactSettings?.interactiveProcessing) refreshTimer() // start the cache-busting timer if !interactiveProcessing
     }
   }, [pluginData.startDelayedRefreshTimer])
 
@@ -449,6 +451,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       )}
       {/* Note: this is where I might want to put further periodic data generation functions: completed task counter etc. */}
       {reactSettings?.perspectivesTableVisible && (
+        // $FlowFixMe[incompatible-type]
         <PerspectivesTable perspectives={perspectiveSettings} settingDefs={settingDefs} onSave={hidePerspectivesTable} onCancel={hidePerspectivesTable} />
       )}
       <div className="dashboard">

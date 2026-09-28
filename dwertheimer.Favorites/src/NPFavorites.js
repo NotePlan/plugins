@@ -28,6 +28,7 @@ export async function getConfig(): Promise<FavoritesConfig> {
     }
   }
   logDebug('NPFavorites', `Config: ${JSON.stringify(config)}`)
+  // $FlowFixMe[incompatible-type]
   return config
 }
 
@@ -57,6 +58,7 @@ export async function setFavorite(): Promise<void> {
         // In case frontmatter was just added, we need to re-open the note to properly see the frontmatter in the properties and the Editor.frontmatterAttributes
         await Editor.openNoteByFilename(Editor.filename)
         const fm = getFrontmatterAttributes(note)
+        // $FlowFixMe[invalid-compare]
         if (typeof fm === 'object' && fm !== null) {
           fm[favoriteKey] = 'true'
           updateFrontMatterVars(note, fm)
@@ -110,6 +112,7 @@ export async function removeFavorite(): Promise<void> {
         }
         if (config.favoriteIdentifier.includes('Frontmatter')) {
           const fm = { ...getFrontmatterAttributes(note) }
+          // $FlowFixMe[invalid-compare]
           if (typeof fm === 'object' && fm !== null && fm[favoriteKey]) {
             delete fm[favoriteKey]
             updateFrontMatterVars(note, fm, true)

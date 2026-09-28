@@ -287,6 +287,7 @@ export function Root(/* props: Props */): Node {
    */
   const hideToast = useCallback(() => {
     logDebug(`Root`, `hideToast: ${JSON.stringify(toastMessage, null, 2)}`)
+    // $FlowFixMe[incompatible-type]
     setToastMessage({ type: 'REMOVE', level: 'REMOVE', msg: '', timeout: 0, color: '', border: '', icon: '' })
   }, [toastMessage]) // Depend on toastMessage for logging, but setToastMessage is stable
 
@@ -308,6 +309,7 @@ export function Root(/* props: Props */): Node {
           if (!type) throw (`onMessageReceived: event.data.type is undefined`, event.data)
           if (!payload) throw (`onMessageReceived: event.data.payload is undefined`, event.data)
 
+          // $FlowFixMe[constant-condition]
           if (type && payload) {
             // logDebug(`Root`, ` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
             if (!payload.lastUpdated) payload.lastUpdated = { msg: '(no msg)' }
@@ -315,6 +317,7 @@ export function Root(/* props: Props */): Node {
             // TODO: ideally, you would use a reducer here
             if (type === 'SHOW_BANNER') {
               if (payload.lastUpdated?.msg) {
+                // $FlowFixMe[incompatible-type]
                 payload.lastUpdated.msg += `: ${payload.msg}`
               } else {
                 logDebug(
@@ -400,6 +403,7 @@ export function Root(/* props: Props */): Node {
                     pendingRequestsRef.current.delete(correlationId)
                     clearTimeout(pending.timeoutId)
                     pending.resolve(pluginEnvelopeFromResponsePayload(payload))
+                  // $FlowFixMe[constant-condition]
                   } else if (ROOT_DEBUG || debug) {
                     // This is normal when child components handle their own request/response pattern
                     logDebug(`Root`, `RESPONSE received for correlationId not in Root's pending map: ${correlationId}`)
@@ -479,6 +483,7 @@ export function Root(/* props: Props */): Node {
     // Find the stylesheet with the specified name or href
     const oldSheet = styleSheetsArray.find((sheet) => sheet && sheet.title === oldName)
     let wasSaved = false
+    // $FlowFixMe[method-unbinding]
     if (oldSheet && typeof oldSheet.replaceSync === 'function') {
       // Use replaceSync to replace the stylesheet's content
       logDebug(`Root`, `replaceStylesheetContent: found existing stylesheet "${oldName}" Will try to replace it.`)
@@ -736,6 +741,7 @@ export function Root(/* props: Props */): Node {
                     isOpen={showSimpleDialogTest}
                     title={currentExample.title}
                     message={currentExample.message}
+                    // $FlowFixMe[incompatible-type]
                     buttons={currentExample.buttons}
                     buttonLabels={currentExample.buttonLabels}
                     width={currentExample.width}
@@ -769,6 +775,7 @@ export function Root(/* props: Props */): Node {
           </>
         )}
 
+        {/* $FlowFixMe[constant-condition] debug flag is false in the type and true when the plugin passes it */}
         {(ROOT_DEBUG || debug) && (
           <React.StrictMode>
             <div className="w3-container w3-red w3-margin-top">Debugging Data (Plugin passed debug:true at window open)</div>

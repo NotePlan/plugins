@@ -45,7 +45,7 @@ const msToSeconds = (ms: number): number => Math.round(ms / 1000)
  * @param {IdleTimerProps} props - Component props.
  * @returns {React.Node} The IdleTimer component.
  */
-function IdleTimer({ idleTime, onIdleTimeout, userIsInteracting = false }: IdleTimerProps): React$Node {
+function IdleTimer({ idleTime, onIdleTimeout, userIsInteracting = false }: IdleTimerProps): React.Node {
   const [lastActivity, setLastActivity] = useState(Date.now())
   const lastMidnightRefreshDateRef = useRef <? string > (null)
   

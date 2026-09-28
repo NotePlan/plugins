@@ -275,6 +275,7 @@ export default class StandardPromptHandler {
         const result = await CommandBar.showOptions(options, message || 'Choose an option:')
 
         // Add logging about result to help diagnose escape key issues
+        // $FlowFixMe[invalid-compare]
         if (result === null) {
           logDebug(pluginJson, `StandardPromptHandler.getResponse: Result is null - likely cancelled with Escape`)
           return ''
@@ -305,6 +306,7 @@ export default class StandardPromptHandler {
         const promptResult = await CommandBar.textPrompt('', message || 'Enter a value:', defaultText)
 
         // Add logging about result to help diagnose escape key issues
+        // $FlowFixMe[invalid-compare]
         if (promptResult === null) {
           logDebug(pluginJson, `StandardPromptHandler.getResponse: TextPrompt result is null - likely cancelled with Escape`)
           return false

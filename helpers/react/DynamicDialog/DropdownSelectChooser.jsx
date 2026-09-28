@@ -46,7 +46,7 @@ const normalizeOption = (option: string | DropdownOption): DropdownOption => {
  * DropdownSelectChooser Component
  * A searchable dropdown for selecting from a list of options
  * @param {DropdownSelectChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function DropdownSelectChooser({
   label,
@@ -62,7 +62,7 @@ export function DropdownSelectChooser({
   allowCreate = false,
   onCreate,
   isLoading = false,
-}: DropdownSelectChooserProps): React$Node {
+}: DropdownSelectChooserProps): React.Node {
   // Normalize options to DropdownOption format
   const normalizedOptions: Array<DropdownOption> = useMemo(() => {
     return options.map(normalizeOption)

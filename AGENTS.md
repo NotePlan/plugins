@@ -42,7 +42,7 @@ debugging: [`.cursor/agents/dashboard-log-debugger.md`](.cursor/agents/dashboard
 2. Do not `npm run build` plugins; leave builds to the programmer.
 3. Do not commit or push unless the user explicitly asks.
 4. Never grep the raw NotePlan log -- use the nplog skill.
-5. Prefer `npx flow` for typecheck; always pass `--no-watch` to jest.
+5. Prefer `npx flow` for typecheck. Save `flow check` as indented JSON at `/tmp/flow-check-now.json`. Always pass `--no-watch` to jest.
 6. Wrap React context/child callbacks in `useCallback`; memoize AppContext with
    `useMemo` (see react-html doc).
 

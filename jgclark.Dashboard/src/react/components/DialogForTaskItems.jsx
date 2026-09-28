@@ -41,7 +41,7 @@ type DialogButtonProps = {
 
 type EditableInputHandle = { getValue: () => string }
 
-const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
+const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React.Node => {
   //----------------------------------------------------------------------
   // Refs
   //----------------------------------------------------------------------
@@ -522,6 +522,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             <div className="preText">For:</div>
             <div id="taskControlLine1" style={{ display: 'inline-flex', alignItems: 'center' }}>
               {/* Note: 'autofocusMe' attribute does not work */}
+              // $FlowFixMe[incompatible-type]
               <EditableInput
                 ref={inputRef}
                 initialValue={content}

@@ -14,14 +14,14 @@ import React, { useEffect, useRef } from 'react'
 import '../css/Tooltip.css'
 
 type TooltipProps = {
-  text: React$Node,
+  text: React.Node,
   x: number,
   y: number,
   onDimensionsChange: (width: number, height: number) => void,
   visible: boolean,
 };
 
-const Tooltip = ({ text, x, y, onDimensionsChange, visible }: TooltipProps): React$Node => {
+const Tooltip = ({ text, x, y, onDimensionsChange, visible }: TooltipProps): React.Node => {
   const tooltipRef = useRef<?HTMLDivElement>(null)
 
   useEffect(() => {

@@ -332,6 +332,7 @@ export function createOpenOrDeleteNoteCallbackUrl(
         retVal = `${xcb}${encodedTitleOrFilename}${head.length ? `%23${head}` : ''}${openAs}${timeframeStr}${highlightStr}`
       }
     } else {
+      // $FlowFixMe[constant-condition]
       if (isLineLink) {
         retVal = `${xcb}${encodedTitleOrFilename}${head.length ? `&line=${head}` : ''}${openAs}${timeframeStr}${highlightStr}`
       } else {

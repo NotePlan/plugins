@@ -37,7 +37,7 @@ const pluginJson = 'helpers/NPFrontMatter.js'
  * @returns {boolean} true if this looks like the Editor
  */
 export function isEditorObject(note: CoreNoteFields): boolean {
-  // $FlowIgnore[prop-missing] deliberate duck-type test; see JSDoc above
+  // $FlowFixMe[prop-missing] deliberate duck-type test; see JSDoc above
   return Boolean(note.note)
 }
 
@@ -55,6 +55,7 @@ export function isEditorObject(note: CoreNoteFields): boolean {
  */
 export function quoteTextIfNeededForFM(_text: string | number | boolean, quoteSpecialCharacters: boolean = false): string {
   let text = _text
+  // $FlowFixMe[invalid-compare]
   if (text === null || text === undefined || typeof text === 'object') {
     logWarn('quoteTextIfNeededForFM', `text (${typeof text}) is empty/not a string. Returning ''`)
     return ''
@@ -171,6 +172,7 @@ export function getFrontmatterAttributes(note: CoreNoteFields): { [string]: stri
           const key = content.slice(0, colonIndex).trim()
           const value = content.slice(colonIndex + 1).trim()
           return { [key]: value }
+        // $FlowFixMe[incompatible-type]
         }).reduce((acc, curr) => ({ ...acc, ...curr }), {})
       }
     }
@@ -376,6 +378,7 @@ function _objectToYaml(obj: any, indent: string = ' '): string {
       obj[prop].forEach((el) => {
         output += `\n${indent} - ${el}`
       })
+    // $FlowFixMe[invalid-compare]
     } else if (typeof obj[prop] === 'object' && obj[prop] !== null && Object.keys(obj[prop]).length) {
       output += _objectToYaml(obj[prop], `${indent} `)
     } else {
@@ -448,6 +451,7 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
       const existingAttributes = getAttributes(note.content)
       const changedAttributes = { ...existingAttributes }
       Object.keys(varObj).forEach((key) => {
+        // $FlowFixMe[invalid-compare]
         if (varObj[key] === null && existingAttributes.hasOwnProperty(key)) {
           delete changedAttributes[key]
         } else {
@@ -664,6 +668,7 @@ export function formatTriggerString(triggerObj: { [TriggerTypes]: Array<{ plugin
     let trigArray: Array<string> = []
     TRIGGER_LIST.forEach((triggerName) => {
       // logDebug('formatTriggerString', triggerName)
+      // $FlowFixMe[incompatible-type]
       if (triggerObj[triggerName] && triggerObj[triggerName].length) {
         trigArray = trigArray.concat(
           triggerObj[triggerName].map((trigger) => {
@@ -883,6 +888,7 @@ export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: b
 
             // Extract everything after the second --- as the body
             const body = lines.slice(i + 1).join('\n')
+            // $FlowFixMe[incompatible-indexer]
             fmData = { attributes: attributes, body: body, frontmatter: '' }
           } else {
             // Not valid YAML, treat the entire content as body
@@ -893,6 +899,7 @@ export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: b
       }
     }
   }
+  // $FlowFixMe[incompatible-type]
   return fmData
 }
 
@@ -1065,6 +1072,7 @@ export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [st
       }
     }
 
+    // $FlowFixMe[constant-condition]
     const existingAttributes = { ...getFrontmatterAttributes(note) } || {}
     const existingKeyByLowercase: { [string]: string } = {}
     // Build lookup from raw frontmatter lines to preserve original key casing.
@@ -1098,6 +1106,7 @@ export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [st
 
       // Handle null/undefined - skip them (they won't be in normalizedNewAttributes,
       // so if deleteMissingAttributes is true, they will be deleted)
+      // $FlowFixMe[invalid-compare]
       if (value === null || value === undefined) {
         return // Skip this key - allows deletion when deleteMissingAttributes is true
       }
@@ -1224,6 +1233,7 @@ export function createFrontmatterTextArray(attributes: { [string]: string }, quo
   const outputArr = []
   Object.keys(attributes).forEach((key) => {
     const value = attributes[key]
+    // $FlowFixMe[invalid-compare]
     if (value !== null) {
       if (typeof value === 'string') {
         outputArr.push(quoteNonStandardYaml ? `${key}: ${quoteTextIfNeededForFM(value)}` : `${key}: ${value}`)
@@ -1570,6 +1580,7 @@ export function analyzeTemplateStructure(templateData: string): {
       const { attributes, isValid } = extractAndParseFrontmatter(lines, 0, templateFrontmatterEnd)
 
       if (isValid) {
+        // $FlowFixMe[incompatible-indexer]
         result.templateFrontmatter = attributes
         result.bodyContent = lines.slice(templateFrontmatterEnd + 1).join('\n')
         logDebug(
@@ -1618,6 +1629,7 @@ export function analyzeTemplateStructure(templateData: string): {
           const { attributes, isValid } = extractAndParseFrontmatter(bodyLines, startBlock, endBlock)
 
           if (isValid) {
+            // $FlowFixMe[incompatible-indexer]
             result.outputFrontmatter = attributes
             result.hasOutputFrontmatter = Object.keys(result.outputFrontmatter).length > 0
             result.hasOutputTitle = 'title' in result.outputFrontmatter
@@ -1659,6 +1671,7 @@ export function analyzeTemplateStructure(templateData: string): {
       - inlineTitleText: "${result.inlineTitleText}"`,
     )
 
+    // $FlowFixMe[incompatible-type]
     return result
   } catch (error) {
     logError('analyzeTemplateStructure', JSP(error))

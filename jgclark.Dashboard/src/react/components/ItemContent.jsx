@@ -22,7 +22,7 @@ type Props = {
 /**
  * Represents the main content for a single item within a section
  */
-function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
+function ItemContent({ item /*, children */, thisSection }: Props): React.Node {
   const { sendActionToPlugin, setReactSettings, dashboardSettings, pluginData } = useAppContext()
   const timeblockMustContainString = pluginData?.notePlanSettings?.timeblockMustContainString ?? ''
 

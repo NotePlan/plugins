@@ -887,7 +887,7 @@ export function buildAddTaskChecklistButtons(opts: {
  */
 export function getListOfEnabledSections(config: TDashboardSettings): Array<TSectionCode> {
   // Work out which sections to show
-  // TODO(@dwertheimer): somehow make this automatically work for all new sections added in the future
+  // TODO: somehow make this automatically work for all new sections added in the future
   const sectionsToShow: Array<TSectionCode> = []
   // TB when Time Block and/or Current Reminders enabled (timed reminders live in TB)
   if (isTBSectionEnabled(config)) sectionsToShow.push('TB')
@@ -1025,9 +1025,9 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
       // Derive a reliable indent level from rawContent to work around Paragraph.indents API bug
       const computedIndentLevel = getIndentLevelFromRawContent(p.rawContent ?? '')
       const effectiveIndents = p.indents === 0 && computedIndentLevel > 0 ? computedIndentLevel : p.indents
-      // TODO(later): remove this debugging after TEST:
+      // Warn if the effective indents differ from the API indents, as this is a known bug in the NotePlan API (v3.8.1) where indents are sometimes reported as 0 for indented lines.
       if (effectiveIndents !== p.indents) {
-        logInfo('makeDashboardParas', `👉👉👉 Found .indents mismatch for line ${p.lineIndex}: API indents=${p.indents}, effectiveIndents=${effectiveIndents}, rawContent:{${p.rawContent}}`)
+        logWarn('makeDashboardParas', `👉👉👉 Found .indents mismatch for line ${p.lineIndex}: API indents=${p.indents}, effectiveIndents=${effectiveIndents}, rawContent:{${p.rawContent}}`)
       }
 
       // Set default priorityDelta to 0

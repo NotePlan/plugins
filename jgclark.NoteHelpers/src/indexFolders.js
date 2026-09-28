@@ -278,6 +278,7 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
         }
         logInfo('indexFolders', `Writing index to new note '${outputFilename}'`)
         const options = { newWindow: false, splitView: true, content: indexNoteContent, highlightStart: 0, highlightEnd: 0 }
+        // $FlowFixMe[incompatible-type]
         outputNote = await openNoteByFilename(outputFilename, options)
       } else {
         logInfo('indexFolders', `Writing index to note '${outputFilename}'`)

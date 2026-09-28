@@ -57,6 +57,7 @@ export async function showWordCount(): Promise<void> {
     display,
     `Task count for '${displayTitle(note)}'. Select anything to copy.`,
   )
+  // $FlowFixMe[invalid-compare]
   if (re !== null) {
     Clipboard.string = display.join('\n')
   }

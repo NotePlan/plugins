@@ -156,6 +156,7 @@ export async function searchOpenTasks(searchTermsArg?: string,
   const searchOptions: TSearchOptions = {
     noteTypesToInclude: getNoteTypesFromString(noteTypesAsStr),
     foldersToInclude: [],
+    // $FlowFixMe[incompatible-type]
     paraTypesToInclude: OPEN_PARA_TYPES,
     originatorCommand: 'searchOpenTasks',
     commandNameToDisplay: 'Searching open tasks',
@@ -282,6 +283,7 @@ export async function saveSearch(
     // work out if we're being called non-interactively (i.e. via x-callback) by checking if searchTermsArg is provided
     // If searchTermsArg is provided, it means we were called with arguments (non-interactive)
     // If searchTermsArg is not provided, user will be prompted (interactive)
+    // $FlowFixMe[invalid-compare]
     const calledNonInteractively = (searchTermsArg !== undefined && searchTermsArg !== null)
     logDebug('saveSearch', `- called ${calledNonInteractively ? 'NON-' : ''}interactively (searchTermsArg provided: ${String(calledNonInteractively)}, originatorCommand: '${originatorCommand}')`)
 
@@ -293,6 +295,7 @@ export async function saveSearch(
     let termsToMatchStr = ''
     if (searchTermsArg) {
       // from argument supplied
+      // $FlowFixMe[constant-condition]
       termsToMatchStr = searchTermsArg ?? ''
       logDebug('saveSearch', `- search terms: [${termsToMatchStr}]`)
     }

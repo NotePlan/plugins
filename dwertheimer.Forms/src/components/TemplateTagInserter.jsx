@@ -33,7 +33,7 @@ export type TemplateTagInserterProps = {
  * TemplateTagInserter Component
  * A searchable dropdown for selecting template tags to insert
  * @param {TemplateTagInserterProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function TemplateTagInserter({
   isOpen,
@@ -44,7 +44,7 @@ export function TemplateTagInserter({
   showDateFormats = true,
   mode = 'both',
   anchorElement,
-}: TemplateTagInserterProps): React$Node {
+}: TemplateTagInserterProps): React.Node {
   const [searchTerm, setSearchTerm] = useState('')
   const containerRef = useRef<?HTMLDivElement>(null)
   const [position, setPosition] = useState<{ top: number, left: number } | null>(null)
@@ -197,6 +197,7 @@ export function TemplateTagInserter({
         ...dateFormats.map((df) => {
           // Generate locale-specific example using moment
           const example = sampleDate.format(df.format)
+          // $FlowFixMe[incompatible-type]
           return {
             label: `${df.format} (${example})`,
             value: `<%- date.format("${df.format}") %>`,

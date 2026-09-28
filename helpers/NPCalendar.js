@@ -147,6 +147,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
     if (config.calendarToWriteTo != null && config.calendarToWriteTo !== '') {
       // Check that the calendar name we've been given is in the list and is writable
       const writableCalendars: $ReadOnlyArray<string> = Calendar.availableCalendarTitles(true)
+      // $FlowFixMe[incompatible-type]
       if (writableCalendars.includes(config.calendarToWriteTo)) {
         calendarToWriteTo = config.calendarToWriteTo || ''
         logDebug('NPCalendar / writeTimeBlocksToCalendar', `- will write to calendar '${String(calendarToWriteTo)}'`)

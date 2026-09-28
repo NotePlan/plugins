@@ -26,7 +26,7 @@ export type ColorChooserProps = {
  * Single-value SearchableChooser for Tailwind color names.
  * Renders swatch in first column and name in standard fg color (no highlight).
  * @param {ColorChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function ColorChooser({
   label,
@@ -37,7 +37,7 @@ export function ColorChooser({
   placeholder = 'Type to search colors...',
   width,
   showValue = false,
-}: ColorChooserProps): React$Node {
+}: ColorChooserProps): React.Node {
   const config: ChooserConfig = useMemo(
     () => ({
       items: TAILWIND_COLOR_NAMES,

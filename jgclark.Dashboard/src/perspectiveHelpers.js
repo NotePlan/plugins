@@ -27,7 +27,7 @@ import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 
 // `type` marks non-perspective rows the dropdown renders specially (e.g. the '_separator_' option);
 // `isDefault` is set by DynamicDialog's dropdown-select. Both are optional so plain name options still fit.
-export type TPerspectiveOptionObject = { isModified?: boolean, isDefault?: boolean, label: string, value: string, type?: string }
+export type TPerspectiveOptionObject = { +isModified?: boolean, +isDefault?: boolean, +label: string, +value: string, +type?: string }
 
 // Re-export for existing importers (PerspectiveSelector, perspectiveClickHandlers, etc.)
 export { cleanDashboardSettingsInAPerspective, isDashboardGlobalSettingKey, removeInvalidTagSections } from './dashboardSettingsClean'

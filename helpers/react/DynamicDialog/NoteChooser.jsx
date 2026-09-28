@@ -80,7 +80,7 @@ export type NoteChooserProps = {
  * NoteChooser Component
  * A searchable dropdown for selecting notes
  * @param {NoteChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 /**
  * Get note decoration using shared helper from @helpers/NPnote.js
@@ -126,7 +126,7 @@ export function NoteChooser({
   singleSelectOutputFormat, // DEPRECATED: kept for backwards compatibility
   includeRegex,
   excludeRegex,
-}: NoteChooserProps): React$Node {
+}: NoteChooserProps): React.Node {
   // Determine effective output format with backwards compatibility
   // For backwards compatibility: check singleSelectOutputFormat first, then noteOutputFormat
   // For single-select: if format is wikilink/pretty-link/raw-url, treat as 'title' (those formats don't make sense for single-select)
@@ -562,6 +562,7 @@ export function NoteChooser({
         const noteType = note.frontmatterAttributes?.type
         // Support both single string and array of strings
         const allowedTypes = Array.isArray(filterByType) ? filterByType : [filterByType]
+        // $FlowFixMe[incompatible-type]
         if (!allowedTypes.includes(noteType)) {
           return false
         }
@@ -875,6 +876,7 @@ export function NoteChooser({
   // If multi-select mode, render ContainedMultiSelectChooser
   // Explicitly check for true (not just truthy) to avoid string "true" issues
   if (allowMultiSelect === true) {
+    // $FlowFixMe[constant-condition]
     const allowMultiSelectStr = allowMultiSelect ? 'true' : 'false'
     logDebug('NoteChooser', `Multi-select mode enabled: allowMultiSelect=${allowMultiSelectStr} (type: ${typeof allowMultiSelect}), filteredNotes.length=${filteredNotes.length}`)
     // Get note filenames as items for ContainedMultiSelectChooser

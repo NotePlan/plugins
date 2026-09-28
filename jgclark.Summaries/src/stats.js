@@ -107,6 +107,7 @@ async function validateAndCalculatePeriod(
   let calendarTimeframe = ''
 
   let isRunningFromXCallback = false
+  // $FlowFixMe[invalid-compare]
   if (periodCodeArg && periodCodeArg !== '' && ((!isNaN(yearArg) && !isNaN(periodNumberArg)) || periodCodeArg === 'today' || periodCodeArg === 'all' || new RegExp(`^${RE_DATE}$`).test(periodCodeArg))) {
     isRunningFromXCallback = true
     logInfo('statsPeriod/validateAndCalculatePeriod', `running from xCallback with params '${periodCodeArg}', '${periodNumberArg}', '${yearArg}'`)
@@ -133,6 +134,7 @@ async function validateAndCalculatePeriod(
           : (periodShortCode === 'qtd' || periodShortCode === 'lq' || periodShortCode === 'oq') ? 'quarter'
             : (periodShortCode === 'ytd' || periodShortCode === 'ly' || periodShortCode === 'oy') ? 'year'
               : 'other'
+    // $FlowFixMe[incompatible-type]
     periodShortCode = calendarTimeframe
   }
 

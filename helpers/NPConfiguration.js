@@ -107,6 +107,7 @@ export function updateSettingData(pluginJsonData: any): number {
     } else {
       // Object without a valid key. Headings/separators legitimately have no key, so don't warn for those.
       const settingType = setting?.type
+      // $FlowFixMe[invalid-compare]
       if (settingType !== 'heading' && settingType !== 'separator') {
         logWarn(
           'NPConfiguration/updateSettingData',

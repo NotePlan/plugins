@@ -103,7 +103,7 @@ type RenderItemProps = {
  * Renders a UI element based on its type.
  *
  * @param {RenderItemProps} props - The properties for rendering the item.
- * @returns {React$Node} The rendered item.
+ * @returns {React.Node} The rendered item.
  */
 export function renderItem({
   index,
@@ -138,7 +138,7 @@ export function renderItem({
   preloadedHashtags = [], // Preloaded hashtags for static HTML testing
   preloadedEvents = [], // Preloaded events for static HTML testing
   preloadedFrontmatterValues = {}, // Preloaded frontmatter key values for static HTML testing (keyed by frontmatter key)
-}: RenderItemProps): React$Node {
+}: RenderItemProps): React.Node {
   // Conditional-values are resolved only at form submission; never output in the dialog
   if (item.type === 'conditional-values') {
     return null
@@ -1062,6 +1062,7 @@ export function renderItem({
               disabled={disabled}
               compactDisplay={compactDisplay}
               placeholder={item.placeholder || 'Type to search...'}
+              // $FlowFixMe[incompatible-type]
               config={config}
             />
           </div>

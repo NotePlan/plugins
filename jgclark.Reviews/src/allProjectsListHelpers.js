@@ -234,7 +234,7 @@ function getLeadingProjectTag(project: Project | any): string {
   // Measured: replacing this param with `?{ +getLeadingProjectTag?: () => string, +allProjectTags?: mixed, ... }` turns this 1 suppressed
   // error into 6 real ones (2 each at the Project-instance call sites, lines ~510/952/1071) - a class method cannot flow into a
   // function-typed property slot. The suppression here is the narrowest available form.
-  // $FlowIgnore[method-unbinding]
+  // $FlowFixMe[method-unbinding]
   if (project != null && typeof project.getLeadingProjectTag === 'function') {
     return project.getLeadingProjectTag()
   }
@@ -736,6 +736,7 @@ export function isNoteInCurrentProjectSelection(note: TNote, config: ReviewConfi
     config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
       ? [config.projectTypeTags]
       : (config.projectTypeTags ?? [])
+  // $FlowFixMe[incompatible-type]
   if (projectTypeTags.length > 0 && !projectTypeTags.includes(projectTypeTag)) {
     return false
   }
@@ -1555,6 +1556,7 @@ export function sortProjectsList(
     config.projectTypeTags != null && typeof config.projectTypeTags === 'string' ? [config.projectTypeTags] : (config.projectTypeTags ?? [])
   // Set projectTagOrder (sort key for firstTag mode: order matches config.projectTypeTags); now declared on the Project class
   projectInstances.forEach((pi) => {
+    // $FlowFixMe[incompatible-type]
     pi.projectTagOrder = projectTypeTagsForOrder.indexOf(getLeadingProjectTag(pi))
   })
 

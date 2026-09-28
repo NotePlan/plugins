@@ -19,17 +19,17 @@ import { chooseHeading, chooseNote, chooseOptionWithModifiers, showMessage } fro
 import { isOpen } from '@helpers/utils'
 
 export type OverdueSearchOptions = {
-  openOnly: boolean,
-  foldersToIgnore: Array<string>,
-  datePlusOnly: boolean,
-  confirm: boolean,
-  showUpdatedTask: boolean,
-  showNote: boolean,
-  replaceDate: boolean,
-  noteTaskList: null | Array<Array<TParagraph>>,
-  noteFolder: ?string | false,
-  overdueAsOf?: string /* YYYY-MM-DD - for looking into the future */,
-  overdueOnly: ?boolean /* used for reviewing today's references etc */,
+  +openOnly: boolean,
+  +foldersToIgnore: Array<string>,
+  +datePlusOnly: boolean,
+  +confirm: boolean,
+  +showUpdatedTask: boolean,
+  +showNote: boolean,
+  +replaceDate: boolean,
+  +noteTaskList: null | Array<Array<TParagraph>>,
+  +noteFolder: ?string | false,
+  +overdueAsOf?: string /* YYYY-MM-DD - for looking into the future */,
+  +overdueOnly: ?boolean /* used for reviewing today's references etc */,
 }
 
 type RescheduleUserAction =
@@ -696,6 +696,7 @@ export function getOpenTasksByNote(notes: Array<TNote>, sortOrder: string | Arra
     const openTasksInThisNote: Array<TParagraph> = []
     for (let index = 0; index < paras.length; index++) {
       const p = paras[index]
+      // $FlowFixMe[constant-condition]
       if (p.type === 'open' && p.content.trim() !== '' && (!ignoreScheduledTasks || !(ignoreScheduledTasks && isScheduled(p.content)))) {
         // logDebug(`getOpenTasksByNote: Including note: "${note.title || ''}" and task: "${p.content}".`)
         openTasksInThisNote.push(p)

@@ -142,7 +142,7 @@ function isEventWithin15Minutes(event: EventOption, now: Date): boolean {
  * EventChooser Component
  * A searchable dropdown for selecting calendar events
  * @param {EventChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 /**
  * Parse a date from various formats (Date object, ISO string, YYYY-MM-DD, etc.)
@@ -201,7 +201,7 @@ export function EventChooser({
   reminderLists,
   shortDescriptionOnLine2 = false,
   initialEvents,
-}: EventChooserProps): React$Node {
+}: EventChooserProps): React.Node {
   // Initialize from preloaded data if available (for static HTML testing)
   // Preloaded events come as ISO strings (from getEvents serialization) and need to be converted to Date objects
   const hasInitialEvents = Array.isArray(initialEvents) && initialEvents.length > 0
@@ -606,6 +606,7 @@ export function EventChooser({
             </div>
             {/* Title column */}
             <div
+              // $FlowFixMe[constant-condition]
               className={`searchable-chooser-option-column-title event-chooser-option-title ${titleWrap ? 'wrap' : 'truncate'}`}
             >
               {event.title}

@@ -98,6 +98,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
         const timestamp = new Date()
 
         setTimeout(() => {
+          // $FlowFixMe[incompatible-type]
           setConsoleLogs((prevLogs) => [...prevLogs, { message, timestamp, data: dataObjects, type: methodName }].slice(-500))
         }, 0)
 
@@ -112,7 +113,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
     return () => {
       console.log('DebugPanel: tearing down the console methods override')
       methodsToOverride.forEach((methodName) => {
-        if (console[methodName] === originalConsoleMethodsRef.current[methodName]) {
+        if (((console: any): PatchableConsole)[methodName] === originalConsoleMethodsRef.current[methodName]) {
           console.log(`DebugPanel: console.${methodName} override is being removed`)
           ;((console: any): PatchableConsole)[methodName] = originalConsoleMethodsRef.current[methodName]
         }

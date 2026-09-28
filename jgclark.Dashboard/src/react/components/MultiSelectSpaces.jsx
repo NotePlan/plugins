@@ -24,7 +24,7 @@ type Props = {
 /**
  * Multi-select component for selecting teamspaces to include
  */
-function MultiSelectSpaces({ value, onChange, disabled = false, label, description }: Props): React$Node {
+function MultiSelectSpaces({ value, onChange, disabled = false, label, description }: Props): React.Node {
   const { pluginData } = useAppContext()
   // const teamspaces: Array<string> = ['private'] // for Testing only
   const teamspaces: Array<TTeamspace> = pluginData?.notePlanSettings?.currentTeamspaces ?? []
@@ -55,6 +55,7 @@ function MultiSelectSpaces({ value, onChange, disabled = false, label, descripti
 
   // Check if a checkbox should be disabled (only disable if it's the last selected item)
   const isCheckboxDisabled = (teamspaceId: string): boolean => {
+    // $FlowFixMe[incompatible-type]
     return disabled || (selectedValues.length === 1 && selectedValues.includes(teamspaceId))
   }
 
@@ -85,6 +86,7 @@ function MultiSelectSpaces({ value, onChange, disabled = false, label, descripti
             <div className="multi-select-panel">
               <div className="multi-select-options">
                 {options.map((option) => {
+                  // $FlowFixMe[incompatible-type]
                   const isChecked = selectedValues.includes(option.id)
                   const isDisabled = isCheckboxDisabled(option.id)
                   const isPrivate = option.id === 'private'

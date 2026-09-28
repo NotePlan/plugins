@@ -470,7 +470,9 @@ export function stripAllMarkersFromString(original: string, stripTags: false, st
   let output = original
   output = stripBlockIDsFromString(output)
   output = stripDateRefsFromString(output)
+  // $FlowFixMe[constant-condition]
   if (stripTags) output = stripAllTagssFromString(output)
+  // $FlowFixMe[constant-condition]
   if (stripLinks) output = stripLinksFromString(output)
   return output
 }
@@ -488,7 +490,9 @@ export function stripAllInternalReferencesFromString(original: string, stripTags
   let output = original
   output = stripBlockIDsFromString(output)
   output = stripDateRefsFromString(output)
+  // $FlowFixMe[constant-condition]
   if (stripTags) output = stripAllTagssFromString(output)
+  // $FlowFixMe[constant-condition]
   if (stripLinks) output = stripLinksFromString(output)
   return output
 }

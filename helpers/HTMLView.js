@@ -39,37 +39,37 @@ export type TNoteLinkForDisplay = {
 
 // Note: This is a *superset* of window options required for the different API calls (showWindow, showWindowWithOptions, showInMainWindow)
 export type HtmlWindowOptions = {
-  windowTitle?: string,
-  headerTags?: string,
-  generalCSSIn?: string,
-  specificCSS?: string,
-  makeModal?: boolean,
-  bodyOptions?: string,
-  preBodyScript?: string | ScriptObj | Array<string | ScriptObj>,
-  postBodyScript?: string | ScriptObj | Array<string | ScriptObj>,
-  savedFilename?: string,
-  width?: number,
-  height?: number,
-  x?: number,
-  y?: number,
-  paddingWidth?: number,
-  paddingHeight?: number,
-  reuseUsersWindowRect?: boolean,
-  includeCSSAsJS?: boolean,
-  shouldFocus?: boolean,
+  +windowTitle?: string,
+  +headerTags?: string,
+  +generalCSSIn?: string,
+  +specificCSS?: string,
+  +makeModal?: boolean,
+  +bodyOptions?: string,
+  +preBodyScript?: string | ScriptObj | Array<string | ScriptObj>,
+  +postBodyScript?: string | ScriptObj | Array<string | ScriptObj>,
+  +savedFilename?: string,
+  +width?: number,
+  +height?: number,
+  +x?: number,
+  +y?: number,
+  +paddingWidth?: number,
+  +paddingHeight?: number,
+  +reuseUsersWindowRect?: boolean,
+  +includeCSSAsJS?: boolean,
+  +shouldFocus?: boolean,
   // TODO: work out which of these 3 are actually needed, and remove the rest:
-  id?: string,
-  windowId?: string,
-  customId?: string,
+  +id?: string,
+  +windowId?: string,
+  +customId?: string,
   // New in 3.20 for loading into main window:
-  showInMainWindow?: boolean,
-  splitView?: boolean, // only usde if showInMainWindow is true
-  icon?: string, // only used if showInMainWindow is true
-  iconColor?: string, // only used if showInMainWindow is true
-  autoTopPadding?: boolean, // only used if showInMainWindow is true
-  showReloadButton?: boolean, // only used if showInMainWindow is true
-  reloadPluginID?: string, // only used if showInMainWindow is true, and presumably showReloadButton is true
-  reloadCommandName?: string, // only used if showInMainWindow is true, and presumably showReloadButton is true
+  +showInMainWindow?: boolean,
+  +splitView?: boolean, // only usde if showInMainWindow is true
+  +icon?: string, // only used if showInMainWindow is true
+  +iconColor?: string, // only used if showInMainWindow is true
+  +autoTopPadding?: boolean, // only used if showInMainWindow is true
+  +showReloadButton?: boolean, // only used if showInMainWindow is true
+  +reloadPluginID?: string, // only used if showInMainWindow is true, and presumably showReloadButton is true
+  +reloadCommandName?: string, // only used if showInMainWindow is true, and presumably showReloadButton is true
 }
 
 /**
@@ -558,19 +558,19 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       logDebug('showHTMLV2', `- screen dimensions are ${String(screenWidth)} x ${String(screenHeight)} for device ${NotePlan.environment.machineName}`)
       if (winOptions.width > screenWidth) {
         logDebug('showHTMLV2', `- Constrained width from ${String(winOptions.width)} to ${String(screenWidth)}`)
-        winOptions.width = screenWidth - defaultBorderWidth * 2
+        ;(winOptions: any).width = screenWidth - defaultBorderWidth * 2
       }
       if (winOptions.height > screenHeight) {
         logDebug('showHTMLV2', `- Constrained height from ${String(winOptions.height)} to ${String(screenHeight)}`)
-        winOptions.height = screenHeight - defaultBorderWidth * 2
+        ;(winOptions: any).height = screenHeight - defaultBorderWidth * 2
       }
 
       // Check window will be visible on screen and if not, move accordingly
       if (winOptions?.x && winOptions.x < 0) {
-        winOptions.x = 0
+        ;(winOptions: any).x = 0
       }
       if (winOptions?.y && winOptions.y < 0) {
-        winOptions.y = 0
+        ;(winOptions: any).y = 0
       }
 
       let win: HTMLView | TEditor | false
@@ -588,13 +588,13 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       }
       if (useMainWindow) {
         // Split window only available on macOS
-        winOptions.splitView = 'splitView' in opts && NotePlan.environment.platform === 'macOS' ? opts.splitView : false
-        winOptions.icon = 'icon' in opts ? opts.icon : ''
-        winOptions.iconColor = 'iconColor' in opts ? opts.iconColor : ''
-        winOptions.autoTopPadding = 'autoTopPadding' in opts ? opts.autoTopPadding : true
-        winOptions.showReloadButton = 'showReloadButton' in opts ? opts.showReloadButton : false
-        winOptions.reloadPluginID = ("reloadPluginID" in opts) ? opts.reloadPluginID : ''
-        winOptions.reloadCommandName = ("reloadCommandName" in opts) ? opts.reloadCommandName : ''
+        ;(winOptions: any).splitView = 'splitView' in opts && NotePlan.environment.platform === 'macOS' ? opts.splitView : false
+        ;(winOptions: any).icon = 'icon' in opts ? opts.icon : ''
+        ;(winOptions: any).iconColor = 'iconColor' in opts ? opts.iconColor : ''
+        ;(winOptions: any).autoTopPadding = 'autoTopPadding' in opts ? opts.autoTopPadding : true
+        ;(winOptions: any).showReloadButton = 'showReloadButton' in opts ? opts.showReloadButton : false
+        ;(winOptions: any).reloadPluginID = ("reloadPluginID" in opts) ? opts.reloadPluginID : ''
+        ;(winOptions: any).reloadCommandName = ("reloadCommandName" in opts) ? opts.reloadCommandName : ''
 
         // Title must be non-empty: an empty string becomes "Untitled" in NotePlan's main-window chrome.
         // Pass both id and customId so the view reuses sidebarView.windowID when present.

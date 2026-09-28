@@ -14,7 +14,7 @@ type Props = {
   onSearch: (query: string) => void,
 }
 
-const SearchBar = ({ onSearch }: Props): React$Node => {
+const SearchBar = ({ onSearch }: Props): React.Node => {
   //----------------------------------------------------------------------
   //Refs
   //----------------------------------------------------------------------

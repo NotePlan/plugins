@@ -95,6 +95,7 @@ function appendHighlightToNote(outputNote: TNote, highlight: any, category: stri
   if (DataStore.settings.showLinkToHighlight === true) {
     if (category === 'supplemental') {
       linkToHighlightOnWeb = ` [View highlight](${highlight.readwise_url})`
+    // $FlowFixMe[invalid-compare]
     } else if (asin !== null && highlight.location !== null) {
       linkToHighlightOnWeb = ` [Location ${highlight.location}](https://read.amazon.com/?asin=${asin})`
     } else if (highlight.url !== null) {

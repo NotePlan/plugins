@@ -23,7 +23,7 @@ export type IconStyleChooserProps = {
 /**
  * Single-value SearchableChooser for icon style names (solid, light, regular).
  * @param {IconStyleChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function IconStyleChooser({
   label,
@@ -34,7 +34,7 @@ export function IconStyleChooser({
   placeholder = 'Type to search icon styles...',
   width,
   showValue = false,
-}: IconStyleChooserProps): React$Node {
+}: IconStyleChooserProps): React.Node {
   const config: ChooserConfig = useMemo(
     () => ({
       items: ICON_STYLES,

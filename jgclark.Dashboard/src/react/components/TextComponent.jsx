@@ -12,7 +12,7 @@ type TextComponentProps = {
   textType: 'title' | 'description' | 'separator' | 'header',
 };
 
-const TextComponent = ({ label, textType }: TextComponentProps): React$Node => {
+const TextComponent = ({ label, textType }: TextComponentProps): React.Node => {
   switch (textType) {
     case 'title':
       return <div className="dropdown-title">{label}</div>

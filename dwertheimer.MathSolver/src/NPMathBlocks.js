@@ -76,6 +76,7 @@ export function formatOutput(results: Array<LineInfo>, formatTemplate: string = 
   const resultsWithStringValues = results.map((line) => {
     const isPctOf = /(\d*[\.,])?(\d+\s?)(as|as a)?(\s*%)(\s+(of)\s+)(\d*[\.,])?(\d+\s?)/g.test(line.originalText)
     const isZero = line.lineValue === 0 && isLineType(line, ['N', 'S', 'T']) // && !/total/i.test(line.originalText)
+    // $FlowFixMe[invalid-compare]
     const isNotCalc = (String(line.lineValue) === line.expression && !isPctOf) || (Number(line.lineValue) === Number(line.expression) && !Number(line.expression) !== 0)
     const isNumericalAssignment = line.typeOfResult === 'A' && !/(\+|\-|\*|\/)+/.test(line.originalText)
     const isUndefined = line.lineValue === undefined
@@ -108,7 +109,7 @@ export function formatOutput(results: Array<LineInfo>, formatTemplate: string = 
  */
 // export function parseCodeBlocks(): void {
 //   // was: $ReadOnlyArray<$ReadOnly<CodeBlock>>
-//   // $FlowIgnore
+//   // $FlowFixMe
 //   const codeBlocks = getCodeBlocksOfType('math')
 //   if (codeBlocks.length) {
 //     codeBlocks.map((block) => parse(block.text))
@@ -163,6 +164,7 @@ export function annotateResults(note: CoreNoteFields, blockData: $ReadOnly<CodeB
     const paragraph = blockData.paragraphs[i]
     const solverData = results[j]
     paragraph.content = paragraph.content.replace(/(\/\/\=.*)/g, '').trimEnd() //clean every line
+    // $FlowFixMe[constant-condition]
     let shouldPrint = !totalsOnly || (totalsOnly && (solverData.typeOfResult === 'T' || solverData.typeOfResult === 'S'))
     if (debug) {
       shouldPrint = true

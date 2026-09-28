@@ -936,6 +936,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
 
     if (actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
       // doSwitchToPerspective already set firstRun + perspectiveChanging and wiped sections; regenerate next.
+      // $FlowFixMe[constant-condition]
       if (PERSPECTIVE_SWITCH_USES_REPLACE_METHOD) {
         logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling batchReplaceSections (for ${String(enabledSections)}; PERSPECTIVE_SWITCH_USES_REPLACE_METHOD=true) ...`)
         await batchReplaceSections({ ...data, sectionCodes: enabledSections })
@@ -959,6 +960,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     } else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
       // Note: not used by anything, as at 2.4.0.b18
       logDebug('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(allCalendarSectionCodes)}) ..`)
+      // $FlowFixMe[incompatible-type]
       await incrementallyRefreshSomeSections({ ...data, sectionCodes: allCalendarSectionCodes })
     } else if (!actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
       // At least update TB section (if enabled) whenever any other refresh path did not already run; merge TB into existing REFRESH_SECTION_IN_JSON sectionCodes when present

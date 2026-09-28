@@ -119,6 +119,7 @@ function removeEmptySections(note: TNote): number {
       }
       // If we find any non-empty, non-empty-line, non-separator content, mark as having content
       // But don't count headings as content (they are structure, not content)
+      // $FlowFixMe[invalid-compare]
       if (nextPara.type !== 'empty' && nextPara.type !== 'separator' && nextPara.type !== 'title' && nextPara.content.trim() !== '') {
         sectionHasContent = true
         break

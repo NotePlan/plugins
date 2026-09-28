@@ -40,6 +40,7 @@ const createTestGroup = (testModule: { groupName: string, tests: Array<Test> }, 
  * @returns {Array<TestGroup>} An array of test groups with names and test functions.
  */
 export const getTestGroups = (getContext: () => AppContextType): Array<TestGroup> => {
+  // $FlowFixMe[incompatible-type]
   const testGroups = testModules.map((testModule) => createTestGroup(testModule, getContext))
   return testGroups
 }

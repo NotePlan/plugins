@@ -47,7 +47,7 @@ const InputBox = ({
   debounceMs = 500,
   id,
   name,
-}: InputBoxProps): React$Node => {
+}: InputBoxProps): React.Node => {
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
   const [wasFocused, setWasFocused] = useState(false)

@@ -3,7 +3,11 @@
 
 import type { TSettingItem, TDashboardSettings } from '../../../types.js'
 
-const featureFlagSettingDefs = [
+const featureFlagSettingDefs: $ReadOnlyArray<{|
+  key: $Keys<TDashboardSettings>,
+  label: string,
+  description: string,
+|}> = [
   {
     key: 'FFlag_ForceInitialLoadForBrowserDebugging',
     label: 'Force Full Initial Load',

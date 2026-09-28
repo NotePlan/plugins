@@ -201,7 +201,7 @@ export async function insertItemsIntoNote(
         logDebug(pluginJson, `insertItemsIntoNote: folding "${heading}" - isFolded=${String(Editor.isFolded(thePara))}`)
         // Flow limitation, not something a real type can express: testing for the existence of an API *method* trips
         // [method-unbinding] (same as jgclark.NoteHelpers/src/newNote.js:185). The function is not being unbound here.
-        // $FlowIgnore[method-unbinding]
+        // $FlowFixMe[method-unbinding]
         if (Editor.isFolded) {
           // make sure this command exists
           if (!Editor.isFolded(thePara)) {

@@ -161,6 +161,7 @@ function outputDebugData(message: string, renderData: Object = {}): void {
    * @returns {Object} A new object containing only the top-level primitive properties
    */
   const getTopLevelProps = (obj: Object) =>
+    // $FlowFixMe[incompatible-type]
     Object.entries(obj).reduce((acc, [key, value]) => (typeof value !== 'object' || value === null || typeof value === 'function' ? { ...acc, [key]: value } : acc), {})
 
   clo(getTopLevelProps(renderData), `🔍 Templating context object (top level values only) ${message}`)

@@ -49,8 +49,10 @@ function scrollToHeading(headingId: string): void {
         const generatedIdWithoutCounter = generatedId.replace(/-\d+$/, '')
         
         if (
+          // $FlowFixMe[invalid-compare]
           headingEl.id === headingId ||
           generatedId === headingId ||
+          // $FlowFixMe[invalid-compare]
           headingEl.id === idWithoutCounter ||
           generatedIdWithoutCounter === idWithoutCounter
         ) {
@@ -78,6 +80,7 @@ function scrollToHeading(headingId: string): void {
         const generatedIdBase = generatedId.replace(/-\d+$/, '')
         
         // Match if the base IDs match (ignoring counter suffixes)
+        // $FlowFixMe[invalid-compare]
         if (headingEl.id && headingEl.id.replace(/-\d+$/, '') === idBase) {
           element = headingEl
           break
@@ -198,7 +201,7 @@ function scrollToTop(containerRef: React$RefObject<?HTMLDivElement>): void {
   }
 }
 
-export function TableOfContents({ label, description, compactDisplay = false }: TableOfContentsProps): React$Node {
+export function TableOfContents({ label, description, compactDisplay = false }: TableOfContentsProps): React.Node {
   const [headings, setHeadings] = useState<Array<{ id: string, label: string }>>([])
   const containerRef = useRef<?HTMLDivElement>(null)
   const hasScrolledToTopRef = useRef<boolean>(false)

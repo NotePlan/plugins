@@ -18,7 +18,7 @@ type ButtonProps = {
   // param: string,
 }
 
-function CommandButton(inputObj: ButtonProps): React$Node {
+function CommandButton(inputObj: ButtonProps): React.Node {
   const { sendActionToPlugin } = useAppContext()
   const { button, onClick, className } = inputObj
 

@@ -118,6 +118,7 @@ describe('mergeDashboardSettingsForPerspectiveDef', () => {
       isActive: true,
       dashboardSettings: { FFlag_DebugPanel: false, showTodaySection: false },
     }
+    // $FlowFixMe[incompatible-type]
     const merged = mergeDashboardSettingsForPerspectiveDef(perspectiveDef, prev, defaults)
     expect(merged.FFlag_DebugPanel).toBe(true)
     expect(merged.showTodaySection).toBe(false)
@@ -132,6 +133,7 @@ describe('mergeDashboardSettingsForPerspectiveDef', () => {
       isActive: true,
       dashboardSettings: { includedFolders: 'Archive' },
     }
+    // $FlowFixMe[incompatible-type]
     const merged = mergeDashboardSettingsForPerspectiveDef(perspectiveDef, prev, defaults)
     expect(merged.includedReminderLists).toBe('')
     expect(merged.includedFolders).toBe('Archive')
@@ -146,6 +148,7 @@ describe('mergeDashboardSettingsForPerspectiveDef', () => {
       isActive: true,
       dashboardSettings: { includedReminderLists: 'Home, Shopping' },
     }
+    // $FlowFixMe[incompatible-type]
     const merged = mergeDashboardSettingsForPerspectiveDef(perspectiveDef, prev, defaults)
     expect(merged.includedReminderLists).toBe('Home, Shopping')
   })
@@ -161,6 +164,7 @@ describe('getPerspectiveLiveVsSavedDiff', () => {
       dashboardSettings: { ...defaults, FFlag_DebugPanel: false, showQuarterSection: false },
     }
     const live = { ...defaults, FFlag_DebugPanel: true, showQuarterSection: false }
+    // $FlowFixMe[incompatible-type]
     expect(getPerspectiveLiveVsSavedDiff(perspectiveDef, live)).toBeNull()
   })
 })

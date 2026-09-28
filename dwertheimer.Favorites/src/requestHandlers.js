@@ -241,6 +241,7 @@ export async function handleAddFavoriteNote(requestData: Object): Promise<Reques
       // Add frontmatter field
       ensureFrontmatter(note)
       const fm = getFrontmatterAttributes(note)
+      // $FlowFixMe[invalid-compare]
       if (typeof fm === 'object' && fm !== null) {
         fm[favoriteKey] = 'true'
         updateFrontMatterVars(note, fm)
@@ -309,6 +310,7 @@ export async function handleRemoveFavoriteNote(requestData: Object): Promise<Req
     if (favoriteIdentifier.includes('Frontmatter')) {
       // Remove frontmatter field
       const fm = getFrontmatterAttributes(note)
+      // $FlowFixMe[invalid-compare]
       if (typeof fm === 'object' && fm !== null && fm[favoriteKey]) {
         const updatedFm = { ...fm }
         delete updatedFm[favoriteKey]

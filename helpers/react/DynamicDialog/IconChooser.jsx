@@ -25,7 +25,7 @@ export type IconChooserProps = {
  * Single-value SearchableChooser for Font Awesome icon names.
  * Output is short name only (e.g. "circle"), for NotePlan compatibility.
  * @param {IconChooserProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function IconChooser({
   label,
@@ -36,7 +36,7 @@ export function IconChooser({
   placeholder = 'Type to search icons...',
   width,
   showValue = false,
-}: IconChooserProps): React$Node {
+}: IconChooserProps): React.Node {
   const config: ChooserConfig = useMemo(
     () => ({
       items: FA_ICON_NAMES,

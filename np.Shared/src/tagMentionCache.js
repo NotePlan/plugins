@@ -71,6 +71,7 @@ export type TTagMentionCacheProgress = {
 
 export type TTagMentionCacheRegistrations = { [pluginId: string]: Array<string> }
 
+// $FlowFixMe[constant-condition]
 export const WANTED_PARA_TYPES: Array<string> = TAG_CACHE_ONLY_FOR_OPEN_ITEMS ? ['open', 'checklist', 'scheduled', 'checklistScheduled'] : []
 
 export type TagMentionLookupContext = {
@@ -429,6 +430,7 @@ function processNotesForTagMentionCache(
   for (const note of notes) {
     noteCount++
     // Progress updates; hide loading in generateTagMentionCache finally (not here) so multi-batch scans keep one indicator.
+    // $FlowFixMe[constant-condition]
     if (SHOW_PROGRESS_DIALOG && noteCount % 100 === 0) {
       CommandBar.showLoading(true, `Generating tag/mention cache: reading ${noteTypeStr} ${noteCount} / ${notes.length}`, noteCount / notes.length)
     }
@@ -878,6 +880,7 @@ export async function generateTagMentionCache(
     // This is very quick
     const lookupCtx = buildTagMentionLookupContext(wantedItems)
 
+    // $FlowFixMe[constant-condition]
     if (SHOW_PROGRESS_DIALOG) {
       CommandBar.showLoading(true, `Generating tag/mention cache (${String(allCalNotes.length + allRegularNotes.length)} notes) ...`)
       loadingIndicatorShown = true
@@ -963,6 +966,7 @@ export async function generateTagMentionCache(
     }
   } finally {
     tagMentionCacheGenerationInProgress = false
+    // $FlowFixMe[constant-condition]
     if (SHOW_PROGRESS_DIALOG && loadingIndicatorShown) {
       CommandBar.showLoading(false)
     }

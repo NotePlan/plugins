@@ -37,7 +37,7 @@ const TICK_INTERVAL = 15000 // 15 seconds
  * @param {IdleTimerProps} props - Component props.
  * @returns {React.Node} The IdleTimer component.
  */
-function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
+function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React.Node {
   const [lastActivity, setLastActivity] = useState(Date.now())
   const hasCalledTimeoutRef = useRef<boolean>(false)
   const onIdleTimeoutRef = useRef(onIdleTimeout)

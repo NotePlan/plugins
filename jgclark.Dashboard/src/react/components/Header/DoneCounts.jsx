@@ -27,7 +27,7 @@ type Props = {
 // Header Component
 //--------------------------------------------------------------------------
 
-const DoneCounts = ({ totalDoneCount }: Props): React$Node => {
+const DoneCounts = ({ totalDoneCount }: Props): React.Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------

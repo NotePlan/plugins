@@ -31,7 +31,7 @@ export function TemplateJSBlock({
   compactDisplay = false,
   className = '',
   executeTiming = 'after', // Default to executing after form fields render
-}: TemplateJSBlockProps): React$Node {
+}: TemplateJSBlockProps): React.Node {
   const textareaRef = useRef<?HTMLTextAreaElement>(null)
 
   const handleChange = (e: SyntheticInputEvent<HTMLTextAreaElement>) => {

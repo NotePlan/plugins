@@ -30,6 +30,7 @@ function resolveShowFormDateFormat(params: any): string {
   const opts = params.options
   if (opts != null && typeof opts === 'object' && !Array.isArray(opts)) {
     const fmt = opts.dateFormat ?? opts.format
+    // $FlowFixMe[invalid-compare]
     if (typeof fmt === 'string' && fmt.trim() !== '') return fmt.trim()
   }
   if (typeof opts === 'string') {

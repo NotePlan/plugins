@@ -41,6 +41,7 @@ export default class WebModule {
     const resolvedUnits = units === undefined || units === null || units === '' ? undefined : units
     const resolvedLatitude = latitude === undefined || latitude === null ? undefined : latitude
     const resolvedLongitude = longitude === undefined || longitude === null ? undefined : longitude
+    // $FlowFixMe[invalid-compare]
     const resolvedFormat = weatherFormat === undefined || weatherFormat === null || weatherFormat.trim().length === 0 ? undefined : weatherFormat
     return await getNotePlanWeather(resolvedFormat, resolvedUnits, resolvedLatitude, resolvedLongitude)
   }

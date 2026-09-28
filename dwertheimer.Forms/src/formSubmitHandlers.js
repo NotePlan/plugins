@@ -45,6 +45,7 @@ export async function getFormWindowIdForSubmission(data: any): Promise<string> {
   }
 
   // Fallback strategies if windowId not provided or lookup failed
+  // $FlowFixMe[constant-condition]
   if (!windowId) {
     // Strategy 1: Try to find window by looking at all open windows (most reliable for dynamic IDs)
     windowId = findFormWindowId() || WEBVIEW_WINDOW_ID

@@ -764,6 +764,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           note.content = outputArray.join('\n')
           logDebug('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
           // Open the note in a window
+          // $FlowFixMe[constant-condition]
           if (shouldOpen && !isNoteOpenInEditor(note.filename)) {
             logDebug('renderProjectListsMarkdown', `- opening note '${noteTitle}' as the note is not already open.`)
             await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
@@ -802,6 +803,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         logInfo('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
         // Focus the note in an existing split view, or open the note in a new split window (if not already open)
         const possibleThisEditor = getOrOpenEditorFromFilename(note.filename, 'split')
+        // $FlowFixMe[constant-condition]
         if (!possibleThisEditor) {
           logWarn('renderProjectListsMarkdown', `- failed to open note '${noteTitle}' in an Editor`)
         }

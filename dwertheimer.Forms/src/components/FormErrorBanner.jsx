@@ -23,7 +23,7 @@ const FormErrorBanner = ({
   formSubmissionError = '',
   requestFromPlugin,
   onClose,
-}: FormErrorBannerProps): React$Node => {
+}: FormErrorBannerProps): React.Node => {
   // State for rendered markdown HTML and visibility
   const [aiAnalysisHtml, setAiAnalysisHtml] = useState<string>('')
   const [showAiAnalysis, setShowAiAnalysis] = useState<boolean>(false)
@@ -79,6 +79,7 @@ const FormErrorBanner = ({
         formErrorShownRef.current = true
       }
       setShowFormSubmissionError(true)
+    // $FlowFixMe[constant-condition]
     } else if (!formSubmissionError) {
       formErrorShownRef.current = false
       formErrorLastValueRef.current = ''

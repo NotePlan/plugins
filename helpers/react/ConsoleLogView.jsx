@@ -72,6 +72,7 @@ const LogData = ({ data, uniqueKey }: { data: any, uniqueKey: string }) => {
           const keys = Object.keys(item)
           if (Array.isArray(item)) {
             itemName = 'Array'
+          // $FlowFixMe[invalid-compare]
           } else if (typeof item === 'object' && item !== null) {
             if (keys.length === 1) {
               itemName = keys[0]

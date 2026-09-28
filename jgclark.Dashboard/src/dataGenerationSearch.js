@@ -275,6 +275,7 @@ export async function getSavedSearchResults(
     }
 
     if (useDemoData) {
+      // $FlowFixMe[incompatible-type]
       items.push(...savedSearch1.items)
       itemCount = items.length
       searchTermsStr = savedSearch1.name

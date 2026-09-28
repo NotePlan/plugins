@@ -17,7 +17,7 @@ type SwitchProps = {
   className?: string,
 };
 
-const Switch = ({ label, checked, onChange, disabled = false, labelPosition = 'right', description = '', className = '' }: SwitchProps): React$Node => {
+const Switch = ({ label, checked, onChange, disabled = false, labelPosition = 'right', description = '', className = '' }: SwitchProps): React.Node => {
   // logDebug('Switch', `${disabled ? 'DISABLED ' : ''}${checked ? '' : ' NOT'} checked: '${label}'`)
   // FIXME: Why is a tooltip still appearing when description is null?
   return (

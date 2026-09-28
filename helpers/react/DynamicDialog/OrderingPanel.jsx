@@ -38,7 +38,7 @@ const OrderingPanel = ({
   dashboardSettings,
   defaultOrder,
   onSave,
-}: OrderingPanelProps): React$Node => {
+}: OrderingPanelProps): React.Node => {
 
   //----------------------------------------------------------------------
   // Context

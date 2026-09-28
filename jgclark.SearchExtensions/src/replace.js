@@ -315,6 +315,7 @@ export async function replace(
     logDebug(pluginJson, `arg0 -> searchTermArg '${searchTermArg ?? '(not supplied)'}'`)
 
     // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether originatorCommand is not empty
+    // $FlowFixMe[invalid-compare]
     const calledNonInteractively = (searchTermArg !== undefined && searchTermArg !== null)
     logDebug('replace', `- called non-interactively? ${String(calledNonInteractively)}`)
 

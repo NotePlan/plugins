@@ -86,7 +86,7 @@ function resolveValue(
  * Uses an array of { matchTerm, value } pairs; first match wins.
  *
  * @param {ConditionalValuesProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function ConditionalValues({
   label = '',
@@ -102,7 +102,7 @@ export function ConditionalValues({
   showResolvedValue = true,
   disabled = false,
   compactDisplay = false,
-}: ConditionalValuesProps): React$Node {
+}: ConditionalValuesProps): React.Node {
   const computeResolved = useCallback(() => {
     return resolveValue(
       sourceValue,

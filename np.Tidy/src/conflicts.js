@@ -325,6 +325,7 @@ export async function openConflictSideBySide(encodedNoteFilename: string, encode
     }
     // Now open the other one as well in a split
     res = openNoteInNewSplitIfNeeded(copyFilename)
+    // $FlowFixMe[constant-condition]
     if (!res) {
       logError('openConflictSideBySide', `cannot open copy note '${copyFilename}'`)
     }

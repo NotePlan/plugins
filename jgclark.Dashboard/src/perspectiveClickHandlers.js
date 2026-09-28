@@ -147,6 +147,7 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
     dashboardSettings: cleanDashboardSettingsInAPerspective((cleanedLiveSettings: any)),
     isModified: false,
   }
+  // $FlowFixMe[incompatible-type]
   const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
   const res = await saveDashboardPluginSettings({
     ...(await loadDashboardPluginSettings()),
@@ -332,6 +333,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
 export function setDashPerspectiveSettings(newDashboardSettings: TDashboardSettings, perspectiveSettings: TPerspectiveSettings): TPerspectiveSettings {
   logDebug(`setDashPerspectiveSettings`, `Saving new Dashboard settings to "-" perspective, setting isModified and isActive to false for all other perspectives`)
   const dashDef = { name: '-', isActive: true, dashboardSettings: newDashboardSettings, isModified: false }
+  // $FlowFixMe[incompatible-type]
   return replacePerspectiveDef(perspectiveSettings, dashDef).map((p) => (p.name === '-' ? p : { ...p, isModified: false, isActive: false }))
 }
 

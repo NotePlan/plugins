@@ -27,7 +27,7 @@ export type TemplateTagEditorProps = {
   fields?: Array<{ key: string, label: string }>, // For displaying field labels
   className?: string,
   style?: { [key: string]: any },
-  actionButtons?: React$Node, // Buttons to display in the toggle area
+  actionButtons?: React.Node, // Buttons to display in the toggle area
   defaultRawMode?: boolean, // If true, start in raw mode (default: false)
   hideRawToggle?: boolean, // If true, hide the raw mode toggle switch (default: false)
 }
@@ -149,7 +149,7 @@ export function TemplateTagEditor({
   actionButtons,
   defaultRawMode = false,
   hideRawToggle = false,
-}: TemplateTagEditorProps): React$Node {
+}: TemplateTagEditorProps): React.Node {
   const [showRaw, setShowRaw] = useState<boolean>(defaultRawMode)
   const [pills, setPills] = useState<Array<TemplateTagPill>>([])
   const [selectedPillId, setSelectedPillId] = useState<?string>(null)

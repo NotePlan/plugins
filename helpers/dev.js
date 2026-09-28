@@ -230,6 +230,7 @@ export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<s
     }
 
     return differences.length > 0 ? differences : null
+  // $FlowFixMe[invalid-compare]
   } else if (typeof newObj === 'object' && newObj !== null) {
     if (typeof oldObj !== 'object' || oldObj === null) {
       logDiffDetails && logDebug('compareObjects', 'Changed from non-object to object.')
@@ -283,6 +284,7 @@ export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<s
  * @param {string} path The base path to the property being compared.
  */
 export function deepCompare(value1: any, value2: any, path: string): void {
+  // $FlowFixMe[constant-condition]
   if (isObject(value1) && isObject(value2)) {
     const keys1 = Object.keys(value1)
     const keys2 = Object.keys(value2)
@@ -317,12 +319,14 @@ function getObjectDiff(obj1: any, obj2: any): DiffObject | null {
     const val2 = obj2[key]
 
     if (!isEqual(val1, val2)) {
+      // $FlowFixMe[constant-condition]
       if (isObject(val1) && isObject(val2) && !isArray(val1) && !isArray(val2)) {
         // Recursively find differences in nested objects
         const nestedDiff = getObjectDiff(val1, val2)
         if (nestedDiff !== null) {
           diff[key] = nestedDiff
         }
+      // $FlowFixMe[constant-condition]
       } else if (isArray(val1) && isArray(val2)) {
         // Handle arrays
         const arrayDiff = getArrayDiff(val1, val2)
@@ -358,6 +362,7 @@ function getArrayDiff(arr1: Array<any>, arr2: Array<any>): DiffArray | null {
     const item2 = arr2[i]
 
     if (!isEqual(item1, item2)) {
+      // $FlowFixMe[constant-condition]
       if (isObject(item1) && isObject(item2)) {
         const nestedDiff = getObjectDiff(item1, item2)
         if (nestedDiff !== null) {
@@ -386,8 +391,10 @@ function getArrayDiff(arr1: Array<any>, arr2: Array<any>): DiffArray | null {
  * @usage const differences = getDiff(obj1, obj2);
  */
 export function getDiff(data1: any, data2: any): ?(DiffObject | DiffArray | { before: any, after: any }) {
+  // $FlowFixMe[constant-condition]
   if (isArray(data1) && isArray(data2)) {
     return getArrayDiff(data1, data2)
+  // $FlowFixMe[constant-condition]
   } else if (isObject(data1) && isObject(data2)) {
     return getObjectDiff(data1, data2)
   } else {
@@ -426,6 +433,7 @@ export function clof(obj: any, preamble: string = '', fields: ?Array<string> | s
     }
     logDebug(`${preamble}: vvv`)
     topLevel.forEach((item, i) => {
+      // $FlowFixMe[invalid-compare]
       logDebug(`${preamble}: [${i}]: ${typeof item === 'object' && item !== null ? JSON.stringify(item, null, compactMode ? undefined : 2) : String(item)}`)
     })
     logDebug(`${preamble}: ^^^`)
@@ -460,6 +468,7 @@ export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string
 // `string` is not interchangeable with `mixed` for a writable property.
 export function getAllPropertyNames(inObj: interface { +[string]: mixed }): Array<string> {
   // CRITICAL: Check for null/undefined before processing (typeof null === 'object' in JavaScript!)
+  // $FlowFixMe[invalid-compare]
   if (inObj === null || inObj === undefined) {
     return []
   }
@@ -467,6 +476,7 @@ export function getAllPropertyNames(inObj: interface { +[string]: mixed }): Arra
   const props = []
   do {
     // Additional null check in the loop (Object.getPrototypeOf(null) can cause issues)
+    // $FlowFixMe[invalid-compare]
     if (obj === null || obj === undefined) {
       break
     }
@@ -475,6 +485,7 @@ export function getAllPropertyNames(inObj: interface { +[string]: mixed }): Arra
         props.push(prop)
       }
     })
+  // $FlowFixMe[invalid-compare]
   } while ((obj = Object.getPrototypeOf(obj)) && obj !== null)
   return props
 }
@@ -526,9 +537,11 @@ export function copyObject(obj: any): any {
  * @return {T|{ [key: string]: any }} The deep copy of the value.
  */
 export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string = null, showIndices: boolean = false): T | { [key: string]: any } {
+  // $FlowFixMe[invalid-compare]
   const propsToInclude = _propsToInclude === [] ? null : typeof _propsToInclude === 'string' ? [_propsToInclude] : _propsToInclude
 
   // Handle null, undefined, and primitive types
+  // $FlowFixMe[invalid-compare]
   if (value === null || typeof value !== 'object') {
     return value
   }

@@ -228,7 +228,7 @@ export function getProjectTypeTagsFromNoteMetadata(note: CoreNoteFields | TNote)
   }
 
   const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-  const frontmatterValue = getFrontmatterAttribute(note, combinedKey)
+  const frontmatterValue = getFrontmatterAttribute((note: any), combinedKey)
   addTags(getHashtagsFromString(String(frontmatterValue ?? '')))
 
   const metadataLineIndex = getProjectMetadataLineIndex(note)

@@ -37,7 +37,7 @@ describe.skip('DropdownMenu Component', () => {
     onSaveChanges: jest.fn<Array<any>, any>(),
     iconClass: 'fa-solid fa-filter',
     className: '',
-    labelPosition: 'right',
+    labelPosition: ('right': 'left' | 'right'),
     isOpen: false,
     toggleMenu: jest.fn<Array<any>, any>(),
   }

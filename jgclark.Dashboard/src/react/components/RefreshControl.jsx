@@ -21,9 +21,9 @@ type Props = {
  * Otherwise, displays a refresh button.
  *
  * @param {Props} props - The props object containing plugin data and event handlers.
- * @returns {React$Node} - The spinner or button component based on the refreshing state.
+ * @returns {React.Node} - The spinner or button component based on the refreshing state.
  */
-const RefreshControl = (props: Props): React$Node => {
+const RefreshControl = (props: Props): React.Node => {
   const { refreshing, firstRun, handleRefreshClick } = props
   const refreshTitle = refreshing ? 'Refreshing…' : firstRun ? 'Generating dashboard…' : 'Refresh (rebuild data for all enabled sections)'
   return (
@@ -44,5 +44,5 @@ const RefreshControl = (props: Props): React$Node => {
 }
 
 // Following suggested by Cursor to fix the Flow warning
-const MemoizedRefreshControl: React$ComponentType<Props> = React.memo(RefreshControl)
+const MemoizedRefreshControl: React.ComponentType<Props> = React.memo(RefreshControl)
 export default MemoizedRefreshControl

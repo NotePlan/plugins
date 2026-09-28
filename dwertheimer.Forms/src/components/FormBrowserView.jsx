@@ -37,7 +37,7 @@ type FormBrowserViewProps = {
  * FormBrowserView Component
  * Displays a list of template forms in a resizable two-column layout
  * @param {FormBrowserViewProps} props
- * @returns {React$Node}
+ * @returns {React.Node}
  */
 export function FormBrowserView({
   data,
@@ -394,7 +394,7 @@ export function FormBrowserView({
                 item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
                 // Also focus the item for better keyboard navigation
                 // @ts-ignore
-                item.focus()
+                ;(item: any).focus()
               } else {
                 logDebug('FormBrowserView', `handleKeyDown ArrowDown: could not find item with data-index="${newIndex}"`)
               }
@@ -421,7 +421,7 @@ export function FormBrowserView({
                 item.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
                 // Also focus the item for better keyboard navigation
                 // @ts-ignore
-                item.focus()
+                ;(item: any).focus()
               } else {
                 logDebug('FormBrowserView', `handleKeyDown ArrowUp: could not find item with data-index="${newIndex}"`)
               }
@@ -475,7 +475,7 @@ export function FormBrowserView({
             if (firstItem) {
               logDebug('FormBrowserView', `handleFilterKeyDown ArrowDown: found first item, focusing it`)
               // @ts-ignore
-              firstItem.focus()
+              ;(firstItem: any).focus()
             } else {
               logDebug('FormBrowserView', `handleFilterKeyDown ArrowDown: could not find first item`)
             }
@@ -494,7 +494,7 @@ export function FormBrowserView({
             if (firstItem) {
               logDebug('FormBrowserView', `handleFilterKeyDown Tab: found first item, focusing it`)
               // @ts-ignore
-              firstItem.focus()
+              ;(firstItem: any).focus()
             } else {
               logDebug('FormBrowserView', `handleFilterKeyDown Tab: could not find first item`)
             }
@@ -552,6 +552,7 @@ export function FormBrowserView({
         }
       }
 
+      // $FlowFixMe[constant-condition]
       if (!requestFromPlugin) {
         setIsSubmitting(false)
         return
@@ -617,6 +618,7 @@ export function FormBrowserView({
             successMessage = `Form submitted successfully. Note "${responseData.noteTitle}" has been ${action}.`
 
             setTimeout(() => {
+              // $FlowFixMe[constant-condition]
               if (requestFromPlugin) {
                 requestFromPlugin('openNote', {
                   noteTitle: responseData.noteTitle,
@@ -685,6 +687,7 @@ export function FormBrowserView({
         return
       }
 
+      // $FlowFixMe[constant-condition]
       if (!requestFromPlugin) {
         logError('FormBrowserView', 'requestFromPlugin is not available')
         return
@@ -721,6 +724,7 @@ export function FormBrowserView({
   const handleEditForm = useCallback(
     (template: FormTemplate, e: any) => {
       e.stopPropagation() // Prevent triggering template selection
+      // $FlowFixMe[constant-condition]
       if (requestFromPlugin) {
         // Open FormBuilder with the template title
         // The receivingTemplateTitle will be read from the note's frontmatter by openFormBuilder

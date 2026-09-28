@@ -142,6 +142,7 @@ function scanTaskCompletionsSync(
     // let projectDataArray = Object.entries(dateCounterObj)
     let totalProjectDone = 0
     for (const item of dateCounterMap) {
+      // $FlowFixMe[invalid-compare]
       if (!isNaN(item[1]) && item[1] !== '') {
         totalProjectDone += Number(item[1])
       }
@@ -318,6 +319,7 @@ export async function generateTaskCompletionStats(
     let totalCalendarDone = 0
     let interimTotal = 0
     for (const item of dateCounterMap) {
+      // $FlowFixMe[invalid-compare]
       if (!isNaN(item[1]) && item[1] !== '') {
         interimTotal += Number(item[1])
       }

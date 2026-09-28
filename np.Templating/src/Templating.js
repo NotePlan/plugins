@@ -661,6 +661,7 @@ export async function templateWeather(): Promise<void> {
     let weatherFormat = (templateConfig && templateConfig.weatherFormat) || ''
     weatherFormat = weatherFormat.length === 0 && templateConfig?.weatherFormat?.length > 0 ? templateConfig?.weatherFormat : weatherFormat
 
+    // $FlowFixMe[invalid-compare]
     const resolvedFormat = weatherFormat === undefined || weatherFormat === null || weatherFormat.trim().length === 0 ? undefined : weatherFormat
     const weather = await getNotePlanWeather(resolvedFormat, null, null, null)
 
@@ -727,6 +728,7 @@ export async function templateRunner(...args: Array<string>): Promise<string | v
     const startTime = new Date()
     if (args.length > 0) {
       const passedVariables = args[2]
+      // $FlowFixMe[invalid-compare]
       const passedVariableSummary = typeof passedVariables === 'object' && passedVariables !== null ? `keys: ${Object.keys(passedVariables).join(', ') || '(none)'}` : `length: ${String(passedVariables || '').length}`
       logInfo(
         pluginJson,
@@ -738,6 +740,7 @@ export async function templateRunner(...args: Array<string>): Promise<string | v
         logInfo(
           `templateRunner: No template name was provided to the templateRunner. Value was:"${args[0]}". This could be ok if you are calling from code, but check your x-callback-url or calling function to ensure you are passing the template name.`,
         )
+      // $FlowFixMe[invalid-compare]
       if (args[1] === undefined || args[1] === null || !['false', 'true', false, true].includes(args[1]))
         logInfo(
           `templateRunner: No openInEditor flag was provided to the templateRunner. Will default to false. Value was: ${args[1]}. Check your x-callback-url or calling function.`,
@@ -746,6 +749,7 @@ export async function templateRunner(...args: Array<string>): Promise<string | v
         logInfo(
           `templateRunner: No templaterunner variables were provided to the templateRunner. Value was: ${args[2]}. This may be ok if your template does not need variables, but is obviously a problem if it does. Check your x-callback-url or calling function.`,
         )
+      // $FlowFixMe[invalid-compare]
       const result = await templateFileByTitle(args[0], args[1] === 'true' || args[1] === true, args.length > 2 ? args[2] : '')
       logDebug(`Total templateRunner time: ${timer(startTime)}`)
       return result

@@ -134,6 +134,7 @@ export const createTrackingExpenseRowWithConfig = (row: ExpenseTrackingRow, conf
             return format(((entry[1]: any): Date), config.dateFormat)
           }
           if (typeof entry[1] === 'number' && config.amountFormat === 'full') {
+            // $FlowFixMe[incompatible-type]
             return entry[1].toLocaleString(undefined, fullAmountConfig)
           }
           return entry[1]
@@ -156,6 +157,7 @@ export const createAggregationExpenseRowWithDelimiter = (row: ExpenseAggregateRo
         .filter(entry => entry[0] === col)
         .map(entry => {
           if (typeof entry[1] === 'number' && entry[0] === 'amount' && config.amountFormat === 'full') {
+            // $FlowFixMe[incompatible-type]
             return entry[1].toLocaleString(undefined, fullAmountConfig)
           }
           return entry[1]

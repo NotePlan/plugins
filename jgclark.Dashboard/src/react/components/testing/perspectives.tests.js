@@ -119,6 +119,7 @@ export default {
           // Wait for the perspective to be available in the context
           await waitFor(
             () => {
+              // $FlowFixMe[invalid-compare]
               const availablePerspective = getContext().perspectiveSettings.find((p) => p.name === perspectiveName && p.lastModified === now)
               if (!availablePerspective) console.log(`Not yet available: perspectiveSettings:`, getContext().perspectiveSettings)
               return availablePerspective !== undefined
@@ -178,6 +179,7 @@ export default {
           const newDashboardSettings = { ...getContext().dashboardSettings, excludedFolders: `set by test ${now}`, lastChange: 'Random Change' }
           getContext().dispatchDashboardSettings({
             type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
+            // $FlowFixMe[incompatible-type]
             payload: newDashboardSettings,
             reason: 'Making any change to get perspective to be modified',
           })

@@ -1607,7 +1607,7 @@ export function getDateOptions(): $ReadOnlyArray<{ label: string, value: string 
   // const result = formatISO(new Date(2019, 8, 18, 19, 0, 52), { representation: 'date' })
   // d: dateObj, l: label, f: format, v: value
   const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
-  const formats = {
+  const formats: { [string]: string } = {
     withDay: ' (EEE, yyyy-MM-dd)',
     parensNoDay: ' (yyyy-MM-dd)',
     noDay: 'yyyy-MM-dd',
@@ -1641,8 +1641,8 @@ export function getDateOptions(): $ReadOnlyArray<{ label: string, value: string 
   inputs = [...inputs, ...next7days.map((day) => ({ l: format(day, 'eeee'), d: day, lf: 'parensNoDay', vf: 'arrowDay' }))]
 
   const options = inputs.map((i) => ({
-    label: `${i['l']} ${format(i['d'], formats[i['lf']])}`,
-    value: format(i['d'], formats[i['vf']]),
+    label: `${i.l} ${format(i.d, formats[i.lf])}`,
+    value: format(i.d, formats[i.vf]),
   }))
   return options
 }

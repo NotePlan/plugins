@@ -43,7 +43,7 @@ type PerspectiveSettingsProps = {
 // PerspectiveSettings Component Definition
 //----------------------------------------------------------
 
-const PerspectiveSettings = ({ handleFieldChange, className = '' }: PerspectiveSettingsProps): React$Node => {
+const PerspectiveSettings = ({ handleFieldChange, className = '' }: PerspectiveSettingsProps): React.Node => {
   try {
     //----------------------------------------------------------------------
     // Context

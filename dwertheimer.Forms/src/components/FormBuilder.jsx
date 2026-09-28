@@ -380,6 +380,7 @@ You can edit or delete this comment field - it's just a note to help you get sta
     prevReceivingTemplateTitlePropRef.current = receivingTemplateTitle
     if (receivingTemplateTitle && receivingTemplateTitle !== prevProp) {
       pendingReceivingTemplateTitleRef.current = null
+      // $FlowFixMe[constant-condition]
       const cleanedReceivingTemplateTitle = stripDoubleQuotes(receivingTemplateTitle || '') || ''
       setFrontmatter((prev) => ({
         ...prev,

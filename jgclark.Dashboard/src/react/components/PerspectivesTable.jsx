@@ -30,7 +30,7 @@ type PerspectivesTableProps = {
   labelPosition?: 'left' | 'right',
 }
 
-const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelPosition = 'right' }: PerspectivesTableProps): React$Node => {
+const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelPosition = 'right' }: PerspectivesTableProps): React.Node => {
   //----------------------------------------------------------------------
   // State
   //----------------------------------------------------------------------
@@ -249,7 +249,7 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
                         <td key={`cell-${settingIndex}-${perspectiveIndex}`} className="setting-cell">
                           {renderItem({
                             index: settingIndex,
-                            // $FlowIgnore[incompatible-call] item.type can be one of the Dashboard-only values ('header' | 'perspectiveList' | 'teamspace-multiselect') that DynamicDialog's TSettingItemType doesn't list yet -- see TODO in types.js
+                            // $FlowFixMe[incompatible-type] item.type can be one of the Dashboard-only values ('header' | 'perspectiveList' | 'teamspace-multiselect') that DynamicDialog's TSettingItemType doesn't list yet -- see TODO in types.js
                             item: item,
                             labelPosition: labelPosition,
                             handleFieldChange: (key, val) => handleFieldChange(perspectiveIndex, key, val),

@@ -80,7 +80,7 @@ export const noteIconsToUse: Array<TFolderIcon> = [
  */
 function makeNoteListPlaceholder(title: string, type: NoteType, changedDate?: Date): TNote {
   const stub = changedDate ? { title, type, changedDate } : { title, type }
-  // $FlowIgnore[prop-missing] deliberate partial stub, as described above: there is no real type for it
+  // $FlowFixMe[incompatible-type] deliberate partial stub, as described above: there is no real type for it
   return stub
 }
 
@@ -1198,6 +1198,7 @@ export function findNotesMatchingHashtagOrMention(
       const removedItems = notesWithItem.length - notesWithItemWithoutExclusion.length
       if (removedItems > 0) {
         logDebug('NPnote/findNotesMatchingHashtagOrMention', `- but removed ${removedItems} excluded notes:`)
+        // $FlowFixMe[incompatible-type]
         logDebug('NPnote/findNotesMatchingHashtagOrMention', `= ${String(notesWithItem.filter((n) => n.hashtags.includes(itemsToExclude)).map((m) => m.title))}`)
       }
       return notesWithItemWithoutExclusion

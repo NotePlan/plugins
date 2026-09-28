@@ -26,6 +26,7 @@ if (OVERRIDE_FETCH) {
  * const result = await fetch('http://xxx.com/api', { body: 'has foo and also has the word bar in it' }) // returns 'fake server response here' (the response text)
  */
 export class FetchMock {
+  // $FlowFixMe[incompatible-type]
   responses: Array<FetchMockResponse> = [defaultResponse]
   constructor(mockResponses: Array<FetchMockResponse>) {
     if (mockResponses && !Array.isArray(mockResponses)) throw new Error('Fetch constructor requires an array of mock responses')

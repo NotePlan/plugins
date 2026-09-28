@@ -315,6 +315,7 @@ const useSectionSortAndFilter = (
             message: `Showing all ${typeWantedItems.length} items (click to filter by priority)`
           }
           // logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
+          // $FlowFixMe[incompatible-type]
           specialMessageItems.unshift(messageItem)
         }
       } else {
@@ -327,6 +328,7 @@ const useSectionSortAndFilter = (
               } currently hidden (click to show all)`,
           }
           // logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
+          // $FlowFixMe[incompatible-type]
           specialMessageItems.unshift(messageItem)
         }
       }

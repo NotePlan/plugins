@@ -20,6 +20,7 @@ function setTasks(dir: ?string) {
   paragraphs.forEach((para, i) => {
     logDebug(`${i}: ${para.type} ${para.content} ${para.type === find ? `>> SETTING TO: ${setVal}` : ''}`)
     if (para.type === find) {
+      // $FlowFixMe[incompatible-type]
       para.type = setVal
     }
     if (dir === 'openToday' && para.type === 'open') {

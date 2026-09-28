@@ -65,7 +65,7 @@ const formatNameWithStarIfModified = (
 //--------------------------------------------------------------------------
 // PerspectiveSelector Component Definition
 //--------------------------------------------------------------------------
-const PerspectiveSelector = (): React$Node => {
+const PerspectiveSelector = (): React.Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
@@ -477,7 +477,9 @@ const PerspectiveSelector = (): React$Node => {
 
   return (
     <DropdownSelect
+      // $FlowFixMe[incompatible-type]
       styles={customStyles}
+      // $FlowFixMe[incompatible-type]
       options={perspectiveNameOptions.map((option) => (option.value === 'separator' ? { ...option, label: '', component: <div style={customStyles.separator}></div> } : option))}
       controlledValue={selectedValue}
       onChange={(handlePerspectiveChange: any)}

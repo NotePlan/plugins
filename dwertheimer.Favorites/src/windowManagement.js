@@ -66,6 +66,7 @@ export function getPluginData(showFloating: boolean, windowId: string): { [strin
     groupByFolder: DataStore.settings.groupFavoritesByFolder === true, // user's default for the Notes list "group by folder" toggle
   }
 
+  // $FlowFixMe[incompatible-type]
   return pluginData
 }
 
