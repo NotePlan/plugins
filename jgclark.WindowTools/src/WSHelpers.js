@@ -103,6 +103,7 @@ export type WindowSetsConfig = {
   defaultMainSidebarWidth: ?number, // only valid for macOS
   defaultEditorWidth: ?number, // only valid for macOS
   useSmartPlacement: boolean, // only valid for macOS
+  windowGap: ?number, // pixels between a new floating window and the windows it is placed beside
   _logDebug: string,
   comment?: string, // written into a superseded plugin's settings.json by getPluginSettings() to mark it as old
 }
@@ -150,6 +151,7 @@ export async function getPluginSettings(): Promise<WindowSetsConfig> {
       defaultMainSidebarWidth: 250,
       defaultEditorWidth: 500,
       useSmartPlacement: true,
+      windowGap: 10,
       _logDebug: 'DEBUG',
     } // for completeness
   }
@@ -675,7 +677,7 @@ export function formRectFromWindowDetails(winDetails: EditorWinDetails | HTMLWin
   if (x !== winDetails.x || y !== winDetails.y || width !== winDetails.width || height !== winDetails.height) {
     logWarn('formRectFromWindowDetails', `- some rect definition elements were missing in '${label}', so have fallen back to defaults. Please check your Window Set definitions.`)
   }
-  return { x: winDetails.x, y: winDetails.y, width: winDetails.width, height: winDetails.height }
+  return { x, y, width, height }
 }
 
 /**

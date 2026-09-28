@@ -4,7 +4,7 @@
 // See also HTMLView for specifics of working in HTML
 // ----------------------------------------------------------------------------
 
-import { getOpenEditorFromFilename, getLastOpenedOpenEditorFromFilename } from './NPEditorBasics'
+import { getLastOpenedOpenEditorFromFilename } from './NPEditorBasics'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 import { usersVersionHas } from '@helpers/NPVersions'
@@ -21,6 +21,34 @@ export type TWindowType = 'Editor' | 'HTMLView' | 'FolderView'
 
 const MIN_WINDOW_WIDTH = 300
 const MIN_WINDOW_HEIGHT = 430
+const DEFAULT_FLOATING_WINDOW_WIDTH = 500
+const DEFAULT_WINDOW_GAP = 10
+const PLACEMENT_SCAN_STEP = 50
+
+/**
+ * Width used for a new floating window. 0 or a non-finite value means the default 500px.
+ * @param {number} requestedWidth
+ * @returns {number}
+ */
+function placementWidth(requestedWidth: number): number {
+  return (Number.isFinite(requestedWidth) && requestedWidth > 0) ? requestedWidth : DEFAULT_FLOATING_WINDOW_WIDTH
+}
+
+/**
+ * Pixels left between a new window and the windows it is placed beside.
+ * A missing value uses 10px. A negative value means no gap.
+ * @param {?number} requestedGap
+ * @returns {number}
+ */
+function placementGap(requestedGap: ?number): number {
+  if (requestedGap == null || !Number.isFinite(requestedGap)) {
+    return DEFAULT_WINDOW_GAP
+  }
+  if (requestedGap < 0) {
+    return 0
+  }
+  return requestedGap
+}
 
 // ----------------------------------------------------------------------------
 // Functions
@@ -105,29 +133,49 @@ export async function setEditorWidth(widthIn?: number, mainSidebarWidth?: number
 }
 
 /**
- * WARNING: this doesn't seem to work in practice. Only works for the main Editor window, and not for split windows.
  * Set the width of an open Editor split window.
+ * WARNING: this doesn't fully work in practice. Only works for the main Editor window, and not for split windows.
+ * An omitted argument asks the user, except when only one Editor is open: that pane is used and the editor-number prompt is skipped. A passed 0 is a real value: editor index 0 is the first open editor.
+ * If editorWinIn is omitted and more than one Editor is open, the prompt accepts an editor index from 0 through the last open editor. Cancelling, or an answer outside that range, stops the function.
+ * If widthIn is omitted, the prompt accepts a width from 300px through the screen width. Cancelling, or an answer outside that range, stops the function.
  * @author @jgclark
-
- * @param {number?} editorWinIn - index into open .editors array
- * @param {number?} widthIn - width to set
+ *
+ * @param {number?} editorWinIn - index into the open .editors array. If omitted and more than one Editor is open, the user is asked for an index from 0 to the last open editor. If only one Editor is open, that pane is used.
+ * @param {number?} widthIn - width to set, in px. If omitted, the user is asked for a width from 300 to the screen width.
  */
 export async function setEditorSplitWidth(editorWinIn?: number, widthIn?: number): Promise<void> {
   try {
-    const editorWinIndex = editorWinIn
-      ? editorWinIn
-      : await inputIntegerBounded('Set Width', `Which open Editor number to set width for? (0-${String(NotePlan.editors.length - 1)})`, NotePlan.editors.length - 1, 0)
+    let editorWinIndex: number
+    if (editorWinIn != null) {
+      editorWinIndex = editorWinIn
+    } else {
+      const editorCount = NotePlan.editors?.length ?? 0
+      if (editorCount < 1) {
+        logWarn('setEditorSplitWidth', `No open Editor windows, so will stop.`)
+        return
+      }
+      if (editorCount === 1) {
+        editorWinIndex = 0
+        logDebug('setEditorSplitWidth', `Only 1 open Editor, so will use editor #0`)
+      } else {
+        editorWinIndex = await inputIntegerBounded('Set Width', `Which open Editor number to set width for? (0-${String(editorCount - 1)})`, editorCount - 1, 0)
+        if (isNaN(editorWinIndex)) {
+          logWarn('setEditorSplitWidth', `User didn't provide an editor number, so will stop.`)
+          return
+        }
+      }
+    }
     const editorWin = NotePlan.editors[editorWinIndex]
     logDebug('setEditorSplitWidth', `- ew#${String(editorWinIndex)} currently Rect: ${rectToString(editorWin.windowRect)}`)
     const thisWindowRect = getLiveWindowRectFromWin(editorWin)
     if (!thisWindowRect) {
-      logError('setEditorSplitWidth', `Can't get window rect for editor ${String(editorWinIn)}`)
+      logError('setEditorSplitWidth', `Can't get window rect for editor ${String(editorWinIndex)}`)
       return
     }
 
-    const width = widthIn
-      ? widthIn
-      : await inputIntegerBounded('Set Width', `Width? (300-${String(NotePlan.environment.screenWidth)})`, NotePlan.environment.screenWidth, 300)
+    const width = widthIn == null
+      ? await inputIntegerBounded('Set Width', `Width? (300-${String(NotePlan.environment.screenWidth)})`, NotePlan.environment.screenWidth, 300)
+      : widthIn
     if (isNaN(width)) {
       logWarn('setEditorSplitWidth', `User didn't provide a width, so will stop.`)
       return
@@ -146,18 +194,67 @@ export async function setEditorSplitWidth(editorWinIn?: number, widthIn?: number
 }
 
 /**
- * Set the width of all main + split windows to the given width.
- * @param {number} width to set (px)
+ * Width of the main sidebar when it is open. A collapsed sidebar, or NotePlan before sidebar control, counts as 0.
+ * getSidebarWidth() still returns a number when the sidebar is hidden, so visibility has to be checked separately.
+ * @returns {number}
+ */
+function openMainSidebarWidth(): number {
+  if (!usersVersionHas('mainSidebarControl') || NotePlan.isSidebarCollapsed()) {
+    return 0
+  }
+  const sidebarWidth = NotePlan.getSidebarWidth()
+  return Number.isFinite(sidebarWidth) ? sidebarWidth : 0
+}
+
+/**
+ * Set each main and split pane to the given width.
+ * A split's windowRect.width is that pane. The main Editor's windowRect.width is the whole window: the open sidebar plus every pane.
+ * The main window is therefore set to (open sidebar width) + (pane count * width), and capped to the screen width.
+ * Splits are set first. The main window is set last, because that is the width NotePlan actually applies.
+ * @param {number} width pane width to set (px)
  * @author @jgclark
  */
 export async function setAllMainAndSplitWindowWidths(width: number): Promise<void> {
-  logDebug('setAllMainAndSplitWindowWidths', `Attempting to set width for all split windows to ${String(width)}px`)
-  for (let i = 0; i < NotePlan.editors.length; i++) {
-    const editor = NotePlan.editors[i]
-    if (editor.windowType !== 'floating') {
-      logDebug('setAllMainAndSplitWindowWidths', `- setting width for split window #${String(i)} to ${String(width)}px`)
+  try {
+    const editors = NotePlan.editors ?? []
+    const paneIndexes = []
+    let frameIndex = -1
+    for (let i = 0; i < editors.length; i++) {
+      if (editors[i].windowType === 'floating') {
+        continue
+      }
+      paneIndexes.push(i)
+      if (editors[i].windowType === 'main') {
+        frameIndex = i
+      }
+    }
+    // If nothing is labelled main, the first non-floating editor is the whole window.
+    if (frameIndex < 0 && paneIndexes.length > 0) {
+      frameIndex = paneIndexes[0]
+    }
+
+    const sidebarWidth = openMainSidebarWidth()
+    let mainWindowWidth = sidebarWidth + (paneIndexes.length * width)
+    const screenWidth = NotePlan.environment.screenWidth
+    if (Number.isFinite(screenWidth) && mainWindowWidth > screenWidth) {
+      logDebug('setAllMainAndSplitWindowWidths', `- Main window width ${String(mainWindowWidth)}px is wider than the screen ${String(screenWidth)}px, so will cap it.`)
+      mainWindowWidth = screenWidth
+    }
+    logDebug('setAllMainAndSplitWindowWidths', `Pane width ${String(width)}px, open sidebar ${String(sidebarWidth)}px, ${String(paneIndexes.length)} panes, main window ${String(mainWindowWidth)}px`)
+
+    for (const i of paneIndexes) {
+      if (i === frameIndex) {
+        continue
+      }
+      logDebug('setAllMainAndSplitWindowWidths', `- setting split window #${String(i)} to ${String(width)}px`)
       await setEditorSplitWidth(i, width)
     }
+    if (frameIndex >= 0) {
+      logDebug('setAllMainAndSplitWindowWidths', `- setting main window #${String(frameIndex)} to ${String(mainWindowWidth)}px (includes open sidebar)`)
+      await setEditorSplitWidth(frameIndex, mainWindowWidth)
+    }
+  } catch (error) {
+    logError('setAllMainAndSplitWindowWidths', error.message)
   }
 }
 
@@ -338,11 +435,19 @@ export function focusHTMLWindowIfAvailable(customId: string): boolean {
  * Position an Editor window at a smart placement on the screen.
  * @param {TEditor} editor - the Editor window to position
  * @param {number} requestedWidth - requested width of the window (if set at zero, treat as if not set)
+ * @param {?number} requestedGap - pixels to leave between this window and others (missing means 10px)
  * @returns {boolean} success?
  */
-function positionEditorWindowWithSmartPlacement(editor: TEditor, requestedWidth: number): boolean {
+function positionEditorWindowWithSmartPlacement(editor: TEditor, requestedWidth: number, requestedGap: ?number): boolean {
   const editorId = editor.id
-  logDebug('positionEditorWindowWithSmartPlacement', `Positioning Editor window '${editorId}' for filename '${editor.filename}' (customId: '${editor.customId}')`)
+  if (editor.windowType === 'main') {
+    logWarn('positionEditorWindowWithSmartPlacement', `Refusing to move or resize the main window '${editorId}' ('${editor.filename ?? ''}')`)
+    return false
+  }
+  logDebug('positionEditorWindowWithSmartPlacement', `Positioning ${editor.windowType ?? 'unknown'} Editor window '${editorId}' for filename '${editor.filename}' (customId: '${editor.customId}', ${rectToString(editor.windowRect)})`)
+
+  // Narrow the main window first when there is no side-by-side gap, so the search below sees the freed space.
+  shrinkMainWindowToDefaultIfNoHorizontalRoom(editorId, requestedWidth, requestedGap)
 
   const currentWindowRect = getLiveWindowRect(editorId)
   if (!currentWindowRect) {
@@ -351,7 +456,7 @@ function positionEditorWindowWithSmartPlacement(editor: TEditor, requestedWidth:
   }
 
   // Calculate the smart location for the new window
-  const newWindowRect = calculateSmartLocation(currentWindowRect, requestedWidth)
+  const newWindowRect = calculateSmartLocation(currentWindowRect, requestedWidth, editorId, requestedGap)
   logDebug('positionEditorWindowWithSmartPlacement', `Calculated smart location for new window -> ${rectToString(newWindowRect)}`)
 
   // Set the window rect for the new window
@@ -365,13 +470,15 @@ function positionEditorWindowWithSmartPlacement(editor: TEditor, requestedWidth:
  * @param {number} width - requested width of the new window (if set at zero, treat as if not set)
  * @param {boolean} onlyIfNotAlreadyOpen - whether to only open the window if it's not already open in one
  * @param {boolean} smartLocation - whether to move window to a smart location on the screen, based on the current NP window size(s), position(s) and the screen area
+ * @param {?number} windowGap - pixels to leave between the new window and others when smart placement is on (missing means 10px)
  * @returns {boolean} success?
  */
 export async function openNoteInNewWindow(
   filename: string,
   width: number,
   onlyIfNotAlreadyOpen: boolean = false,
-  smartLocation: boolean = true): Promise<boolean> {
+  smartLocation: boolean = true,
+  windowGap: ?number = null): Promise<boolean> {
   try {
     // If note is already open, then simply focus it
     if (onlyIfNotAlreadyOpen && isEditorWindowOpen(filename)) {
@@ -384,7 +491,9 @@ export async function openNoteInNewWindow(
       return true
     }
 
-    // Not open, so now open the note in a new floating window
+    // Not open, so now open the note in a new floating window.
+    // Remember which editors already exist: the same note may already be open in the main window.
+    const editorIdsBefore = (NotePlan.editors ?? []).map((editor) => editor.id)
     const res: ?TNote = await Editor.openNoteByFilename(filename, true, 0, 0, false, false)
     if (!res) {
       logWarn('openNoteInNewWindow', `Failed to open floating window '${filename}'`)
@@ -394,11 +503,11 @@ export async function openNoteInNewWindow(
 
     // Position window at smart location if requested
     if (smartLocation) {
-      const thisEditor = getOpenEditorFromFilename(filename)
+      const thisEditor = floatingEditorOpenedSince(filename, editorIdsBefore)
       if (!thisEditor) {
-        throw new Error(`Couldn't find open Editor window for filename '${filename}'`)
+        throw new Error(`Couldn't find the new floating Editor window for filename '${filename}'`)
       }
-      positionEditorWindowWithSmartPlacement(thisEditor, width)
+      positionEditorWindowWithSmartPlacement(thisEditor, width, windowGap)
     }
 
     return true
@@ -408,41 +517,309 @@ export async function openNoteInNewWindow(
   }
 }
 
-/** 
- * Calculate the smart placement for the new window:
- *   - Calculate all the areas of the screen from the existing open Editor and HTML windows.
- *   - Then find the next available area that is big enough for the same height and requested width, that is next to an existing Editor window, but within the screen boundaries.
- * @param {Rect} currenthisWindowRect - the Rect of the current window
- * @param {number} requestedWidth - the requested width of the new window (if set at zero, treat as if not set)
+/**
+ * The floating Editor created by the open that just happened.
+ * An editor that already had this filename, including the main window, is not returned.
+ * @param {string} filename
+ * @param {Array<string>} editorIdsBefore - editor ids from before Editor.openNoteByFilename
+ * @returns {TEditor | false}
+ */
+function floatingEditorOpenedSince(filename: string, editorIdsBefore: Array<string>): TEditor | false {
+  const editors = NotePlan.editors ?? []
+  const newEditors = editors.filter((editor) => editor.filename === filename && editorIdsBefore.indexOf(editor.id) === -1)
+  const newFloating = newEditors.filter((editor) => editor.windowType === 'floating')
+  if (newFloating.length > 0) {
+    const chosen = newFloating[newFloating.length - 1]
+    logDebug('openNoteInNewWindow', `Will position newly opened floating window '${chosen.id}' (${rectToString(chosen.windowRect)})`)
+    return chosen
+  }
+  const newTypes = newEditors.map((editor) => `${editor.id}:${editor.windowType ?? ''}`).join(', ')
+  logWarn('openNoteInNewWindow', `No new floating window for '${filename}'. New editors with that filename: ${newTypes || '(none)'}. Will not move an existing window.`)
+  return false
+}
+
+type PlacementAnchor = {
+  label: string,
+  rect: Rect,
+}
+
+/**
+ * Windows that occupy the screen for smart placement.
+ * The window being moved is excluded. Split panes are excluded because their origin is 0,0 and the main window already covers them.
+ * Hidden plugin windows are excluded when NotePlan reports visibility.
+ * Anchors are ordered: main window, then other floating notes, then visible plugin windows.
+ * @param {string} excludeEditorId
+ * @returns {{ anchors: Array<PlacementAnchor>, skippedSplits: number, skippedHiddenHtml: number }}
+ */
+function collectPlacementAnchors(excludeEditorId: string): { anchors: Array<PlacementAnchor>, skippedSplits: number, skippedHiddenHtml: number } {
+  const anchors: Array<PlacementAnchor> = []
+  const floating: Array<PlacementAnchor> = []
+  let skippedSplits = 0
+  const editors = NotePlan.editors ?? []
+  for (const editor of editors) {
+    const editorLabel = editor.filename ?? editor.id
+    if (excludeEditorId !== '' && editor.id === excludeEditorId) {
+      logDebug('calculateSmartLocation', `Excluding the window just opened ('${editorLabel}') from the search`)
+      continue
+    }
+    if (editor.windowType === 'split') {
+      skippedSplits++
+      continue
+    }
+    if (editor.windowType === 'main') {
+      anchors.push({ label: `main window '${editorLabel}'`, rect: editor.windowRect })
+      continue
+    }
+    if (editor.windowType === 'floating') {
+      floating.push({ label: `floating window '${editorLabel}'`, rect: editor.windowRect })
+      continue
+    }
+    logDebug('calculateSmartLocation', `Skipping editor '${editorLabel}' with windowType '${editor.windowType ?? ''}'`)
+  }
+  anchors.push(...floating)
+
+  let skippedHiddenHtml = 0
+  const checkVisible = usersVersionHas('windowIsVisible')
+  const htmlWindows = NotePlan.htmlWindows ?? []
+  for (const htmlWin of htmlWindows) {
+    const htmlLabel = htmlWin.customId ?? htmlWin.id
+    if (checkVisible && htmlWin.isVisible === false) {
+      skippedHiddenHtml++
+      logDebug('calculateSmartLocation', `Skipping hidden plugin window '${htmlLabel}'`)
+      continue
+    }
+    anchors.push({ label: `plugin window '${htmlLabel}'`, rect: htmlWin.windowRect })
+  }
+  if (skippedSplits > 0) {
+    logDebug('calculateSmartLocation', `Skipped ${String(skippedSplits)} split panes (origin is 0,0, and the main window already covers them)`)
+  }
+  return { anchors, skippedSplits, skippedHiddenHtml }
+}
+
+/**
+ * True when some x-range on screen is at least neededWidth wide and does not overlap any anchor's x-range.
+ * Y is ignored: a window above or below still occupies its horizontal span.
+ * A free span beside another window must also leave `spacing` pixels between them. The screen edge does not need that spacing.
+ * @param {Array<PlacementAnchor>} anchors
+ * @param {number} neededWidth
+ * @param {number} screenWidth
+ * @param {number} spacing
+ * @returns {boolean}
+ */
+function hasHorizontalGapForWidth(anchors: Array<PlacementAnchor>, neededWidth: number, screenWidth: number, spacing: number): boolean {
+  if (!Number.isFinite(screenWidth) || screenWidth <= 0) {
+    logDebug('shrinkMainWindowToDefaultIfNoHorizontalRoom', `Screen width ${String(screenWidth)} is not usable, so this is not treated as a missing horizontal gap`)
+    return true
+  }
+  const intervals: Array<{ left: number, right: number, label: string }> = []
+  for (const anchor of anchors) {
+    const rect = anchor.rect
+    if (!Number.isFinite(rect.x) || !Number.isFinite(rect.width) || rect.width <= 0) {
+      continue
+    }
+    const left = Math.max(0, rect.x)
+    const right = Math.min(screenWidth, rect.x + rect.width)
+    if (right > left) {
+      intervals.push({ left, right, label: anchor.label })
+    }
+  }
+  intervals.sort((a, b) => a.left - b.left)
+  const merged: Array<{ left: number, right: number }> = []
+  for (const interval of intervals) {
+    const last = merged[merged.length - 1]
+    if (!last || interval.left > last.right) {
+      merged.push({ left: interval.left, right: interval.right })
+    } else if (interval.right > last.right) {
+      last.right = interval.right
+    }
+  }
+  // Space beside another window is reserved for the gap. Space against the screen edge is not.
+  function usableSpan(freeStart: number, freeEnd: number): number {
+    const span = freeEnd - freeStart
+    if (span <= 0) {
+      return 0
+    }
+    let reserved = 0
+    if (freeStart > 0) {
+      reserved += spacing
+    }
+    if (freeEnd < screenWidth) {
+      reserved += spacing
+    }
+    const usable = span - reserved
+    return usable > 0 ? usable : 0
+  }
+
+  let cursor = 0
+  let largestGap = 0
+  for (const interval of merged) {
+    const usable = usableSpan(cursor, interval.left)
+    if (usable > largestGap) {
+      largestGap = usable
+    }
+    if (interval.right > cursor) {
+      cursor = interval.right
+    }
+  }
+  const endUsable = usableSpan(cursor, screenWidth)
+  if (endUsable > largestGap) {
+    largestGap = endUsable
+  }
+  const coverage = intervals.map((interval) => `${interval.label} x${String(interval.left)}-${String(interval.right)}`).join('; ')
+  const fits = largestGap >= neededWidth
+  logDebug('shrinkMainWindowToDefaultIfNoHorizontalRoom', `Horizontal coverage: ${coverage || '(none)'}. Largest usable gap ${String(largestGap)}px after leaving ${String(spacing)}px between windows. Need ${String(neededWidth)}px. ${fits ? 'A side-by-side gap exists.' : 'No side-by-side gap.'}`)
+  return fits
+}
+
+/**
+ * When the new window cannot sit beside open windows without sharing their horizontal span, and the main window is wider than its default, narrow the main window to that default.
+ * The default is the open sidebar plus each non-floating pane at the placement width. x, y, and height are left unchanged. The window is not narrowed when it is already at or below that width.
+ * Narrowing moves the right edge left. Floating windows whose left edge was beside that edge are shifted left by the same amount. The window just opened is not shifted.
+ * @param {string} excludeEditorId - the new floating window, which is not an obstacle and is not shifted
+ * @param {number} requestedWidth - placement width (0 means 500px)
+ * @param {?number} requestedGap - pixels to leave between windows (missing means 10px)
+ */
+function shrinkMainWindowToDefaultIfNoHorizontalRoom(excludeEditorId: string, requestedWidth: number, requestedGap: ?number): void {
+  const neededWidth = placementWidth(requestedWidth)
+  const spacing = placementGap(requestedGap)
+  const { anchors } = collectPlacementAnchors(excludeEditorId)
+  const screenWidth = NotePlan.environment.screenWidth
+  if (hasHorizontalGapForWidth(anchors, neededWidth, screenWidth, spacing)) {
+    logDebug('shrinkMainWindowToDefaultIfNoHorizontalRoom', `A horizontal gap fits the new window, so the main window will not be resized`)
+    return
+  }
+
+  const editors = NotePlan.editors ?? []
+  let mainEditor: TEditor | null = null
+  let paneCount = 0
+  for (const editor of editors) {
+    if (editor.windowType === 'main' && mainEditor == null) {
+      mainEditor = editor
+    }
+    if (editor.windowType !== 'floating') {
+      paneCount++
+    }
+  }
+  if (mainEditor == null) {
+    logInfo('shrinkMainWindowToDefaultIfNoHorizontalRoom', `No horizontal gap of ${String(neededWidth)}px, and there is no main window to narrow`)
+    return
+  }
+  if (paneCount < 1) {
+    paneCount = 1
+  }
+  const sidebarWidth = openMainSidebarWidth()
+  const defaultWidth = sidebarWidth + (paneCount * neededWidth)
+  const currentRect = getLiveWindowRectFromWin(mainEditor)
+  if (!currentRect) {
+    logWarn('shrinkMainWindowToDefaultIfNoHorizontalRoom', `No horizontal gap of ${String(neededWidth)}px, but the main window rect could not be read, so it will not be resized`)
+    return
+  }
+  if (!(currentRect.width > defaultWidth)) {
+    logInfo('shrinkMainWindowToDefaultIfNoHorizontalRoom', `No horizontal gap of ${String(neededWidth)}px. Main window is ${String(currentRect.width)}px, which is not wider than the default ${String(defaultWidth)}px (open sidebar ${String(sidebarWidth)}px + ${String(paneCount)} panes at ${String(neededWidth)}px). It will not be resized.`)
+    return
+  }
+
+  const oldRight = currentRect.x + currentRect.width
+  const delta = currentRect.width - defaultWidth
+  const updatedRect: Rect = { x: currentRect.x, y: currentRect.y, width: defaultWidth, height: currentRect.height }
+  mainEditor.windowRect = updatedRect
+  logInfo('shrinkMainWindowToDefaultIfNoHorizontalRoom', `No horizontal gap of ${String(neededWidth)}px. Reduced main window width from ${String(currentRect.width)}px to the default ${String(defaultWidth)}px (open sidebar ${String(sidebarWidth)}px + ${String(paneCount)} panes at ${String(neededWidth)}px). Right edge moved left by ${String(delta)}px. Position otherwise unchanged: ${rectToString(mainEditor.windowRect)}`)
+  shiftFloatingWindowsBesideMovedEdge(oldRight, delta, spacing, excludeEditorId)
+}
+
+/**
+ * Shift floating note windows that were sitting against the main window edge that just moved.
+ * Only the right edge moves, and only leftward, so a window counts as beside it when its left edge is within the placement gap of that old edge (plus 2px for rounding).
+ * Each match moves left by `delta`. Width, height, and y stay the same. The window just opened is left for placement.
+ * @param {number} oldRight - x of the main window's right edge before it was narrowed
+ * @param {number} delta - how far that edge moved left
+ * @param {number} spacing - configured gap between windows
+ * @param {string} excludeEditorId - the new floating window
+ */
+function shiftFloatingWindowsBesideMovedEdge(oldRight: number, delta: number, spacing: number, excludeEditorId: string): void {
+  if (!(delta > 0)) {
+    return
+  }
+  const maxDistance = spacing + 2
+  const editors = NotePlan.editors ?? []
+  let movedCount = 0
+  for (const editor of editors) {
+    if (editor.windowType !== 'floating') {
+      continue
+    }
+    const label = editor.filename ?? editor.id
+    if (excludeEditorId !== '' && editor.id === excludeEditorId) {
+      logDebug('shrinkMainWindowToDefaultIfNoHorizontalRoom', `Not shifting the window just opened ('${label}')`)
+      continue
+    }
+    const rect = getLiveWindowRectFromWin(editor)
+    if (!rect || !Number.isFinite(rect.x)) {
+      logDebug('shrinkMainWindowToDefaultIfNoHorizontalRoom', `Not shifting floating window '${label}': its rect could not be read`)
+      continue
+    }
+    const distance = rect.x - oldRight
+    if (distance < -2 || distance > maxDistance) {
+      logDebug('shrinkMainWindowToDefaultIfNoHorizontalRoom', `Leaving floating window '${label}' at x${String(rect.x)}: its left edge is ${String(distance)}px from the moved edge, and beside means between -2px and ${String(maxDistance)}px`)
+      continue
+    }
+    const updatedRect: Rect = { x: rect.x - delta, y: rect.y, width: rect.width, height: rect.height }
+    editor.windowRect = updatedRect
+    movedCount++
+    logInfo('shrinkMainWindowToDefaultIfNoHorizontalRoom', `Moved floating window '${label}' left by ${String(delta)}px, matching the main window's right edge. It was ${String(distance)}px from that edge. Now ${rectToString(editor.windowRect)}`)
+  }
+  if (movedCount === 0) {
+    logDebug('shrinkMainWindowToDefaultIfNoHorizontalRoom', `No other floating window was beside the main window's right edge, so none were moved`)
+  }
+}
+
+/**
+ * Calculate the smart placement for the new window.
+ * Obstacles are the main window, other floating notes, and visible plugin windows. The window being moved is not an obstacle.
+ * The first gap that fits is used: main window before other windows, and beside each window right, then left, then below, then above.
+ * Screen origin is the bottom-left. Height matches the anchor window. Width is the requested width, or 500px when none was given.
+ * @param {Rect} thisWindowRect - the Rect of the window being moved
+ * @param {number} requestedWidth - the requested width of the new window (0 means use 500px)
+ * @param {string} excludeEditorId - id of the window being moved
+ * @param {?number} requestedGap - pixels to leave between this window and others (missing means 10px)
  * @returns {Rect} the smart location for the new window
  */
-export function calculateSmartLocation(thisWindowRect: Rect, requestedWidth: number): Rect {
-  const allWindows = NotePlan.editors.concat(NotePlan.htmlWindows)
-  const allWindowRects = allWindows.map(win => win.windowRect)
-  const allWindowRectsString = allWindowRects.map(rect => rectToString(rect)).join('\n')
-  logDebug('calculateSmartLocation', `All window rects: ${allWindowRectsString}`)
-  const requestedHeight = thisWindowRect.height
-  const newWindowRect = findNextClosestAvailableArea(allWindowRects, requestedHeight, requestedWidth)
+export function calculateSmartLocation(thisWindowRect: Rect, requestedWidth: number, excludeEditorId: string = '', requestedGap: ?number = null): Rect {
+  const width = placementWidth(requestedWidth)
+  if (!(Number.isFinite(requestedWidth) && requestedWidth > 0)) {
+    logDebug('calculateSmartLocation', `No usable requested width (${String(requestedWidth)}), so will use ${String(DEFAULT_FLOATING_WINDOW_WIDTH)}px`)
+  }
+  const spacing = placementGap(requestedGap)
+  if (requestedGap == null || !Number.isFinite(requestedGap)) {
+    logDebug('calculateSmartLocation', `No usable window gap (${String(requestedGap)}), so will use ${String(DEFAULT_WINDOW_GAP)}px`)
+  }
+  const height = (Number.isFinite(thisWindowRect.height) && thisWindowRect.height > 0) ? thisWindowRect.height : MIN_WINDOW_HEIGHT
+  const { anchors, skippedHiddenHtml } = collectPlacementAnchors(excludeEditorId)
+  const anchorSummary = anchors.map((anchor) => anchor.label).join('; ')
+  logDebug('calculateSmartLocation', `Obstacles: ${anchorSummary || '(none)'}. Skipped ${String(skippedHiddenHtml)} hidden plugin windows. Fallback height from the new window is ${String(height)}px. Window gap is ${String(spacing)}px.`)
+  const newWindowRect = findNextClosestAvailableArea(anchors, height, width, spacing)
   logDebug('calculateSmartLocation', `Calculated smart location: ${rectToString(newWindowRect)}`)
   return newWindowRect
 }
 
 /**
  * Find the next available area that is:
- * - not overlapping with any existing 'allWindowRects'
- * - big enough for the requested height and width
- * - next to an existing Editor window
+ * - not overlapping with any anchor window
+ * - as tall as the anchor window, and the requested width
+ * - beside an anchor, trying the main window first
  * - within the screen boundaries
- * @param {Array<Rect>} allWindowRects - the Rects of the existing open Editor and HTML windows
- * @param {number} requestedHeight - the requested height of the new window
- * @param {number} requestedWidth - the requested width of the new window
+ * Screen origin is the bottom-left. "Below" is toward y=0. "Above" is toward the top of the screen.
+ * @param {Array<PlacementAnchor>} anchors - ordered obstacles: main, then floating notes, then visible plugin windows
+ * @param {number} fallbackHeight - height to use when an anchor has no usable height, and for the screen scan
+ * @param {number} requestedWidth - width of the new window, already resolved to a positive number
+ * @param {number} windowGap - pixels to leave between this window and others
  * @returns {Rect} the next available area
  */
-function findNextClosestAvailableArea(allWindowRects: Array<Rect>, requestedHeight: number, requestedWidth: number): Rect {
+function findNextClosestAvailableArea(anchors: Array<PlacementAnchor>, fallbackHeight: number, requestedWidth: number, windowGap: number): Rect {
   const screenWidth = NotePlan.environment.screenWidth
   const screenHeight = NotePlan.environment.screenHeight
+  const directionOrder = ['right', 'left', 'below', 'above']
 
-  // Helper function to check if two rects overlap
+  // Helper function to check if two rects overlap. Touching edges do not count.
   function rectsOverlap(rect1: Rect, rect2: Rect): boolean {
     return !(
       rect1.x + rect1.width <= rect2.x ||
@@ -462,90 +839,103 @@ function findNextClosestAvailableArea(allWindowRects: Array<Rect>, requestedHeig
     )
   }
 
-  // Helper function to check if a candidate rect overlaps with any existing windows
-  function doesNotOverlapWithExisting(candidateRect: Rect): boolean {
-    for (const existingRect of allWindowRects) {
-      if (rectsOverlap(candidateRect, existingRect)) {
-        return false
+  function firstOverlapLabel(candidateRect: Rect): string {
+    for (const anchor of anchors) {
+      if (rectsOverlap(candidateRect, anchor.rect)) {
+        return anchor.label
       }
     }
-    return true
+    return ''
   }
 
-  // If no existing windows, place in top-left corner
-  if (allWindowRects.length === 0) {
-    return {
-      x: 0,
-      y: 0,
-      width: requestedWidth > 0 ? requestedWidth : screenWidth,
-      height: requestedHeight > 0 ? requestedHeight : screenHeight,
+  // Overlap, or nearer than windowGap. A distance of exactly windowGap is allowed. The screen edge does not need a gap.
+  function blockingReason(candidateRect: Rect): string {
+    const overlapLabel = firstOverlapLabel(candidateRect)
+    if (overlapLabel !== '') {
+      return `overlaps ${overlapLabel}`
+    }
+    if (windowGap <= 0) {
+      return ''
+    }
+    const paddedRect: Rect = {
+      x: candidateRect.x - windowGap,
+      y: candidateRect.y - windowGap,
+      width: candidateRect.width + (windowGap * 2),
+      height: candidateRect.height + (windowGap * 2),
+    }
+    const closeLabel = firstOverlapLabel(paddedRect)
+    if (closeLabel !== '') {
+      return `closer than ${String(windowGap)}px to ${closeLabel}`
+    }
+    return ''
+  }
+
+  function heightForAnchor(anchor: PlacementAnchor): number {
+    if (Number.isFinite(anchor.rect.height) && anchor.rect.height > 0) {
+      return anchor.rect.height
+    }
+    return fallbackHeight
+  }
+
+  // Screen origin is the bottom-left, so "below" uses a smaller y and "above" uses a larger y.
+  function rectBeside(anchor: PlacementAnchor, direction: string, height: number): Rect {
+    const existingRect = anchor.rect
+    if (direction === 'right') {
+      return { x: existingRect.x + existingRect.width + windowGap, y: existingRect.y, width: requestedWidth, height }
+    }
+    if (direction === 'left') {
+      return { x: existingRect.x - requestedWidth - windowGap, y: existingRect.y, width: requestedWidth, height }
+    }
+    if (direction === 'below') {
+      return { x: existingRect.x, y: existingRect.y - height - windowGap, width: requestedWidth, height }
+    }
+    return { x: existingRect.x, y: existingRect.y + existingRect.height + windowGap, width: requestedWidth, height }
+  }
+
+  logDebug('findNextClosestAvailableArea', `Decision rule: first slot that fits. Anchors: main window, then floating notes, then visible plugin windows. Beside each: right, left, below, above, leaving ${String(windowGap)}px between windows.`)
+
+  // If no existing windows, place in the top-left corner
+  if (anchors.length === 0) {
+    const width = Math.min(requestedWidth, screenWidth)
+    const height = Math.min(fallbackHeight, screenHeight)
+    const topLeftRect: Rect = { x: 0, y: Math.max(0, screenHeight - height), width, height }
+    logInfo('findNextClosestAvailableArea', `No other windows, so chose top-left at ${rectToString(topLeftRect)}`)
+    return topLeftRect
+  }
+
+  let rejectedCount = 0
+  for (const anchor of anchors) {
+    const height = heightForAnchor(anchor)
+    for (const direction of directionOrder) {
+      const candidateRect = rectBeside(anchor, direction, height)
+      if (!rectFitsInScreen(candidateRect)) {
+        rejectedCount++
+        logDebug('findNextClosestAvailableArea', `Rejected ${direction} of ${anchor.label}: off screen ${rectToString(candidateRect)}`)
+        continue
+      }
+      const blockReason = blockingReason(candidateRect)
+      if (blockReason !== '') {
+        rejectedCount++
+        logDebug('findNextClosestAvailableArea', `Rejected ${direction} of ${anchor.label}: ${blockReason} (${rectToString(candidateRect)})`)
+        continue
+      }
+      logInfo('findNextClosestAvailableArea', `Chose ${direction} of ${anchor.label} at ${rectToString(candidateRect)}, leaving ${String(windowGap)}px. Height matches that window. Rejected ${String(rejectedCount)} earlier slots.`)
+      return candidateRect
     }
   }
 
-  // Try to place the new window adjacent to each existing window
-  // Priority: right, left, bottom, top
-  const candidatePositions: Array<Rect> = []
-
-  // Helper to create and check a candidate position, pushing to array if valid
-  function tryAddCandidate(rect: Rect, description: string) {
-    if (rectFitsInScreen(rect) && doesNotOverlapWithExisting(rect)) {
-      logDebug('findNextClosestAvailableArea', `Found candidate position ${description}: ${rectToString(rect)}`)
-      candidatePositions.push(rect)
-    }
-  }
-
-  for (const existingRect of allWindowRects) {
-    // Try placing to the right
-    tryAddCandidate({
-      x: existingRect.x + existingRect.width,
-      y: existingRect.y,
-      width: requestedWidth > 0 ? requestedWidth : Math.max(300, screenWidth - (existingRect.x + existingRect.width)),
-      height: requestedHeight > 0 ? requestedHeight : existingRect.height,
-    }, 'to the right')
-
-    // Try placing to the left
-    tryAddCandidate({
-      x: existingRect.x - (requestedWidth > 0 ? requestedWidth : Math.max(300, existingRect.x)),
-      y: existingRect.y,
-      width: requestedWidth > 0 ? requestedWidth : Math.max(300, existingRect.x),
-      height: requestedHeight > 0 ? requestedHeight : existingRect.height,
-    }, 'to the left')
-
-    // Try placing below
-    tryAddCandidate({
-      x: existingRect.x,
-      y: existingRect.y + existingRect.height,
-      width: requestedWidth > 0 ? requestedWidth : existingRect.width,
-      height: requestedHeight > 0 ? requestedHeight : Math.max(300, screenHeight - (existingRect.y + existingRect.height)),
-    }, 'below')
-
-    // Try placing above
-    tryAddCandidate({
-      x: existingRect.x,
-      y: existingRect.y - (requestedHeight > 0 ? requestedHeight : Math.max(300, existingRect.y)),
-      width: requestedWidth > 0 ? requestedWidth : existingRect.width,
-      height: requestedHeight > 0 ? requestedHeight : Math.max(300, existingRect.y),
-    }, 'above')
-  }
-
-  // If we found candidate positions, return the first one
-  if (candidatePositions.length > 0) {
-    logDebug('findNextClosestAvailableArea', `Found ${candidatePositions.length} candidate positions, using first: ${rectToString(candidatePositions[0])}`)
-    return candidatePositions[0]
-  }
-
-  // Helper for fallback scanning
+  // Helper for fallback scanning. y grows upward, so the scan still covers the screen.
   function scanForAvailableRect(minWidth: number, minHeight: number, desc: string): Rect | null {
-    for (let y = 0; y <= screenHeight - minHeight; y += stepSize) {
-      for (let x = 0; x <= screenWidth - minWidth; x += stepSize) {
+    for (let y = 0; y <= screenHeight - minHeight; y += PLACEMENT_SCAN_STEP) {
+      for (let x = 0; x <= screenWidth - minWidth; x += PLACEMENT_SCAN_STEP) {
         const candidateRect: Rect = {
           x,
           y,
           width: minWidth,
           height: minHeight,
         }
-        if (rectFitsInScreen(candidateRect) && doesNotOverlapWithExisting(candidateRect)) {
-          logDebug('findNextClosestAvailableArea', `Found fallback position (${desc}): ${rectToString(candidateRect)}`)
+        if (rectFitsInScreen(candidateRect) && blockingReason(candidateRect) === '') {
+          logInfo('findNextClosestAvailableArea', `Chose scanned gap (${desc}) at ${rectToString(candidateRect)} after no beside-slot fitted`)
           return candidateRect
         }
       }
@@ -555,41 +945,33 @@ function findNextClosestAvailableArea(allWindowRects: Array<Rect>, requestedHeig
 
   // TODO: ideally we would now try to reduce the requested size in steps, down to the minimum size, find any available space on the screen
 
-  // Fallback 1: try to find any available space on the screen
-  logDebug('findNextClosestAvailableArea', `No candidate positions found, trying first fallback`)
-  const stepSize = 50 // Check every 50 pixels
-  let minHeight = requestedHeight > 0 ? requestedHeight : 300
-  let minWidth = requestedWidth > 0 ? requestedWidth : 300
-
-  let fallbackPosition = scanForAvailableRect(
-    requestedWidth > 0 ? requestedWidth : Math.max(300, screenWidth),
-    requestedHeight > 0 ? requestedHeight : Math.max(300, screenHeight),
-    "requested size"
-  )
+  // Fallback 1: try to find any available space on the screen at the requested size
+  logDebug('findNextClosestAvailableArea', `No beside-slot fitted (${String(rejectedCount)} rejected), trying a scan at the requested size`)
+  let minHeight = fallbackHeight
+  let fallbackPosition = scanForAvailableRect(requestedWidth, fallbackHeight, 'requested size')
   if (fallbackPosition) return fallbackPosition
 
   // Fallback 2: reduce from the requested width to minimums, and try to find any available space on the screen
-  logDebug('findNextClosestAvailableArea', `No candidate positions found, trying second fallback (width)`)
-  minWidth = MIN_WINDOW_WIDTH
-  fallbackPosition = scanForAvailableRect(minWidth, minHeight, "minimum width")
+  logDebug('findNextClosestAvailableArea', `No gap at the requested size, trying minimum width ${String(MIN_WINDOW_WIDTH)}px`)
+  fallbackPosition = scanForAvailableRect(MIN_WINDOW_WIDTH, minHeight, 'minimum width')
   if (fallbackPosition) return fallbackPosition
 
   // Fallback 3: reduce from the requested window size to minimums, and try to find any available space on the screen
-  logDebug('findNextClosestAvailableArea', `No candidate positions found, trying third fallback (width+height)`)
+  logDebug('findNextClosestAvailableArea', `No gap at minimum width, trying minimum width and height`)
   minHeight = MIN_WINDOW_HEIGHT
-  minWidth = MIN_WINDOW_WIDTH
-  fallbackPosition = scanForAvailableRect(minWidth, minHeight, "minimum width+height")
+  fallbackPosition = scanForAvailableRect(MIN_WINDOW_WIDTH, minHeight, 'minimum width+height')
   if (fallbackPosition) return fallbackPosition
 
-  // Last resort: place in top-right corner, constrained to screen
-  logDebug('findNextClosestAvailableArea', `No candidate positions found, so will use last resort fallback`)
+  // Last resort: place in the top-right corner, constrained to the screen. This can cover another window.
+  const width = Math.min(requestedWidth, screenWidth)
+  const height = Math.min(fallbackHeight, screenHeight)
   const fallbackRect: Rect = {
-    x: Math.max(0, screenWidth - (requestedWidth > 0 ? requestedWidth : screenWidth)),
-    y: 0,
-    width: requestedWidth > 0 ? Math.min(requestedWidth, screenWidth) : screenWidth,
-    height: requestedHeight > 0 ? Math.min(requestedHeight, screenHeight) : screenHeight,
+    x: Math.max(0, screenWidth - width),
+    y: Math.max(0, screenHeight - height),
+    width,
+    height,
   }
-  logWarn('findNextClosestAvailableArea', `Could not find ideal position, using fallback: ${rectToString(fallbackRect)}`)
+  logWarn('findNextClosestAvailableArea', `No free gap, so chose top-right at ${rectToString(fallbackRect)}. This can cover another window.`)
   return fallbackRect
 }
 

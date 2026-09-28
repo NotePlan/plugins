@@ -50,7 +50,7 @@ export async function openNoteNewWindow(encodedNoteIdentifier: string = ''): Pro
       // From v1.5.0 ...
       // open note, using smart features to place the window on the screen
       if (config.useSmartPlacement) {
-        const res = await openNoteInNewWindow(filename, config.defaultEditorWidth ?? 0, false, true)
+        const res = await openNoteInNewWindow(filename, config.defaultEditorWidth ?? 0, false, true, config.windowGap)
       } else {
         const res = await openNoteInNewWindow(filename, config.defaultEditorWidth ?? 0, true, false)
       }
@@ -153,7 +153,7 @@ export async function openCurrentNoteNewWindow(): Promise<void> {
     // From v1.5.0 ...
     // open note, using smart features to place the window on the screen
     if (config.useSmartPlacement) {
-      const res = await openNoteInNewWindow(filename, config.defaultEditorWidth ?? 0, false, true)
+      const res = await openNoteInNewWindow(filename, config.defaultEditorWidth ?? 0, false, true, config.windowGap)
     } else {
       const res = await openNoteInNewWindow(filename, config.defaultEditorWidth ?? 0, true, false)
     }

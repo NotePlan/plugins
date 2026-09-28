@@ -3,6 +3,20 @@ _Please see the [Plugin documentation](https://noteplan.co/plugins/jgclark.Windo
 
 <!-- - TODO: Extend to deal with closed main sidebars.
 - TODO: Can now save a folder as part of a window set. (Note: not yet a particular 'folder view'.) -->
+
+## [1.5.0.a5] - 2026-09-28
+- New setting **Gap between windows** (default 10px) for **/open note in new window** and **/open current in new window**. Smart placement leaves that space between the new window and the windows it sits beside. 0 places them flush.
+
+## [1.5.0.a4] - 2026-09-28
+- Smart placement for **/open note in new window** and **/open current in new window** now chooses location in the following ways:
+  <!-- - The new window is not treated as an obstacle, and split panes are ignored (their origin is 0,0). -->
+  <!-- - Hidden plugin windows are ignored. -->
+  - The main window is tried first, then other floating notes, then visible plugin windows. Beside each, the order is right, left, below, above. Screen origin is the bottom-left.
+  - The width is your default editor width (500px when unset). The height matches the window it sits beside.
+  - If a new floating window would overlap existing windows horizontally, and the main window is wider than its default, smart placement narrows the main window to that default without moving it. The default is the open sidebar plus each pane at the default editor width.
+  - When smart placement narrows the main window to make room, other floating windows that were next to the right edge that moved are shifted left by the same amount.
+  <!-- - The chosen slot is written to the plugin log, including how many earlier slots were rejected. -->
+
 ## [1.5.0.a3] - 2026-09-25
 - The plugin name is now **Window Tools** (the desktop emoji is replaced by a window icon).
 - Updated names of some other plugin HTML windows
@@ -10,6 +24,12 @@ _Please see the [Plugin documentation](https://noteplan.co/plugins/jgclark.Windo
   - Doing it on one Mac keeps Window Sets for other Macs in the definition note.
   - Saving the definition note updates this Mac's sets even when the previous save was only a few seconds ago. The note is read from its configured folder.
   - If that note's JSON cannot be read, it is left unchanged and a message explains that the saved sets were not updated.
+- A Window Set with a missing x, y, width, or height now uses the fallback size and position, instead of leaving that value empty.
+- **/reset main window** now sets the window to your default widths even when it is currently narrower than that. **/constrain main window** runs only on macOS, and both commands stop when there is no main Editor window.
+- Setting each pane width during **/reset main window** now logs an error and continues, instead of stopping the rest of the command.
+- **/reset main window** no longer asks which Editor to resize. The first pane is index 0, and that was being treated as "not provided."
+- Setting an editor width with only one Editor open uses that pane, and does not ask which editor number.
+- **/reset main window** keeps the open sidebar in the window width. Each pane is set to the pane width, and the main window is set to the sidebar plus those panes.
 
 ## [1.5.0.a2] - 2026-03-06
 - dev: under-the-hood changes to deal with changes in NP's window handling:

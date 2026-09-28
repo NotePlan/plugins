@@ -11,6 +11,17 @@ This plugin gives some tools to help manage NotePlan's windows more easily:
 - **/swap split to main** command (alias: **swap**) swaps the currently-selected split to main, or if no split is currently selected, asks the user which to swap
 - **/reset main window** (alias **rmw**): This resets the main NP window to default widths, including the main (left) sidebar. It will bring as much of the window to be visible on the screen as possible, but will always include the top and left.
 
+### Opening a note in a new window
+With **Use smart placement when opening new windows?** on (the default), **/open note in new window** and **/open current in new window** move the new floating window so it sits beside a window you already have, instead of on top of it.
+
+The search uses the main window, other floating note windows, and visible plugin windows. Split panes are left out, because the main window already covers them. Hidden plugin windows are left out. The new window itself is not treated as something to avoid. Only that new floating window is moved. A copy of the note already open in the main window stays where it is.
+
+It tries the main window first, then the other windows. Beside each one it tries the right, then the left, then below, then above. The screen origin is the bottom-left. The new window uses your **Default editor width** (500px when that is unset) and the height of the window it sits beside. **Gap between windows** (10px by default) is left between it and those windows. The screen edge does not get that gap. The first gap that fits on screen without covering another window is used. If none fit, it looks for any free gap, then a smaller one, and finally places the window at the top-right of the screen.
+
+If there is no free horizontal gap wide enough for that width, and the main window is wider than its default, the main window is narrowed to that default and left where it is. The default is the open sidebar plus each of its panes at the default editor width. It is not narrowed when it is already at or below that width. Narrowing moves the right edge inward. Other floating windows that were sitting against that edge move left by the same amount.
+
+Turn the setting off to leave the window where NotePlan opens it.
+
 Note: this plugin requires NotePlan version 3.9.8 or higher, and parts require v3.19.2.
 
 [<img width="160px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
@@ -54,7 +65,9 @@ Click the gear button on the **Window Tools** line in the Plugin Preferences pan
 - Folder where Window Set definitions are stored: defaults to `@Window Sets`.
 - Save main sidebar width? as part of Window Set definitions
 - Default main sidebar width: used when resetting windows (default is 300px)
-- Default editor width: used when resetting windows (default is 500px)
+- Default editor width: used when resetting windows, and as the width of a new floating window when smart placement is on (default is 500px)
+- Use smart placement when opening new windows?: places a new floating window beside an existing one. See [Opening a note in a new window](#opening-a-note-in-a-new-window).
+- Gap between windows: pixels left between that new window and the ones it is placed beside (default is 10px). 0 places them flush.
 
 _If you want to dig into more detail, and tweak more of what's going on, please read the final section below. But you shouldn't need to for most use of saving and opening window sets._
 

@@ -9,9 +9,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.co/plugins/jgclark.WindowTools",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/CHANGELOG.md",
-  "plugin.version": "1.5.0.a3",
+  "plugin.version": "1.5.0.a5",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "1.5.0.a3: Saving a Window Set keeps other Macs' sets in the definition note. Saving that note updates this Mac's sets, and the note is read from its configured folder.\n1.5.0.a2: under-the-hood mods to deal with changes in NP's window handling.\nv1.5.0.a1: Use tiling 'smart placement' when opening new Editor windows in the commands. New setting 'Use Smart Placement?' allows you to turn off this behaviour.\nv1.4.0: New '/reset windows' command.\nNow can save folders and sidebar width in Window Sets, and open to that width (requires NP v3.19.2).\nOther improvements to Window Sets.",
+  "plugin.lastUpdateInfo": "1.5.0.a5: New setting for the gap left between windows when opening a note in a new window. Default is 10px.\n1.5.0.a4: Many improvements to 'smart placement' for new floating windows, including ability to narrow the main window to help.\n1.5.0.a3: Saving a Window Set keeps other Macs' sets in the definition note. Saving that note updates this Mac's sets, and the note is read from its configured folder.\n1.5.0.a2: under-the-hood mods to deal with changes in NP's window handling.\nv1.5.0.a1: Use tiling 'smart placement' when opening new Editor windows in the commands. New setting 'Use Smart Placement?' allows you to turn off this behaviour.\nv1.4.0: New '/reset windows' command.\nNow can save folders and sidebar width in Window Sets, and open to that width (requires NP v3.19.2).\nOther improvements to Window Sets.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -292,9 +292,17 @@
     {
       "key": "useSmartPlacement",
       "title": "Use smart placement when opening new windows?",
-      "description": "It set, this will place the window on the screen next to, but not on top of, current open NP windows. It will also use the default editor width (if set above).",
+      "description": "When on, a new floating window is placed beside an existing window (the main window first), using the default editor width above. If there is no horizontal gap and the main window is wider than its default (open sidebar plus each pane at that width), the main window is narrowed to that default. Split panes and hidden plugin windows are ignored.",
       "type": "bool",
       "default": true,
+      "required": true
+    },
+    {
+      "key": "windowGap",
+      "title": "Gap between windows",
+      "description": "Pixels left between a new floating window and the windows it is placed beside, when smart placement is on. 0 places them flush. The screen edge does not get this gap.",
+      "type": "number",
+      "default": 10,
       "required": true
     },
     {

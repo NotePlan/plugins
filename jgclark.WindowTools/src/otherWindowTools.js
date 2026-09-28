@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Other windowing functions
 // Jonathan Clark
-// last update 2025-11-07 for v1.4.0 by @jgclark
+// last update 2026-09-25 for v1.5.0.a3 by @jgclark
 // Minimum NP version: 3.9.8
 //---------------------------------------------------------------
 
@@ -23,20 +23,44 @@ import { chooseOption, showMessage } from '@helpers/userInput'
 // Other Windowing tools
 
 /**
+ * The main Editor pane. Prefers windowType 'main'. If none is labelled, uses the first non-floating editor.
+ * editors[0] is not always that pane.
+ * @returns {?TEditor}
+ */
+function getMainEditor(): ?TEditor {
+  const editors = NotePlan.editors ?? []
+  const mainByType = editors.find((win) => win.windowType === 'main')
+  if (mainByType) {
+    return mainByType
+  }
+  return editors.find((win) => win.windowType !== 'floating')
+}
+
+/**
  * Constrain main window, so it actually all shows on the screen
  * @author @jgclark
  */
 export function constrainMainWindow(): void {
   try {
+    if (NotePlan.environment.platform !== 'macOS') {
+      logInfo(pluginJson, `'constrain main window' can only run on macOS. Stopping.`)
+      return
+    }
+    const mainEditor = getMainEditor()
+    if (!mainEditor) {
+      logInfo(pluginJson, `No main Editor window is open, so cannot constrain it. Stopping.`)
+      return
+    }
+
     // Get current editor window details
-    const mainWindowRect: Rect = NotePlan.editors[0].windowRect
+    const mainWindowRect: Rect = mainEditor.windowRect
     logDebug(pluginJson, `- mainWindowRect: ${npw.rectToString(mainWindowRect)}`)
 
     // Constrain into the screen area
     const updatedRect = npw.constrainWindowSizeAndPosition(mainWindowRect)
     logDebug(pluginJson, `- updatedRect: ${npw.rectToString(updatedRect)}`)
 
-    NotePlan.editors[0].windowRect = updatedRect
+    mainEditor.windowRect = updatedRect
   } catch (error) {
     logError(pluginJson, error.message)
   }
@@ -54,8 +78,14 @@ export async function resetMainWindow(): Promise<void> {
       return
     }
 
+    const mainEditor = getMainEditor()
+    if (!mainEditor) {
+      logInfo(pluginJson, `No main Editor window is open, so cannot reset it. Stopping.`)
+      return
+    }
+
     const settings = await wth.getPluginSettings()
-    const currentMainWindowWidth = NotePlan.editors[0].windowRect.width
+    const currentMainWindowWidth = mainEditor.windowRect.width
     const numPanesInMainWindow = NotePlan.editors.filter((win) => win.windowType !== 'floating').length
     const mainSidebarWidth = settings.defaultMainSidebarWidth ?? 300
     const defaultPaneWidth = settings.defaultEditorWidth ?? 500
@@ -64,16 +94,35 @@ export async function resetMainWindow(): Promise<void> {
     const idealMainWindowWidth = mainSidebarWidth + (numPanesInMainWindow * defaultPaneWidth)
     const minimumMainWindowWidth = mainSidebarWidth + (numPanesInMainWindow * minPaneWidth)
 
-    // Set Editor main window and all other split windows to default width if there's sufficient space on the screen for them all
+    // Always apply the default widths. Shrink to the minimum pane width only when the ideal total is wider than the screen.
+    let targetMainWidth = idealMainWindowWidth
+    let targetPaneWidth = defaultPaneWidth
     if (idealMainWindowWidth > screenWidth) {
-      logWarn(pluginJson, `- Total width of windows is ${String(currentMainWindowWidth)}px, but screen width is ${String(screenWidth)}px. Will try to reduce window width to minimum width that will fit all the windows.`)
-      await npw.setEditorWidth(minimumMainWindowWidth, mainSidebarWidth)
-      await npw.setAllMainAndSplitWindowWidths(minPaneWidth)
-    } else if (currentMainWindowWidth > idealMainWindowWidth) {
-      logDebug(pluginJson, `- Total width of windows is ${String(currentMainWindowWidth)}px, which is less than screen width ${String(screenWidth)}px, but more than user's ideal. Will adjust.`)
-      await npw.setEditorWidth(idealMainWindowWidth, mainSidebarWidth)
-      await npw.setAllMainAndSplitWindowWidths(defaultPaneWidth)
+      targetMainWidth = Math.min(minimumMainWindowWidth, screenWidth)
+      targetPaneWidth = minPaneWidth
+      logWarn(pluginJson, `- Ideal width ${String(idealMainWindowWidth)}px is wider than the screen ${String(screenWidth)}px. Will use minimum pane width. Current window is ${String(currentMainWindowWidth)}px.`)
+    } else {
+      logDebug(pluginJson, `- Setting main window from ${String(currentMainWindowWidth)}px to the default width ${String(idealMainWindowWidth)}px (screen ${String(screenWidth)}px).`)
     }
+
+    if (usersVersionHas('mainSidebarControl')) {
+      if (mainSidebarWidth === 0) {
+        logDebug(pluginJson, `- Default main sidebar width is 0, so will hide it`)
+        NotePlan.toggleSidebar(true, false, true)
+      } else {
+        logDebug(pluginJson, `- Will show main sidebar and set its width to ${String(mainSidebarWidth)}`)
+        NotePlan.toggleSidebar(false, true, true)
+        NotePlan.setSidebarWidth(mainSidebarWidth)
+      }
+    }
+
+    // Set the main window to the target width
+    const mainWindowRect = mainEditor.windowRect
+    mainWindowRect.width = targetMainWidth
+    mainEditor.windowRect = mainWindowRect
+
+    // Set the width of all main + split windows to the target width
+    await npw.setAllMainAndSplitWindowWidths(targetPaneWidth)
 
     // Lastly, constrain the window to be fully on the screen, if possible
     await constrainMainWindow()
