@@ -3,10 +3,15 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
+<!-- ## [2.5.0.b7] 2026-09-30
+- Fix: When a task cannot be completed because it is no longer in the note, the info toast includes the first 20 characters of that task.
+- Fix: A section footer no longer offers to show hidden items, or says all items are showing, when those items are hidden by the section display limit. When a click will reveal lower-priority items, the line says "(click to show lower priorities)". The display limit still applies.
+- Dev: Priority section vault scan uses `runOnAsyncThread` on NotePlan ≥ 3.21.3 (via `runSyncWorkOnAsyncThread`); earlier versions keep `onAsyncThread` / `onMainThread`.
+ -->
 ## [2.5.0.b6] 2026-09-17
-- Change: Compact Display Density uses ~10% smaller text and icons across the Dashboard (padding and margins unchanged). Section chrome and Settings dialog use a mildly tighter line-height; task / reminder / project / add-task edit dialogs are unaffected.
-- Change: Compact keeps each task/checklist/reminder on one row: task text and note/list link share the width and ellipsis as needed; the RHS note link shows title only (folder and teamspace names are hidden). Parent ellipsis markers and the edit control stay after the task text (not at the far right).
-- Fix: Clicking a task to open/highlight no longer fails with `Can't find variable: Editor` / `HTMLView` when those NotePlan globals are missing mid-callback; falls back to openNote x-callback, and theme/shared-data helpers skip cleanly instead of throwing.
+- Change: Visual improvements to 'Compact' Display Density.
+- Change: 'Compact' keeps each task/checklist/reminder on one row: task text and note/list link share the width and ellipsis as needed; the RHS note link shows title only (folder and teamspace names are hidden). Parent ellipsis markers and the edit control stay after the task text (not at the far right).
+- dev: Clicking a task to open/highlight no longer fails with `Can't find variable: Editor` / `HTMLView` when those NotePlan globals are missing mid-callback; falls back to openNote x-callback, and theme/shared-data helpers skip cleanly instead of throwing.
 
 ## [2.5.0.b5] 2026-09-16
 - Dev: Merge main through Dashboard 2.4.6 (Overdue "move all to today" fix, auto-install dependsOn Shared Resources; prior 2.4.5 Shared tag/mention cache work).

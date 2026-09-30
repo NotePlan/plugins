@@ -33,30 +33,32 @@
 }
 
 /* Compact Display Density: tighter vertical spacing so more items fit on screen */
-.density-compact .sectionItemRow {
-	margin: 0px 4px 0px 0px;
-}
+.density-compact {
+	.sectionItemRow {
+		margin: 0px 4px 0px 0px;
+	}
 
-.density-compact .sectionItemContent {
-	padding: 0px 2px;
-	line-height: 1rem; /* ~10% tighter */
-	font-size: 0.9rem; /* ~10% smaller text */
-}
+	.sectionItemContent {
+		padding: 0px 2px;
+		line-height: 1rem; /* ~10% tighter */
+		font-size: 0.9rem; /* ~10% smaller text */
+	}
 
-/* Compact task/reminder rows: single-line layout (see ItemContent.css for flex + ellipsis) */
-.density-compact .taskItemContent,
-.density-compact .reminderItemContent {
-	text-wrap: nowrap;
-}
+	/* Compact task/reminder rows: single-line layout (see ItemContent.css for flex + ellipsis) */
+	.taskItemContent,
+	.reminderItemContent {
+		text-wrap: nowrap;
+	}
 
-.density-compact .itemIcon {
-	padding-block-start: 0px;
-	line-height: 80%; /* ~20% tighter */
-	font-size: 0.9rem !important; /* ~10% smaller icons */
-}
+	.itemIcon {
+		padding-block-start: 0px;
+		line-height: 80%; /* ~20% tighter */
+		font-size: 0.9rem !important; /* ~10% smaller icons */
+	}
 
-.density-compact .emptyIcon {
-	width: 0.9rem;
+	.emptyIcon {
+		width: 0.9rem;
+	}
 }
 
 /* Need to override some CSS that comes in the theme */

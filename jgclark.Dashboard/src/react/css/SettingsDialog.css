@@ -431,24 +431,7 @@
     line-height: 1rem;
 }
 
-/* Compact: slightly tighter line-height for Settings dialog (between Normal and earlier Compact) */
+/* Compact: slightly smaller heights (text is already smaller) */
 .density-compact .settings-dialog {
-    line-height: 1.19;
-}
-
-.density-compact .settings-dialog .ui-heading {
-    line-height: 134%;
-}
-
-.density-compact .settings-dialog .item-description,
-.density-compact .settings-dialog .settings-dialog-filter-input,
-.density-compact .settings-dialog .input-box-input,
-.density-compact .settings-dialog .combobox-input,
-.density-compact .settings-dialog .combobox-dropdown,
-.density-compact .settings-dialog .combobox-option,
-.density-compact .settings-dialog .dropdown-select-dropdiv,
-.density-compact .settings-dialog .dropdown-select-option,
-.density-compact .settings-dialog .switch-line,
-.density-compact .settings-dialog .ui-item {
-    line-height: 1.19;
+    line-height: 1.4;
 }
