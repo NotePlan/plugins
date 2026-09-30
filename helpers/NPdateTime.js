@@ -4,7 +4,7 @@
 // @jgclark except where shown
 //-------------------------------------------------------------------------------
 
-import { endOfWeek as dfEndOfWeek, format, startOfWeek as dfStartOfWeek } from 'date-fns'
+import { endOfWeek as dfEndOfWeek, format, startOfWeek as dfStartOfWeek, type Locale } from 'date-fns'
 import moment from 'moment/min/moment-with-locales'
 import { trimAnyQuotes } from './dataManipulation'
 import * as dt from './dateTime'
@@ -872,7 +872,8 @@ function coerceBridgedDate(value: mixed): Date | null {
  */
 function weekBoundariesFromFirstDayOfWeek(date: Date, weekStartsOn: number): {| startDate: Date, endDate: Date |} {
   const startsOn = ((Math.floor(weekStartsOn) % 7) + 7) % 7
-  const options = { weekStartsOn: (startsOn: any) }
+  // Annotate so the missing optional `locale` is allowed. date-fns types that property invariantly.
+  const options: {| locale?: Locale, weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6 |} = { weekStartsOn: (startsOn: any) }
   return {
     startDate: dfStartOfWeek(date, options),
     endDate: dfEndOfWeek(date, options),

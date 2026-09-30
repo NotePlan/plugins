@@ -537,6 +537,8 @@ function openNoteInMainEditorViaCallback(
  * @returns {boolean}
  */
 function isEditorOpenNoteApiAvailable(): boolean {
+  // Testing for an API method trips [method-unbinding]; a function-typed property in flow-typed/Noteplan.js would avoid it.
+  // $FlowFixMe[method-unbinding]
   return typeof Editor !== 'undefined' && typeof Editor.openNoteByFilename === 'function'
 }
 

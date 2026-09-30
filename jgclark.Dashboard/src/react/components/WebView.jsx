@@ -169,7 +169,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    */
   const addPassthroughVars = (data: PassedData): PassedData => {
     const newData = { ...data }
-    if (!newData?.passThroughVars) newData.passThroughVars = { lastWindowScrollTop: 0 }
+    if (!newData?.passThroughVars) newData.passThroughVars = { lastWindowScrollTop: (0: number) }
     newData.passThroughVars.lastWindowScrollTop = getDashboardScrollTop()
     return newData
   }

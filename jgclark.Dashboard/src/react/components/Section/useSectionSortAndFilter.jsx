@@ -376,7 +376,7 @@ const useSectionSortAndFilter = (
         limitToApply,
       )
       if (priorityFilterFooter) {
-        const messageItem = {
+        const messageItem: TSectionItem = {
           itemType: priorityFilterFooter.itemType,
           ID: priorityFilterFooter.itemType === 'offerToFilter' ? `${section.ID}-FilterOffer` : `${section.ID}-FilterIndicator`,
           // Note: ideally indicate here that the display of offerToFilter shouldn't start with the + icon

@@ -831,7 +831,7 @@ export async function themeHasChanged(windowID: string, overrideThemeName?: stri
   const currentTheme = overrideThemeName ? overrideThemeName : notePlanThemeName || editorThemeName
 
   if (!currentTheme) {
-    logError('themeHasChanged', `Could not find currentTheme: "${currentTheme}", overrideThemeName: "${overrideThemeName || ''}", themeInReactWindow: "${themeInWindow}"`)
+    logError('themeHasChanged', `Could not find currentTheme: "${String(currentTheme)}", overrideThemeName: "${overrideThemeName || ''}", themeInReactWindow: "${themeInWindow}"`)
     return false
   }
   if (currentTheme !== themeInWindow) {
