@@ -17,6 +17,7 @@ const featureFlagSettingDefs: $ReadOnlyArray<{|
   { key: 'FFlag_DebugPanel', label: 'Show Debug Panel', description: 'Show debug pane with test runner and console log viewer at the bottom of the page' },
   { key: 'FFlag_ShowTestingPanel', label: 'Show Testing Pane', description: 'Show testing panel with end-to-end testing buttons (requires Debug Panel)' },
   { key: 'FFlag_ShowSearchPanel', label: 'Show Search Panel', description: 'Show more advanced search panel with search bar and controls' },
+  { key: 'FFlag_UsePriorityCache', label: 'Use Priority Cache', description: 'Use Priority note-index cache to speed up the Priority section (avoids full vault scan)' },
   { key: 'FFlag_ShowSectionTimings', label: 'Show Section Timings', description: 'Show timings for how long it took to generate sections' },
   { key: 'FFlag_DynamicAddToAnywhere', label: 'Dynamic Add To Anywhere', description: 'Use new DynamicDialog-based add task dialog instead of QuickCapture plugin' },
 ]
@@ -26,7 +27,10 @@ export const createFeatureFlagItems = (dashboardSettings: TDashboardSettings): A
     label: setting.label,
     key: setting.key,
     type: 'switch',
-    checked: Boolean(dashboardSettings[setting.key]),
+    checked:
+      setting.key === 'FFlag_UsePriorityCache'
+        ? dashboardSettings[setting.key] !== false
+        : Boolean(dashboardSettings[setting.key]),
     description: setting.description,
   }))
 }

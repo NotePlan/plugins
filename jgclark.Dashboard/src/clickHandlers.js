@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-08-23 for v2.4.2 by @jgclark + @CursorAI
+// Last updated 2026-09-30 for v2.5.0.b6 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -636,6 +636,17 @@ export async function doConvertReminderToTask(data: MessageDataObject): Promise<
 }
 
 /**
+ * Info toast when a complete click cannot find the task in the note.
+ * Includes the first 20 characters of the task so it is clear which one failed.
+ * @param {string} taskContent
+ * @returns {string}
+ */
+export function couldNotFindTaskToCompleteMessage(taskContent: string): string {
+  const snippet = String(taskContent ?? '').slice(0, 20)
+  return `Couldn't find task '${snippet}' to complete. I will refresh this Section in case it has changed since the last refresh.`
+}
+
+/**
  * Complete the task in the actual Note.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
@@ -650,7 +661,7 @@ export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeCl
 
   if (typeof completedParagraph === 'boolean') {
     logWarn('doCompleteTask', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't find task to complete. I will refresh this Section in case it has changed since the last refresh.`, errorMessageLevel: 'INFO' })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: couldNotFindTaskToCompleteMessage(content), errorMessageLevel: 'INFO' })
   } else {
     // Send instructions to update the window
     // Note: Do not recount all notes here: that scan blocks REMOVE_LINE.
@@ -672,7 +683,7 @@ export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBrid
   const completedParagraph = await completeItemEarlier(filename, content)
   if (typeof completedParagraph === 'boolean') {
     logWarn('doCompleteTaskThen', `-> failed. Perhaps the task was modified in NotePlan since the last time the Dashboard was refreshed?`)
-    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: `Couldn't find task to complete. I will refresh this Section in case it has changed since the last refresh.`, errorMessageLevel: 'INFO' })
+    return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: [sectionCode], errorMsg: couldNotFindTaskToCompleteMessage(content), errorMessageLevel: 'INFO' })
   } else {
     logDebug('doCompleteTaskThen', `done for ${item?.ID || 'unknown'} in section ${item?.sectionCode || 'unknown'}`)
     // Send instructions to update the window
@@ -1010,7 +1021,7 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
   // V2
   const validated = validateMessageDataForHandler(data, 'doShowLineInEditorFromFilename')
   if (!validated.ok) return validated.result
-  const { filename, content, modifierKey } = validated.data
+  const { filename, content, modifierKey, item, sectionCode } = validated.data
   const config = await getDashboardSettings()
   const openType = resolveEditorOpenTypeForDashboardClick(modifierKey, config?.preferredWindowType)
   logDebug('doShowLineInEditorFromFilename', `starting for filename ${filename} with content {${content}}, modifierKey ${String(modifierKey)}, openType ${openType}`)
@@ -1019,9 +1030,12 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
     logDebug('doShowLineInEditorFromFilename', `-> opened filename ${filename} in Editor and highlighted the paragraph`)
     return handlerResult(true)
   } else {
-    logWarn('doShowLineInEditorFromFilename', `-> could not open/highlight line in '${filename}'`)
-    return handlerResult(false, [], {
-      errorMsg: `Could not open or highlight that line in '${filename}'.`,
+    const originatingSectionCode = item?.sectionCode || sectionCode
+    const sectionCodes = originatingSectionCode ? [originatingSectionCode] : []
+    logWarn('doShowLineInEditorFromFilename', `-> could not open/highlight line in '${filename}'; will refresh sectionCodes=[${String(sectionCodes)}]`)
+    return handlerResult(false, sectionCodes.length > 0 ? ['REFRESH_SECTION_IN_JSON'] : [], {
+      sectionCodes,
+      errorMsg: `Could not open or highlight that line in '${filename}'. I will refresh that section.`,
       errorMessageLevel: 'INFO',
     })
   }

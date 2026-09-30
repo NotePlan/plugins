@@ -7,10 +7,16 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 
 <!--
 ## since the last release
+### Fixed
+- **SearchableChooser click-outside**: Clicking dialog chrome or blank space above an open Space/Note (and other) picker now leaves the list closed instead of flashing it open. Rebuild Form React bundles after pulling helpers.
+
 ### Changed
+- **SearchableChooser dropdown height**: Max height is 220px via `CHOOSER_DROPDOWN_HEIGHT` (positioning and painted max-height). Rebuild Form React bundles after pulling helpers.
+- **NoteChooser calendar popup**: Stays on-screen (`calendarPickerAlignment` default `auto`; start / center / end also supported). Date cells use rounded squares and spacing matching the Dashboard task-edit calendar. Rebuild Form React bundles after pulling helpers.
 - **Chooser keyboard navigation**: `ContainedMultiSelectChooser` and `MultiSelectChooser` support Arrow Up/Down highlight, Enter to toggle/select (or confirm create), and Escape to clear highlight / cancel create - matching SearchableChooser / DropdownSelect. Rebuild Form React bundles after pulling helpers.
 
 ### Edited in this release
+- `helpers/react/DynamicDialog/SearchableChooser.jsx`, `SearchableChooser.css`.
 - `helpers/react/DynamicDialog/ContainedMultiSelectChooser.jsx`, `ContainedMultiSelectChooser.css`, `MultiSelectChooser.jsx`, `MultiSelectChooser.css`.
 -->
 ## [1.1.9] 2026-04-17

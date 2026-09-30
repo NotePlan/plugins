@@ -147,4 +147,57 @@ describe('useSectionSortAndFilter', () => {
       expect(sh.calculateMaxPriorityAcrossAllSections(sections, { treatTopPriorityAsWins: true })).toBe(1)
     })
   })
+
+  describe('buildPriorityFilterFooterItem', () => {
+    test('omits the footer when items are hidden only by the display cap', () => {
+      expect(sh.buildPriorityFilterFooterItem(false, true, 22, 22, 10, 10)).toBeNull()
+    })
+
+    test('omits the footer when the priority filter setting is off', () => {
+      expect(sh.buildPriorityFilterFooterItem(false, false, 22, 8, 8, 10)).toBeNull()
+    })
+
+    test('omits the footer when the cap is already full, so lower-priority items would still not appear', () => {
+      expect(sh.buildPriorityFilterFooterItem(false, true, 22, 12, 10, 10)).toBeNull()
+    })
+
+    test('offers to show lower priorities when that click would reveal every remaining item', () => {
+      expect(sh.buildPriorityFilterFooterItem(false, true, 8, 3, 3, 10)).toEqual({
+        itemType: 'filterIndicator',
+        message: 'There are also 5 lower-priority items currently hidden (click to show lower priorities)',
+      })
+    })
+
+    test('uses the singular when one lower-priority item is hidden', () => {
+      expect(sh.buildPriorityFilterFooterItem(false, true, 4, 3, 3, 10)).toEqual({
+        itemType: 'filterIndicator',
+        message: 'There is also 1 lower-priority item currently hidden (click to show lower priorities)',
+      })
+    })
+
+    test('says the list stays limited when a click would show more but not every item', () => {
+      expect(sh.buildPriorityFilterFooterItem(false, true, 22, 4, 4, 10)).toEqual({
+        itemType: 'filterIndicator',
+        message: 'There are also 18 lower-priority items currently hidden (click to show lower priorities; list stays limited to 10)',
+      })
+    })
+
+    test('says all items are showing when the priority filter is off and every item fits', () => {
+      expect(sh.buildPriorityFilterFooterItem(true, true, 8, 8, 8, 10)).toEqual({
+        itemType: 'offerToFilter',
+        message: 'Showing all 8 items (click to filter by priority)',
+      })
+    })
+
+    test('does not claim all items are showing when the priority filter is off but the cap still applies', () => {
+      expect(sh.buildPriorityFilterFooterItem(true, true, 22, 22, 10, 10)).toEqual({
+        itemType: 'offerToFilter',
+        message: 'Priority filter off; showing first 10 of 22 (click to filter by priority)',
+      })
+    })
+
+    test('omits the showing-all row when there are no items', () => {
+      expect(sh.buildPriorityFilterFooterItem(true, true, 0, 0, 0, 10)).toBeNull()
+    })
+  })
 })

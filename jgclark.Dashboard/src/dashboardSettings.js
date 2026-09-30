@@ -232,6 +232,15 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     compactDisplay: true,
   },
   {
+    key: 'displayDensity',
+    label: 'Display Density',
+    description: 'Normal uses the standard spacing and text length. Compact keeps each task on one row (truncating text and note title as needed), uses smaller text and icons, tightens vertical spacing, and shows note title only in the RHS link (no folder or teamspace name).',
+    type: 'dropdown-select',
+    options: ['Normal', 'Compact'],
+    default: 'Normal',
+    compactDisplay: true,
+  },
+  {
     label: 'Show referenced items in separate section?',
     key: 'separateSectionForReferencedNotes',
     description: 'Whether to show items that are referenced to a Calendar note from other notes in a separate section than those in the Calendar note itself.',

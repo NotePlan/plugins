@@ -887,6 +887,7 @@ export function renderItem({
               startFolder={(item: any).startFolder}
               includeRegex={(item: any).includeRegex}
               excludeRegex={(item: any).excludeRegex}
+              calendarPickerAlignment={(item: any).calendarPickerAlignment || 'auto'}
             />
           </div>
         )

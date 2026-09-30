@@ -173,7 +173,7 @@ export function truncatePath(path: string, maxLength: number = 50): string {
  * @param {number} options.elementWidth - Width of the element to position (px)
  * @param {number} options.elementHeight - Height of the element to position (px)
  * @param {string} options.preferredPlacement - Preferred placement: 'below' | 'above' | 'left' | 'right' (default: 'below')
- * @param {string} options.preferredAlignment - Preferred alignment: 'start' | 'center' | 'end' (default: 'start')
+ * @param {string} options.preferredAlignment - Preferred alignment: 'start' | 'center' | 'end' | 'auto' (default: 'start'). 'auto' uses start, or end if the box would overflow the right edge.
  * @param {number} options.offset - Offset distance from reference element (px, default: 5)
  * @param {number} options.viewportPadding - Minimum padding from viewport edges (px, default: 10)
  * @returns {?{top: number, left: number, placement: string, alignment: string}} - Position and placement info, or null if referenceElement is missing
@@ -193,7 +193,7 @@ export function calculatePortalPosition(options: {
   elementWidth: number,
   elementHeight: number,
   preferredPlacement?: 'below' | 'above' | 'left' | 'right',
-  preferredAlignment?: 'start' | 'center' | 'end',
+  preferredAlignment?: 'start' | 'center' | 'end' | 'auto',
   offset?: number,
   viewportPadding?: number,
 }): ?{
@@ -242,14 +242,24 @@ export function calculatePortalPosition(options: {
     top = rect.top + rect.height / 2 - elementHeight / 2
   }
 
-  // Calculate left position based on alignment
+  // Calculate left position based on alignment (for above/below placement)
   let left = 0
-  if (preferredAlignment === 'start') {
-    left = rect.left
-  } else if (preferredAlignment === 'center') {
+  let alignment = preferredAlignment === 'auto' ? 'start' : preferredAlignment
+  if (preferredAlignment === 'center') {
     left = rect.left + rect.width / 2 - elementWidth / 2
   } else if (preferredAlignment === 'end') {
     left = rect.right - elementWidth
+  } else if (preferredAlignment === 'auto') {
+    const overflowsRight = rect.left + elementWidth > viewportWidth - viewportPadding
+    if (overflowsRight) {
+      left = rect.right - elementWidth
+      alignment = 'end'
+    } else {
+      left = rect.left
+      alignment = 'start'
+    }
+  } else {
+    left = rect.left
   }
 
   // Adjust for left/right placement
@@ -276,8 +286,7 @@ export function calculatePortalPosition(options: {
     top = viewportHeight - elementHeight - viewportPadding
   }
 
-  // If placement is above/below but element is too tall, adjust alignment to fit
-  let alignment = preferredAlignment
+  // If placement is above/below but the box was shifted, record the effective alignment
   if ((placement === 'below' || placement === 'above') && left !== rect.left) {
     if (left === viewportPadding) {
       alignment = 'start'

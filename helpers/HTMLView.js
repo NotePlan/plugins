@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2026-08-18 by @jgclark + @CursorAI
+// Last updated 2026-09-30 by @jgclark + @CursorAI
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
 import { getReminderMarkerColors, RE_REMIND_UUID_IN_CONTENT, type TReminderDisplayById } from '@helpers/NPReminders'
@@ -794,6 +794,11 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
  */
 export async function getGlobalSharedData(windowId: string, varName: string = 'globalSharedData'): Promise<any> {
   try {
+    // If HTMLView API isn't available (older platforms / builds, or JSContext without NotePlan globals), skip quietly
+    if (typeof HTMLView === 'undefined' || typeof HTMLView.runJavaScript !== 'function') {
+      logWarn('getGlobalSharedData', `HTMLView API is not available; cannot read '${varName}' from window '${windowId}'`)
+      return undefined
+    }
     // logDebug(pluginJson, `getGlobalSharedData getting var '${varName}' from window ID '${windowId}'`)
     const currentValue = await HTMLView.runJavaScript(`${varName};`, windowId)
     // if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
@@ -814,10 +819,16 @@ export async function getGlobalSharedData(windowId: string, varName: string = 'g
  */
 export async function themeHasChanged(windowID: string, overrideThemeName?: string): Promise<boolean> {
   const reactWindowData = await getGlobalSharedData(windowID)
+  if (!reactWindowData || typeof reactWindowData !== 'object' || !reactWindowData.pluginData) {
+    logWarn('themeHasChanged', `No reactWindowData/pluginData available for window '${windowID}'; skipping theme check`)
+    return false
+  }
   const { pluginData } = reactWindowData
   const { themeName: themeInWindow } = pluginData
 
-  const currentTheme = overrideThemeName ? overrideThemeName : NotePlan.currentTheme?.name || Editor.currentTheme?.name || null
+  const notePlanThemeName = typeof NotePlan !== 'undefined' && NotePlan.currentTheme ? NotePlan.currentTheme.name : null
+  const editorThemeName = typeof Editor !== 'undefined' && Editor.currentTheme ? Editor.currentTheme.name : null
+  const currentTheme = overrideThemeName ? overrideThemeName : notePlanThemeName || editorThemeName
 
   if (!currentTheme) {
     logError('themeHasChanged', `Could not find currentTheme: "${currentTheme}", overrideThemeName: "${overrideThemeName || ''}", themeInReactWindow: "${themeInWindow}"`)
@@ -841,6 +852,10 @@ export async function themeHasChanged(windowID: string, overrideThemeName?: stri
  * ...and so can probably be ignored
  */
 export async function updateGlobalSharedData(windowId: string, data: any, mergeData: boolean = true, varName: string = 'globalSharedData'): Promise<any> {
+  if (typeof HTMLView === 'undefined' || typeof HTMLView.runJavaScript !== 'function') {
+    logWarn('updateGlobalSharedData', `HTMLView API is not available; cannot update '${varName}' in window '${windowId}'`)
+    return undefined
+  }
   let newData
   const currentData = await getGlobalSharedData(windowId, varName)
   if (currentData === undefined) {
@@ -1163,6 +1178,27 @@ export function convertMentionsToHTML(input: string): string {
   } catch (error) {
     logError(pluginJson, `convertMentionsToHTML: ${error.message}`)
     return input
+  }
+}
+
+/**
+ * Turn an `@repeat(...)` token into a span: a Font Awesome repeat icon, then the `(...)` text.
+ * Uses `.attag` so it takes the same colour as tags and mentions.
+ * Callers should apply this before `convertMentionsToHTML`, which would otherwise wrap the whole `@repeat(...)` as a plain mention.
+ * @param {string} repeatStr - full token, e.g. `@repeat(+1w)` or `@repeat(1m, 2026-10-01)`
+ * @returns {string} HTML span, or the original string when it is not an `@repeat(...)` token
+ */
+export function makeRepeatMarkerHTML(repeatStr: string): string {
+  try {
+    const match = repeatStr.match(/^@repeat(\(.*\))$/)
+    if (!match) {
+      return repeatStr
+    }
+    const parenText = match[1]
+    return `<span class="attag repeatMarker"><i class="fa-regular fa-repeat pad-right-small"></i>${parenText}</span>`
+  } catch (error) {
+    logError(pluginJson, `makeRepeatMarkerHTML: ${error.message}`)
+    return repeatStr
   }
 }
 

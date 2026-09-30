@@ -11,7 +11,6 @@ import type { MessageDataObject, TSection, TSectionItem } from '../../types'
 import ItemContent from './ItemContent.jsx'
 import StatusIcon from './StatusIcon.jsx'
 import { clo, JSP, logDebug, logInfo, logWarn } from '@helpers/dev'
-import './TaskItem.css'
 
 type Props = {
   item: TSectionItem,

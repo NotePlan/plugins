@@ -67,6 +67,12 @@
     padding-block-start: 0px;
   }
 
+  /* Rounded squares (task-edit dialog gets this from .dialogBody button; default rdp is border-radius: 100%) */
+  .rdp-button,
+  .rdp-day {
+    border-radius: 4px !important;
+  }
+
   /* change the style of today's button */
   .rdp-day_today {
     background-color: rgb(from var(--tint-color) r g b / 0.5);

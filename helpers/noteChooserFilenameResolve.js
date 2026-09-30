@@ -10,7 +10,7 @@
 
 import * as dt from '@helpers/dateTime'
 import { logDebug, logError, logWarn } from '@helpers/dev'
-import { getRelativeDates } from '@helpers/NPdateTime'
+import { getRelativeDatesISOCache, getRelativeDatesISOCacheVersion } from '@helpers/NPdateTime'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 
 /** getRelativeDates relName → NoteChooser / TemplateRunner token (single source of truth) */
@@ -34,14 +34,18 @@ type RelativeTokenFilenameEntry = {
 }
 
 const RELATIVE_TOKEN_CACHE_TTL_MS = 60 * 1000
-let relativeTokenFilenameCache: { createdAt: number, entries: Array<RelativeTokenFilenameEntry> } = { createdAt: 0, entries: [] }
+let relativeTokenFilenameCache: { createdAt: number, entries: Array<RelativeTokenFilenameEntry>, cacheVersion: number } = {
+  createdAt: 0,
+  entries: [],
+  cacheVersion: -1,
+}
 
 /**
  * Clear the relative-token cache. Used by real-runtime benchmarks and tests.
  * @returns {void}
  */
 export function clearNoteChooserFilenameResolveCache(): void {
-  relativeTokenFilenameCache = { createdAt: 0, entries: [] }
+  relativeTokenFilenameCache = { createdAt: 0, entries: [], cacheVersion: -1 }
 }
 
 /**
@@ -120,12 +124,17 @@ function filenamesFromRelativeDateEntry(rd: any): Array<string> {
  */
 function getRelativeTokenFilenameEntries(): Array<RelativeTokenFilenameEntry> {
   const now = Date.now()
-  if (relativeTokenFilenameCache.entries.length > 0 && now - relativeTokenFilenameCache.createdAt < RELATIVE_TOKEN_CACHE_TTL_MS) {
+  const cacheVersion = getRelativeDatesISOCacheVersion()
+  if (
+    relativeTokenFilenameCache.entries.length > 0 &&
+    now - relativeTokenFilenameCache.createdAt < RELATIVE_TOKEN_CACHE_TTL_MS &&
+    relativeTokenFilenameCache.cacheVersion === cacheVersion
+  ) {
     return relativeTokenFilenameCache.entries
   }
 
   const entries: Array<RelativeTokenFilenameEntry> = []
-  const relativeDates = getRelativeDates(true)
+  const relativeDates = getRelativeDatesISOCache()
   for (const rd of relativeDates) {
     if (!rd || !rd.relName) {
       continue
@@ -141,7 +150,7 @@ function getRelativeTokenFilenameEntries(): Array<RelativeTokenFilenameEntry> {
     })
   }
 
-  relativeTokenFilenameCache = { createdAt: now, entries }
+  relativeTokenFilenameCache = { createdAt: now, entries, cacheVersion }
   return entries
 }
 

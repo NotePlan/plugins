@@ -1,5 +1,5 @@
 /* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
-/* Last updated 2026-07-29 for v2.4.0.b57 by @jgclark + @CursorAI */
+/* Last updated 2026-09-17 for v2.5.0.b6 by @jgclark + @CursorAI */
 
 /* Style for the settings dialog */
 .settings-dialog {
@@ -16,9 +16,7 @@
     /* Center horizontally and vertically: use 50% positioning and translate(-50%, -50%) */
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 86vw;
-    max-width: 700px;
-    min-width: 380px;
+    width: clamp(380px, 86vw, 700px);
     border: none;
     box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     opacity: 1;
@@ -431,4 +429,9 @@
 .iOS .settings-dialog .settings-dialog-header {
     font-size: 1rem;
     line-height: 1rem;
+}
+
+/* Compact: slightly smaller heights (text is already smaller) */
+.density-compact .settings-dialog {
+    line-height: 1.4;
 }

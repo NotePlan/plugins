@@ -13,6 +13,12 @@ import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import type { TDashboardSettings, TDashboardSettingsIn, TSection, TPerspectiveSettings } from './types'
 import { logDebug, logError } from '@helpers/dev'
 
+/** Priority note-index cache is used unless FFlag_UsePriorityCache is explicitly false in dashboardSettings. */
+export function isPriorityCacheEnabled(dashboardSettings: TDashboardSettingsIn): boolean {
+  return dashboardSettings?.FFlag_UsePriorityCache !== false
+}
+
+
 /**
  * Build strip patterns for keys that belong in top-level dashboardSettings only (not in perspective defs).
  * @param {boolean} deleteAllShowTagSections

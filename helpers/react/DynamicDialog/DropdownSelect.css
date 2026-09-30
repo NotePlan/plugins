@@ -68,18 +68,37 @@
 	box-shadow: 0 2px 5px var(--divider-color);
 	z-index: 5;
 	width: 100%;
-	/* ensure that a right margin can be seen still - not sure why this is needed */
-	padding-right: 6px; 
+	box-sizing: border-box;
+	/* Include padding in width so it does not force a needless horizontal scrollbar */
+	padding-right: 6px;
+	/* thumb = grabable knob */
+	scrollbar-color: var(--bg-alt-color, #e6e9ef) transparent;
+}
+
+.dropdown-select-dropdiv::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.dropdown-select-dropdiv::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.dropdown-select-dropdiv::-webkit-scrollbar-thumb {
+	background: var(--bg-alt-color, #e6e9ef);
+	border-radius: 6px;
 }
 
 /* The displayed options. */
 .dropdown-select-option {
 	cursor: pointer;
 	color: var(--fg-main-color);
-	margin: 0rem 0.2rem;
-	padding: 0.2rem;
+	/* Inset via padding only - margin + width:100% overflowed the menu by a few pixels and forced a horizontal scrollbar */
+	margin: 0;
+	padding: 0.2rem 0.4rem;
 	min-height: 0.9rem;
 	width: 100%;
+	box-sizing: border-box;
 }
 
 /* The currently hovered-over or keyboard-highlighted option. */

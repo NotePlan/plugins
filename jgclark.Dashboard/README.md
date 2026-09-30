@@ -107,6 +107,7 @@ In sections with more than 1 item, a `>> N` button is available (where `N` is th
 Note:
 - you can break out from the sequence at any time by closing the dialog.
 - by default this only processes tasks that are currently shown -- so it won't process any ones of lower priority that you have hidden. If you turn off the setting 'Do "Move all items" buttons only move shown items when filtering?', then `>> N` and Interactive Processing include those hidden lower-priority items as well.
+- for **Active Projects** and **Projects to Review**, `>> N` walks project rows only (not the next-action tasks under them). Active Projects allows skip back; Projects to Review is forward-only. **Start Reviews** is unchanged.
 - there are 3 settings that control aspects of this in the Dashboard Settings dialog.
 
 ### Add Task/Checklist items
@@ -265,6 +266,8 @@ The actions available in the Edit dialog for this section are:
 
 The 'Start Reviews' button does the same as the button of the same name in the Project & Reviews plugin, and is the equivalent of its **/start reviews** command. See the documentation for how that works, and which commands to follow it with once you've done reviewed the note.
 
+Both project sections also support **Interactive Processing** (the `>> N` button) when there is more than one project row: same project edit dialog, walked one project at a time. See [Interactive Processing Dialog](#interactive-processing-dialog) above.
+
 ### Overdue section
 This finds open items with a schedule date (e.g. `>2025-01-22`) in the past. This can generate a lot of tasks, and take a while, so there's a setting "Number of days to look back for Overdue tasks", which if set to any number > 0, will filter by due date (if set) or on date of a calendar note.
 
@@ -273,7 +276,7 @@ If the **Yesterday** section is turned off, Overdue also includes open tasks fro
 You can set the "Sort order for Tag/Mention and Overdue items": 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.
 
 ### Priority section
-This finds all **unscheduled** open items with a priority set (with `>>`, `!!!`, `!!` and `!` markers). Items that already have a `>date` (or `>today`) are left out on purpose: they belong in the Calendar period sections and/or **Overdue**, not here. Priority is the undated raised-priority backlog. Note: _this is likely to be very slow to generate, as it can't use any of NotePlan's internal caches, and doesn't have a natural way to limit it, like the Overdue section._
+This finds all **unscheduled** open items with a priority set (with `>>`, `!!!`, `!!` and `!` markers). Items that already have a `>date` (or `>today`) are left out on purpose: they belong in the Calendar period sections and/or **Overdue**, not here. Priority is the undated raised-priority backlog. Note: _a full vault scan is slow because NotePlan has no Priority API like `listOverdueTasks`_. From **2.5.0.b1** Dashboard keeps a local **Priority note-index cache** (similar to the Tag cache) so warm refreshes only open candidate notes; the first run after install may still do a full scan and then build the cache in the background.
 
 David's advice is: "Priority tasks float to the tops of their individual sections already. And I go through all overdue tasks and handle them so that section stays small after you bite the bullet and do it once."
 

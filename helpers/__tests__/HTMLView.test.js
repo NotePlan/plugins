@@ -456,6 +456,27 @@ describe('convertMentionsToHTML()' /* function */, () => {
   })
 })
 
+describe('makeRepeatMarkerHTML()' /* function */, () => {
+  test('replaces @repeat with a repeat icon and keeps the parenthetical text', () => {
+    const result = h.makeRepeatMarkerHTML('@repeat(+1w)')
+    expect(result).toEqual('<span class="attag repeatMarker"><i class="fa-regular fa-repeat pad-right-small"></i>(+1w)</span>')
+  })
+  test('keeps interval and concrete date inside the parentheses', () => {
+    const result = h.makeRepeatMarkerHTML('@repeat(1m, 2026-10-01)')
+    expect(result).toEqual('<span class="attag repeatMarker"><i class="fa-regular fa-repeat pad-right-small"></i>(1m, 2026-10-01)</span>')
+  })
+  test('keeps native progress form such as (2/7)', () => {
+    const result = h.makeRepeatMarkerHTML('@repeat(2/7)')
+    expect(result).toContain('(2/7)')
+    expect(result).toContain('fa-regular fa-repeat')
+    expect(result).not.toContain('@repeat')
+  })
+  test('returns the original string when it is not an @repeat token', () => {
+    expect(h.makeRepeatMarkerHTML('@Alice')).toEqual('@Alice')
+    expect(h.makeRepeatMarkerHTML('')).toEqual('')
+  })
+})
+
 describe('getNoteLinkDisplayText()', () => {
   test('returns plain title unchanged when short', () => {
     expect(h.getNoteLinkDisplayText('Foo')).toEqual('Foo')

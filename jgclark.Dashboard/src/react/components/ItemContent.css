@@ -1,5 +1,5 @@
-/* CSS specific to ItemContent (task rows).
-/* Last updated 2026-07-21 for v2.4.0.b52, @jgclark */
+/* CSS specific to ItemContent (task rows) and ReminderItem content layout.
+/* Last updated 2026-09-16 for v2.5.0.b6, @jgclark */
 
 /* Fill remaining width in the sectionItemRow. flow-root contains the floated note link. */
 .taskItemContent {
@@ -8,10 +8,75 @@
 	min-width: 0;
 }
 
-/* Note-link lozenge: right-aligned on the same line as the edit icon when it fits
-   (not used by ProjectItem). float keeps it with the trailing content instead of
-   dropping onto its own flex line after a full-width main block. */
+/* Reminder rows share the same content + RHS context pattern as tasks */
+.reminderItemContent {
+	display: flow-root;
+	flex: 1;
+	min-width: 0;
+}
+
+/* Note-link lozenge: right-aligned on the same line when it fits (not used by ProjectItem).
+   float keeps it with the trailing content instead of dropping onto its own flex line. */
 .itemNoteLinkEnd {
 	float: right;
 	margin-left: 0.35rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Compact: single-row flex - truncate task text and note link together */
+/* ------------------------------------------------------------------ */
+.density-compact .taskItemContent,
+.density-compact .reminderItemContent {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: baseline;
+	text-wrap: nowrap;
+}
+
+/* Main group fills leftover width; children stay start-aligned so edit sits after the text */
+.density-compact .taskItemContent > .taskItemMainText,
+.density-compact .reminderItemContent > .taskItemMainText {
+	display: flex;
+	flex: 1 1 auto;
+	flex-wrap: nowrap;
+	align-items: baseline;
+	justify-content: flex-start;
+	min-width: 0;
+	overflow: hidden;
+}
+
+/* Shrink/ellipsis only - do not grow, or parent+edit would be pushed to the RHS */
+.density-compact .taskItemMainText > .content {
+	flex: 0 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.density-compact .taskItemMainText > .parentMarkerIcon,
+.density-compact .taskItemMainText > .dialogTriggerIcon {
+	flex: 0 0 auto;
+}
+
+/* Trailing note/list link: pin to RHS; can shrink so some title stays visible */
+.density-compact .itemNoteLinkEnd {
+	float: none;
+	flex: 0 1 auto;
+	max-width: 40%;
+	min-width: 0;
+	overflow: hidden;
+	margin-left: 0.35rem;
+}
+
+/* inline-block so ellipsis works inside TooltipOnKeyPress's display:inline wrapper */
+.density-compact .itemNoteLinkEnd .itemNoteLink,
+.density-compact .itemNoteLinkEnd .reminderContext,
+.density-compact .itemNoteLinkEnd .noteTitle {
+	display: inline-block;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	vertical-align: bottom;
 }

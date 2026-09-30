@@ -9,7 +9,7 @@
 import moment from 'moment/min/moment-with-locales'
 import * as dt from './dateTime'
 import { logDebug, logError, logWarn } from './dev'
-import { getNPWeekData } from './NPdateTime'
+import { getNPWeekDataBridged } from './NPdateTime'
 
 export type RelativeDateWithNote = {
   relName: string,
@@ -24,11 +24,12 @@ export type RelativeDate = {
 
 /**
  * Get the relative week names and their NotePlan week strings, relative to today.
- * Note: NP weeks can count differently from ISO/moment weeks, so this has to go via getNPWeekData().
- * Note: getNPWeekData() can return null, in which case that single week is logged and skipped, rather than failing the whole list.
- * @returns {Array<RelativeDate>} relative week name + NP week string (e.g. '2025-W01') for each week
+ * Uses getNPWeekDataBridged() so WebView Calendar Thenables are awaited (correct week start).
+ * Note: getNPWeekDataBridged() can return null, in which case that single week is logged and skipped.
+ *
+ * @returns {Promise<Array<RelativeDate>>} relative week name + NP week string (e.g. '2025-W01') for each week
  */
-function getRelativeWeekDates(): Array<RelativeDate> {
+async function getRelativeWeekDates(): Promise<Array<RelativeDate>> {
   const weeksWanted: Array<{ offset: number, relName: string }> = [
     { offset: 0, relName: 'this week' },
     { offset: -1, relName: 'last week' },
@@ -43,9 +44,9 @@ function getRelativeWeekDates(): Array<RelativeDate> {
 
   const relativeWeekDates: Array<RelativeDate> = []
   for (const { offset, relName } of weeksWanted) {
-    const thisNPWeekInfo = getNPWeekData(new Date(), offset)
+    const thisNPWeekInfo = await getNPWeekDataBridged(new Date(), offset)
     if (!thisNPWeekInfo) {
-      logWarn('NPDateStrings::getRelativeWeekDates', `getNPWeekData() returned null for week offset ${offset}, so skipping '${relName}'.`)
+      logWarn('NPDateStrings::getRelativeWeekDates', `getNPWeekDataBridged() returned null for week offset ${offset}, so skipping '${relName}'.`)
       continue
     }
     relativeWeekDates.push({ relName, dateStr: thisNPWeekInfo.weekString })
@@ -60,7 +61,7 @@ function getRelativeWeekDates(): Array<RelativeDate> {
  * @param {boolean} useISODailyDates - if true, use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
  * @returns {Array<RelativeDate>} relative date name, relative date string, TNote for that relative date
  */
-export function getRelativeDatesWithNotes(useISODailyDates: boolean = false): Array<RelativeDateWithNote> {
+export async function getRelativeDatesWithNotes(useISODailyDates: boolean = false): Promise<Array<RelativeDateWithNote>> {
   try {
     const relativeDates: Array<RelativeDateWithNote> = []
     const todayMom = moment()
@@ -93,8 +94,8 @@ export function getRelativeDatesWithNotes(useISODailyDates: boolean = false): Ar
       relativeDates.push({ relName: `in ${i} days`, dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     }
 
-    // Weeks: NP weeks count differently from ISO/moment
-    for (const relativeWeekDate of getRelativeWeekDates()) {
+    // Weeks: NP weeks count differently from ISO/moment; use bridged Calendar API in WebView
+    for (const relativeWeekDate of await getRelativeWeekDates()) {
       relativeDates.push({ ...relativeWeekDate, note: DataStore.calendarNoteByDateString(relativeWeekDate.dateStr) })
     }
 
@@ -145,7 +146,7 @@ export function getRelativeDatesWithNotes(useISODailyDates: boolean = false): Ar
  * @param {boolean} useISODailyDates - if true, use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
  * @returns {Array<RelativeDate>} relative date name, relative date string, TNote for that relative date
  */
-export function getRelativeDatesUsingNPAPI(useISODailyDates: boolean = false): Array<RelativeDate> {
+export async function getRelativeDatesUsingNPAPI(useISODailyDates: boolean = false): Promise<Array<RelativeDate>> {
   try {
     const relativeDates: Array<RelativeDate> = []
     const todayMom = moment()
@@ -176,8 +177,8 @@ export function getRelativeDatesUsingNPAPI(useISODailyDates: boolean = false): A
       relativeDates.push({ relName: `in ${i} days`, dateStr: thisDateStr })
     }
 
-    // Weeks: NP weeks count differently from ISO/moment
-    relativeDates.push(...getRelativeWeekDates())
+    // Weeks: NP weeks count differently from ISO/moment; use bridged Calendar API in WebView
+    relativeDates.push(...(await getRelativeWeekDates()))
 
     // Months
     for (let i = -12; i < -1; i++) {
@@ -230,7 +231,7 @@ export function getRelativeDatesUsingNPAPI(useISODailyDates: boolean = false): A
  * @param {boolean} useISODailyDates - if true, use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
  * @returns {Promise<Array<RelativeDate>>} Array of relative dates
  */
-// eslint-disable-next-line require-await -- async API for React/WebView callers
+// eslint-disable-next-line require-await -- async API for React/WebView callers; awaits bridged week resolution
 export async function getRelativeDates(useISODailyDates: boolean = false): Promise<Array<RelativeDate>> {
   try {
     const relativeDates: Array<RelativeDate> = []
@@ -238,7 +239,7 @@ export async function getRelativeDates(useISODailyDates: boolean = false): Promi
 
     // Use the NotePlan API when DataStore can resolve calendar notes ...
     if (typeof DataStore !== 'undefined' && DataStore && typeof DataStore.calendarNoteByDateString === 'function') {
-      return getRelativeDatesUsingNPAPI(useISODailyDates)
+      return await getRelativeDatesUsingNPAPI(useISODailyDates)
     }
 
     // ... otherwise use Moment library, which gives same results (apart from Weeks, potentially), but without Note objects.

@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-08-12 for v2.4.0.b63 by @jgclark + @CursorAI
+// Last updated 2026-09-28 for v2.5.0.b6 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { treatSingleItemTypesAsZeroItems } from './constants'
+import { SYNTHETIC_SECTION_CODES, treatSingleItemTypesAsZeroItems } from './constants'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import {
   createSectionItemObject,
@@ -18,12 +18,16 @@ import {
   isWinItem,
   makeDashboardParas,
 } from './dashboardHelpers'
+import { isPriorityCacheEnabled } from './dashboardSettingsClean'
+import { getNotesFromPriorityNoteIndexCache, schedulePriorityNoteIndexCacheGeneration } from './priorityNoteIndexCache'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getRegularNotesFromFilteredFolders } from '@helpers/folders'
 import { RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 import { pastCalendarNotes } from '@helpers/note'
+import { runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
+import { usersVersionHas } from '@helpers/NPVersions'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 import { isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
@@ -152,33 +156,84 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
  * - ignoreItemsWithTerms
  * - calendar headings
  * The number of items returned is not limited.
+ *
+ * Threading: on NotePlan >= 3.21.3 the vault scan runs via `runSyncWorkOnAsyncThread`
+ * (`CommandBar.runOnAsyncThread`). On earlier versions it uses the existing
+ * `onAsyncThread` / `onMainThread` pair. Cache lookup stays on the main thread
+ * (async await is not allowed inside `runOnAsyncThread`).
+ *
  * @param {TDashboardSettings} settings
- * @returns {Array<TParagraph>}
+ * @returns {Promise<Array<TParagraph>>}
  */
 async function getRelevantPriorityTasks(config: TDashboardSettings): Promise<Array<TParagraph>> {
   try {
     const thisStartTime = new Date()
 
-    await CommandBar.onAsyncThread()
-    // Get list of folders to include or ignore
+    // Get list of folders to include or ignore (main thread)
     // const includedFolders = config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',').map((folder) => folder.trim()) : []
     const excludedFolders = config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : []
     logInfo('getRelevantPriorityTasks', `excludedFolders: ${String(excludedFolders)}`)
-    // Reduce list to all notes that are not blank or in @ folders or excludedFolders
-    let notesToCheck = getRegularNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
-    logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
 
-    // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by `DataStore.projectNotes` (the call behind 'regularNotesFromFilteredFolders').
-    // Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
-    // Note: JGC has asked EM to not return other sorts of files
-    // Note: this takes roughly 1ms per note for JGC.
-    notesToCheck = notesToCheck.filter((n) => RE_NOTE_FILE_EXTENSION.test(n.filename)).filter((n) => n.content && !isNaN(n.content.length) && n.content.length >= 1)
-    logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(notesToCheck.length)} non-blank MD notes to check`)
+    // Resolve candidate notes on the main thread when the priority cache can supply them.
+    // Full vault scans stay in the sync background callback (may not await).
+    let notesToCheck: ?Array<TNote> = null
+    let needsFullVaultScan = false
+    const usePriorityCache = isPriorityCacheEnabled(config)
+    if (usePriorityCache) {
+      const cachedNotes = await getNotesFromPriorityNoteIndexCache()
+      if (cachedNotes != null) {
+        notesToCheck = cachedNotes
+        logInfo('getRelevantPriorityTasks', `- from PRIORITY CACHE: ${String(notesToCheck.length)} candidate notes`)
+      } else {
+        logInfo('getRelevantPriorityTasks', `- Priority cache unavailable; falling back to full vault scan (generation scheduled for later)`)
+        schedulePriorityNoteIndexCacheGeneration()
+        needsFullVaultScan = true
+      }
+    } else {
+      // Reduce list to all notes that are not blank or in @ folders or excludedFolders
+      needsFullVaultScan = true
+    }
 
-    // Now find all open items in them which have a priority marker
-    const priorityParas = getAllOpenPriorityParas(notesToCheck)
-    logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(priorityParas.length)} priorityParas`)
-    await CommandBar.onMainThread()
+    // Side-channel: do not return large arrays from runOnAsyncThread (that hung the Promise live).
+    let priorityParasHolder: ?Array<TParagraph> = null
+
+    /**
+     * Synchronous vault filter + open-priority para scan. Safe for runOnAsyncThread.
+     * @returns {true}
+     */
+    const syncScanOpenPriorityParas = (): true => {
+      let notes: Array<TNote> = notesToCheck != null ? notesToCheck : []
+      if (needsFullVaultScan) {
+        notes = getRegularNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
+        logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notes.length)} non-special regular notes + past calendar notes to check`)
+      }
+
+      // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by `DataStore.projectNotes` (the call behind 'regularNotesFromFilteredFolders').
+      // Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
+      // Note: JGC has asked EM to not return other sorts of files
+      // Note: this takes roughly 1ms per note for JGC.
+      notes = notes.filter((n) => RE_NOTE_FILE_EXTENSION.test(n.filename)).filter((n) => n.content && !isNaN(n.content.length) && n.content.length >= 1)
+      logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(notes.length)} non-blank MD notes to check`)
+
+      // Now find all open items in them which have a priority marker
+      priorityParasHolder = getAllOpenPriorityParas(notes)
+      logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(priorityParasHolder.length)} priorityParas`)
+      return true
+    }
+
+    if (usersVersionHas('runOnAsyncThread')) {
+      await runSyncWorkOnAsyncThread('getRelevantPriorityTasks', syncScanOpenPriorityParas)
+      if (priorityParasHolder == null) {
+        logWarn('getRelevantPriorityTasks', `- async scan result missing; scanning on main thread`)
+        syncScanOpenPriorityParas()
+      }
+    } else {
+      await CommandBar.onAsyncThread()
+      syncScanOpenPriorityParas()
+      await CommandBar.onMainThread()
+    }
+
+    const priorityParas: Array<TParagraph> = priorityParasHolder != null ? priorityParasHolder : []
     // Log for testing
     // for (const p of priorityParas) {
     //   console.log(`- ${displayTitle(p.note)} : ${p.content}`)
@@ -245,6 +300,7 @@ function getOpenPriorityItems(note: TNote): Array<TParagraph> {
 /**
  * Append a synthetic **Wins** section (`WINS`) built from items matching the configured `winsPriorityMarker` (default: `>>`) in current calendar sections.
  * Client-only: not generated by the plugin. Respects which calendar sections are enabled.
+ * Stale WINS rows in plugin JSON (e.g. from an old WebView snapshot) are stripped before injection so only one Wins section is shown.
  * @param {Array<TSection>} sections - Sections from plugin JSON
  * @param {TDashboardSettings} dashboardSettings
  * @returns {Array<TSection>} sections plus synthetic WINS when `showWinsSection`
@@ -253,6 +309,8 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
   if (!dashboardSettings || dashboardSettings.showWinsSection === false || dashboardSettings.treatTopPriorityAsWins !== true) {
     return sections
   }
+
+  const sectionsWithoutStaleSynthetic = sections.filter((section) => !SYNTHETIC_SECTION_CODES.includes(section.sectionCode))
 
   const winItems: Array<TSectionItem> = []
   const gatherWins = true
@@ -270,7 +328,7 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
     // Track max source generatedDate so hideEmptySections can tell local REMOVE_LINE (source dates unchanged -> WINS date stable -> keep congrats)
     // from a refresh (source dates updated -> WINS date changes -> hide empty WINS).
     let maxGeneratedDateMs = 0
-    for (const section of sections) {
+    for (const section of sectionsWithoutStaleSynthetic) {
       const code = section.sectionCode
       if (code !== 'DT' && code !== 'W' && code !== 'M' && code !== 'Q' && code !== 'Y') continue
       if (!periodVisible[code]) continue
@@ -291,7 +349,7 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
     }
 
     // Attach completed-win count from DT's today breakdown (for congrats messaging); WINS stays open-items only
-    const dtSection = sections.find((s) => s.sectionCode === 'DT' && !s.isReferenced)
+    const dtSection = sectionsWithoutStaleSynthetic.find((s) => s.sectionCode === 'DT' && !s.isReferenced)
     const completedWins = dtSection?.doneCounts?.completedWins ?? 0
     const winsDoneCounts =
       dtSection?.doneCounts != null
@@ -319,7 +377,7 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
       // Derived from calendar source sections - see comment on maxGeneratedDateMs above
       generatedDate: maxGeneratedDateMs > 0 ? new Date(maxGeneratedDateMs) : undefined,
     }
-    return sections.concat(winsSection)
+    return sectionsWithoutStaleSynthetic.concat(winsSection)
   }
 
   return sections

@@ -9,9 +9,12 @@ import {
   filterParasByIgnoreTerms,
   filterParasByIncludedCalendarSections,
   filterParasByExcludedCalendarSections,
+  isPseudoHeadingOption,
   isWinItem,
   makeDashboardParas,
   mergeSections,
+  pickDefaultHeadingForAddTaskDialog,
+  scoreHeadingPerspectiveMatch,
 } from '../dashboardHelpers.js'
 import { DataStore, Editor, CommandBar, NotePlan, Paragraph, Note, simpleFormatter } from '@mocks/index'
 import * as timeblocks from '@helpers/timeblocks'
@@ -75,6 +78,79 @@ describe(`${PLUGIN_NAME}`, () => {
         const merged = mergeSections(existing, incoming)
         expect(merged).toHaveLength(2)
         expect(merged.map((s) => s.name)).toEqual(['#work', '@home'])
+      })
+    })
+
+    describe('isPseudoHeadingOption()', () => {
+      test('detects top / bottom / insert-new pseudo headings', () => {
+        expect(isPseudoHeadingOption('⏫ (top of note)')).toBe(true)
+        expect(isPseudoHeadingOption('⏬ (bottom of note)')).toBe(true)
+        expect(isPseudoHeadingOption('➕#️⃣ (first insert new heading at the start of the note)')).toBe(true)
+        expect(isPseudoHeadingOption('➕#️⃣ (first insert new heading under the title)')).toBe(true)
+        expect(isPseudoHeadingOption('Home')).toBe(false)
+        expect(isPseudoHeadingOption('### CCC')).toBe(false)
+      })
+    })
+
+    describe('scoreHeadingPerspectiveMatch()', () => {
+      test('exact match scores highest', () => {
+        expect(scoreHeadingPerspectiveMatch('CCC', 'CCC')).toBe(100)
+        expect(scoreHeadingPerspectiveMatch('ccc', '### CCC')).toBe(100)
+      })
+
+      test('close matches score above zero', () => {
+        expect(scoreHeadingPerspectiveMatch('Home', 'Home tasks')).toBe(80)
+        expect(scoreHeadingPerspectiveMatch('Wider Ministry', 'Ministry')).toBe(60)
+      })
+
+      test('unrelated names score zero', () => {
+        expect(scoreHeadingPerspectiveMatch('NotePlan', 'Journal')).toBe(0)
+        expect(scoreHeadingPerspectiveMatch('-', 'Home')).toBe(0)
+      })
+    })
+
+    describe('pickDefaultHeadingForAddTaskDialog()', () => {
+      const headings = [
+        '⏫ (top of note)',
+        '➕#️⃣ (first insert new heading at the start of the note)',
+        'Home',
+        'Ministry',
+        'CCC',
+        'Journal for 10.9.26',
+        '⏬ (bottom of note)',
+      ]
+
+      test('picks exact perspective match among real headings', () => {
+        const result = pickDefaultHeadingForAddTaskDialog(headings, 'CCC')
+        expect(result.heading).toBe('CCC')
+        expect(result.reason).toBe('perspective-match')
+        expect(result.score).toBe(100)
+      })
+
+      test('picks close match when no exact match', () => {
+        const result = pickDefaultHeadingForAddTaskDialog(headings, 'Wider Ministry')
+        expect(result.heading).toBe('Ministry')
+        expect(result.reason).toBe('perspective-match')
+        expect(result.score).toBe(60)
+      })
+
+      test('falls back to first real heading when no near match', () => {
+        const result = pickDefaultHeadingForAddTaskDialog(headings, 'NotePlan')
+        expect(result.heading).toBe('Home')
+        expect(result.reason).toBe('first-real-heading')
+        expect(result.score).toBe(0)
+      })
+
+      test('falls back to first real heading when perspective is -', () => {
+        const result = pickDefaultHeadingForAddTaskDialog(headings, '-')
+        expect(result.heading).toBe('Home')
+        expect(result.reason).toBe('first-real-heading')
+      })
+
+      test('returns empty when only pseudo headings exist', () => {
+        const result = pickDefaultHeadingForAddTaskDialog(['⏫ (top of note)', '⏬ (bottom of note)'], 'CCC')
+        expect(result.heading).toBe('')
+        expect(result.reason).toBe('none')
       })
     })
 

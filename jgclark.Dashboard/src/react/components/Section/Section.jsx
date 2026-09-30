@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
+// Last updated 2026-08-21 for v2.5.0, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -369,22 +369,25 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
 
   // handle a click to start interactive processing
   // When moveOnlyShownItemsWhenFiltered is false, include lower-priority (and limit-hidden) items, not just those currently shown.
-  // Count and start list both use getInteractiveProcessingItems (open/checklist/reminder) (#779)
+// Count and start list both use getInteractiveProcessingItems (open/checklist/reminder/project)
   const handleInteractiveProcessingClick = useCallback(
     (e: MouseEvent): void => {
       const moveOnlyShownItemsWhenFiltered = dashboardSettings?.moveOnlyShownItemsWhenFiltered ?? true
       const sourceItems = moveOnlyShownItemsWhenFiltered ? itemsToShow : allSortedItems
-      const processableItems = getInteractiveProcessingItems(sourceItems)
+      const processableItems = getInteractiveProcessingItems(sourceItems, section.sectionCode)
       if (processableItems.length === 0) {
         logDebug(
           'Section',
-          `Interactive Processing click on ${section.sectionCode}: no processable open/checklist/reminder items (source had ${String(sourceItems.length)} row(s))`,
+          `Interactive Processing click on ${section.sectionCode}: no processable open/checklist/reminder/project items (source had ${String(sourceItems.length)} row(s))`,
         )
         return
       }
 
+      const firstItem = processableItems[0]
       const clickPosition = { clientY: e.clientY, clientX: e.clientX + 200 }
-      const itemDetails = { actionType: '', item: processableItems[0], sectionCodes: [section.sectionCode] }
+      const itemDetails = { actionType: '', item: firstItem, sectionCodes: [section.sectionCode] }
+      // Project rows need isTask false so Dialog.jsx routes to DialogForProjectItems
+      const isTask = firstItem.itemType !== 'project'
       setReactSettings((prevSettings) => {
         const newReactSettings = {
           ...prevSettings,
@@ -396,7 +399,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
             visibleItems: [...processableItems],
             clickPosition,
           },
-          dialogData: { isOpen: true, isTask: true, details: itemDetails, clickPosition },
+          dialogData: { isOpen: true, isTask, details: itemDetails, clickPosition },
         }
         return newReactSettings
       })
@@ -603,12 +606,11 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
     ) : null
 
   // Decide whether to show interactiveProcessing button:
-  // - N and the start list use the same processable filter (open/checklist/reminder) (#779)
+// - N and the start list use the same processable filter (open/checklist/reminder/project)
   // - when moveOnlyShownItemsWhenFiltered, source is visible rows; otherwise allSortedItems (incl. priority/limit-hidden)
-  // - hide when there is nothing actionable for the chosen mode (e.g. all tasks priority-filtered and only-shown on)
-  // - TODO(later): enable for PROJREVIEW/PROJACT
+// - hide when there is nothing actionable for the chosen mode (e.g. all tasks priority-filtered and only-shown on)
   const ipSourceItems = moveOnlyShownItemsWhenFiltered ? itemsToShow : allSortedItems
-  const ipItemCount = countInteractiveProcessingItems(ipSourceItems)
+const ipItemCount = countInteractiveProcessingItems(ipSourceItems, section.sectionCode)
   const showIPButton =
     dashboardSettings.enableInteractiveProcessing &&
     interactiveProcessingPossibleSectionTypes.includes(section.sectionCode) &&

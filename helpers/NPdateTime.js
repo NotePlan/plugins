@@ -4,13 +4,13 @@
 // @jgclark except where shown
 //-------------------------------------------------------------------------------
 
+import { endOfWeek as dfEndOfWeek, format, startOfWeek as dfStartOfWeek } from 'date-fns'
 import moment from 'moment/min/moment-with-locales'
-import { format } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
 import * as dt from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import { getFolderFromFilename } from './folders'
-import { isThenable } from './npBridgeResolve'
+import { awaitBridgedValue, isThenable } from './npBridgeResolve'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE, TEAMSPACE_INDICATOR } from './regex'
 import { hasScheduledDate } from './utils'
 import { getTeamspaceTitleFromID } from './NPTeamspace'
@@ -797,6 +797,156 @@ export function pad(n: number): string {
 }
 
 /**
+ * Parse dateIn + offset into a moment instance and JS Date for week calculations.
+ * Shared by sync getNPWeekData() and async getNPWeekDataBridged().
+ *
+ * @param {string | Date} dateIn
+ * @param {number} offsetIncrement
+ * @param {string} offsetType
+ * @returns {{ newMom: any, date: Date } | null}
+ */
+function parseInputForNPWeek(dateIn: string | Date, offsetIncrement: number, offsetType: string): ?{| newMom: any, date: Date |} {
+  let dateStrFormat = 'YYYY-MM-DD'
+  let newMom
+  if (typeof dateIn === 'string') {
+    if (new RegExp(dt.RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+    if (new RegExp(dt.RE_NP_WEEK_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[W]WW'
+    newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
+  } else {
+    newMom = moment(dateIn).add(offsetIncrement, offsetType)
+  }
+  if (!newMom) {
+    return null
+  }
+  const date = newMom.toDate()
+  if (!date) {
+    return null
+  }
+  return { newMom, date }
+}
+
+/**
+ * Moment-based week boundaries when Calendar.* is unavailable or returns unusable values.
+ * Note: moment's week start follows locale, not necessarily the user's NotePlan setting.
+ *
+ * @param {any} newMom - moment instance for the target date (may be mutated like legacy getNPWeekData)
+ * @returns {{ weekNumber: number, startDate: Date, endDate: Date }}
+ */
+function momentWeekFallback(newMom: any): {| weekNumber: number, startDate: Date, endDate: Date |} {
+  return {
+    weekNumber: newMom.week(),
+    startDate: newMom.startOf('week').toDate(),
+    endDate: newMom.endOf('week').toDate(),
+  }
+}
+
+/**
+ * Coerce a WebView/bridge Calendar Date return into a JS Date.
+ * The HTML bridge serializes Date arguments as ISO strings, but Date return values
+ * often arrive as ISO strings, timestamps, or empty objects (`{}`) with no enumerable props.
+ *
+ * @param {mixed} value
+ * @returns {Date | null}
+ */
+function coerceBridgedDate(value: mixed): Date | null {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const fromNumber = new Date(value)
+    return Number.isNaN(fromNumber.getTime()) ? null : fromNumber
+  }
+  if (typeof value === 'string' && value !== '') {
+    const fromString = new Date(value)
+    return Number.isNaN(fromString.getTime()) ? null : fromString
+  }
+  return null
+}
+
+/**
+ * Week start/end for an anchor date using JS weekday 0=Sunday ... 6=Saturday (date-fns weekStartsOn).
+ *
+ * @param {Date} date
+ * @param {number} weekStartsOn
+ * @returns {{ startDate: Date, endDate: Date }}
+ */
+function weekBoundariesFromFirstDayOfWeek(date: Date, weekStartsOn: number): {| startDate: Date, endDate: Date |} {
+  const startsOn = ((Math.floor(weekStartsOn) % 7) + 7) % 7
+  const options = { weekStartsOn: (startsOn: any) }
+  return {
+    startDate: dfStartOfWeek(date, options),
+    endDate: dfEndOfWeek(date, options),
+  }
+}
+
+/**
+ * Resolve the user's NotePlan firstDayOfWeek to JS weekday (0=Sunday).
+ * Awaits a bridged preference Thenable. Same mapping as getUsersFirstDayOfWeekUTC().
+ *
+ * @returns {Promise<number>}
+ */
+async function getUsersFirstDayOfWeekBridged(): Promise<number> {
+  if (typeof DataStore === 'undefined' || DataStore == null || typeof DataStore.preference !== 'function') {
+    return 1
+  }
+  const pref = await awaitBridgedValue(DataStore.preference('firstDayOfWeek'))
+  return typeof pref === 'number' ? Number(pref) - 1 : 1
+}
+
+// WebView Calendar.startOfWeek / endOfWeek often resolve to `{}` (Date return values do not JSON-serialize).
+// After the first failure, skip those bridge calls for the rest of this JSContext. Calendar.weekNumber still works.
+let calendarWeekBoundariesUnusable: boolean = false
+let loggedCalendarWeekBoundariesUnusable: boolean = false
+
+/**
+ * Reset the WebView Calendar week-boundary skip flag.
+ * Used by tests; also available if a later NotePlan build starts returning real Dates again in the same context.
+ *
+ * @returns {void}
+ */
+export function resetCalendarWeekBoundariesBridgeState(): void {
+  calendarWeekBoundariesUnusable = false
+  loggedCalendarWeekBoundariesUnusable = false
+}
+
+/**
+ * Reconstruct week start/end from firstDayOfWeek when Calendar Date returns are unusable.
+ * Logs once at debug for this JSContext.
+ *
+ * @param {Date} date
+ * @param {number} weekNumber - Calendar week number being kept
+ * @returns {Promise<{ startDate: Date, endDate: Date }>}
+ */
+async function reconstructWeekBoundariesFromPreference(date: Date, weekNumber: number): Promise<{| startDate: Date, endDate: Date |}> {
+  if (!loggedCalendarWeekBoundariesUnusable) {
+    logDebug(
+      'NPdateTime::getNPWeekDataBridged',
+      `Calendar startOfWeek/endOfWeek unusable after await; reconstructing week boundaries from firstDayOfWeek (keeping weekNumber=${String(weekNumber)})`,
+    )
+    loggedCalendarWeekBoundariesUnusable = true
+  }
+  const weekStartsOn = await getUsersFirstDayOfWeekBridged()
+  return weekBoundariesFromFirstDayOfWeek(date, weekStartsOn)
+}
+
+/**
+ * Build the NotePlanWeekInfo object from resolved week number and boundary dates.
+ *
+ * @param {number} weekNumber
+ * @param {Date} startDate
+ * @param {Date} endDate
+ * @param {Date} date - anchor date within the week
+ * @returns {NotePlanWeekInfo}
+ */
+function composeNotePlanWeekInfo(weekNumber: number, startDate: Date, endDate: Date, date: Date): NotePlanWeekInfo {
+  const weekStartYear = startDate.getFullYear()
+  const weekEndYear = endDate.getFullYear()
+  const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
+  const weekString = `${weekYear}-W${pad(weekNumber)}`
+  return { weekNumber, startDate, endDate, weekYear, date, weekString }
+}
+
+/**
  * Get all the week details for a given unhyphenated|hyphenated(ISO8601) date string, a week string (YYYY-Wnn) or a Date object
  * Week info is offset depending on the NotePlan setting for the first day of the week
  * Note: requires NP API calls introduced in v3.7.0.
@@ -822,22 +972,11 @@ export function pad(n: number): string {
  */
 export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
   try {
-    let dateStrFormat = 'YYYY-MM-DD',
-      newMom
-    if (typeof dateIn === 'string') {
-      if (new RegExp(dt.RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
-      if (new RegExp(dt.RE_NP_WEEK_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[W]WW'
-      newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
-    } else {
-      newMom = moment(dateIn).add(offsetIncrement, offsetType)
-    }
-    if (!newMom) {
-      throw new Error(`Cannot get newMom from dateIn '${String(dateIn)}'`)
-    }
-    const date = newMom.toDate()
-    if (!date) {
+    const parsed = parseInputForNPWeek(dateIn, offsetIncrement, offsetType)
+    if (!parsed) {
       throw new Error(`Cannot get date from dateIn '${String(dateIn)}'`)
     }
+    const { newMom, date } = parsed
 
     let weekNumber: number
     let startDate: Date
@@ -846,14 +985,16 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
     // If this happens, then instead offer the ISO week number.
     if (!Calendar || typeof Calendar !== 'object' || typeof Calendar.weekNumber !== 'function') {
       logDebug('NPdateTime::getNPWeekData', `NP's Calendar API functions are not available, so I will use moment instead. This doesn't know what your chosen first day of week is.`)
-      weekNumber = newMom.week() // uses moment locale
-      startDate = newMom.startOf('week').toDate()
-      endDate = newMom.endOf('week').toDate()
+      const fallback = momentWeekFallback(newMom)
+      weekNumber = fallback.weekNumber
+      startDate = fallback.startDate
+      endDate = fallback.endDate
     } else {
       weekNumber = Calendar.weekNumber(date)
       // Note: In some environments the Calendar API can return non-Date objects (e.g. {}) during early startup / WebView contexts.
       // In WebView, startOfWeek/endOfWeek often return Thenables (Promises) that sync code cannot await.
       // Treat both as equivalent to Calendar being unavailable and fall back to moment-based week boundaries.
+      // For WebView callers that can await, use getNPWeekDataBridged() instead.
       startDate = Calendar.startOfWeek(date)
       endDate = Calendar.endOfWeek(date)
       const startIsThenable = isThenable(startDate)
@@ -864,19 +1005,96 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
         if (!startIsThenable && !endIsThenable && !weekNumberIsThenable) {
           logWarn('NPdateTime::getNPWeekData', `Calendar returned invalid week boundaries (start=${String(startDate)} end=${String(endDate)}), falling back to moment week boundaries`)
         }
-        weekNumber = newMom.week() // uses moment locale
-        startDate = newMom.startOf('week').toDate()
-        endDate = newMom.endOf('week').toDate()
+        const fallback = momentWeekFallback(newMom)
+        weekNumber = fallback.weekNumber
+        startDate = fallback.startDate
+        endDate = fallback.endDate
       }
     }
 
-    const weekStartYear = startDate.getFullYear()
-    const weekEndYear = endDate.getFullYear()
-    const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
-    const weekString = `${weekYear}-W${pad(weekNumber)}`
-    return { weekNumber, startDate, endDate, weekYear, date, weekString }
+    return composeNotePlanWeekInfo(weekNumber, startDate, endDate, date)
   } catch (err) {
     logError('NPdateTime::getNPWeekData', err.message)
+    return null
+  }
+}
+
+/**
+ * Async variant of getNPWeekData() for WebView / HTML contexts where Calendar.* bridge calls
+ * return Thenables (Promises) that must be awaited before the real Date or week number is available.
+ *
+ * Why this exists:
+ * - Sync getNPWeekData() cannot await bridge Promises, so it falls back to moment week boundaries.
+ * - Moment uses locale week start (often Sunday), which may not match the user's NotePlan setting.
+ * - Calendar.weekNumber serializes as a number and is usable after await.
+ * - Calendar.startOfWeek / endOfWeek Date returns often arrive as `{}` (no enumerable props) or ISO strings.
+ * - When boundaries are unusable, keep Calendar's weekNumber and reconstruct start/end from firstDayOfWeek.
+ * - Full moment fallback only when weekNumber itself is not a number.
+ *
+ * Use from async code paths (NPDateStrings, Dashboard startup refresh). Plugin-side sync code
+ * should keep using getNPWeekData().
+ *
+ * @param {string | Date} dateIn - same as getNPWeekData()
+ * @param {number} offsetIncrement - same as getNPWeekData()
+ * @param {string} offsetType - same as getNPWeekData()
+ * @returns {Promise<NotePlanWeekInfo | null>}
+ */
+export async function getNPWeekDataBridged(
+  dateIn: string | Date = new Date(),
+  offsetIncrement: number = 0,
+  offsetType: string = 'week',
+): Promise<NotePlanWeekInfo | null> {
+  try {
+    const parsed = parseInputForNPWeek(dateIn, offsetIncrement, offsetType)
+    if (!parsed) {
+      throw new Error(`Cannot get date from dateIn '${String(dateIn)}'`)
+    }
+    const { newMom, date } = parsed
+
+    if (!Calendar || typeof Calendar !== 'object' || typeof Calendar.weekNumber !== 'function') {
+      logDebug('NPdateTime::getNPWeekDataBridged', `Calendar API not available; using moment week boundaries`)
+      const fallback = momentWeekFallback(newMom)
+      return composeNotePlanWeekInfo(fallback.weekNumber, fallback.startDate, fallback.endDate, date)
+    }
+
+    // Each Calendar call may return a Thenable. awaitBridgedValue unwraps one level (Promise or { then }).
+    const weekNumber = await awaitBridgedValue(Calendar.weekNumber(date))
+    if (typeof weekNumber !== 'number') {
+      logWarn(
+        'NPdateTime::getNPWeekDataBridged',
+        `Calendar returned invalid weekNumber after await (${String(weekNumber)}); falling back to moment week boundaries`,
+      )
+      const fallback = momentWeekFallback(newMom)
+      return composeNotePlanWeekInfo(fallback.weekNumber, fallback.startDate, fallback.endDate, date)
+    }
+
+    let startDate: Date
+    let endDate: Date
+    if (
+      !calendarWeekBoundariesUnusable &&
+      typeof Calendar.startOfWeek === 'function' &&
+      typeof Calendar.endOfWeek === 'function'
+    ) {
+      const coercedStart = coerceBridgedDate(await awaitBridgedValue(Calendar.startOfWeek(date)))
+      const coercedEnd = coerceBridgedDate(await awaitBridgedValue(Calendar.endOfWeek(date)))
+      if (coercedStart instanceof Date && coercedEnd instanceof Date && dt.isValidDateObject(coercedStart) && dt.isValidDateObject(coercedEnd)) {
+        startDate = coercedStart
+        endDate = coercedEnd
+      } else {
+        calendarWeekBoundariesUnusable = true
+        const reconstructed = await reconstructWeekBoundariesFromPreference(date, weekNumber)
+        startDate = reconstructed.startDate
+        endDate = reconstructed.endDate
+      }
+    } else {
+      const reconstructed = await reconstructWeekBoundariesFromPreference(date, weekNumber)
+      startDate = reconstructed.startDate
+      endDate = reconstructed.endDate
+    }
+
+    return composeNotePlanWeekInfo(weekNumber, startDate, endDate, date)
+  } catch (err) {
+    logError('NPdateTime::getNPWeekDataBridged', err.message)
     return null
   }
 }
@@ -1165,6 +1383,27 @@ type RelativeDateWithNote = {
 }
 
 /**
+ * Relative week names and their week offsets used by getRelativeDates() and refreshRelativeDatesISOCache().
+ * NP week numbering can differ from ISO/moment, so offsets go through getNPWeekData() / getNPWeekDataBridged().
+ *
+ * @returns {Array<{ offset: number, relName: string }>}
+ */
+function getRelativeWeekOffsetEntries(): Array<{ offset: number, relName: string }> {
+  const entries: Array<{ offset: number, relName: string }> = [
+    { offset: 0, relName: 'this week' },
+    { offset: -1, relName: 'last week' },
+    { offset: 1, relName: 'next week' },
+  ]
+  for (let i = -11; i < -1; i++) {
+    entries.push({ offset: i, relName: `${-i} weeks ago` })
+  }
+  for (let i = 2; i < 11; i++) {
+    entries.push({ offset: i, relName: `${i} weeks' time` })
+  }
+  return entries
+}
+
+/**
  * WARNING: DEPRECATED: This function is deprecated from NP v3.21. Use helpers/NPDateStrings.js instead, as that now uses the NotePlan API if available, or falls back to a simpler implementation if not available.
  * Note: This should really now be called getRelativeDatesWithNotes(), as it returns the note objects; the type name is now correct at least, to flag this.
  * 
@@ -1225,11 +1464,10 @@ export function getRelativeDates(useISODailyDates: boolean = false): Array<Relat
     addRelativeWeek('this week', 0)
     addRelativeWeek('last week', -1)
     addRelativeWeek('next week', 1)
-    for (let i = -11; i < -1; i++) {
-      addRelativeWeek(`${-i} weeks ago`, i)
-    }
-    for (let i = 2; i < 11; i++) {
-      addRelativeWeek(`${i} weeks' time`, i)
+    for (const { offset, relName } of getRelativeWeekOffsetEntries()) {
+      if (offset < -1 || offset > 1) {
+        addRelativeWeek(relName, offset)
+      }
     }
 
     // Months
@@ -1275,10 +1513,78 @@ export function getRelativeDates(useISODailyDates: boolean = false): Array<Relat
   }
 }
 
-// Pre-compute relative dates for use in various functions below.
-// Note: use ISO daily dates (e.g. '2025-01-01') instead of NP filename-style dates (e.g. '20250101')
-const relativeDatesISO = getRelativeDates(true)
-// const relativeDatesNP = getRelativeDates(false) // wasn't being used
+// Lazy ISO relative-dates cache for sync helpers (getDateStrFromRelativeDateString, displayTitleWithRelDate).
+// Do NOT build at module import: in WebView, Calendar.* may return Thenables or {} during early startup.
+// First sync access uses getNPWeekData() (moment fallback for weeks). refreshRelativeDatesISOCache()
+// re-applies week entries via getNPWeekDataBridged() once the Calendar bridge is ready.
+let relativeDatesISOCache: ?Array<RelativeDateWithNote> = null
+let relativeDatesISOCacheVersion: number = 0
+
+/**
+ * Ensure the ISO relative-dates cache exists (lazy, sync). Week entries may use moment fallback until refreshed.
+ *
+ * @returns {Array<RelativeDateWithNote>}
+ */
+function ensureRelativeDatesISOCache(): Array<RelativeDateWithNote> {
+  if (relativeDatesISOCache == null) {
+    relativeDatesISOCache = getRelativeDates(true)
+  }
+  return relativeDatesISOCache
+}
+
+/**
+ * Read the lazy ISO relative-dates cache. Prefer this over calling getRelativeDates(true) directly
+ * so all consumers share the same cache (and any refresh from refreshRelativeDatesISOCache()).
+ *
+ * @returns {Array<RelativeDateWithNote>}
+ */
+export function getRelativeDatesISOCache(): Array<RelativeDateWithNote> {
+  return ensureRelativeDatesISOCache()
+}
+
+/**
+ * Monotonic version counter bumped when refreshRelativeDatesISOCache() updates week entries.
+ * Consumers with their own short-lived cache (e.g. noteChooserFilenameResolve) can invalidate on change.
+ *
+ * @returns {number}
+ */
+export function getRelativeDatesISOCacheVersion(): number {
+  return relativeDatesISOCacheVersion
+}
+
+/**
+ * Re-apply week entries in the ISO relative-dates cache using async Calendar bridge (getNPWeekDataBridged).
+ * Call from WebView after mount when Calendar Thenables have had time to resolve.
+ * Day/month/quarter entries are left unchanged; only week relNames are updated.
+ *
+ * @returns {Promise<void>}
+ */
+export async function refreshRelativeDatesISOCache(): Promise<void> {
+  const cache = ensureRelativeDatesISOCache()
+  let refreshedCount = 0
+  for (const { offset, relName } of getRelativeWeekOffsetEntries()) {
+    const weekInfo = await getNPWeekDataBridged(new Date(), offset)
+    if (!weekInfo?.weekString) {
+      logWarn('NPdateTime::refreshRelativeDatesISOCache', `Couldn't refresh '${relName}' (offset=${String(offset)}), leaving existing cache entry`)
+      continue
+    }
+    const note =
+      typeof DataStore !== 'undefined' && DataStore && typeof DataStore.calendarNoteByDateString === 'function'
+        ? DataStore.calendarNoteByDateString(weekInfo.weekString)
+        : null
+    const entry: RelativeDateWithNote = { relName, dateStr: weekInfo.weekString, note }
+    const idx = cache.findIndex((rd) => rd.relName === relName)
+    if (idx >= 0) {
+      cache[idx] = entry
+    } else {
+      cache.push(entry)
+    }
+    refreshedCount++
+  }
+  relativeDatesISOCache = cache
+  relativeDatesISOCacheVersion++
+  logDebug('NPdateTime::refreshRelativeDatesISOCache', `Refreshed ${String(refreshedCount)} week entries via Calendar bridge (cache version ${String(relativeDatesISOCacheVersion)})`)
+}
 
 /**
  * Get the date string (YYYY-MM-DD etc.) from a relative date string (e.g. 'today', 'tomorrow', 'yesterday', 'this week', 'next week', 'last week', 'this month', 'next month', 'last month', 'this year', 'next year', 'last year').
@@ -1287,7 +1593,7 @@ const relativeDatesISO = getRelativeDates(true)
  * @returns {string}
  */
 export function getDateStrFromRelativeDateString(relDateStr: string): string {
-  for (const rd of relativeDatesISO) {
+  for (const rd of ensureRelativeDatesISOCache()) {
     if (relDateStr === rd.relName) {
       return rd.dateStr
     }
@@ -1312,7 +1618,7 @@ export function displayTitleWithRelDate(
   if (noteIn.type === 'Calendar') {
     let calNoteTitle = dt.getDateStringFromCalendarFilename(noteIn.filename, true) ?? '(error)'
     if (showRelativeDates) {
-      for (const rd of relativeDatesISO) {
+      for (const rd of ensureRelativeDatesISOCache()) {
         if (calNoteTitle === rd.dateStr) {
           // logDebug('displayTitleWithRelDate',`Found match with ${rd.dateStr} => ${rd.relName}`)
           calNoteTitle = `${rd.dateStr}\t(${rd.relName})`

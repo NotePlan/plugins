@@ -1,5 +1,5 @@
 /* CSS specific to Section components and their children.
-/* Last updated 2026-05-06 for v2.4.0.b33 by @jgclark */
+/* Last updated 2026-09-16 for v2.5.0.b6 by @jgclark */
 
 /* Animation keyframes for section appearance and removal */
 @keyframes sectionFadeIn {
@@ -39,17 +39,6 @@
 	/* turn on top border (from theme CSS) */
 	border-left: 1px solid var(--divider-color);
 	border-right: 1px solid var(--divider-color);
-	/* border-bottom: 1px solid var(--divider-color); */
-	/* position: relative; */
-	/* Subtle animation when section appears */
-	/* Note: turning off, as the amount of re-rendering introduces too much flickering */	/* animation: sectionFadeIn 0.3s ease-out; */
-}
-
-/* Class for fade-out animation when section is being removed */
-/* Note: This requires React to apply the class before unmounting for the animation to be visible */
-.section.sectionRemoving {
-	/* Note: turning off, as the amount of re-rendering introduces too much flickering */
-	/* animation: sectionFadeOut 0.3s ease-in forwards; */
 }
 
 .sectionInfo {
@@ -116,6 +105,16 @@
 	justify-self: start;
 }
 
+.sectionDescription {
+	align-self: start;
+	flex-grow: 1;
+	/* a bit smaller */
+	padding-top: 0.1rem;
+	/* Ensure we don't get a single word orphan on a line. Not sure if it is supported in NotePlan's version of Safari. */
+	text-wrap: pretty;
+	line-height: 1.2rem;
+}
+
 /* Next part of sectionInfo. */
 .sectionInfoSecondLine {
 	/* contains DIVs, so need to flex to keep in the same line */
@@ -126,19 +125,34 @@
 	align-self: center;
 }
 
-.sectionDescription {
-	align-self: start;
-	flex-grow: 1;
-	/* a bit smaller */
-	padding-top: 0.1rem;
-	/* Ensure we don't get a single word orphan on a line. Not sure if it is supported in NotePlan's version of Safari. */
-	text-wrap: pretty;
-}
-
 .sectionCompletionCircle {
 	padding-top: 3px;
 	padding-right: 1px;
 	justify-self: end;
+}
+
+/* Compact Display Density: ~10% smaller section text/icons/line-height (padding/margins unchanged) */
+.density-compact {
+	.sectionIcon {
+		font-size: 0.99rem;
+	}
+
+	.sectionName {
+		font-size: 0.9rem;
+	}
+
+	.sectionInfoSecondLine {
+		font-size: 0.81rem;
+	}
+
+	.sectionItemsGrid {
+		font-size: 0.9rem;
+	}
+
+	.sectionName,
+	.sectionItemsGrid {
+		line-height: 1.175;
+	}
 }
 
 /* If very narrow -- for small iPhone drop .sectionDescription */

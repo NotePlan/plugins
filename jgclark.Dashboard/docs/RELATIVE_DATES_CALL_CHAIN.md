@@ -10,8 +10,8 @@ Dashboard **never imports** either helper directly. All paths are indirect (help
 
 | Module | Function | Sync? | Typical use from Dashboard |
 |--------|----------|-------|----------------------------|
-| `@helpers/NPDateStrings.js` | `getRelativeDates(useISODailyDates)` | async (`Promise`) | NoteChooser list entries (`<today>`, `<thisweek>`, …) via np.Shared |
-| `@helpers/NPdateTime.js` | `getRelativeDates(useISODailyDates)` | sync | Module-init cache; resolving `<today>` → real filename; calendar move relative strings |
+| `@helpers/NPDateStrings.js` | `getRelativeDates(useISODailyDates)` | async (`Promise`) | NoteChooser list entries (`<today>`, `<thisweek>`, ...) via np.Shared |
+| `@helpers/NPdateTime.js` | `getRelativeDates(useISODailyDates)` | sync | Module-init cache; resolving `<today>` -> real filename; calendar move relative strings |
 
 Do not confuse them: **listing** relative notes in the chooser uses **NPDateStrings**; **resolving** a chosen token to a storage filename uses **NPdateTime** (via `noteChooserFilenameResolve`).
 
@@ -24,36 +24,41 @@ When NotePlan loads the Dashboard plugin, it evaluates `src/index.js`. The **fir
 ```
 src/index.js
   import { generateTagMentionCache } from './tagMentionCache.js'
-    → tagMentionCache.js
+    -> tagMentionCache.js
         import { findNotesMatchingHashtagOrMention, getNotesChangedInInterval } from '@helpers/NPnote'
-          → helpers/NPnote.js
+          -> helpers/NPnote.js
               import { displayTitleWithRelDate, getDateStrFromRelativeDateString } from '@helpers/NPdateTime'
-                → helpers/NPdateTime.js  (module body runs to completion)
+                -> helpers/NPdateTime.js  (module body runs to completion)
 ```
 
-After `getRelativeDates` is defined in `NPdateTime.js`, a top-level constant is initialized:
+After `getRelativeDates` is defined in `NPdateTime.js`, a **lazy** ISO cache is initialized on first access (not at module import):
 
 ```javascript
-const relativeDatesISO = getRelativeDates(true)   // ← 1st call
+// ensureRelativeDatesISOCache() on first getRelativeDatesISOCache() / getDateStrFromRelativeDateString() call
 ```
 
 So on Dashboard plugin load:
 
-1. **First call** — `getRelativeDates(true)`  
+1. **First sync access** -- `ensureRelativeDatesISOCache()` -> `getRelativeDates(true)`  
    - Fills the module-level `relativeDatesISO` cache (ISO daily date strings, e.g. `2026-05-16`).  
+   - Week entries may use moment fallback if Calendar returns Thenables/`{}` during early WebView startup.
    - Used later by `getDateStrFromRelativeDateString()` and related helpers.
+
+2. **After Dashboard React mount** -- `refreshRelativeDatesISOCache()` (in `Dashboard.jsx` startup `useEffect`)  
+   - Re-applies week entries via async `getNPWeekDataBridged()` once the Calendar bridge is ready.
+   - Bumps `getRelativeDatesISOCacheVersion()` so `noteChooserFilenameResolve` invalidates its short-lived token cache.
 
 It is **synchronous**, **automatic**, and **not** triggered by opening the Dashboard window or running a command. It happens once per JS context when `NPdateTime` is first imported.
 
-After that, re-importing `NPdateTime` (e.g. from `dashboardHelpers.js`, `noteChooserFilenameResolve.js`, or `dataGenerationDays.js`) does **not** call `getRelativeDates` again—the module is already initialized.
+After that, re-importing `NPdateTime` (e.g. from `dashboardHelpers.js`, `noteChooserFilenameResolve.js`, or `dataGenerationDays.js`) does **not** call `getRelativeDates` again--the module is already initialized.
 
 > **Note:** `NPnote.js` also imports `@helpers/NPDateStrings` and `@helpers/noteChooserFilenameResolve` (which imports `NPdateTime` again). Those run after `NPdateTime` has already finished initializing, so they do not produce additional init-time calls.
 
 ---
 
-## Path A — `NPDateStrings.getRelativeDates` (async)
+## Path A -- `NPDateStrings.getRelativeDates` (async)
 
-### A1. Add Task → NoteChooser (`getNotes`)
+### A1. Add Task -> NoteChooser (`getNotes`)
 
 User opens **Add Task** and the note dropdown loads (or reloads) relative options.
 
@@ -62,26 +67,26 @@ AddToAnyNote.jsx
   loadNotes() / handleNoteChooserOpen
     requestFromPlugin('getNotes', { includeRelativeNotes: true, ... })
       routeRequestsFromReact.js  (newCommsRouter, useSharedHandlersFallback: true)
-        Dashboard has no getNotes handler → np.Shared fallback
+        Dashboard has no getNotes handler -> np.Shared fallback
           DataStore.invokePluginCommandByName('handleSharedRequest', 'np.Shared', ...)
-            np.Shared/src/sharedRequestRouter.js  →  getNotes()
+            np.Shared/src/sharedRequestRouter.js  ->  getNotes()
               np.Shared/src/requestHandlers/getNotes.js
                 getRelativeNotesAsOptions(includeDecoration)
                   np.Shared/src/requestHandlers/noteHelpers.js
-                    await getRelativeDates(true)   ← @helpers/NPDateStrings.js
+                    await getRelativeDates(true)   <- @helpers/NPDateStrings.js
 ```
 
 Relevant Dashboard files:
 
-- `src/react/components/Header/AddToAnyNote.jsx` — sets `includeRelativeNotes: true`, calls `getNotes`
-- `src/routeRequestsFromReact.js` — falls back to np.Shared for unknown REQUEST types
+- `src/react/components/Header/AddToAnyNote.jsx` -- sets `includeRelativeNotes: true`, calls `getNotes`
+- `src/routeRequestsFromReact.js` -- falls back to np.Shared for unknown REQUEST types
 
 Relevant np.Shared files:
 
 - `src/requestHandlers/getNotes.js`
-- `src/requestHandlers/noteHelpers.js` — `getRelativeNotesAsOptions()`
+- `src/requestHandlers/noteHelpers.js` -- `getRelativeNotesAsOptions()`
 
-### A2. Perspective diagnostic → `chooseNoteV2`
+### A2. Perspective diagnostic -> `chooseNoteV2`
 
 Only when running **`logPerspectiveFiltering`** (or similar) **without** a filename argument, so the plugin prompts for a note with future calendar entries included:
 
@@ -91,7 +96,7 @@ perspectiveHelpers.js
                                                       calendar ↑      future ↑
     @helpers/NPnote.js  chooseNoteV2()
       if (includeFutureCalendarNotes) {
-        await getRelativeDates(true)   ← @helpers/NPDateStrings.js
+        await getRelativeDates(true)   <- @helpers/NPDateStrings.js
       }
 ```
 
@@ -99,24 +104,24 @@ The fifth argument `includeFutureCalendarNotes: true` is what triggers this.
 
 ---
 
-## Path B — `NPdateTime.getRelativeDates` (sync, beyond module init)
+## Path B -- `NPdateTime.getRelativeDates` (sync, beyond module init)
 
 ### B1. Module init (see above)
 
-First/second calls on plugin load — `getRelativeDates(true)` then `getRelativeDates(false)` in `NPdateTime.js`.
+First/second calls on plugin load -- `getRelativeDates(true)` then `getRelativeDates(false)` in `NPdateTime.js`.
 
-### B2. Add Task → save task (`addTaskToNote`)
+### B2. Add Task -> save task (`addTaskToNote`)
 
 Resolves NoteChooser values like `<today>` to a real storage filename before opening the note:
 
 ```
 AddToAnyNote.jsx
   requestFromPlugin('addTaskToNote', { filename: '<today>', ... })
-    routeRequestsFromReact.js  →  addTaskToNote.js
+    routeRequestsFromReact.js  ->  addTaskToNote.js
       resolveNoteChooserFilenameForLookup(filename)
         @helpers/noteChooserFilenameResolve.js
           getRelativeTokenFilenameEntries()  (60s cache)
-            getRelativeDates(true)   ← @helpers/NPdateTime.js  (3rd+ call at runtime)
+            getRelativeDates(true)   <- @helpers/NPdateTime.js  (3rd+ call at runtime)
 ```
 
 Files:
@@ -124,17 +129,17 @@ Files:
 - `src/requestHandlers/addTaskToNote.js`
 - `@helpers/noteChooserFilenameResolve.js`
 
-### B3. Add Task → HeadingChooser (`getHeadings`)
+### B3. Add Task -> HeadingChooser (`getHeadings`)
 
 When the heading dropdown loads for a note chosen as `<today>` (etc.):
 
 ```
-DynamicDialog → HeadingChooser.jsx
+DynamicDialog -> HeadingChooser.jsx
   requestFromPlugin('getHeadings', { noteFilename: '<today>', ... })
-    routeRequestsFromReact.js  →  np.Shared handleSharedRequest
+    routeRequestsFromReact.js  ->  np.Shared handleSharedRequest
       np.Shared/src/requestHandlers/getHeadings.js
         resolveNoteChooserFilenameForLookup(params.noteFilename)
-          getRelativeDates(true)   ← @helpers/NPdateTime.js  (via same cache as B2)
+          getRelativeDates(true)   <- @helpers/NPdateTime.js  (via same cache as B2)
 ```
 
 ### B4. Calendar move (`getDateStrFromRelativeDateString`)
@@ -149,7 +154,7 @@ moveClickHandlers.js  doMoveFromCalToCal()
 
 ### B5. Other Dashboard files that import `NPdateTime`
 
-These do **not** add extra init calls if `NPdateTime` is already loaded (it will be, via `tagMentionCache` → `NPnote` on plugin load):
+These do **not** add extra init calls if `NPdateTime` is already loaded (it will be, via `tagMentionCache` -> `NPnote` on plugin load):
 
 | File | Imports from `NPdateTime` |
 |------|---------------------------|
@@ -171,8 +176,8 @@ flowchart TB
     NPN[NPnote.js]
     NDT_INIT[NPdateTime.js module init]
     IDX --> TMC --> NPN --> NDT_INIT
-    NDT_INIT --> GRT1["getRelativeDates(true) — 1st call"]
-    NDT_INIT --> GRT2["getRelativeDates(false) — 2nd call"]
+    NDT_INIT --> GRT1["getRelativeDates(true) -- 1st call"]
+    NDT_INIT --> GRT2["getRelativeDates(false) -- 2nd call"]
   end
 
   subgraph dash ["Dashboard runtime"]
@@ -209,21 +214,22 @@ flowchart TB
 
 | User action | Helper | Entry point |
 |-------------|--------|-------------|
-| Plugin loads | `NPdateTime` | `index.js` → `tagMentionCache` → `NPnote` → module init (calls 1 & 2) |
-| Add Task: open note list | `NPDateStrings` | `getNotes` → `getRelativeNotesAsOptions` |
-| Add Task: save with `<today>` | `NPdateTime` | `addTaskToNote` → `resolveNoteChooserFilenameForLookup` |
-| Add Task: pick heading on `<today>` | `NPdateTime` | `getHeadings` → `resolveNoteChooserFilenameForLookup` |
+| Plugin loads | `NPdateTime` | `index.js` -> `tagMentionCache` -> `NPnote` -> module init (calls 1 & 2) |
+| Add Task: open note list | `NPDateStrings` | `getNotes` -> `getRelativeNotesAsOptions` |
+| Add Task: save with `<today>` | `NPdateTime` | `addTaskToNote` -> `resolveNoteChooserFilenameForLookup` |
+| Add Task: pick heading on `<today>` | `NPdateTime` | `getHeadings` -> `resolveNoteChooserFilenameForLookup` |
 | Move task between calendar notes | `NPdateTime` (cached) | `getDateStrFromRelativeDateString` |
-| Perspective “choose note to test” | `NPDateStrings` | `chooseNoteV2` with `includeFutureCalendarNotes: true` |
+| Perspective "choose note to test" | `NPDateStrings` | `chooseNoteV2` with `includeFutureCalendarNotes: true` |
 
 ---
 
 ## Related files (outside Dashboard)
 
-- `@helpers/NPDateStrings.js` — async `getRelativeDates`, `getRelativeDatesUsingNPAPI`
-- `@helpers/NPdateTime.js` — sync `getRelativeDates`, module caches, `getDateStrFromRelativeDateString`
-- `@helpers/noteChooserFilenameResolve.js` — maps `<today>` etc. to filenames (uses `NPdateTime`)
-- `np.Shared/src/requestHandlers/noteHelpers.js` — `getRelativeNotesAsOptions` (uses `NPDateStrings`)
-- `np.Shared/src/sharedRequestRouter.js` — routes `getNotes`, `getHeadings`, …
+- `@helpers/NPDateStrings.js` -- async `getRelativeDates`, `getRelativeDatesUsingNPAPI`
+- `@helpers/NPdateTime.js` -- sync `getRelativeDates`, module caches, `getDateStrFromRelativeDateString`
+- `@helpers/noteChooserFilenameResolve.js` -- maps `<today>` etc. to filenames (uses `NPdateTime`)
+- `np.Shared/src/requestHandlers/noteHelpers.js` -- `getRelativeNotesAsOptions` (uses `NPDateStrings`)
+- `np.Shared/src/sharedRequestRouter.js` -- routes `getNotes`, `getHeadings`, ...
 
 See also **CHANGELOG** entries for Add Task / NoteChooser relative-note fixes (v2.4.0.x).
+
