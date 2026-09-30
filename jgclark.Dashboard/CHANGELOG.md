@@ -3,11 +3,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
-<!-- ## [2.5.0.b7] 2026-09-30
+## [2.5.0.b7] 2026-09-30
 - Fix: When a task cannot be completed because it is no longer in the note, the info toast includes the first 20 characters of that task.
 - Fix: A section footer no longer offers to show hidden items, or says all items are showing, when those items are hidden by the section display limit. When a click will reveal lower-priority items, the line says "(click to show lower priorities)". The display limit still applies.
 - Dev: Priority section vault scan uses `runOnAsyncThread` on NotePlan ≥ 3.21.3 (via `runSyncWorkOnAsyncThread`); earlier versions keep `onAsyncThread` / `onMainThread`.
- -->
+
 ## [2.5.0.b6] 2026-09-17
 - Change: Visual improvements to 'Compact' Display Density.
 - Change: 'Compact' keeps each task/checklist/reminder on one row: task text and note/list link share the width and ellipsis as needed; the RHS note link shows title only (folder and teamspace names are hidden). Parent ellipsis markers and the edit control stay after the task text (not at the far right).

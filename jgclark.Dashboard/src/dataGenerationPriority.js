@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-08-27 for v2.5.0.b2 by @jgclark + @CursorAI
+// Last updated 2026-09-28 for v2.5.0.b6 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -26,6 +26,8 @@ import { getRegularNotesFromFilteredFolders } from '@helpers/folders'
 import { RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 import { pastCalendarNotes } from '@helpers/note'
+import { runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
+import { usersVersionHas } from '@helpers/NPVersions'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateParagraphs } from '@helpers/syncedCopies'
 import { isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
@@ -154,20 +156,28 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
  * - ignoreItemsWithTerms
  * - calendar headings
  * The number of items returned is not limited.
+ *
+ * Threading: on NotePlan >= 3.21.3 the vault scan runs via `runSyncWorkOnAsyncThread`
+ * (`CommandBar.runOnAsyncThread`). On earlier versions it uses the existing
+ * `onAsyncThread` / `onMainThread` pair. Cache lookup stays on the main thread
+ * (async await is not allowed inside `runOnAsyncThread`).
+ *
  * @param {TDashboardSettings} settings
- * @returns {Array<TParagraph>}
+ * @returns {Promise<Array<TParagraph>>}
  */
 async function getRelevantPriorityTasks(config: TDashboardSettings): Promise<Array<TParagraph>> {
   try {
     const thisStartTime = new Date()
 
-    await CommandBar.onAsyncThread()
-    // Get list of folders to include or ignore
+    // Get list of folders to include or ignore (main thread)
     // const includedFolders = config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',').map((folder) => folder.trim()) : []
     const excludedFolders = config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : []
     logInfo('getRelevantPriorityTasks', `excludedFolders: ${String(excludedFolders)}`)
 
-    let notesToCheck: Array<TNote> = []
+    // Resolve candidate notes on the main thread when the priority cache can supply them.
+    // Full vault scans stay in the sync background callback (may not await).
+    let notesToCheck: ?Array<TNote> = null
+    let needsFullVaultScan = false
     const usePriorityCache = isPriorityCacheEnabled(config)
     if (usePriorityCache) {
       const cachedNotes = await getNotesFromPriorityNoteIndexCache()
@@ -177,26 +187,53 @@ async function getRelevantPriorityTasks(config: TDashboardSettings): Promise<Arr
       } else {
         logInfo('getRelevantPriorityTasks', `- Priority cache unavailable; falling back to full vault scan (generation scheduled for later)`)
         schedulePriorityNoteIndexCacheGeneration()
-        notesToCheck = getRegularNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
-        logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
+        needsFullVaultScan = true
       }
     } else {
       // Reduce list to all notes that are not blank or in @ folders or excludedFolders
-      notesToCheck = getRegularNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
-      logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
+      needsFullVaultScan = true
     }
 
-    // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by `DataStore.projectNotes` (the call behind 'regularNotesFromFilteredFolders').
-    // Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
-    // Note: JGC has asked EM to not return other sorts of files
-    // Note: this takes roughly 1ms per note for JGC.
-    notesToCheck = notesToCheck.filter((n) => RE_NOTE_FILE_EXTENSION.test(n.filename)).filter((n) => n.content && !isNaN(n.content.length) && n.content.length >= 1)
-    logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(notesToCheck.length)} non-blank MD notes to check`)
+    // Side-channel: do not return large arrays from runOnAsyncThread (that hung the Promise live).
+    let priorityParasHolder: ?Array<TParagraph> = null
 
-    // Now find all open items in them which have a priority marker
-    const priorityParas = getAllOpenPriorityParas(notesToCheck)
-    logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(priorityParas.length)} priorityParas`)
-    await CommandBar.onMainThread()
+    /**
+     * Synchronous vault filter + open-priority para scan. Safe for runOnAsyncThread.
+     * @returns {true}
+     */
+    const syncScanOpenPriorityParas = (): true => {
+      let notes: Array<TNote> = notesToCheck != null ? notesToCheck : []
+      if (needsFullVaultScan) {
+        notes = getRegularNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
+        logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notes.length)} non-special regular notes + past calendar notes to check`)
+      }
+
+      // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by `DataStore.projectNotes` (the call behind 'regularNotesFromFilteredFolders').
+      // Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
+      // Note: JGC has asked EM to not return other sorts of files
+      // Note: this takes roughly 1ms per note for JGC.
+      notes = notes.filter((n) => RE_NOTE_FILE_EXTENSION.test(n.filename)).filter((n) => n.content && !isNaN(n.content.length) && n.content.length >= 1)
+      logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(notes.length)} non-blank MD notes to check`)
+
+      // Now find all open items in them which have a priority marker
+      priorityParasHolder = getAllOpenPriorityParas(notes)
+      logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(priorityParasHolder.length)} priorityParas`)
+      return true
+    }
+
+    if (usersVersionHas('runOnAsyncThread')) {
+      await runSyncWorkOnAsyncThread('getRelevantPriorityTasks', syncScanOpenPriorityParas)
+      if (priorityParasHolder == null) {
+        logWarn('getRelevantPriorityTasks', `- async scan result missing; scanning on main thread`)
+        syncScanOpenPriorityParas()
+      }
+    } else {
+      await CommandBar.onAsyncThread()
+      syncScanOpenPriorityParas()
+      await CommandBar.onMainThread()
+    }
+
+    const priorityParas: Array<TParagraph> = priorityParasHolder != null ? priorityParasHolder : []
     // Log for testing
     // for (const p of priorityParas) {
     //   console.log(`- ${displayTitle(p.note)} : ${p.content}`)

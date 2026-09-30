@@ -8,7 +8,7 @@
 //   (priority / earliest / due date / most recent) -- do not re-sort by priority here.
 // - Limit = only show the first N of M items
 //
-// Last updated 2026-08-19 for v2.4.0.b65, @jgclark + @CursorAI
+// Last updated 2026-09-30 for v2.5.0.b6, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -54,6 +54,72 @@ export function filterRemItemsByOwnPriority(
   }
   return items.filter((item) => getItemDisplayPriority(item) >= remMaxPriority)
 }
+
+type TPriorityFilterFooterItem = {
+  itemType: 'filterIndicator' | 'offerToFilter',
+  message: string,
+}
+
+/**
+ * Footer row for the per-section priority filter.
+ * The display cap (maxItemsToShowInSection) always applies. Omit the row when a click would not change the visible list:
+ * the filter is off, nothing is hidden by priority, or the cap is already full so lower-priority items still would not appear.
+ * Only describe "Showing all N items" when every type-wanted item is actually shown.
+ * If there are 0 items, the itemCongrats message (e.g., "Nothing on this list") handles the empty state.
+ * @param {boolean} showAllTasks - User has turned the priority filter off for this section
+ * @param {boolean} filterByPriority - Dashboard setting filterPriorityItems
+ * @param {number} typeWantedCount - Items eligible to show, after checklist/wins exclusion, before the priority filter and cap
+ * @param {number} priorityFilteredCount - Count after the priority filter, before the display cap
+ * @param {number} shownCount - Rows actually shown after the cap
+ * @param {number} limitToApply - maxItemsToShowInSection; 0 means no cap
+ * @returns {TPriorityFilterFooterItem | null}
+ */
+export function buildPriorityFilterFooterItem(
+  showAllTasks: boolean,
+  filterByPriority: boolean,
+  typeWantedCount: number,
+  priorityFilteredCount: number,
+  shownCount: number,
+  limitToApply: number,
+): ?TPriorityFilterFooterItem {
+  if (!filterByPriority || typeWantedCount <= 0) {
+    return null
+  }
+
+  const cap = limitToApply > 0 ? limitToApply : typeWantedCount
+  const shownWithFilter = Math.min(priorityFilteredCount, cap)
+  const shownIfFilterOff = Math.min(typeWantedCount, cap)
+  const hiddenByPriority = Math.max(0, typeWantedCount - priorityFilteredCount)
+
+  if (showAllTasks) {
+    // Note: offerToFilter should not start with the + icon (TasksFiltered renders an empty icon for this type)
+    if (shownCount >= typeWantedCount) {
+      return {
+        itemType: 'offerToFilter',
+        message: `Showing all ${String(typeWantedCount)} items (click to filter by priority)`,
+      }
+    }
+    return {
+      itemType: 'offerToFilter',
+      message: `Priority filter off; showing first ${String(shownCount)} of ${String(typeWantedCount)} (click to filter by priority)`,
+    }
+  }
+
+  // Click would not reveal any additional rows
+  if (hiddenByPriority <= 0 || shownIfFilterOff <= shownWithFilter) {
+    return null
+  }
+
+  const plural = hiddenByPriority >= 2
+  const verb = plural ? 'are' : 'is'
+  const noun = plural ? 'items' : 'item'
+  const limitNote = shownIfFilterOff < typeWantedCount ? `; list stays limited to ${String(limitToApply)}` : ''
+  return {
+    itemType: 'filterIndicator',
+    message: `There ${verb} also ${String(hiddenByPriority)} lower-priority ${noun} currently hidden (click to show lower priorities${limitNote})`,
+  }
+}
+
 type UseSectionSortAndFilter = {
   filteredItems: Array<TSectionItem>,
   itemsToShow: Array<TSectionItem>,
@@ -237,7 +303,6 @@ const useSectionSortAndFilter = (
       // If we want to filter by priority, find highest priority seen (globally), and then filter out lower-priority items.
       // Only calculate max priority from remaining regular task items, not special message types
       let filteredItems = typeWantedItems
-      let priorityFilteringHappening = false
       if (filterByPriority) {
         const thisSectionCalculatedMaxPriority = getMaxPriorityInItems(typeWantedItems, memoizedDashboardSettings)
         // logDebug('useSectionSortAndFilter', `Section ${section.sectionCode} calculated max priority: ${thisSectionCalculatedMaxPriority}`)
@@ -271,8 +336,6 @@ const useSectionSortAndFilter = (
           }
         }
 
-        // Compare regularTaskItems.length to filteredItems.length to accurately detect priority filtering
-        priorityFilteringHappening = regularTaskItems.length > filteredItems.length
         // logDebug('useSectionSortAndFilter',
         //   `=> ${filteredItems.length} items from ${memoizedItems.length} (all  ${String(
         //     currentMaxPriorityFromAllVisibleSections,
@@ -303,32 +366,25 @@ const useSectionSortAndFilter = (
       // If we are filtering items out, add 'filtered out' display line
       // Use regularTaskItems.length since orderedFilteredLimitedItems only contains items from regularTaskItems (not special message items)
       const numFilteredOutThisSection = regularTaskItems.length - orderedFilteredLimitedItems.length
-      if (showAllTasks) {
-        // Only add the "Showing all N items" message if there are actually items to show
-        // If there are 0 items, the itemCongrats message (e.g., "Nothing on this list") will handle the empty state
-        if (typeWantedItems.length > 0) {
-          const messageItem = {
-            itemType: 'offerToFilter',
-            ID: `${section.ID}-FilterOffer`,
-            // Note: ideally indicate here that the display of this shouldn't start with the + icon
-            sectionCode: section.sectionCode,
-            message: `Showing all ${typeWantedItems.length} items (click to filter by priority)`
-          }
-          // logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
-          specialMessageItems.unshift(messageItem)
+      // Footer counts type-wanted items only. The display cap is unchanged; the row is omitted when a click would not reveal more.
+      const priorityFilterFooter = buildPriorityFilterFooterItem(
+        showAllTasks,
+        filterByPriority,
+        typeWantedItems.length,
+        orderedFilteredItems.length,
+        orderedFilteredLimitedItems.length,
+        limitToApply,
+      )
+      if (priorityFilterFooter) {
+        const messageItem = {
+          itemType: priorityFilterFooter.itemType,
+          ID: priorityFilterFooter.itemType === 'offerToFilter' ? `${section.ID}-FilterOffer` : `${section.ID}-FilterIndicator`,
+          // Note: ideally indicate here that the display of offerToFilter shouldn't start with the + icon
+          sectionCode: section.sectionCode,
+          message: priorityFilterFooter.message,
         }
-      } else {
-        if (numFilteredOutThisSection > 0) {
-          const messageItem = {
-            itemType: 'filterIndicator',
-            ID: `${section.ID}-FilterIndicator`,
-            sectionCode: section.sectionCode,
-            message: `There ${numFilteredOutThisSection >= 2 ? 'are' : 'is'} also ${String(numFilteredOutThisSection)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${numFilteredOutThisSection >= 2 ? 'items' : 'item'
-              } currently hidden (click to show all)`,
-          }
-          // logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
-          specialMessageItems.unshift(messageItem)
-        }
+        // logDebug('useSectionSortAndFilter', `- ${section.sectionCode} adding messageItem: ${messageItem.message}`)
+        specialMessageItems.unshift(messageItem)
       }
 
       const itemsToShow = orderedFilteredLimitedItems.concat(specialMessageItems)
