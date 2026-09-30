@@ -155,6 +155,41 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
       expect(html).toContain('fa-calendar-star')
     })
 
+    test('replaces @repeat(...) with a repeat icon at the end of the task text', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('Reconcile bank statement @repeat(1m)', { truncateLength: 0, taskPriority: 0 })
+      expect(html).toEqual('Reconcile bank statement <span class="attag repeatMarker"><i class="fa-regular fa-repeat pad-right-small"></i>(1m)</span>')
+    })
+
+    test('moves a mid-line @repeat to the end and leaves the surrounding words together', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('Do @repeat(+1w) this soon', { truncateLength: 0, taskPriority: 0 })
+      expect(html.startsWith('Do this soon <span class="attag repeatMarker">')).toBe(true)
+      expect(html).toContain('(+1w)')
+      expect(html).not.toContain('@repeat')
+    })
+
+    test('places the repeat marker after the priority highlight span', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('Call bank @repeat(1m)', { truncateLength: 0, taskPriority: 2 })
+      expect(html).toEqual(
+        '<span class="priority2">Call bank</span> <span class="attag repeatMarker"><i class="fa-regular fa-repeat pad-right-small"></i>(1m)</span>',
+      )
+    })
+
+    test('styles a neighbouring mention and does not wrap @repeat as a plain mention', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('Pay @Alice @repeat(+1w)', { truncateLength: 0, taskPriority: 0 })
+      expect(html).toContain('<span class="attag">@Alice</span>')
+      expect(html.indexOf('repeatMarker')).toBeGreaterThan(html.indexOf('@Alice'))
+      expect(html).toContain('(+1w)')
+      expect(html).not.toContain('@repeat')
+    })
+
+    test('still replaces @repeat when the line also has a URL', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('See https://example.com today @repeat(+1w)', { truncateLength: 0, taskPriority: 0 })
+      expect(html).toContain('externalLink')
+      expect(html).toContain('fa-regular fa-repeat')
+      expect(html).toContain('(+1w)')
+      expect(html).not.toContain('@repeat')
+    })
+
     test('replaces @remind(UUID) token with bell icon HTML', () => {
       const uuid = '123e4567-e89b-12d3-a456-426614174000'
       const html = makeStringContentToLookLikeNPDisplayInReact(`Finish report @remind(:::${uuid})`, { truncateLength: 0, taskPriority: 0 })

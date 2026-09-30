@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2026-08-18 by @jgclark + @CursorAI
+// Last updated 2026-09-30 by @jgclark + @CursorAI
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
 import { getReminderMarkerColors, RE_REMIND_UUID_IN_CONTENT, type TReminderDisplayById } from '@helpers/NPReminders'
@@ -1179,6 +1179,27 @@ export function convertMentionsToHTML(input: string): string {
   } catch (error) {
     logError(pluginJson, `convertMentionsToHTML: ${error.message}`)
     return input
+  }
+}
+
+/**
+ * Turn an `@repeat(...)` token into a span: a Font Awesome repeat icon, then the `(...)` text.
+ * Uses `.attag` so it takes the same colour as tags and mentions.
+ * Callers should apply this before `convertMentionsToHTML`, which would otherwise wrap the whole `@repeat(...)` as a plain mention.
+ * @param {string} repeatStr - full token, e.g. `@repeat(+1w)` or `@repeat(1m, 2026-10-01)`
+ * @returns {string} HTML span, or the original string when it is not an `@repeat(...)` token
+ */
+export function makeRepeatMarkerHTML(repeatStr: string): string {
+  try {
+    const match = repeatStr.match(/^@repeat(\(.*\))$/)
+    if (!match) {
+      return repeatStr
+    }
+    const parenText = match[1]
+    return `<span class="attag repeatMarker"><i class="fa-regular fa-repeat pad-right-small"></i>${parenText}</span>`
+  } catch (error) {
+    logError(pluginJson, `makeRepeatMarkerHTML: ${error.message}`)
+    return repeatStr
   }
 }
 

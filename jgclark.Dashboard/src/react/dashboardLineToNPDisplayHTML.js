@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Shared: turn a raw task line string into HTML matching NotePlan-style display
 // (hashtags, mentions, links, etc.) for TaskItem (via ItemContent) and ProjectItem.
-// Last updated 2026-08-12 for v2.4.0.b62 by @jgclark/@Cursor
+// Last updated 2026-09-30 for v2.5.0.b8 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 
 import type { TDashboardSettings, TLinkedNoteIconInfo, TSectionItem } from '../types.js'
@@ -23,6 +23,7 @@ import {
   convertHashtagsToHTML,
   convertHighlightsToHTML,
   convertMentionsToHTML,
+  makeRepeatMarkerHTML,
   convertNPReminderIDToHTML,
   convertNPBlockIDToHTML,
   convertPreformattedToHTML,
@@ -102,6 +103,30 @@ function makeNoteTitleWithOpenActionFromTitle(
 }
 
 /**
+ * Lift `@repeat(...)` tokens out of the line so they can be shown after the task text
+ * (and after any priority highlight wrapper).
+ * Skips a token that sits inside an HTML tag (for example an href) so link URLs stay intact.
+ * Must run before `convertMentionsToHTML`, which would otherwise style `@repeat(...)` as a plain @mention.
+ * @param {string} input
+ * @returns {{ rest: string, markersHtml: string }}
+ */
+function extractRepeatMarkers(input: string): { rest: string, markersHtml: string } {
+  const markers: Array<string> = []
+  const withoutTokens = input.replace(/\B@repeat\([^)]*\)/g, (repeatStr, offset) => {
+    const before = input.slice(0, offset)
+    const lastOpen = before.lastIndexOf('<')
+    const lastClose = before.lastIndexOf('>')
+    if (lastOpen > lastClose) {
+      return repeatStr
+    }
+    markers.push(makeRepeatMarkerHTML(repeatStr))
+    return ''
+  })
+  const rest = withoutTokens.replace(/[ \t]{2,}/g, ' ').replace(/^[ \t]+/, '').replace(/[ \t]+$/, '')
+  return { rest, markersHtml: markers.join(' ') }
+}
+
+/**
  * Produce HTML from a raw line string to mimic NP's native display (same pipeline as task rows).
  * @param {string} content - raw paragraph content
  * @param {TDashboardLineDisplayOptions} options
@@ -128,6 +153,7 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
 
     let output = origContent
     let timeBlockLabel = ''
+    let repeatMarkersHtml = ''
 
     // Convert NP calendar event links (and inline images) before timeblock handling, so embedded event
     // times are not stripped from the raw `![📅](...)` path and the link can still be recognised.
@@ -160,6 +186,10 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
     output = convertHashtagsToHTML(output)
     // Convert @remind(<UUID>) after hashtags (hex in marker styles) but before @mentions (@remind looks like a mention)
     output = convertNPReminderIDToHTML(output, reminderDisplayById)
+    // @repeat(...) also looks like a mention; lift it out before mention styling and append after priority highlighting
+    const extractedRepeats = extractRepeatMarkers(output)
+    output = extractedRepeats.rest
+    repeatMarkersHtml = extractedRepeats.markersHtml
     output = convertMentionsToHTML(output)
     output = convertPreformattedToHTML(output)
 
@@ -192,6 +222,11 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
 
     if (taskPriority > 0) {
       output = `<span class="priority${String(taskPriority)}">${output}</span>`
+    }
+
+    // After the priority span, so the marker keeps tag/mention colour rather than the priority highlight
+    if (repeatMarkersHtml) {
+      output = output ? `${output} ${repeatMarkersHtml}` : repeatMarkersHtml
     }
 
     return output

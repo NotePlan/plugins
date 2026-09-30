@@ -3,6 +3,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
+## [2.5.0.b8] 2026-09-30
+- Change: `@repeat(...)` on tasks and checklists shows a repeat icon and the `(...)` text, in the same colour as tags and mentions. The marker sits at the end of the task, after any priority highlight.
+
 ## [2.5.0.b7] 2026-09-30
 - Fix: When a task cannot be completed because it is no longer in the note, the info toast includes the first 20 characters of that task.
 - Fix: A section footer no longer offers to show hidden items, or says all items are showing, when those items are hidden by the section display limit. When a click will reveal lower-priority items, the line says "(click to show lower priorities)". The display limit still applies.
