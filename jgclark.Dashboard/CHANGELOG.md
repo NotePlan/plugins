@@ -3,6 +3,24 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
+## [2.5.0] 2026-09-30
+### New
+- Interactive Processing on Active Projects and Projects to Review. >> N walks the project rows.
+- The Priority section now keeps a note-index cache (on by default) to improve performance after the first run each day.
+- Add task and checklist dialogs (Today, Week, and so on) pre-select 'Under Heading' from a near-match to the active Perspective name,
+- otherwise the first real heading.
+- Display Density setting: Normal or Compact. Compact tightens the vertical spacing and truncates item text at 70 characters instead of 140.
+- Changes
+- @repeat(...) on tasks and checklists shows a repeat icon and the repeat text
+- Compact density keeps each task, checklist, and reminder on one row. The task text and the note or list link share the width and ellipsis as needed. The right-hand link shows the title only. Parent ellipsis markers and the edit control stay after the task text.
+- Smaller UX improvements.
+### Fixes
+- If a task cannot be completed because it is no longer in the note, the toast includes the first 20 characters of that task.
+- If a task cannot be opened or highlighted, that section refreshes and the toast says so. The refresh finishes before the toast.
+- Fix to section footer messages if filtering and limits are both active.
+- "Generating" no longer stays on after open when Force Initial Load is on.
+
+<!--
 ## [2.5.0.b8] 2026-09-30
 - Change: `@repeat(...)` on tasks and checklists shows a repeat icon and the `(...)` text, in the same colour as tags and mentions. The marker sits at the end of the task, after any priority highlight.
 
@@ -43,12 +61,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dev: Fix potential duplicate WINS section rows when stale pluginData persists synthetic section.
 Strip SYNTHETIC_SECTION_CODES before injectSyntheticWinsSection builds Wins from calendar sections.
 
-
 ## [2.5.0.b1] 2026-08-27
 - New: Interactive Processing on Active Projects and Projects to Review (`>> N` walks project rows; PROJACT allows back-navigate, PROJREVIEW forward-only; Start Reviews unchanged).
 - Dev: Consolidate shared section-row CSS (`.sectionItemRow`, `.sectionItemContent`, `.itemIcon`) into `ItemRow.css`; remove duplicate `TaskItem.css` / `TasksFiltered.css`.
 - Dev: Bring Reminder edit / Convert to Task / `ITEM_ORIG_SECTION` refresh and related 2.4.2–2.4.3 work from main onto the 2.5.0 branch.
-
+-->
 ## [2.4.6] 2026-09-16
 - Fix: "Move all to today" on the Overdue section not working with setting ''. (Thanks @TiffSunbacon101 for helping track this one down.)
 - Change: Now automatically downloads the required 'Shared Resources' plugin version if it can, before warning user.
