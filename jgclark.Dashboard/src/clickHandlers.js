@@ -8,8 +8,8 @@
 //-----------------------------------------------------------------------------
 
 import {
-  allCalendarSectionCodes,
-  allSectionDetails,
+  ALL_CALENDAR_SECTION_CODES,
+  ALL_SECTION_DETAILS,
   DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH,
   DASHBOARD_SETTING_KEY_SECTION_CODES,
   DASHBOARD_SETTING_KEYS_REQUIRING_ALL_ENABLED_SECTIONS_REFRESH,
@@ -1052,8 +1052,8 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
  */
 function getCalendarSectionVisibilitySettingNames(): Set<string> {
   return new Set(
-    allSectionDetails
-      .filter((d) => allCalendarSectionCodes.includes(d.sectionCode))
+    ALL_SECTION_DETAILS
+      .filter((d) => ALL_CALENDAR_SECTION_CODES.includes(d.sectionCode))
       .map((d) => d.showSettingName)
       .filter(Boolean),
   )
@@ -1067,7 +1067,7 @@ function getCalendarSectionVisibilitySettingNames(): Set<string> {
  */
 function getEnabledSectionCodesAmongCalendarVisibilityRefreshList(mergedSettings: { [key: string]: any }): Array<TSectionCode> {
   return SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS.filter((code) => {
-    const detail = allSectionDetails.find((s) => s.sectionCode === code)
+    const detail = ALL_SECTION_DETAILS.find((s) => s.sectionCode === code)
     if (!detail?.showSettingName) return false
     return mergedSettings[detail.showSettingName] !== false
   })
@@ -1114,8 +1114,8 @@ function getNewlyEnabledProjectSectionCodes(diffKeys: Array<string>, nextMerged:
 function getNewlyEnabledCalendarSectionCodes(diffKeys: Array<string>, nextMerged: { [key: string]: any }): Array<TSectionCode> {
   const codes: Array<TSectionCode> = []
   for (const key of diffKeys) {
-    const detail = allSectionDetails.find((d) => d.showSettingName === key)
-    if (!detail || !allCalendarSectionCodes.includes(detail.sectionCode)) continue
+    const detail = ALL_SECTION_DETAILS.find((d) => d.showSettingName === key)
+    if (!detail || !ALL_CALENDAR_SECTION_CODES.includes(detail.sectionCode)) continue
     if (nextMerged[key]) {
       codes.push(detail.sectionCode)
     }
@@ -1203,7 +1203,7 @@ function sectionCodesForContentSettingKey(key: string, nextMerged: { [key: strin
   }
   if (getCalendarSectionVisibilitySettingNames().has(key)) {
     const codes = getEnabledSectionCodesAmongCalendarVisibilityRefreshList(nextMerged)
-    const detail = allSectionDetails.find((d) => d.showSettingName === key)
+    const detail = ALL_SECTION_DETAILS.find((d) => d.showSettingName === key)
     if (detail && nextMerged[key]) codes.push(detail.sectionCode)
     return codes
   }

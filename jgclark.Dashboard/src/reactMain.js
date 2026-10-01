@@ -6,7 +6,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
+import { ALL_SECTION_DETAILS, WEBVIEW_WINDOW_ID } from './constants'
 import { getCachedHeaderDoneCount, updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getDashboardSettingsDefaults, getLogSettings, getNotePlanSettings, getListOfEnabledSections, setPluginData, cloneDashboardSettingsBeforeSave } from './dashboardHelpers'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
@@ -87,7 +87,7 @@ export async function showDemoDashboard(): Promise<void> {
  * @returns {Array<TSettingItem>}
  */
 function getSettableDashboardSettingDefs(): Array<TSettingItem> {
-  const showSectionDefs: Array<TSettingItem> = allSectionDetails
+  const showSectionDefs: Array<TSettingItem> = ALL_SECTION_DETAILS
     .filter((s) => s.showSettingName && s.sectionCode !== 'TAG')
     .map((s) => ({
       label: `Show ${s.sectionName}`,
@@ -95,7 +95,7 @@ function getSettableDashboardSettingDefs(): Array<TSettingItem> {
       type: 'switch',
       default: s.sectionCode !== 'INFO',
     }))
-  // SEARCH has no showSettingName in allSectionDetails but uses this key
+  // SEARCH has no showSettingName in ALL_SECTION_DETAILS but uses this key
   showSectionDefs.push({ label: 'Show Search', key: 'showSearchSection', type: 'switch', default: true })
   return [...dashboardFilterDefs, ...dashboardSettingDefs, ...showSectionDefs].filter((k) => k.label && k.key)
 }
@@ -305,7 +305,7 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
     // Casts: every write below uses a key only known at runtime (showSettingName / showTagSection_<tag>),
     // so they can only go through an indexed type. TDashboardSettings deliberately has no indexer, so that
     // its statically-known keys stay checked everywhere else.
-    allSectionDetails.forEach((section) => {
+    ALL_SECTION_DETAILS.forEach((section) => {
       const key = section.showSettingName
       if (key) (dashboardSettings: TAnyObject)[key] = false
     })
@@ -314,14 +314,14 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
     keys.forEach((key) => ((dashboardSettings: TAnyObject)[key] = false))
     const sectionsToShow = limitToSections.split(',')
     sectionsToShow.forEach((sectionCode) => {
-      const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
+      const showSectionKey = ALL_SECTION_DETAILS.find((section) => section.sectionCode === sectionCode)?.showSettingName
       if (showSectionKey) {
         (dashboardSettings: TAnyObject)[showSectionKey] = true
       } else {
         if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
           (dashboardSettings: TAnyObject)[`showTagSection_${sectionCode}`] = true
         } else {
-          logWarn(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails. Continuing with others.`)
+          logWarn(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in ALL_SECTION_DETAILS. Continuing with others.`)
         }
       }
     })

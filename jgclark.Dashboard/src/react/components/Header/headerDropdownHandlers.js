@@ -7,7 +7,7 @@ import {
   // PERSPECTIVE_ACTIONS,
   DASHBOARD_ACTIONS,
 } from '../../reducers/actionTypes'
-import { allSectionDetails } from '../../../constants.js'
+import { ALL_SECTION_DETAILS } from '../../../constants.js'
 import type { TDashboardSettings, TSectionCode, TPerspectiveSettings } from '../../../types.js'
 // import { getActivePerspectiveName } from '../../../perspectiveHelpers.js'
 import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
@@ -77,7 +77,7 @@ export const handleSwitchChange = (
           // this is a section show/hide setting
           // Refresh is done by doSaveDashboardSettingsFromBridge after settings sync (planSectionRefreshAfterDashboardSettingsChange).
           // Do not also call refreshSomeSections here -- that would double-refresh when the settings save completes.
-          const sectionCode = allSectionDetails.find((s) => s.showSettingName === key)?.sectionCode ?? null
+          const sectionCode = ALL_SECTION_DETAILS.find((s) => s.showSettingName === key)?.sectionCode ?? null
           logDebug('handleSwitchChange', `${key} turned on (section ${sectionCode || '<not set>'}); section refresh deferred to settings-save bridge path`)
         }
       } else {
@@ -176,6 +176,6 @@ export const onDropdownMenuChangesMade =
   (): void => {
     setDropdownMenuChangesMade(false) // Reset changes made
     logDebug('Header headerDropdownHandlers', `onDropdownMenuChangesMade called -- refreshing sections after dropdown changes`)
-    // const payload = { actionType: 'incrementallyRefreshSomeSections', sectionCodes: allSectionCodes, logMessage: `Refreshing b/c settings were changed` }
+    // const payload = { actionType: 'incrementallyRefreshSomeSections', sectionCodes: ALL_SECTION_CODES, logMessage: `Refreshing b/c settings were changed` }
     // sendActionToPlugin('incrementallyRefreshSomeSections', payload, `Refreshing b/c settings were changed`, true)
   }

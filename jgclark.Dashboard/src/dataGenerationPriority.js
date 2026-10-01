@@ -6,7 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { SYNTHETIC_SECTION_CODES, treatSingleItemTypesAsZeroItems } from './constants'
+import { SYNTHETIC_SECTION_CODES, TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS } from './constants'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import {
   createSectionItemObject,
@@ -338,7 +338,7 @@ export function injectSyntheticWinsSection(sections: Array<TSection>, dashboardS
       }
       const items = section.sectionItems ?? []
       for (const item of items) {
-        if (treatSingleItemTypesAsZeroItems.includes(item.itemType)) continue
+        if (TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS.includes(item.itemType)) continue
         if (isWinItem(item, winsPriorityMarker)) {
           winItems.push({
             ...item,

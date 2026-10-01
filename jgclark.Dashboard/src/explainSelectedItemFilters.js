@@ -7,7 +7,7 @@
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
+import { ALL_SECTION_DETAILS, WEBVIEW_WINDOW_ID } from './constants'
 import {
   filterBySchedulingRules,
   filterParasByExcludedCalendarSections,
@@ -91,7 +91,7 @@ function sectionLabelFor(sectionCode: TSectionCode, settings: TDashboardSettings
   if (sectionCode === 'TAG') {
     return `TAG (${settings.tagsToShow || 'none'})`
   }
-  const detail = allSectionDetails.find((s) => s.sectionCode === sectionCode)
+  const detail = ALL_SECTION_DETAILS.find((s) => s.sectionCode === sectionCode)
   return detail ? `${sectionCode} (${detail.sectionName || sectionCode})` : sectionCode
 }
 

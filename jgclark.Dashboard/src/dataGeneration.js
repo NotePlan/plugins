@@ -6,7 +6,7 @@
 
 import pluginJson from '../plugin.json'
 import type { TDashboardSettings, TParagraphForDashboard, TSectionCode, TSection } from './types'
-import { allSectionCodes } from './constants.js'
+import { ALL_SECTION_CODES } from './constants.js'
 import {
   getDashboardSettings,
   getListOfEnabledSections,
@@ -123,7 +123,7 @@ export async function getAllSectionsData(
 
     // V2
     // Work out which sections to show
-    const sectionsToShow: Array<TSectionCode> = forceLoadAll ? allSectionCodes : getListOfEnabledSections(config)
+    const sectionsToShow: Array<TSectionCode> = forceLoadAll ? ALL_SECTION_CODES : getListOfEnabledSections(config)
     logDebug('getAllSectionsData', `>>>>> Starting with ${String(sectionsToShow.length)} sections to show: ${String(sectionsToShow)}`)
     const { sections, reminderDisplayById } = await getSomeSectionsData(sectionsToShow, useDemoData, useEditorWherePossible, config)
     logDebug('getAllSectionsData', `<<<<< Finished`)
@@ -142,7 +142,7 @@ export async function getAllSectionsData(
  * Generate data for some specified sections (subject to user currently wanting them as well).
  * Note: Returns all wanted sections in one go.
  * Note: don't forget there's also refreshClickHandlers.js::incrementallyRefreshSomeSections() and refreshSomeSections()
- * @param {Array<string>} sectionCodesToGet (default: allSectionCodes)
+ * @param {Array<string>} sectionCodesToGet (default: ALL_SECTION_CODES)
  * @param {boolean} useDemoData (default: false)
  * @param {boolean} useEditorWherePossible?
  * @param {?TDashboardSettings} configOverride - when set (e.g. open WebView live settings), used instead of disk-only `getDashboardSettings()`
@@ -151,7 +151,7 @@ export async function getAllSectionsData(
  * @returns {TSomeSectionsDataResult}
  */
 export async function getSomeSectionsData(
-  sectionCodesToGet: Array<TSectionCode> = allSectionCodes,
+  sectionCodesToGet: Array<TSectionCode> = ALL_SECTION_CODES,
   useDemoData: boolean = false,
   useEditorWherePossible: boolean,
   configOverride?: ?TDashboardSettings,

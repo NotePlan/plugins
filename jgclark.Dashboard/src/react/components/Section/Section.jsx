@@ -9,7 +9,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { allCalendarSectionCodes, interactiveProcessingPossibleSectionTypes, treatSingleItemTypesAsZeroItems } from '../../../constants.js'
+import { ALL_CALENDAR_SECTION_CODES, INTERACTIVE_PROCESSING_POSSIBLE_SECTION_TYPES, TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS } from '../../../constants.js'
 import type { TSection, TSectionItem, TActionButton } from '../../../types.js'
 import CommandButton from '../CommandButton.jsx'
 import ItemGrid from '../ItemGrid.jsx'
@@ -434,7 +434,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
       : Boolean(dashboardSettings && (dashboardSettings: TAnyObject)[section.showSettingName] === false)) // note this can be updated later
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
   // Count only actionable rows; filter / lookback / congrats messages must not inflate description or IP counts
-  const numItemsToShow = itemsToShow.filter((item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType)).length
+  const numItemsToShow = itemsToShow.filter((item) => !TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS.includes(item.itemType)).length
   const moveOnlyShownItemsWhenFiltered = dashboardSettings?.moveOnlyShownItemsWhenFiltered ?? true
 
   // Figure out a style for the section title
@@ -561,7 +561,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   // Prep a task-completion circle for calendar non-referenced sections and Wins (where showProgressInSections !== 'none')
   let completionCircle = null
   const sectionUsesProgressCircle =
-    allCalendarSectionCodes.includes(section.sectionCode) || section.sectionCode === 'WINS'
+    ALL_CALENDAR_SECTION_CODES.includes(section.sectionCode) || section.sectionCode === 'WINS'
   if (
     numItemsToShow > 0 &&
     section.doneCounts &&
@@ -613,7 +613,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
 const ipItemCount = countInteractiveProcessingItems(ipSourceItems, section.sectionCode)
   const showIPButton =
     dashboardSettings.enableInteractiveProcessing &&
-    interactiveProcessingPossibleSectionTypes.includes(section.sectionCode) &&
+    INTERACTIVE_PROCESSING_POSSIBLE_SECTION_TYPES.includes(section.sectionCode) &&
     ipItemCount > 1 &&
     itemsToShow.length > 0
 

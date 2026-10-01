@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import type { TSection, TSectionItem } from '../../../types.js'
-import { treatSingleItemTypesAsZeroItems } from '../../../constants.js'
+import { TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS } from '../../../constants.js'
 import { isWinItem } from '../../../dashboardHelpers.js'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 
@@ -228,8 +228,8 @@ const useSectionSortAndFilter = (
     }
     // If we have a Synthetic Wins section, show >> / priority-4 items only; do not contribute to global filterPriority max
     else if (section.sectionCode === 'WINS') {
-      const specialMessageItems = memoizedItems.filter((item) => treatSingleItemTypesAsZeroItems.includes(item.itemType))
-      const taskItems = memoizedItems.filter((item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType))
+      const specialMessageItems = memoizedItems.filter((item) => TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS.includes(item.itemType))
+      const taskItems = memoizedItems.filter((item) => !TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS.includes(item.itemType))
       let toShow = taskItems
       if (memoizedDashboardSettings?.ignoreChecklistItems) {
         toShow = toShow.filter((si) => !(si.para?.type === 'checklist'))
@@ -279,8 +279,8 @@ const useSectionSortAndFilter = (
     // Handle all other sections
     else {
       // Separate special message types from regular task items
-      const specialMessageItems = memoizedItems.filter((item) => treatSingleItemTypesAsZeroItems.includes(item.itemType))
-      const regularTaskItems = memoizedItems.filter((item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType))
+      const specialMessageItems = memoizedItems.filter((item) => TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS.includes(item.itemType))
+      const regularTaskItems = memoizedItems.filter((item) => !TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS.includes(item.itemType))
 
       // Drop checklist items (if 'ignoreChecklistItems' is set)
       let typeWantedItems = regularTaskItems
@@ -432,7 +432,7 @@ export function getMaxPriorityInItems(items: Array<TSectionItem>, dashboardSetti
   let maxPrioritySeen = 0
   for (const i of items) {
     // Skip special message types when calculating max priority
-    if (treatSingleItemTypesAsZeroItems.includes(i.itemType)) {
+    if (TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS.includes(i.itemType)) {
       continue
     }
     const p = getItemDisplayPriority(i)

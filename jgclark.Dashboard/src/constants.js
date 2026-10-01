@@ -12,7 +12,7 @@ import type { TSectionDetails, TSectionCode } from './types'
 // Note: Needs to be set in plugin.json file for each sidebarView windowID
 export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
 
-export const allSectionDetails: Array<TSectionDetails> = [
+export const ALL_SECTION_DETAILS: Array<TSectionDetails> = [
   { sectionCode: 'TB', sectionName: 'Current time blocks', showSettingName: 'showTimeBlockSection' },
   { sectionCode: 'REM', sectionName: 'Reminders', showSettingName: 'showRemindersSection' },
   { sectionCode: 'WINS', sectionName: 'Wins', showSettingName: 'showWinsSection' },
@@ -38,33 +38,33 @@ export const allSectionDetails: Array<TSectionDetails> = [
   // { sectionCode: 'SAVEDSEARCH', sectionName: 'Saved Search', showSettingName: 'showSavedSearchSection' },
 ]
 
-export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map((s) => s.sectionCode)
+export const ALL_SECTION_CODES: Array<TSectionCode> = ALL_SECTION_DETAILS.map((s) => s.sectionCode)
 
 /* Sections backed by Reviews `allProjectsList.json`. Exclude from editor-trigger "refresh all" so we do not double-refresh (and race) right after `updateDashboardIfOpen` from list writes. */
-export const sectionCodesFromAllProjectsJson: Array<TSectionCode> = ['PROJACT', 'PROJREVIEW']
+export const SECTION_CODES_FROM_ALL_PROJECTS_JSON: Array<TSectionCode> = ['PROJACT', 'PROJREVIEW']
 
-export const allCalendarSectionCodes: Array<TSectionCode> = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y']
+export const ALL_CALENDAR_SECTION_CODES: Array<TSectionCode> = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y']
 
-export const defaultSectionDisplayOrder = ['SEARCH', 'SAVEDSEARCH', 'WINS', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'REM', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJACT', 'PROJREVIEW', 'INFO']
+export const DEFAULT_SECTION_DISPLAY_ORDER = ['SEARCH', 'SAVEDSEARCH', 'WINS', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'REM', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJACT', 'PROJREVIEW', 'INFO']
 
-// change this order to change which duplicate items get kept - the first on the list. Should not include 'dontDedupeSectionCodes' below.
+// change this order to change which duplicate items get kept - the first on the list. Should not include 'DONT_DEDUPE_SECTION_CODES' below.
 // TB before REM/DT so timed reminders (due now) kept in Current time blocks are stripped from later sections when hideDuplicates is on.
 // WINS before DT/W/M/Q so hideDuplicates keeps high priority Wins and strips them from period sections.
 // TAG before DT/W/M/Q so hideDuplicates keeps TAG items and strips them from period sections.
-export const sectionPriorityForDeduping = ['TB', 'REM', 'TAG', 'WINS', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
+export const SECTION_PRIORITY_FOR_DEDUPING = ['TB', 'REM', 'TAG', 'WINS', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'PRIORITY', 'OVERDUE']
 
 // When 'Calendar note terms to include' is set, Hide Duplicates reorders so these sections beat TAG.
-// Membership only - final order still comes from sectionPriorityForDeduping (WINS before calendar periods).
+// Membership only - final order still comes from SECTION_PRIORITY_FOR_DEDUPING (WINS before calendar periods).
 // See adjustDedupPriorityForCalendarFocus in sectionHelpers.js
 // $FlowFixMe[incompatible-type]
-export const sectionsPriorityBeforeTagWhenCalendarFocus: Array<TSectionCode> = ['WINS', ...allCalendarSectionCodes, 'OVERDUE']
+export const SECTIONS_PRIORITY_BEFORE_TAG_WHEN_CALENDAR_FOCUS: Array<TSectionCode> = ['WINS', ...ALL_CALENDAR_SECTION_CODES, 'OVERDUE']
 
 // Those sections we can't or shouldn't attempt to dedupe:
 // - PROJREVIEW and PROJACT as they aren't about paragraphs, but notes
-export const dontDedupeSectionCodes = ['INFO', 'PROJACT', 'PROJREVIEW', 'SEARCH', 'SAVEDSEARCH']
+export const DONT_DEDUPE_SECTION_CODES = ['INFO', 'PROJACT', 'PROJREVIEW', 'SEARCH', 'SAVEDSEARCH']
 
 // Enable interactive processing for these itemTypes:
-export const interactiveProcessingPossibleSectionTypes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'REM', 'PROJACT', 'PROJREVIEW']
+export const INTERACTIVE_PROCESSING_POSSIBLE_SECTION_TYPES = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'REM', 'PROJACT', 'PROJREVIEW']
 
 // When the user toggles visibility of a calendar period section only, refresh these sections (if enabled).
 // This ensures Wins / Priority / Overdue deduping stays correct.
@@ -77,7 +77,7 @@ export const SYNTHETIC_SECTION_CODES: Array <TSectionCode> = ['WINS']
 
 // Treat these itemTypes as non-countable message rows: no Interactive / Move-all processing,
 // and exclude them from section description counts (congrats, empty-state, filter notices, lookback notices).
-export const treatSingleItemTypesAsZeroItems = [
+export const TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS = [
   'itemCongrats',
   'winsCongrats',
   'projectCongrats',
@@ -88,8 +88,8 @@ export const treatSingleItemTypesAsZeroItems = [
 ]
 
 /* Font Awesome classes for the Item and Wins congrats messages (`section.FAIconClass`); use the same for `winsCongrats` message rows. */
-export const winsSectionHeaderFAIconClass = 'fa-regular fa-trophy'
-export const itemCongratsFAIconClass = 'fa-light fa-champagne-glasses'
+export const WINS_SECTION_HEADER_FA_ICON_CLASS = 'fa-regular fa-trophy'
+export const ITEM_CONGRATS_FA_ICON_CLASS = 'fa-light fa-champagne-glasses'
 
 /**
  * Dashboard setting keys that can change without re-fetching section item lists.
@@ -167,12 +167,12 @@ export const DASHBOARD_SETTING_KEY_SECTION_CODES: { [string]: Array<TSectionCode
   includeFutureTagMentions: ['TAG'],
   tagsToShow: ['TAG'],
   showProjectActiveOnlyWithNextActions: ['PROJACT'],
-  separateSectionForReferencedNotes: allCalendarSectionCodes,
-  applyIgnoreTermsToCalendarHeadingSections: allCalendarSectionCodes,
-  includedCalendarSections: ['PRIORITY', 'OVERDUE', ...allCalendarSectionCodes],
+  separateSectionForReferencedNotes: ALL_CALENDAR_SECTION_CODES,
+  applyIgnoreTermsToCalendarHeadingSections: ALL_CALENDAR_SECTION_CODES,
+  includedCalendarSections: ['PRIORITY', 'OVERDUE', ...ALL_CALENDAR_SECTION_CODES],
   ignoreItemsWithTerms: DASHBOARD_PARAGRAPH_SECTION_CODES,
   ignoreChecklistItems: DASHBOARD_PARAGRAPH_SECTION_CODES,
-  excludeChecklistsWithTimeblocks: ['TB', ...allCalendarSectionCodes],
+  excludeChecklistsWithTimeblocks: ['TB', ...ALL_CALENDAR_SECTION_CODES],
   maxItemsToShowInSection: DASHBOARD_BACKEND_ITEM_LIMIT_SECTION_CODES,
 }
 
@@ -180,7 +180,7 @@ export const DASHBOARD_SETTING_KEY_SECTION_CODES: { [string]: Array<TSectionCode
  * Show-setting to the one section to generate when that setting is turned on.
  * Turning it off is `CLOSE_UNNEEDED_SECTIONS` only.
  * Calendar period show-settings are not here: they also refresh Wins / Priority / Overdue.
- * Cursor says this is needed as well allSectionDetails above.
+ * Cursor says this is needed as well ALL_SECTION_DETAILS above.
  */
 export const DASHBOARD_VISIBILITY_SETTING_TO_SECTION_CODE: { [string]: TSectionCode } = {
   showTimeBlockSection: 'TB',

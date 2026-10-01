@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------
 
 import React, { useState, useMemo } from 'react'
-import { allSectionDetails } from '../../../jgclark.Dashboard/src/constants.js'
+import { ALL_SECTION_DETAILS } from '../../../jgclark.Dashboard/src/constants.js'
 import type { TSection, TSectionCode, TDashboardSettings } from '../../../jgclark.Dashboard/src/types.js'
 import './OrderingPanel.css'
 
@@ -60,7 +60,7 @@ const OrderingPanel = ({
     const result: Array<DraggableSection> = []
     const seenTags = new Set<TSectionCode>()
 
-    // Get unique section codes from allSectionDetails, preserving order
+    // Get unique section codes from ALL_SECTION_DETAILS, preserving order
     const allCodes = new Set<TSectionCode>()
     defaultOrder.forEach((code) => allCodes.add(code))
     sections.forEach((section) => allCodes.add(section.sectionCode))
@@ -86,7 +86,7 @@ const OrderingPanel = ({
             name: 'Tag/Mention sections',
             isVisible: tagSections.some((s) => {
               // `TSection.showSettingName` is declared `string`, but every value is really a key of
-              // TDashboardSettings (see allSectionDetails in jgclark.Dashboard/src/constants.js), or ''
+              // TDashboardSettings (see ALL_SECTION_DETAILS in jgclark.Dashboard/src/constants.js), or ''
               // for sections with no visibility setting - which the `!settingName ||` guard handles.
               // Narrowing here (rather than suppressing) keeps the settings lookup itself type-checked.
               const settingName: SettingKey = (s.showSettingName: any)
@@ -99,7 +99,7 @@ const OrderingPanel = ({
       } else {
         // Handle all other sections
         const section = sectionMap.get(code)
-        const sectionDetail = allSectionDetails.find((sd) => sd.sectionCode === code)
+        const sectionDetail = ALL_SECTION_DETAILS.find((sd) => sd.sectionCode === code)
         if (section || sectionDetail) {
           const settingName: SettingKey = (section?.showSettingName || sectionDetail?.showSettingName || '': any)
           const isVisible = !settingName || dashboardSettings[settingName] !== false

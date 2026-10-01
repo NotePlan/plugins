@@ -34,7 +34,7 @@ import {
   doUnscheduleItem,
   doWindowResized,
 } from './clickHandlers'
-import { allCalendarSectionCodes, allSectionCodes, SEARCH_RELATED_SECTION_CODES, SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
+import { ALL_CALENDAR_SECTION_CODES, ALL_SECTION_CODES, SEARCH_RELATED_SECTION_CODES, SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
 import { updateProjectsListIfProjectSection } from './projectsListSync'
 import { scheduleReviewsListAfterPerspectiveSwitch, syncReviewsAfterDashboardFolderFilterChange } from './reviewsListSync'
 import {
@@ -292,7 +292,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     switch (actionType) {
       case 'refreshEnabledSections': {
-        const sectionCodesToUse = data.sectionCodes ? data.sectionCodes : allSectionCodes
+        const sectionCodesToUse = data.sectionCodes ? data.sectionCodes : ALL_SECTION_CODES
         logInfo('bCDI / refreshEnabledSections', `sectionCodesToUse: ${String(sectionCodesToUse)}`)
 
         result = await incrementallyRefreshSomeSections({ ...data, sectionCodes: sectionCodesToUse }, false, true)
@@ -964,12 +964,12 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
     } else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
       logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSomeSections ...`)
-      await incrementallyRefreshSomeSections({ ...data, sectionCodes: allSectionCodes })
+      await incrementallyRefreshSomeSections({ ...data, sectionCodes: ALL_SECTION_CODES })
     } else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
       // Note: not used by anything, as at 2.4.0.b18
-      logDebug('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(allCalendarSectionCodes)}) ..`)
+      logDebug('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(ALL_CALENDAR_SECTION_CODES)}) ..`)
       // $FlowFixMe[incompatible-type]
-      await incrementallyRefreshSomeSections({ ...data, sectionCodes: allCalendarSectionCodes })
+      await incrementallyRefreshSomeSections({ ...data, sectionCodes: ALL_CALENDAR_SECTION_CODES })
     } else if (!actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
       // At least update TB section (if enabled) whenever any other success-path refresh did not already run.
       // Skip on handler failure: keep the originating-section refresh small so the promised toast cannot interrupt it.
@@ -1006,7 +1006,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       // Prefer explicit handlerResult.sectionCodes, then fall back to data.sectionCodes, then enabled sections, then all sections.
       // This avoids cases (e.g. some addTask flows) where actions request a section refresh but no sectionCodes are provided.
       if (!handlerResult.sectionCodes) {
-        logWarn('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided from ${data.actionType} and ${filename}; falling back to allSectionCodes. Will fallback to refreshing all sections.`)
+        logWarn('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided from ${data.actionType} and ${filename}; falling back to ALL_SECTION_CODES. Will fallback to refreshing all sections.`)
       }
       let wantedsectionCodes = handlerResult.sectionCodes ?? []
       if (!wantedsectionCodes.length && data.sectionCodes && data.sectionCodes.length) {
@@ -1016,8 +1016,8 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         wantedsectionCodes = enabledSections
       }
       if (!wantedsectionCodes.length) {
-        wantedsectionCodes = allSectionCodes
-        logWarn('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided; falling back to allSectionCodes`)
+        wantedsectionCodes = ALL_SECTION_CODES
+        logWarn('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided; falling back to ALL_SECTION_CODES`)
       }
       logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling refreshSomeSections (for ['${String(wantedsectionCodes)}']) ...`)
       await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })

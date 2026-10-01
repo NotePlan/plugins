@@ -8,7 +8,7 @@
 
 import React, { type Node } from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
-import { itemCongratsFAIconClass, winsSectionHeaderFAIconClass } from '../../constants.js'
+import { ITEM_CONGRATS_FA_ICON_CLASS, WINS_SECTION_HEADER_FA_ICON_CLASS } from '../../constants.js'
 import ProjectItem from './ProjectItem.jsx'
 import ReminderItem from './ReminderItem.jsx'
 import TaskItem from './TaskItem.jsx'
@@ -70,9 +70,9 @@ function ItemRow({ item, thisSection, onToggleShowAll }: Props): Node {
             ) : (itemType === 'filterIndicator' || itemType === 'offerToFilter') ? (
                 <TasksFiltered item={item} onToggleShowAll={onToggleShowAll} />
       ) : itemType === 'itemCongrats' ? (
-                  <MessageOnlyItem message={itemCongratsMessage} contentClassName="itemCongrats" closingFAIconClassName={`${itemCongratsFAIconClass} pad-left`} />
+                  <MessageOnlyItem message={itemCongratsMessage} contentClassName="itemCongrats" closingFAIconClassName={`${ITEM_CONGRATS_FA_ICON_CLASS} pad-left`} />
                 ) : itemType === 'winsCongrats' ? (
-                  <MessageOnlyItem message={winsCongratsMessage} contentClassName="winsCongrats" closingFAIconClassName={`${winsSectionHeaderFAIconClass} pad-left`} />
+                  <MessageOnlyItem message={winsCongratsMessage} contentClassName="winsCongrats" closingFAIconClassName={`${WINS_SECTION_HEADER_FA_ICON_CLASS} pad-left`} />
       ) : itemType === 'info' ? (
                     <MessageOnlyItem message={item?.message ?? ''} contentClassName="infoItemRow" />
       ) : (

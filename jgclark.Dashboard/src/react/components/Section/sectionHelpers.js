@@ -5,7 +5,7 @@
 //--------------------------------------------------------------------------
 
 import type { TSection, TSectionItem, TDashboardSettings, TDashboardSettingsIn, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
-import { allSectionDetails, CAN_HAVE_EMPTY_SECTION_MESSAGES, sectionsPriorityBeforeTagWhenCalendarFocus, treatSingleItemTypesAsZeroItems } from '../../../constants'
+import { ALL_SECTION_DETAILS, CAN_HAVE_EMPTY_SECTION_MESSAGES, SECTIONS_PRIORITY_BEFORE_TAG_WHEN_CALENDAR_FOCUS, TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS } from '../../../constants'
 import { extractReminderIdsFromTaskContent, reminderTitleListKey } from '@helpers/NPReminders'
 import { logTimer } from '@helpers/dev.js'
 import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/reactDev'
@@ -18,7 +18,7 @@ import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/re
  */
 export function countRealSectionItems(items: ?Array<TSectionItem>): number {
   if (!items || items.length === 0) return 0
-  return items.filter((item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType)).length
+  return items.filter((item) => !TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS.includes(item.itemType)).length
 }
 
 /**
@@ -75,7 +75,7 @@ export function getGeneratedDateKey(generatedDate: ?(Date | string)): string {
  * Also, INFO section is turned off by default.
  * @returns {Array<TSettingItem>}
  */
-export const showSectionSettingItems: Array<TSettingItem> = allSectionDetails.reduce((acc, s) => {
+export const showSectionSettingItems: Array<TSettingItem> = ALL_SECTION_DETAILS.reduce((acc, s) => {
   if (s.sectionCode !== 'TAG') {
     acc.push({ label: `Show ${s.sectionName}`, key: s.showSettingName, type: 'switch', default: s.sectionCode !== 'INFO', checked: s.sectionCode !== 'INFO' })
   }
@@ -234,7 +234,7 @@ function getUseFirstButVisible(useFirst: Array<TSectionCode>, dashboardSettings:
 /**
  * When includedCalendarSections is set, prefer Wins / calendar period / Overdue sections over TAG for Hide Duplicates,
  * so focused tagged items stay in Today/Overdue rather than only in TAG.
- * WINS must stay before DT/W/M/Q (same as sectionPriorityForDeduping) so >> items remain in Wins.
+ * WINS must stay before DT/W/M/Q (same as SECTION_PRIORITY_FOR_DEDUPING) so >> items remain in Wins.
  * Leaves the default order alone when the setting is blank.
  * @param {Array<TSectionCode>} useFirst - base dedupe priority order
  * @param {TDashboardSettings} dashboardSettings
@@ -260,7 +260,7 @@ export function adjustDedupPriorityForCalendarFocus(
     return useFirst
   }
 
-  const preferBeforeTag = sectionsPriorityBeforeTagWhenCalendarFocus
+  const preferBeforeTag = SECTIONS_PRIORITY_BEFORE_TAG_WHEN_CALENDAR_FOCUS
   const beforeTag = useFirst.slice(0, tagIndex)
   const afterTag = useFirst.slice(tagIndex + 1)
   const preferredInOrder = useFirst.filter((code) => preferBeforeTag.includes(code))
@@ -340,7 +340,7 @@ export function removeRemindersDuplicatedByLinkedTasks(_sections: Array<TSection
       const removedCount = itemCountBefore - section.sectionItems.length
       if (removedCount > 0) {
         const realItemsRemaining = section.sectionItems.filter(
-          (item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType),
+          (item) => !TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS.includes(item.itemType),
         ).length
         if (typeof section.totalCount === 'number') {
           section.totalCount = Math.max(realItemsRemaining, section.totalCount - removedCount)
@@ -443,7 +443,7 @@ export function getSectionsWithoutDuplicateLines(
       const removedCount = itemCountBeforeDedupe - section.sectionItems.length
       if (removedCount > 0) {
         const realItemsRemaining = section.sectionItems.filter(
-          (item) => !treatSingleItemTypesAsZeroItems.includes(item.itemType),
+          (item) => !TREAT_SINGLE_ITEM_TYPES_AS_ZERO_ITEMS.includes(item.itemType),
         ).length
         const maxInSection = dashboardSettings?.maxItemsToShowInSection
         const stillAtCapacity =
@@ -494,20 +494,20 @@ export const countTotalVisibleSectionItems = (sections: Array<TSection>, dashboa
 }
 
 /**
- * Filters the global allSectionDetails array based on the sectionCode
+ * Filters the global ALL_SECTION_DETAILS array based on the sectionCode
  * Returns a single section with the matching section code prefix
  * @param {string} thisSectionCode - The section code to filter by.
  * @returns {TSectionDetails} {sectionCode, sectionName, showSettingName}
  */
 export function getSectionDetailsFromSectionCode(thisSectionCode: string): TSectionDetails | void {
-  const found = allSectionDetails.find((section) => section.sectionCode.startsWith(thisSectionCode))
+  const found = ALL_SECTION_DETAILS.find((section) => section.sectionCode.startsWith(thisSectionCode))
   if (!found) {
-    logDebug('sectionHelpers', `Section code: ${thisSectionCode} not found in allSectionDetails`)
+    logDebug('sectionHelpers', `Section code: ${thisSectionCode} not found in ALL_SECTION_DETAILS`)
   }
   return found
 }
 
-const sectionWithTag = allSectionDetails.filter((s) => s.sectionCode === 'TAG')[0]
+const sectionWithTag = ALL_SECTION_DETAILS.filter((s) => s.sectionCode === 'TAG')[0]
 
 /**
  * Get a consistent showSettingName for a given tag.

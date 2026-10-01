@@ -228,7 +228,7 @@ If `usePerspectives` is true but Dashboard has **no active perspective**, `getRe
 
 **Same-plugin invoke vs HTML bridge (PROJ* completion from Dashboard):** When `writeAllProjectsList` runs inside the Dashboard bundle and immediately calls `updateDashboardIfOpen`, `invokePluginCommandByName('refreshSectionsByCode', 'jgclark.Dashboard', ...)` can return before the webview has applied the refreshed PROJ* sections. `processActionOnReturn` could then send `UPDATE_DATA` using a snapshot taken before that refresh, overwriting merged rows (e.g. new next-action missing even though `allProjectsList.json` is correct). Mitigations: (1) `skipUpdateDashboardIfOpen` on the Dashboard bridge path so `writeAllProjectsList` still runs `updateRichProjectListIfOpen` but skips the invoke; (2) `await refreshSectionsByCode` in `projectsListSync.js` after the list write; (3) re-fetch `getGlobalSharedData` before the post-`REMOVE_LINE` `UPDATE_DATA` send.
 
-**Editor `onEditorWillSave`:** Non-calendar “refresh all” excludes **PROJACT** / **PROJREVIEW** (`sectionCodesFromAllProjectsJson`) so a second PROJ* refresh does not race list-backed updates after Reviews has already invoked Dashboard (see `dashboardHooks.js`).
+**Editor `onEditorWillSave`:** Non-calendar “refresh all” excludes **PROJACT** / **PROJREVIEW** (`SECTION_CODES_FROM_ALL_PROJECTS_JSON`) so a second PROJ* refresh does not race list-backed updates after Reviews has already invoked Dashboard (see `dashboardHooks.js`).
 
 ### `outputStyle` = Markdown
 

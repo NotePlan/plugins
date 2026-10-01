@@ -10,7 +10,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useCallback, useEffect, useRef, useState, type ElementRef } from 'react'
-import { defaultSectionDisplayOrder } from '../../constants.js'
+import { DEFAULT_SECTION_DISPLAY_ORDER } from '../../constants.js'
 import type { TSettingItem, TSectionCode } from '../../types.js'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import { getValueFromSettingItem } from '../support/settingsHelpers'
@@ -353,7 +353,7 @@ const SettingsDialog = ({
                       sections={sections}
                       dashboardSettings={dashboardSettings}
                       // $FlowFixMe[incompatible-type]
-                      defaultOrder={defaultSectionDisplayOrder}
+                      defaultOrder={DEFAULT_SECTION_DISPLAY_ORDER}
                       onSave={(newOrder) => {
                         // Track the section order change (will be saved when "Save & Close" is clicked)
                         setSectionOrderChange(newOrder)

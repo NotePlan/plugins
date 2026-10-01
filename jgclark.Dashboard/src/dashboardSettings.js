@@ -4,7 +4,7 @@
 // Last updated 2026-08-15 for v2.4.0.b64 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
-import { defaultSectionDisplayOrder } from './constants.js'
+import { DEFAULT_SECTION_DISPLAY_ORDER } from './constants.js'
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
 
@@ -194,7 +194,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Custom Section Display Order',
     type: 'hidden',
     handleDescriptionItself: true,
-    default: defaultSectionDisplayOrder,
+    default: DEFAULT_SECTION_DISPLAY_ORDER,
   },
   {
     key: 'maxItemsToShowInSection',

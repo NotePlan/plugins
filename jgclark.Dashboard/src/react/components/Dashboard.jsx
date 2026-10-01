@@ -12,7 +12,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useMidnightRollover from '../customHooks/useMidnightRollover.jsx'
-import { dontDedupeSectionCodes, sectionPriorityForDeduping, defaultSectionDisplayOrder } from '../../constants.js'
+import { DONT_DEDUPE_SECTION_CODES, SECTION_PRIORITY_FOR_DEDUPING, DEFAULT_SECTION_DISPLAY_ORDER } from '../../constants.js'
 import { copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { injectSyntheticWinsSection } from '../../dataGenerationPriority'
 import { findSectionItems } from '../../dashboardHelpers.js'
@@ -115,14 +115,14 @@ const Dashboard = ({ pluginData }: Props): React.Node => {
 
       // Sections other than the standard task-based ones need to be ignored here
       // $FlowFixMe[incompatible-type]
-      const dedupedSections = getSectionsWithoutDuplicateLines(workingSections.slice(), ['filename', 'content'], sectionPriorityForDeduping, dontDedupeSectionCodes, dashboardSettings)
+      const dedupedSections = getSectionsWithoutDuplicateLines(workingSections.slice(), ['filename', 'content'], SECTION_PRIORITY_FOR_DEDUPING, DONT_DEDUPE_SECTION_CODES, dashboardSettings)
       workingSections = dedupedSections
     }
 
     // $FlowFixMe[incompatible-type]
-    const sortedSections = sortSections(workingSections.slice(), defaultSectionDisplayOrder, dashboardSettings?.customSectionDisplayOrder, dashboardSettings?.tagsToShow)
+    const sortedSections = sortSections(workingSections.slice(), DEFAULT_SECTION_DISPLAY_ORDER, dashboardSettings?.customSectionDisplayOrder, dashboardSettings?.tagsToShow)
     const totalVisibleAfterSort = countTotalVisibleSectionItems(sortedSections, dashboardSettings)
-    // logDebug('Dashboard:sortSections', `after sort: ${sortedSections.length} (${getDisplayListOfSectionCodes(sortedSections)}) with ${String(countTotalSectionItems(sortedSections, dontDedupeSectionCodes))} items`)
+    // logDebug('Dashboard:sortSections', `after sort: ${sortedSections.length} (${getDisplayListOfSectionCodes(sortedSections)}) with ${String(countTotalSectionItems(sortedSections, DONT_DEDUPE_SECTION_CODES))} items`)
 
     return {
       sections: sortedSections,

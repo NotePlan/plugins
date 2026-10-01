@@ -8,7 +8,7 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { refreshSomeSections } from './refreshClickHandlers'
-import { allSectionCodes, sectionCodesFromAllProjectsJson, WEBVIEW_WINDOW_ID } from './constants'
+import { ALL_SECTION_CODES, SECTION_CODES_FROM_ALL_PROJECTS_JSON, WEBVIEW_WINDOW_ID } from './constants'
 // import { getSomeSectionsData } from './dataGeneration'
 import type { MessageDataObject, TBridgeClickHandlerResult, TSectionCode } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -107,7 +107,7 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
 
 /**
  * Decides whether the number of open items in the Editor has changed, or if open item contents have changed. Ignore open items have just moved around.
- * If open items have changed, then update the dashboard for this calendar period (if it is one), or for non-calendar notes refresh all enabled sections **except** PROJACT/PROJREVIEW (see `sectionCodesFromAllProjectsJson`): those sections follow `allProjectsList.json` and Reviews already refreshes the Dashboard after list writes; re-including them here duplicated work and could race with the next-action row display.
+ * If open items have changed, then update the dashboard for this calendar period (if it is one), or for non-calendar notes refresh all enabled sections **except** PROJACT/PROJREVIEW (see `SECTION_CODES_FROM_ALL_PROJECTS_JSON`): those sections follow `allProjectsList.json` and Reviews already refreshes the Dashboard after list writes; re-including them here duplicated work and could race with the next-action row display.
  */
 export async function onEditorWillSave(): Promise<void> {
   try {
@@ -162,11 +162,11 @@ export async function onEditorWillSave(): Promise<void> {
         const filename = note.filename
         // find element in FTSCList matching filename and return the sectionCode
         const thisObject = FTSCList.find((obj) => obj.filename === filename)
-        // Non-calendar notes used to fall back to allSectionCodes, which re-refreshed PROJACT/PROJREVIEW; those sections come from
+        // Non-calendar notes used to fall back to ALL_SECTION_CODES, which re-refreshed PROJACT/PROJREVIEW; those sections come from
         // allProjectsList.json and Reviews already calls updateDashboardIfOpen after writes - a second refresh here races and can flicker next-action rows.
         const theseSectionCodes: Array<TSectionCode> = thisObject?.sectionCode
           ? [thisObject.sectionCode]
-          : allSectionCodes.filter((code) => !sectionCodesFromAllProjectsJson.includes(code))
+          : ALL_SECTION_CODES.filter((code) => !SECTION_CODES_FROM_ALL_PROJECTS_JSON.includes(code))
         const data: MessageDataObject = { actionType: 'refreshSomeSections', sectionCodes: theseSectionCodes }
         // ask to update section(s), noting this is called by a trigger (which changes whether we use Editor.note.content or note.content)
         logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard section(s) ${theseSectionCodes.toString()}`)

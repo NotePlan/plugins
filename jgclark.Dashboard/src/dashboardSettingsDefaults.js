@@ -5,7 +5,7 @@
 // Last updated 2026-08-01 for v2.4.0.b59 by @CursorAI
 //-----------------------------------------------------------------------------
 
-import { allSectionDetails } from './constants'
+import { ALL_SECTION_DETAILS } from './constants'
 import { dashboardSettingDefs, dashboardFilterDefs } from './dashboardSettings'
 import type { TDashboardSettings, TSettingItem } from './types'
 import { clo, logError } from '@helpers/dev'
@@ -27,18 +27,18 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
     return acc
   }, {})
 
-  // Add section show settings from allSectionDetails
+  // Add section show settings from ALL_SECTION_DETAILS
   // Most sections default to true (including REM / showRemindersSection), except INFO which defaults to false,
   // and TAG sections are handled specially (one for each tag a user wants to see).
   // Annotated accumulator: the keys are showSettingName values, which are only known at runtime.
-  const sectionDefaults = allSectionDetails.reduce((acc: { [string]: boolean }, section) => {
+  const sectionDefaults = ALL_SECTION_DETAILS.reduce((acc: { [string]: boolean }, section) => {
     if (section.showSettingName && section.showSettingName !== '') {
       acc[section.showSettingName] = section.sectionCode !== 'INFO'
     }
     return acc
   }, ({}: { [string]: boolean }))
 
-  // Add showSearchSection (SEARCH section doesn't have showSettingName in allSectionDetails)
+  // Add showSearchSection (SEARCH section doesn't have showSettingName in ALL_SECTION_DETAILS)
   sectionDefaults.showSearchSection = true
   // Current Reminders is hidden in UI for now but kept as a setting; default ON (covers today / yesterday / tomorrow)
   sectionDefaults.showCurrentReminders = true
@@ -55,12 +55,12 @@ export function getDashboardSettingsDefaults(): TDashboardSettings {
  */
 export function getDashboardSettingsDefaultsWithSectionsSetToFalse(): TDashboardSettings {
   const dashboardSettingsDefaults = getDashboardSettingsDefaults()
-  const sectionList = allSectionDetails.map((s) => s.showSettingName).filter((s) => s !== '' && s !== undefined)
+  const sectionList = ALL_SECTION_DETAILS.map((s) => s.showSettingName).filter((s) => s !== '' && s !== undefined)
   const sectionsSetToFalse: TAnyObject = sectionList.reduce((acc: TAnyObject, curr: string) => {
     acc[curr] = false
     return acc
   }, {})
-  // Also turn off Current Reminders (not derived from allSectionDetails showSettingName)
+  // Also turn off Current Reminders (not derived from ALL_SECTION_DETAILS showSettingName)
   sectionsSetToFalse.showCurrentReminders = false
   clo(sectionsSetToFalse, `sectionsSetToFalse:`)
   // Cast: spreading an indexed object ({ [string]: any }) last into an object literal is a known Flow
