@@ -4,13 +4,16 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-09-30 for v2.5.0.b6 by @jgclark + @CursorAI
+// Last updated 2026-10-01 for v2.5.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
   allCalendarSectionCodes,
   allSectionDetails,
   DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH,
+  DASHBOARD_SETTING_KEY_SECTION_CODES,
+  DASHBOARD_SETTING_KEYS_REQUIRING_ALL_ENABLED_SECTIONS_REFRESH,
+  DASHBOARD_VISIBILITY_SETTING_TO_SECTION_CODE,
   SECTIONS_TO_REFRESH_AFTER_CHANGE_OF_VISIBILITY_OF_CALENDAR_SECTIONS,
   WEBVIEW_WINDOW_ID,
 } from './constants'
@@ -18,6 +21,7 @@ import {
   cloneDashboardSettingsBeforeSave,
   getDashboardSettings,
   getDashboardSettingsDefaults,
+  getListOfEnabledSections,
   getLogSettings,
   handlerResult,
   makeDashboardParas,
@@ -1070,6 +1074,36 @@ function getEnabledSectionCodesAmongCalendarVisibilityRefreshList(mergedSettings
 }
 
 /**
+ * Show-setting keys for project sections. Those rows are notes, not paragraphs, so toggling them
+ * does not change dedupe in tag or calendar sections.
+ * @param {string} key
+ * @returns {?TSectionCode}
+ */
+function projectSectionCodeForVisibilityKey(key: string): ?TSectionCode {
+  const code = DASHBOARD_VISIBILITY_SETTING_TO_SECTION_CODE[key]
+  if (code === 'PROJACT' || code === 'PROJREVIEW') return code
+  return null
+}
+
+/**
+ * Project section codes whose show-setting was turned on in this settings diff.
+ * Turning off is handled by CLOSE_UNNEEDED_SECTIONS.
+ * @param {Array<string>} diffKeys
+ * @param {{ [key: string]: any }} nextMerged
+ * @returns {Array<TSectionCode>}
+ */
+function getNewlyEnabledProjectSectionCodes(diffKeys: Array<string>, nextMerged: { [key: string]: any }): Array<TSectionCode> {
+  const codes: Array<TSectionCode> = []
+  for (const key of diffKeys) {
+    const code = projectSectionCodeForVisibilityKey(key)
+    if (code != null && nextMerged[key]) {
+      codes.push(code)
+    }
+  }
+  return codes
+}
+
+/**
  * Calendar section codes whose show-setting was turned on in this settings diff.
  * (Turning off is handled by CLOSE_UNNEEDED_SECTIONS; we only need to generate newly enabled ones.)
  * @author @Cursor
@@ -1137,12 +1171,64 @@ export async function applyDashboardThemeToWebView(themeName: string): Promise<b
 }
 
 /**
+ * True when this key never changes section JSON. `FFlag_*` keys are display/debug switches.
+ * @param {string} key
+ * @returns {boolean}
+ */
+function settingKeySkipsSectionRefresh(key: string): boolean {
+  if (DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH.has(key)) return true
+  if (key.startsWith('FFlag_')) return true
+  return false
+}
+
+/**
+ * Section codes whose generated items can change when `key` changes.
+ * Looks up `DASHBOARD_SETTING_KEY_SECTION_CODES` and `DASHBOARD_VISIBILITY_SETTING_TO_SECTION_CODE`.
+ * `null` means the key can affect every enabled section (caller should REFRESH_ALL).
+ * An empty array means the change only hides a section (`CLOSE_UNNEEDED_SECTIONS`).
+ * @param {string} key
+ * @param {{ [key: string]: any }} nextMerged
+ * @returns {?Array<TSectionCode>}
+ */
+function sectionCodesForContentSettingKey(key: string, nextMerged: { [key: string]: any }): ?Array<TSectionCode> {
+  if (DASHBOARD_SETTING_KEYS_REQUIRING_ALL_ENABLED_SECTIONS_REFRESH.includes(key)) return null
+  const staticCodes = DASHBOARD_SETTING_KEY_SECTION_CODES[key]
+  if (staticCodes) return staticCodes
+  const visibilityCode = DASHBOARD_VISIBILITY_SETTING_TO_SECTION_CODE[key]
+  if (visibilityCode != null) {
+    return nextMerged[key] ? [visibilityCode] : []
+  }
+  if (key === 'showTagSection' || key.startsWith('showTagSection_')) {
+    return nextMerged[key] ? ['TAG'] : []
+  }
+  if (getCalendarSectionVisibilitySettingNames().has(key)) {
+    const codes = getEnabledSectionCodesAmongCalendarVisibilityRefreshList(nextMerged)
+    const detail = allSectionDetails.find((d) => d.showSettingName === key)
+    if (detail && nextMerged[key]) codes.push(detail.sectionCode)
+    return codes
+  }
+  return null
+}
+
+/**
+ * Drop section codes that this settings snapshot will not show.
+ * SAVEDSEARCH is not in `getListOfEnabledSections` (it is still future); keep it when requested.
+ * @param {Array<TSectionCode>} codes
+ * @param {{ [key: string]: any }} nextMerged
+ * @returns {Array<TSectionCode>}
+ */
+function enabledSectionCodesFrom(codes: Array<TSectionCode>, nextMerged: { [key: string]: any }): Array<TSectionCode> {
+  const enabled = getListOfEnabledSections((nextMerged: any))
+  return uniqueSectionCodes(codes.filter((code) => enabled.includes(code) || code === 'SAVEDSEARCH'))
+}
+
+/**
  * Decide incremental section refresh actions after dashboard settings were merged (pre vs post snapshot).
  * @param {{ [string]: any }} priorDashboardSettingsSnapshot
  * @param {mixed} settingsToSave
  * @returns {{ resultsToHandle: Array<TActionOnReturn>, resultExtra: { sectionCodes?: Array<TSectionCode>, dashboardThemeName?: string, perspectiveName?: string }, diffKeys: Array<string> }}
  */
-function planSectionRefreshAfterDashboardSettingsChange(
+export function planSectionRefreshAfterDashboardSettingsChange(
   priorDashboardSettingsSnapshot: { [string]: any },
   settingsToSave: mixed,
 ): {
@@ -1176,10 +1262,12 @@ function planSectionRefreshAfterDashboardSettingsChange(
     logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: no differing keys after merge (or non-object diff); no section refresh actions${keepTheme ? ' (APPLY_THEME kept)' : ''}`,
     )
   } else {
-    const onlyCalendarVisibility = diffKeys.every((k) => calendarVisibilityKeys.has(k))
+    // Some settings changed. Decide which sections to refresh, if any.
+    const changesOnlyCalendarVisibility = diffKeys.every((k) => calendarVisibilityKeys.has(k))
+    const changesOnlyProjectsVisibility = diffKeys.every((k) => projectSectionCodeForVisibilityKey(k) != null)
 
-    if (onlyCalendarVisibility) {
-      // Newly enabled calendar sections must be generated; WINS/PRIORITY/OVERDUE refresh for dedupe correctness.
+    if (changesOnlyCalendarVisibility) {
+    // Newly enabled calendar sections must be generated; also refresh WINS/PRIORITY/OVERDUE for dedupe correctness.
       // Turning a calendar section off is handled by CLOSE_UNNEEDED_SECTIONS (no need to regenerate it).
       const newlyEnabledCalendar = getNewlyEnabledCalendarSectionCodes(diffKeys, nextMerged)
       const eligibleDedupe = getEnabledSectionCodesAmongCalendarVisibilityRefreshList(nextMerged)
@@ -1197,11 +1285,55 @@ function planSectionRefreshAfterDashboardSettingsChange(
           `Section refresh plan: only calendar section visibility changed (keys: ${diffKeys.join(', ')}); incremental refresh: none (no newly enabled calendar sections; Wins/Priority/Overdue all off)`,
         )
       }
+    } else if (changesOnlyProjectsVisibility) {
+      // PROJACT / PROJREVIEW are not paragraph rows. Generate only a section that was just turned on.
+      // Turning one off is CLOSE_UNNEEDED_SECTIONS. Do not REFRESH_ALL (that rebuilds tag sections too).
+      const newlyEnabledProjects = uniqueSectionCodes(getNewlyEnabledProjectSectionCodes(diffKeys, nextMerged))
+      if (newlyEnabledProjects.length > 0) {
+        resultsToHandle.push('REFRESH_SECTION_IN_JSON')
+        resultExtra = { ...resultExtra, sectionCodes: newlyEnabledProjects }
+        logInfo(
+          'doSaveDashboardSettingsFromBridge',
+          `Section refresh plan: only project section visibility changed (keys: ${diffKeys.join(', ')}); incremental refresh: [${newlyEnabledProjects.join(', ')}]`,
+        )
+      } else {
+        logInfo(
+          'doSaveDashboardSettingsFromBridge',
+          `Section refresh plan: only project section visibility changed (keys: ${diffKeys.join(', ')}); no newly enabled project sections (CLOSE_UNNEEDED_SECTIONS only)`,
+        )
+      }
     } else {
-      const keysNeedingContentRefresh = diffKeys.filter((k) => !DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH.has(k))
+      const keysNeedingContentRefresh = diffKeys.filter((k) => !settingKeySkipsSectionRefresh(k))
       if (keysNeedingContentRefresh.length > 0) {
-        resultsToHandle.push('REFRESH_ALL_ENABLED_SECTIONS')
-        logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: content-affecting settings changed (keys: ${keysNeedingContentRefresh.join(', ')}); will REFRESH_ALL_ENABLED_SECTIONS`)
+        const scopedCodes: Array<TSectionCode> = []
+        let needsAllSections = false
+        for (const key of keysNeedingContentRefresh) {
+          const codes = sectionCodesForContentSettingKey(key, nextMerged)
+          if (codes == null) {
+            needsAllSections = true
+            break
+          }
+          scopedCodes.push(...codes)
+        }
+        if (needsAllSections) {
+          resultsToHandle.push('REFRESH_ALL_ENABLED_SECTIONS')
+          logInfo('doSaveDashboardSettingsFromBridge', `Section refresh plan: content-affecting settings changed (keys: ${keysNeedingContentRefresh.join(', ')}); will REFRESH_ALL_ENABLED_SECTIONS`)
+        } else {
+          const sectionCodes = enabledSectionCodesFrom(scopedCodes, nextMerged)
+          if (sectionCodes.length > 0) {
+            resultsToHandle.push('REFRESH_SECTION_IN_JSON')
+            resultExtra = { ...resultExtra, sectionCodes }
+            logInfo(
+              'doSaveDashboardSettingsFromBridge',
+              `Section refresh plan: scoped settings changed (keys: ${keysNeedingContentRefresh.join(', ')}); incremental refresh: [${sectionCodes.join(', ')}]`,
+            )
+          } else {
+            logInfo(
+              'doSaveDashboardSettingsFromBridge',
+              `Section refresh plan: scoped settings changed (keys: ${keysNeedingContentRefresh.join(', ')}); no enabled sections to regenerate (CLOSE_UNNEEDED_SECTIONS only)`,
+            )
+          }
+        }
       }
       if (dashboardFolderFilterSettingsChanged(diffKeys)) {
         resultsToHandle.push('ACTIVE_PERSPECTIVE_DEFINITION_CHANGED')

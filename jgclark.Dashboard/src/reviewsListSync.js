@@ -1,11 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Sync Reviews allProjectsList.json when Dashboard folder filter settings change.
-// Last updated 2026-08-23 for v2.4.2 by @jgclark + @CursorAI
+// Last updated 2026-10-01 for v2.5.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getReviewSettings } from '../../jgclark.Reviews/src/reviewSettings'
 import { RICH_PROJECT_LIST_WIN_ID } from '../../jgclark.Reviews/src/reviews'
+import { DASHBOARD_SETTING_KEYS_REQUIRING_ALL_ENABLED_SECTIONS_REFRESH } from './constants'
 import { invalidateDashboardPluginSettingsCache } from './dashboardPluginSettings'
 import type { TDashboardSettingsIn } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
@@ -15,7 +16,7 @@ import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 
 /** Dashboard `dashboardSettings` keys that change which folders or notes Reviews includes when `usePerspectives` is on. */
-export const DASHBOARD_NOTE_SCOPE_SETTING_KEYS: Array<string> = ['includedFolders', 'excludedFolders', 'includedTeamspaces']
+export const DASHBOARD_NOTE_SCOPE_SETTING_KEYS: Array<string> = DASHBOARD_SETTING_KEYS_REQUIRING_ALL_ENABLED_SECTIONS_REFRESH
 
 /** @deprecated Use DASHBOARD_NOTE_SCOPE_SETTING_KEYS */
 export const DASHBOARD_FOLDER_FILTER_SETTING_KEYS: Array<string> = DASHBOARD_NOTE_SCOPE_SETTING_KEYS

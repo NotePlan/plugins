@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code.
 // Check each of them when adding a new Section.
-// Last updated 2026-08-21 for v2.5.0, @jgclark + @CursorAI
+// Last updated 2026-10-01 for v2.5.1, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from './types'
@@ -40,10 +40,10 @@ export const allSectionDetails: Array<TSectionDetails> = [
 
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map((s) => s.sectionCode)
 
-/** Sections backed by Reviews `allProjectsList.json`. Exclude from editor-trigger "refresh all" so we do not double-refresh (and race) right after `updateDashboardIfOpen` from list writes. */
+/* Sections backed by Reviews `allProjectsList.json`. Exclude from editor-trigger "refresh all" so we do not double-refresh (and race) right after `updateDashboardIfOpen` from list writes. */
 export const sectionCodesFromAllProjectsJson: Array<TSectionCode> = ['PROJACT', 'PROJREVIEW']
 
-export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y']
+export const allCalendarSectionCodes: Array<TSectionCode> = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y']
 
 export const defaultSectionDisplayOrder = ['SEARCH', 'SAVEDSEARCH', 'WINS', 'TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'REM', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJACT', 'PROJREVIEW', 'INFO']
 
@@ -87,14 +87,116 @@ export const treatSingleItemTypesAsZeroItems = [
   'offerToFilter',
 ]
 
-/** Font Awesome classes for the Item and Wins congrats messages (`section.FAIconClass`); use the same for `winsCongrats` message rows. */
+/* Font Awesome classes for the Item and Wins congrats messages (`section.FAIconClass`); use the same for `winsCongrats` message rows. */
 export const winsSectionHeaderFAIconClass = 'fa-regular fa-trophy'
 export const itemCongratsFAIconClass = 'fa-light fa-champagne-glasses'
 
 /**
- * Dashboard setting keys that can change without re-fetching section item lists (theme uses CHANGE_THEME CSS regen instead).
+ * Dashboard setting keys that can change without re-fetching section item lists.
+ * Theme uses CHANGE_THEME. 
+ * Display and React-only filters are applied from the settings payload `setPluginData` already sends.
+ * `FFlag_*` keys are treated the same in the refresh planner.
+ * Keys that do change section JSON are listed in:
+ * - `DASHBOARD_SETTING_KEY_SECTION_CODES`,
+ * - `DASHBOARD_VISIBILITY_SETTING_TO_SECTION_CODE`, or
+ * - `DASHBOARD_SETTING_KEYS_REQUIRING_ALL_ENABLED_SECTIONS_REFRESH`.
  */
-export const DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH: Set<string> = new Set(['applyCurrentFilteringToSearch', 'autoUpdateAfterIdleTime', 'dashboardTheme', 'dontSearchFutureItems', 'enableInteractiveProcessing', 'enableInteractiveProcessingTransitions', 'interactiveProcessingHighlightTask', 'lastModified', 'moveSubItems', 'newTaskSectionHeading', 'newTaskSectionHeadingLevel', 'preferredWindowType', 'settingsMigrated', 'useLiteScheduleMethod'])
+export const DASHBOARD_SETTING_KEYS_NOT_REQUIRING_DISPLAY_OR_CONTENT_REFRESH: Set<string> = new Set([
+  'applyCurrentFilteringToSearch',
+  'autoUpdateAfterIdleTime',
+  'customSectionDisplayOrder',
+  'dashboardTheme',
+  'displayDensity',
+  'displayDoneCounts',
+  'dontSearchFutureItems',
+  'enableInteractiveProcessing',
+  'enableInteractiveProcessingTransitions',
+  'excludeTasksWithTimeblocks',
+  'filterPriorityItems',
+  'hideDuplicates',
+  'hideEmptySections',
+  'hidePriorityMarkers',
+  'interactiveProcessingHighlightTask',
+  'lastModified',
+  'moveOnlyShownItemsWhenFiltered',
+  'moveSubItems',
+  'newTaskSectionHeading',
+  'newTaskSectionHeadingLevel',
+  'parentChildMarkersEnabled',
+  'preferredWindowType',
+  'rescheduleNotMove',
+  'searchPanelPlaceholder',
+  'settingsMigrated',
+  'showFeatureFlagMenu',
+  'showFolderName',
+  'showProgressInSections',
+  'showScheduledDates',
+  'showTaskContext',
+  'showWinsSection',
+  'treatTopPriorityAsWins',
+  'triggerLogging',
+  'useLiteScheduleMethod',
+  'useTodayDate',
+  'winsPriorityMarker',
+])
+
+/* Sections that are made up of Paragraphs. (So not Project sections.) */
+export const DASHBOARD_PARAGRAPH_SECTION_CODES: Array<TSectionCode> = ['TB', 'DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'SEARCH']
+
+/* Sections that can show Apple Reminders rows (the Reminders section plus hosts that inject reminders). */
+export const DASHBOARD_REMINDER_HOST_SECTION_CODES: Array<TSectionCode> = ['TB', 'REM', 'DT', 'DY', 'DO', 'OVERDUE']
+
+/* Sections that show current (timed / today / yesterday / tomorrow) reminders. */
+export const DASHBOARD_CURRENT_REMINDER_SECTION_CODES: Array<TSectionCode> = ['TB', 'DT', 'DY', 'DO']
+
+/* Sections whose _generators_ apply limit to `maxItemsToShowInSection`. Other sections apply that cap at _display time_ (in React). */
+export const DASHBOARD_BACKEND_ITEM_LIMIT_SECTION_CODES: Array<TSectionCode> = ['PRIORITY', 'SEARCH', 'SAVEDSEARCH', 'REM', 'OVERDUE']
+
+/**
+ * Setting key to the section codes to regenerate, whether the value turned on or off.
+ * `showRemindersSection` is here, not in the visibility map: turning it off must strip reminder rows from host sections.
+ */
+export const DASHBOARD_SETTING_KEY_SECTION_CODES: { [string]: Array<TSectionCode> } = {
+  showRemindersSection: DASHBOARD_REMINDER_HOST_SECTION_CODES,
+  includedReminderLists: DASHBOARD_REMINDER_HOST_SECTION_CODES,
+  showCurrentReminders: DASHBOARD_CURRENT_REMINDER_SECTION_CODES,
+  showUndatedOverdueReminders: ['REM', 'OVERDUE'],
+  hideTimedRemindersUntilDue: ['TB'],
+  lookBackDaysForOverdue: ['OVERDUE'],
+  overdueSortOrder: ['OVERDUE', 'TAG'],
+  includeFutureTagMentions: ['TAG'],
+  tagsToShow: ['TAG'],
+  showProjectActiveOnlyWithNextActions: ['PROJACT'],
+  separateSectionForReferencedNotes: allCalendarSectionCodes,
+  applyIgnoreTermsToCalendarHeadingSections: allCalendarSectionCodes,
+  includedCalendarSections: ['PRIORITY', 'OVERDUE', ...allCalendarSectionCodes],
+  ignoreItemsWithTerms: DASHBOARD_PARAGRAPH_SECTION_CODES,
+  ignoreChecklistItems: DASHBOARD_PARAGRAPH_SECTION_CODES,
+  excludeChecklistsWithTimeblocks: ['TB', ...allCalendarSectionCodes],
+  maxItemsToShowInSection: DASHBOARD_BACKEND_ITEM_LIMIT_SECTION_CODES,
+}
+
+/**
+ * Show-setting to the one section to generate when that setting is turned on.
+ * Turning it off is `CLOSE_UNNEEDED_SECTIONS` only.
+ * Calendar period show-settings are not here: they also refresh Wins / Priority / Overdue.
+ * Cursor says this is needed as well allSectionDetails above.
+ */
+export const DASHBOARD_VISIBILITY_SETTING_TO_SECTION_CODE: { [string]: TSectionCode } = {
+  showTimeBlockSection: 'TB',
+  showPrioritySection: 'PRIORITY',
+  showOverdueSection: 'OVERDUE',
+  showInfoSection: 'INFO',
+  showSavedSearchSection: 'SAVEDSEARCH',
+  showProjectActiveSection: 'PROJACT',
+  showProjectReviewSection: 'PROJREVIEW',
+}
+
+/**
+ * Setting keys that change which notes every section can see. Refresh every enabled section.
+ * Same list as Reviews note scope (`DASHBOARD_NOTE_SCOPE_SETTING_KEYS`).
+ */
+export const DASHBOARD_SETTING_KEYS_REQUIRING_ALL_ENABLED_SECTIONS_REFRESH: Array<string> = ['includedFolders', 'excludedFolders', 'includedTeamspaces']
 
 // Sections that can inject congrats / empty messages after refresh when hideEmptySections is off.
 // WINS is omitted: empty Wins only shows congrats after local completion of defined wins (Section.jsx).
