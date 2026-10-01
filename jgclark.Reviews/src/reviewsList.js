@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Project list display, rendering, and display-filter commands
 // Extracted from reviews.js
-// Last updated 2026-09-12 for v2.2.0 by @jgclark + @CursorAI
+// Last updated 2026-10-01 for v2.3.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -336,7 +336,7 @@ export async function displayProjectLists(
       // clo(config, 'Review settings with no args:')
     }
 
-    // Re-calculate the allProjects list (in foreground)
+    // Re-calculate the allProjects list (show progress dialog)
     await generateAllProjectsList(config, true)
     // Call the relevant rendering function with the updated config
     await renderProjectLists(config, true, scrollPosNum)
@@ -449,7 +449,7 @@ export async function generateProjectListsAndRenderIfOpen(
           await setProjectListPerspectiveRecalcBanner(config, 'show')
         }
 
-        // Re-calculate the allProjects list (in foreground). Skip Rich invoke from write - render once below (avoids double render per generate).
+        // Re-calculate the allProjects list (show progress dialog). Skip Rich invoke from write - render once below (avoids double render per generate).
         await generateAllProjectsList(config, true, scrollPosNum, skipDash, true)
         logDebug('generateProjectListsAndRenderIfOpen', `generatedAllProjectsList() called, and now will call renderProjectListsIfOpen()`)
 

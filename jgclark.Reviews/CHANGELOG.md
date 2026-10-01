@@ -1,6 +1,9 @@
 # What's changed in Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
+## [2.3.1] - 2026-10-01
+- dev: Rebuilding the project list, including when Dashboard turns on Projects to Review, shows a progress dialog and keeps NotePlan responsive. The `runInForeground` flag is now more usefully named `showProgressToUser`. Project construction on the async thread now avoids reading `Editor`.
+
 ## [2.3.0] - 2026-09-18
 Performance Improvements:
 - **Refresh** and Dashboard-triggered list regen now use an **incremental** rebuild when possible: only re-parse project notes that changed since the last list write (via Shared `notes-changed-recently` cache + local `changedDate` backstop). A **full** vault scan still runs at least every **24 hours**, and whenever the list is missing or folder/perspective scope changes.

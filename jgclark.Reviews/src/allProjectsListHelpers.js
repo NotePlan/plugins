@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-09-18 for v2.3.0 by @jgclark + @CursorAI
+// Last updated 2026-10-01 for v2.3.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -361,6 +361,7 @@ function getFileAgeMs(prefName: string): number {
  */
 function shouldRegenerateAllProjectsList(config: ReviewConfig): boolean {
   if (!DataStore.fileExists(allProjectsListFilename)) {
+    logInfo('shouldRegenerateAllProjectsList', `allProjectsList.json is missing; will regenerate`)
     return true
   }
   const content = DataStore.loadData(allProjectsListFilename, true)
@@ -371,6 +372,11 @@ function shouldRegenerateAllProjectsList(config: ReviewConfig): boolean {
   const fileAgeMs = getFileAgeMs(generatedDatePrefName)
   const maxAgeMs = MS_PER_HOUR * maxAgeAllProjectsListInHours
   if (fileAgeMs > maxAgeMs) {
+    const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
+    logInfo(
+      'shouldRegenerateAllProjectsList',
+      `allProjects list is ${fileAgeHours}h old (max ${String(maxAgeAllProjectsListInHours)}h); will regenerate`,
+    )
     return true
   }
   if (config.usePerspectives && config.perspectiveName) {
@@ -493,7 +499,7 @@ function getChangedProjectFilenamesSince(sinceDate: Date): Array<string> {
 /**
  * Incremental allProjectsList rebuild: merge notes changed since last generation onto the baseline snapshot.
  * @param {ReviewConfig} config
- * @param {boolean} runInForeground
+ * @param {boolean} showProgressToUser
  * @param {number} scrollPosForRichList
  * @param {boolean} skipUpdateDashboardIfOpen
  * @param {boolean} skipRichProjectListIfOpen
@@ -501,7 +507,7 @@ function getChangedProjectFilenamesSince(sinceDate: Date): Array<string> {
  */
 async function generateAllProjectsListIncremental(
   config: ReviewConfig,
-  runInForeground: boolean,
+  showProgressToUser: boolean,
   scrollPosForRichList: number,
   skipUpdateDashboardIfOpen: boolean,
   skipRichProjectListIfOpen: boolean,
@@ -538,7 +544,7 @@ async function generateAllProjectsListIncremental(
   let removedCount = 0
   let loadingShown = false
   try {
-    if (runInForeground && changedFilenames.length > 0) {
+    if (showProgressToUser && changedFilenames.length > 0) {
       CommandBar.showLoading(true, `Refreshing Project Review list\n0/${String(changedFilenames.length)}`, 0)
       loadingShown = true
     }
@@ -813,7 +819,7 @@ export async function addNewProjectToAllProjectsListIfInScope(
  * @param {Array<TNote>} filteredProjectNotes
  * @param {Array<string>} filteredFolderList
  * @param {Array<string>} projectTypeTags
- * @param {boolean} runInForeground
+ * @param {boolean} showProgressToUser
  * @param {'Generating' | 'Refreshing'} progressVerb - 'Refreshing' when an existing list is being updated
  * @returns {Array<ProjectNoteTagPair>}
  */
@@ -821,7 +827,7 @@ function buildMatchingProjectNoteTagPairsSync(
   filteredProjectNotes: Array<TNote>,
   filteredFolderList: Array<string>,
   projectTypeTags: Array<string>,
-  runInForeground: boolean,
+  showProgressToUser: boolean,
   progressVerb: 'Generating' | 'Refreshing' = 'Generating',
 ): Array<ProjectNoteTagPair> {
   const pairs: Array<ProjectNoteTagPair> = []
@@ -847,7 +853,7 @@ function buildMatchingProjectNoteTagPairsSync(
 
   let loadingShown = false
   try {
-    if (runInForeground && totalFolders > 0) {
+    if (showProgressToUser && totalFolders > 0) {
       if (totalNotes > 0) {
         CommandBar.showLoading(true, `${listLabel}\n0/${String(totalFolders)} folders`, 0)
       } else {
@@ -893,16 +899,16 @@ function buildMatchingProjectNoteTagPairsSync(
  * Heavy nested matching runs on an async thread when NotePlan supports it (3.21.3+).
  * @author @jgclark
  * @param {ReviewConfig} config - Validated review config (caller must not pass null)
- * @param {boolean} runInForeground - When true, shows CommandBar loading per folder (same as list generation)
- * @param {'Generating' | 'Refreshing'} progressVerb - Progress dialog verb when runInForeground (default: Generating)
+ * @param {boolean} showProgressToUser - When true, shows the CommandBar progress dialog. Does not choose a thread.
+ * @param {'Generating' | 'Refreshing'} progressVerb - Progress dialog verb when showProgressToUser (default: Generating)
  * @returns {Promise<Array<ProjectNoteTagPair>>}
  */
 export async function enumerateMatchingProjectNoteTagPairs(
   config: ReviewConfig,
-  runInForeground: boolean = false,
+  showProgressToUser: boolean = false,
   progressVerb: 'Generating' | 'Refreshing' = 'Generating',
 ): Promise<Array<ProjectNoteTagPair>> {
-  logDebug('enumerateMatchingProjectNoteTagPairs', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
+  logDebug('enumerateMatchingProjectNoteTagPairs', `Starting for tags [${String(config.projectTypeTags)}], showProgressToUser=${String(showProgressToUser)}`)
 
   const startTime = moment().toDate() // use moment to ensure we get a date in the local timezone
 
@@ -935,13 +941,13 @@ export async function enumerateMatchingProjectNoteTagPairs(
   // Side-channel: do not return large arrays from runOnAsyncThread (can hang the Promise).
   let pairsHolder: ?Array<ProjectNoteTagPair> = null
   await runSyncWorkOnAsyncThread('enumerateMatchingProjectNoteTagPairs', () => {
-    pairsHolder = buildMatchingProjectNoteTagPairsSync(filteredProjectNotes, filteredFolderList, projectTypeTags, runInForeground, progressVerb)
+    pairsHolder = buildMatchingProjectNoteTagPairsSync(filteredProjectNotes, filteredFolderList, projectTypeTags, showProgressToUser, progressVerb)
     return true
   })
   const pairs: Array<ProjectNoteTagPair> =
     pairsHolder != null
       ? pairsHolder
-      : buildMatchingProjectNoteTagPairsSync(filteredProjectNotes, filteredFolderList, projectTypeTags, runInForeground, progressVerb)
+      : buildMatchingProjectNoteTagPairsSync(filteredProjectNotes, filteredFolderList, projectTypeTags, showProgressToUser, progressVerb)
   if (pairsHolder == null) {
     logWarn('enumerateMatchingProjectNoteTagPairs', `- async result missing; built pairs on main thread`)
   }
@@ -957,7 +963,7 @@ export async function enumerateMatchingProjectNoteTagPairs(
  * @param {Map<string, any>} projectListRowByKey
  * @param {Array<string>} nextActionTags
  * @param {string} sequentialTagResolved
- * @param {boolean} runInForeground
+ * @param {boolean} showProgressToUser
  * @param {'Generating' | 'Refreshing'} progressVerb - When Refreshing, progress text uses that verb instead of Building
  * @returns {Array<Project>}
  */
@@ -966,7 +972,7 @@ function buildProjectsFromPairsSync(
   projectListRowByKey: Map<string, any>,
   nextActionTags: Array<string>,
   sequentialTagResolved: string,
-  runInForeground: boolean = false,
+  showProgressToUser: boolean = false,
   progressVerb: 'Generating' | 'Refreshing' = 'Generating',
 ): Array<Project> {
   const projectInstances: Array<Project> = []
@@ -974,7 +980,7 @@ function buildProjectsFromPairsSync(
   const listLabel = progressVerb === 'Refreshing' ? 'Refreshing Project Review list' : 'Building Project Review list'
   let loadingShown = false
   try {
-    if (runInForeground && total > 0) {
+    if (showProgressToUser && total > 0) {
       CommandBar.showLoading(true, `${listLabel}\n0/${String(total)}`, 0)
       loadingShown = true
     }
@@ -985,7 +991,8 @@ function buildProjectsFromPairsSync(
         const title = (n.title ?? '').trim() !== '' ? (n.title ?? '').trim() : n.filename
         CommandBar.showLoading(true, `${listLabel}\n${String(index)}/${String(total)}\n${title}`, index / total)
       }
-      const currentMs = getNoteChangeTimeMsForCache(n, true)
+      // checkEditor false: this loop runs inside runOnAsyncThread, which must not touch Editor.
+      const currentMs = getNoteChangeTimeMsForCache(n, false)
       const cacheKey = makeProjectListCacheKey(n.filename, tag)
       const cachedRow = projectListRowByKey.get(cacheKey)
       let np: Project
@@ -1001,7 +1008,7 @@ function buildProjectsFromPairsSync(
         np = calcReviewFieldsForProject(cloned)
       } else {
         logDebug('getAllMatchingProjects', `- Cache MISS, so calling Project constructor for ${tag} '${n.filename}'`)
-        np = new Project(n, tag, true, nextActionTags, sequentialTagResolved, false)
+        np = new Project(n, tag, false, nextActionTags, sequentialTagResolved, false)
       }
       projectInstances.push(np)
     }
@@ -1019,18 +1026,18 @@ function buildProjectsFromPairsSync(
  * Project construction runs on an async thread when NotePlan supports it (3.21.3+).
  * @author @jgclark
  * @param {ReviewConfig} configIn
- * @param {boolean} runInForeground? (default: false)
+ * @param {boolean} showProgressToUser - When true, shows the CommandBar progress dialog. Does not choose a thread. Default false.
  * @returns {Array<Project>}
  */
 async function getAllMatchingProjects(
   configIn: ReviewConfig,
-  runInForeground: boolean = false,
+  showProgressToUser: boolean = false,
 ): Promise<Array<Project>> {
   // get config from passed config if possible
   const config = configIn ? configIn : await getReviewSettings()
   if (!config) throw new Error('No config found. Stopping.')
 
-  logDebug('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
+  logDebug('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], showProgressToUser=${String(showProgressToUser)}`)
   // logDebug('getAllMatchingProjects', `- foldersToInclude: [${String(config.foldersToInclude)}]`)
   // logDebug('getAllMatchingProjects', `- foldersToIgnore: [${String(config.foldersToIgnore)}]`)
 
@@ -1040,7 +1047,7 @@ async function getAllMatchingProjects(
   const snapshotRows = loadRawAllProjectsListSnapshot()
   const progressVerb = getProjectListProgressVerb(snapshotRows)
 
-  const pairs = await enumerateMatchingProjectNoteTagPairs(config, runInForeground, progressVerb)
+  const pairs = await enumerateMatchingProjectNoteTagPairs(config, showProgressToUser, progressVerb)
 
   const projectListRowByKey: Map<string, any> = new Map()
   for (const row of snapshotRows) {
@@ -1055,13 +1062,13 @@ async function getAllMatchingProjects(
   // Side-channel: do not return large Project arrays from runOnAsyncThread.
   let projectInstancesHolder: ?Array<Project> = null
   await runSyncWorkOnAsyncThread('getAllMatchingProjects build', () => {
-    projectInstancesHolder = buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, runInForeground, progressVerb)
+    projectInstancesHolder = buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, showProgressToUser, progressVerb)
     return true
   })
   const projectInstances: Array<Project> =
     projectInstancesHolder != null
       ? projectInstancesHolder
-      : buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, runInForeground, progressVerb)
+      : buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, showProgressToUser, progressVerb)
   if (projectInstancesHolder == null) {
     logWarn('getAllMatchingProjects', `- async result missing; built projects on main thread`)
   }
@@ -1082,7 +1089,7 @@ async function getAllMatchingProjects(
  * Note: Full enumerate can take between 600 and 3,333 ms/project for JGC's large vault in Sep 2026.
  * @author @jgclark
  * @param {any} configIn
- * @param {boolean} runInForeground? (default: false)
+ * @param {boolean} showProgressToUser - When true, shows the CommandBar progress dialog. Does not choose a thread. Default false.
  * @param {number} scrollPosForRichList - passed through to `writeAllProjectsList` for Rich list HTML scroll (pixels)
  * @param {boolean} skipUpdateDashboardIfOpen
  * @param {boolean} skipRichProjectListIfOpen
@@ -1091,7 +1098,7 @@ async function getAllMatchingProjects(
  */
 export async function generateAllProjectsList(
   configIn: any,
-  runInForeground: boolean = false,
+  showProgressToUser: boolean = false,
   scrollPosForRichList: number = 0,
   skipUpdateDashboardIfOpen: boolean = false,
   skipRichProjectListIfOpen: boolean = false,
@@ -1110,7 +1117,7 @@ export async function generateAllProjectsList(
       logInfo('generateAllProjectsList', `Using incremental merge (Shared notes-changed-recently + local backstop)`)
       return await generateAllProjectsListIncremental(
         config,
-        runInForeground,
+        showProgressToUser,
         scrollPosForRichList,
         skipUpdateDashboardIfOpen,
         skipRichProjectListIfOpen,
@@ -1120,7 +1127,7 @@ export async function generateAllProjectsList(
     const startTime = moment().toDate()
 
     // Get all project notes as Project instances
-    const projectInstances = await getAllMatchingProjects(config, runInForeground)
+    const projectInstances = await getAllMatchingProjects(config, showProgressToUser)
     logInfo('generateAllProjectsList', `enumerated ${projectInstances.length} project instance(s) to write (full scan)`)
 
     // Diagnostic: Project Generation Log (gated by _logTimer / DEV). Remove after v2.1.0.
@@ -1156,21 +1163,21 @@ export async function generateAllProjectsList(
  * @param {Array<any>} snapshotRows
  * @param {Array<string>} nextActionTags
  * @param {string} sequentialTagResolved
- * @param {boolean} runInForeground
+ * @param {boolean} showProgressToUser
  * @returns {{ rebuilt: Array<Project>, keptStale: number }}
  */
 function recalculateProjectsFromSnapshotSync(
   snapshotRows: Array<any>,
   nextActionTags: Array<string>,
   sequentialTagResolved: string,
-  runInForeground: boolean,
+  showProgressToUser: boolean,
 ): { rebuilt: Array<Project>, keptStale: number } {
   const rebuilt: Array<Project> = []
   let keptStale = 0
   const total = snapshotRows.length
   let loadingShown = false
   try {
-    if (runInForeground && total > 0) {
+    if (showProgressToUser && total > 0) {
       CommandBar.showLoading(true, `Recalculating project list\n0/${String(total)}`, 0)
       loadingShown = true
     }
@@ -1193,10 +1200,11 @@ function recalculateProjectsFromSnapshotSync(
         keptStale += 1
         continue
       }
+      // checkEditor false: this loop runs inside runOnAsyncThread, which must not touch Editor.
       rebuilt.push(new Project(
         note,
         getLeadingProjectTag(row),
-        true,
+        false,
         nextActionTags,
         sequentialTagResolved,
         false,
@@ -1217,7 +1225,7 @@ function recalculateProjectsFromSnapshotSync(
  * Heavy re-parse runs on an async thread when NotePlan supports it (3.21.3+).
  * @author @jgclark
  * @param {ReviewConfig} configIn
- * @param {boolean} runInForeground? (default: false)
+ * @param {boolean} showProgressToUser - When true, shows the CommandBar progress dialog. Does not choose a thread. Default false.
  * @param {number} scrollPosForRichList - passed through to `writeAllProjectsList` for Rich list HTML scroll (pixels)
  * @param {boolean} skipUpdateDashboardIfOpen
  * @param {boolean} skipRichProjectListIfOpen
@@ -1225,7 +1233,7 @@ function recalculateProjectsFromSnapshotSync(
  */
 export async function recalculateAllProjectsListItems(
   configIn: ReviewConfig,
-  runInForeground: boolean = false,
+  showProgressToUser: boolean = false,
   scrollPosForRichList: number = 0,
   skipUpdateDashboardIfOpen: boolean = false,
   skipRichProjectListIfOpen: boolean = false,
@@ -1238,7 +1246,7 @@ export async function recalculateAllProjectsListItems(
     const snapshotRows = loadRawAllProjectsListSnapshot()
     if (snapshotRows.length === 0) {
       logInfo('recalculateAllProjectsListItems', `No existing allProjects list rows; falling back to full generate`)
-      return await generateAllProjectsList(config, runInForeground, scrollPosForRichList, skipUpdateDashboardIfOpen, skipRichProjectListIfOpen)
+      return await generateAllProjectsList(config, showProgressToUser, scrollPosForRichList, skipUpdateDashboardIfOpen, skipRichProjectListIfOpen)
     }
 
     logInfo('recalculateAllProjectsListItems', `Recalculating ${String(snapshotRows.length)} existing allProjects list item(s)`)
@@ -1247,13 +1255,13 @@ export async function recalculateAllProjectsListItems(
     // Side-channel: do not return large Project arrays from runOnAsyncThread.
     let recalcHolder: ?{ rebuilt: Array<Project>, keptStale: number } = null
     await runSyncWorkOnAsyncThread('recalculateAllProjectsListItems', () => {
-      recalcHolder = recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, runInForeground)
+      recalcHolder = recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, showProgressToUser)
       return true
     })
     const { rebuilt, keptStale } =
       recalcHolder != null
         ? recalcHolder
-        : recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, runInForeground)
+        : recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, showProgressToUser)
     if (recalcHolder == null) {
       logWarn('recalculateAllProjectsListItems', `- async result missing; recalculated on main thread`)
     }
@@ -1263,7 +1271,7 @@ export async function recalculateAllProjectsListItems(
     return rebuilt
   } catch (error) {
     logError('recalculateAllProjectsListItems', JSP(error))
-    if (runInForeground) {
+    if (showProgressToUser) {
       CommandBar.showLoading(false)
     }
     return []
@@ -1390,8 +1398,8 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
       } else {
         logDebug('getAllProjectsFromList', `- Generating allProjects list as can't find it`)
       }
-      // Silent regen: no Rich/Dashboard side effects (callers refresh UI themselves).
-      projectInstances = await generateAllProjectsList(config, false, 0, true, true)
+      // Show the progress dialog. Skip Rich/Dashboard side effects (callers refresh UI themselves).
+      projectInstances = await generateAllProjectsList(config, true, 0, true, true)
     } else {
       // Read from the list
       const fileAgeMs = getFileAgeMs(generatedDatePrefName)
@@ -1401,7 +1409,7 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
       const parsed = parseAllProjectsListFileContent(content)
       if (parsed === null) {
         logWarn('getAllProjectsFromList', `allProjectsList.json is not a valid array; regenerating`)
-        projectInstances = await generateAllProjectsList(config, false, 0, true, true)
+        projectInstances = await generateAllProjectsList(config, true, 0, true, true)
       } else {
         // Make objects from this (except .note)
         // Date fields (startDate, dueDate, etc.) are stored as ISO strings (YYYY-MM-DD) and left as strings

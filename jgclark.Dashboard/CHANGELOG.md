@@ -3,6 +3,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
+## [2.5.1] 2026-10-01
+### Fixes
+- If Dashboard needs to get the Projects plugin to fully recalculate its list of projects (i.e. if the cache is too old when "Projects to Review" or "Active Projects" section is turned on), then it now shows a progress dialog and no longer freezes NotePlan while it works.
+
 ## [2.5.0] 2026-09-30
 ### New
 - Interactive Processing on Active Projects and Projects to Review. >> N walks the project rows.
