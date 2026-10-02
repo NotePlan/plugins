@@ -369,6 +369,14 @@
       "required": true
     },
     {
+      "key": "FFlag_UseAllPerspectives",
+      "title": "Build the project list from all Perspectives",
+      "description": "When Use Perspectives is on, build allProjectsList from the union of every Dashboard perspective's folders and teamspaces. The project list and Dashboard still show only the active perspective. Hidden feature flag.",
+      "type": "hidden",
+      "default": false,
+      "required": false
+    },
+    {
       "key": "foldersToInclude",
       "title": "Folders to Include",
       "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say 'Project' which would match for 'Client A/Projects' as well as 'Client B/Projects'.\nNotes:\n- if you specify the root folder '/' this only includes the root folder itself, and not all its sub-folders.\n- if empty, all folders will be used apart from those in the next setting.\n- if 'Use Perspectives' is set, then this setting is ignored.",

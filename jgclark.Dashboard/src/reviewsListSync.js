@@ -107,9 +107,14 @@ export async function syncReviewsAfterDashboardFolderFilterChange(perspectiveNam
  *
  * @param {string} perspectiveName - name being switched to (logging and banner)
  * @param {string} bannerReason - `switch` (default) or `updated` (saved definition changed folder/note scope)
+ * @param {boolean} renderOnly - when true, re-render the Rich list without rebuilding allProjectsList.json
  * @returns {void}
  */
-export function scheduleReviewsListAfterPerspectiveSwitch(perspectiveName: string, bannerReason: string = 'switch'): void {
+export function scheduleReviewsListAfterPerspectiveSwitch(
+  perspectiveName: string,
+  bannerReason: string = 'switch',
+  renderOnly: boolean = false,
+): void {
   try {
     if (!pluginIsInstalled('jgclark.Reviews')) {
       logDebug('scheduleReviewsListAfterPerspectiveSwitch', 'jgclark.Reviews not installed; skipping')
@@ -122,10 +127,14 @@ export function scheduleReviewsListAfterPerspectiveSwitch(perspectiveName: strin
       )
       return
     }
-    const url = createRunPluginCallbackUrl('jgclark.Reviews', 'generateProjectListsAndRenderIfOpen', ['0', 'true', 'paintFirst', perspectiveName, bannerReason])
+    // renderOnly: FFlag_UseAllPerspectives and the destination scope's folder list did not change.
+    // The list already holds the union. Re-render so the Rich window filters to the new active perspective.
+    const commandName = renderOnly ? 'renderProjectListsIfOpen' : 'generateProjectListsAndRenderIfOpen'
+    const commandArgs = renderOnly ? [] : ['0', 'true', 'paintFirst', perspectiveName, bannerReason]
+    const url = createRunPluginCallbackUrl('jgclark.Reviews', commandName, commandArgs)
     logInfo(
       'scheduleReviewsListAfterPerspectiveSwitch',
-      `Rich list open: queuing x-callback generateProjectListsAndRenderIfOpen (skip Dashboard invoke, paintFirst, ${bannerReason}) for '${perspectiveName}' so Dashboard can paint first: ${url}`,
+      `Rich list open: queuing x-callback ${commandName} (renderOnly=${String(renderOnly)}, ${bannerReason}) for '${perspectiveName}': ${url}`,
     )
     NotePlan.openURL(url)
   } catch (err) {

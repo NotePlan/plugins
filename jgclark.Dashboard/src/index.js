@@ -11,6 +11,7 @@
 import pluginJson from '../plugin.json'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { parseSettings } from './shared'
+import { writePerspectiveScopeUnionFromDefs } from './perspectiveScopeUnion'
 import { generateTagMentionCache, updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentionCache'
 import {
   clo, JSP, logDebug, logError, logInfo, logWarn,
@@ -183,6 +184,7 @@ export async function onUpdateOrInstall(): Promise<void> {
     // Rebuild wantedTagMentionsList.json from every saved perspective (fixes stale file after upgrade).
     if (Array.isArray(newPerspectiveDefs) && newPerspectiveDefs.length > 0) {
       updateTagMentionCacheDefinitionsFromAllPerspectives(newPerspectiveDefs)
+      writePerspectiveScopeUnionFromDefs(newPerspectiveDefs)
     }
 
     // Now get the tagMentionCache up to date, by forcing a rebuild.

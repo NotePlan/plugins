@@ -36,6 +36,7 @@ import {
 } from './clickHandlers'
 import { ALL_CALENDAR_SECTION_CODES, ALL_SECTION_CODES, SEARCH_RELATED_SECTION_CODES, SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
 import { updateProjectsListIfProjectSection } from './projectsListSync'
+import { getReviewSettings } from '../../jgclark.Reviews/src/reviewSettings'
 import { scheduleReviewsListAfterPerspectiveSwitch, syncReviewsAfterDashboardFolderFilterChange } from './reviewsListSync'
 import {
   doAddNewPerspective,
@@ -956,7 +957,11 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       }
 
       // Reviews Rich list: queue via x-callback (invokePluginCommandByName blocks the JSContext even without await).
-      scheduleReviewsListAfterPerspectiveSwitch(data?.perspectiveName || '')
+      // When the union flag is on and this switch did not change the destination scope's folders, render only.
+      const reviewsConfig = await getReviewSettings(true)
+      const useAllPerspectives = reviewsConfig?.FFlag_UseAllPerspectives === true && reviewsConfig?.usePerspectives === true
+      const renderOnly = useAllPerspectives && handlerResultIn.perspectiveScopeFoldersChanged !== true
+      scheduleReviewsListAfterPerspectiveSwitch(data?.perspectiveName || handlerResultIn.perspectiveName || '', 'switch', renderOnly)
     }
 
     if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
