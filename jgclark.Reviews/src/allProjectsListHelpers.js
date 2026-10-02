@@ -48,7 +48,7 @@ import { sortListBy } from '@helpers/sorting'
 // Settings
 const pluginID = 'jgclark.Reviews'
 const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // fully specified to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
-const maxAgeAllProjectsListInHours = 1
+const maxAgeAllProjectsListInHours = 168 // 1 week
 const generatedDatePrefName = 'Reviews-lastAllProjectsGenerationTime'
 const lastFullScanPrefName = 'Reviews-lastAllProjectsFullScanTime'
 const lastPerspectivePrefName = 'Reviews-lastAllProjectsPerspective'
