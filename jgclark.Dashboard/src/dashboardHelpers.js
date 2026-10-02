@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-09-10 for v2.5.0.b4 by @jgclark + @CursorAI
+// Last updated 2026-10-02 for v2.5.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -1820,9 +1820,68 @@ export function findSectionItems(
 }
 
 /**
+ * Fields copied onto an existing task/checklist row after the underlying paragraph changes.
+ * Includes note identity so a calendar -> regular "Move to Note" updates the row in place
+ * (filename, note type, title), not only the task text.
+ */
+export const TASK_LINE_UPDATE_FIELD_PATHS: Array<string> = [
+  'para.filename',
+  'para.noteType',
+  'para.title',
+  'para.content',
+  'para.rawContent',
+  'para.prefix',
+  'para.type',
+  'para.priority',
+  'para.dueDate',
+  'para.lineIndex',
+  'para.indents',
+  'para.changedDate',
+  'para.isTeamspace',
+  'para.icon',
+  'para.iconColor',
+  'para.startTime',
+  'para.endTime',
+  'para.hasChild',
+  'para.isAChild',
+  'para.linkedNoteIcons',
+]
+
+/**
+ * Write an updated dashboard paragraph onto the matching section rows.
+ * Empty icon / title / linked-note icons are written too, so a move off a calendar note
+ * does not keep the old note's icon or title.
+ * @param {Array<TSection>} sections
+ * @param {Array<{ sectionIndex: number, itemIndex: number }>} indexes
+ * @param {TParagraphForDashboard} updatedParagraph
+ * @returns {Array<TSection>}
+ */
+export function applyUpdatedTaskParagraph(
+  sections: Array<TSection>,
+  indexes: Array<{ sectionIndex: number, itemIndex: number }>,
+  updatedParagraph: TParagraphForDashboard,
+): Array<TSection> {
+  const paraForUpdate: { [string]: any } = {
+    ...updatedParagraph,
+    title: updatedParagraph.title ?? '',
+    prefix: updatedParagraph.prefix ?? '',
+    icon: updatedParagraph.icon ?? '',
+    iconColor: updatedParagraph.iconColor ?? '',
+    linkedNoteIcons: updatedParagraph.linkedNoteIcons ?? null,
+  }
+  const fieldPaths = TASK_LINE_UPDATE_FIELD_PATHS.slice()
+  const updatedValues: { [string]: any } = { para: paraForUpdate }
+  if (updatedParagraph.type === 'open' || updatedParagraph.type === 'checklist') {
+    updatedValues.itemType = updatedParagraph.type
+    fieldPaths.unshift('itemType')
+  }
+  return copyUpdatedSectionItemData(indexes, fieldPaths, updatedValues, sections)
+}
+
+/**
  * Copies specified fields from a provided object into the corresponding sectionItems in the sections array.
  *
- * @param {Array<SectionItemIndex>} results - An array of results from the findSectionItems function, containing section and item indices.
+ * @param {Array<{ sectionIndex: number, itemIndex: number }>} results - An array of results from the findSectionItems function, containing section and item indices.
  * @param {Array<string>} fieldPathsToReplace - An array of field paths (maybe nested) within TSectionItem (e.g. ['itemType', 'para.filename']) to copy from the provided object.
  * @param {Object} updatedValues - The object containing the field values to be copied -- the keys are the field paths (can be strings with dots, e.g. para.filename) and the values are the values to copy.
  * @param {Array<TSection>} sections - The original sections array to be modified.

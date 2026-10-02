@@ -4,6 +4,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
 ## [2.5.1] 2026-10-01
+### Fixed
+- "Move to Note" from a calendar note to a regular note now updates that row in the Dashboard window (note link and the added >date), instead of leaving the old calendar line on screen.
+
 ### Performance improvements
 - Changing settings no longer regenerate every enabled section when they only affect display, or only a few sections (for example Overdue lookback, one tag section, or Hide duplicates). Folder and teamspace scope changes still refresh everything.
 - If Dashboard needs to get the Projects plugin to fully recalculate its list of projects (i.e. if the cache is too old when "Projects to Review" or "Active Projects" section is turned on), then it now shows a progress dialog and no longer freezes NotePlan while it works.
