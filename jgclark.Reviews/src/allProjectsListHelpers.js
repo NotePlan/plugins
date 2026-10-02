@@ -9,6 +9,20 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
+import {
+  foldersToScanForChangedScopes,
+  noteMatchesAnyScope,
+  noteMatchesChangedScope,
+  PERSPECTIVE_SCOPE_UNION_FILENAME,
+  readPerspectiveScopeUnion,
+  type TPerspectiveScopeUnion,
+} from '../../jgclark.Dashboard/src/perspectiveScopeUnion.js'
+import {
+  generateNotesChangedRecentlyCache,
+  getFilenamesChangedSince,
+  isNotesChangedRecentlyCacheGenerationScheduled,
+  updateNotesChangedRecentlyCacheIfTooOld,
+} from '../../np.Shared/src/notesChangedRecentlyCache.js'
 import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
 import { calcReviewFieldsForProject, isProjectFinished } from './projectClassCalculations.js'
 import {
@@ -19,19 +33,6 @@ import {
   updateRichProjectListIfOpen,
 } from './reviewHelpers.js'
 import { getReviewSettings, type ReviewConfig } from './reviewSettings.js'
-import {
-  foldersToScanForChangedScopes,
-  noteMatchesAnyScope,
-  noteMatchesChangedScope,
-  readPerspectiveScopeUnion,
-  type TPerspectiveScopeUnion,
-} from '../../jgclark.Dashboard/src/perspectiveScopeUnion.js'
-import {
-  generateNotesChangedRecentlyCache,
-  getFilenamesChangedSince,
-  isNotesChangedRecentlyCacheGenerationScheduled,
-  updateNotesChangedRecentlyCacheIfTooOld,
-} from '../../np.Shared/src/notesChangedRecentlyCache.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toISODateString } from '@helpers/dateTime'
 import { getFolderDisplayName, getFolderFromFilename, getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
@@ -60,6 +61,9 @@ const MAX_AGE_FULL_SCAN_MS = MS_PER_DAY
 const ERROR_FILENAME_PLACEHOLDER = 'error'
 const ERROR_READING_PLACEHOLDER = '<error reading'
 const SEQUENTIAL_TAG_DEFAULT = '#sequential'
+
+/** Folder count from the latest enumerate, so finish logs can report how many were scanned. */
+let lastEnumeratedFolderCount = 0
 
 /**
  * INFO-level duration for an allProjects list rebuild, incremental update, or access.
@@ -832,6 +836,63 @@ export async function logAllProjectsList(): Promise<void> {
   console.log(allProjects != null ? stringifyProjectObjects(allProjects) : String(content))
 }
 
+/**
+ * INFO-log perspectiveScopeUnion.json, one pretty-printed line per log line.
+ * Note: needs to be async to avoid NP throwing log error.
+ * @returns {Promise<void>}
+ */
+export async function logPerspectiveScopeUnion(): Promise<void> {
+  try {
+    if (!DataStore.fileExists(PERSPECTIVE_SCOPE_UNION_FILENAME)) {
+      logInfo('logPerspectiveScopeUnion', `${PERSPECTIVE_SCOPE_UNION_FILENAME} does not exist`)
+      return
+    }
+    const content = DataStore.loadData(PERSPECTIVE_SCOPE_UNION_FILENAME, true)
+    if (content == null || content === '') {
+      logInfo('logPerspectiveScopeUnion', '(empty file)')
+      return
+    }
+    const pretty = JSON.stringify(JSON.parse(String(content)), null, 2)
+    logInfo('logPerspectiveScopeUnion', `Union of perspective folders:\n${pretty}`)
+  } catch (error) {
+    logWarn('logPerspectiveScopeUnion', error.message)
+  }
+}
+
+/**
+ * Force a full rebuild of allProjectsList.json from the current union file.
+ * Uses the union even when FFlag_UseAllPerspectives is off, for this run only.
+ * @returns {Promise<void>}
+ */
+export async function rebuildAllProjectsListForUnion(): Promise<void> {
+  try {
+    const config = await getReviewSettings()
+    if (!config) {
+      logWarn('rebuildAllProjectsListForUnion', 'No Reviews config found. Not rebuilding.')
+      return
+    }
+    const union = readPerspectiveScopeUnion()
+    if (union == null) {
+      logWarn('rebuildAllProjectsListForUnion', `${PERSPECTIVE_SCOPE_UNION_FILENAME} is missing or unreadable. Not rebuilding.`)
+      return
+    }
+    logInfo(
+      'rebuildAllProjectsListForUnion',
+      `Forcing full rebuild from union (${String(union.scopes.length)} scopes, fingerprint ${union.fingerprint}). Saved FFlag_UseAllPerspectives=${String(config.FFlag_UseAllPerspectives === true)}`,
+    )
+    const configForUnion: ReviewConfig = { ...config, usePerspectives: true, FFlag_UseAllPerspectives: true }
+    // Skip Rich list and Dashboard refresh. Those reads call getAllProjectsFromList, which starts another full generate while this one has not written the list yet.
+    const startTime = new Date()
+    const projects = await generateAllProjectsList(configForUnion, true, 0, true, true, true)
+    logInfo(
+      'rebuildAllProjectsListForUnion',
+      `Rebuilt allProjectsList from union: ${String(projects.length)} projects from ${String(lastEnumeratedFolderCount)} folders in ${timer(startTime)}`,
+    )
+  } catch (error) {
+    logError('rebuildAllProjectsListForUnion', JSP(error))
+  }
+}
+
 export type ProjectNoteTagPair = {|
   note: TNote,
   projectTypeTag: string,
@@ -1003,6 +1064,7 @@ function buildMatchingProjectNoteTagPairsSync(
   for (const folder of filteredFolderList) {
     totalNotes += notesByFolder.get(folder)?.length ?? 0
   }
+  logInfo('enumerateMatchingProjectNoteTagPairs', `Scanning ${String(totalNotes)} note(s) in ${String(totalFolders)} folder(s)`)
 
   let loadingShown = false
   try {
@@ -1072,16 +1134,16 @@ export async function enumerateMatchingProjectNoteTagPairs(
   let filteredProjectNotes: Array<TNote> = []
 
   if (unionForEnumerate) {
-    const scopeFolders: Array<string> = []
+    const scopeFolders = new Set<string>()
     for (const scope of unionForEnumerate.scopes) {
       for (const folder of scope.folders ?? []) {
-        if (!scopeFolders.includes(folder)) scopeFolders.push(folder)
+        scopeFolders.add(folder)
       }
     }
-    filteredFolderList = scopeFolders
+    filteredFolderList = Array.from(scopeFolders).sort()
     const projectNotes = DataStore.projectNotes ?? []
     filteredProjectNotes = projectNotes.filter((note) => noteMatchesAnyScope(note.filename, note.isTeamspaceNote, note.teamspaceID, unionForEnumerate.scopes))
-    logDebug('enumerateMatchingProjectNoteTagPairs', `using union of ${String(unionForEnumerate.scopes.length)} perspectives: ${String(filteredProjectNotes.length)} notes in ${String(scopeFolders.length)} folders`)
+    logDebug('enumerateMatchingProjectNoteTagPairs', `using union of ${String(unionForEnumerate.scopes.length)} perspectives: ${String(filteredProjectNotes.length)} notes in ${String(filteredFolderList.length)} folders`)
   } else {
     filteredFolderList = getFilteredFolderList(config)
 
@@ -1106,6 +1168,7 @@ export async function enumerateMatchingProjectNoteTagPairs(
     }
   }
 
+  lastEnumeratedFolderCount = filteredFolderList.length
   logTimer('enumerateMatchingProjectNoteTagPairs', startTime, `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`)
 
   const projectTypeTags = config.projectTypeTags != null ? config.projectTypeTags : []
@@ -1270,7 +1333,7 @@ async function generateAllProjectsListPartialForChangedScopes(
   const startTime = moment().toDate()
   const union = readUnionForConfig(config)
   if (union == null) {
-    return generateAllProjectsList(config, showProgressToUser, scrollPosForRichList, skipUpdateDashboardIfOpen, skipRichProjectListIfOpen, true)
+    return generateAllProjectsListNow(config, showProgressToUser, scrollPosForRichList, skipUpdateDashboardIfOpen, skipRichProjectListIfOpen, true)
   }
   const lastChangedAt = readStoredScopeChangedAt()
   const foldersToScan = foldersToScanForChangedScopes(union.scopes, lastChangedAt)
@@ -1345,7 +1408,43 @@ async function generateAllProjectsListPartialForChangedScopes(
  * @param {boolean} forceFullGenerate - when true, always full enumerate (e.g. settings rebuild)
  * @returns {Promise<Array<Project>>} Object containing array of all Projects, the same as what was written to disk
  */
+let generateAllProjectsListInFlight: ?Promise<Array<Project>> = null
+
+/**
+ * One full or incremental rebuild at a time. A second caller waits for the run already
+ * in progress. Starting another scan here never reaches the list write, so the age check
+ * stays stale and the next Dashboard open starts yet another scan.
+ */
 export async function generateAllProjectsList(
+  configIn: any,
+  showProgressToUser: boolean = false,
+  scrollPosForRichList: number = 0,
+  skipUpdateDashboardIfOpen: boolean = false,
+  skipRichProjectListIfOpen: boolean = false,
+  forceFullGenerate: boolean = false,
+): Promise<Array<Project>> {
+  const alreadyRunning = generateAllProjectsListInFlight
+  if (alreadyRunning) {
+    logInfo('generateAllProjectsList', 'Already rebuilding allProjectsList; waiting for that run instead of starting another')
+    return alreadyRunning
+  }
+  const run = generateAllProjectsListNow(
+    configIn,
+    showProgressToUser,
+    scrollPosForRichList,
+    skipUpdateDashboardIfOpen,
+    skipRichProjectListIfOpen,
+    forceFullGenerate,
+  )
+  generateAllProjectsListInFlight = run
+  try {
+    return await run
+  } finally {
+    if (generateAllProjectsListInFlight === run) generateAllProjectsListInFlight = null
+  }
+}
+
+async function generateAllProjectsListNow(
   configIn: any,
   showProgressToUser: boolean = false,
   scrollPosForRichList: number = 0,
@@ -1388,7 +1487,7 @@ export async function generateAllProjectsList(
 
     // Get all project notes as Project instances
     const projectInstances = await getAllMatchingProjects(config, showProgressToUser)
-    logInfo('generateAllProjectsList', `enumerated ${projectInstances.length} project instance(s) to write (full scan)`)
+    logInfo('generateAllProjectsList', `enumerated ${projectInstances.length} project instance(s) from ${String(lastEnumeratedFolderCount)} folders (full scan)`)
 
     // Diagnostic: Project Generation Log (gated by _logTimer / DEV). Remove after v2.1.0.
     if (config._logTimer === true || config._logLevel === 'DEV') {
@@ -1408,7 +1507,7 @@ export async function generateAllProjectsList(
       'generateAllProjectsList',
       startTime,
       'rebuilt',
-      `(full: ${String(projectInstances.length)} projects @ ${String(perProjectMs)}ms/project)`,
+      `(full: ${String(projectInstances.length)} projects from ${String(lastEnumeratedFolderCount)} folders @ ${String(perProjectMs)}ms/project)`,
     )
     return projectInstances
   } catch (error) {

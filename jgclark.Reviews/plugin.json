@@ -237,6 +237,24 @@
       ]
     },
     {
+      "hidden": false,
+      "name": "test: force rebuild allProjectsList from union",
+      "description": "Full rebuild of allProjectsList.json from the current perspectiveScopeUnion.json",
+      "jsFunction": "rebuildAllProjectsListForUnion",
+      "alias": [
+        "rbplu"
+      ]
+    },
+    {
+      "hidden": false,
+      "name": "test: log perspective scope union",
+      "description": "Write perspectiveScopeUnion.json to the plugin log at INFO",
+      "jsFunction": "logPerspectiveScopeUnion",
+      "alias": [
+        "lpsu"
+      ]
+    },
+    {
       "hidden": true,
       "name": "test:generateAllProjectsList",
       "description": "make/update allProjects list JSON file",

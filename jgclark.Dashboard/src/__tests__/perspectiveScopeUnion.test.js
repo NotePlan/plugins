@@ -8,6 +8,7 @@ import {
   fingerprintOfScopes,
   foldersToScanForChangedScopes,
   noteMatchesAnyScope,
+  parsePerspectiveScopeUnion,
   perspectiveFolderTeamspaceDefsChanged,
   resolvePerspectiveFolders,
   withDestinationScopeFolders,
@@ -90,6 +91,17 @@ describe('buildPerspectiveScopeUnion', () => {
     const second = buildPerspectiveScopeUnion([def('Work', 'Work', ''), def('Home', 'Home', '')], null, 99)
     expect(first.fingerprint).toBe(second.fingerprint)
   })
+
+  test('omits the default "-" perspective, which usually includes every folder', () => {
+    const union = buildPerspectiveScopeUnion(
+      [def('-', '', ''), def('Home', 'Home', '')],
+      null,
+      10,
+    )
+    expect(union.scopes.map((scope) => scope.name)).toEqual(['Home'])
+    const homeOnly = buildPerspectiveScopeUnion([def('Home', 'Home', '')], null, 99)
+    expect(union.fingerprint).toBe(homeOnly.fingerprint)
+  })
 })
 
 describe('withDestinationScopeFolders', () => {
@@ -112,6 +124,20 @@ describe('withDestinationScopeFolders', () => {
     expect(home?.changedAt).toBe(10)
     expect(home?.folders).toEqual(union.scopes.find((scope) => scope.name === 'Home')?.folders)
   })
+
+  test('does not add the default "-" perspective, and drops it when it is already stored', () => {
+    const union = buildPerspectiveScopeUnion([def('Home', 'Home', '')], null, 10)
+    const withDash = {
+      ...union,
+      scopes: union.scopes.concat([{ name: '-', folders: ['/'], teamspaces: ['private'], changedAt: 1 }]),
+    }
+    const dropped = withDestinationScopeFolders(withDash, '-', ['/'], ['private'], 50)
+    expect(dropped.changed).toBe(true)
+    expect(dropped.union.scopes.map((scope) => scope.name)).toEqual(['Home'])
+    const again = withDestinationScopeFolders(dropped.union, '-', ['/'], ['private'], 60)
+    expect(again.changed).toBe(false)
+    expect(again.union).toBe(dropped.union)
+  })
 })
 
 describe('perspectiveFolderTeamspaceDefsChanged', () => {
@@ -123,11 +149,32 @@ describe('perspectiveFolderTeamspaceDefsChanged', () => {
     expect(perspectiveFolderTeamspaceDefsChanged(previous, next)).toBe(false)
   })
 
+  test('ignores folder changes on the default "-" perspective', () => {
+    expect(perspectiveFolderTeamspaceDefsChanged(
+      [def('Home', 'Home', ''), def('-', '', '')],
+      [def('Home', 'Home', ''), def('-', 'Work', '')],
+    )).toBe(false)
+  })
+
   test('detects a folder definition change on a non-active perspective', () => {
     expect(perspectiveFolderTeamspaceDefsChanged(
       [def('Work', 'Work', ''), def('Home', 'Home', '')],
       [def('Work', 'Work', 'Secret'), def('Home', 'Home', '')],
     )).toBe(true)
+  })
+})
+
+describe('parsePerspectiveScopeUnion', () => {
+  test('drops a stored "-" scope and recomputes the fingerprint without it', () => {
+    const home = buildPerspectiveScopeUnion([def('Home', 'Home', '')], null, 10)
+    const raw = {
+      version: 1,
+      fingerprint: 'includes-dash',
+      scopes: home.scopes.concat([{ name: '-', folders: ['/'], teamspaces: ['private'], changedAt: 1 }]),
+    }
+    const parsed = parsePerspectiveScopeUnion(JSON.stringify(raw))
+    expect(parsed?.scopes.map((scope) => scope.name)).toEqual(['Home'])
+    expect(parsed?.fingerprint).toBe(home.fingerprint)
   })
 })
 

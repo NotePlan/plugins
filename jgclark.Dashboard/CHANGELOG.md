@@ -1,5 +1,5 @@
-# What's changed in 🎛 Dashboard plugin?
-For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
+# What's changed in Dashboard plugin?
+For more details see the [plugin's documentation](https://noteplan.co/plugins/jgclark.Dashboard/).
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
@@ -11,7 +11,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Changing settings no longer regenerate every enabled section when they only affect display, or only a few sections (for example Overdue lookback, one tag section, or Hide duplicates). Folder and teamspace scope changes still refresh everything.
 - If Dashboard needs to get the Projects plugin to fully recalculate its list of projects (i.e. if the cache is too old when "Projects to Review" or "Active Projects" section is turned on), then it now shows a progress dialog and no longer freezes NotePlan while it works.
 - dev: Rename all main plugin constants as ALL_CAPS in the code.
-- dev: Writes `perspectiveScopeUnion.json` (one scope per saved perspective, with a `changedAt` timestamp). It is rewritten when a perspective's folder or teamspace definition changes. On switch, only the destination perspective is re-resolved, and that scope is updated only when its folder list changed. When Projects `FFlag_UseAllPerspectives` is on, a switch that did not change those folders re-renders the Rich project list instead of asking Projects to rebuild.
+- dev: Writes `perspectiveScopeUnion.json`. It is rewritten when a perspective's folder or teamspace definition changes. On switch to a different perspective, only the destination perspective is re-resolved, and that scope is updated only when its included/excluded folder list changed. When Projects `FFlag_UseAllPerspectives` is on, a switch that did not change those folders re-renders the Rich project list instead of asking Projects to rebuild. The default `-` perspective is left out, because it usually includes every folder.
 
 ## [2.5.0] 2026-09-30
 ### New

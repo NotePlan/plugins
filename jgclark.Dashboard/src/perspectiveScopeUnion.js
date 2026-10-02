@@ -21,6 +21,18 @@ export const PERSPECTIVE_SCOPE_UNION_VERSION = 1
  */
 const ALWAYS_EXCLUDED_PROJECT_FOLDERS: Array<string> = ['@Archive', '@Templates', '@Trash']
 
+/** The default Dashboard perspective. It usually includes every folder, so it is not part of the union. */
+const EXCLUDED_UNION_PERSPECTIVE_NAME = '-'
+
+/**
+ * True for the default '-' perspective, which is omitted from the scope union.
+ * @param {?string} name
+ * @returns {boolean}
+ */
+function isExcludedFromPerspectiveScopeUnion(name: ?string): boolean {
+  return name === EXCLUDED_UNION_PERSPECTIVE_NAME
+}
+
 export type TPerspectiveScope = {
   name: string,
   folders: Array<string>,
@@ -166,8 +178,8 @@ export function perspectiveFolderTeamspaceDefsChanged(
   previousDefs: Array<TPerspectiveDef>,
   nextDefs: Array<TPerspectiveDef>,
 ): boolean {
-  const previousKeys = previousDefs.map(definitionKey).sort()
-  const nextKeys = nextDefs.map(definitionKey).sort()
+  const previousKeys = previousDefs.filter((def) => !isExcludedFromPerspectiveScopeUnion(def?.name)).map(definitionKey).sort()
+  const nextKeys = nextDefs.filter((def) => !isExcludedFromPerspectiveScopeUnion(def?.name)).map(definitionKey).sort()
   if (previousKeys.length !== nextKeys.length) return true
   for (let i = 0; i < previousKeys.length; i += 1) {
     if (previousKeys[i] !== nextKeys[i]) return true
@@ -189,7 +201,7 @@ export function buildPerspectiveScopeUnion(
   now: number,
 ): TPerspectiveScopeUnion {
   const previousScopes = previous?.scopes ?? []
-  const scopes: Array<TPerspectiveScope> = defs.map((def) => {
+  const scopes: Array<TPerspectiveScope> = defs.filter((def) => !isExcludedFromPerspectiveScopeUnion(def?.name)).map((def) => {
     const name = def?.name ?? ''
     const folders = resolveFoldersForPerspectiveDef(def)
     const teamspaces = teamspacesForPerspectiveDef(def)
@@ -234,17 +246,30 @@ export function withDestinationScopeFolders(
   teamspacesIfNew: Array<string>,
   now: number,
 ): { union: TPerspectiveScopeUnion, changed: boolean } {
-  const existing = union.scopes.find((scope) => scope.name === perspectiveName)
-  if (existing && sameStringList(existing.folders ?? [], folders)) {
+  const keptScopes = union.scopes.filter((scope) => !isExcludedFromPerspectiveScopeUnion(scope.name))
+  const removedExcluded = keptScopes.length !== union.scopes.length
+  if (isExcludedFromPerspectiveScopeUnion(perspectiveName)) {
+    if (!removedExcluded) return { union, changed: false }
+    return {
+      changed: true,
+      union: {
+        version: PERSPECTIVE_SCOPE_UNION_VERSION,
+        fingerprint: fingerprintOfScopes(keptScopes),
+        scopes: keptScopes,
+      },
+    }
+  }
+  const existing = keptScopes.find((scope) => scope.name === perspectiveName)
+  if (existing && sameStringList(existing.folders ?? [], folders) && !removedExcluded) {
     return { union, changed: false }
   }
   const nextScopes: Array<TPerspectiveScope> = existing
-    ? union.scopes.map((scope) => (
+    ? keptScopes.map((scope) => (
       scope.name === perspectiveName
         ? { ...scope, folders: sortedCopy(folders), changedAt: now }
         : scope
     ))
-    : union.scopes.concat([{
+    : keptScopes.concat([{
       name: perspectiveName,
       folders: sortedCopy(folders),
       teamspaces: teamspacesIfNew,
@@ -271,18 +296,25 @@ export function parsePerspectiveScopeUnion(content: mixed): ?TPerspectiveScopeUn
     if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) return null
     if (!Array.isArray(parsed.scopes)) return null
     const scopes: Array<TPerspectiveScope> = []
+    let droppedExcluded = false
     for (const raw of parsed.scopes) {
       if (raw == null || typeof raw !== 'object') continue
+      const name = typeof raw.name === 'string' ? raw.name : ''
+      if (isExcludedFromPerspectiveScopeUnion(name)) {
+        droppedExcluded = true
+        continue
+      }
       scopes.push({
-        name: typeof raw.name === 'string' ? raw.name : '',
+        name,
         folders: Array.isArray(raw.folders) ? raw.folders.map((folder) => String(folder)) : [],
         teamspaces: Array.isArray(raw.teamspaces) ? raw.teamspaces.map((id) => String(id)) : ['private'],
         changedAt: typeof raw.changedAt === 'number' ? raw.changedAt : 0,
       })
     }
-    const fingerprint = typeof parsed.fingerprint === 'string' && parsed.fingerprint !== ''
-      ? parsed.fingerprint
-      : fingerprintOfScopes(scopes)
+    const storedFingerprint = typeof parsed.fingerprint === 'string' ? parsed.fingerprint : ''
+    const fingerprint = droppedExcluded || storedFingerprint === ''
+      ? fingerprintOfScopes(scopes)
+      : storedFingerprint
     return {
       version: typeof parsed.version === 'number' ? parsed.version : PERSPECTIVE_SCOPE_UNION_VERSION,
       fingerprint,
