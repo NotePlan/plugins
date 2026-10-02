@@ -34,7 +34,7 @@ import {
 } from '../../np.Shared/src/notesChangedRecentlyCache.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toISODateString } from '@helpers/dateTime'
-import { getFolderFromFilename, getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
+import { getFolderDisplayName, getFolderFromFilename, getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { displayTitle } from '@helpers/general'
 import { RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
@@ -692,8 +692,10 @@ async function generateAllProjectsListIncremental(
     let index = 0
     for (const filename of changedFilenames) {
       index += 1
+      const note = getNoteFromFilename(filename)
       if (loadingShown) {
-        CommandBar.showLoading(true, `Refreshing Project Review list\n${String(index)}/${String(changedFilenames.length)}\n${filename}`, index / changedFilenames.length)
+        const label = note ? displayTitle(note) : getFolderDisplayName(getFolderFromFilename(filename))
+        CommandBar.showLoading(true, `Refreshing Project Review list\n${String(index)}/${String(changedFilenames.length)}\n${label}`, index / changedFilenames.length)
       }
 
       // Drop existing rows for this filename before rebuild / delete
@@ -704,7 +706,6 @@ async function generateAllProjectsListIncremental(
         }
       }
 
-      const note = getNoteFromFilename(filename)
       if (!note) {
         continue
       }
@@ -1016,11 +1017,12 @@ function buildMatchingProjectNoteTagPairsSync(
     let notesProcessed = 0
     for (const folder of filteredFolderList) {
       const projectNotesInFolder = notesByFolder.get(folder) ?? []
+      const folderLabel = getFolderDisplayName(folder)
       if (projectNotesInFolder.length === 0) {
         // Keep folder counter text moving; ring stays on notes-based fraction.
         if (loadingShown) {
           const progressFraction = totalNotes > 0 ? notesProcessed / totalNotes : 0
-          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folder}'`, progressFraction)
+          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folderLabel}'`, progressFraction)
         }
         continue
       }
@@ -1033,7 +1035,7 @@ function buildMatchingProjectNoteTagPairsSync(
         }
         // Update ring per note so % tracks notes, not folders (even when one folder has many notes).
         if (loadingShown && totalNotes > 0) {
-          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folder}'`, notesProcessed / totalNotes)
+          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folderLabel}'`, notesProcessed / totalNotes)
         }
       }
     }
