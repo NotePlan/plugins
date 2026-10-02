@@ -243,7 +243,7 @@ body {
 .review-input {
   width: 100%;
   resize: vertical;
-  font-family: "system-ui", sans-serif;
+  font-family: inherit, "system-ui";
   font-size: 0.9rem;
 }
 .review-input-short {
@@ -269,7 +269,7 @@ body {
 
 button, input, select, textarea {
   font-size: 0.9rem;
-  font-family: "system-ui", sans-serif;
+  font-family: inherit, "system-ui";
   padding: 0.1rem 0.4rem;
   color: var(--fg-main-color);
   background-color: var(--bg-main-color);
