@@ -28,7 +28,7 @@
 }
 
 /* Note: some of this gets overriden at run-time by DropdownSelect component */
-.dropdown-select-input {
+.dropdown-select-input-container > input[type="text"] {
 	flex: 1;
 	padding: 2px 20px 0px 8px; /* tried to make it look the same as HAButton */
 	width: 100%;
@@ -37,7 +37,7 @@
 	border-radius: 4px;
 }
 
-.dropdown-select-input:focus {
+.dropdown-select-input-container > input[type="text"]:focus {
 	border-color: var(--tint-color, #dc8a78);
 	border-width: 2px;
 	outline: none;
@@ -126,7 +126,7 @@
 }
 
 /* Borderless macOS-style choice: value on the right, up/down chevron, menu aligned to that edge. */
-.dropdown-select-popup .dropdown-select-input {
+.dropdown-select-popup .dropdown-select-input-container > input[type="text"] {
 	flex: 0 1 auto;
 	width: auto;
 	max-width: 16rem;
@@ -140,7 +140,7 @@
 	white-space: nowrap;
 }
 
-.dropdown-select-popup .dropdown-select-input:focus {
+.dropdown-select-popup .dropdown-select-input-container > input[type="text"]:focus {
 	border: none;
 	outline: none;
 	box-shadow: none;

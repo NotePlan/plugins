@@ -567,7 +567,6 @@ const DropdownSelect = ({
           {showIndicatorOptionProp && <span style={dot(shouldShowIndicator, styles.indicator || {})} />}
           <input
             type="text"
-            className="dropdown-select-input"
             value={inputValue}
             onChange={handleInputChange} // Handle input change
             onFocus={handleInputFocus} // Handle input focus

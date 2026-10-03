@@ -201,7 +201,7 @@ dialog::backdrop {
 
 	/* Compact: tighter line-height for DropdownSelect menus (Perspective, Settings, etc.) */
 	.dropdown-select-label,
-	.dropdown-select-input,
+	.dropdown-select-input-container > input[type="text"],
 	.dropdown-select-dropdiv,
 	.dropdown-select-option,
 	.dropdown-select-option .option-label,

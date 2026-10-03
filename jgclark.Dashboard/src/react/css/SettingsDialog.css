@@ -120,7 +120,7 @@
         padding: 0.1rem 0rem 0.3rem 0rem;
     }
 
-    .switch-input {
+    input[type="checkbox"] {
         margin: 0;
     }
 
@@ -174,7 +174,8 @@
         grid-area: label;
     }
 
-    .input-box-input {
+    /* Text fields stretch; number fields stay narrow (see input[type="number"] below). */
+    .input-box-wrapper > input[type="text"] {
         padding: 3px 6px 2px;
         border: 1px solid rgba(from var(--fg-main-color) r g b / 0.2);
         background-color: var(--bg-main-color);
@@ -186,21 +187,17 @@
         width: stretch; /* fill line but take into account scrollbar */
     }
 
-    /* Make number boxes a little narrower */
-    /* TODO: get more space between right-aligned number and the spinner arrows */
-    /* .input-box-input-number {
-        box-sizing: border-box;
-        width: 5rem;
-        padding-right: 0.25rem;
-        padding-inline-end: 0.4rem;
-        text-align: right;
-    } */
-
     input {
         box-shadow: none;
     }
 
+    /* Make number boxes a little narrower */
     input[type="number"] {
+        padding: 3px 6px 2px;
+        border: 1px solid rgba(from var(--fg-main-color) r g b / 0.2);
+        background-color: var(--bg-main-color);
+        border-radius: 4px;
+        margin: 0.2rem 0rem;
         box-sizing: border-box;
         width: 5rem;
         padding-inline-end: 0.35rem; /* space between spinner and box edge */
@@ -215,17 +212,20 @@
     }
 
     /* Style for read-only input box */
-    .input-box-input:read-only {
+    .input-box-wrapper > input[type="text"]:read-only,
+    input[type="number"]:read-only {
         background-color: inherit;
     }
 
     /* Style for input box with invalid input */
-    .input-box-input:invalid {
+    .input-box-wrapper > input[type="text"]:invalid,
+    input[type="number"]:invalid {
         border: 1px solid #faa;
     }
 
-    /* Focus style for input-box-input */
-    .input-box-input:focus {
+    /* Focus style for text and number inputs */
+    .input-box-wrapper > input[type="text"]:focus,
+    input[type="number"]:focus {
         border-color: var(--hashtag-color);
         outline: none;
         box-shadow: 0 0 3px var(--hashtag-color);
@@ -292,7 +292,7 @@
         margin-right: 0.1rem;
     }
 
-    .combobox-input {
+    .combobox-wrapper > input[type="text"] {
         flex: 1;
         padding: 3px 6px 2px;
         background-color: var(--bg-main-color);
@@ -303,8 +303,7 @@
         /* box-sizing: border-box; */
     }
 
-    /* Focus style for combobox-input */
-    .combobox-input:focus {
+    .combobox-wrapper > input[type="text"]:focus {
         border-color: var(--hashtag-color);
         outline: none;
         box-shadow: 0 0 3px var(--hashtag-color);
@@ -369,7 +368,7 @@
     color: var(--fg-main-color);
 }
 
-.settings-dialog .ui-item.settings-trailing > .switch-input {
+.settings-dialog .ui-item.settings-trailing > input[type="checkbox"] {
     grid-column: 2;
     grid-row: 1;
     align-self: baseline;
@@ -413,14 +412,13 @@
     justify-self: end;
 }
 
-.settings-dialog .ui-item.settings-trailing .input-box-input {
+.settings-dialog .ui-item.settings-trailing .input-box-wrapper > input[type="text"] {
     width: min(18rem, 42vw);
     margin: 0;
 }
 
-/* TODO: remove this, but without then getting the setting above */
-.settings-dialog .ui-item.settings-trailing .input-box-input-number {
-    width: 5rem;
+.settings-dialog .ui-item.settings-trailing .input-box-wrapper > input[type="number"] {
+    margin: 0;
 }
 
 /* Dependent settings indent the text only. The control stays on the right edge. */
@@ -499,7 +497,7 @@
     flex-shrink: 0;
 }
 
-.settings-dialog-filter-input {
+.settings-dialog-filter > input[type="search"] {
     flex: 1;
     min-width: 0;
     font-size: 0.95rem;
@@ -511,7 +509,7 @@
     outline: none;
 }
 
-.settings-dialog-filter-input:focus {
+.settings-dialog-filter > input[type="search"]:focus {
     border-color: var(--tint-color, #dc8a78);
 }
 

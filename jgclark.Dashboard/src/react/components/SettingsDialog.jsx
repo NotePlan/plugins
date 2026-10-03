@@ -323,7 +323,6 @@ const SettingsDialog = ({
           <input
             ref={filterInputRef}
             type="search"
-            className="settings-dialog-filter-input"
             placeholder="Filter settings…"
             value={settingsFilterQuery}
             onChange={handleFilterChange}

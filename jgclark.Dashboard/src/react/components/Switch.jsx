@@ -26,7 +26,7 @@ const Switch = ({ label, checked, onChange, disabled = false, labelPosition = 'r
     <input
       id={label}
       type="checkbox"
-      className="apple-switch switch-input"
+      className="apple-switch"
       onChange={(e) => {
         logDebug('Switch Component', `"${label}" was clicked`, e.target.checked)
         onChange(e)

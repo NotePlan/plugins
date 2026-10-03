@@ -24,7 +24,8 @@ input.apple-switch:after {
   position: absolute;
   top: 0px;
   left: 1px;
-  background: var(--bg-main-color); /* #FFF; */
+  background: var(--bg-alt-color);
+  background: #ebf5e6; /* measured from macOS controls */
   width: 1.45rem;
   height: 0.9rem;
   border-radius: 2rem;

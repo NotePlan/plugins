@@ -94,7 +94,7 @@ function MultiSelectSpaces({ value, onChange, disabled = false, label, descripti
                     <label key={option.id}>
                       <input
                         type="checkbox"
-                        className="apple-switch switch-input"
+                        className="apple-switch"
                         checked={isChecked}
                         disabled={isDisabled}
                         onChange={() => handleCheckboxChange(option.id)}
