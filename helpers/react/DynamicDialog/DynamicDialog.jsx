@@ -108,6 +108,8 @@ export type TSettingItem = {
   options?: Array<string | { label: string, value: string, isDefault?: boolean }>,
   textType?: 'title' | 'description' | 'separator',
   description?: string,
+  iconClass?: string, // Font Awesome classes for a heading prefix, e.g. 'fa-regular fa-filter'
+  iconColor?: string, // Tailwind color class for the icon, e.g. 'text-blue-500'
   handleDescriptionItself?: boolean, // if true, then the description is handled by the item itself (e.g. for teamspace-multiselect)
   default?: any,
   compactDisplay?: boolean,

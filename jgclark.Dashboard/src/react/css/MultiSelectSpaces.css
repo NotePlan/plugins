@@ -9,6 +9,10 @@
   margin: 0.2rem 0rem;
   padding: 0.5rem 1.0rem;
 
+  & + .multi-select-description {
+    margin-top: 0.35rem;
+  }
+
   .multi-select-options {
     display: flex;
     flex-direction: column;

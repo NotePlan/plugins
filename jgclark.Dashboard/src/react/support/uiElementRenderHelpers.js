@@ -197,9 +197,11 @@ export function renderItem({
       case 'separator':
         return <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
       case 'heading':
+        // TODO: add iconColor here
         return (
           <>
             <div key={`hed${index}`} className="ui-heading">
+              {item.iconClass ? <i className={`${item.iconClass} fa-fw pad-right-larger`} aria-hidden="true" /> : null}
               {thisLabel}
             </div>
             {item.description && (

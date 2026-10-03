@@ -76,6 +76,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-layer-group',
     label: 'Perspectives',
     description:
       "A 'Perspective' is a named set of all your Dashboard settings below, and also includes which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default, which can't be deleted.",
@@ -94,6 +95,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-filter',
     label: 'What to Include and Exclude',
     description:
       "These settings control what Spaces, folders, Reminder lists and items are included and excluded in Dashboard's many sections. It will first use only the included Spaces. Then, it includes the folders from the next setting, and removes any specified from the following setting. Then calendar note terms (heading prefixes or task text) can focus which calendar items appear. Reminder Lists to Include can override which Apple Reminders lists this Perspective looks in. Finally, individual lines in notes can be ignored by adding terms to the last setting.",
@@ -161,6 +163,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
 
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-sliders',
     label: 'Display settings',
     description:
       'Settings that control how the Dashboard displays information. There are also toggles that control filtering of which Sections to show in the Filters dropdown menu.',
@@ -309,6 +312,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-arrow-right-arrow-left',
     label: 'Moving/Scheduling Items',
   },
   {
@@ -372,6 +376,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'separator',
   }, {
     type: 'heading',
+    iconClass: 'fa-regular fa-hashtag',
     label: 'Tag/Mention settings',
   },
   {
@@ -395,6 +400,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-magnifying-glass',
     label: 'Search settings',
   },
   {
@@ -419,6 +425,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-alarm-exclamation',
     label: 'Overdue Tasks Section',
   },
   {
@@ -444,6 +451,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-bell',
     label: 'Reminders Section',
   },
   {
@@ -482,6 +490,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-chart-gantt',
     label: 'Active Projects Section',
   },
   {
@@ -496,6 +505,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-list-check',
     label: 'Interactive Processing settings',
   },
   {
@@ -528,6 +538,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-file-lines',
     label: 'Logging',
     description: 'Please use the NotePlan Settings Pane for the Dashboard Plugin to change logging settings.',
   },
@@ -641,6 +652,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           type: 'heading',
           label: setting.label || '',
           description: setting.description || '',
+          iconClass: setting.iconClass,
           key: thisKey,
         }
       case 'header': // Note: deliberately the same as 'heading' above.
@@ -648,6 +660,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           type: 'heading',
           label: setting.label || '',
           description: setting.description || '',
+          iconClass: setting.iconClass,
           key: thisKey,
         }
       case 'switch':
