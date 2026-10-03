@@ -202,6 +202,11 @@
         width: 5rem;
         padding-inline-end: 0.35rem; /* space between spinner and box edge */
         text-align: right;
+        /* Same color as Dashboard.css @layer A. Declared here so color-scheme cannot swap in a system text color. */
+        color: var(--fg-sidebar-color);
+        /* WebKit paints the stepper for color-scheme, not for color, so a light-scheme control stays black on a dark theme. */
+        /* --np-color-scheme is light or dark from the NotePlan theme (helpers/NPThemeToCSS.js), not the OS appearance. */
+        color-scheme: var(--np-color-scheme, light);
     }
 
     /* Safari lays the spinner out as a native decoration. padding-inline-end above is the reliable gap; this margin is the WebKit hook when it is honored. */
@@ -345,8 +350,8 @@
 }
 
 /* macOS settings rows: title and description on the left, control on the right.
-   Scoped to .settings-trailing so header menus and the perspectives table are unchanged. */
-.settings-dialog .ui-item.settings-trailing {
+   Scoped to .settings-control-end so header menus and the perspectives table are unchanged. */
+.settings-dialog .ui-item.settings-control-end {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     column-gap: 1rem;
@@ -357,25 +362,25 @@
 }
 
 /* The next field is already a group rule, so don't draw a second line. */
-.settings-dialog .settings-dialog-content > div:has(+ div .ui-separator) > .ui-item.settings-trailing {
+.settings-dialog .settings-dialog-content > div:has(+ div .ui-separator) > .ui-item.settings-control-end {
     border-bottom: none;
 }
 
-.settings-dialog .ui-item.settings-trailing > .switch-label {
+.settings-dialog .ui-item.settings-control-end > .switch-label {
     grid-column: 1;
     grid-row: 1;
     align-self: baseline;
     color: var(--fg-main-color);
 }
 
-.settings-dialog .ui-item.settings-trailing > input[type="checkbox"] {
+.settings-dialog .ui-item.settings-control-end > input[type="checkbox"] {
     grid-column: 2;
     grid-row: 1;
     align-self: baseline;
     margin: 0;
 }
 
-.settings-dialog .ui-item.settings-trailing > .item-description {
+.settings-dialog .ui-item.settings-control-end > .item-description {
     grid-column: 1 / -1;
     grid-row: 2;
     justify-self: start;
@@ -384,8 +389,8 @@
     margin: 0;
 }
 
-.settings-dialog .ui-item.settings-trailing > .dropdown-select-popup,
-.settings-dialog .ui-item.settings-trailing > .input-box-container-compact {
+.settings-dialog .ui-item.settings-control-end > .dropdown-select-popup,
+.settings-dialog .ui-item.settings-control-end > .input-box-container-compact {
     display: grid;
     grid-template-columns: subgrid;
     grid-column: 1 / -1;
@@ -393,8 +398,8 @@
     align-items: baseline;
 }
 
-.settings-dialog .ui-item.settings-trailing .dropdown-select-label,
-.settings-dialog .ui-item.settings-trailing .input-box-label {
+.settings-dialog .ui-item.settings-control-end .dropdown-select-label,
+.settings-dialog .ui-item.settings-control-end .input-box-label {
     grid-area: auto;
     margin: 0;
     color: var(--fg-main-color);
@@ -406,30 +411,31 @@
     white-space: normal;
 }
 
-.settings-dialog .ui-item.settings-trailing .dropdown-select-wrapper,
-.settings-dialog .ui-item.settings-trailing .input-box-wrapper {
+.settings-dialog .ui-item.settings-control-end .dropdown-select-wrapper,
+.settings-dialog .ui-item.settings-control-end .input-box-wrapper {
     grid-area: auto;
     justify-self: end;
 }
 
-.settings-dialog .ui-item.settings-trailing .input-box-wrapper > input[type="text"] {
+.settings-dialog .ui-item.settings-control-end .input-box-wrapper > input[type="text"] {
     width: min(18rem, 42vw);
     margin: 0;
+    text-align: right;
 }
 
-.settings-dialog .ui-item.settings-trailing .input-box-wrapper > input[type="number"] {
+.settings-dialog .ui-item.settings-control-end .input-box-wrapper > input[type="number"] {
     margin: 0;
 }
 
 /* Dependent settings indent the text only. The control stays on the right edge. */
-.settings-dialog .ui-item.settings-trailing.indent {
+.settings-dialog .ui-item.settings-control-end.indent {
     margin-left: 0;
 }
 
-.settings-dialog .ui-item.settings-trailing.indent > .switch-label,
-.settings-dialog .ui-item.settings-trailing.indent .dropdown-select-label,
-.settings-dialog .ui-item.settings-trailing.indent .input-box-label,
-.settings-dialog .ui-item.settings-trailing.indent > .item-description {
+.settings-dialog .ui-item.settings-control-end.indent > .switch-label,
+.settings-dialog .ui-item.settings-control-end.indent .dropdown-select-label,
+.settings-dialog .ui-item.settings-control-end.indent .input-box-label,
+.settings-dialog .ui-item.settings-control-end.indent > .item-description {
     padding-left: 1rem;
 }
 

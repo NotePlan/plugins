@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show a simple Switch control (based on <input>, with various possible settings.
-// Last updated 2026-10-02 by @jgclark + @CursorAI
+// Last updated 2026-10-03 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import React from 'react'
@@ -15,8 +15,8 @@ type SwitchProps = {
   labelPosition?: 'left' | 'right',
   description?: string,
   className?: string,
-  // 'inline' keeps the toggle beside the label (menus). 'trailing' emits the label and toggle as siblings so a settings row can place the toggle on the right.
-  layout?: 'inline' | 'trailing',
+  // 'inline' keeps the toggle beside the label (menus). 'control-end' emits the label and toggle as siblings so a settings row can place the toggle at the end.
+  layout?: 'inline' | 'control-end',
 };
 
 const Switch = ({ label, checked, onChange, disabled = false, labelPosition = 'right', description = '', className = '', layout = 'inline' }: SwitchProps): React.Node => {
@@ -37,8 +37,8 @@ const Switch = ({ label, checked, onChange, disabled = false, labelPosition = 'r
   )
   const labelEl = <label className="switch-label" htmlFor={label}>{label}</label>
 
-  // Trailing layout: label then toggle, with no wrapper, so the settings row grid can put the toggle in the right column.
-  if (layout === 'trailing') {
+  // Control-end layout: label then toggle, with no wrapper, so the settings row grid can put the toggle in the end column.
+  if (layout === 'control-end') {
     return (
       <>
         {labelEl}

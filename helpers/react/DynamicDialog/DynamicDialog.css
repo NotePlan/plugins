@@ -1,5 +1,5 @@
 /* CSS for Dynamic dialogs using theme CSS from NotePlan editor */
-/* Last updated 2026-01-02 by @jgclark */
+/* Last updated 2026-10-03 by @jgclark and @CursorAI */
 
 /* Style for the dynamic dialog */
 .dynamic-dialog {
@@ -492,6 +492,8 @@
         width: 6rem;
         max-width: 6rem;
         /* Number inputs don't need the full standardized width */
+        /* WebKit steppers follow color-scheme, not the inherited text color. Match the NotePlan theme mode. */
+        color-scheme: var(--np-color-scheme, light);
     }
 
     /* Style for input box with invalid input */
