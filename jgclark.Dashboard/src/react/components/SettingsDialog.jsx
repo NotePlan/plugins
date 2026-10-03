@@ -385,6 +385,7 @@ const SettingsDialog = ({
                     indent: !!item.dependsOnKey,
                     className: '', // for future use
                     showDescAsTooltips: false,
+                    trailingControls: true,
                   })}
                 </div>
               )

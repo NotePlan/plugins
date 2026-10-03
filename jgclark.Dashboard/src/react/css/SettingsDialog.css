@@ -1,9 +1,9 @@
 /* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
-/* Last updated 2026-09-17 for v2.5.0.b6 by @jgclark + @CursorAI */
+/* Last updated 2026-10-03 for v2.5.0 by @jgclark + @CursorAI */
 
 /* Style for the settings dialog */
 .settings-dialog {
-    font-family: system-ui;
+    font-family: system-ui; /* to make more consistent with Apple UI */
     background-color: var(--bg-mid-color);
     position: fixed;
     display: flex;
@@ -16,7 +16,7 @@
     /* Center horizontally and vertically: use 50% positioning and translate(-50%, -50%) */
     left: 50%;
     transform: translate(-50%, -50%);
-    width: clamp(380px, 86vw, 700px);
+    width: clamp(380px, 86vw, 600px);
     border: none;
     box-shadow: 0 8px 16px rgba(0 0 0 / 0.2);
     opacity: 1;
@@ -45,7 +45,8 @@
 
     /* Style for Item descriptions that follow the item */
     .item-description {
-        font-size: small;
+        font-size: 0.85rem;
+        line-height: 1.05rem;
         color: var(--fg-alt-color);
         margin-bottom: 0.2rem;
         font-weight: 300;
@@ -124,11 +125,14 @@
     }
 
     .switch-label {
-        font-weight: 700;
+        font-weight: 600;
         color: var(--fg-alt-color);
         /* flex-shrink: 0; */
     }
 
+    input {
+        font-family: system-ui;
+    }
 
     /* Style for input-box-container */
     .input-box-container {
@@ -164,7 +168,7 @@
     }
 
     .input-box-label {
-        font-weight: 700;
+        font-weight: 600;
         color: var(--fg-alt-color);
         /* margin-bottom: 0.3rem; */
         grid-area: label;
@@ -175,18 +179,39 @@
         border: 1px solid rgba(from var(--fg-main-color) r g b / 0.2);
         background-color: var(--bg-main-color);
         border-radius: 4px;
-        font-family: system-ui;
-        font-size: 0.85rem;
+        /* font-size: 0.85rem; */
         /* vertical spacing above and below */
-        margin: 0.3rem 0rem;
         margin: 0.2rem 0rem;
         /* fill rest of width in compact or normal mode */
-        width: 100%;
+        width: stretch; /* fill line but take into account scrollbar */
     }
 
     /* Make number boxes a little narrower */
-    .input-box-input-number {
-        width: 6rem;
+    /* TODO: get more space between right-aligned number and the spinner arrows */
+    /* .input-box-input-number {
+        box-sizing: border-box;
+        width: 5rem;
+        padding-right: 0.25rem;
+        padding-inline-end: 0.4rem;
+        text-align: right;
+    } */
+
+    input {
+        box-shadow: none;
+    }
+
+    input[type="number"] {
+        box-sizing: border-box;
+        width: 5rem;
+        padding-inline-end: 0.35rem; /* space between spinner and box edge */
+        text-align: right;
+    }
+
+    /* Safari lays the spinner out as a native decoration. padding-inline-end above is the reliable gap; this margin is the WebKit hook when it is honored. */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        margin-inline-start: 0.5rem;
+        /* opacity: 1; */
     }
 
     /* Style for read-only input box */
@@ -262,7 +287,7 @@
     }
 
     .combobox-label {
-        font-weight: 700;
+        font-weight: 600;
         color: var(--fg-alt-color);
         margin-right: 0.1rem;
     }
@@ -273,7 +298,6 @@
         background-color: var(--bg-main-color);
         border: 1px solid rgba(from var(--fg-main-color) r g b / 0.2);
         border-radius: 4px;
-        font-family: system-ui;
         font-size: 0.9rem;
         /* width: 100%; */
         /* box-sizing: border-box; */
@@ -321,6 +345,96 @@
     }
 }
 
+/* macOS settings rows: title and description on the left, control on the right.
+   Scoped to .settings-trailing so header menus and the perspectives table are unchanged. */
+.settings-dialog .ui-item.settings-trailing {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 1rem;
+    row-gap: 0.12rem;
+    align-items: start;
+    padding: 0.45rem 0 0.5rem;
+    border-bottom: 0.5px solid var(--divider-color);
+}
+
+/* The next field is already a group rule, so don't draw a second line. */
+.settings-dialog .settings-dialog-content > div:has(+ div .ui-separator) > .ui-item.settings-trailing {
+    border-bottom: none;
+}
+
+.settings-dialog .ui-item.settings-trailing > .switch-label {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: baseline;
+    color: var(--fg-main-color);
+}
+
+.settings-dialog .ui-item.settings-trailing > .switch-input {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: baseline;
+    margin: 0;
+}
+
+.settings-dialog .ui-item.settings-trailing > .item-description {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+    /* 84% of the full row width, not of the text column */
+    max-width: 84%;
+    margin: 0;
+}
+
+.settings-dialog .ui-item.settings-trailing > .dropdown-select-popup,
+.settings-dialog .ui-item.settings-trailing > .input-box-container-compact {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    column-gap: 1rem;
+    align-items: baseline;
+}
+
+.settings-dialog .ui-item.settings-trailing .dropdown-select-label,
+.settings-dialog .ui-item.settings-trailing .input-box-label {
+    grid-area: auto;
+    margin: 0;
+    color: var(--fg-main-color);
+    /* font-size: medium; */
+    /* font-weight: 400; */
+    min-width: 0;
+    text-align: start;
+    padding-right: 0;
+    white-space: normal;
+}
+
+.settings-dialog .ui-item.settings-trailing .dropdown-select-wrapper,
+.settings-dialog .ui-item.settings-trailing .input-box-wrapper {
+    grid-area: auto;
+    justify-self: end;
+}
+
+.settings-dialog .ui-item.settings-trailing .input-box-input {
+    width: min(18rem, 42vw);
+    margin: 0;
+}
+
+/* TODO: remove this, but without then getting the setting above */
+.settings-dialog .ui-item.settings-trailing .input-box-input-number {
+    width: 5rem;
+}
+
+/* Dependent settings indent the text only. The control stays on the right edge. */
+.settings-dialog .ui-item.settings-trailing.indent {
+    margin-left: 0;
+}
+
+.settings-dialog .ui-item.settings-trailing.indent > .switch-label,
+.settings-dialog .ui-item.settings-trailing.indent .dropdown-select-label,
+.settings-dialog .ui-item.settings-trailing.indent .input-box-label,
+.settings-dialog .ui-item.settings-trailing.indent > .item-description {
+    padding-left: 1rem;
+}
+
 /* Ensure the settings dialog content is hidden when closed */
 .settings-dialog-content {
 	display: flex;
@@ -329,7 +443,7 @@
 	min-height: 0;
 	gap: 0.5rem; /* down from 1rem to give more control elsewhere */
 	background-color: var(--bg-mid-color);
-	padding: 0.75rem 1rem;
+	padding: 0.75rem 0.8rem 0.75rem 1.2rem; /* slightly less on right because of the scrollbar */
 	border-radius: 8px;
 	margin-bottom: 10px;
 	overflow-y: auto;
@@ -388,7 +502,6 @@
 .settings-dialog-filter-input {
     flex: 1;
     min-width: 0;
-    font-family: system-ui;
     font-size: 0.95rem;
     padding: 0.35rem 0.6rem;
     border: 1px solid var(--divider-color, #CDCFD0);

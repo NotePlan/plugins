@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated 2025-12-05 for v2.4.0 by @jgclark
+// Last updated 2026-10-02 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -36,6 +36,19 @@ type RenderItemProps = {
   className?: string,
   disabled?: boolean,
   showDescAsTooltips?: boolean,
+  // Settings dialog: title and description on the left, control on the right.
+  trailingControls?: boolean,
+}
+
+/**
+ * Whether this settings row should put its control on the right.
+ * Switches, choices, and numbers always do. Text fields do only when compact.
+ */
+function usesTrailingControl(item: TSettingItem, trailingControls: boolean): boolean {
+  if (!trailingControls) return false
+  if (item.type === 'switch' || item.type === 'dropdown-select' || item.type === 'number') return true
+  if ((item.type === 'input' || item.type === 'input-readonly') && item.compactDisplay) return true
+  return false
 }
 
 /**
@@ -59,7 +72,9 @@ export function renderItem({
   className = '',
   disabled = false,
   showDescAsTooltips = false, // if true, then don't show the description as text, but only tooltip
+  trailingControls = false,
 }: RenderItemProps): React.Node {
+  const trailing = usesTrailingControl(item, trailingControls)
   const element = () => {
     const thisLabel = item.label || '?'
     // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}' / ${showDescAsTooltips ? 'tooltip' : 'text'}`)
@@ -82,6 +97,7 @@ export function renderItem({
             labelPosition={labelPosition}
             description={showDescAsTooltips ? item.description || '' : ''} // Only send the description if showDescAsTooltips is true, to show as a tooltip
             className={className}
+            layout={trailing ? 'trailing' : 'inline'}
           />
         )
       case 'input':
@@ -101,7 +117,7 @@ export function renderItem({
               item.key && handleSaveInput(item.key, newValue)
             }}
             showSaveButton={showSaveButton}
-            compactDisplay={item.compactDisplay || false}
+            compactDisplay={trailing ? true : item.compactDisplay || false}
             className={className}
           />
         )
@@ -116,7 +132,7 @@ export function renderItem({
             value={item.value || ''}
             onChange={() => {}}
             showSaveButton={false}
-            compactDisplay={item.compactDisplay || false}
+            compactDisplay={trailing ? true : item.compactDisplay || false}
             className={className}
           />
         )
@@ -137,7 +153,7 @@ export function renderItem({
               item.key && handleSaveInput(item.key, newValue)
             }}
             showSaveButton={showSaveButton}
-            compactDisplay={item.compactDisplay || false}
+            compactDisplay={trailing ? true : item.compactDisplay || false}
           />
         )
       case 'dropdown-select':
@@ -154,6 +170,7 @@ export function renderItem({
             inputRef={inputRef} // Pass inputRef
             compactDisplay={item.compactDisplay || false}
             fixedWidth={item.fixedWidth}
+            appearance={trailing ? 'popup' : 'field'}
           />
         )
       case 'teamspace-multiselect':
@@ -209,6 +226,7 @@ export function renderItem({
   let classNameToUse = className
   if (indent) classNameToUse += ' indent'
   if (disabled) classNameToUse += ' disabled'
+  if (trailing) classNameToUse += ' settings-trailing'
 
   // data-settings-key is used by SettingsDialog to scroll to the element when the gear icon is clicked
   return (
