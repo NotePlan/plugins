@@ -23,6 +23,8 @@
 import React, { useEffect, useRef, useState, useCallback, type ElementRef } from 'react'
 import { renderItem } from './dialogElementRenderer'
 import './DynamicDialog.css' // Import the CSS file
+// JS import, not a CSS @import: rollup-plugin-postcss inlines this file. A CSS @import is left as a URL the webview cannot load.
+import '../../../np.Shared/requiredFiles/apple-switch.css'
 import Modal from '@helpers/react/Modal'
 import { logWarn, timer, logDebug, logError } from '@helpers/react/reactDev.js'
 import { type NoteOption } from './NoteChooser.jsx'

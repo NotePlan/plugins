@@ -18,6 +18,7 @@
   "plugin.requiredFiles": [
     "fontawesome.css",
     "css.w3.css",
+    "apple-switch.css",
     "duotone.min.flat4NP.css",
     "light.min.flat4NP.css",
     "regular.min.flat4NP.css",

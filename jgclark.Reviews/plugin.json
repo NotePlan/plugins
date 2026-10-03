@@ -29,6 +29,7 @@
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
+    "apple-switch.css",
     "regular.min.flat4NP.css",
     "solid.min.flat4NP.css",
     "fa-regular-400.woff2",

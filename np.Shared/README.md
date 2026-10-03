@@ -64,6 +64,14 @@ And then to use the icons use the italic-element syntax like:
 
 Please use the [Font Awesome website](https://fontawesome.com/search) to view/search for icons.
 
+### Apple switch
+
+`apple-switch.css` styles `input.apple-switch` (the iOS-style checkbox toggle). React code must `import` `np.Shared/requiredFiles/apple-switch.css` from JavaScript. A CSS `@import` is not inlined by the Rollup CSS plugin, so the webview never receives the rules. An HTML window loads the installed file (NotePlan copies `requiredFiles/` to the plugin root):
+
+```html
+<link href="../np.Shared/apple-switch.css" rel="stylesheet">
+```
+
 ### Bridging between Plugins and HTML Windows
 There is also a `pluginToHTMLCommsBridge` file that can be used to enable bi-directional communications between the plugin and the HTML window. To use this file, import it like so, making sure to set the variable `receivingPluginID` to your plugin where you want to receive the messages:
 

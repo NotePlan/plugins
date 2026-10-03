@@ -2,6 +2,7 @@
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
 ## [2.3.1] - 2026-10-01
+- change: Project list toggles use the shared `apple-switch.css` from np.Shared (the DynamicDialog look).
 - change: The progress dialog shown when rebuilding the list of projects now shows a Teamspace's name, not its underlying ID.
 - dev: Rebuilding the project list, including when Dashboard turns on Projects to Review, shows a progress dialog and keeps NotePlan responsive. The `runInForeground` flag is now more usefully named `showProgressToUser`. Project construction on the async thread now avoids reading `Editor`.
 - dev: Hidden setting `FFlag_UseAllPerspectives` (default off). When it is on with Use Perspectives, `allProjectsList.json` is built from Dashboard's `perspectiveScopeUnion.json` (every saved perspective). A perspective switch does not rebuild the list. The Rich list and reviews still show only the active perspective.

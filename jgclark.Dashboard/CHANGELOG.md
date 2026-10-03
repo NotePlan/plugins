@@ -6,6 +6,7 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 ## [2.5.1] 2026-10-03
 ### Changes
 - The layout of the Settings dialog now more closely matches the design of Apple setting dialogs.
+- Toggle switches use the shared `apple-switch.css` from np.Shared (the DynamicDialog look).
 
 ### Performance improvements
 - Changing settings no longer regenerate every enabled section when they only affect display, or only a few sections (for example Overdue lookback, one tag section, or Hide duplicates). Folder and teamspace scope changes still refresh everything.

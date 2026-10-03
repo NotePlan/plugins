@@ -1,0 +1,43 @@
+/* Shared apple-switch toggle. Load from HTML with:
+   <link href="../np.Shared/apple-switch.css" rel="stylesheet">
+   From [Pure CSS3 iOS switch checkbox by Pedro M. S. Duarte | codeburst](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb)
+   Modified by J. G. Clark to use CSS variables for colors, and then again to make it flatter to match newer Apple designs.
+*/
+
+input.apple-switch {
+  position: relative;
+  appearance: none;
+  vertical-align: top;
+  outline: none;
+  width: 2.4rem;
+  height: 1.1rem;
+  background-color: var(--bg-sidebar-color, #ECECEC);
+  border: 1px solid var(--border-color, var(--divider-color, #CDCFD0));
+  border-radius: 2rem;
+  margin-top: 0px;
+  margin-right: 4px;
+}
+
+input.apple-switch:after {
+  content: "";
+  vertical-align: top;
+  position: absolute;
+  top: 0px;
+  left: 1px;
+  background: var(--bg-main-color); /* #FFF; */
+  width: 1.45rem;
+  height: 0.9rem;
+  border-radius: 2rem;
+  box-shadow: 1px 0px 1px rgba(0 0 0 / 0.3);
+  margin-right: 1.0rem;
+}
+
+input.apple-switch:checked {
+  background-color: var(--tint-color);
+  border-color: var(--tint-color);
+}
+
+input.apple-switch:checked:after {
+  left: 0.8rem;
+  box-shadow: -1px 2px 1px rgba(0,0,0,.1)
+}
