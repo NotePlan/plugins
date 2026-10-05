@@ -71,6 +71,7 @@ type DropdownSelectProps = {
   placeholder?: string,
   /**
    * 'field' is the bordered dropdown. 'popup' is a borderless value plus up/down chevron (macOS settings choice).
+   * A popup with 2 or 3 choices is shown as a horizontal row instead of a menu.
    */
   appearance?: 'field' | 'popup',
 }
@@ -531,6 +532,46 @@ const DropdownSelect = ({
 
   const isPopup = appearance === 'popup'
   const popupSize = Math.min(Math.max((inputValue || '').length, 1), 32)
+  // Short settings choices are easier to scan as a row than as a menu.
+  const segmentOptions = normalizedOptions.filter((option) => option.type !== 'separator')
+  const showSegments = isPopup && segmentOptions.length >= 2 && segmentOptions.length <= 3
+
+  if (showSegments) {
+    return (
+      <div
+        className={`dropdown-select-popup ${compactDisplay ? 'dropdown-select-container-compact' : 'dropdown-select-container'} ${disabled ? 'disabled' : ''} ${className}`}
+        ref={dropdownRef}
+        style={mergeStyles({}, styles.container)}
+      >
+        <label className="dropdown-select-label" style={mergeStyles({}, styles.label)}>
+          {label}
+        </label>
+        <div
+          className="dropdown-select-wrapper dropdown-select-segmented"
+          role="radiogroup"
+          aria-label={label}
+          style={mergeStyles({}, styles.wrapper)}
+        >
+          {segmentOptions.map((option: Option, i) => {
+            const isSelected = option.value === selectedValue.value
+            return (
+              <button
+                key={`${option.value || 'option'}-${i}`}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                className={isSelected ? 'is-selected' : ''}
+                disabled={disabled}
+                onClick={() => handleOptionClick(option)}
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
