@@ -8,7 +8,9 @@
 import type { TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { logDebug, logInfo, logWarn } from '@helpers/dev'
-import { getFolderFromFilename, getFolderListMinusExclusions, getFoldersMatching } from '@helpers/folders'
+import { getFolderDisplayName, getFolderFromFilename, getFolderListMinusExclusions, getFoldersMatching } from '@helpers/folders'
+import { getTeamspaceTitleFromID } from '@helpers/NPTeamspace'
+import { getTeamspaceIDFromFilename, isTeamspaceNoteFromFilename } from '@helpers/teamspace'
 
 /** Cross-plugin path, same style as Reviews `allProjectsList.json`. */
 export const PERSPECTIVE_SCOPE_UNION_FILENAME = '../jgclark.Dashboard/perspectiveScopeUnion.json'
@@ -327,6 +329,46 @@ export function parsePerspectiveScopeUnion(content: mixed): ?TPerspectiveScopeUn
 }
 
 /**
+ * Space ids for one scope: the saved teamspaces list, plus any Space whose folder path is in `folders`.
+ * The saved list is often only `private` even when the folder list includes `%%NotePlanCloud%%/<id>/...`.
+ * @param {TPerspectiveScope} scope
+ * @returns {Array<string>}
+ */
+function spaceIdsForScope(scope: TPerspectiveScope): Array<string> {
+  const ids: Array<string> = []
+  const seen = new Set<string>()
+  const add = (id: string) => {
+    if (!id || seen.has(id)) return
+    seen.add(id)
+    ids.push(id)
+  }
+  for (const id of scope.teamspaces ?? []) add(id)
+  for (const folder of scope.folders ?? []) {
+    if (isTeamspaceNoteFromFilename(folder)) add(getTeamspaceIDFromFilename(folder))
+  }
+  return ids
+}
+
+/**
+ * Human-readable dump of the union. Folder paths use `getFolderDisplayName` so a Space folder
+ * is "[👥 Space name] folder" instead of `%%NotePlanCloud%%/<id>/...`.
+ * The scope header includes Spaces found on those folder paths, not only the saved teamspaces list.
+ * @param {TPerspectiveScopeUnion} union
+ * @returns {string}
+ */
+export function formatPerspectiveScopeUnionForLog(union: TPerspectiveScopeUnion): string {
+  const lines: Array<string> = [`${String(union.scopes.length)} perspectives`]
+  for (const scope of union.scopes) {
+    const spaceNames = spaceIdsForScope(scope).map((id) => getTeamspaceTitleFromID(id, true))
+    lines.push(`${scope.name} (spaces: ${spaceNames.join(', ')})`)
+    for (const folder of scope.folders ?? []) {
+      lines.push(`- ${getFolderDisplayName(folder, true)}`)
+    }
+  }
+  return lines.join('\n')
+}
+
+/**
  * Read the union file. Null when it is missing or not a scope union.
  * @returns {?TPerspectiveScopeUnion}
  */
@@ -499,6 +541,41 @@ function teamspaceAllowed(isTeamspaceNote: ?boolean, teamspaceID: ?string, inclu
     return includedTeamspaces.includes(teamspaceID)
   }
   return includedTeamspaces.includes('private')
+}
+
+/**
+ * Every folder path listed on any scope, deduped and sorted.
+ * Includes Space (teamspace) folder paths when a perspective resolved them into `folders`.
+ * This does not apply the per-scope teamspace id list.
+ * @param {Array<TPerspectiveScope>} scopes
+ * @returns {Array<string>}
+ */
+export function foldersInPerspectiveScopeUnion(scopes: Array<TPerspectiveScope>): Array<string> {
+  const found = new Set < string > ()
+  for (const scope of scopes) {
+    for (const folder of scope.folders ?? []) {
+      if (folder) found.add(folder)
+    }
+  }
+  return sortedCopy(Array.from(found))
+}
+
+/**
+ * True when the note's folder path is in the union of scope folders.
+ * A Space note matches when its `%%NotePlanCloud%%/<id>/...` folder is listed, even if that scope's
+ * teamspace ids are only `private`.
+ * @param {?string} filename
+ * @param {Array<TPerspectiveScope>} scopes
+ * @returns {boolean}
+ */
+export function noteFolderIsInScopeUnion(filename: ?string, scopes: Array<TPerspectiveScope>): boolean {
+  const name = filename ?? ''
+  if (name === '') return false
+  const folder = getFolderFromFilename(name)
+  for (const scope of scopes) {
+    if ((scope.folders ?? []).includes(folder)) return true
+  }
+  return false
 }
 
 /**

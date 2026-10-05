@@ -1,13 +1,19 @@
 # What's changed in Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
-## [2.3.1] - 2026-10-01
-- change: Project list toggles use the shared `apple-switch.css` from np.Shared (the DynamicDialog look).
-- change: The progress dialog shown when rebuilding the list of projects now shows a Teamspace's name, not its underlying ID.
+## [2.3.1] - 2026-10-???
+### Changes
+- Project list toggles use the shared `apple-switch.css` from np.Shared (the DynamicDialog look).
+- The progress dialog shown when rebuilding the list of projects now shows a Teamspace's name, not its underlying ID.
+- Now **/weeklyProjectsProgress** (and the weekly progress heatmaps), when `FFlag_UseAllPerspectives` is on, scans the complete union of perspective folders, including (Team)Space folders listed there. Space notes are grouped under the Space name. Without that flag, private Area/Project folders and Space notes are still scanned.
+- Saving settings for a command other than the project list (weekly progress, complete/cancel, pause, next review, progress lines, log level) no longer rebuilds `allProjectsList`. The weekly progress show/hide toggle also writes only that one setting, so it does not copy perspective folder filters back into settings.json.
+### Fixes
+- `test: log perspective scope union` now lists a Space in the scope header when that scope's folders belong to it, even if the saved spaces list is only Private. Example: `NotePlan (spaces: Private, 👥 Plugins)`.
+- A project-list rebuild already in progress is waited on, instead of starting another full scan. The union test rebuild does not refresh Dashboard or the Rich list, and logs the project count, folders scanned, and elapsed time when it finishes. The folders scanned are deduped and sorted first.
+### Dev changes
 - dev: Rebuilding the project list, including when Dashboard turns on Projects to Review, shows a progress dialog and keeps NotePlan responsive. The `runInForeground` flag is now more usefully named `showProgressToUser`. Project construction on the async thread now avoids reading `Editor`.
 - dev: Hidden setting `FFlag_UseAllPerspectives` (default off). When it is on with Use Perspectives, `allProjectsList.json` is built from Dashboard's `perspectiveScopeUnion.json` (every saved perspective). A perspective switch does not rebuild the list. The Rich list and reviews still show only the active perspective.
 - dev: Visible test commands `test: force rebuild allProjectsList from union` and `test: log perspective scope union`.
-- fix: A project-list rebuild already in progress is waited on, instead of starting another full scan. The union test rebuild does not refresh Dashboard or the Rich list, and logs the project count, folders scanned, and elapsed time when it finishes. The folders scanned are deduped and sorted first.
 
 ## [2.3.0] - 2026-09-18
 Performance Improvements:

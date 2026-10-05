@@ -6,7 +6,10 @@ import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan } from '@m
 import {
   buildPerspectiveScopeUnion,
   fingerprintOfScopes,
+  formatPerspectiveScopeUnionForLog,
+  foldersInPerspectiveScopeUnion,
   foldersToScanForChangedScopes,
+  noteFolderIsInScopeUnion,
   noteMatchesAnyScope,
   parsePerspectiveScopeUnion,
   perspectiveFolderTeamspaceDefsChanged,
@@ -175,6 +178,72 @@ describe('parsePerspectiveScopeUnion', () => {
     const parsed = parsePerspectiveScopeUnion(JSON.stringify(raw))
     expect(parsed?.scopes.map((scope) => scope.name)).toEqual(['Home'])
     expect(parsed?.fingerprint).toBe(home.fingerprint)
+  })
+})
+
+describe('formatPerspectiveScopeUnionForLog', () => {
+  test('prints the space name instead of the cloud folder path', () => {
+    DataStore.teamspaces = [
+      {
+        filename: '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919',
+        title: 'Plugins',
+      },
+    ]
+    const union = {
+      version: 1,
+      fingerprint: 'x',
+      scopes: [
+        {
+          name: 'NotePlan',
+          folders: [
+            'NotePlan Projects',
+            '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard v2.5',
+          ],
+          teamspaces: ['private'],
+          changedAt: 1,
+        },
+      ],
+    }
+    expect(formatPerspectiveScopeUnionForLog(union)).toBe(
+      '1 perspectives\n'
+      + 'NotePlan (spaces: Private, 👥 Plugins)\n'
+      + '- NotePlan Projects\n'
+      + '- [👥 Plugins] Dashboard v2.5',
+    )
+  })
+})
+
+describe('foldersInPerspectiveScopeUnion', () => {
+  test('unions folders from every scope and keeps teamspace folder paths', () => {
+    const scopes = [
+      { name: 'Home', folders: ['Home Projects', 'Home Areas'], teamspaces: ['private'], changedAt: 1 },
+      { name: 'NotePlan', folders: ['NotePlan Projects', '%%NotePlanCloud%%/abc/Dashboard v2.5'], teamspaces: ['private'], changedAt: 1 },
+      { name: 'Review', folders: ['%%NotePlanCloud%%/abc/Dashboard v2.5', 'Ministry Projects'], teamspaces: ['private'], changedAt: 1 },
+    ]
+    expect(foldersInPerspectiveScopeUnion(scopes)).toEqual([
+      '%%NotePlanCloud%%/abc/Dashboard v2.5',
+      'Home Areas',
+      'Home Projects',
+      'Ministry Projects',
+      'NotePlan Projects',
+    ])
+  })
+})
+
+describe('noteFolderIsInScopeUnion', () => {
+  const spaceFolder = '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard v2.5'
+  const spaceNote = `${spaceFolder}/430c57f0-95b5-4a74-9062-c10774a2af37`
+  const scopes = [
+    { name: 'NotePlan', folders: [spaceFolder], teamspaces: ['private'], changedAt: 1 },
+  ]
+
+  test('includes a space note when its folder path is in the union even if teamspaces is private only', () => {
+    expect(noteFolderIsInScopeUnion(spaceNote, scopes)).toBe(true)
+    expect(noteMatchesAnyScope(spaceNote, true, '1b91b194-4c76-4a48-8d4d-4c499d64a919', scopes)).toBe(false)
+  })
+
+  test('rejects a note whose folder is not in the union', () => {
+    expect(noteFolderIsInScopeUnion('Inbox/Foo.md', scopes)).toBe(false)
   })
 })
 

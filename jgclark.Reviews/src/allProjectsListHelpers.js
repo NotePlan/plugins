@@ -14,6 +14,7 @@ import {
   noteMatchesAnyScope,
   noteMatchesChangedScope,
   PERSPECTIVE_SCOPE_UNION_FILENAME,
+  formatPerspectiveScopeUnionForLog,
   readPerspectiveScopeUnion,
   type TPerspectiveScopeUnion,
 } from '../../jgclark.Dashboard/src/perspectiveScopeUnion.js'
@@ -837,7 +838,7 @@ export async function logAllProjectsList(): Promise<void> {
 }
 
 /**
- * INFO-log perspectiveScopeUnion.json, one pretty-printed line per log line.
+ * INFO-log the perspective scope union, with Space folder paths shown by name.
  * Note: needs to be async to avoid NP throwing log error.
  * @returns {Promise<void>}
  */
@@ -847,13 +848,12 @@ export async function logPerspectiveScopeUnion(): Promise<void> {
       logInfo('logPerspectiveScopeUnion', `${PERSPECTIVE_SCOPE_UNION_FILENAME} does not exist`)
       return
     }
-    const content = DataStore.loadData(PERSPECTIVE_SCOPE_UNION_FILENAME, true)
-    if (content == null || content === '') {
-      logInfo('logPerspectiveScopeUnion', '(empty file)')
+    const union = readPerspectiveScopeUnion()
+    if (union == null) {
+      logInfo('logPerspectiveScopeUnion', '(empty or unreadable file)')
       return
     }
-    const pretty = JSON.stringify(JSON.parse(String(content)), null, 2)
-    logInfo('logPerspectiveScopeUnion', `Union of perspective folders:\n${pretty}`)
+    logInfo('logPerspectiveScopeUnion', `Union of perspective folders:\n${formatPerspectiveScopeUnionForLog(union)}`)
   } catch (error) {
     logWarn('logPerspectiveScopeUnion', error.message)
   }
