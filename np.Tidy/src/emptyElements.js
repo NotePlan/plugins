@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Remove empty blocks functionality for Tidy plugin
-// Last updated 2025-11-22 for v1.20.2, @jgclark & @CursorAI
+// Last updated 2026-10-06 for v1.20.3, @jgclark & @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getSettings } from './tidyHelpers'
-import { filenameIsInFuture } from '@helpers/dateTime'
+import { filenameIsFullyInPast } from '@helpers/dateTime'
 import { JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
 import { getAllNotesOfType, getNoteFromFilename, getNotesChangedInInterval } from '@helpers/NPnote'
@@ -390,8 +390,8 @@ function noteHasMeaningfulContent(note: TNote): boolean {
 }
 
 /**
- * Run removeEmptyElements on all recently-updated notes.
- * Calendar notes are limited to current and past dates (future-dated calendar notes are never processed).
+ * Run removeEmptyElements on recently-updated regular notes, plus calendar notes whose whole period is already in the past.
+ * The current daily, weekly, monthly, quarterly, and yearly notes are therefore excluded, as are any future-dated calendar notes.
  * Can be passed parameters to override defaults through an x-callback call.
  * Supported params: { numDays?: number, runSilently?: boolean, stripAllEmptyLines?: boolean, preserveHeadingStructure?: boolean }
  * @author @jgclark
@@ -431,11 +431,12 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
       logDebug('removeEmptyElementsFromRecentNotes', `- filtered out ${String(originalCount - recentNotes.length)} Template notes`)
     }
 
-    // Filter out future-dated calendar notes (keep current/past calendar notes and any regular notes)
-    const countBeforeFutureFilter = recentNotes.length
-    recentNotes = recentNotes.filter((note) => note.type !== 'Calendar' || !filenameIsInFuture(note.filename))
-    if (countBeforeFutureFilter > recentNotes.length) {
-      logDebug('removeEmptyElementsFromRecentNotes', `- filtered out ${String(countBeforeFutureFilter - recentNotes.length)} future calendar notes`)
+    // Keep a calendar note only when every part of its period is already in the past.
+    // Today's note, this week's note, and the current month, quarter, and year are excluded.
+    const countBeforePastFilter = recentNotes.length
+    recentNotes = recentNotes.filter((note) => note.type !== 'Calendar' || filenameIsFullyInPast(note.filename))
+    if (countBeforePastFilter > recentNotes.length) {
+      logDebug('removeEmptyElementsFromRecentNotes', `- filtered out ${String(countBeforePastFilter - recentNotes.length)} calendar notes that are not fully in the past`)
     }
 
     if (recentNotes.length === 0) {

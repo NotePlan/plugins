@@ -3,12 +3,15 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.9.11",
   "plugin.id": "np.Tidy",
-  "plugin.name": "🧹 Tidy Up",
+  "plugin.name": "Tidy Up",
+  "plugin.icon": "fa-broom",
+  "plugin.iconColor": "yellow-700",
+  "plugin.iconStyle": "solid",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "1.20.2",
+  "plugin.version": "1.20.3",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "v1.20.2: '/Remove empty elements from recent notes' now only processes current and past calendar notes, never future-dated ones.\nv1.20.1: fix to '/Remove orphaned blockIDs' not honouring 'run silently?' setting.\nv1.20.0: new '/Cancel incomplete tasks in a folder' command for import cleanup (#746).\nv1.19.4: fix '/Move top-level tasks in Editor to heading' when called from the CommandBar (#747).\nv1.19.3: further fix to '/Generate @repeats in recent notes' command.\nv1.19.2: fix to '/Generate @repeats in recent notes' command, which was failing on invalid lines from the API.\nv1.19.1: fix to '/Remove empty lines' command.\nv1.19.0: new '/Cancel incomplete tasks in a past year' command.\nv1.18.1: small tweaks.\nv1.18.0: new '/Clean up note filenames' command.\nv1.17.0: new '/Remove empty lines' command. Improvements to '/Remove empty elements' and '/Remove section from all notes' commands.\nv1.16.0: new '/Remove empty elements from recent notes' command.",
+  "plugin.lastUpdateInfo": "v1.20.3: '/Remove empty elements from recent notes' now processes recently changed regular notes, plus calendar notes only when the whole period is already in the past (today, this week, and the current month, quarter, and year are skipped).\nv1.20.2: '/Remove empty elements from recent notes' now only processes current and past calendar notes, never future-dated ones.\nv1.20.1: fix to '/Remove orphaned blockIDs' not honouring 'run silently?' setting.\nv1.20.0: new '/Cancel incomplete tasks in a folder' command for import cleanup (#746).\nv1.19.4: fix '/Move top-level tasks in Editor to heading' when called from the CommandBar (#747).\nv1.19.3: further fix to '/Generate @repeats in recent notes' command.\nv1.19.2: fix to '/Generate @repeats in recent notes' command, which was failing on invalid lines from the API.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -145,7 +148,7 @@
     },
     {
       "name": "Remove empty elements from recent notes",
-      "description": "Runs 'Remove empty elements' across recently-changed notes using your settings. Calendar notes are limited to current and past dates (future-dated notes are skipped).",
+      "description": "Runs 'Remove empty elements' across recently changed regular notes, plus calendar notes whose whole period is already in the past. Today, this week, and the current month, quarter, and year are skipped.",
       "jsFunction": "removeEmptyElementsFromRecentNotes",
       "alias": [
         "reeRecent",
@@ -423,14 +426,6 @@
       "title": "Strip all empty lines?",
       "key": "stripAllEmptyLines",
       "description": "Normally, multiple consecutive empty lines are reduced to a single empty line. But if this is set, then all empty lines will be removed. This will particularly suit users who use a theme that adds vertical before headings.\nNote: this setting is ignored by the '/Remove empty lines' command.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "title": "Also cover recent Regular notes?",
-      "key": "coverProjectNotes",
-      "description": "By default, '/Remove empty elements from recent notes' only works on Calendar notes (current and past; future-dated notes are always skipped). Enable this setting to also process regular notes.",
       "type": "bool",
       "default": false,
       "required": true

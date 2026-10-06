@@ -1,6 +1,10 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.20.3] - 2026-10-06 @jgclark
+### Changes
+- **Remove empty elements from recent notes** now processes recently changed regular notes, plus calendar notes only when the whole period is already in the past. Today, this week, and the current month, quarter, and year are therefore skipped.
+
 ## [1.20.2] - 2026-08-11 @jgclark
 ### Changes
 - **Remove empty elements from recent notes** command now only processes current and past calendar notes. Future-dated calendar notes are always skipped (today's note is still included). Regular notes (if enabled) are unchanged.

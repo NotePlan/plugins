@@ -833,6 +833,46 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
+  describe('filenameIsFullyInPast()', () => {
+    test('should return true for a daily note filename in the past', () => {
+      expect(dt.filenameIsFullyInPast('20200101.md')).toEqual(true)
+    })
+
+    test('should return false for today and for a future daily note', () => {
+      const today = dt.getTodaysDateUnhyphenated()
+      expect(dt.filenameIsFullyInPast(`${today}.md`)).toEqual(false)
+      expect(dt.filenameIsFullyInPast('21240611.md')).toEqual(false)
+    })
+
+    test('should return true for a past weekly note and false for the current week', () => {
+      expect(dt.filenameIsFullyInPast('2020-W01.md')).toEqual(true)
+      const thisWeek = dt.getNPWeekStr(new Date())
+      expect(dt.filenameIsFullyInPast(`${thisWeek}.md`)).toEqual(false)
+    })
+
+    test('should return true for a past monthly note and false for the current month', () => {
+      expect(dt.filenameIsFullyInPast('2020-01.md')).toEqual(true)
+      const thisMonth = dt.getNPMonthStr(new Date())
+      expect(dt.filenameIsFullyInPast(`${thisMonth}.md`)).toEqual(false)
+    })
+
+    test('should return true for a past quarterly note and false for the current quarter', () => {
+      expect(dt.filenameIsFullyInPast('2020-Q1.md')).toEqual(true)
+      const thisQuarter = dt.getNPQuarterStr(new Date())
+      expect(dt.filenameIsFullyInPast(`${thisQuarter}.md`)).toEqual(false)
+    })
+
+    test('should return true for a past yearly note and false for the current year', () => {
+      expect(dt.filenameIsFullyInPast('2020.md')).toEqual(true)
+      const thisYear = dt.getNPYearStr(new Date())
+      expect(dt.filenameIsFullyInPast(`${thisYear}.md`)).toEqual(false)
+    })
+
+    test('should return false for a regular note filename', () => {
+      expect(dt.filenameIsFullyInPast('Project.md')).toEqual(false)
+    })
+  })
+
   describe('formatNoteDate()', () => {
     const date1 = new Date(2022, 11, 31)
     const date2 = new Date(2023, 0, 1)

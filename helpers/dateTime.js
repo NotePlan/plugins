@@ -1468,6 +1468,70 @@ export function filenameIsInFuture(filename: string, fromYYYYMMDDDateStringFromD
 }
 
 /**
+ * Checks if every part of the calendar period named by this filename is already in the past.
+ * The current period is not fully in the past: today's daily note, this week's weekly note,
+ * and the current month, quarter, and year are all excluded. A non-calendar filename returns false.
+ *
+ * @param {string} filename - The filename to check.
+ * @param {string} [fromYYYYMMDDDateStringFromDate=getTodaysDateUnhyphenated()] - The date to compare against, in unhyphenated format (YYYYMMDD).
+ * @returns {boolean} - Returns true only when the filename's whole period is before the comparison date's period.
+ */
+export function filenameIsFullyInPast(filename: string, fromYYYYMMDDDateStringFromDate: string = getTodaysDateUnhyphenated()): boolean {
+  const today = new Date(
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(0, 4)),
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(4, 6), 10) - 1,
+    parseInt(fromYYYYMMDDDateStringFromDate.slice(6, 8), 10),
+  )
+
+  // Test for daily notes
+  if (filename.match(RE_DAILY_NOTE_FILENAME)) {
+    const dateMatch = filename.match(RE_DAILY_NOTE_FILENAME)
+    if (dateMatch) {
+      const dailyDate = dateMatch[0].match(/\d{8}/)?.[0] ?? ''
+      return dailyDate < fromYYYYMMDDDateStringFromDate
+    }
+  }
+
+  // Test for weekly notes
+  if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
+    const weekDateMatch = filename.match(RE_WEEKLY_NOTE_FILENAME)
+    if (weekDateMatch) {
+      const weeklyDate = weekDateMatch[0].match(/\d{4}-W\d{2}/)?.[0] ?? ''
+      return weeklyDate < getNPWeekStr(today)
+    }
+  }
+
+  // Test for monthly notes
+  if (filename.match(RE_MONTHLY_NOTE_FILENAME)) {
+    const monthDateMatch = filename.match(RE_MONTHLY_NOTE_FILENAME)
+    if (monthDateMatch) {
+      const monthlyDate = monthDateMatch[0].match(/\d{4}-\d{2}/)?.[0] ?? ''
+      return monthlyDate < getNPMonthStr(today)
+    }
+  }
+
+  // Test for quarterly notes
+  if (filename.match(RE_QUARTERLY_NOTE_FILENAME)) {
+    const quarterDateMatch = filename.match(RE_QUARTERLY_NOTE_FILENAME)
+    if (quarterDateMatch) {
+      const quarterlyDate = quarterDateMatch[0].match(/\d{4}-Q\d/)?.[0] ?? ''
+      return quarterlyDate < getNPQuarterStr(today)
+    }
+  }
+
+  // Test for yearly notes
+  if (filename.match(RE_YEARLY_NOTE_FILENAME)) {
+    const yearDateMatch = filename.match(RE_YEARLY_NOTE_FILENAME)
+    if (yearDateMatch) {
+      const yearlyDate = yearDateMatch[0].match(/\d{4}/)?.[0] ?? ''
+      return yearlyDate < getNPYearStr(today)
+    }
+  }
+
+  return false
+}
+
+/**
  * WARNING: DO NOT USE THESE FOR NOTEPLAN WEEK CALCULATIONS BECAUSE NOTEPLAN DOES NOT ACTUALLY USE ISO WEEKS (IT'S OFFSET DUE TO USER PREFS START-WEEK-ON)
  * Get the week number string for a given date string or Date object.
  * @param {string} date - date string in format YYYY-MM-DD OR a Date object
