@@ -115,9 +115,6 @@ Note: if the line contains a blockID (link to another line), this will be remove
 ## /process date offsets
 User George Crump (@george65) has created a [video showing how this command works](https://drive.google.com/file/d/10suCe0x8QPbHw_7h4Ao4zwWf_kApEOKH/view).
 
-Settings:
-- **Add final date to the end of the section?** (`addComputedFinalDate`): when enabled, appends the last computed offset date to the **section heading** that supplied the base date, in the form `to YYYY-MM-DD` (or `to YYYY-Wnn` etc., matching the offset unit of the last calculation). This is added when the section ends (blank line, separator, or next heading). Default: **false**. Task lines that supply a base date do not receive this suffix.
-
 The command is best understood with some examples. Here's some Christmas planning (with **Add final date…** enabled for the heading):
 
 | This ...                                                                                                                                                                        | ... becomes this                                                                                                                                                                                             |
@@ -150,9 +147,12 @@ In more detail:
 | \* Bob's birthday on 2021-09-14<br />&nbsp;&nbsp;\* Find present {^-6d}<br />&nbsp;&nbsp;\* Wrap & post present {^-3d} <br />&nbsp;&nbsp;\* Call Bob {0d}   | \* Bob's birthday on 2021-09-14<br />&nbsp;&nbsp;\* Find present >2021-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2021-09-11<br />&nbsp;&nbsp;\* Call Bob >2021-09-14 |
 | \#\#\# Easter Preparations >2022-03-01<br />\* Use up sweet treats (Shrove Tuesday) {0d}<br />\* Start Lent (Ash Wednesday) {^+1d}<br />\* End of Lent {^+42d}<br />\* Remember Last Supper {^+1d} <br />\* Good Friday {^+1d} <br />\* Easter Sunday {^+2d} | \#\#\# Easter Preparations >2022-03-01 to 2022-04-17<br />\* Use up sweet treats (Shrove Tuesday) >2022-03-01<br />\* Start Lent (Ash Wednesday) >2022-03-02<br />\* End of Lent >2022-04-13<br />\* Remember Last Supper >2022-04-14<br />\* Good Friday >2022-04-15<br />\* Easter Sunday >2022-04-17 |
 
-If a base date can't be found, the command will ask you to supply a date.
+If a base date can't be found, the command will ask you to supply a date. It will warn if it can't calculate an offset, for example if the first offset is `{^1w}`.
 
 Note: any blockIDs (links to another line) are removed before the offset is calculated.
+
+Settings:
+- **Add final date to the end of the section?** (`addComputedFinalDate`): when enabled, appends the last computed offset date to the **section heading** that supplied the base date, in the form `to YYYY-MM-DD` (or `to YYYY-Wnn` etc., matching the offset unit of the last calculation). This is added when the section ends (blank line, separator, or next heading). Default: **false**. Task lines that supply a base date do not receive this suffix.
 
 ## Display of Time Blocks
 If you're using the **time blocks to calendar** command with a format that includes the START and END times, then it's likely that the NotePlan will still see a time block for the text of the event, and so in the calendar area show the event _and_ a time block for it. To avoid this you can either

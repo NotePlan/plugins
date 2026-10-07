@@ -2,8 +2,13 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
-## [0.23.5] - 2026-07-09 @jgclark
+## [1.24.0] - 2026-10-07 @jgclark
+- '/process date offsets' now also removes date-offset groups (such as `{+1d}`) from **closed** tasks and checklists, and leaves other `{...}` text in place.
 - fix: '/shift dates' (when nothing is selected) and '/process date offsets' now include the last active line. That is the last line of the note when there is no Done or Cancelled section, and the last line before those sections when they are present.
+- fix: '/shift dates' shifts each date on a line once. A shifted date is no longer shifted again when it matches another date still on that line. A date that cannot be calculated is left unchanged.
+- fix: '/process date offsets' leaves the offset marker in place when the date cannot be calculated, instead of writing `(error)`, and a warning message is shown to the user.
+
+## [0.23.5] - 2026-07-09 @jgclark
 - fix to `events()`and `matchingEvents()`" template commands so `includeHeadings: false` now also suppresses the per-day headings that were previously always added when `daysToCover` > 1. (Thanks, @akrabat.)
 - **/process date offsets** command changes: 
   - the 'add computed final date' setting now only appends to section headings (not task lines)
