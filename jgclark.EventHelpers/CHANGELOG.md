@@ -8,6 +8,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - fix: '/shift dates' shifts each date on a line once. A shifted date is no longer shifted again when it matches another date still on that line. A date that cannot be calculated is left unchanged.
 - fix: '/process date offsets' leaves the offset marker in place when the date cannot be calculated, instead of writing `(error)`, and a warning message is shown to the user.
 - fix: '/shift dates' and '/process date offsets' stop before a Done or Cancelled heading even when that heading is the first or second line, and when the note has frontmatter.
+- fix: '/process date offsets' appends the computed final date to the last section heading too, when that section runs to the end of the note or up to a Done heading.
 
 ## [0.23.5] - 2026-07-09 @jgclark
 - fix to `events()`and `matchingEvents()`" template commands so `includeHeadings: false` now also suppresses the per-day headings that were previously always added when `daysToCover` > 1. (Thanks, @akrabat.)

@@ -88,6 +88,17 @@ function simulateProcessDateOffsets(
     }
   }
 
+  // Close a section that runs to the end of the note without a following boundary line.
+  if (currentTargetDate !== '') {
+    outputLines[currentTargetDateLine] = appendComputedFinalDateToContent(
+      outputLines[currentTargetDateLine],
+      currentTargetDateOrigin,
+      lastCalcDate,
+      currentTargetDateLine,
+      addComputedFinalDate,
+    )
+  }
+
   return { lines: outputLines, ctdAtEnd: currentTargetDate, ctdOriginAtEnd: currentTargetDateOrigin }
 }
 
@@ -238,7 +249,7 @@ describe('CTD origin (heading vs from-task behaviour)', () => {
       expect(lines[0]).toEqual('* Post cards deadline !2021-12-18 >2021-12-08')
     })
 
-    test('new heading clears previous heading section and appends final date to previous heading only', () => {
+    test('new heading appends the final date to the previous heading, and the last section is closed at the end of the note', () => {
       const { lines } = simulateProcessDateOffsets(
         [
           { content: '### Section A 2021-12-25', level: -1, type: 'title' },
@@ -250,7 +261,7 @@ describe('CTD origin (heading vs from-task behaviour)', () => {
       )
       expect(lines[0]).toEqual('### Section A 2021-12-25 to 2021-12-15')
       expect(lines[1]).toEqual('* Task A >2021-12-15')
-      expect(lines[2]).toEqual('### Section B 2022-06-01')
+      expect(lines[2]).toEqual('### Section B 2022-06-01 to 2022-06-02')
       expect(lines[3]).toEqual('* Task B >2022-06-02')
     })
 

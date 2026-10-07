@@ -307,3 +307,47 @@ describe('processDateOffsets failed calculations', () => {
     }
   })
 })
+
+describe('processDateOffsets computed final date', () => {
+  /**
+   * Run processDateOffsets with addComputedFinalDate turned on.
+   * @param {() => Promise<void>} run
+   * @returns {Promise<void>}
+   */
+  async function withFinalDate(run: () => Promise<void>): Promise<void> {
+    const originalLoadJSON = DataStore.loadJSON
+    DataStore.loadJSON = jest.fn(async () => ({ addComputedFinalDate: true }))
+    try {
+      await run()
+    } finally {
+      DataStore.loadJSON = originalLoadJSON
+    }
+  }
+
+  test('appends the final date to a heading section that ends at the end of the note', async () => {
+    const note = useNote([
+      para(0, '### Prep >2026-10-01', 'title', 3),
+      para(1, '* task {+1d}', 'open'),
+    ])
+    await withFinalDate(async () => {
+      await processDateOffsets()
+      expect(note.paragraphs[0].content).toBe('### Prep >2026-10-01 to 2026-10-02')
+      expect(note.paragraphs[1].content).toContain('>2026-10-02')
+    })
+  })
+
+  test('appends the final date when the section runs up to a Done heading', async () => {
+    const note = useNote([
+      para(0, '### Prep >2026-10-01', 'title', 3),
+      para(1, '* task {+1d}', 'open'),
+      para(2, 'Done', 'title', 2),
+      para(3, '* archived {+1d}', 'open'),
+    ])
+    await withFinalDate(async () => {
+      await processDateOffsets()
+      expect(note.paragraphs[0].content).toBe('### Prep >2026-10-01 to 2026-10-02')
+      expect(note.paragraphs[1].content).toContain('>2026-10-02')
+      expect(note.paragraphs[3].content).toBe('* archived {+1d}')
+    })
+  })
+})

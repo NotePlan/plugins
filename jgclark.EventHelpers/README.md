@@ -152,7 +152,7 @@ If a base date can't be found, the command will ask you to supply a date. It wil
 Note: any blockIDs (links to another line) are removed before the offset is calculated.
 
 Settings:
-- **Add final date to the end of the section?** (`addComputedFinalDate`): when enabled, appends the last computed offset date to the **section heading** that supplied the base date, in the form `to YYYY-MM-DD` (or `to YYYY-Wnn` etc., matching the offset unit of the last calculation). This is added when the section ends (blank line, separator, or next heading). Default: **false**. Task lines that supply a base date do not receive this suffix.
+- **Add final date to the end of the section?** (`addComputedFinalDate`): when enabled, appends the last computed offset date to the **section heading** that supplied the base date, in the form `to YYYY-MM-DD` (or `to YYYY-Wnn` etc., matching the offset unit of the last calculation). This is added when the section ends (blank line, separator, next heading, or the end of the active part of the note). Default: **false**. Task lines that supply a base date do not receive this suffix.
 
 ## Display of Time Blocks
 If you're using the **time blocks to calendar** command with a format that includes the START and END times, then it's likely that the NotePlan will still see a time block for the text of the event, and so in the calendar area show the event _and_ a time block for it. To avoid this you can either

@@ -435,7 +435,7 @@ function removeDateOffsetGroups(content: string): string {
  * Computed dates use the same calendar period as the offset unit (`d` -> YYYY-MM-DD, `w` -> YYYY-Wnn, etc.).
  * Note: doesn't explicitly handle case where base date period is longer than the offset unit (e.g. week base + 2d), which seems like an error case.
  * Offsets apply within a contiguous section, which ends on lower indent, heading, blank line, or separator.
- * If `addComputedFinalDate` is enabled, the final calculated date is appended to the section heading (not task lines).
+ * If `addComputedFinalDate` is enabled, the final calculated date is appended to the section heading (not task lines) when the section ends, including at the end of the active part of the note.
  * Closed tasks and checklists have date-offset `{...}` groups removed instead of calculated. Other `{...}` text is left in place.
  * @author @jgclark
  * @returns {Promise<void>}
@@ -486,6 +486,32 @@ export async function processDateOffsets(): Promise<void> {
 
       while (n <= endOfActive && n < paragraphs.length) {
         let content = paragraphs[n].content
+        // Headings, blanks, and separators define sections even though they are not open tasks.
+        thisLevel = paragraphs[n].type === 'title' ? (thisLevel = -1) : paragraphs[n].indents
+        // logDebug('processDateOffsets', `  Line ${n} (${thisLevel}) '${content}'`)
+
+        // Decide whether to clear CTD
+        if (isSectionBoundary(thisLevel, previousFoundLevel, content, paragraphs[n].type)) {
+          if (currentTargetDate !== '') {
+            logDebug('processDateOffsets', `- Cleared CTD`)
+            appendComputedFinalDateIfWanted(true, lastCalcDate, currentTargetDateLine, currentTargetDateOrigin, config, paragraphs, note)
+          }
+          currentTargetDate = ''
+          currentTargetDateLine = 0
+          currentTargetDateOrigin = ''
+          lastCalcDate = ''
+          // addFinalDate = false
+        }
+
+        // Try matching for the standard YYYY-MM-DD date pattern on its own
+        const ctdInfo = setCurrentTargetDateIfBareDate(content, thisLevel, previousFoundLevel, n)
+        if (ctdInfo.ctd !== '') {
+          currentTargetDate = ctdInfo.ctd
+          currentTargetDateLine = ctdInfo.ctdLine
+          currentTargetDateOrigin = ctdInfo.ctdOrigin
+          previousFoundLevel = ctdInfo.ctdLevel
+        }
+
         if (isOpen(paragraphs[n])) {
           // For open tasks
           // Make a note if this contains a time block
@@ -493,43 +519,21 @@ export async function processDateOffsets(): Promise<void> {
             numFoundTimeblocks++
           }
 
-          // As we're about to update the string, let's first unhook it from any sync'd copies
-          content = stripBlockIDsFromString(content)
-          thisLevel = paragraphs[n].type === 'title' ? (thisLevel = -1) : paragraphs[n].indents
-          // logDebug('processDateOffsets', `  Line ${n} (${thisLevel}) '${content}'`)
-
-          // Decide whether to clear CTD
-          if (isSectionBoundary(thisLevel, previousFoundLevel, content, paragraphs[n].type)) {
-            if (currentTargetDate !== '') {
-              logDebug('processDateOffsets', `- Cleared CTD`)
-              appendComputedFinalDateIfWanted(true, lastCalcDate, currentTargetDateLine, currentTargetDateOrigin, config, paragraphs, note)
-            }
-            currentTargetDate = ''
-            currentTargetDateLine = 0
-            currentTargetDateOrigin = ''
-            lastCalcDate = ''
-            // addFinalDate = false
-          }
-
-          // Try matching for the standard YYYY-MM-DD date pattern on its own
-          const ctdInfo = setCurrentTargetDateIfBareDate(content, thisLevel, previousFoundLevel, n)
-          if (ctdInfo.ctd !== '') {
-            currentTargetDate = ctdInfo.ctd
-            currentTargetDateLine = ctdInfo.ctdLine
-            currentTargetDateOrigin = ctdInfo.ctdOrigin
-            previousFoundLevel = ctdInfo.ctdLevel
-          }
-
           // find lines with {+3d} or {-4w} or {^3b} etc. plus {0d} special case
           // NB: this only deals with the first on any line; it doesn't make sense to have more than one.
           if (content.match(RE_OFFSET_DATE)) {
             logDebug('processDateOffsets', `    - Found line '${content}'`)
+            // As we're about to update the string, let's first unhook it from any sync'd copies
+            content = stripBlockIDsFromString(content)
             const dateOffsetStrings = content.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
             const dateOffsetString = dateOffsetStrings[1] // first capture group
             if (dateOffsetString !== '') {
               // We have a date offset in the line
               const ensuredCTD = await ensureBaseDate(content, currentTargetDate, lastCalcDate)
               if (ensuredCTD === '') {
+                if (currentTargetDate !== '') {
+                  appendComputedFinalDateIfWanted(true, lastCalcDate, currentTargetDateLine, currentTargetDateOrigin, config, paragraphs, note)
+                }
                 await reportFailedOffsets(offsetsFailed, offsetsFound)
                 return
               }
@@ -560,6 +564,11 @@ export async function processDateOffsets(): Promise<void> {
           }
         }
         n += 1
+      }
+
+      // The loop stops before a Done heading, and a note can end on the last task, so close the section that is still open.
+      if (currentTargetDate !== '') {
+        appendComputedFinalDateIfWanted(true, lastCalcDate, currentTargetDateLine, currentTargetDateOrigin, config, paragraphs, note)
       }
 
       await reportFailedOffsets(offsetsFailed, offsetsFound)
