@@ -19,7 +19,7 @@ import { showMessage } from '@helpers/userInput'
 export type ReviewConfig = {
   usePerspectives: boolean,
   /** When true with usePerspectives, allProjectsList.json covers every saved perspective. Hidden setting. */
-  FFlag_UseAllPerspectives?: boolean,
+  FFlag_UseCacheOfAllPerspectives?: boolean,
   perspectiveName: string,
   outputStyle: string,
   reviewsTheme: string,
@@ -81,7 +81,7 @@ export type ReviewConfigInput = $ReadOnly<Partial<ReviewConfig>>
 export const SETTINGS_THAT_REQUIRE_REBUILD: $ReadOnlyArray<string> = [
   'projectTypeTags',
   'usePerspectives',
-  'FFlag_UseAllPerspectives',
+  'FFlag_UseCacheOfAllPerspectives',
   'foldersToInclude',
   'foldersToIgnore',
   'startMentionStr',
@@ -255,8 +255,8 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     config.projectMetadataFrontmatterKey = singleMetadataKeyName
     DataStore.setPreference('projectMetadataFrontmatterKey', singleMetadataKeyName)
     // Default when Perspectives are off. Callers already gate teamspace filtering on usePerspectives, so this value is unused in that path.
-    if (config.FFlag_UseAllPerspectives == null) {
-      config.FFlag_UseAllPerspectives = false
+    if (config.FFlag_UseCacheOfAllPerspectives == null) {
+      config.FFlag_UseCacheOfAllPerspectives = false
     }
     if (!config.usePerspectives) {
       config.includedTeamspaces = ['private']
@@ -301,7 +301,7 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     return config
   } catch (err) {
     logError(pluginJson, `getReviewSettings() error: ${err.name}: ${err.message}`)
-    await backupSettings('jgclark.Reviews', 'error_in_file')
+    await backupSettings('jgclark.Reviews', 'error_in_file', true)
     await showMessage(`Sorry, there's been an error getting the settings for this plugin.\nI have tried to make a copy of the settings file to send to the plugin author on Discord if you wish.\n\nnNow please delete your NotePlan/Plugins/data/jgclark.Reviews/settings.json file. Then re-run the command, which should create a new settings file from the plugin defaults. If the issue persists, please raise an issue on GitHub.`, 'OK, thanks', 'Settings Error')
     return null
   }

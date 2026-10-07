@@ -12,10 +12,11 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 - Changing settings no longer regenerate every enabled section when they only affect display, or only a few sections (for example Overdue lookback, one tag section, or Hide duplicates). Folder and teamspace scope changes still refresh everything.
 - If Dashboard needs to get the Projects plugin to fully recalculate its list of projects (i.e. if the cache is too old when "Projects to Review" or "Active Projects" section is turned on), then it now shows a progress dialog and no longer freezes NotePlan while it works.
 - dev: Rename all main plugin constants as ALL_CAPS in the code.
-- dev: Writes `perspectiveScopeUnion.json`. It is rewritten when a perspective's folder or teamspace definition changes. On switch to a different perspective, only the destination perspective is re-resolved, and that scope is updated only when its included/excluded folder list changed. When Projects `FFlag_UseAllPerspectives` is on, a switch that did not change those folders re-renders the Rich project list instead of asking Projects to rebuild. The default `-` perspective is left out, because it usually includes every folder. (Requires v2.3.0 of P+R Plugin.)
+- dev: Writes `perspectiveScopeUnion.json`. It is rewritten when a perspective's folder or teamspace definition changes. On switch to a different perspective, only the destination perspective is re-resolved, and that scope is updated only when its included/excluded folder list changed. When Projects `FFlag_UseCacheOfAllPerspectives` is on, a switch that did not change those folders re-renders the Rich project list instead of asking Projects to rebuild. The default `-` perspective is left out, because it usually includes every folder. (Requires v2.3.0 of P+R Plugin.)
 
 ### Fixed
 - "Move to Note" from a calendar note to a regular note now updates that row in the Dashboard window (note link and the added >date), instead of leaving the old calendar line on screen.
+- The "Settings Backup" dialog is shown only when you run **/backupSettings**. Install, update, repair, and other automatic backups still write the file and stay quiet.
 
 ## [2.5.0] 2026-09-30
 ### New

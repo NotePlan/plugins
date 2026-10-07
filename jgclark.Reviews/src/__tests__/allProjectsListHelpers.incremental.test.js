@@ -125,7 +125,7 @@ describe('shouldUseFullAllProjectsGenerate', () => {
     })
     const config = makeConfig({
       usePerspectives: true,
-      FFlag_UseAllPerspectives: true,
+      FFlag_UseCacheOfAllPerspectives: true,
       perspectiveName: 'Home',
     })
     expect(shouldUseFullAllProjectsGenerate(config)).toBe(false)
@@ -143,7 +143,7 @@ describe('shouldUseFullAllProjectsGenerate', () => {
       if (String(path).includes('perspectiveScopeUnion')) return JSON.stringify(union)
       return JSON.stringify([{ filename: 'Home/A.md', allProjectTags: ['#project'] }])
     })
-    const config = makeConfig({ usePerspectives: true, FFlag_UseAllPerspectives: true, perspectiveName: 'Home' })
+    const config = makeConfig({ usePerspectives: true, FFlag_UseCacheOfAllPerspectives: true, perspectiveName: 'Home' })
     expect(shouldUseFullAllProjectsGenerate(config)).toBe(false)
     expect(shouldPartialIncludeChangedScopes(config)).toBe(true)
   })
@@ -160,7 +160,7 @@ describe('shouldUseFullAllProjectsGenerate', () => {
       if (String(path).includes('perspectiveScopeUnion')) return JSON.stringify(union)
       return JSON.stringify([{ filename: 'Home/A.md', allProjectTags: ['#project'] }])
     })
-    const config = makeConfig({ usePerspectives: true, FFlag_UseAllPerspectives: true, perspectiveName: 'Home' })
+    const config = makeConfig({ usePerspectives: true, FFlag_UseCacheOfAllPerspectives: true, perspectiveName: 'Home' })
     expect(shouldPartialIncludeChangedScopes(config)).toBe(false)
     expect(shouldUseFullAllProjectsGenerate(config)).toBe(true)
   })
@@ -169,7 +169,7 @@ describe('shouldUseFullAllProjectsGenerate', () => {
     global.DataStore.fileExists = jest.fn((path: string) => !String(path).includes('perspectiveScopeUnion'))
     const config = makeConfig({
       usePerspectives: true,
-      FFlag_UseAllPerspectives: true,
+      FFlag_UseCacheOfAllPerspectives: true,
       perspectiveName: 'Home',
       foldersToInclude: ['Projects'],
     })

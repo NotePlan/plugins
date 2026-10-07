@@ -127,7 +127,7 @@ export function scheduleReviewsListAfterPerspectiveSwitch(
       )
       return
     }
-    // renderOnly: FFlag_UseAllPerspectives and the destination scope's folder list did not change.
+    // renderOnly: FFlag_UseCacheOfAllPerspectives and the destination scope's folder list did not change.
     // The list already holds the union. Re-render so the Rich window filters to the new active perspective.
     const commandName = renderOnly ? 'renderProjectListsIfOpen' : 'generateProjectListsAndRenderIfOpen'
     const commandArgs = renderOnly ? [] : ['0', 'true', 'paintFirst', perspectiveName, bannerReason]

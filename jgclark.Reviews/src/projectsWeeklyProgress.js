@@ -272,11 +272,11 @@ function displayFoldersForWeeklyProgress(folderPaths: Array<string>): Array<stri
  * @returns {?{ notes: Array<TNote>, folders: Array<string> }} null when the union is not in use or cannot be read
  */
 function getNotesInPerspectiveScopeUnion(config: ReviewConfig): ?{ notes: Array<TNote>, folders: Array<string> } {
-  const useUnion = config.FFlag_UseAllPerspectives === true && config.usePerspectives === true
+  const useUnion = config.FFlag_UseCacheOfAllPerspectives === true && config.usePerspectives === true
   if (!useUnion) return null
   const union = readPerspectiveScopeUnion()
   if (union == null || union.scopes.length === 0) {
-    logWarn('getNotesInTargetProjectFolders', 'FFlag_UseAllPerspectives is on but perspectiveScopeUnion.json is missing or empty. Falling back to Area/Project folders and Space notes.')
+    logWarn('getNotesInTargetProjectFolders', 'FFlag_UseCacheOfAllPerspectives is on but perspectiveScopeUnion.json is missing or empty. Falling back to Area/Project folders and Space notes.')
     return null
   }
   const unionFolders = foldersInPerspectiveScopeUnion(union.scopes)

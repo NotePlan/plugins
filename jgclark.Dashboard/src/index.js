@@ -86,7 +86,8 @@ export { externallyStartSearch } from './dataGenerationSearch.js'
 export { repairDashboardSettings } from './dashboardPluginSettings'
 
 export async function backupSettings(): Promise<void> {
-  const res = await npc.backupSettings(pluginID, 'backup')
+  // Manual command: show the confirmation. Automatic callers leave suppressMessage at its default (true).
+  const res = await npc.backupSettings(pluginID, 'backup', false)
   if (res) {
     logInfo(pluginJson, `backupSettings() - backup successful.`)
   } else {

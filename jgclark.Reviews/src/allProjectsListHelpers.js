@@ -366,7 +366,7 @@ function getFolderFilterFingerprint(config: ReviewConfig): string {
  * @returns {boolean}
  */
 function usesAllPerspectivesUnion(config: ReviewConfig): boolean {
-  return config?.FFlag_UseAllPerspectives === true && config?.usePerspectives === true
+  return config?.FFlag_UseCacheOfAllPerspectives === true && config?.usePerspectives === true
 }
 
 /**
@@ -378,7 +378,7 @@ function readUnionForConfig(config: ReviewConfig): ?TPerspectiveScopeUnion {
   if (!usesAllPerspectivesUnion(config)) return null
   const union = readPerspectiveScopeUnion()
   if (union == null) {
-    logWarn('readUnionForConfig', 'FFlag_UseAllPerspectives is on but perspectiveScopeUnion.json is missing or unreadable. Using the active perspective.')
+    logWarn('readUnionForConfig', 'FFlag_UseCacheOfAllPerspectives is on but perspectiveScopeUnion.json is missing or unreadable. Using the active perspective.')
   }
   return union
 }
@@ -861,7 +861,7 @@ export async function logPerspectiveScopeUnion(): Promise<void> {
 
 /**
  * Force a full rebuild of allProjectsList.json from the current union file.
- * Uses the union even when FFlag_UseAllPerspectives is off, for this run only.
+ * Uses the union even when FFlag_UseCacheOfAllPerspectives is off, for this run only.
  * @returns {Promise<void>}
  */
 export async function rebuildAllProjectsListForUnion(): Promise<void> {
@@ -878,9 +878,9 @@ export async function rebuildAllProjectsListForUnion(): Promise<void> {
     }
     logInfo(
       'rebuildAllProjectsListForUnion',
-      `Forcing full rebuild from union (${String(union.scopes.length)} scopes, fingerprint ${union.fingerprint}). Saved FFlag_UseAllPerspectives=${String(config.FFlag_UseAllPerspectives === true)}`,
+      `Forcing full rebuild from union (${String(union.scopes.length)} scopes, fingerprint ${union.fingerprint}). Saved FFlag_UseCacheOfAllPerspectives=${String(config.FFlag_UseCacheOfAllPerspectives === true)}`,
     )
-    const configForUnion: ReviewConfig = { ...config, usePerspectives: true, FFlag_UseAllPerspectives: true }
+    const configForUnion: ReviewConfig = { ...config, usePerspectives: true, FFlag_UseCacheOfAllPerspectives: true }
     // Skip Rich list and Dashboard refresh. Those reads call getAllProjectsFromList, which starts another full generate while this one has not written the list yet.
     const startTime = new Date()
     const projects = await generateAllProjectsList(configForUnion, true, 0, true, true, true)

@@ -967,7 +967,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       // Reviews Rich list: queue via x-callback (invokePluginCommandByName blocks the JSContext even without await).
       // When the union flag is on and this switch did not change the destination scope's folders, render only.
       const reviewsConfig = await getReviewSettings(true)
-      const useAllPerspectives = reviewsConfig?.FFlag_UseAllPerspectives === true && reviewsConfig?.usePerspectives === true
+      const useAllPerspectives = reviewsConfig?.FFlag_UseCacheOfAllPerspectives === true && reviewsConfig?.usePerspectives === true
       const renderOnly = useAllPerspectives && handlerResultIn.perspectiveScopeFoldersChanged !== true
       scheduleReviewsListAfterPerspectiveSwitch(data?.perspectiveName || handlerResultIn.perspectiveName || '', 'switch', renderOnly)
     }
