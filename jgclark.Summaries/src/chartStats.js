@@ -7,7 +7,7 @@
  *
  * Note: definitions of tags, habits, etc. are now taken from the settings for Progress Updates command.
  *
- * Last updated: 2026-09-25 for v1.2.0 by @jgclark and @CursorAI
+ * Last updated: 2026-10-07 for v1.2.0 by @jgclark and @CursorAI
  */
 
 // =====================================================================
@@ -444,8 +444,11 @@ function buildRawDatesFromISODateRange(fromDateStr: string, toDateStr: string): 
  * @param {string} dateStr - Date in YYYY-MM-DD format
  * @returns {string} Formatted date (e.g., "Jan 15")
  */
-function formatDateForDisplay(dateStr: string): string {
-  const date = new Date(dateStr)
+export function formatDateForDisplay(dateStr: string): string {
+  // `new Date('YYYY-MM-DD')` is UTC midnight, so west of UTC the label is the previous day.
+  // Build a local calendar date so axis labels match the tooltip date.
+  const parts = dateStr.split('-')
+  const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
   const locale = getLocale({})
   return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
 }

@@ -7,8 +7,25 @@
 import {
   getRecentAverage,
   getLastPeriodAverage,
-  computeTagDisplayStats
+  computeTagDisplayStats,
+  formatDateForDisplay
 } from '../chartStats.js'
+
+describe('formatDateForDisplay()', () => {
+  test('uses the calendar day of a YYYY-MM-DD string, not UTC midnight', () => {
+    const dateStr = '2026-09-24'
+    const parts = dateStr.split('-').map(Number)
+    const localDate = new Date(parts[0], parts[1] - 1, parts[2])
+    const expected = localDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    expect(formatDateForDisplay(dateStr)).toBe(expected)
+    expect(formatDateForDisplay(dateStr)).toMatch(/24/)
+  })
+
+  test('keeps the first and last days of a two-week range', () => {
+    expect(formatDateForDisplay('2026-09-14')).toMatch(/14/)
+    expect(formatDateForDisplay('2026-09-27')).toMatch(/27/)
+  })
+})
 
 describe('chartStats display statistics', () => {
   describe('getRecentAverage()', () => {

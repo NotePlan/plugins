@@ -1,6 +1,9 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [1.2.1] - 2026-10-07
+- fix: Habit & Summary Charts x-axis labels (and yes/no heatmap titles) were one day early in timezones west of UTC. (Thanks for tip-off @IAmTheTuna)
+
 ## [1.2.0] - 2026-09-25
 - On NotePlan 3.21.3+, long note scans (`/chart progress summary`, `/progress update`, `/period stats`, `/today progress`, heatmaps, and weekly stats) run on a background thread so the app stays responsive. A progress dialog updates while notes are scanned.
 - Numeric output is now internationalized and shown to at most 4 significant figures. E.g. "1234.567" is now shown as "1,234" (UK/US) or "1.234" (DE), and "23.456" as "23.5" (UK/US) or "23,5" (DE).
