@@ -3,7 +3,7 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// last update 2025-10-10 for v1.15.0 by @jgclark
+// last update 2026-10-07 for v1.15.0+ by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -49,29 +49,7 @@ export async function onSettingsUpdated(): Promise<void> {
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(pluginJson, `onUpdateOrInstall() ...`)
-    const initialSettings = (await DataStore.loadJSON(`../${pluginID}/settings.json`)) || DataStore.settings
-
-    // Migrate any necessary settings from v0.15 to v1.x
-    // TODO(later): remove when all users have updated to v1.x
     await backupSettings(pluginID, `before_onUpdateOrInstall-v${pluginJson['plugin.version']}`)
-    const keysToChange = {
-      // oldKey: newKey
-      templateTitle: 'startDailyTemplateTitle',
-      weeklyTemplateTitle: 'startWeeklyTemplateTitle',
-      monthlyTemplateTitle: 'startMonthlyTemplateTitle',
-      reviewQuestions: 'dailyReviewQuestions',
-    }
-    const migratedSettings = renameKeys(initialSettings, keysToChange)
-    const diff = compareObjects(migratedSettings, initialSettings, [], true)
-    if (diff != null) {
-      // Save the settings back to the DataStore
-      logInfo(`onUpdateOrInstall`, `- changes to settings detected`)
-      clo(initialSettings, `onUpdateOrInstall:  initialSettings:`)
-      clo(migratedSettings, `onUpdateOrInstall:  migratedSettings:`)
-      await saveSettings(pluginID, migratedSettings)
-    } else {
-      logDebug(`onUpdateOrInstall`, `- no changes detected to settings.`)
-    }
 
     // Tell user the plugin has been updated
     logInfo(pluginID, `- finished`)
