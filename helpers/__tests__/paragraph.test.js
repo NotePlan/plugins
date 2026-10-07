@@ -605,6 +605,38 @@ describe('paragraph.js', () => {
       const result = p.findEndOfActivePartOfNote(noteG)
       expect(result).toEqual(0)
     })
+    const noteH = {
+      paragraphs: [
+        { type: 'open', lineIndex: 0, content: 'task' },
+        { type: 'title', lineIndex: 1, content: 'Done', headingLevel: 2 },
+        { type: 'done', lineIndex: 2, content: 'archived' },
+      ],
+    }
+    test('note H: Done on the second line stops after the first line', () => {
+      const result = p.findEndOfActivePartOfNote(noteH)
+      expect(result).toEqual(0)
+    })
+    const noteI = {
+      paragraphs: [
+        { type: 'title', lineIndex: 0, content: 'Done', headingLevel: 2 },
+        { type: 'done', lineIndex: 1, content: 'archived' },
+      ],
+    }
+    test('note I: Done on the first line means there is no active line', () => {
+      const result = p.findEndOfActivePartOfNote(noteI)
+      expect(result).toEqual(-1)
+    })
+    const noteJ = {
+      paragraphs: [
+        { type: 'open', lineIndex: 0, content: 'task' },
+        { type: 'title', lineIndex: 1, content: 'Cancelled', headingLevel: 2 },
+        { type: 'cancelled', lineIndex: 2, content: 'archived' },
+      ],
+    }
+    test('note J: Cancelled on the second line stops after the first line', () => {
+      const result = p.findEndOfActivePartOfNote(noteJ)
+      expect(result).toEqual(0)
+    })
   })
 
   describe('getFieldsFromNote()', () => {

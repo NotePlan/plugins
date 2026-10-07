@@ -722,12 +722,14 @@ export function endOfPreambleSection(note: CoreNoteFields): number {
  * Works with folded Done or Cancelled sections.
  * If the result is a separator, use the line before that instead
  * If neither Done or Cancelled present, return the last non-empty lineIndex.
+ * Returns -1 when a Done or Cancelled heading is the first paragraph, so there is no active line before it.
+ * Pass the same paragraph list you will index. Editor.paragraphs and Editor.note.paragraphs differ when the note has frontmatter.
  * @author @jgclark
  * @tests in jest file
  *
  * @param {TNote} note - the note to assess
  * @param {Array<string>} doneHeadingNames? - optional list of level-2 heading names that mark the start of an archive section (default: ['Done'])
- * @returns {number} - the index number (counting from zero)
+ * @returns {number} - the index number (counting from zero), or -1 when the archive heading is the first line
  */
 export function findEndOfActivePartOfNote(note: CoreNoteFields, doneHeadingNames?: Array<string> = ['Done']): number {
   try {
@@ -744,26 +746,31 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields, doneHeadingNames
         lineCount--
       }
 
+      // -1 means "not found". Line 0 is a real paragraph, so it cannot be the not-found value.
+      const NOT_FOUND = -1
+
       // Find first example of any configured "Done" archive heading
       // (defaults to exact match on 'Done', but also allows a trailing ' ...' / ' …')
       const doneHeaderLines = paras.filter(
         (p) =>
           doneHeadingNames.some((name) => isParaAMatchForHeading(p, name, 2)),
       ) ?? []
-      let doneHeaderLine = doneHeaderLines.length > 0 ? doneHeaderLines[0].lineIndex : 0
+      let doneHeaderLine = doneHeaderLines.length > 0 ? doneHeaderLines[0].lineIndex : NOT_FOUND
       // Now check to see if previous line was a separator; if so use that line instead
-      if (doneHeaderLine > 2 && paras[doneHeaderLine - 1].type === 'separator') {
+      if (doneHeaderLine > 0 && paras[doneHeaderLine - 1].type === 'separator') {
         doneHeaderLine -= 1
       }
       // Find first example of ## Cancelled
       const cancelledHeaderLines = paras.filter((p) => p.headingLevel === 2 && p.content.startsWith('Cancelled')) ?? []
-      let cancelledHeaderLine = cancelledHeaderLines.length > 0 ? cancelledHeaderLines[0].lineIndex : 0
+      let cancelledHeaderLine = cancelledHeaderLines.length > 0 ? cancelledHeaderLines[0].lineIndex : NOT_FOUND
       // Now check to see if previous line was a separator; if so use that line instead
-      if (cancelledHeaderLine > 2 && paras[cancelledHeaderLine - 1].type === 'separator') {
+      if (cancelledHeaderLine > 0 && paras[cancelledHeaderLine - 1].type === 'separator') {
         cancelledHeaderLine -= 1
       }
 
-      const endOfActive = doneHeaderLine > 1 ? doneHeaderLine - 1 : cancelledHeaderLine > 1 ? cancelledHeaderLine - 1 : lineCount > 1 ? lineCount - 1 : 0
+      // Done wins when both exist. A heading on line 0 means there is no active line before it.
+      const archiveLine = doneHeaderLine >= 0 ? doneHeaderLine : cancelledHeaderLine
+      const endOfActive = archiveLine >= 0 ? archiveLine - 1 : lineCount > 1 ? lineCount - 1 : 0
       // logDebug('paragraph/findEndOfActivePartOfNote', `doneHeaderLine = ${doneHeaderLine}, cancelledHeaderLine = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
       return endOfActive
     }

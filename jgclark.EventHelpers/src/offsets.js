@@ -61,7 +61,8 @@ export async function shiftDates(): Promise<void> {
     } else {
       // Use the whole note. findEndOfActivePartOfNote() returns the inclusive index of the last active line
       // (the last line when there is no Done or Cancelled section).
-      const endOfActive = findEndOfActivePartOfNote(note)
+      // Use Editor, not Editor.note: its paragraphs omit frontmatter, so the index matches this array.
+      const endOfActive = findEndOfActivePartOfNote(Editor)
       pArr = paragraphs.slice(0, endOfActive + 1)
     }
     logDebug('shiftDates', `shiftDates starting for ${pArr.length} lines`)
@@ -465,7 +466,8 @@ export async function processDateOffsets(): Promise<void> {
     let n = 0
     let numFoundTimeblocks = 0
     // Inclusive index of the last active line (the last line when there is no Done or Cancelled section).
-    const endOfActive = findEndOfActivePartOfNote(note)
+    // Use Editor, not Editor.note: its paragraphs omit frontmatter, so the index matches this array.
+    const endOfActive = findEndOfActivePartOfNote(Editor)
 
     // Look through this note to find date offsets
     const dateOffsetParas = paragraphs.filter((p) => p.lineIndex <= endOfActive && p.content.match(RE_DATE_INTERVAL))

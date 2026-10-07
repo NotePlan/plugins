@@ -94,6 +94,19 @@ describe('offsets.js last active line', () => {
     expect(note.paragraphs[3].content).toBe('* archived {+1d}')
   })
 
+  test('processDateOffsets does not change a line under Done when Done is the second line', async () => {
+    const note = useNote([
+      para(0, '* before done >2026-10-01 {+1d}', 'open'),
+      para(1, 'Done', 'title', 2),
+      para(2, '* archived {+1d}', 'open'),
+    ])
+
+    await processDateOffsets()
+
+    expect(note.paragraphs[0].content).toContain('>2026-10-02')
+    expect(note.paragraphs[2].content).toBe('* archived {+1d}')
+  })
+
   test('shiftDates includes the last line when nothing is selected', async () => {
     const note = useNote([
       para(0, '* earlier >2026-10-01', 'open'),
@@ -127,6 +140,43 @@ describe('offsets.js last active line', () => {
     expect(note.paragraphs[0].content).toContain('>2026-10-02')
     expect(note.paragraphs[1].content).toContain('>2026-10-02')
     expect(note.paragraphs[3].content).toBe('* archived >2026-10-01')
+  })
+
+  test('shiftDates does not change a date under Done when Done is the second line', async () => {
+    const note = useNote([
+      para(0, '* active >2026-10-01', 'open'),
+      para(1, 'Done', 'title', 2),
+      para(2, '* archived >2026-10-01', 'open'),
+    ])
+
+    await shiftDates()
+
+    expect(note.paragraphs[0].content).toContain('>2026-10-02')
+    expect(note.paragraphs[2].content).toBe('* archived >2026-10-01')
+  })
+
+  test('shiftDates does not change archive lines when the note paragraphs include frontmatter', async () => {
+    const editorParas = [
+      para(0, '* active >2026-10-01', 'open'),
+      para(1, 'Done', 'title', 2),
+      para(2, '* archived >2026-10-01', 'open'),
+    ]
+    const note = useNote(editorParas)
+    note.paragraphs = [
+      para(0, '---', 'separator'),
+      para(1, 'title: Project', 'text'),
+      para(2, '---', 'separator'),
+      para(3, '* active >2026-10-01', 'open'),
+      para(4, 'Done', 'title', 2),
+      para(5, '* archived >2026-10-01', 'open'),
+    ]
+    Editor.note = note
+    Editor.paragraphs = editorParas
+
+    await shiftDates()
+
+    expect(editorParas[0].content).toContain('>2026-10-02')
+    expect(editorParas[2].content).toBe('* archived >2026-10-01')
   })
 })
 
