@@ -1,7 +1,11 @@
 # What's changed in Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
-## [2.3.1] - 2026-10-???
+## [2.3.2] - 2026-10-07
+### Changes
+- Rich list review labels scale with the project's review interval. Each window is a fraction of that interval, and never wider than 7 days for review soon, 2 days for review now, or 5 days late for overdue. A review every few days only shows a label close to its review date. Due-date labels are unchanged.
+
+## [2.3.1] - 2026-10-05
 ### Changes
 - Project list toggles use the shared `apple-switch.css` from np.Shared (the DynamicDialog look).
 - The progress dialog shown when rebuilding the list of projects now shows a Teamspace's name, not its underlying ID.
