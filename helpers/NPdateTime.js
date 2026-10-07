@@ -811,9 +811,9 @@ function parseInputForNPWeek(dateIn: string | Date, offsetIncrement: number, off
   if (typeof dateIn === 'string') {
     if (new RegExp(dt.RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
     if (new RegExp(dt.RE_NP_WEEK_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[W]WW'
-    newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
+    newMom = dt.addInterval(moment(dateIn, dateStrFormat), offsetIncrement, offsetType)
   } else {
-    newMom = moment(dateIn).add(offsetIncrement, offsetType)
+    newMom = dt.addInterval(moment(dateIn), offsetIncrement, offsetType)
   }
   if (!newMom) {
     return null
@@ -957,7 +957,7 @@ function composeNotePlanWeekInfo(weekNumber: number, startDate: Date, endDate: D
  * If you create a new date of your own without a time (e.g. new Date("2022-01-01")) it could produce a date
  * in a previous or next day depending on your timezone. So if you are creating the date, just send through the date string rather than a date object.
  * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
- * @param {string} offsetType - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'week'). Note: not quarters!
+ * @param {string} offsetType - the increment to add/subtract: 'day'|'week'|'month'|'year'|'business' (default: 'week'). 'business' skips weekends. Note: not quarters!
  * @returns { NotePlanWeekInfo | null } - an object with all the week details, or null if there's an error
  * getNPWeekData: alias weekInfo, weekData, getWeek, weeklyNote
  * {
@@ -1958,7 +1958,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     if (offsetInterval === '') {
       throw new Error('Empty offsetInterval string')
     }
-    const offsetUnit = offsetInterval.charAt(offsetInterval.length - 1) // get last character
+    const offsetUnit = offsetInterval.charAt(offsetInterval.length - 1).toLowerCase() // get last character; b/B and W/w are the same unit
     // logDebug('dateTime / cODS', `Starting with ${adaptOutputInterval} adapt for ${baseDateIn} + ${offsetInterval}`)
 
     // calc offset date

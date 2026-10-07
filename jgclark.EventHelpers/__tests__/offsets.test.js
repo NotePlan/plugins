@@ -1,6 +1,7 @@
 // @flow
 /* global describe, expect, test, beforeAll, beforeEach, jest */
 import * as Dev from '@helpers/dev'
+import moment from 'moment/min/moment-with-locales'
 import { processDateOffsets, shiftDates } from '../src/offsets'
 import { CommandBar, DataStore, Editor, Note, NotePlan } from '@mocks/index'
 
@@ -258,6 +259,52 @@ describe('shiftDates one pass per date', () => {
     }
 
     expect(note.paragraphs[0].content).toBe('meet >2026-W10 and >2026-W11')
+  })
+
+  /**
+   * Run a shift with NotePlan week numbers (Monday start) available.
+   * @param {() => Promise<void>} run
+   * @returns {Promise<void>}
+   */
+  async function withIsoWeekCalendar(run: () => Promise<void>): Promise<void> {
+    const previousCalendar = global.Calendar
+    global.Calendar = {
+      weekNumber(date) {
+        return moment(date).isoWeek()
+      },
+      startOfWeek(date) {
+        return moment(date).startOf('isoWeek').toDate()
+      },
+      endOfWeek(date) {
+        return moment(date).endOf('isoWeek').toDate()
+      },
+    }
+    try {
+      await run()
+    } finally {
+      global.Calendar = previousCalendar
+    }
+  }
+
+  test('shifts a week date when the interval unit is upper case', async () => {
+    CommandBar.showInput = jest.fn(() => '1W')
+    const note = useNote([para(0, 'meet >2026-W10', 'text')])
+
+    await withIsoWeekCalendar(async () => {
+      await shiftDates()
+      expect(note.paragraphs[0].content).toBe('meet >2026-W11')
+    })
+  })
+
+  test('shifts a week date by business days', async () => {
+    // Five calendar days from the Monday of 2026-W10 stays in that week. Five business days lands in 2026-W11.
+    CommandBar.showInput = jest.fn(() => '5b')
+    const note = useNote([para(0, 'meet >2026-W10', 'text')])
+
+    await withIsoWeekCalendar(async () => {
+      await shiftDates()
+      expect(note.paragraphs[0].content).toBe('meet >2026-W11')
+    })
   })
 })
 

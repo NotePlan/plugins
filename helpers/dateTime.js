@@ -1151,16 +1151,17 @@ function convertOffsetUnitToMomentUnit(unit: string): string {
  * @returns {string} momentDateFormat
  */
 export function getNPDateFormatForFilenameFromOffsetUnit(unit: string): string {
+  const normalizedUnit = unit.toLowerCase()
   const momentDateFormat =
-    unit === 'd' || unit === 'b'
+    normalizedUnit === 'd' || normalizedUnit === 'b'
       ? MOMENT_FORMAT_NP_DAY // = YYYYMMDD not display format
-      : unit === 'w'
+      : normalizedUnit === 'w'
       ? MOMENT_FORMAT_NP_WEEK
-      : unit === 'm'
+      : normalizedUnit === 'm'
       ? MOMENT_FORMAT_NP_MONTH
-      : unit === 'q'
+      : normalizedUnit === 'q'
       ? MOMENT_FORMAT_NP_QUARTER
-      : unit === 'y'
+      : normalizedUnit === 'y'
       ? MOMENT_FORMAT_NP_WEEK
       : ''
   return momentDateFormat
@@ -1173,16 +1174,17 @@ export function getNPDateFormatForFilenameFromOffsetUnit(unit: string): string {
  * @test - available through calcOffsetDateStrUsingCalendarType() jest tests
  */
 export function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
+  const normalizedUnit = unit.toLowerCase()
   const momentDateFormat =
-    unit === 'd' || unit === 'b'
+    normalizedUnit === 'd' || normalizedUnit === 'b'
       ? MOMENT_FORMAT_NP_ISO // = YYYY-MM-DD not filename format
-      : unit === 'w'
+      : normalizedUnit === 'w'
       ? MOMENT_FORMAT_NP_WEEK
-      : unit === 'm'
+      : normalizedUnit === 'm'
       ? MOMENT_FORMAT_NP_MONTH
-      : unit === 'q'
+      : normalizedUnit === 'q'
       ? MOMENT_FORMAT_NP_QUARTER
-      : unit === 'y'
+      : normalizedUnit === 'y'
       ? MOMENT_FORMAT_NP_YEAR
       : ''
   return momentDateFormat
@@ -1230,7 +1232,7 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
       logError('dateTime / cOD', `Invalid date interval '${interval}'`)
       return null
     }
-    const unit = interval.charAt(interval.length - 1) // get last character
+    const unit = interval.charAt(interval.length - 1).toLowerCase() // get last character; b/B and W/w are the same unit
     const num = Number(interval.substr(0, interval.length - 1)) // return all but last character
 
     // short codes in moment library aren't quite the same as mine
@@ -1268,18 +1270,46 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
 }
 
 /**
- * Split an interval (e.g. '-3m') into number (e.g. -3) and type ('month') parts
- * If interval arrives with {...} around the terms, remove them first
- * @param {string} intervalStr (e.g. '-3m' or '{-3m}')
- * @returns {{number, string}} parts of interval
+ * Add a parsed interval to a moment.
+ * `business` skips weekends (Monday-Friday). Other types are moment units such as 'day' or 'week'.
+ * @param {any} baseMoment
+ * @param {number} increment
+ * @param {string} offsetType
+ * @returns {any} moment after the interval is applied
+ */
+export function addInterval(baseMoment: any, increment: number, offsetType: string): any {
+  if (offsetType === 'business') {
+    return momentBusiness(baseMoment).businessAdd(increment)
+  }
+  return baseMoment.add(increment, offsetType)
+}
+
+/**
+ * Split an interval (e.g. '-3m') into number (e.g. -3) and type ('month') parts.
+ * If interval arrives with {...} around the terms, remove them first.
+ * Units are case-insensitive. `b`/`B` is business days (`type: 'business'`), not calendar days.
+ * @param {string} intervalStr (e.g. '-3m', '{+2B}', or '+1W')
+ * @returns {{number: number, type: string}} parts of interval
  * @tests in jest file
  */
 export function splitIntervalToParts(intervalStr: string): { number: number, type: string } {
   const interval = intervalStr.replace(/[{}]/g, '')
   const intervalNumber = Number(interval.slice(0, interval.length - 1))
-  const intervalChar = interval.charAt(interval.length - 1)
+  const intervalChar = interval.charAt(interval.length - 1).toLowerCase()
   const intervalType =
-    intervalChar === 'd' ? 'day' : intervalChar === 'w' ? 'week' : intervalChar === 'm' ? 'month' : intervalChar === 'q' ? 'quarter' : intervalChar === 'y' ? 'year' : 'error'
+    intervalChar === 'd'
+      ? 'day'
+      : intervalChar === 'b'
+        ? 'business'
+        : intervalChar === 'w'
+          ? 'week'
+          : intervalChar === 'm'
+            ? 'month'
+            : intervalChar === 'q'
+              ? 'quarter'
+              : intervalChar === 'y'
+                ? 'year'
+                : 'error'
   const intervalParts = { number: intervalNumber, type: intervalType }
   return intervalParts
 }
@@ -1303,7 +1333,7 @@ export function calcOffsetDateStrUsingCalendarType(offsetInterval: string, baseD
     if (!offsetInterval.match(RE_DATE_INTERVAL)) {
       throw new Error(`Invalid date offsetInterval '${offsetInterval}'`)
     }
-    const unit = offsetInterval.charAt(offsetInterval.length - 1) // get last character
+    const unit = offsetInterval.charAt(offsetInterval.length - 1).toLowerCase() // get last character; b/B and W/w are the same unit
 
     // Check baseDateISOIn is valid
     if (baseDateISOIn !== '' && !baseDateISOIn.match(RE_ISO_DATE)) {

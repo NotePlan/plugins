@@ -1422,5 +1422,53 @@ describe(`${PLUGIN_NAME}`, () => {
         type: 'year',
       })
     })
+    test('+2b is business days', () => {
+      const result = dt.splitIntervalToParts('+2b')
+      expect(result).toEqual({
+        number: 2,
+        type: 'business',
+      })
+    })
+    test('+2B is business days', () => {
+      const result = dt.splitIntervalToParts('+2B')
+      expect(result).toEqual({
+        number: 2,
+        type: 'business',
+      })
+    })
+    test('+1W is a week', () => {
+      const result = dt.splitIntervalToParts('+1W')
+      expect(result).toEqual({
+        number: 1,
+        type: 'week',
+      })
+    })
+    test('upper-case D, M, Q, and Y', () => {
+      expect(dt.splitIntervalToParts('+3D').type).toBe('day')
+      expect(dt.splitIntervalToParts('+3M').type).toBe('month')
+      expect(dt.splitIntervalToParts('+3Q').type).toBe('quarter')
+      expect(dt.splitIntervalToParts('+3Y').type).toBe('year')
+    })
+  })
+
+  describe('calcOffsetDate() unit case', () => {
+    /**
+     * @param {Date | null} date
+     * @returns {string}
+     */
+    function ymd(date) {
+      if (date == null) return ''
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${date.getFullYear()}-${month}-${day}`
+    }
+
+    test('+1W shifts a day by one week', () => {
+      expect(ymd(dt.calcOffsetDate('2026-01-05', '+1W'))).toBe('2026-01-12')
+    })
+    test('+2B skips the weekend', () => {
+      // Friday 2026-01-02 plus 2 business days is Tuesday 2026-01-06
+      expect(ymd(dt.calcOffsetDate('2026-01-02', '+2B'))).toBe('2026-01-06')
+    })
   })
 })
