@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets and Shifts
 // @jgclark
-// Last updated 2026-07-09 for v0.23.4, by @jgclark and @CursorAI
+// Last updated 2026-10-07 for v0.23.5, by @jgclark and @CursorAI
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -58,8 +58,10 @@ export async function shiftDates(): Promise<void> {
       // Use just the selected paragraphs
       pArr = Editor.selectedParagraphs
     } else {
-      // Use the whole note
-      pArr = paragraphs.slice(0, findEndOfActivePartOfNote(note))
+      // Use the whole note. findEndOfActivePartOfNote() returns the inclusive index of the last active line
+      // (the last line when there is no Done or Cancelled section).
+      const endOfActive = findEndOfActivePartOfNote(note)
+      pArr = paragraphs.slice(0, endOfActive + 1)
     }
     logDebug('shiftDates', `shiftDates starting for ${pArr.length} lines`)
     if (pArr.length === 0) {
@@ -417,10 +419,11 @@ export async function processDateOffsets(): Promise<void> {
     let lastCalcDate = ''
     let n = 0
     let numFoundTimeblocks = 0
+    // Inclusive index of the last active line (the last line when there is no Done or Cancelled section).
     const endOfActive = findEndOfActivePartOfNote(note)
 
     // Look through this open note to find date offsets
-    const dateOffsetParas = paragraphs.filter((p) => p.content.match(RE_DATE_INTERVAL) && p.lineIndex < endOfActive)
+    const dateOffsetParas = paragraphs.filter((p) => p.content.match(RE_DATE_INTERVAL) && p.lineIndex <= endOfActive)
     if (dateOffsetParas.length > 0) {
       logDebug('processDateOffsets', `Found ${dateOffsetParas.length} date offsets in '${noteTitle}'`)
 
@@ -432,7 +435,7 @@ export async function processDateOffsets(): Promise<void> {
       let previousFoundLevel = 0
       let thisLevel = 0
 
-      while (n < endOfActive) {
+      while (n <= endOfActive && n < paragraphs.length) {
         // Make a note if this contains a time block
         if (isTimeBlockPara(paragraphs[n])) {
           numFoundTimeblocks++

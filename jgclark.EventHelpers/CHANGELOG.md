@@ -3,6 +3,7 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
 ## [0.23.5] - 2026-07-09 @jgclark
+- fix: '/shift dates' (when nothing is selected) and '/process date offsets' now include the last active line. That is the last line of the note when there is no Done or Cancelled section, and the last line before those sections when they are present.
 - fix to `events()`and `matchingEvents()`" template commands so `includeHeadings: false` now also suppresses the per-day headings that were previously always added when `daysToCover` > 1. (Thanks, @akrabat.)
 - **/process date offsets** command changes: 
   - the 'add computed final date' setting now only appends to section headings (not task lines)
