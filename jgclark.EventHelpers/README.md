@@ -2,7 +2,7 @@
 This plugin provides commands to help you do useful things with Events and Calendars that can't (yet) be done by NotePlan itself:
 
 - **insert day's events as list**: insert a list of this day's calendar events into the current note. Can be used automatically in a Daily note Template. Alias: **ide**.
-- **insert week's events as list**: insert a list of all the day's calendar events for this week into the current note. Can be used automatically in a Weekly note Template. Alias: **ide**.
+- **insert week's events as list**: insert a list of all the day's calendar events for this week into the current note. Can be used automatically in a Weekly note Template. Alias: **iwe**.
 - **insert matching events**: insert a  list of this day's calendar events that match certain patterns into the current note. Alias: **ime**.
 - **time blocks to calendar**: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to them to full Calendar events in your current default calendar, as set by iCal. (See also [Display of Time Blocks](#display-of-time-blocks) below.) Aliases: **tbtc** or **tbcal**.
 - **process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#process-date-offsets) below for full details.) Alias: **offset**.
