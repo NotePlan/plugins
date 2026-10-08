@@ -531,11 +531,18 @@ export async function processDateOffsets(): Promise<void> {
               // We have a date offset in the line
               const ensuredCTD = await ensureBaseDate(content, currentTargetDate, lastCalcDate)
               if (ensuredCTD === '') {
-                if (currentTargetDate !== '') {
-                  appendComputedFinalDateIfWanted(true, lastCalcDate, currentTargetDateLine, currentTargetDateOrigin, config, paragraphs, note)
+                // Stop calculating offsets. Lines already saved stay saved. Still count later time blocks so that question is asked.
+                for (let rest = n + 1; rest <= endOfActive && rest < paragraphs.length; rest += 1) {
+                  if (isOpen(paragraphs[rest]) && isTimeBlockPara(paragraphs[rest])) {
+                    numFoundTimeblocks += 1
+                  }
                 }
-                await reportFailedOffsets(offsetsFailed, offsetsFound)
-                return
+                await showMessage(
+                  'I stopped because no base date was given. Later offsets were left unchanged.',
+                  'OK',
+                  'Process Date Offsets',
+                )
+                break
               }
               currentTargetDate = ensuredCTD
 

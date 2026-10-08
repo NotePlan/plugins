@@ -355,6 +355,36 @@ describe('processDateOffsets failed calculations', () => {
   })
 })
 
+describe('processDateOffsets cancelled base date', () => {
+  test('stops later offsets, tells the user, and still offers time blocks', async () => {
+    const prompt = jest.spyOn(CommandBar, 'prompt')
+    const textPrompt = jest.spyOn(CommandBar, 'textPrompt').mockResolvedValue(false)
+    const note = useNote([
+      para(0, '* first >2026-10-01 {+1d}', 'open'),
+      para(1, '', 'empty'),
+      para(2, '* orphan {+1d}', 'open'),
+      para(3, '* later {+2d}', 'open'),
+      para(4, '* review 15:00', 'open'),
+    ])
+    const stopped = 'I stopped because no base date was given. Later offsets were left unchanged.'
+
+    try {
+      await processDateOffsets()
+
+      expect(note.paragraphs[0].content).toContain('>2026-10-02')
+      expect(note.paragraphs[2].content).toBe('* orphan {+1d}')
+      expect(note.paragraphs[3].content).toBe('* later {+2d}')
+      expect(textPrompt).toHaveBeenCalledTimes(1)
+      const messages = prompt.mock.calls.map((call) => String(call[1]))
+      expect(messages).toContain(stopped)
+      expect(messages.some((message) => message.includes('1 time blocks'))).toBe(true)
+    } finally {
+      prompt.mockRestore()
+      textPrompt.mockRestore()
+    }
+  })
+})
+
 describe('processDateOffsets computed final date', () => {
   /**
    * Run processDateOffsets with addComputedFinalDate turned on.
