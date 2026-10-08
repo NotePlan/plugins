@@ -76,7 +76,7 @@ The following **Parameters** are available:
 | --- | --- | --- | --- |
 | `includeHeadings` | boolean | include section/day headings (also controls per-day headings when `daysToCover` > 1)| `includeHeadings: false` |
 | `includeAllDayEvents` | boolean | include/exclude all day events | `includeAllDayEvents: false` |
-| `calendarSet` | string | limit which calendars are included | `calendarSet:"list,of,calendar,names"` |
+| `calendarSet` | string | limit which calendars are included. `calendars` is an alias | `calendarSet:"list,of,calendar,names"` or `calendars:"home,children"` |
 | `calendarNameMappings` | string | customize the name of the calendars |`calendarNameMappings:"Jonathan (iCloud);Me, Us (iCloud);Us"` |
 | `daysToCover` | number | include more than the current day | `daysToCover: 3` includes today + the 2 following days |
 | `startDay` | string | optional first calendar day for the range, `YYYY-MM-DD`; if omitted, the start is the first day of the open calendar note’s period | `startDay:"2026-04-15"` |

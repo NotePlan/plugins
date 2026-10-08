@@ -11,6 +11,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - fix: '/process date offsets' appends the computed final date to the last section heading too, when that section runs to the end of the note or up to a Done heading.
 - fix: '/shift dates' accepts upper- or lower-case interval units, and shifts week dates by business days for `b` and `B`.
 - fix: cancelling the base-date question in '/process date offsets' stops the command, tells you, and still offers to create events from time blocks.
+- fix: event list templates accept `calendars` as an alias of `calendarSet`.
 
 ## [0.23.5] - 2026-07-09 @jgclark
 - fix to `events()`and `matchingEvents()`" template commands so `includeHeadings: false` now also suppresses the per-day headings that were previously always added when `daysToCover` > 1. (Thanks, @akrabat.)

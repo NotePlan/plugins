@@ -188,6 +188,46 @@ async function getFormatParam(paramString: string, paramNames: Array<string>, de
   return defaultValue
 }
 
+/** Returned by getTagParamsFromString when that argument was not in the template call. */
+const CALENDAR_ARG_NOT_GIVEN = {}
+
+/**
+ * Turn a calendar list argument or setting into calendar names.
+ * A comma-separated string and an array of names are both accepted.
+ * @param {mixed} value
+ * @returns {Array<string>}
+ */
+function calendarNamesFromValue(value: mixed): Array<string> {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter((item) => item !== '')
+  }
+  if (value == null) return []
+  const text = String(value).trim()
+  if (text === '') return []
+  return text.split(',').map((item) => item.trim()).filter((item) => item !== '')
+}
+
+/**
+ * Calendar names for an event list.
+ * `calendarSet` is the setting and the template argument. `calendars` is the older template alias from 0.19.4.
+ * An argument that is present wins over the plugin setting, including when it is empty.
+ * When both arguments are present, `calendarSet` is used.
+ * @param {string} paramString - template or x-callback parameter string
+ * @param {mixed} configured - calendarSet from plugin settings
+ * @returns {Promise<Array<string>>}
+ */
+export async function calendarSetFromParams(paramString: string, configured: mixed): Promise<Array<string>> {
+  const fromCalendarSet = await getTagParamsFromString(paramString, 'calendarSet', CALENDAR_ARG_NOT_GIVEN)
+  if (fromCalendarSet !== CALENDAR_ARG_NOT_GIVEN && fromCalendarSet !== '❗️error') {
+    return calendarNamesFromValue(fromCalendarSet)
+  }
+  const fromCalendars = await getTagParamsFromString(paramString, 'calendars', CALENDAR_ARG_NOT_GIVEN)
+  if (fromCalendars !== CALENDAR_ARG_NOT_GIVEN && fromCalendars !== '❗️error') {
+    return calendarNamesFromValue(fromCalendars)
+  }
+  return calendarNamesFromValue(configured)
+}
+
 /**
  * Generate heading for a day's events.
  * When `includeHeadings` is false, returns '' even if covering multiple days
@@ -342,8 +382,7 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
 
     const includeAllDayEvents: boolean = await getTagParamsFromString(paramString, 'includeAllDayEvents', true)
     const includeHeadings: boolean = await getTagParamsFromString(paramString, 'includeHeadings', true)
-    const calendarSetStr: string = String(await getTagParamsFromString(paramString, 'calendarSet', config.calendarSet))
-    const calendarSet: Array<string> = calendarSetStr !== '' ? calendarSetStr.split(',') : []
+    const calendarSet: Array<string> = await calendarSetFromParams(paramString, config.calendarSet)
     const calendarNameMappingsStr: string = String(await getTagParamsFromString(paramString, 'calendarNameMappings', config.calendarNameMappings))
     const calendarNameMappings: Array<string> = calendarNameMappingsStr !== '' ? calendarNameMappingsStr.split(',') : []
     const withCalendarName = format.includes('CAL')
@@ -461,8 +500,7 @@ export async function listMatchingDaysEvents(
     const includeAllDayEvents: boolean = await getTagParamsFromString(paramString, 'includeAllDayEvents', true)
     const includeHeadings: boolean = await getTagParamsFromString(paramString, 'includeHeadings', true)
     const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', 1)
-    const calendarSetStr: string = String(await getTagParamsFromString(paramString, 'calendarSet', config.calendarSet))
-    const calendarSet: Array<string> = calendarSetStr !== '' ? calendarSetStr.split(',') : []
+    const calendarSet: Array<string> = await calendarSetFromParams(paramString, config.calendarSet)
     const calendarNameMappingsStr: string = String(await getTagParamsFromString(paramString, 'calendarNameMappings', config.calendarNameMappings))
     const calendarNameMappings: Array<string> = calendarNameMappingsStr !== '' ? calendarNameMappingsStr.split(',') : []
 

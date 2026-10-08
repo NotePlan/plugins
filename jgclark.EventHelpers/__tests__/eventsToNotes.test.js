@@ -220,4 +220,31 @@ describe('eventsToNotes.js tests', () => {
       expect(e.generateDayHeading(3, '20260709', '', true)).toEqual('## for 9 Jul 2026')
     })
   })
+
+  describe('calendarSetFromParams()', () => {
+    test('uses calendars when calendarSet is absent', async () => {
+      const result = await e.calendarSetFromParams('{calendars:"home,children"}', [])
+      expect(result).toEqual(['home', 'children'])
+    })
+
+    test('prefers calendarSet when both arguments are present', async () => {
+      const result = await e.calendarSetFromParams('{calendarSet:"work", calendars:"home"}', ['Home'])
+      expect(result).toEqual(['work'])
+    })
+
+    test('uses the configured set when neither argument is given', async () => {
+      const result = await e.calendarSetFromParams('{}', ['Home', 'Work'])
+      expect(result).toEqual(['Home', 'Work'])
+    })
+
+    test('trims spaces around calendar names', async () => {
+      const result = await e.calendarSetFromParams('{calendars:"home, children"}', [])
+      expect(result).toEqual(['home', 'children'])
+    })
+
+    test('an empty calendars argument does not fall back to the configured set', async () => {
+      const result = await e.calendarSetFromParams('{calendars:""}', ['Home'])
+      expect(result).toEqual([])
+    })
+  })
 })
