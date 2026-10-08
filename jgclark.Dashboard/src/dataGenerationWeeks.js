@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-07-23 for v2.4.0.b54 by @jgclark + @CursorAI
+// Last updated 2026-10-08 for v2.5.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -83,7 +83,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const nextWeekHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
     const thisWeekFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(thisWeekHeadings, config)
     const nextWeekFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(nextWeekHeadings, config)
-    let sectionDescription = `{countWithLimit} {itemType} from ${dateStr}`
+    let sectionDescription = `{closedOrOpenTaskCount} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const actionButtons: Array<TActionButton> = [
@@ -224,7 +224,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
     }
 
     const doneCountData = getNumCompletedTasksFromCalendarNote(thisFilename)
-    let sectionDescription = `{countWithLimit} {itemType} from ${dateStr}`
+    let sectionDescription = `{closedOrOpenTaskCount} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const section: TSection = {

@@ -15,6 +15,7 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 - dev: Writes `perspectiveScopeUnion.json`. It is rewritten when a perspective's folder or teamspace definition changes. On switch to a different perspective, only the destination perspective is re-resolved, and that scope is updated only when its included/excluded folder list changed. When Projects `FFlag_UseCacheOfAllPerspectives` is on, a switch that did not change those folders re-renders the Rich project list instead of asking Projects to rebuild. The default `-` perspective is left out, because it usually includes every folder. (Requires v2.3.0 of P+R Plugin.)
 
 ### Fixed
+- This Week and Last Week section captions follow the same progress setting as Today, Yesterday, and This Month.
 - "Move to Note" from a calendar note to a regular note now updates that row in the Dashboard window (note link and the added >date), instead of leaving the old calendar line on screen.
 - The "Settings Backup" dialog is shown only when you run **/backupSettings**. Install, update, repair, and other automatic backups still write the file and stay quiet.
 
