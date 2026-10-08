@@ -3,7 +3,8 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
 ## [1.24.0] - 2026-10-07 @jgclark
-- '/process date offsets' now also removes date-offset groups (such as `{+1d}`) from **closed** tasks and checklists, and leaves other `{...}` text in place.
+- change: '/process date offsets' converts every date offset on a line, from left to right. An offset that starts with `^` uses the previous calculated date, including one earlier on the same line.
+- change: '/process date offsets' now also removes date-offset groups (such as `{+1d}`) from **closed** tasks and checklists, and leaves other `{...}` text in place.
 - fix: '/shift dates' (when nothing is selected) and '/process date offsets' now include the last active line. That is the last line of the note when there is no Done or Cancelled section, and the last line before those sections when they are present.
 - fix: '/shift dates' shifts each date on a line once. A shifted date is no longer shifted again when it matches another date still on that line. A date that cannot be calculated is left unchanged.
 - fix: '/process date offsets' leaves the offset marker in place when the date cannot be calculated, instead of writing `(error)`, and a warning message is shown to the user.

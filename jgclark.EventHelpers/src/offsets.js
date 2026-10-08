@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets and Shifts
 // @jgclark
-// Last updated 2026-10-07 for v1.24.0, by @jgclark and @CursorAI
+// Last updated 2026-10-08 for v1.24.0, by @jgclark and @CursorAI
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -367,38 +367,51 @@ async function ensureBaseDate(
 }
 
 /**
- * Replace one date-offset pattern in a line with a computed scheduled date.
- * Relative offsets starting with '^' are calculated from lastCalcDate; others use baseDate.
+ * Replace every date-offset pattern in a line with a computed scheduled date.
+ * Offsets are converted left to right. Relative offsets starting with '^' are
+ * calculated from the previous successful date, including one earlier on this
+ * line. Other offsets use baseDate.
+ * A failed calculation leaves that `{...}` marker in place. Later offsets on the
+ * line still run, and a later success becomes the last calculated date.
  * Output format follows the offset unit (e.g. `{2w}` -> `>2026-W32`, `{3d}` -> `>2026-07-23`).
  * @param {string} content - paragraph content
- * @param {string} dateOffsetString - offset text inside braces, e.g. '+3d' or '^+1d'
  * @param {string} baseDate - current target date for this section
  * @param {string} lastCalcDate - most recently calculated offset date
- * @returns {{content: string, lastCalcDate: string, calculated: boolean}} updated content, new last calculated date, and whether a date was written
+ * @returns {{content: string, lastCalcDate: string, found: number, failed: number}} updated content, last successful date, and how many offsets were found and failed
  */
-function applyOffsetInLine(
+function applyOffsetsInLine(
   content: string,
-  dateOffsetString: string,
   baseDate: string,
   lastCalcDate: string,
-): { content: string, lastCalcDate: string, calculated: boolean } {
-  let calcDate = ''
+): { content: string, lastCalcDate: string, found: number, failed: number } {
+  const re = new RegExp(RE_OFFSET_DATE_CAPTURE, 'g')
+  let found = 0
+  let failed = 0
+  let nextLastCalcDate = lastCalcDate
   logDebug('processDateOffsets', `  cTD=${baseDate}; lCD=${lastCalcDate}`)
-  if (dateOffsetString.startsWith('^')) {
-    calcDate = calcOffsetDateStr(lastCalcDate, dateOffsetString.slice(1), 'offset')
-  } else {
-    calcDate = calcOffsetDateStr(baseDate, dateOffsetString, 'offset')
+  const replaced = content.replace(re, (fullMatch, dateOffsetString) => {
+    found += 1
+    const relative = dateOffsetString.startsWith('^')
+    const calcDate = relative
+      ? calcOffsetDateStr(nextLastCalcDate, dateOffsetString.slice(1), 'offset')
+      : calcOffsetDateStr(baseDate, dateOffsetString, 'offset')
+    // Keep the {...} marker when the calculation fails, including the '(error)' sentinel
+    if (!isUsableCalculatedDate(calcDate)) {
+      const parsedBase = relative ? nextLastCalcDate : baseDate
+      logError(processDateOffsets, `Error while parsing date '${parsedBase}' for ${dateOffsetString}`)
+      failed += 1
+      return fullMatch
+    }
+    nextLastCalcDate = calcDate
+    // The replacement has a leading space, and the marker usually already has one, so collapse the double space later.
+    return ` >${calcDate} `
+  })
+  // Leave the line untouched when every offset failed, so a warning is the only change.
+  if (found === failed) {
+    return { content, lastCalcDate, found, failed }
   }
-  // Keep the {...} marker when the calculation fails, including the '(error)' sentinel
-  if (!isUsableCalculatedDate(calcDate)) {
-    const parsedBase = dateOffsetString.startsWith('^') ? lastCalcDate : baseDate
-    logError(processDateOffsets, `Error while parsing date '${parsedBase}' for ${dateOffsetString}`)
-    return { content, lastCalcDate, calculated: false }
-  }
-  // Continue, and replace offset with the new calcDate.
-  // The replacement has a leading space, and the marker usually already has one, so collapse the double space.
-  const nextContent = content.replace(`{${dateOffsetString}}`, ` >${calcDate} `).replace(/[ \t]{2,}/g, ' ').trim()
-  return { content: nextContent, lastCalcDate: calcDate, calculated: true }
+  const nextContent = replaced.replace(/[ \t]{2,}/g, ' ').trim()
+  return { content: nextContent, lastCalcDate: nextLastCalcDate, found, failed }
 }
 
 /**
@@ -429,8 +442,9 @@ function removeDateOffsetGroups(content: string): string {
  * Go through the current Editor note, find date-offset patterns, and turn them into scheduled dates.
  * Understands these offset forms:
  * - `{+Nd}` / `{-Nd}` add or subtract N units relative to the section base date
- * - `{^Nx}` add or subtract N units relative to the last calculated offset date
+ * - `{^Nx}` add or subtract N units relative to the last calculated offset date, including an earlier offset on the same line
  * - `{0d}` keep the same day
+ * - several `{...}` offsets on one line, converted left to right
  * Offset units: `b`usiness day, `d`ay, `w`eek, `m`onth, `q`uarter, `y`ear (upper- or lower-case).
  * Computed dates use the same calendar period as the offset unit (`d` -> YYYY-MM-DD, `w` -> YYYY-Wnn, etc.).
  * Note: doesn't explicitly handle case where base date period is longer than the offset unit (e.g. week base + 2d), which seems like an error case.
@@ -472,7 +486,7 @@ export async function processDateOffsets(): Promise<void> {
     // Look through this note to find date offsets
     const dateOffsetParas = paragraphs.filter((p) => p.lineIndex <= endOfActive && p.content.match(RE_DATE_INTERVAL))
     if (dateOffsetParas.length > 0) {
-      logDebug('processDateOffsets', `Found ${dateOffsetParas.length} date offsets in '${noteTitle}'`)
+      logDebug('processDateOffsets', `Found ${dateOffsetParas.length} lines with date offsets in '${noteTitle}'`)
 
       // Go through each line in the active part of the file
       // Keep track of the indent level when a suitable date is found, so we know
@@ -519,44 +533,41 @@ export async function processDateOffsets(): Promise<void> {
             numFoundTimeblocks++
           }
 
-          // find lines with {+3d} or {-4w} or {^3b} etc. plus {0d} special case
-          // NB: this only deals with the first on any line; it doesn't make sense to have more than one.
+          // find lines with {+3d} or {-4w} or {^3b} etc. plus {0d} special case.
+          // Every offset on the line is converted, left to right.
           if (content.match(RE_OFFSET_DATE)) {
             logDebug('processDateOffsets', `    - Found line '${content}'`)
             // As we're about to update the string, let's first unhook it from any sync'd copies
             content = stripBlockIDsFromString(content)
-            const dateOffsetStrings = content.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
-            const dateOffsetString = dateOffsetStrings[1] // first capture group
-            if (dateOffsetString !== '') {
-              // We have a date offset in the line
-              const ensuredCTD = await ensureBaseDate(content, currentTargetDate, lastCalcDate)
-              if (ensuredCTD === '') {
-                // Stop calculating offsets. Lines already saved stay saved. Still count later time blocks so that question is asked.
-                for (let rest = n + 1; rest <= endOfActive && rest < paragraphs.length; rest += 1) {
-                  if (isOpen(paragraphs[rest]) && isTimeBlockPara(paragraphs[rest])) {
-                    numFoundTimeblocks += 1
-                  }
+            const ensuredCTD = await ensureBaseDate(content, currentTargetDate, lastCalcDate)
+            if (ensuredCTD === '') {
+              // Stop calculating offsets. Lines already saved stay saved. Still count later time blocks so that question is asked.
+              for (let rest = n + 1; rest <= endOfActive && rest < paragraphs.length; rest += 1) {
+                if (isOpen(paragraphs[rest]) && isTimeBlockPara(paragraphs[rest])) {
+                  numFoundTimeblocks += 1
                 }
-                await showMessage(
-                  'I stopped because no base date was given. Later offsets were left unchanged.',
-                  'OK',
-                  'Process Date Offsets',
-                )
-                break
               }
-              currentTargetDate = ensuredCTD
+              await showMessage(
+                'I stopped because no base date was given. Later offsets were left unchanged.',
+                'OK',
+                'Process Date Offsets',
+              )
+              break
+            }
+            currentTargetDate = ensuredCTD
 
-              offsetsFound += 1
-              const result = applyOffsetInLine(content, dateOffsetString, currentTargetDate, lastCalcDate)
-              if (!result.calculated) offsetsFailed += 1
+            const result = applyOffsetsInLine(content, currentTargetDate, lastCalcDate)
+            if (result.found === 0) {
+              logWarn('processDateOffsets', `No date offset found in '${content}'`)
+            } else {
+              offsetsFound += result.found
+              offsetsFailed += result.failed
               lastCalcDate = result.lastCalcDate
               content = result.content
               // now trim off any trailing whitespace
               paragraphs[n].content = content.trimEnd()
               note.updateParagraph(paragraphs[n])
               logDebug('processDateOffsets', `    -> '${content.trimEnd()}'`)
-            } else {
-              logWarn('processDateOffsets', `No date offset found in '${content}'`)
             }
           }
 

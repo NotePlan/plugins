@@ -13,7 +13,7 @@ import {
 } from '../src/offsets'
 
 /**
- * Mirror applyOffsetInLine date calculation.
+ * Mirror applyOffsetsInLine date calculation for one offset.
  * @param {string} dateOffsetString
  * @param {string} baseDate
  * @param {string} lastCalcDate
@@ -76,15 +76,18 @@ function simulateProcessDateOffsets(
       previousFoundLevel = ctdInfo.ctdLevel
     }
 
-    if (content.match(RE_OFFSET_DATE)) {
-      const dateOffsetStrings = content.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
-      const dateOffsetString = dateOffsetStrings[1]
-      if (dateOffsetString !== '' && currentTargetDate !== '') {
-        const calcDate = calcDateForOffset(dateOffsetString, currentTargetDate, lastCalcDate)
-        lastCalcDate = calcDate
-        // Replace offset, collapse leftover double spaces (from " {offset}" -> " >date "), then trim trailing whitespace
-        outputLines[n] = content.replace(`{${dateOffsetString}}`, ` >${calcDate} `).replace(/(\S) {2,}/g, '$1 ').trimEnd()
-      }
+    if (content.match(RE_OFFSET_DATE) && currentTargetDate !== '') {
+      const re = new RegExp(RE_OFFSET_DATE_CAPTURE, 'g')
+      let lineLastCalcDate = lastCalcDate
+      const replaced = content.replace(re, (fullMatch, dateOffsetString) => {
+        const calcDate = calcDateForOffset(dateOffsetString, currentTargetDate, lineLastCalcDate)
+        if (calcDate == null || calcDate === '' || calcDate === '(error)') return fullMatch
+        lineLastCalcDate = calcDate
+        return ` >${calcDate} `
+      })
+      lastCalcDate = lineLastCalcDate
+      // Replace offset, collapse leftover double spaces (from " {offset}" -> " >date "), then trim trailing whitespace
+      outputLines[n] = replaced.replace(/(\S) {2,}/g, '$1 ').trimEnd()
     }
   }
 
@@ -236,6 +239,17 @@ describe('CTD origin (heading vs from-task behaviour)', () => {
         true,
       )
       expect(lines[2]).toEqual('* Send card >2021-09-28')
+    })
+
+    test('several offsets on one line are converted left to right, and a ^ offset chains from the previous one', () => {
+      const { lines } = simulateProcessDateOffsets(
+        [
+          { content: '* Windows 2026-10-01 {+1d} {+3d} {^1d}', level: 0 },
+          { content: '', level: 0 },
+        ],
+        false,
+      )
+      expect(lines[0]).toEqual('* Windows 2026-10-01 >2026-10-02 >2026-10-04 >2026-10-05')
     })
 
     test('deadline on same line: offset computed, task line not appended with final date', () => {

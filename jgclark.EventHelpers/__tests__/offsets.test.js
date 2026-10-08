@@ -355,6 +355,83 @@ describe('processDateOffsets failed calculations', () => {
   })
 })
 
+describe('processDateOffsets multiple offsets on one line', () => {
+  test('converts every offset on the line from the base date', async () => {
+    const note = useNote([
+      para(0, '* base >2026-10-01', 'open'),
+      para(1, '* windows {+1d} {+3d}', 'open'),
+    ])
+
+    await processDateOffsets()
+
+    expect(note.paragraphs[1].content).toBe('* windows >2026-10-02 >2026-10-04')
+  })
+
+  test('chains a relative offset from an earlier offset on the same line', async () => {
+    const note = useNote([
+      para(0, '* base >2026-10-01', 'open'),
+      para(1, '* windows {+1d} {^1d} {+10d}', 'open'),
+    ])
+
+    await processDateOffsets()
+
+    expect(note.paragraphs[1].content).toBe('* windows >2026-10-02 >2026-10-03 >2026-10-11')
+  })
+
+  test('the next line chains from the last offset on the previous line', async () => {
+    const note = useNote([
+      para(0, '* base >2026-10-01', 'open'),
+      para(1, '* windows {+1d} {+3d}', 'open'),
+      para(2, '* next {^1d}', 'open'),
+    ])
+
+    await processDateOffsets()
+
+    expect(note.paragraphs[1].content).toBe('* windows >2026-10-02 >2026-10-04')
+    expect(note.paragraphs[2].content).toContain('>2026-10-05')
+  })
+
+  test('leaves a failed offset in place and still converts the later ones', async () => {
+    const prompt = jest.spyOn(CommandBar, 'prompt')
+    const note = useNote([
+      para(0, '* base >2026-10-01', 'open'),
+      para(1, '* windows {^1d} {+1d} {^1d}', 'open'),
+    ])
+    const warning = "Warning: I couldn't calculate new dates for 1 of 3 offsets found"
+
+    try {
+      await processDateOffsets()
+
+      expect(note.paragraphs[1].content).toBe('* windows {^1d} >2026-10-02 >2026-10-03')
+      expect(note.paragraphs[1].content).not.toContain('(error)')
+      expect(prompt).toHaveBeenCalledWith('Process Date Offsets', warning, ['OK'])
+    } finally {
+      prompt.mockRestore()
+    }
+  })
+
+  test('converts two copies of the same offset', async () => {
+    const note = useNote([
+      para(0, '* task >2026-10-01 {+1d} and {+1d}', 'open'),
+    ])
+
+    await processDateOffsets()
+
+    expect(note.paragraphs[0].content).toBe('* task >2026-10-01 >2026-10-02 and >2026-10-02')
+  })
+
+  test('removes every date offset from a closed task and leaves other brace text', async () => {
+    const note = useNote([
+      para(0, '* base >2026-10-01', 'open'),
+      para(1, '* done {+1d} {+2d} {note}', 'done'),
+    ])
+
+    await processDateOffsets()
+
+    expect(note.paragraphs[1].content).toBe('* done {note}')
+  })
+})
+
 describe('processDateOffsets offset spacing', () => {
   test('does not leave a double space where the offset marker was', async () => {
     const note = useNote([
@@ -422,6 +499,18 @@ describe('processDateOffsets computed final date', () => {
       await processDateOffsets()
       expect(note.paragraphs[0].content).toBe('### Prep >2026-10-01 to 2026-10-02')
       expect(note.paragraphs[1].content).toContain('>2026-10-02')
+    })
+  })
+
+  test('appends the last offset on a line when several are converted', async () => {
+    const note = useNote([
+      para(0, '### Prep >2026-10-01', 'title', 3),
+      para(1, '* task {+1d} {+5d}', 'open'),
+    ])
+    await withFinalDate(async () => {
+      await processDateOffsets()
+      expect(note.paragraphs[0].content).toBe('### Prep >2026-10-01 to 2026-10-06')
+      expect(note.paragraphs[1].content).toBe('* task >2026-10-02 >2026-10-06')
     })
   })
 

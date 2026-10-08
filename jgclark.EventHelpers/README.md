@@ -123,11 +123,12 @@ The command is best understood with some examples. Here's some Christmas plannin
 | \* Bob's birthday on 2021-09-14<br />&nbsp;&nbsp;\* Find present {-6d}<br />&nbsp;&nbsp;\* Wrap & post present {-3d} <br />&nbsp;&nbsp;\* Call Bob {0d}                                 | \* Bob's birthday on 2021-09-14<br />&nbsp;&nbsp;\* Find present >2021-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2021-09-11<br />&nbsp;&nbsp;\* Call Bob >2021-09-14                                   |
 | \#\#\# Project kickoff 2026-07-20<br />\* Mid-sprint review {2w}                                                                                                                        | \#\#\# Project kickoff 2026-07-20<br />\* Mid-sprint review >2026-W32                                                                                                                                        |
 
-You can use this within a line to have both a **deadline** and a calculated **start date**:
+You can use this within a line to have both a **deadline** and one or more calculated dates. Several offsets on the same line are converted from left to right:
 
 | This ...                                                      | ... becomes this                                                                 |
 | ---------------------------------------------------------- | -------------------------------------------------------------------- |
 | * Post cards deadline 2021-12-18 {-10d} | * Post cards deadline 2021-12-18 >2021-12-08 |
+| * Windows 2026-10-01 {+1d} {+3d} {^1d} | * Windows 2026-10-01 >2026-10-02 >2026-10-04 >2026-10-05 |
 
 The `/process date offsets` command looks for a valid **base date** in the previous heading, previous main task if it has sub-tasks, or in the line itself. If it does, then it changes any **date offset patterns** (such as `{-10d}`, `{+2w}`, `{-3m}`) into **scheduled dates** in the same calendar period as the offset unit: days → `YYYY-MM-DD`, weeks → `YYYY-Wnn`, months → `YYYY-MM` etc., (e.g. `{+2w}` from `2026-07-20` becomes `>2026-W32`). This is particularly useful when set up in **templates**, that when applied to a note, sets the due date at the start, and calculates the other dates for you.
 
@@ -140,7 +141,8 @@ In more detail:
 - You can use `{0d}` to mean no offset -- i.e. on the day itself.
 - A **base date from a heading** applies to all following tasks in that section (until a blank line, separator, or next heading). A **base date from a task line** also carries forward to subsequent tasks until it is replaced or the section ends.
 - If **Add final date to the end of the section?** is enabled, the last computed offset date in the section is appended to the heading that provided the base date (not to task lines).
-- An offset that starts with `{^...}` calculates before or after the _last calculated date_ (not the base date). The example below also assumes **Add final date…** is enabled for the heading:
+- Several offsets can sit on the same line. They are converted from left to right.
+- An offset that starts with `{^...}` calculates before or after the _last calculated date_ (not the base date). That includes an offset earlier on the same line. The example below also assumes **Add final date…** is enabled for the heading:
 
 | For example ...                                                                                                                                                                        | ... becomes                                                                                                                                                                                                 |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
