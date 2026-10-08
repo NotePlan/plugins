@@ -247,4 +247,53 @@ describe('eventsToNotes.js tests', () => {
       expect(result).toEqual([])
     })
   })
+
+  describe('getFormatParam()', () => {
+    test('reads an unquoted format key', async () => {
+      const result = await e.getFormatParam('{format:"- *|TITLE|*"}', ['format', 'template'], 'default')
+      expect(result).toBe('- *|TITLE|*')
+    })
+
+    test('uses the default when the key is absent', async () => {
+      const result = await e.getFormatParam('{daysToCover:1}', ['format', 'template'], 'default')
+      expect(result).toBe('default')
+    })
+  })
+
+  describe('compileMatchPattern()', () => {
+    test('matches a title and ignores case', () => {
+      const pattern = e.compileMatchPattern('stand')
+      expect(pattern == null ? null : 'Standup'.match(pattern)).toBeTruthy()
+    })
+
+    test('returns null for an invalid pattern', () => {
+      expect(e.compileMatchPattern('(')).toBeNull()
+    })
+  })
+
+  describe('processEvent() calendar name', () => {
+    const config: EventsConfig = ({
+      calendarNameMappings: [],
+      locale: 'en-GB',
+      timeOptions: '',
+    }: any)
+    const event: TCalendarItem = ({
+      calendar: 'Home',
+      title: 'Holiday',
+      isAllDay: true,
+      date: new Date(2026, 9, 8, 12, 0, 0),
+    }: any)
+
+    test('uses the all-day format when the timed format has no calendar name', () => {
+      const result = e.processEvent(event, '- *|TITLE|*', '- *|CAL|*: *|TITLE|*', config, [])
+      expect(result.cal).toBe('Home')
+      expect(result.text).toContain('Home')
+    })
+
+    test('leaves the calendar name off when the all-day format has no CAL placeholder', () => {
+      const result = e.processEvent(event, '- *|CAL|*: *|TITLE|*', '- *|TITLE|*', config, [])
+      expect(result.cal).toBe('')
+      expect(result.text).not.toContain('Home')
+    })
+  })
 })

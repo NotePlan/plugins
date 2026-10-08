@@ -395,9 +395,9 @@ function applyOffsetInLine(
     logError(processDateOffsets, `Error while parsing date '${parsedBase}' for ${dateOffsetString}`)
     return { content, lastCalcDate, calculated: false }
   }
-  // Continue, and replace offset with the new calcDate
-  // Remove the offset text (e.g. {-3d}) by finding first '{' and '}' characters in the line
-  const nextContent = content.replace(`{${dateOffsetString}}`, ` >${calcDate} `)
+  // Continue, and replace offset with the new calcDate.
+  // The replacement has a leading space, and the marker usually already has one, so collapse the double space.
+  const nextContent = content.replace(`{${dateOffsetString}}`, ` >${calcDate} `).replace(/[ \t]{2,}/g, ' ').trim()
   return { content: nextContent, lastCalcDate: calcDate, calculated: true }
 }
 

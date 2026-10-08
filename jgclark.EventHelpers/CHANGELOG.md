@@ -13,6 +13,10 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - fix: cancelling the base-date question in '/process date offsets' stops the command, tells you, and still offers to create events from time blocks.
 - fix: event list templates accept `calendars` as an alias of `calendarSet`.
 - change: The unused `shiftDatesCore` command is removed, and `test:eventsUpdateSettings` is hidden so it no longer appears in the command list.
+- fix: '/process date offsets' no longer leaves an extra space when it replaces an offset such as `{+1d}`.
+- fix: event list `format` and `allday_format` arguments work when the keys are unquoted.
+- fix: an invalid match pattern in '/insert matching events' is skipped instead of stopping the whole list.
+- fix: an all-day event uses its own format when deciding whether to include the calendar name.
 
 ## [0.23.5] - 2026-07-09 @jgclark
 - fix to `events()`and `matchingEvents()`" template commands so `includeHeadings: false` now also suppresses the per-day headings that were previously always added when `daysToCover` > 1. (Thanks, @akrabat.)

@@ -172,17 +172,22 @@ export async function getEventListStartDayYYYYMMDD(paramString: string, calendar
   return getAPIDateStrFromDisplayDateStr(trimmed)
 }
 
+/** Returned by getTagParamsFromString when that argument was not in the template call. */
+const FORMAT_ARG_NOT_GIVEN = {}
+
 /**
- * Get format parameter from paramString, checking multiple possible parameter names
+ * Get format parameter from paramString, checking multiple possible parameter names.
+ * Keys may be quoted or unquoted JSON5 (`format:"..."` or `"format":"..."`).
  * @param {string} paramString - Parameter string to check
  * @param {Array<string>} paramNames - Array of parameter names to check (in order)
  * @param {string} defaultValue - Default value to use if no parameter found
  * @returns {Promise<string>} Format string
  */
-async function getFormatParam(paramString: string, paramNames: Array<string>, defaultValue: string): Promise<string> {
+export async function getFormatParam(paramString: string, paramNames: Array<string>, defaultValue: string): Promise<string> {
   for (const paramName of paramNames) {
-    if (paramString.includes(`"${paramName}":`)) {
-      return String(await getTagParamsFromString(paramString, paramName, defaultValue))
+    const value = await getTagParamsFromString(paramString, paramName, FORMAT_ARG_NOT_GIVEN)
+    if (value !== FORMAT_ARG_NOT_GIVEN && value !== '❗️error') {
+      return String(value)
     }
   }
   return defaultValue
@@ -270,22 +275,19 @@ export function generateDayHeading(
  * @param {string} alldayFormat - Format string for all-day events
  * @param {EventsConfig} config - Configuration object
  * @param {Array<string>} calendarNameMappings - Calendar name mappings
- * @param {boolean} withCalendarName - Whether to include calendar name
  * @returns {{cal: string, start: Date, text: string}} Processed event object
  */
-function processEvent(
+export function processEvent(
   event: TCalendarItem,
   format: string,
   alldayFormat: string,
   config: EventsConfig,
   calendarNameMappings: Array<string>,
-  withCalendarName: boolean
 ): { cal: string, start: Date, text: string } {
+  const usedFormat = event.isAllDay ? alldayFormat : format
+  const withCalendarName = usedFormat.includes('CAL')
   const replacements = getReplacements(event, config)
-  const eventStr = replaceFormatPlaceholderStringWithActualValues(
-    event.isAllDay ? alldayFormat : format,
-    replacements
-  )
+  const eventStr = replaceFormatPlaceholderStringWithActualValues(usedFormat, replacements)
   return {
     cal: withCalendarName ? calendarNameWithMapping(event.calendar, calendarNameMappings) : '',
     // Note: `TCalendarItem.date` is `Date | null` only because reminders (from v3.21.2) may have no due date. This function is only ever
@@ -304,7 +306,6 @@ function processEvent(
  * @param {boolean} includeAllDayEvents - Whether to include all-day events
  * @param {EventsConfig} config - Configuration object
  * @param {Array<string>} calendarNameMappings - Calendar name mappings
- * @param {boolean} withCalendarName - Whether to include calendar name
  * @returns {Promise<Array<{cal: string, start: Date, text: string}>>} Array of processed events
  */
 async function processEventsForDay(
@@ -315,7 +316,6 @@ async function processEventsForDay(
   includeAllDayEvents: boolean,
   config: EventsConfig,
   calendarNameMappings: Array<string>,
-  withCalendarName: boolean
 ): Promise<Array<{ cal: string, start: Date, text: string }>> {
   const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, calendarSet) ?? []
   const mapForSorting: Array<{ cal: string, start: Date, text: string }> = []
@@ -325,7 +325,7 @@ async function processEventsForDay(
       continue
     }
 
-    const processedEvent = processEvent(e, format, alldayFormat, config, calendarNameMappings, withCalendarName)
+    const processedEvent = processEvent(e, format, alldayFormat, config, calendarNameMappings)
     mapForSorting.push(processedEvent)
   }
 
@@ -344,6 +344,20 @@ function sortEvents(events: Array<{ cal: string, start: Date, text: string }>, s
   } else {
     // Default to time-based sorting
     events.sort(sortByStartTimeThenCalendarName())
+  }
+}
+
+/**
+ * Compile a matching-events pattern. An invalid pattern is skipped so one bad setting does not stop the list.
+ * @param {string} pattern
+ * @returns {RegExp | null}
+ */
+export function compileMatchPattern(pattern: string): RegExp | null {
+  try {
+    return new RegExp(pattern, 'i')
+  } catch (err) {
+    logWarn(pluginJson, `listMatchingDaysEvents: skipping invalid match pattern '${pattern}': ${err.message}`)
+    return null
   }
 }
 
@@ -385,7 +399,6 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
     const calendarSet: Array<string> = await calendarSetFromParams(paramString, config.calendarSet)
     const calendarNameMappingsStr: string = String(await getTagParamsFromString(paramString, 'calendarNameMappings', config.calendarNameMappings))
     const calendarNameMappings: Array<string> = calendarNameMappingsStr !== '' ? calendarNameMappingsStr.split(',') : []
-    const withCalendarName = format.includes('CAL')
 
     const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', isWeeklyNote(openNote) ? 7 : 1)
 
@@ -410,7 +423,6 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
         includeAllDayEvents,
         config,
         calendarNameMappings,
-        withCalendarName
       )
 
       sortEvents(mapForSorting, config.sortOrder)
@@ -527,11 +539,11 @@ export async function listMatchingDaysEvents(
 
         for (let j = 0; j < textToMatchArr.length; j++) {
           const thisFormat: string = String(formatArr[j])
-          const withCalendarName = thisFormat.includes('CAL')
-          const reMatch = new RegExp(textToMatchArr[j], 'i')
-          if (e.title.match(reMatch)) {
+          const reMatch = compileMatchPattern(textToMatchArr[j])
+          if (reMatch == null) continue
+          if ((e.title ?? '').match(reMatch)) {
             logDebug(pluginJson, `- Found match to event '${e.title}' from '${textToMatchArr[j]}`)
-            const processedEvent = processEvent(e, thisFormat, thisFormat, config, calendarNameMappings, withCalendarName)
+            const processedEvent = processEvent(e, thisFormat, thisFormat, config, calendarNameMappings)
             mapForSorting.push(processedEvent)
 
             const stopMatching = 'stopMatching' in config ? (config: any).stopMatching: false

@@ -355,6 +355,18 @@ describe('processDateOffsets failed calculations', () => {
   })
 })
 
+describe('processDateOffsets offset spacing', () => {
+  test('does not leave a double space where the offset marker was', async () => {
+    const note = useNote([
+      para(0, '* task >2026-10-01 {+1d}', 'open'),
+    ])
+
+    await processDateOffsets()
+
+    expect(note.paragraphs[0].content).toBe('* task >2026-10-01 >2026-10-02')
+  })
+})
+
 describe('processDateOffsets cancelled base date', () => {
   test('stops later offsets, tells the user, and still offers time blocks', async () => {
     const prompt = jest.spyOn(CommandBar, 'prompt')
