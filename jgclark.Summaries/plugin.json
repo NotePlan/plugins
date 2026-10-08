@@ -9,9 +9,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.co/plugins/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "1.2.0",
+  "plugin.version": "1.2.1",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "1.2.0: On NotePlan 3.21.3+, long note scans run on a background thread so the app stays responsive, with a progress dialog.\nNumbers are now displayed internationalized, and with at most 4 significant figures.\nHabit & Summary Charts reloads when its window is shown again after being hidden.\n1.1.0: significant new command '/chart progress summary'.\n1.0.3: worked around a new bug in the API affecting stats for hashtags and mentions.\n1.0.1: under-the-hood changes to progressUpdate.\n1.0.0: add support for 'all' time period in stats command. Allow override of settings for periodStats when called from x-callbacks. Other improvements and fixes.",
+  "plugin.lastUpdateInfo": "1.2.1: Fix to labels on Summary Charts for users in time zones West of UTC.\n1.2.0: On NotePlan 3.21.3+, long note scans run on a background thread so the app stays responsive, with a progress dialog.\nNumbers are now displayed internationalized, and with at most 4 significant figures.\nHabit & Summary Charts reloads when its window is shown again after being hidden.\n1.1.0: significant new command '/chart progress summary'.\n1.0.3: worked around a new bug in the API affecting stats for hashtags and mentions.\n1.0.1: under-the-hood changes to progressUpdate.\n1.0.0: add support for 'all' time period in stats command. Allow override of settings for periodStats when called from x-callbacks. Other improvements and fixes.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.requiredFiles": [
