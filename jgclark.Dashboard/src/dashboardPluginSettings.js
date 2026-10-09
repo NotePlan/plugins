@@ -8,6 +8,7 @@
 import pluginJson from '../plugin.json'
 import { cleanDashboardSettingsInAPerspective } from './dashboardSettingsClean'
 import { parseSettings } from './shared'
+import { syncPerspectiveScopeUnionFromDefs } from './perspectiveScopeUnion'
 import { updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentionCache'
 import { ALLOWED_ROOT_KEYS } from './types'
 import type { TPerspectiveDef } from './types'
@@ -234,6 +235,9 @@ export async function loadDashboardPluginSettings(autoRepairOnLoad: boolean = tr
  * @returns {Promise<boolean>}
  */
 export async function saveDashboardPluginSettings(settings: any, triggerUpdateMechanism: boolean = true): Promise<boolean> {
+  const previousPerspectiveDefs: Array<TPerspectiveDef> = Array.isArray(pluginSettingsCache?.perspectiveSettings)
+    ? pluginSettingsCache.perspectiveSettings
+    : []
   const { settings: sanitized, report, needsWrite } = sanitizeDashboardPluginSettings(settings, { cleanPerspectiveDefs: true })
   if (needsWrite) {
     logSanitizeReport(report)
@@ -244,6 +248,9 @@ export async function saveDashboardPluginSettings(settings: any, triggerUpdateMe
   const perspectiveDefs = sanitized?.perspectiveSettings
   if (Array.isArray(perspectiveDefs) && perspectiveDefs.length > 0) {
     updateTagMentionCacheDefinitionsFromAllPerspectives(perspectiveDefs)
+    // Full rewrite only when folder/teamspace definitions changed, or the union file is missing.
+    // A switch that only changes the active perspective does not rewrite every scope.
+    syncPerspectiveScopeUnionFromDefs(previousPerspectiveDefs, perspectiveDefs)
   }
 
   const res = await saveSettings(pluginID, sanitized, triggerUpdateMechanism)

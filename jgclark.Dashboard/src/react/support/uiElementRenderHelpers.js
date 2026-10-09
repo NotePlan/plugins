@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated 2025-12-05 for v2.4.0 by @jgclark
+// Last updated 2026-10-03 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -36,6 +36,19 @@ type RenderItemProps = {
   className?: string,
   disabled?: boolean,
   showDescAsTooltips?: boolean,
+  // Settings dialog: title and description at the start, control at the end of the row.
+  controlEnd?: boolean,
+}
+
+/**
+ * Whether this settings row should put its control at the end of the row.
+ * Switches, choices, and numbers always do. Text fields do only when compact.
+ */
+function usesControlEnd(item: TSettingItem, controlEnd: boolean): boolean {
+  if (!controlEnd) return false
+  if (item.type === 'switch' || item.type === 'dropdown-select' || item.type === 'number') return true
+  if ((item.type === 'input' || item.type === 'input-readonly') && item.compactDisplay) return true
+  return false
 }
 
 /**
@@ -59,7 +72,9 @@ export function renderItem({
   className = '',
   disabled = false,
   showDescAsTooltips = false, // if true, then don't show the description as text, but only tooltip
+  controlEnd = false,
 }: RenderItemProps): React.Node {
+  const controlEndRow = usesControlEnd(item, controlEnd)
   const element = () => {
     const thisLabel = item.label || '?'
     // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}' / ${showDescAsTooltips ? 'tooltip' : 'text'}`)
@@ -82,6 +97,7 @@ export function renderItem({
             labelPosition={labelPosition}
             description={showDescAsTooltips ? item.description || '' : ''} // Only send the description if showDescAsTooltips is true, to show as a tooltip
             className={className}
+            layout={controlEndRow ? 'control-end' : 'inline'}
           />
         )
       case 'input':
@@ -101,7 +117,7 @@ export function renderItem({
               item.key && handleSaveInput(item.key, newValue)
             }}
             showSaveButton={showSaveButton}
-            compactDisplay={item.compactDisplay || false}
+            compactDisplay={controlEndRow ? true : item.compactDisplay || false}
             className={className}
           />
         )
@@ -116,7 +132,7 @@ export function renderItem({
             value={item.value || ''}
             onChange={() => {}}
             showSaveButton={false}
-            compactDisplay={item.compactDisplay || false}
+            compactDisplay={controlEndRow ? true : item.compactDisplay || false}
             className={className}
           />
         )
@@ -137,7 +153,7 @@ export function renderItem({
               item.key && handleSaveInput(item.key, newValue)
             }}
             showSaveButton={showSaveButton}
-            compactDisplay={item.compactDisplay || false}
+            compactDisplay={controlEndRow ? true : item.compactDisplay || false}
           />
         )
       case 'dropdown-select':
@@ -154,6 +170,7 @@ export function renderItem({
             inputRef={inputRef} // Pass inputRef
             compactDisplay={item.compactDisplay || false}
             fixedWidth={item.fixedWidth}
+            appearance={controlEndRow ? 'popup' : 'field'}
           />
         )
       case 'teamspace-multiselect':
@@ -180,9 +197,11 @@ export function renderItem({
       case 'separator':
         return <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
       case 'heading':
+        // TODO: add iconColor here
         return (
           <>
             <div key={`hed${index}`} className="ui-heading">
+              {item.iconClass ? <i className={`${item.iconClass} fa-fw pad-right-larger`} aria-hidden="true" /> : null}
               {thisLabel}
             </div>
             {item.description && (
@@ -209,6 +228,7 @@ export function renderItem({
   let classNameToUse = className
   if (indent) classNameToUse += ' indent'
   if (disabled) classNameToUse += ' disabled'
+  if (controlEndRow) classNameToUse += ' settings-control-end'
 
   // data-settings-key is used by SettingsDialog to scroll to the element when the gear icon is clicked
   return (

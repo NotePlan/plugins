@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2026-08-26 for v2.4.3 by @CursorAI
+// Last updated 2026-10-02 for v2.5.1 by @CursorAI
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -522,7 +522,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             <div className="preText">For:</div>
             <div id="taskControlLine1" style={{ display: 'inline-flex', alignItems: 'center' }}>
               {/* Note: 'autofocusMe' attribute does not work */}
-              // $FlowFixMe[incompatible-type]
+              {/* $FlowFixMe[incompatible-type] */}
               <EditableInput
                 ref={inputRef}
                 initialValue={content}

@@ -114,8 +114,7 @@
   padding-bottom: 0.3rem;
 }
 
-/* Style for switch-input */
-.dropdown .switch-input {
+.dropdown input[type="checkbox"] {
   margin: 0;
 }
 
@@ -147,8 +146,8 @@
   gap: 10px;
 }
 
-/* General Style for input-box-input */
-.dropdown .input-box-input {
+.dropdown .input-box-wrapper > input[type="text"],
+.dropdown .input-box-wrapper > input[type="number"] {
   flex: 1;
   padding: 8px 12px;
   border: 1px solid #ddd;
@@ -156,13 +155,13 @@
   font-size: 14px;
 }
 
-/* Style for input box with invalid input */
-.dropdown .input-box-input:invalid {
+.dropdown .input-box-wrapper > input[type="text"]:invalid,
+.dropdown .input-box-wrapper > input[type="number"]:invalid {
   border: 1px solid #faa;
 }
 
-/* Focus style for input-box-input */
-.dropdown .input-box-input:focus {
+.dropdown .input-box-wrapper > input[type="text"]:focus,
+.dropdown .input-box-wrapper > input[type="number"]:focus {
   border-color: #007BFF;
   outline: none;
   box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);

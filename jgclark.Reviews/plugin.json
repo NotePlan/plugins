@@ -9,9 +9,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.com/plugins/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "2.3.1",
+  "plugin.version": "2.3.2",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "2.3.1: Small improvement to suit Dashboard plugin.\n2.3.0: Much faster Refresh via Shared notes-changed-recently cache. /weeklyProjectsProgress updates the weekly note from recently changed notes only; /heatmaps does the full scan and writes CSVs. More responsive on NotePlan 3.21.3+.\n2.2.1: Fix to root folder exclusion when using Perspectives. New progress dialogs.\n2.2.0: Updated layout of the top bar, and added a Settings button. The Refresh icon now spins while the list is regenerating.\nAvoids unnecessary refreshes when saving settings.\n2.1.1: bug fixes and small improvements.\n2.1.0: **/weeklyProjectsProgress** can upsert a current-week progress table into the weekly note (new settings **Heading for Weekly Project Progress output** and **Show folders with no progress in weekly table?**). Includes Refresh and Show/Hide empty-folder toggle pseudo-buttons.",
+  "plugin.lastUpdateInfo": "2.3.2: Rich list review labels (overdue / review now / review soon) scale with the project's review interval, capped at 7 days for review soon, 2 days for review now, and 5 days late for overdue. Short intervals get tighter windows. Due-date labels are unchanged.\n2.3.1: Small improvement to suit Dashboard plugin.\n2.3.0: Much faster Refresh via Shared notes-changed-recently cache. /weeklyProjectsProgress updates the weekly note from recently changed notes only; /heatmaps does the full scan and writes CSVs. More responsive on NotePlan 3.21.3+.\n2.2.1: Fix to root folder exclusion when using Perspectives. New progress dialogs.\n2.2.0: Updated layout of the top bar, and added a Settings button. The Refresh icon now spins while the list is regenerating.\nAvoids unnecessary refreshes when saving settings.\n2.1.1: bug fixes and small improvements.\n2.1.0: **/weeklyProjectsProgress** can upsert a current-week progress table into the weekly note (new settings **Heading for Weekly Project Progress output** and **Show folders with no progress in weekly table?**). Includes Refresh and Show/Hide empty-folder toggle pseudo-buttons.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {
@@ -29,6 +29,7 @@
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
+    "apple-switch.css",
     "regular.min.flat4NP.css",
     "solid.min.flat4NP.css",
     "fa-regular-400.woff2",
@@ -237,6 +238,24 @@
       ]
     },
     {
+      "hidden": false,
+      "name": "test: force rebuild allProjectsList from union",
+      "description": "Full rebuild of allProjectsList.json from the current perspectiveScopeUnion.json",
+      "jsFunction": "rebuildAllProjectsListForUnion",
+      "alias": [
+        "rbplu"
+      ]
+    },
+    {
+      "hidden": false,
+      "name": "test: log perspective scope union",
+      "description": "Write perspectiveScopeUnion.json to the plugin log at INFO",
+      "jsFunction": "logPerspectiveScopeUnion",
+      "alias": [
+        "lpsu"
+      ]
+    },
+    {
       "hidden": true,
       "name": "test:generateAllProjectsList",
       "description": "make/update allProjects list JSON file",
@@ -366,6 +385,14 @@
       "description": "Whether to use the current Perspective definition from the Dashboard plugin to filter the projects to review, by (Team)Space(s) and/or folder(s).\nNote: this requires the Dashboard plugin to be installed, and if set it overrides the following 2 settings.",
       "type": "bool",
       "default": false,
+      "required": true
+    },
+    {
+      "key": "FFlag_UseCacheOfAllPerspectives",
+      "title": "Build the project list from all Perspectives",
+      "description": "When Use Perspectives is on, build allProjectsList from the union of every Dashboard perspective's folders and teamspaces. The project list and Dashboard still show only the active perspective. Hidden feature flag.",
+      "type": "hidden",
+      "default": true,
       "required": true
     },
     {

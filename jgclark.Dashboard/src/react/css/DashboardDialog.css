@@ -333,7 +333,7 @@ dialog:modal {
 	color: var(--fg-alt-color);
 }
 
-.combobox-input {
+.combobox-wrapper > input[type="text"] {
 	flex: 1;
 	padding: 3px 6px 1px;
 	border-radius: 4px;
@@ -341,7 +341,7 @@ dialog:modal {
 	/* width: 100%; */
 }
 
-.combobox-input:focus {
+.combobox-wrapper > input[type="text"]:focus {
 	border-color: var(--hashtag-color);
 	outline: none;
 	box-shadow: 0 0 3px var(--hashtag-color);
@@ -418,7 +418,7 @@ dialog:modal {
 }
 
 .density-compact .itemControlDialog .dropdown-select-label,
-.density-compact .itemControlDialog .dropdown-select-input,
+.density-compact .itemControlDialog .dropdown-select-input-container > input[type="text"],
 .density-compact .itemControlDialog .dropdown-select-dropdiv,
 .density-compact .itemControlDialog .dropdown-select-option,
 .density-compact .itemControlDialog .dropdown-select-option .option-label,
@@ -428,7 +428,7 @@ dialog:modal {
 .density-compact .itemControlDialog .combobox-dropdown,
 .density-compact .itemControlDialog .combobox-option,
 .density-compact .projectControlDialog .dropdown-select-label,
-.density-compact .projectControlDialog .dropdown-select-input,
+.density-compact .projectControlDialog .dropdown-select-input-container > input[type="text"],
 .density-compact .projectControlDialog .dropdown-select-dropdiv,
 .density-compact .projectControlDialog .dropdown-select-option,
 .density-compact .projectControlDialog .dropdown-select-option .option-label,
@@ -438,7 +438,7 @@ dialog:modal {
 .density-compact .projectControlDialog .combobox-dropdown,
 .density-compact .projectControlDialog .combobox-option,
 .density-compact .add-to-any-note-dialog .dropdown-select-label,
-.density-compact .add-to-any-note-dialog .dropdown-select-input,
+.density-compact .add-to-any-note-dialog .dropdown-select-input-container > input[type="text"],
 .density-compact .add-to-any-note-dialog .dropdown-select-dropdiv,
 .density-compact .add-to-any-note-dialog .dropdown-select-option,
 .density-compact .add-to-any-note-dialog .dropdown-select-option .option-label,

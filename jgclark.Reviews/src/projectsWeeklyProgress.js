@@ -7,12 +7,11 @@
 //   - task-completion-per-folder.csv: tasks-per-week
 //   then shows heatmaps
 //
-// Last updated 2026-09-18 for v2.3.0 by @jgclark + @CursorAI
+// Last updated 2026-10-05 for v2.3.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getMatchingProjectTypeTagsOnNote } from './reviewHelpers'
-import { getReviewSettings, parseMarkdownHeadingSetting, type ReviewConfig, type ReviewConfigInput } from './reviewSettings'
+import { foldersInPerspectiveScopeUnion, readPerspectiveScopeUnion } from '../../jgclark.Dashboard/src/perspectiveScopeUnion.js'
 import {
   generateNotesChangedRecentlyCache,
   getFilenamesChangedRecently,
@@ -20,6 +19,8 @@ import {
   isNotesChangedRecentlyCacheGenerationScheduled,
   updateNotesChangedRecentlyCacheIfTooOld,
 } from '../../np.Shared/src/notesChangedRecentlyCache.js'
+import { getMatchingProjectTypeTagsOnNote } from './reviewHelpers'
+import { getReviewSettings, parseMarkdownHeadingSetting, persistRawReviewSetting, type ReviewConfig, type ReviewConfigInput } from './reviewSettings'
 import {
   RE_DONE_DATE_OPT_TIME,
   RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,
@@ -30,11 +31,13 @@ import { getNPWeekData, pad } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink } from '@helpers/general'
 import { getRegularNotesFromFilteredFolders, getFolderFromFilename } from '@helpers/folders'
+import { showHTMLV2 } from '@helpers/HTMLView'
+import { replaceSection } from '@helpers/note'
+import { getTeamspaceTitleFromID } from '@helpers/NPTeamspace'
 import { getOpenEditorFromFilename, getOrOpenEditorFromFilename } from '@helpers/NPEditor'
 import { runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
-import { replaceSection } from '@helpers/note'
+import { isTeamspaceNoteFromFilename, parseTeamspaceFilename } from '@helpers/teamspace'
 import { isDone } from '@helpers/utils'
-import { showHTMLV2 } from '@helpers/HTMLView'
 import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -124,6 +127,68 @@ function isAreaOrProjectFolder(folderName: string): boolean {
 }
 
 /**
+ * True when this note lives in a Space (Teamspace). Prefer the note flag; fall back to the filename prefix.
+ * @param {TNote} note
+ * @returns {boolean}
+ */
+function isSpaceNote(note: TNote): boolean {
+  return note.isTeamspaceNote === true || isTeamspaceNoteFromFilename(note.filename ?? '')
+}
+
+/**
+ * Whether a note's location is in scope for weekly progress: a private Area/Project folder, or any Space.
+ * @param {string} filename
+ * @param {boolean} isTeamspaceNote
+ * @returns {boolean}
+ */
+export function noteQualifiesForWeeklyProgress(filename: string, isTeamspaceNote: boolean = false): boolean {
+  if (isTeamspaceNote || isTeamspaceNoteFromFilename(filename)) {
+    return true
+  }
+  return isAreaOrProjectFolder(getFolderFromFilename(filename))
+}
+
+/**
+ * Display label for a folder path. Private paths are unchanged.
+ * Space folder paths become "Space title/folder" (or just the Space title at the Space root).
+ * @param {string} folderPath
+ * @param {string} teamspaceTitle
+ * @returns {string}
+ */
+export function weeklyProgressLabelForFolder(folderPath: string, teamspaceTitle: string = ''): string {
+  if (!folderPath || folderPath === '/' || !isTeamspaceNoteFromFilename(folderPath)) {
+    return folderPath || '/'
+  }
+  const parsed = parseTeamspaceFilename(folderPath)
+  const providedTitle = teamspaceTitle.trim()
+  const spaceTitle = providedTitle !== '' ? providedTitle : getTeamspaceTitleFromID(parsed.teamspaceID ?? '')
+  const inner = parsed.filepath && parsed.filepath !== '/' ? parsed.filepath : ''
+  return inner !== '' ? `${spaceTitle}/${inner}` : spaceTitle
+}
+
+/**
+ * Folder key for a note filename in weekly progress output.
+ * @param {string} filename
+ * @param {string} teamspaceTitle - note.teamspaceTitle when known; looked up from the space id otherwise
+ * @returns {string}
+ */
+export function weeklyProgressFolderKey(filename: string, teamspaceTitle: string = ''): string {
+  if (!filename) {
+    return getFolderFromFilename(filename)
+  }
+  return weeklyProgressLabelForFolder(getFolderFromFilename(filename), teamspaceTitle)
+}
+
+/**
+ * Folder label for one note in weekly progress aggregates.
+ * @param {TNote} note
+ * @returns {string}
+ */
+function folderKeyForWeeklyProgressNote(note: TNote): string {
+  return weeklyProgressFolderKey(note.filename ?? '', note.teamspaceTitle ?? '')
+}
+
+/**
  * Determine which week (if any) a given ISO date string (YYYY-MM-DD) falls into.
  * Returns the week label or empty string if not in range.
  * @param {string} isoDate
@@ -182,22 +247,84 @@ function isIndexOrMOCNoteTitle(title: ?string): boolean {
  * @returns {Array<string>}
  */
 function getDistinctSortedFolderPathsFromNotes(notes: Array<TNote>): Array<string> {
-  return Array.from(new Set(notes.map((n) => getFolderFromFilename(n.filename))))
+  return Array.from(new Set(notes.map((n) => folderKeyForWeeklyProgressNote(n))))
     .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
 }
 
 /**
- * Get notes in Area/Project folders, plus the sorted list of folder paths found.
- * Folder paths are derived only from notes that exist — empty folders are never included.
+ * Display labels for the union folder list, in the same key space as per-note progress counts.
+ * @param {Array<string>} folderPaths
+ * @returns {Array<string>}
+ */
+function displayFoldersForWeeklyProgress(folderPaths: Array<string>): Array<string> {
+  const labels = new Set < string > ()
+  for (const folderPath of folderPaths) {
+    labels.add(weeklyProgressLabelForFolder(folderPath))
+  }
+  return Array.from(labels).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+}
+
+/**
+ * Notes whose folder is in the complete perspective-scope union, including Space folder paths.
+ * The per-scope teamspace id list is not applied: a Space folder listed in `folders` is in scope
+ * even when that perspective's teamspaces are only `private`.
+ * @param {ReviewConfig} config
+ * @returns {?{ notes: Array<TNote>, folders: Array<string> }} null when the union is not in use or cannot be read
+ */
+function getNotesInPerspectiveScopeUnion(config: ReviewConfig): ?{ notes: Array<TNote>, folders: Array<string> } {
+  const useUnion = config.FFlag_UseCacheOfAllPerspectives === true && config.usePerspectives === true
+  if (!useUnion) return null
+  const union = readPerspectiveScopeUnion()
+  if (union == null || union.scopes.length === 0) {
+    logWarn('getNotesInTargetProjectFolders', 'FFlag_UseCacheOfAllPerspectives is on but perspectiveScopeUnion.json is missing or empty. Falling back to Area/Project folders and Space notes.')
+    return null
+  }
+  const unionFolders = foldersInPerspectiveScopeUnion(union.scopes)
+  const folderSet = new Set(unionFolders)
+  const notes: Array<TNote> = []
+  let spaceFolderCount = 0
+  for (const folderPath of unionFolders) {
+    if (isTeamspaceNoteFromFilename(folderPath)) spaceFolderCount += 1
+  }
+  for (const note of DataStore.projectNotes ?? []) {
+    if (!note?.filename || note.filename.startsWith('@')) continue
+    if (isIndexOrMOCNoteTitle(note.title)) continue
+    if (!folderSet.has(getFolderFromFilename(note.filename))) continue
+    notes.push(note)
+  }
+  logInfo(
+    'getNotesInTargetProjectFolders',
+    `Using perspective scope union: ${String(unionFolders.length)} folders (${String(spaceFolderCount)} Space folders) across ${String(union.scopes.length)} perspectives; ${String(notes.length)} notes`,
+  )
+  return { notes, folders: displayFoldersForWeeklyProgress(unionFolders) }
+}
+
+/**
+ * Get notes to scan for weekly progress, plus the folder list used for empty-folder rows.
+ * When the all-perspectives flag is on, this is the complete union of perspective folders, including Space folders.
+ * Otherwise it is private Area/Project folders plus notes that live in Spaces.
  * @param {ReviewConfig} config
  * @returns {{ notes: Array<TNote>, folders: Array<string> }}
  */
 function getNotesInTargetProjectFolders(config: ReviewConfig): { notes: Array<TNote>, folders: Array<string> } {
+  const fromUnion = getNotesInPerspectiveScopeUnion(config)
+  if (fromUnion != null) return fromUnion
+
   const foldersToExclude = config.foldersToIgnore ?? []
-  const allNotes = getRegularNotesFromFilteredFolders(foldersToExclude, true)
+  const filteredNotes = getRegularNotesFromFilteredFolders(foldersToExclude, true)
+  const seenFilenames = new Set(filteredNotes.map((n) => n.filename))
+  // DataStore.folders can omit Space folders, which drops those notes from the filtered list above.
+  const extraSpaceNotes: Array<TNote> = []
+  for (const note of DataStore.projectNotes ?? []) {
+    if (!note?.filename || seenFilenames.has(note.filename)) continue
+    if (!isSpaceNote(note)) continue
+    if (note.filename.startsWith('@')) continue
+    extraSpaceNotes.push(note)
+  }
+  const allNotes = filteredNotes.concat(extraSpaceNotes)
   const notesInTargetFolders = allNotes.filter((n) => {
-    const folderPath = getFolderFromFilename(n.filename)
-    return isAreaOrProjectFolder(folderPath) && !isIndexOrMOCNoteTitle(n.title)
+    if (isIndexOrMOCNoteTitle(n.title)) return false
+    return noteQualifiesForWeeklyProgress(n.filename ?? '', isSpaceNote(n))
   })
   const folders = getDistinctSortedFolderPathsFromNotes(notesInTargetFolders)
   return { notes: notesInTargetFolders, folders }
@@ -795,7 +922,7 @@ async function applyWeeklyProjectProgressCommandParamsFromArgs(config: ReviewCon
           'applyWeeklyProjectProgressCommandParams',
           `Set weeklyProjectProgressShowEmptyFolders to ${String(updatedConfig.weeklyProjectProgressShowEmptyFolders)} from param '${decodeParamToken(arg)}'`,
         )
-        await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+        await persistRawReviewSetting('weeklyProjectProgressShowEmptyFolders', resolvedShowEmpty)
         // $FlowFixMe[incompatible-type]
         return updatedConfig
       }
@@ -807,7 +934,7 @@ async function applyWeeklyProjectProgressCommandParamsFromArgs(config: ReviewCon
       }
       const updatedConfig = applyShowEmptyFoldersParamToConfig(config, arg)
       if (updatedConfig !== config) {
-        await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+        await persistRawReviewSetting('weeklyProjectProgressShowEmptyFolders', updatedConfig.weeklyProjectProgressShowEmptyFolders)
         return updatedConfig
       }
     }
@@ -949,7 +1076,7 @@ function scanWeeklyProgressCombinedSync(
       if (loadingShown && (index % SHOW_LOADING_UPDATE_EVERY_N_NOTES === 0 || index === total)) {
         CommandBar.showLoading(true, `Scanning notes for weekly project progress\n${String(index)}/${String(total)}`, index / total)
       }
-      const folderPath = getFolderFromFilename(note.filename)
+      const folderPath = folderKeyForWeeklyProgressNote(note)
       let progressedInTargetWeek = false
       for (const p of note.paragraphs) {
         if (!isDone(p)) continue

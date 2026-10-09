@@ -82,7 +82,6 @@ function MultiSelectSpaces({ value, onChange, disabled = false, label, descripti
           </div>)
         : (
           <>
-            {description && <div className="item-description pad-bottom">{description}</div>}
             <div className="multi-select-panel">
               <div className="multi-select-options">
                 {options.map((option) => {
@@ -95,7 +94,7 @@ function MultiSelectSpaces({ value, onChange, disabled = false, label, descripti
                     <label key={option.id}>
                       <input
                         type="checkbox"
-                        className="apple-switch switch-input"
+                        className="apple-switch"
                         checked={isChecked}
                         disabled={isDisabled}
                         onChange={() => handleCheckboxChange(option.id)}
@@ -111,6 +110,7 @@ function MultiSelectSpaces({ value, onChange, disabled = false, label, descripti
                 })}
               </div>
             </div>
+            {description && <div className="item-description multi-select-description">{description}</div>}
           </>
         )
       }

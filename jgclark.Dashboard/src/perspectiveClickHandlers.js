@@ -28,6 +28,7 @@ import {
   logPerspectiveNames,
   isNamedPerspectiveModified,
 } from './perspectiveHelpers'
+import { perspectiveScopeUnionChangedOnLastSave, refreshDestinationScopeFolders } from './perspectiveScopeUnion'
 import { perspectiveNoteScopeChanged } from './reviewsListSync'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
@@ -170,7 +171,7 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
   // No section refresh: Save Perspective only persists already-live settings and clears isModified;
   // setPluginData above is enough for the UI (e.g. * marker). Content already matches the screen.
   // Reviews reads the *saved* perspective def for folder/teamspace scope, so notify it only when those keys changed.
-  const scopeChanged = perspectiveNoteScopeChanged(activeDef.dashboardSettings, newDef.dashboardSettings)
+  const scopeChanged = perspectiveNoteScopeChanged(activeDef.dashboardSettings, newDef.dashboardSettings) || perspectiveScopeUnionChangedOnLastSave()
   if (scopeChanged) {
     logInfo('doSavePerspective', `Folder/teamspace scope changed for '${activeDef.name}'; will sync Reviews project list`)
   }
@@ -302,6 +303,9 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
 
   const savedPerspectives = (await loadDashboardPluginSettings()).perspectiveSettings
   const perspectiveSettingsForPlugin = Array.isArray(savedPerspectives) ? savedPerspectives : defsForSave
+  // Re-resolve only the destination perspective against DataStore.folders. Other scopes stay as stored.
+  const destinationRefresh = refreshDestinationScopeFolders(switchToName, perspectiveSettingsForPlugin)
+  const perspectiveScopeFoldersChanged = perspectiveScopeUnionChangedOnLastSave() || destinationRefresh.changed
 
   // Intentional: clear sections on perspective switch so React regenerates all enabled sections.
   // Selective removal (e.g. only tags that disappeared) is more complex and less reliable; revisit only if switch latency becomes a measured problem.
@@ -321,7 +325,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   // logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Sending these perspectiveSettings to react window in pluginData')
   await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)
 
-  return handlerResult(true, ['PERSPECTIVE_CHANGED'])
+  return handlerResult(true, ['PERSPECTIVE_CHANGED'], { perspectiveName: switchToName, perspectiveScopeFoldersChanged })
 }
 
 /**
@@ -384,7 +388,7 @@ export async function doSavePerspectiveSettingsFromBridge(data: MessageDataObjec
   await setPluginData(updatedPluginData, `_Updated perspectiveSettings in global pluginData`)
   const prevActive = getActivePerspectiveDef(Array.isArray(priorPerspectiveSettings) ? priorPerspectiveSettings : [])
   const nextActive = getActivePerspectiveDef(Array.isArray(syncedSettings) ? syncedSettings : [])
-  const scopeChanged = Boolean(
+  const scopeChanged = perspectiveScopeUnionChangedOnLastSave() || Boolean(
     prevActive &&
     nextActive &&
     prevActive.name === nextActive.name &&

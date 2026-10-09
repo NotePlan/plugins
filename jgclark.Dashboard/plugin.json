@@ -19,7 +19,7 @@
     {
       "id": "np.Shared",
       "name": "Shared Resources",
-      "minVersion": "1.2.0"
+      "minVersion": "1.3.0"
     }
   ],
   "plugin.requiredFiles": [
@@ -27,6 +27,7 @@
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
+    "apple-switch.css",
     "light.min.flat4NP.css",
     "regular.min.flat4NP.css",
     "solid.min.flat4NP.css",
@@ -237,8 +238,7 @@
       "jsFunction": "reactWindowInitialisedSoStartGeneratingData"
     },
     {
-      "hidden": false,
-      "comment": "TODO: remove me in time",
+      "hidden": true,
       "name": "onUpdateOrInstall",
       "description": "test: onUpdateOrInstall",
       "jsFunction": "onUpdateOrInstall"
@@ -268,8 +268,8 @@
       ]
     },
     {
-      "comment": "test/diagnostic: dump todaysChangedNoteList.json done-count map. TODO: remove me in time",
-      "hidden": false,
+      "hidden": true,
+      "comment": "test: Log the contents of todaysChangedNoteList.json done-count map. TODO: remove me in time",
       "name": "log Done Counts",
       "description": "Show today's done-count map (todaysChangedNoteList.json) as an INFO banner and in the Plugin Console",
       "jsFunction": "logDoneCounts",
@@ -278,7 +278,7 @@
       ]
     },
     {
-      "hidden": false,
+      "hidden": true,
       "name": "updatePriorityNoteIndexCache",
       "description": "update Priority note-index cache for Dashboard",
       "jsFunction": "updatePriorityNoteIndexCache",

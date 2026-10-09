@@ -91,6 +91,23 @@ describe('getSettingsUpdateAction', () => {
     expect(getSettingsUpdateAction(previous, current)).toBe('none')
   })
 
+  test('does nothing when only another command setting changes', () => {
+    const { previous, current } = settingsPair({}, {
+      weeklyProjectProgressBulletSummary: 'Table by sub-folder',
+      archiveFolder: 'Archive',
+      removeDueDatesOnPause: false,
+    })
+    expect(getSettingsUpdateAction(previous, current)).toBe('none')
+  })
+
+  test('still rebuilds when a project-list scope setting changes alongside another command', () => {
+    const { previous, current } = settingsPair({}, {
+      foldersToInclude: ['Work'],
+      weeklyProjectProgressHeading: '## Progress',
+    })
+    expect(getSettingsUpdateAction(previous, current)).toBe('rebuild')
+  })
+
   test('does nothing when settings are unchanged', () => {
     const { previous, current } = settingsPair({}, {})
     expect(getSettingsUpdateAction(previous, current)).toBe('none')

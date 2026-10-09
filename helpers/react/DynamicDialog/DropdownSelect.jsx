@@ -6,7 +6,7 @@
 // Includes logic to either disable focus when isEditable=false,
 // and logic to only scroll if needed, plus an optional prop to disable scrolling altogether.
 // Keyboard: ArrowUp/Down highlight, Enter open/select, Escape/Tab close (SearchableChooser pattern).
-// Last updated 2026-07-15 by @jgclark
+// Last updated 2026-10-02 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, useMemo, type ElementRef, useLayoutEffect } from 'react'
 import './DropdownSelect.css'
@@ -69,6 +69,11 @@ type DropdownSelectProps = {
    * This will be displayed as a non-selectable option that won't be submitted.
    */
   placeholder?: string,
+  /**
+   * 'field' is the bordered dropdown. 'popup' is a borderless value plus up/down chevron (macOS settings choice).
+   * A popup with 2 or 3 choices is shown as a horizontal row instead of a menu.
+   */
+  appearance?: 'field' | 'popup',
 }
 
 /**
@@ -132,6 +137,7 @@ const DropdownSelect = ({
   disabled = false,
   disableAutoScroll = false,
   placeholder,
+  appearance = 'field',
 }: DropdownSelectProps): React.Node => {
   // Normalize options to a consistent format
 
@@ -524,9 +530,52 @@ const DropdownSelect = ({
       ...(customStyles: any),
     })
 
+  const isPopup = appearance === 'popup'
+  const popupSize = Math.min(Math.max((inputValue || '').length, 1), 32)
+  // Short settings choices are easier to scan as a row than as a menu.
+  const segmentOptions = normalizedOptions.filter((option) => option.type !== 'separator')
+  const showSegments = isPopup && segmentOptions.length >= 2 && segmentOptions.length <= 3
+
+  if (showSegments) {
+    return (
+      <div
+        className={`dropdown-select-popup ${compactDisplay ? 'dropdown-select-container-compact' : 'dropdown-select-container'} ${disabled ? 'disabled' : ''} ${className}`}
+        ref={dropdownRef}
+        style={mergeStyles({}, styles.container)}
+      >
+        <label className="dropdown-select-label" style={mergeStyles({}, styles.label)}>
+          {label}
+        </label>
+        <div
+          className="dropdown-select-wrapper dropdown-select-segmented"
+          role="radiogroup"
+          aria-label={label}
+          style={mergeStyles({}, styles.wrapper)}
+        >
+          {segmentOptions.map((option: Option, i) => {
+            const isSelected = option.value === selectedValue.value
+            return (
+              <button
+                key={`${option.value || 'option'}-${i}`}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                className={isSelected ? 'is-selected' : ''}
+                disabled={disabled}
+                onClick={() => handleOptionClick(option)}
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
-      className={`${compactDisplay ? 'dropdown-select-container-compact' : 'dropdown-select-container'} ${disabled ? 'disabled' : ''} ${className}`}
+      className={`${isPopup ? 'dropdown-select-popup' : ''} ${compactDisplay ? 'dropdown-select-container-compact' : 'dropdown-select-container'} ${disabled ? 'disabled' : ''} ${className}`}
       ref={dropdownRef}
       style={mergeStyles({}, styles.container)}
     >
@@ -550,7 +599,7 @@ const DropdownSelect = ({
               display: 'flex',
               alignItems: 'center',
               position: 'relative',
-              width: `max(${calculatedWidth}ch, 98%)`,
+              width: isPopup ? 'auto' : `max(${calculatedWidth}ch, 98%)`,
               // width: '100%',
             },
             styles.inputContainer || {},
@@ -559,7 +608,6 @@ const DropdownSelect = ({
           {showIndicatorOptionProp && <span style={dot(shouldShowIndicator, styles.indicator || {})} />}
           <input
             type="text"
-            className="dropdown-select-input"
             value={inputValue}
             onChange={handleInputChange} // Handle input change
             onFocus={handleInputFocus} // Handle input focus
@@ -567,22 +615,42 @@ const DropdownSelect = ({
             ref={setInputRefs}
             disabled={disabled}
             readOnly={!isEditable} // Set readOnly based on isEditable prop
-            style={mergeStyles({ paddingLeft: showIndicatorOptionProp ? '24px' : '8px' }, styles.input)} // TODO: Ideally find a way to do this in CSS, rather than here. Also do we use Indicator?
+            size={isPopup && !isEditable ? popupSize : undefined}
+            style={mergeStyles(
+              isPopup
+                ? { width: 'auto', textAlign: 'right', cursor: 'pointer' }
+                : { paddingLeft: showIndicatorOptionProp ? '24px' : '8px' },
+              styles.input,
+            )} // TODO: Ideally find a way to do this in CSS, rather than here. Also do we use Indicator?
           />
-          <span className="dropdown-select-arrow" style={mergeStyles({}, styles.arrow)}>
-            &#9662;
-          </span>
+          {isPopup ? (
+            <span className="dropdown-select-chevron" aria-hidden="true" />
+          ) : (
+            <span className="dropdown-select-arrow" style={mergeStyles({}, styles.arrow)}>
+              &#9662;
+            </span>
+          )}
         </div>
         {isOpen && (
           <div
             className="dropdown-select-dropdiv"
             ref={optionsRef}
             style={mergeStyles(
-              {
-                // width: `max(${calculatedWidth}ch, 98%)`,
-                maxHeight: '80vh',
-                overflowY: 'auto',
-              },
+              mergeStyles(
+                {
+                  // width: `max(${calculatedWidth}ch, 98%)`,
+                  maxHeight: '80vh',
+                  overflowY: 'auto',
+                },
+                isPopup
+                  ? {
+                      left: 'auto',
+                      right: 0,
+                      width: 'max-content',
+                      minWidth: `max(100%, ${calculatedWidth}ch)`,
+                    }
+                  : {},
+              ),
               styles.dropdown,
             )}
           >

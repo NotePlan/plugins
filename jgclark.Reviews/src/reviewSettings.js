@@ -3,7 +3,7 @@
 // Settings for the Reviews plugin: load/normalise config, heading-setting parse,
 // and what a settings-pane save should do to the project list.
 // by @jgclark
-// Last updated 2026-09-13 for v2.2.0 by @jgclark + @CursorAI
+// Last updated 2026-10-05 for v2.3.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getActivePerspectiveDef, loadPerspectiveDefsFromPluginSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
@@ -18,6 +18,8 @@ import { showMessage } from '@helpers/userInput'
 
 export type ReviewConfig = {
   usePerspectives: boolean,
+  /** When true with usePerspectives, allProjectsList.json covers every saved perspective. Hidden setting. */
+  FFlag_UseCacheOfAllPerspectives?: boolean,
   perspectiveName: string,
   outputStyle: string,
   reviewsTheme: string,
@@ -79,6 +81,7 @@ export type ReviewConfigInput = $ReadOnly<Partial<ReviewConfig>>
 export const SETTINGS_THAT_REQUIRE_REBUILD: $ReadOnlyArray<string> = [
   'projectTypeTags',
   'usePerspectives',
+  'FFlag_UseCacheOfAllPerspectives',
   'foldersToInclude',
   'foldersToIgnore',
   'startMentionStr',
@@ -101,6 +104,24 @@ export const SETTINGS_THAT_REQUIRE_RECALCULATE: $ReadOnlyArray<string> = [
   'sequentialTag',
   'ignoreChecklistsInProgress',
   'numberDaysForFutureToIgnore',
+]
+
+/**
+ * Settings for commands other than the project list (weekly progress, complete/cancel, pause, next review, progress lines, log level). 
+ * Changing only these must not rebuild, recalculate, or redisplay allProjectsList.
+ */
+export const SETTINGS_FOR_OTHER_COMMANDS: $ReadOnlyArray<string> = [
+  'confirmNextReview',
+  'finishedListHeading',
+  'archiveFolder',
+  'archiveUsingFolderStructure',
+  'removeDueDatesOnPause',
+  'progressHeading',
+  'writeMostRecentProgressToFrontmatter',
+  'weeklyProjectProgressHeading',
+  'weeklyProjectProgressBulletSummary',
+  'weeklyProjectProgressShowEmptyFolders',
+  '_logLevel',
 ]
 
 /**
@@ -234,6 +255,9 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     config.projectMetadataFrontmatterKey = singleMetadataKeyName
     DataStore.setPreference('projectMetadataFrontmatterKey', singleMetadataKeyName)
     // Default when Perspectives are off. Callers already gate teamspace filtering on usePerspectives, so this value is unused in that path.
+    if (config.FFlag_UseCacheOfAllPerspectives == null) {
+      config.FFlag_UseCacheOfAllPerspectives = false
+    }
     if (!config.usePerspectives) {
       config.includedTeamspaces = ['private']
     }
@@ -277,7 +301,7 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     return config
   } catch (err) {
     logError(pluginJson, `getReviewSettings() error: ${err.name}: ${err.message}`)
-    await backupSettings('jgclark.Reviews', 'error_in_file')
+    await backupSettings('jgclark.Reviews', 'error_in_file', true)
     await showMessage(`Sorry, there's been an error getting the settings for this plugin.\nI have tried to make a copy of the settings file to send to the plugin author on Discord if you wish.\n\nnNow please delete your NotePlan/Plugins/data/jgclark.Reviews/settings.json file. Then re-run the command, which should create a new settings file from the plugin defaults. If the issue persists, please raise an issue on GitHub.`, 'OK, thanks', 'Settings Error')
     return null
   }
@@ -332,7 +356,7 @@ export function getSettingsUpdateAction(previous: ?{ [string]: any }, current: ?
   if (previous == null || current == null) {
     return 'rebuild'
   }
-  const changed = getChangedSettingKeys(previous, current)
+  const changed = getChangedSettingKeys(previous, current).filter((key) => !SETTINGS_FOR_OTHER_COMMANDS.includes(key))
   if (changed.some((key) => SETTINGS_THAT_REQUIRE_REBUILD.includes(key))) {
     return 'rebuild'
   }
@@ -380,6 +404,30 @@ export function getLastSettingsSnapshot(): ?{ [string]: any } {
 export function persistLastSettingsSnapshot(settings: { [string]: any }): void {
   DataStore.setPreference(LAST_SETTINGS_SNAPSHOT_PREF, JSON.stringify(settings))
   logDebug('persistLastSettingsSnapshot', `stored snapshot with ${String(Object.keys(settings).length)} key(s)`)
+}
+
+/**
+ * Write one key into the raw `settings.json` file. 
+ * Does not use getReviewSettings, so perspective folder and teamspace overlays are not written back over the saved file.
+ * @param {string} key
+ * @param {mixed} value
+ * @returns {Promise<boolean>}
+ */
+export async function persistRawReviewSetting(key: string, value: mixed): Promise<boolean> {
+  try {
+    const raw = await DataStore.loadJSON('../jgclark.Reviews/settings.json')
+    if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+      logWarn('persistRawReviewSetting', 'Could not load settings.json')
+      return false
+    }
+    raw[key] = value
+    await DataStore.saveJSON(raw, '../jgclark.Reviews/settings.json', true)
+    logDebug('persistRawReviewSetting', `Saved ${key}`)
+    return true
+  } catch (error) {
+    logError('persistRawReviewSetting', error.message)
+    return false
+  }
 }
 
 /**

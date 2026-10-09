@@ -4,11 +4,26 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-10-01 for v2.3.0 by @jgclark + @CursorAI
+// Last updated 2026-10-02 for v2.3.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
+import {
+  foldersToScanForChangedScopes,
+  noteMatchesAnyScope,
+  noteMatchesChangedScope,
+  PERSPECTIVE_SCOPE_UNION_FILENAME,
+  formatPerspectiveScopeUnionForLog,
+  readPerspectiveScopeUnion,
+  type TPerspectiveScopeUnion,
+} from '../../jgclark.Dashboard/src/perspectiveScopeUnion.js'
+import {
+  generateNotesChangedRecentlyCache,
+  getFilenamesChangedSince,
+  isNotesChangedRecentlyCacheGenerationScheduled,
+  updateNotesChangedRecentlyCacheIfTooOld,
+} from '../../np.Shared/src/notesChangedRecentlyCache.js'
 import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
 import { calcReviewFieldsForProject, isProjectFinished } from './projectClassCalculations.js'
 import {
@@ -19,15 +34,10 @@ import {
   updateRichProjectListIfOpen,
 } from './reviewHelpers.js'
 import { getReviewSettings, type ReviewConfig } from './reviewSettings.js'
-import {
-  generateNotesChangedRecentlyCache,
-  getFilenamesChangedSince,
-  isNotesChangedRecentlyCacheGenerationScheduled,
-  updateNotesChangedRecentlyCacheIfTooOld,
-} from '../../np.Shared/src/notesChangedRecentlyCache.js'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { toISODateString } from '@helpers/dateTime'
-import { getFolderFromFilename, getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
+import { getFolderDisplayName, getFolderFromFilename, getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
+import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { displayTitle } from '@helpers/general'
 import { RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
@@ -40,17 +50,21 @@ import { sortListBy } from '@helpers/sorting'
 // Settings
 const pluginID = 'jgclark.Reviews'
 const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // fully specified to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
-const maxAgeAllProjectsListInHours = 1
+const maxAgeAllProjectsListInHours = 168 // 1 week
 const generatedDatePrefName = 'Reviews-lastAllProjectsGenerationTime'
 const lastFullScanPrefName = 'Reviews-lastAllProjectsFullScanTime'
 const lastPerspectivePrefName = 'Reviews-lastAllProjectsPerspective'
 const lastFolderFiltersPrefName = 'Reviews-lastAllProjectsFolderFilters'
+const lastScopeChangedAtPrefName = 'Reviews-lastAllProjectsScopeChangedAt'
 const MS_PER_HOUR = 1000 * 60 * 60
 const MS_PER_DAY = MS_PER_HOUR * 24
 const MAX_AGE_FULL_SCAN_MS = MS_PER_DAY
 const ERROR_FILENAME_PLACEHOLDER = 'error'
 const ERROR_READING_PLACEHOLDER = '<error reading'
 const SEQUENTIAL_TAG_DEFAULT = '#sequential'
+
+/** Folder count from the latest enumerate, so finish logs can report how many were scanned. */
+let lastEnumeratedFolderCount = 0
 
 /**
  * INFO-level duration for an allProjects list rebuild, incremental update, or access.
@@ -346,6 +360,96 @@ function getFolderFilterFingerprint(config: ReviewConfig): string {
   return `${include}\u0002${ignore}\u0002${teamspaces}`
 }
 
+/**
+ * True when the project list should be built from every saved perspective.
+ * @param {ReviewConfig} config
+ * @returns {boolean}
+ */
+function usesAllPerspectivesUnion(config: ReviewConfig): boolean {
+  return config?.FFlag_UseCacheOfAllPerspectives === true && config?.usePerspectives === true
+}
+
+/**
+ * Load the Dashboard union file when the flag is on. Null means fall back to the active perspective.
+ * @param {ReviewConfig} config
+ * @returns {?TPerspectiveScopeUnion}
+ */
+function readUnionForConfig(config: ReviewConfig): ?TPerspectiveScopeUnion {
+  if (!usesAllPerspectivesUnion(config)) return null
+  const union = readPerspectiveScopeUnion()
+  if (union == null) {
+    logWarn('readUnionForConfig', 'FFlag_UseCacheOfAllPerspectives is on but perspectiveScopeUnion.json is missing or unreadable. Using the active perspective.')
+  }
+  return union
+}
+
+/**
+ * True when allProjectsList.json is older than maxAgeAllProjectsListInHours.
+ * @returns {boolean}
+ */
+function listIsOlderThanMaxAge(): boolean {
+  return getFileAgeMs(generatedDatePrefName) > MS_PER_HOUR * maxAgeAllProjectsListInHours
+}
+
+/**
+ * Last `changedAt` Projects applied for each scope name.
+ * @returns {{ [string]: number }}
+ */
+function readStoredScopeChangedAt(): { [string]: number } {
+  const raw: mixed = DataStore.preference(lastScopeChangedAtPrefName)
+  let parsed: mixed = raw
+  if (typeof raw === 'string' && raw !== '') {
+    try {
+      parsed = JSON.parse(raw)
+    } catch (error) {
+      logWarn('readStoredScopeChangedAt', error.message)
+      return {}
+    }
+  }
+  if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+  const record: { [string]: mixed } = (parsed: any)
+  const out: { [string]: number } = {}
+  for (const name of Object.keys(record)) {
+    const value = record[name]
+    if (typeof value === 'number') out[name] = value
+  }
+  return out
+}
+
+/**
+ * Remember the union fingerprint and per-scope timestamps that were written into the list.
+ * @param {TPerspectiveScopeUnion} union
+ * @returns {void}
+ */
+function rememberAppliedUnion(union: TPerspectiveScopeUnion): void {
+  DataStore.setPreference(lastFolderFiltersPrefName, union.fingerprint)
+  const map: { [string]: number } = {}
+  for (const scope of union.scopes) {
+    map[scope.name] = scope.changedAt
+  }
+  DataStore.setPreference(lastScopeChangedAtPrefName, JSON.stringify(map))
+}
+
+/**
+ * True when a fresh list can take new folders from changed scopes instead of a full scan.
+ * @param {ReviewConfig} config
+ * @returns {boolean}
+ */
+export function shouldPartialIncludeChangedScopes(config: ReviewConfig): boolean {
+  const union = readUnionForConfig(config)
+  if (union == null) return false
+  if (!DataStore.fileExists(allProjectsListFilename)) return false
+  const parsed = parseAllProjectsListFileContent(DataStore.loadData(allProjectsListFilename, true))
+  if (parsed == null || parsed.length === 0) return false
+  if (listIsOlderThanMaxAge()) return false
+  const fullScanPref: mixed = DataStore.preference(lastFullScanPrefName)
+  const fullScanMs = typeof fullScanPref === 'number' ? fullScanPref : 0
+  if (fullScanMs <= 0 || Date.now() - fullScanMs > MAX_AGE_FULL_SCAN_MS) return false
+  const lastFingerprintPref: mixed = DataStore.preference(lastFolderFiltersPrefName)
+  const lastFingerprint = typeof lastFingerprintPref === 'string' ? lastFingerprintPref : ''
+  return lastFingerprint !== union.fingerprint
+}
+
 function getFileAgeMs(prefName: string): number {
   const prefValue: mixed = DataStore.preference(prefName)
   const timestamp: number = typeof prefValue === 'number' ? prefValue : 0
@@ -378,6 +482,19 @@ function shouldRegenerateAllProjectsList(config: ReviewConfig): boolean {
       `allProjects list is ${fileAgeHours}h old (max ${String(maxAgeAllProjectsListInHours)}h); will regenerate`,
     )
     return true
+  }
+  const unionForRegen = readUnionForConfig(config)
+  if (unionForRegen) {
+    const lastFingerprintPrefUnion: mixed = DataStore.preference(lastFolderFiltersPrefName)
+    const lastUnionFingerprint = typeof lastFingerprintPrefUnion === 'string' ? lastFingerprintPrefUnion : ''
+    if (lastUnionFingerprint !== unionForRegen.fingerprint) {
+      logInfo(
+        'shouldRegenerateAllProjectsList',
+        `Perspective scope union changed; will update allProjects list`,
+      )
+      return true
+    }
+    return false
   }
   if (config.usePerspectives && config.perspectiveName) {
     const lastPref: mixed = DataStore.preference(lastPerspectivePrefName)
@@ -423,6 +540,34 @@ export function shouldUseFullAllProjectsGenerate(config: ReviewConfig, forceFull
   if (parsed === null || parsed.length === 0) {
     logInfo('shouldUseFullAllProjectsGenerate', `Baseline missing/corrupt/empty; full generate`)
     return true
+  }
+  const unionForFull = readUnionForConfig(config)
+  if (unionForFull) {
+    const lastFingerprintPrefUnion: mixed = DataStore.preference(lastFolderFiltersPrefName)
+    const lastUnionFingerprint = typeof lastFingerprintPrefUnion === 'string' ? lastFingerprintPrefUnion : ''
+    if (lastUnionFingerprint !== unionForFull.fingerprint) {
+      if (!listIsOlderThanMaxAge()) {
+        const fullScanPrefUnion: mixed = DataStore.preference(lastFullScanPrefName)
+        const fullScanMsUnion = typeof fullScanPrefUnion === 'number' ? fullScanPrefUnion : 0
+        if (fullScanMsUnion > 0 && Date.now() - fullScanMsUnion <= MAX_AGE_FULL_SCAN_MS) {
+          logInfo('shouldUseFullAllProjectsGenerate', `Union fingerprint changed and list is fresh; partial folder include`)
+          return false
+        }
+      }
+      logInfo('shouldUseFullAllProjectsGenerate', `Union fingerprint changed and list is stale; full generate`)
+      return true
+    }
+    const fullScanPrefOnly: mixed = DataStore.preference(lastFullScanPrefName)
+    const fullScanMsOnly = typeof fullScanPrefOnly === 'number' ? fullScanPrefOnly : 0
+    if (fullScanMsOnly <= 0 || Date.now() - fullScanMsOnly > MAX_AGE_FULL_SCAN_MS) {
+      logInfo('shouldUseFullAllProjectsGenerate', `Last full scan older than 24h or never; full generate`)
+      return true
+    }
+    if (listIsOlderThanMaxAge()) {
+      logInfo('shouldUseFullAllProjectsGenerate', `allProjects list is older than max age; full generate`)
+      return true
+    }
+    return false
   }
   if (config.usePerspectives && config.perspectiveName) {
     const lastPref: mixed = DataStore.preference(lastPerspectivePrefName)
@@ -552,8 +697,10 @@ async function generateAllProjectsListIncremental(
     let index = 0
     for (const filename of changedFilenames) {
       index += 1
+      const note = getNoteFromFilename(filename)
       if (loadingShown) {
-        CommandBar.showLoading(true, `Refreshing Project Review list\n${String(index)}/${String(changedFilenames.length)}\n${filename}`, index / changedFilenames.length)
+        const label = note ? displayTitle(note) : getFolderDisplayName(getFolderFromFilename(filename))
+        CommandBar.showLoading(true, `Refreshing Project Review list\n${String(index)}/${String(changedFilenames.length)}\n${label}`, index / changedFilenames.length)
       }
 
       // Drop existing rows for this filename before rebuild / delete
@@ -564,7 +711,6 @@ async function generateAllProjectsListIncremental(
         }
       }
 
-      const note = getNoteFromFilename(filename)
       if (!note) {
         continue
       }
@@ -691,6 +837,62 @@ export async function logAllProjectsList(): Promise<void> {
   console.log(allProjects != null ? stringifyProjectObjects(allProjects) : String(content))
 }
 
+/**
+ * INFO-log the perspective scope union, with Space folder paths shown by name.
+ * Note: needs to be async to avoid NP throwing log error.
+ * @returns {Promise<void>}
+ */
+export async function logPerspectiveScopeUnion(): Promise<void> {
+  try {
+    if (!DataStore.fileExists(PERSPECTIVE_SCOPE_UNION_FILENAME)) {
+      logInfo('logPerspectiveScopeUnion', `${PERSPECTIVE_SCOPE_UNION_FILENAME} does not exist`)
+      return
+    }
+    const union = readPerspectiveScopeUnion()
+    if (union == null) {
+      logInfo('logPerspectiveScopeUnion', '(empty or unreadable file)')
+      return
+    }
+    logInfo('logPerspectiveScopeUnion', `Union of perspective folders:\n${formatPerspectiveScopeUnionForLog(union)}`)
+  } catch (error) {
+    logWarn('logPerspectiveScopeUnion', error.message)
+  }
+}
+
+/**
+ * Force a full rebuild of allProjectsList.json from the current union file.
+ * Uses the union even when FFlag_UseCacheOfAllPerspectives is off, for this run only.
+ * @returns {Promise<void>}
+ */
+export async function rebuildAllProjectsListForUnion(): Promise<void> {
+  try {
+    const config = await getReviewSettings()
+    if (!config) {
+      logWarn('rebuildAllProjectsListForUnion', 'No Reviews config found. Not rebuilding.')
+      return
+    }
+    const union = readPerspectiveScopeUnion()
+    if (union == null) {
+      logWarn('rebuildAllProjectsListForUnion', `${PERSPECTIVE_SCOPE_UNION_FILENAME} is missing or unreadable. Not rebuilding.`)
+      return
+    }
+    logInfo(
+      'rebuildAllProjectsListForUnion',
+      `Forcing full rebuild from union (${String(union.scopes.length)} scopes, fingerprint ${union.fingerprint}). Saved FFlag_UseCacheOfAllPerspectives=${String(config.FFlag_UseCacheOfAllPerspectives === true)}`,
+    )
+    const configForUnion: ReviewConfig = { ...config, usePerspectives: true, FFlag_UseCacheOfAllPerspectives: true }
+    // Skip Rich list and Dashboard refresh. Those reads call getAllProjectsFromList, which starts another full generate while this one has not written the list yet.
+    const startTime = new Date()
+    const projects = await generateAllProjectsList(configForUnion, true, 0, true, true, true)
+    logInfo(
+      'rebuildAllProjectsListForUnion',
+      `Rebuilt allProjectsList from union: ${String(projects.length)} projects from ${String(lastEnumeratedFolderCount)} folders in ${timer(startTime)}`,
+    )
+  } catch (error) {
+    logError('rebuildAllProjectsListForUnion', JSP(error))
+  }
+}
+
 export type ProjectNoteTagPair = {|
   note: TNote,
   projectTypeTag: string,
@@ -737,6 +939,18 @@ function getFilteredFolderListWithoutSubdirs(config: ReviewConfig): Array<string
 export function isNoteInCurrentProjectSelection(note: TNote, config: ReviewConfig, projectTypeTag: string): boolean {
   if (projectTypeTag === '') {
     return false
+  }
+  const unionForSelection = readUnionForConfig(config)
+  if (unionForSelection) {
+    const projectTypeTagsForUnion =
+      config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
+        ? [config.projectTypeTags]
+        : (config.projectTypeTags ?? [])
+    // $FlowFixMe[incompatible-type]
+    if (projectTypeTagsForUnion.length > 0 && !projectTypeTagsForUnion.includes(projectTypeTag)) {
+      return false
+    }
+    return noteMatchesAnyScope(note.filename, note.isTeamspaceNote, note.teamspaceID, unionForSelection.scopes) && noteHasProjectTypeTag(note, projectTypeTag)
   }
   const projectTypeTags =
     config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
@@ -850,6 +1064,7 @@ function buildMatchingProjectNoteTagPairsSync(
   for (const folder of filteredFolderList) {
     totalNotes += notesByFolder.get(folder)?.length ?? 0
   }
+  logInfo('enumerateMatchingProjectNoteTagPairs', `Scanning ${String(totalNotes)} note(s) in ${String(totalFolders)} folder(s)`)
 
   let loadingShown = false
   try {
@@ -864,11 +1079,12 @@ function buildMatchingProjectNoteTagPairsSync(
     let notesProcessed = 0
     for (const folder of filteredFolderList) {
       const projectNotesInFolder = notesByFolder.get(folder) ?? []
+      const folderLabel = getFolderDisplayName(folder)
       if (projectNotesInFolder.length === 0) {
         // Keep folder counter text moving; ring stays on notes-based fraction.
         if (loadingShown) {
           const progressFraction = totalNotes > 0 ? notesProcessed / totalNotes : 0
-          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folder}'`, progressFraction)
+          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folderLabel}'`, progressFraction)
         }
         continue
       }
@@ -881,7 +1097,7 @@ function buildMatchingProjectNoteTagPairsSync(
         }
         // Update ring per note so % tracks notes, not folders (even when one folder has many notes).
         if (loadingShown && totalNotes > 0) {
-          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folder}'`, notesProcessed / totalNotes)
+          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folderLabel}'`, notesProcessed / totalNotes)
         }
       }
     }
@@ -912,29 +1128,47 @@ export async function enumerateMatchingProjectNoteTagPairs(
 
   const startTime = moment().toDate() // use moment to ensure we get a date in the local timezone
 
+  const unionForEnumerate = readUnionForConfig(config)
   const effectiveIgnores = getEffectiveFoldersToIgnore(config.foldersToIgnore ?? [])
-  const filteredFolderList = getFilteredFolderList(config)
+  let filteredFolderList: Array<string> = []
+  let filteredProjectNotes: Array<TNote> = []
 
-  logDebug('enumerateMatchingProjectNoteTagPairs', `${config.usePerspectives ? `using Perspective '${config.perspectiveName ?? '?'}': ` : ''}foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(effectiveIgnores)}]`)
-  const filteredFolderListWithoutSubdirs = getFilteredFolderListWithoutSubdirs(config)
-  logDebug('enumerateMatchingProjectNoteTagPairs', `-> ${String(filteredFolderListWithoutSubdirs.length)} filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
+  if (unionForEnumerate) {
+    const scopeFolders = new Set<string>()
+    for (const scope of unionForEnumerate.scopes) {
+      for (const folder of scope.folders ?? []) {
+        scopeFolders.add(folder)
+      }
+    }
+    filteredFolderList = Array.from(scopeFolders).sort()
+    const projectNotes = DataStore.projectNotes ?? []
+    filteredProjectNotes = projectNotes.filter((note) => noteMatchesAnyScope(note.filename, note.isTeamspaceNote, note.teamspaceID, unionForEnumerate.scopes))
+    logDebug('enumerateMatchingProjectNoteTagPairs', `using union of ${String(unionForEnumerate.scopes.length)} perspectives: ${String(filteredProjectNotes.length)} notes in ${String(filteredFolderList.length)} folders`)
+  } else {
+    filteredFolderList = getFilteredFolderList(config)
 
-  // Filter the list of project notes from the DataStore.
-  let filteredProjectNotes = filterProjectNotesByFolders(
-    DataStore.projectNotes,
-    filteredFolderListWithoutSubdirs,
-    effectiveIgnores,
-  )
+    logDebug('enumerateMatchingProjectNoteTagPairs', `${config.usePerspectives ? `using Perspective '${config.perspectiveName ?? '?'}': ` : ''}foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(effectiveIgnores)}]`)
+    const filteredFolderListWithoutSubdirs = getFilteredFolderListWithoutSubdirs(config)
+    logDebug('enumerateMatchingProjectNoteTagPairs', `-> ${String(filteredFolderListWithoutSubdirs.length)} filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
 
-  // If using Perspectives, also filter by teamspaces
-  if (config.usePerspectives && config.includedTeamspaces && config.includedTeamspaces.length > 0) {
-    filteredProjectNotes = filterProjectNotesByTeamspaces(
-      filteredProjectNotes,
-      config.includedTeamspaces,
+    // Filter the list of project notes from the DataStore.
+    filteredProjectNotes = filterProjectNotesByFolders(
+      DataStore.projectNotes,
+      filteredFolderListWithoutSubdirs,
+      effectiveIgnores,
     )
-    logDebug('enumerateMatchingProjectNoteTagPairs', `- after teamspace filter: ${filteredProjectNotes.length} project notes`)
+
+    // If using Perspectives, also filter by teamspaces
+    if (config.usePerspectives && config.includedTeamspaces && config.includedTeamspaces.length > 0) {
+      filteredProjectNotes = filterProjectNotesByTeamspaces(
+        filteredProjectNotes,
+        config.includedTeamspaces,
+      )
+      logDebug('enumerateMatchingProjectNoteTagPairs', `- after teamspace filter: ${filteredProjectNotes.length} project notes`)
+    }
   }
 
+  lastEnumeratedFolderCount = filteredFolderList.length
   logTimer('enumerateMatchingProjectNoteTagPairs', startTime, `- filteredProjectNotes: ${filteredProjectNotes.length} potential project notes`)
 
   const projectTypeTags = config.projectTypeTags != null ? config.projectTypeTags : []
@@ -1081,6 +1315,84 @@ async function getAllMatchingProjects(
 // Main functions
 
 /**
+ * Add projects from folders that are new on changed scopes. Does not remove rows.
+ * @param {ReviewConfig} config
+ * @param {boolean} showProgressToUser
+ * @param {number} scrollPosForRichList
+ * @param {boolean} skipUpdateDashboardIfOpen
+ * @param {boolean} skipRichProjectListIfOpen
+ * @returns {Promise<Array<Project>>}
+ */
+async function generateAllProjectsListPartialForChangedScopes(
+  config: ReviewConfig,
+  showProgressToUser: boolean,
+  scrollPosForRichList: number,
+  skipUpdateDashboardIfOpen: boolean,
+  skipRichProjectListIfOpen: boolean,
+): Promise<Array<Project>> {
+  const startTime = moment().toDate()
+  const union = readUnionForConfig(config)
+  if (union == null) {
+    return generateAllProjectsListNow(config, showProgressToUser, scrollPosForRichList, skipUpdateDashboardIfOpen, skipRichProjectListIfOpen, true)
+  }
+  const lastChangedAt = readStoredScopeChangedAt()
+  const foldersToScan = foldersToScanForChangedScopes(union.scopes, lastChangedAt)
+  const changedNames = union.scopes
+    .filter((scope) => {
+      const stored = lastChangedAt[scope.name]
+      return typeof stored !== 'number' || scope.changedAt > stored
+    })
+    .map((scope) => scope.name)
+  logInfo(
+    'generateAllProjectsListPartialForChangedScopes',
+    `Changed scopes [${changedNames.join(', ')}]; folders to scan [${foldersToScan.join(', ')}]`,
+  )
+
+  const snapshotRows = loadRawAllProjectsListSnapshot()
+  const byKey: Map<string, any> = new Map()
+  for (const row of snapshotRows) {
+    if (row != null && typeof row.filename === 'string' && row.filename !== '') {
+      byKey.set(makeProjectListCacheKey(row.filename, getLeadingProjectTag(row)), row)
+    }
+  }
+
+  const projectTypeTags: Array<string> =
+    config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
+      ? [config.projectTypeTags]
+      : (config.projectTypeTags ?? [])
+  const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
+  const nextActionTags = config.nextActionTags ?? []
+  const notes = (DataStore.projectNotes ?? []).filter((note) => {
+    const folder = getFolderFromFilename(note.filename ?? '')
+    if (!foldersToScan.includes(folder)) return false
+    return noteMatchesChangedScope(note.filename, note.isTeamspaceNote, note.teamspaceID, union.scopes, changedNames)
+  })
+
+  let added = 0
+  for (const note of notes) {
+    const matchingTags = getMatchingProjectTypeTagsOnNote(note, projectTypeTags)
+    for (const tag of matchingTags) {
+      const np = new Project(note, tag, true, nextActionTags, sequentialTagResolved, false)
+      byKey.set(makeProjectListCacheKey(note.filename ?? '', tag), np)
+      added += 1
+    }
+  }
+
+  const merged: Array<Project> = []
+  for (const row of byKey.values()) {
+    merged.push(calcReviewFieldsForProject(({ ...row }: any)))
+  }
+  await writeAllProjectsList(merged, scrollPosForRichList, skipUpdateDashboardIfOpen, config, skipRichProjectListIfOpen)
+  logAllProjectsListDuration(
+    'generateAllProjectsListPartialForChangedScopes',
+    startTime,
+    'updated',
+    `(partial: added ${String(added)} row(s) from ${String(foldersToScan.length)} folder(s); list now ${String(merged.length)})`,
+  )
+  return merged
+}
+
+/**
  * Generate JSON representation of all project notes as Project objects that match the main folder and 'projectTypeTags' settings.
  * Uses an incremental merge from the Shared notes-changed-recently cache when safe; otherwise a full vault enumerate.
  * A full scan is forced at least every 24 hours (and when baseline/fingerprint requires it).
@@ -1096,7 +1408,43 @@ async function getAllMatchingProjects(
  * @param {boolean} forceFullGenerate - when true, always full enumerate (e.g. settings rebuild)
  * @returns {Promise<Array<Project>>} Object containing array of all Projects, the same as what was written to disk
  */
+let generateAllProjectsListInFlight: ?Promise<Array<Project>> = null
+
+/**
+ * One full or incremental rebuild at a time. A second caller waits for the run already
+ * in progress. Starting another scan here never reaches the list write, so the age check
+ * stays stale and the next Dashboard open starts yet another scan.
+ */
 export async function generateAllProjectsList(
+  configIn: any,
+  showProgressToUser: boolean = false,
+  scrollPosForRichList: number = 0,
+  skipUpdateDashboardIfOpen: boolean = false,
+  skipRichProjectListIfOpen: boolean = false,
+  forceFullGenerate: boolean = false,
+): Promise<Array<Project>> {
+  const alreadyRunning = generateAllProjectsListInFlight
+  if (alreadyRunning) {
+    logInfo('generateAllProjectsList', 'Already rebuilding allProjectsList; waiting for that run instead of starting another')
+    return alreadyRunning
+  }
+  const run = generateAllProjectsListNow(
+    configIn,
+    showProgressToUser,
+    scrollPosForRichList,
+    skipUpdateDashboardIfOpen,
+    skipRichProjectListIfOpen,
+    forceFullGenerate,
+  )
+  generateAllProjectsListInFlight = run
+  try {
+    return await run
+  } finally {
+    if (generateAllProjectsListInFlight === run) generateAllProjectsListInFlight = null
+  }
+}
+
+async function generateAllProjectsListNow(
   configIn: any,
   showProgressToUser: boolean = false,
   scrollPosForRichList: number = 0,
@@ -1113,6 +1461,17 @@ export async function generateAllProjectsList(
       `starting with usePerspectives=${String(config.usePerspectives)} perspective='${config.perspectiveName ?? '-'}' foldersToInclude=[${String(config.foldersToInclude)}] foldersToIgnore=[${String(config.foldersToIgnore)}] forceFull=${String(forceFullGenerate)}`,
     )
 
+    if (!forceFullGenerate && shouldPartialIncludeChangedScopes(config)) {
+      logInfo('generateAllProjectsList', `Union fingerprint changed; adding folders that are new to changed scopes`)
+      return await generateAllProjectsListPartialForChangedScopes(
+        config,
+        showProgressToUser,
+        scrollPosForRichList,
+        skipUpdateDashboardIfOpen,
+        skipRichProjectListIfOpen,
+      )
+    }
+
     if (!shouldUseFullAllProjectsGenerate(config, forceFullGenerate)) {
       logInfo('generateAllProjectsList', `Using incremental merge (Shared notes-changed-recently + local backstop)`)
       return await generateAllProjectsListIncremental(
@@ -1128,7 +1487,7 @@ export async function generateAllProjectsList(
 
     // Get all project notes as Project instances
     const projectInstances = await getAllMatchingProjects(config, showProgressToUser)
-    logInfo('generateAllProjectsList', `enumerated ${projectInstances.length} project instance(s) to write (full scan)`)
+    logInfo('generateAllProjectsList', `enumerated ${projectInstances.length} project instance(s) from ${String(lastEnumeratedFolderCount)} folders (full scan)`)
 
     // Diagnostic: Project Generation Log (gated by _logTimer / DEV). Remove after v2.1.0.
     if (config._logTimer === true || config._logLevel === 'DEV') {
@@ -1148,7 +1507,7 @@ export async function generateAllProjectsList(
       'generateAllProjectsList',
       startTime,
       'rebuilt',
-      `(full: ${String(projectInstances.length)} projects @ ${String(perProjectMs)}ms/project)`,
+      `(full: ${String(projectInstances.length)} projects from ${String(lastEnumeratedFolderCount)} folders @ ${String(perProjectMs)}ms/project)`,
     )
     return projectInstances
   } catch (error) {
@@ -1320,7 +1679,10 @@ export async function writeAllProjectsList(
       if (configForMetadata?.usePerspectives && configForMetadata.perspectiveName) {
         DataStore.setPreference(lastPerspectivePrefName, configForMetadata.perspectiveName)
       }
-      if (configForMetadata) {
+      const unionForStamp = configForMetadata ? readUnionForConfig(configForMetadata) : null
+      if (unionForStamp) {
+        rememberAppliedUnion(unionForStamp)
+      } else if (configForMetadata) {
         DataStore.setPreference(lastFolderFiltersPrefName, getFolderFilterFingerprint(configForMetadata))
       }
       logDebug('writeAllProjectsList', `- done at ${String(reviewListDate)}`)
@@ -1575,6 +1937,35 @@ export function sortProjectsList(
 }
 
 /**
+ * True when a filename is inside the active perspective's folders and teamspaces.
+ * Used to narrow a union list down to the perspective on screen.
+ * @param {string} filename
+ * @param {ReviewConfig} config
+ * @returns {boolean}
+ */
+function filenameMatchesActivePerspective(filename: string, config: ReviewConfig): boolean {
+  if (filename === '') return false
+  const filteredFolderListWithoutSubdirs = getFilteredFolderListWithoutSubdirs(config)
+  const folderFiltered = filterProjectNotesByFolders(
+    // $FlowFixMe[incompatible-type] only filename is read
+    ([{ filename }]: any),
+    filteredFolderListWithoutSubdirs,
+    getEffectiveFoldersToIgnore(config.foldersToIgnore ?? []),
+  )
+  if (folderFiltered.length === 0) return false
+  if (config.usePerspectives && config.includedTeamspaces && config.includedTeamspaces.length > 0) {
+    const parsed = parseTeamspaceFilename(filename)
+    const teamspaceFiltered = filterProjectNotesByTeamspaces(
+      // $FlowFixMe[incompatible-type] teamspace filter reads isTeamspaceNote and teamspaceID
+      ([{ filename, isTeamspaceNote: parsed.isTeamspace === true, teamspaceID: parsed.teamspaceID }]: any),
+      config.includedTeamspaces,
+    )
+    if (teamspaceFiltered.length === 0) return false
+  }
+  return true
+}
+
+/**
  * Filter and sort the list of Projects. Used by renderProjectLists().
  * @param {ReviewConfig} config
  * @param {string?} tag to filter by (optional)
@@ -1592,9 +1983,14 @@ export async function filterAndSortProjectsList(
   logInfo('filterAndSortProjectsList', `Starting with tag '${tag}' for ${allProjectInstances.length} projects`)
   
   // Filter out projects that are not tagged with the tag
-  const projectInstancesForTag = (tag !== '')
+  let projectInstancesForTag = (tag !== '')
     ? allProjectInstances.filter((pi) => pi.allProjectTags.includes(tag))
     : allProjectInstances
+
+  if (usesAllPerspectivesUnion(config)) {
+    projectInstancesForTag = projectInstancesForTag.filter((project) => filenameMatchesActivePerspective(project.filename ?? '', config))
+    logDebug('filterAndSortProjectsList', `- after active perspective filter: ${String(projectInstancesForTag.length)} projects`)
+  }
 
   const filteredProjectList = await filterProjectsList(projectInstancesForTag, config, dedupeList)
 

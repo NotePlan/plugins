@@ -118,6 +118,33 @@ describe('getAllProjectsFromList progress', () => {
     expect(updateRichProjectListIfOpen).not.toHaveBeenCalled()
   })
 
+  test('a teamspace folder progress line uses the space title', async () => {
+    const teamspaceFolder = '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard'
+    const previousFolders = global.DataStore.folders
+    const previousTeamspaces = global.DataStore.teamspaces
+    global.DataStore.folders = ['/', teamspaceFolder]
+    global.DataStore.teamspaces = [
+      {
+        filename: '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919',
+        title: 'Dashboard Plugin',
+      },
+    ]
+    global.DataStore.projectNotes = [makeProjectNote(`${teamspaceFolder}/one.md`)]
+
+    try {
+      await getAllProjectsFromList()
+    } finally {
+      global.DataStore.folders = previousFolders
+      global.DataStore.teamspaces = previousTeamspaces
+    }
+
+    const scanMessages = global.CommandBar.showLoading.mock.calls
+      .map((call) => String(call[1] ?? ''))
+      .filter((message) => message.includes('scanning notes in folder'))
+    expect(scanMessages.some((message) => message.includes('[👥 Dashboard Plugin] Dashboard'))).toBe(true)
+    expect(scanMessages.some((message) => message.includes('%%NotePlanCloud%%'))).toBe(false)
+  })
+
   test('a fresh list does not show the progress dialog', async () => {
     global.DataStore.fileExists.mockReturnValue(true)
     global.DataStore.loadData.mockReturnValue(JSON.stringify([

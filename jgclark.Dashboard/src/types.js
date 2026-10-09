@@ -486,6 +486,8 @@ export type TBridgeClickHandlerResult = {
   /** When APPLY_THEME is in actionsOnSuccess, the theme name to regenerate CSS for. */
   dashboardThemeName?: string,
   perspectiveName?: string,
+  /** Set by a perspective switch when the destination scope's resolved folders changed. */
+  perspectiveScopeFoldersChanged?: boolean,
   errorMsg?: string,
   errorMessageLevel?: 'WARN' | 'ERROR' | 'INFO',
 }

@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
 // by @jgclark
-// Last updated 2026-08-24 by @jgclark and @CursorAI
+// Last updated 2026-10-03 by @jgclark and @CursorAI
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -125,12 +125,21 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       rootSel.push(`--bg-sidebar-color: #ECECEC`) // moving from #F6F6F6 to #DADADA in 3 steps
       rootSel.push(`--divider-color: #CDCFD0`)
       rootSel.push(`--block-id-color: #79A0B5`)
+      // Native controls (number steppers) follow color-scheme, not the text color.
+      rootSel.push(`--np-color-scheme: light`)
     } else {
       rootSel.push(`--fg-sidebar-color: #EBEBEB`)
       rootSel.push(`--bg-sidebar-color: #383838`)
       rootSel.push(`--divider-color: #52535B`)
       rootSel.push(`--block-id-color: #71b3c0`)
+      // Native controls (number steppers) follow color-scheme, not the text color.
+      rootSel.push(`--np-color-scheme: dark`)
     }
+
+    // Literal color-scheme for number fields. Stepper glyphs ignore `color`.
+    // Repeated here (not only via var(--np-color-scheme)) so the used scheme is a keyword even if a stylesheet variable is ignored.
+    const npColorScheme = currentThemeMode === 'light' ? 'light' : 'dark'
+    output.push(makeCSSSelector('.settings-dialog input[type="number"], .dynamic-dialog .input-box-input-number', [`color-scheme: ${npColorScheme}`]))
 
     // Set body:
     // - main font = styles.body.font

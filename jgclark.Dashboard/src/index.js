@@ -11,6 +11,7 @@
 import pluginJson from '../plugin.json'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { parseSettings } from './shared'
+import { writePerspectiveScopeUnionFromDefs } from './perspectiveScopeUnion'
 import { generateTagMentionCache, updateTagMentionCacheDefinitionsFromAllPerspectives } from './tagMentionCache'
 import {
   clo, JSP, logDebug, logError, logInfo, logWarn,
@@ -85,7 +86,8 @@ export { externallyStartSearch } from './dataGenerationSearch.js'
 export { repairDashboardSettings } from './dashboardPluginSettings'
 
 export async function backupSettings(): Promise<void> {
-  const res = await npc.backupSettings(pluginID, 'backup')
+  // Manual command: show the confirmation. Automatic callers leave suppressMessage at its default (true).
+  const res = await npc.backupSettings(pluginID, 'backup', false)
   if (res) {
     logInfo(pluginJson, `backupSettings() - backup successful.`)
   } else {
@@ -183,6 +185,7 @@ export async function onUpdateOrInstall(): Promise<void> {
     // Rebuild wantedTagMentionsList.json from every saved perspective (fixes stale file after upgrade).
     if (Array.isArray(newPerspectiveDefs) && newPerspectiveDefs.length > 0) {
       updateTagMentionCacheDefinitionsFromAllPerspectives(newPerspectiveDefs)
+      writePerspectiveScopeUnionFromDefs(newPerspectiveDefs)
     }
 
     // Now get the tagMentionCache up to date, by forcing a rebuild.

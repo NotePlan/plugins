@@ -323,7 +323,6 @@ const SettingsDialog = ({
           <input
             ref={filterInputRef}
             type="search"
-            className="settings-dialog-filter-input"
             placeholder="Filter settings…"
             value={settingsFilterQuery}
             onChange={handleFilterChange}
@@ -385,6 +384,7 @@ const SettingsDialog = ({
                     indent: !!item.dependsOnKey,
                     className: '', // for future use
                     showDescAsTooltips: false,
+                    controlEnd: true,
                   })}
                 </div>
               )

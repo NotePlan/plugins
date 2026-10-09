@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show a simple Switch control (based on <input>, with various possible settings.
-// Last updated 2024-09-07 for v2.1.0.a10 by @jgclark
+// Last updated 2026-10-03 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import React from 'react'
@@ -15,26 +15,43 @@ type SwitchProps = {
   labelPosition?: 'left' | 'right',
   description?: string,
   className?: string,
+  // 'inline' keeps the toggle beside the label (menus). 'control-end' emits the label and toggle as siblings so a settings row can place the toggle at the end.
+  layout?: 'inline' | 'control-end',
 };
 
-const Switch = ({ label, checked, onChange, disabled = false, labelPosition = 'right', description = '', className = '' }: SwitchProps): React.Node => {
+const Switch = ({ label, checked, onChange, disabled = false, labelPosition = 'right', description = '', className = '', layout = 'inline' }: SwitchProps): React.Node => {
   // logDebug('Switch', `${disabled ? 'DISABLED ' : ''}${checked ? '' : ' NOT'} checked: '${label}'`)
   // FIXME: Why is a tooltip still appearing when description is null?
+  const input = (
+    <input
+      id={label}
+      type="checkbox"
+      className="apple-switch"
+      onChange={(e) => {
+        logDebug('Switch Component', `"${label}" was clicked`, e.target.checked)
+        onChange(e)
+      }}
+      checked={checked}
+      disabled={disabled}
+    />
+  )
+  const labelEl = <label className="switch-label" htmlFor={label}>{label}</label>
+
+  // Control-end layout: label then toggle, with no wrapper, so the settings row grid can put the toggle in the end column.
+  if (layout === 'control-end') {
+    return (
+      <>
+        {labelEl}
+        {input}
+      </>
+    )
+  }
+
   return (
     <div className={`switch-line ${className} ${disabled ? 'disabled' : ''} ${labelPosition === 'right' ? 'label-right' : 'label-left'}`} title={description || null}>
-      {labelPosition === 'left' && <label className="switch-label" htmlFor={label}>{label}</label>}
-      <input
-        id={label}
-        type="checkbox"
-        className="apple-switch switch-input"
-        onChange={(e) => {
-          logDebug('Switch Component', `"${label}" was clicked`, e.target.checked)
-          onChange(e)
-        }}
-        checked={checked}
-        disabled={disabled}
-      />
-      {labelPosition === 'right' && <label className="switch-label" htmlFor={label}>{label}</label>}
+      {labelPosition === 'left' && labelEl}
+      {input}
+      {labelPosition === 'right' && labelEl}
     </div>
   )
 }
