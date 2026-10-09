@@ -25,7 +25,7 @@ input.apple-switch:after {
   top: 0px;
   left: 1px;
   background: var(--bg-alt-color);
-  background: #ebf5e6; /* measured from macOS controls */
+  background: color-mix(in srgb, white, var(--tint-color) 4%); /* macOS control is white in light mode, and a tiny fraction of its highlight color in dark mode */
   width: 1.45rem;
   height: 0.9rem;
   border-radius: 2rem;
