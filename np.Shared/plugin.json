@@ -16,25 +16,25 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Shared/CHANGELOG.md",
   "plugin.lastUpdateInfo": "New: shared notes-changed-recently cache (7-day rolling index) for Dashboard, Reviews, and other plugins.",
   "plugin.requiredFiles": [
-    "fontawesome.css",
-    "css.w3.css",
     "apple-switch.css",
+    "css.w3.css",
     "duotone.min.flat4NP.css",
+    "encodeDecode.js",
+    "fontawesome.css",
     "light.min.flat4NP.css",
-    "regular.min.flat4NP.css",
-    "solid.min.flat4NP.css",
     "fa-duotone-900.woff2",
     "fa-light-300.woff2",
     "fa-regular-400.woff2",
     "fa-solid-900.woff2",
+    "noteplanstate-edited.otf",
     "pluginToHTMLCommsBridge.js",
     "pluginToHTMLErrorBridge.js",
     "react.core.min.js",
     "react.core.dev.js",
     "react.c.Root.dev.js",
-    "noteplanstate-edited.otf",
+    "regular.min.flat4NP.css",
     "shortcut.js",
-    "encodeDecode.js"
+    "solid.min.flat4NP.css"
   ],
   "plugin.commands": [
     {
