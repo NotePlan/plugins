@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-09-08 for v2.5.0.b3 by @CursorAI & @jgclark
+// Last updated 2026-10-10 for v2.5.2 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -30,7 +30,7 @@ import {
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
-  doToggleType,
+  doChangeParagraphType,
   doUnscheduleItem,
   doWindowResized,
 } from './clickHandlers'
@@ -370,8 +370,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doRescheduleReminder(data)
         break
       }
-      case 'toggleType': {
-        result = await doToggleType(data)
+      case 'changeParagraphType': {
+        result = await doChangeParagraphType(data)
         break
       }
       case 'cyclePriorityStateUp': {

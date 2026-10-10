@@ -2,12 +2,12 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2026-10-02 for v2.5.1 by @CursorAI
+// Last updated 2026-10-10 for v2.5.2 by @CursorAI
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
 //
-import React, { useRef, useLayoutEffect, useState } from 'react'
+import React, { useEffect, useRef, useLayoutEffect, useState } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
 import type { MessageDataObject, TSectionCode, TSectionCodeOrLogical } from '../../types'
 import { useAppContext } from './AppContext.jsx'
@@ -41,6 +41,17 @@ type DialogButtonProps = {
 
 type EditableInputHandle = { getValue: () => string }
 
+// Closed control always shows "Change type". Choosing an option sets paragraph.type.
+// Icons match jgclark.SearchExtensions/src/flexiSearch.js (FA for tasks/checklists, kbd marks for list/quote; text has none).
+type ParagraphTypeChoice = { value: string, label: string, iconClass?: string, iconText?: string }
+const PARAGRAPH_TYPE_CHOICES: Array<ParagraphTypeChoice> = [
+  { value: 'open', label: 'Task', iconClass: 'fa-regular fa-circle' },
+  { value: 'checklist', label: 'Checklist', iconClass: 'fa-regular fa-square' },
+  { value: 'list', label: 'List', iconText: '-' },
+  { value: 'quote', label: 'Quote', iconText: '>' },
+  { value: 'text', label: 'Text' },
+]
+
 const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React.Node => {
   //----------------------------------------------------------------------
   // Refs
@@ -52,6 +63,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // Note: typed as ?HTMLElement (not ?HTMLDivElement) because flowlib types <dialog>'s ref instance as HTMLElement,
   // and React$RefObject is invariant in its type argument.
   const dialogRef: React$RefObject<?HTMLElement> = useRef <? HTMLElement > (null)
+  const changeTypeMenuRef: React$RefObject<?HTMLDivElement> = useRef <? HTMLDivElement > (null)
 
   //----------------------------------------------------------------------
   // State
@@ -60,6 +72,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const [animationClass, setAnimationClass] = useState('')
   const [resetCalendar, setResetCalendar] = useState(false) // used to reset the calendar during IP processing if the date picker is open
   const [contentHasChanged, setContentHasChanged] = useState(false) // used to track if the content has changed
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false)
 
   //----------------------------------------------------------------------
   // Context (before validate / early return - Rules of Hooks)
@@ -94,6 +107,27 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       }
     }
   }, [showAnimations])
+
+  // Close the type menu on outside tap or Escape. Listener is only attached while the menu is open.
+  useEffect(() => {
+    if (!typeMenuOpen) return undefined
+    function handlePointerDown(event: MouseEvent) {
+      const root = changeTypeMenuRef.current
+      const target = event.target
+      if (root && target instanceof Node && !root.contains(target)) {
+        setTypeMenuOpen(false)
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setTypeMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [typeMenuOpen])
 
   //----------------------------------------------------------------------
   // Constants (validated message / derived UI)
@@ -171,7 +205,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // Note: Extra setup is required for certain buttons:
   // - Cancel button icon circle or square, and function
-  // - Toggle Type icon circle or square
+  // - Change type is a native <select> rendered after the priority buttons, not one of these buttons
   const initialOtherControlButtons: Array<DialogButtonProps> = [
     {
       label: '',
@@ -219,14 +253,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       description: 'Decrease priority of item',
       handlingFunction: 'cyclePriorityStateDown',
       icons: [{ className: 'fa-regular fa-arrow-down', position: 'right' }],
-      sectionCodesToRefresh: ['ITEM_ORIG_SECTION'],
-    },
-    {
-      label: 'Change to',
-      controlStr: 'tog',
-      description: 'Toggle item type between task and checklist',
-      handlingFunction: 'toggleType',
-      icons: [{ className: itemType === 'checklist' ? 'fa-regular fa-circle' : 'fa-regular fa-square', position: 'right' }],
       sectionCodesToRefresh: ['ITEM_ORIG_SECTION'],
     },
     {
@@ -282,6 +308,13 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         markTaskChildren: true,
       }),
     )
+  }
+
+  // Apply a paragraph type from the Change type menu, then close like the other action buttons.
+  function handleParagraphTypeChoice(event: MouseEvent, nextType: string) {
+    setTypeMenuOpen(false)
+    if (!nextType || nextType === String(para?.type || '')) return
+    handleButtonClick(event, nextType, 'changeParagraphType', ['ITEM_ORIG_SECTION'])
   }
 
   // Handle the Enter key press (from the editable input box) to trigger the updateItemContent button click
@@ -571,20 +604,49 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             {/* Other actions line ---------------- */}
             <div className="preText">Other actions:</div>
             <div>
-              {otherControlButtons.map((button, index) => (
-                <button key={index} className="PCButton" title={button.description ?? ''} onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '', button.sectionCodesToRefresh ?? [])}>
-                  {button.icons
-                    ?.filter((icon) => icon.position === 'left')
-                    .map((icon) => (
-                      <i key={icon.className} className={`${icon.className} ${button.label !== '' ? 'pad-right' : ''}`}></i>
-                    ))}
-                  {button.label}
-                  {button.icons
-                    ?.filter((icon) => icon.position === 'right')
-                    .map((icon) => (
-                      <i key={icon.className} className={`${icon.className} ${button.label !== '' ? 'pad-left' : ''}`}></i>
-                    ))}
-                </button>
+              {otherControlButtons.map((button) => (
+                <React.Fragment key={button.controlStr}>
+                  <button className="PCButton" title={button.description ?? ''} onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '', button.sectionCodesToRefresh ?? [])}>
+                    {button.icons
+                      ?.filter((icon) => icon.position === 'left')
+                      .map((icon) => (
+                        <i key={icon.className} className={`${icon.className} ${button.label !== '' ? 'pad-right' : ''}`}></i>
+                      ))}
+                    {button.label}
+                    {button.icons
+                      ?.filter((icon) => icon.position === 'right')
+                      .map((icon) => (
+                        <i key={icon.className} className={`${icon.className} ${button.label !== '' ? 'pad-left' : ''}`}></i>
+                      ))}
+                  </button>
+                  {button.controlStr === 'pridown' ? (
+                    <div className="changeTypeControl" ref={changeTypeMenuRef}>
+                      <button
+                        type="button"
+                        className="PCButton changeTypeSelect"
+                        aria-label="Change type"
+                        aria-haspopup="listbox"
+                        aria-expanded={typeMenuOpen}
+                        title="Change the paragraph type of this item"
+                        onClick={() => setTypeMenuOpen((open) => !open)}
+                      >
+                        Change type
+                      </button>
+                      {typeMenuOpen ? (
+                        <div className="changeTypeMenu" role="listbox" aria-label="Change type">
+                          {PARAGRAPH_TYPE_CHOICES.map((choice) => (
+                            <button type="button" key={choice.value} role="option" className="changeTypeMenuItem" onClick={(event) => handleParagraphTypeChoice(event, choice.value)}>
+                              <span className="changeTypeMenuIcon" aria-hidden="true">
+                                {choice.iconClass ? <i className={choice.iconClass} /> : choice.iconText ? <kbd>{choice.iconText}</kbd> : null}
+                              </span>
+                              {choice.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </React.Fragment>
               ))}
             </div>
           </div>

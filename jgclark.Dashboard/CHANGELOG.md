@@ -3,6 +3,9 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
+## [2.5.2] 2026-10-10
+- The task dialog "Change to" button is now a "Change type" menu. It can switch an item between task, checklist, list, quote, and plain text (for @dwertheimer).
+
 ## [2.5.1] 2026-10-03
 ### Changes
 - The layout of the Settings dialog now more closely matches the design of Apple setting dialogs.

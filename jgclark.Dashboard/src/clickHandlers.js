@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-10-01 for v2.5.1 by @jgclark + @CursorAI
+// Last updated 2026-10-10 for v2.5.2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -823,17 +823,29 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
   }
 }
 
+const CHANGEABLE_PARAGRAPH_TYPES = ['open', 'checklist', 'list', 'quote', 'text']
+
 /**
- * Send a request to toggleType to plugin
- * @param {MessageDataObject} data - The data object containing item info
- * @returns{TBridgeClickHandlerResult} The result
+ * Paragraph types the task dialog's Change type menu can apply.
+ * @param {string} value
+ * @returns {boolean}
  */
-export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult {
+function isChangeableParagraphType(value: string): boolean {
+  return CHANGEABLE_PARAGRAPH_TYPES.indexOf(value) !== -1
+}
+
+/**
+ * Change a paragraph to one of the types offered by the task dialog.
+ * The target type arrives as controlStr.
+ * @param {MessageDataObject} data - The data object containing item info
+ * @returns {TBridgeClickHandlerResult} The result
+ */
+export function doChangeParagraphType(data: MessageDataObject): TBridgeClickHandlerResult {
   try {
-    const validated = validateMessageDataForHandler(data, 'doToggleType')
+    const validated = validateMessageDataForHandler(data, 'doChangeParagraphType')
     if (!validated.ok) return validated.result
-    const { filename, content, sectionCode } = validated.data
-    logDebug('doToggleType', `starting for "${content}" in filename: ${filename} for section ${sectionCode}`)
+    const { filename, content, sectionCode, controlStr } = validated.data
+    logDebug('doChangeParagraphType', `starting for "${content}" in filename: ${filename} for section ${sectionCode}`)
 
     // V1: original from v0.x
     // const updatedType = doToggleType(filename, content)
@@ -842,7 +854,12 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     // find para
     const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
     if (typeof possiblePara === 'boolean') {
-      throw new Error('doToggleType: no para found', { cause: { filename, content, sectionCode } })
+      throw new Error('doChangeParagraphType: no para found', { cause: { filename, content, sectionCode } })
+    }
+
+    const requestedType = String(controlStr || '')
+    if (!isChangeableParagraphType(requestedType)) {
+      throw new Error(`doChangeParagraphType: unsupported type '${requestedType}'`, { cause: { filename, content, sectionCode } })
     }
 
     // Get the paragraph to change
@@ -850,17 +867,21 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     const thisNote = updatedParagraph.note
     if (!thisNote) throw new Error(`Could not get note for filename ${filename}`, { cause: { filename, content, sectionCode } })
     const existingType = updatedParagraph.type
-    logDebug('doToggleType', `toggling type from ${existingType} in filename: ${filename}`)
-    const updatedType = existingType === 'checklist' ? 'open' : 'checklist'
-    updatedParagraph.type = updatedType
-    logDebug('doToggleType', `-> ${updatedType}`)
+    logDebug('doChangeParagraphType', `changing type from ${existingType} to ${requestedType} in filename: ${filename}`)
+    if (existingType === requestedType) {
+      logDebug('doChangeParagraphType', `already ${existingType}; skipping`)
+      return handlerResult(true, [])
+    }
+    // Cast: requestedType is checked against CHANGEABLE_PARAGRAPH_TYPES, which are ParagraphType values.
+    updatedParagraph.type = (requestedType: any)
+    logDebug('doChangeParagraphType', `-> ${requestedType}`)
     thisNote.updateParagraph(updatedParagraph)
     DataStore.updateCache(thisNote, false)
 
     // Refresh the whole section, as we might want to filter out the new item type from the display
     return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { updatedParagraph: updatedParagraph, sectionCodes: [sectionCode] })
   } catch (error) {
-    logError('doToggleType', error.message)
+    logError('doChangeParagraphType', error.message)
     const sectionCode = data.item?.sectionCode || error.cause?.sectionCode
     return handlerResult(false, sectionCode ? ['REFRESH_SECTION_IN_JSON'] : [], { sectionCodes: sectionCode ? [sectionCode] : undefined, errorMsg: error.message, errorMessageLevel: 'ERROR' })
   }

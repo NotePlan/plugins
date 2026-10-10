@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-09-16 for v2.5.0.b5 by @jgclark + @CursorAI
+// Last updated 2026-10-10 for v2.5.2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -373,7 +373,7 @@ export type TActionType =
   | 'startReview' // from v2.4.0.b20, for projects
   | 'startReviews' // for projects
   | 'startSearch'
-  | 'toggleType'
+  | 'changeParagraphType' // was 'toggleType' before v2.5.2
   | 'togglePauseProject'
   | 'unknown'
   | 'unscheduleItem'
@@ -409,7 +409,12 @@ export type TControlString =
   | 'movetonote'
   | 'priup'
   | 'pridown'
-  | 'tog'
+  | 'open'
+  | 'done'
+  | 'list'
+  | 'checklist'
+  | 'checklistDone'
+  | 'text'
   | 'commpletethen'
   | 'unsched'
   | 'start'
