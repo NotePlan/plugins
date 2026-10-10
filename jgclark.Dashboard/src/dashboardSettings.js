@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2026-08-15 for v2.4.0.b64 by @jgclark + @CursorAI
+// Last updated 2026-10-10 for v2.5.2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { DEFAULT_SECTION_DISPLAY_ORDER } from './constants.js'
@@ -588,6 +588,30 @@ export function applyDerivedDashboardSettings(priorSettings: { [string]: any }, 
     (settings, rule) => rule.apply(priorSettings, settings),
     nextSettings,
   )
+}
+
+/**
+ * Parse a stored number setting. `0` is kept (`0 || fallback` is the fallback, which reset
+ * look-back 0 to 7, idle refresh 0 to 10, and heading level 0 to 2). Blank / missing uses fallback.
+ * @param {mixed} value
+ * @param {number} fallback
+ * @returns {number}
+ */
+export function coerceStoredIntSetting(value: mixed, fallback: number): number {
+  if (value === null || value === undefined || value === '') return fallback
+  const parsed = typeof value === 'number' ? value : parseInt(String(value), 10)
+  return Number.isNaN(parsed) ? fallback : parsed
+}
+
+/**
+ * Default for a number setting def, or `fallback` when that def has no numeric default.
+ * @param {string} key
+ * @param {number} fallback
+ * @returns {number}
+ */
+export function numberSettingDefault(key: string, fallback: number): number {
+  const def = [...dashboardFilterDefs, ...dashboardSettingDefs].find((d) => d.key === key)
+  return typeof def?.default === 'number' ? def.default : fallback
 }
 
 /**

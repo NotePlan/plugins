@@ -5,6 +5,7 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 
 ## [2.5.2] 2026-10-10
 - The task dialog "Change to" button is now a "Change type" menu. It can switch an item between task, checklist, list, quote, and plain text (for @dwertheimer).
+- Overdue look-back of 0 (show every overdue task) stays 0 across a plugin update, and the settings field shows 0. The same update path keeps other real zeroes: idle refresh off, and heading level 0. (Thanks, @dwertheimer.)
 
 ## [2.5.1] 2026-10-03
 ### Changes

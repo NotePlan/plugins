@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated 2026-10-03 by @jgclark + @CursorAI
+// Last updated 2026-10-10 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -16,6 +16,7 @@ import PerspectiveSettings from '../components/PerspectiveSettings.jsx'
 import MultiSelectSpaces from '../components/MultiSelectSpaces.jsx'
 import type { TSettingItem, TPerspectiveDef } from '../../types'
 import DropdownSelect, { type Option } from '@helpers/react/DynamicDialog/DropdownSelect.jsx'
+import { numberFieldDisplayValue } from '@helpers/react/DynamicDialog/numberFieldDisplayValue.js'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
@@ -143,7 +144,7 @@ export function renderItem({
             key={`ibx${index}`}
             label={thisLabel}
             disabled={disabled}
-            value={item.value || ''}
+            value={numberFieldDisplayValue(item.value)}
             onChange={(e) => {
               item.key && handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
               item.key && handleInputChange(item.key, e)

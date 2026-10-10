@@ -2,13 +2,14 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// Last updated 2026-08-01 for v2.4.0.b60 by @CursorAI
+// Last updated 2026-10-10 for v2.5.2 by @CursorAI
 // ----------------------------------------------------------------------------
 
 /**
  * Imports
  */
 import pluginJson from '../plugin.json'
+import { coerceStoredIntSetting, numberSettingDefault } from './dashboardSettings'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { parseSettings } from './shared'
 import { writePerspectiveScopeUnionFromDefs } from './perspectiveScopeUnion'
@@ -119,10 +120,23 @@ export async function onUpdateOrInstall(): Promise<void> {
     // const migratedDashboardSettings = { ...defaults, ...renameKeys(initialDashboardSettings, keysToChange) }
 
     // Note: Workaround for number types getting changed to strings at some point in our Settings system.  FIXME: but lower priority for now.
-    initialDashboardSettings.newTaskSectionHeadingLevel = parseInt(initialDashboardSettings.newTaskSectionHeadingLevel || 2)
-    initialDashboardSettings.maxItemsToShowInSection = parseInt(initialDashboardSettings.maxItemsToShowInSection || 24)
-    initialDashboardSettings.lookBackDaysForOverdue = parseInt(initialDashboardSettings.lookBackDaysForOverdue || 7)
-    initialDashboardSettings.autoUpdateAfterIdleTime = parseInt(initialDashboardSettings.autoUpdateAfterIdleTime || 10)
+    // Do not use `value || fallback`: 0 is valid (look-back 0 = all overdue, idle refresh 0 = off, heading level 0 = existing heading only).
+    initialDashboardSettings.newTaskSectionHeadingLevel = coerceStoredIntSetting(
+      initialDashboardSettings.newTaskSectionHeadingLevel,
+      numberSettingDefault('newTaskSectionHeadingLevel', 2),
+    )
+    initialDashboardSettings.maxItemsToShowInSection = coerceStoredIntSetting(
+      initialDashboardSettings.maxItemsToShowInSection,
+      numberSettingDefault('maxItemsToShowInSection', 24),
+    )
+    initialDashboardSettings.lookBackDaysForOverdue = coerceStoredIntSetting(
+      initialDashboardSettings.lookBackDaysForOverdue,
+      numberSettingDefault('lookBackDaysForOverdue', 31),
+    )
+    initialDashboardSettings.autoUpdateAfterIdleTime = coerceStoredIntSetting(
+      initialDashboardSettings.autoUpdateAfterIdleTime,
+      numberSettingDefault('autoUpdateAfterIdleTime', 10),
+    )
 
     clo(initialDashboardSettings, `onUpdateOrInstall - initialDashboardSettings:`)
 

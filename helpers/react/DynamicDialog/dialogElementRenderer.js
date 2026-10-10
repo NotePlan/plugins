@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated for v2.1.0.a
+// Last updated 2026-10-10 by @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -10,6 +10,7 @@
 //--------------------------------------------------------------------------
 import React, { useCallback } from 'react'
 import { JsonEditor } from 'json-edit-react'
+import { numberFieldDisplayValue } from './numberFieldDisplayValue.js'
 import Switch from './Switch.jsx'
 import InputBox from './InputBox.jsx'
 import { DropdownSelectChooser } from './DropdownSelectChooser.jsx'
@@ -277,7 +278,7 @@ export function renderItem({
             key={`ibx${index}`}
             focus={item.focus || false}
             label={thisLabel}
-            value={item.value || ''}
+            value={numberFieldDisplayValue(item.value)}
             onChange={(e) => {
               item.key && handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
               item.key && handleInputChange(item.key, e)
