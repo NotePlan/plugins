@@ -501,6 +501,35 @@ describe('getNoteLinkDisplayText()', () => {
   })
 })
 
+describe('getNoteContentAsHTML() horizontal rules', () => {
+  const note = { filename: 'Notes/Example.md' }
+
+  test('renders --- after frontmatter as a horizontal rule, not a setext heading', async () => {
+    const content = ['---', 'title: My Note', 'tags: a', '---', 'My Note', '---', 'Hello'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).toContain('<h1 id="mynote">My Note</h1>')
+    expect(html).not.toContain('<h2')
+    expect(html).toContain('<hr />')
+    expect(html).toContain('class="frontmatter"')
+  })
+
+  test('leaves --- inside a fenced code block', async () => {
+    const content = ['---', 'title: My Note', 'tags: a', '---', '# My Note', '', '```', 'keep', '---', 'me', '```'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).not.toContain('<hr />')
+    expect(html).toContain('---')
+  })
+
+  test('renders a body --- with no frontmatter as a horizontal rule', async () => {
+    const content = ['Hello', '---', 'There'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).not.toContain('<h2')
+    expect(html).toContain('<hr />')
+    expect(html).toContain('<p>Hello</p>')
+    expect(html).toContain('<p>There</p>')
+  })
+})
+
 describe('findNoteLinksForDisplay()', () => {
   test('returns empty array when no note links', () => {
     expect(h.findNoteLinksForDisplay('no links here')).toEqual([])

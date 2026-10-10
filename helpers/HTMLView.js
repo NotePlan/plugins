@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2026-09-30 by @jgclark + @CursorAI
+// Last updated 2026-10-10 by @jgclark + @CursorAI
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
 import { getReminderMarkerColors, RE_REMIND_UUID_IN_CONTENT, type TReminderDisplayById } from '@helpers/NPReminders'
@@ -116,6 +116,50 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
 `
 }
 
+// A line of three or more hyphens at the start of a line (optional indent of up to 3 spaces).
+const RE_HORIZONTAL_RULE = /^ {0,3}-{3,}[ \t]*$/
+const RE_CODE_FENCE = /^ {0,3}(`{3,}|~{3,})/
+
+/**
+ * Showdown treats a text line immediately followed by `---` as a setext h2.
+ * Insert a blank line before body horizontal rules so they render as `<hr>`.
+ * Frontmatter fences are left as already processed. Rules inside fenced code or `<pre>` stay put.
+ * @param {Array<string>} lines
+ * @param {number} bodyStart - index of the first line after the frontmatter block (0 when there is none)
+ * @returns {Array<string>}
+ */
+function separateBodyHorizontalRules(lines: Array<string>, bodyStart: number): Array<string> {
+  const out = lines.slice(0, bodyStart)
+  let inFence = false
+  let inPre = false
+  for (let i = bodyStart; i < lines.length; i++) {
+    const line = lines[i]
+    if (!inFence && !inPre && /<pre[\s>]/i.test(line)) {
+      inPre = true
+    }
+    if (inPre) {
+      out.push(line)
+      if (/<\/pre>/i.test(line)) {
+        inPre = false
+      }
+      continue
+    }
+    if (RE_CODE_FENCE.test(line)) {
+      inFence = !inFence
+      out.push(line)
+      continue
+    }
+    if (!inFence && RE_HORIZONTAL_RULE.test(line)) {
+      const prev = out.length > 0 ? out[out.length - 1] : ''
+      if (prev.trim() !== '') {
+        out.push('')
+      }
+    }
+    out.push(line)
+  }
+  return out
+}
+
 /**
  * Convert a note's content to HTML and include any images as base64
  * @param {string} content
@@ -127,6 +171,7 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
     let lines = content?.split('\n') ?? []
 
     let hasFrontmatter = hasFrontMatter(content ?? '')
+    let bodyStart = 0
     const RE_OPEN_TASK_FOR_USER = formRegExForUsersOpenTasks(false)
 
     // Work on a copy of the note's content
@@ -146,6 +191,7 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
         if (lines[i] != null && lines[i].trim() === '---') {
           lines.splice(i, 0, '') // add a blank before second HR to stop it acting as an ATX header line
           // After this splice: blank at i, closing --- at i+1; body starts at i+2
+          bodyStart = i + 2
           // If the first H1 in the body already matches the frontmatter title, do not inject a second H1
           let bodyHasSameTitleH1 = false
           if (fmTitleText !== '') {
@@ -171,8 +217,12 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       if (lines[0] === '---' && lines[1] === '' && lines[2] === '---') {
         lines.splice(0, 3)
         hasFrontmatter = false
+        bodyStart = 0
       }
     }
+
+    // Body `---` after the frontmatter pair (or anywhere, when there is no frontmatter) should be an <hr>, not a setext heading
+    lines = separateBodyHorizontalRules(lines, bodyStart)
 
     // Make some necessary changes before conversion to HTML
     for (let i = 0; i < lines.length; i++) {

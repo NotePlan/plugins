@@ -1,7 +1,11 @@
 # What's Changed in 🖥️ Previews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/np.Preview), and how to configure it.
 
+## [0.5.1] - 2026-10-10
+- fix: a `---` line after the frontmatter renders as a horizontal rule, not a setext heading.
+
 ## [0.5.0] - 2026-08-04
+- plugin icon: sky-blue eye (`fa-eye`)
 - tables: 1px solid grey borders; left- and top-aligned cells; bold thead and tfoot only (not tbody)
 - fix: do not show the title twice when frontmatter `title:` matches the first body H1
 - Preview can be called for a specified note (filename, title, relative date, or calendar identifier) via x-callback / other plugins; Command Bar still previews the open Editor note
