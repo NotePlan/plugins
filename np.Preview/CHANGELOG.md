@@ -1,8 +1,14 @@
 # What's Changed in 🖥️ Previews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/np.Preview), and how to configure it.
 
-## [0.5.1] - 2026-10-10
-- fix: a `---` line after the frontmatter renders as a horizontal rule, not a setext heading.
+## [0.6.0] - 2026-10-10
+- tasks and checklists use the theme colours for open, done, cancelled, and scheduled, with a Font Awesome icon for each state instead of a checkbox.
+- scheduled items use a clock at about 4 o'clock; open task text uses the main foreground colour.
+- task and checklist rows sit flush left; wrapped lines line up with the text, not the icon.
+- a scheduled checklist uses a square clock; a scheduled task keeps the round one.
+- priority markers (`!`, `!!`, `!!!`, and `>>`) use the theme priority foreground and background.
+- frontmatter fields render as a borderless table so values line up; key names are mid-grey at weight 600.
+- fix: a `---` line after the frontmatter renders as a horizontal rule, not a setext heading. (Addresses issue #629.)
 
 ## [0.5.0] - 2026-08-04
 - plugin icon: sky-blue eye (`fa-eye`)

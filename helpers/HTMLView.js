@@ -12,7 +12,7 @@ import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/
 import { getStoredWindowRect, getWindowFromCustomId, getWindowIdFromCustomId, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInEventLinkHiddenPart, isTermInNotelinkOrURI, isTermInMarkdownPath } from '@helpers/paragraph'
-import { RE_EVENT_LINK, RE_SYNC_MARKER, formRegExForUsersOpenTasks } from '@helpers/regex'
+import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 import { usersVersionHas } from '@helpers/NPVersions'
 
@@ -160,6 +160,178 @@ function separateBodyHorizontalRules(lines: Array<string>, bodyStart: number): A
   return out
 }
 
+// Quote prefix, indent, list marker, optional NotePlan checkbox, then the rest of the line.
+const RE_TASK_OR_LIST_LINE = /^((?:>\s*)*)([ \t]*)([*+-]|\d+\.)[ \t]+(?:(\[[ xX>\-]\])[ \t]+)?(.*)$/
+
+/**
+ * A list marker with no checkbox is an open task only when the user's Markdown prefs say so.
+ * `+` is always a checklist. Explicit `[ ]` / `[x]` / `[-]` / `[>]` are handled separately.
+ * @param {string} marker
+ * @returns {boolean}
+ */
+function markerCountsAsOpenTodo(marker: string): boolean {
+  if (marker === '+') return true
+  if (marker === '*' && DataStore.preference('isAsteriskTodo')) return true
+  if (marker === '-' && DataStore.preference('isDashTodo')) return true
+  if (/^\d+\.$/.test(marker) && DataStore.preference('isNumbersTodo')) return true
+  return false
+}
+
+/**
+ * Map a checkbox (or its absence) to a theme state class.
+ * @param {string} box - `[ ]`, `[x]`, `[-]`, `[>]`, or ''
+ * @param {string} marker
+ * @returns {string} `todo`, `checked`, `cancelled`, `task-scheduled`, or '' when this is a plain bullet
+ */
+function taskStateFromBox(box: string, marker: string): string {
+  if (box.toLowerCase() === '[x]') return 'checked'
+  if (box === '[-]') return 'cancelled'
+  if (box === '[>]') return 'task-scheduled'
+  if (box === '[ ]' || (box === '' && markerCountsAsOpenTodo(marker))) return 'todo'
+  return ''
+}
+
+/**
+ * Leading `!` / `!!` / `!!!` / `>>` on the task text. These are the only supported priority markers.
+ * @param {string} text
+ * @returns {string} `priority1`..`priority4`, or ''
+ */
+function priorityClassFromTaskText(text: string): string {
+  const match = text.match(/^(!!!|!!|!|>>)(?=\s|$)/)
+  if (!match) return ''
+  if (match[1] === '>>') return 'priority4'
+  if (match[1] === '!!!') return 'priority3'
+  if (match[1] === '!!') return 'priority2'
+  return 'priority1'
+}
+
+/**
+ * Font Awesome icon for a task (circle) or checklist (square). Scheduled uses a clock at 4.
+ * @param {string} kind - `task` or `checklist`
+ * @param {string} state
+ * @returns {string} icon class without the `fa-regular` prefix
+ */
+function taskStateIcon(kind: string, state: string): string {
+  if (kind === 'checklist') {
+    if (state === 'checked') return 'fa-square-check'
+    if (state === 'cancelled') return 'fa-square-xmark'
+    return 'fa-square'
+  }
+  if (state === 'checked') return 'fa-circle-check'
+  if (state === 'cancelled') return 'fa-circle-xmark'
+  if (state === 'task-scheduled') return 'fa-clock-four'
+  return 'fa-circle'
+}
+
+/**
+ * Checklist scheduled has no square clock in the shared Font Awesome set, so the hands at 4 sit in a square outline.
+ * @param {string} kind
+ * @param {string} state
+ * @returns {string}
+ */
+function taskStateIconHtml(kind: string, state: string): string {
+  if (kind === 'checklist' && state === 'task-scheduled') {
+    return '<i class="fa-fw task-icon-square-clock" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.25" y="3.25" width="17.5" height="17.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"></rect><line x1="12" y1="12" x2="12" y2="7.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></line><line x1="12" y1="12" x2="15.7" y2="14.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></line></svg></i>'
+  }
+  return `<i class="fa-regular fa-fw ${taskStateIcon(kind, state)}"></i>`
+}
+
+/**
+ * Turn a NotePlan task or checklist into a GFM task list plus a marker comment.
+ * Showdown only understands `[ ]` and `[x]`, so scheduled and cancelled are carried in the comment
+ * and later drawn as icons. Indent and a leading quote are kept. Plain bullets are left alone.
+ * @param {string} line
+ * @returns {string}
+ */
+function rewriteTaskLineForPreview(line: string): string {
+  const match = line.match(RE_TASK_OR_LIST_LINE)
+  if (!match) return line
+  const quote = match[1]
+  const indent = match[2]
+  const marker = match[3]
+  const box = match[4] ?? ''
+  const rest = match[5] ?? ''
+  const state = taskStateFromBox(box, marker)
+  if (state === '') return line
+  const kind = marker === '+' ? 'checklist' : 'task'
+  const priority = priorityClassFromTaskText(rest.replace(/^\s+/, ''))
+  const gfmMarker = /^\d+\.$/.test(marker) ? '-' : marker
+  const gfmBox = state === 'checked' ? '[x]' : '[ ]'
+  const body = rest.replace(/^\s+/, '')
+  const priorityPart = priority === '' ? '' : `:${priority}`
+  const comment = `<!--np-preview-task:${state}:${kind}${priorityPart}-->`
+  const afterBox = body === '' ? ' ' : ` ${body} `
+  return `${quote}${indent}${gfmMarker} ${gfmBox}${afterBox}${comment}`
+}
+
+/**
+ * Replace the GFM checkbox with a Font Awesome icon and apply the theme state class.
+ * A priority class on the list item picks up the theme foreground and background.
+ * @param {string} html
+ * @returns {string}
+ */
+function applyTaskThemeInHtml(html: string): string {
+  const withIcons = html.replace(
+    /<li class="task-list-item"([^>]*)>([\s\S]*?)<!--np-preview-task:(todo|checked|cancelled|task-scheduled):(task|checklist)(?::(priority[1-4]))?-->/g,
+    (_match, attrs, inner, state, kind, priority) => {
+      const iconHtml = taskStateIconHtml(kind, state)
+      const classes = ['task-list-item', state]
+      if (kind === 'checklist') classes.push('checklist')
+      if (priority) classes.push(priority)
+      const withoutInput = inner.replace(/<input\b[^>]*>\s*/, '')
+      const nestedAt = withoutInput.search(/<(?:ul|ol)\b/)
+      const textPart = (nestedAt === -1 ? withoutInput : withoutInput.slice(0, nestedAt)).trim()
+      const nestedHtml = nestedAt === -1 ? '' : withoutInput.slice(nestedAt)
+      return `<li class="${classes.join(' ')}"${attrs}>${iconHtml}<span class="task-text">${textPart}</span>${nestedHtml}`
+    },
+  )
+  return withIcons.replace(/<ul>(\s*<li class="task-list-item)/g, '<ul class="task-list">$1')
+}
+
+function escapeHtmlText(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function stripWrappingYamlQuotes(value: string): string {
+  const match = value.match(/^["']([\s\S]*)["']$/)
+  return match ? match[1] : value
+}
+
+function isYamlBlockScalar(value: string): boolean {
+  return value === '|' || value === '>' || value === '|-' || value === '>-' || value === '|+' || value === '>+'
+}
+
+/**
+ * Render frontmatter fields as a two-column table so values share one left edge.
+ * Borders are left to CSS (Preview hides them). Title is already removed by the caller.
+ * @param {Array<string>} fieldLines - lines between the frontmatter fences, excluding the closing blank
+ * @returns {string} table HTML, or '' when there is nothing to show
+ */
+function frontmatterFieldsToTableHtml(fieldLines: Array<string>): string {
+  const rows: Array<{ key: string, valueHtml: string }> = []
+  for (const rawLine of fieldLines) {
+    const line = rawLine.replace(/\s+$/, '')
+    if (line.trim() === '') continue
+    const kv = !/^\s/.test(line) ? line.match(/^([^:\s][^:]*?):\s*(.*)$/) : null
+    if (kv) {
+      const rawValue = kv[2].trim()
+      rows.push({
+        key: kv[1].trim(),
+        valueHtml: isYamlBlockScalar(rawValue) ? '' : escapeHtmlText(stripWrappingYamlQuotes(rawValue)),
+      })
+    } else if (rows.length > 0) {
+      const extra = escapeHtmlText(line.trim())
+      const prev = rows[rows.length - 1]
+      prev.valueHtml = prev.valueHtml === '' ? extra : `${prev.valueHtml}<br>${extra}`
+    }
+  }
+  if (rows.length === 0) return ''
+  const rowHtml = rows
+    .map((row) => `<tr><td class="frontmatter-key">${escapeHtmlText(row.key)}</td><td class="frontmatter-value">${row.valueHtml}</td></tr>`)
+    .join('')
+  return `<table class="frontmatter-fields"><tbody>${rowHtml}</tbody></table>`
+}
+
 /**
  * Convert a note's content to HTML and include any images as base64
  * @param {string} content
@@ -172,7 +344,7 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
 
     let hasFrontmatter = hasFrontMatter(content ?? '')
     let bodyStart = 0
-    const RE_OPEN_TASK_FOR_USER = formRegExForUsersOpenTasks(false)
+    let frontmatterTableHtml = ''
 
     // Work on a copy of the note's content
     // Change frontmatter for this note (if present)
@@ -218,6 +390,9 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
         lines.splice(0, 3)
         hasFrontmatter = false
         bodyStart = 0
+      } else if (bodyStart >= 2) {
+        // lines[1 .. bodyStart-2] are the fields; bodyStart-2 is the blank before the closing fence
+        frontmatterTableHtml = frontmatterFieldsToTableHtml(lines.slice(1, bodyStart - 2))
       }
     }
 
@@ -225,15 +400,17 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
     lines = separateBodyHorizontalRules(lines, bodyStart)
 
     // Make some necessary changes before conversion to HTML
+    let inCodeFence = false
     for (let i = 0; i < lines.length; i++) {
       // remove any sync link markers (blockIds)
       // TODO: there's a helper function for this, I think.
       lines[i] = lines[i].replace(/\^[A-z0-9]{6}([^A-z0-9]|$)/g, '').trimRight()
 
-      // change open tasks to GFM-flavoured task syntax
-      const res = lines[i].match(RE_OPEN_TASK_FOR_USER)
-      if (res) {
-        lines[i] = lines[i].replace(res[0], '- [ ]')
+      if (RE_CODE_FENCE.test(lines[i])) {
+        inCodeFence = !inCodeFence
+      } else if (!inCodeFence) {
+        // Rewrite NotePlan tasks and checklists so showdown emits a task list item. The checkbox is replaced later.
+        lines[i] = rewriteTaskLineForPreview(lines[i])
       }
     }
 
@@ -277,12 +454,21 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
     }
 
     // TODO: Ideally build a frontmatter styler extension (to use above) but for now ...
-    // Tweak body output to put frontmatter in a box if it exists
+    // Tweak body output to put frontmatter in a box if it exists.
+    // Swap the rendered fields for a two-column table so values line up.
     if (hasFrontmatter) {
       // replace first '<hr />' with start of div
       body = body.replace('<hr />', '<div class="frontmatter">')
       // replace what is now the first '<hr />' with end of div
       body = body.replace('<hr />', '</div>')
+      if (frontmatterTableHtml !== '') {
+        const openTag = '<div class="frontmatter">'
+        const start = body.indexOf(openTag)
+        const end = start === -1 ? -1 : body.indexOf('</div>', start)
+        if (start !== -1 && end !== -1) {
+          body = `${body.slice(0, start)}${openTag}${frontmatterTableHtml}${body.slice(end)}`
+        }
+      }
     }
     // logDebug(pluginJson, body)
 
@@ -317,7 +503,7 @@ export async function getNoteContentAsHTML(content: string, note: TNote): Promis
       }
       modifiedLines.push(line)
     }
-    return modifiedLines.join('\n')
+    return applyTaskThemeInHtml(modifiedLines.join('\n'))
   } catch (error) {
     logError('getNoteContentAsHTML', error.message)
     return '<conversion error>'

@@ -2,7 +2,7 @@
 
 //--------------------------------------------------------------
 // Main rendering function for Preview
-// by Jonathan Clark, last updated 2026-08-04 for v0.5.0
+// by Jonathan Clark, last updated 2026-10-10 for v0.5.1
 //--------------------------------------------------------------
 
 
@@ -137,9 +137,60 @@ const extraCSS = `
 Button a { text-decoration: none; font-size: 0.9rem; }
 .frontmatter { border-radius: 8px;
   border: 1px solid var(--tint-color);
-  padding: 0rem 0.4rem;
+  padding: 0.35rem 0.6rem;
   background-color: var(--bg-alt-color);
   }
+.frontmatter table.frontmatter-fields {
+  border: none;
+  border-collapse: collapse;
+  margin: 0;
+}
+.frontmatter table.frontmatter-fields td {
+  border: none;
+  background: transparent;
+  font-weight: normal;
+  padding: 0.12rem 0;
+  text-align: left;
+  vertical-align: top;
+}
+ul.task-list {
+  list-style: none;
+  margin-left: 0;
+  padding-left: 0;
+}
+li.task-list-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 0.85em;
+  align-items: baseline;
+  list-style: none;
+  margin-left: 0;
+  padding-left: 0;
+}
+i.task-icon-square-clock {
+  width: 1.25em;
+  line-height: 1;
+  text-align: center;
+}
+i.task-icon-square-clock svg {
+  width: 1.05em;
+  height: 1.05em;
+  display: block;
+  margin: 0.1em auto 0;
+}
+li.task-list-item > ul,
+li.task-list-item > ol {
+  grid-column: 1 / -1;
+}
+li.task-list-item.todo:not(.priority1):not(.priority2):not(.priority3):not(.priority4) {
+  color: var(--fg-main-color);
+}
+.frontmatter table.frontmatter-fields td.frontmatter-key {
+  color: #808080;
+  font-weight: 600;
+  padding-right: 1.25rem;
+  white-space: nowrap;
+}
 table {
   border-collapse: collapse;
   border: 1px solid grey;
@@ -211,7 +262,9 @@ export async function previewNote(noteSpec?: string | TNote | null, mermaidTheme
     }
 
     const headerTags = `<meta name="generator" content="np.Preview plugin by @jgclark v${pluginJson['plugin.version'] ?? '?'}">
-<meta name="date" content="${new Date().toISOString()}">`
+<meta name="date" content="${new Date().toISOString()}">
+<link href="../np.Shared/fontawesome.css" rel="stylesheet">
+<link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">`
 
     const windowOpts: HtmlWindowOptions = {
       windowTitle: `${displayTitle(note)} Preview`,
