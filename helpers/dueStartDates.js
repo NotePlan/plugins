@@ -1,23 +1,21 @@
 // @flow
 //-------------------------------------------------------------------------------
-// Start dates (`>YYYY-MM-DD`) and due dates (`!YYYY-MM-DD`) in task or note text.
+// Start dates (`>YYYY-MM-DD`) and due dates (`!YYYY-MM-DD` or `!>YYYY-MM-DD`) in task or note text.
 //
-// A marker counts only when a space, bracket, or start of line is immediately
-// before it, and a space, bracket, or end of line is immediately after the date.
-// Brackets here are () [] {}. Angle brackets are not boundaries: `>` is the
-// start-date marker itself, and `>YYYY-MM-DD<` is an existing arrow-date link.
+// A due date counts when a non-word or non-digit character, or the start of the
+// line, is immediately before `!`, and the date is not followed by a digit.
+// A start date counts the same way before `>`, and the date is not followed by a digit.
+// The `>` in `!>YYYY-MM-DD` belongs to the due date, so it is not also a start date.
 // When several dates match, the first valid one in the string is used.
 //-------------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import { RE_DATE, daysBetween, getTodaysDateHyphenated } from './dateTime'
+import { RE_DATE, daysBetween, getTodaysDateHyphenated, relativeDateFromNumber } from './dateTime'
 
-const BOUNDARY_CHAR = '[ \\(\\)\\[\\]\\{\\}]'
-const BEFORE_MARKER = `(?:^|${BOUNDARY_CHAR})`
-const AFTER_DATE = `(?=$|${BOUNDARY_CHAR})`
-
-const dueDatePattern = (): RegExp => new RegExp(`${BEFORE_MARKER}!(${RE_DATE})${AFTER_DATE}`, 'gm')
-const startDatePattern = (): RegExp => new RegExp(`${BEFORE_MARKER}>(${RE_DATE})${AFTER_DATE}`, 'gm')
+// Before `!`: start of line, or any non-word / non-digit character (`\D`). After the date: not a digit.
+const RE_DUE_DATE_PATTERN = `(?:^|\\D)!>?(${RE_DATE})(?!\\d)`
+// Same boundaries as a due date. A preceding `!` is excluded so `!>YYYY-MM-DD` stays a due date only.
+const RE_START_DATE_PATTERN = `(?:^|[^\\d!])>(${RE_DATE})(?!\\d)`
 
 /**
  * First valid ISO date for a marker pattern, or null.
@@ -34,12 +32,12 @@ function firstValidISODate(content: string, pattern: RegExp): ?string {
 }
 
 /**
- * Return first valid Due date in content, without the leading `!`, or null when none is present.
+ * Return first valid Due date in content, without the leading `!` or `!>`, or null when none is present.
  * @param {string} content
  * @returns {?string} YYYY-MM-DD
  */
 function returnFirstValidDueDate(content: string): ?string {
-  return firstValidISODate(content, dueDatePattern())
+  return firstValidISODate(content, new RegExp(RE_DUE_DATE_PATTERN, 'gm'))
 }
 
 /**
@@ -48,11 +46,11 @@ function returnFirstValidDueDate(content: string): ?string {
  * @returns {?string} YYYY-MM-DD
  */
 function returnFirstValidStartDate(content: string): ?string {
-  return firstValidISODate(content, startDatePattern())
+  return firstValidISODate(content, new RegExp(RE_START_DATE_PATTERN, 'gm'))
 }
 
 /**
- * Whether content contains a due date (`!YYYY-MM-DD`).
+ * Whether content contains a due date (`!YYYY-MM-DD` or `!>YYYY-MM-DD`).
  * @param {string} content
  * @returns {boolean}
  */
@@ -61,7 +59,7 @@ export function hasDueDate(content: string): boolean {
 }
 
 /**
- * Whether content contains both a start date (`>YYYY-MM-DD`) and a due date (`!YYYY-MM-DD`).
+ * Whether content contains both a start date (`>YYYY-MM-DD`) and a due date (`!YYYY-MM-DD` or `!>YYYY-MM-DD`).
  * @param {string} content
  * @returns {boolean}
  */
@@ -119,16 +117,18 @@ type DueDateSpan = {
 function dueDateSpans(content: string): Array<DueDateSpan> {
   const today = getTodaysDateHyphenated()
   const spans: Array<DueDateSpan> = []
-  for (const match of content.matchAll(dueDatePattern())) {
+  for (const match of content.matchAll(new RegExp(RE_DUE_DATE_PATTERN, 'gm'))) {
     const iso = match[1]
     if (typeof iso !== 'string' || !moment(iso, 'YYYY-MM-DD', true).isValid()) continue
-    const token = `!${iso}`
-    const tokenStart = match.index + match[0].length - token.length
+    // `!YYYY-MM-DD` is 1 marker char; `!>YYYY-MM-DD` is 2. The date sits at the end of the match.
+    const markerLength = match[0].endsWith(`>${iso}`) ? 2 : 1
+    const tokenLength = markerLength + iso.length
+    const tokenStart = match.index + match[0].length - tokenLength
     spans.push({
       iso,
       days: daysBetween(today, iso),
       tokenStart,
-      tokenLength: token.length,
+      tokenLength,
     })
   }
   return spans
@@ -175,18 +175,21 @@ export function contentWithoutDueDate(content: string, maxDays?: number): string
 
 /**
  * Turn due dates that are further ahead than the countdown window into an inline chip.
- * Dates inside the window are left as `!YYYY-MM-DD` for the right-hand countdown chip.
+ * The label is YYYY-MM-DD unless `useRelativeDate` is true, in which case it is a relative date.
+ * Dates inside the window are left as `!YYYY-MM-DD` or `!>YYYY-MM-DD` for the countdown chip.
  * @param {string} content
  * @param {number} maxDays
+ * @param {boolean} useRelativeDate - caller chooses relative wording ("in 3 wks") or the calendar date
  * @returns {string}
  */
-export function replaceFarDueDatesWithChips(content: string, maxDays?: number): string {
+export function replaceFarDueDatesWithChips(content: string, maxDays?: number, useRelativeDate?: boolean): string {
   const limit = dueChipDayLimit(maxDays)
   const spans = dueDateSpans(content).filter((item) => item.days > limit)
   let next = content
   for (let i = spans.length - 1; i >= 0; i--) {
     const span = spans[i]
-    const chip = `<span class="dueDateAheadChip"><i class="fa-regular fa-flag pad-right"></i>${span.iso}</span>`
+    const label = useRelativeDate ? relativeDateFromNumber(span.days) : span.iso
+    const chip = `<span class="dueDateAheadChip"><i class="fa-regular fa-flag pad-right"></i>${label}</span>`
     next = `${next.slice(0, span.tokenStart)}${chip}${next.slice(span.tokenStart + span.tokenLength)}`
   }
   return next

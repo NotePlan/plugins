@@ -5,7 +5,11 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 
 
 ## [2.6.0.b1] 2026-10-11
-- New: Tasks due within a set number of days show a flag chip at the end of the task text. The `!date` is left out of the task line when that chip is shown. Due dates further ahead stay in the task text as a chip in the theme ok color. Settings, under Start Dates and Due Dates: "When to start showing due dates?" (default 5).
+### Main feature: "due dates"
+- These **due dates or deadlines** are written in tasks as `!>YYYY-MM-DD`, or `!YYYY-MM-DD`, as well or instead of scheduled date (`>2026-10-01`) which mostly act as **start dates**.
+- Tasks due within a set number of days show a flag chip at the end of the task text. The due date is left out of the task line when that chip is shown. The color of the chip changes to red when it is due today, or overdue.
+- New settings, under Display settings: "When to start showing due dates?" (default 5).
+### Fixes
 - Fix: Display of the Theme field in Dashboard Settings, which was invisible in dark mode, and unreliable in search mode.
 - ??? The plan file is overdue_bang_dates_b09303f1.plan.md, at /Users/jonathan/.cursor/plans/overdue_bang_dates_b09303f1.plan.md.
 

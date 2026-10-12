@@ -2,6 +2,7 @@
 // Tests for dashboard line to HTML helpers. Last updated 2026-04-13 for v2.4.0.b23
 // Dynamic import after global.DataStore so NPdateTime side effects at load see DataStore.
 
+import { daysBetween, getTodaysDateHyphenated, relativeDateFromNumber } from '@helpers/dateTime'
 import { DataStore } from '@mocks/index'
 
 let makeStringContentToLookLikeNPDisplayInReact
@@ -71,11 +72,26 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
       const html = makeStringContentToLookLikeNPDisplayInReact('Anniversary >2020-01-01 !2099-01-01', {
         truncateLength: 0,
         showDueDatesWithinDays: 5,
+        showFarDueDateAsRelative: true,
+      })
+      expect(html).toContain('class="dueDateAheadChip"')
+      expect(html).toContain(relativeDateFromNumber(daysBetween(getTodaysDateHyphenated(), '2099-01-01')))
+      expect(html).not.toContain('2099-01-01')
+      expect(html).not.toContain('!2099-01-01')
+      expect(html).toContain('scheduledDate')
+    })
+
+    test('renders !>YYYY-MM-DD as a due chip and leaves the scheduled >date', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('Anniversary >2020-01-01 !>2099-01-01', {
+        truncateLength: 0,
+        showDueDatesWithinDays: 5,
+        showFarDueDateAsRelative: false,
       })
       expect(html).toContain('class="dueDateAheadChip"')
       expect(html).toContain('2099-01-01')
-      expect(html).not.toContain('!2099-01-01')
-      expect(html).toContain('scheduledDate')
+      expect(html).not.toContain('!>2099-01-01')
+      expect(html).toMatch(/scheduledDate"><i class="fa-regular fa-calendar pad-right"><\/i>2020-01-01<\/span>/)
+      expect(html).not.toMatch(/scheduledDate"><i class="fa-regular fa-calendar pad-right"><\/i>2099-01-01<\/span>/)
     })
 
     test('wraps scheduled >dates in scheduledDate lozenge with calendar icon', () => {

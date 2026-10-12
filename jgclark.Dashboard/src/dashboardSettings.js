@@ -302,7 +302,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'showDueDatesWithinDays',
     label: 'When to start showing Due dates?',
     description:
-      "Show a flag chip when a task's Due date (written `!YYYY-MM-DD`) is this many days away or sooner, including today and overdue. The `!date` is left off the task line while the chip is shown. Dates further ahead stay on the line. 0 shows the chip only for today and overdue.",
+      "Show a flag chip when a task's Due date (written `!YYYY-MM-DD` or `!>YYYY-MM-DD`) is this many days away or sooner, including today and overdue. The `!date` is left off the task line while the chip is shown. Dates further ahead stay on the line. 0 shows the chip only for today and overdue.",
     type: 'number',
     default: 5,
     compactDisplay: true,

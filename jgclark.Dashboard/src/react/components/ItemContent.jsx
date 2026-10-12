@@ -4,14 +4,14 @@
 // Last updated 2026-10-11 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 import React from 'react'
-import { dueDateChip } from '@helpers/dueStartDates'
-import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
-import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
 import { applyDashboardSettingsToDisplayedItemHtml, makeParaContentToLookLikeNPDisplayInReact } from '../dashboardLineToNPDisplayHTML.js'
+import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import DueDateChip from './DueDateChip.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
 import './ItemContent.css'
+import { dueDateChip } from '@helpers/dueStartDates'
+import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 //--------------------------------------------------------------------------
 
@@ -19,6 +19,8 @@ const NORMAL_ITEM_TRUNCATE_LENGTH = 140
 const COMPACT_ITEM_TRUNCATE_LENGTH = 70 // half of Normal when Display Density is Compact
 /** Where the today/overdue chip sits in the task text. 'end' is after the words, 'start' is before them. */
 const OVERDUE_CHIP_PLACE: 'start' | 'end' = 'end'
+/** Far due-date chips show a relative date ("in 3 wks") when true, or the YYYY-MM-DD date when false. */
+const SHOW_FAR_DUE_DATE_AS_RELATIVE = false
 
 type Props = {
   item: TSectionItem,
@@ -47,7 +49,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React.Node {
   const truncateLength = isCompactDensity ? COMPACT_ITEM_TRUNCATE_LENGTH : NORMAL_ITEM_TRUNCATE_LENGTH
   // Countdown chip when the task is due today, overdue, or within the user's day window.
   // Due-soon sits at the end of the task text. Today and overdue follow OVERDUE_CHIP_PLACE.
-  // The same !YYYY-MM-DD is left out of the task line.
+  // The same !YYYY-MM-DD or !>YYYY-MM-DD is left out of the task line.
   const rawDueWindow = dashboardSettings?.showDueDatesWithinDays
   const parsedDueWindow = typeof rawDueWindow === 'number' ? rawDueWindow : parseInt(String(rawDueWindow ?? ''), 10)
   const dueWindow = Number.isNaN(parsedDueWindow) ? undefined : parsedDueWindow
@@ -59,6 +61,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React.Node {
     pluginData?.reminderDisplayById,
     dueChip != null,
     dueWindow,
+    SHOW_FAR_DUE_DATE_AS_RELATIVE,
   )
   mainContent = applyDashboardSettingsToDisplayedItemHtml(mainContent, dashboardSettings)
 

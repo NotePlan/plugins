@@ -1,6 +1,7 @@
 /* globals describe, expect, test */
 
 import moment from 'moment/min/moment-with-locales'
+import { relativeDateFromNumber } from '../dateTime'
 import { contentWithoutDueDate, daysBeforeDueDate, daysBetweenStartAndDueDate, dueDateChip, hasDueDate, hasStartAndDueDate, replaceFarDueDatesWithChips } from '../dueStartDates'
 
 const isoOffset = (days) => moment().startOf('day').add(days, 'days').format('YYYY-MM-DD')
@@ -21,13 +22,15 @@ describe('helpers/dueStartDates', () => {
     test('true when the date is at end of line after a newline', () => {
       expect(hasDueDate('task\n!2026-01-15')).toBe(true)
     })
-    test('false when the marker is glued to other text', () => {
-      expect(hasDueDate('task!2026-01-15')).toBe(false)
-      expect(hasDueDate('!2026-01-15next')).toBe(false)
-      expect(hasDueDate('!!2026-01-15')).toBe(false)
+    test('true when a non-digit is before the marker or after the date', () => {
+      expect(hasDueDate('task!2026-01-15')).toBe(true)
+      expect(hasDueDate('!2026-01-15next')).toBe(true)
+      expect(hasDueDate('!2026-01-15.')).toBe(true)
+      expect(hasDueDate('!!2026-01-15')).toBe(true)
     })
-    test('false when punctuation follows the date', () => {
-      expect(hasDueDate('!2026-01-15.')).toBe(false)
+    test('false when a digit is immediately before the marker or after the date', () => {
+      expect(hasDueDate('5!2026-01-15')).toBe(false)
+      expect(hasDueDate('!2026-01-151')).toBe(false)
     })
     test('false for an impossible calendar date', () => {
       expect(hasDueDate('!2026-02-31')).toBe(false)
@@ -35,6 +38,19 @@ describe('helpers/dueStartDates', () => {
     test('false when there is no due date', () => {
       expect(hasDueDate('task >2026-01-01')).toBe(false)
       expect(hasDueDate('')).toBe(false)
+    })
+    test('true for the !>YYYY-MM-DD form', () => {
+      expect(hasDueDate('!>2026-01-15')).toBe(true)
+      expect(hasDueDate('task !>2026-01-15 next')).toBe(true)
+      expect(hasDueDate('(>2026-10-01) !>2026-10-10')).toBe(true)
+    })
+    test('true when !> follows a non-digit', () => {
+      expect(hasDueDate('task!>2026-01-15')).toBe(true)
+      expect(hasDueDate('!!>2026-01-15')).toBe(true)
+    })
+    test('false when !> follows a digit or the date is followed by a digit', () => {
+      expect(hasDueDate('5!>2026-01-15')).toBe(false)
+      expect(hasDueDate('!>2026-01-159')).toBe(false)
     })
     test('uses the first valid due date when an earlier one is impossible', () => {
       expect(hasDueDate('!2026-02-31 !2026-03-01')).toBe(true)
@@ -44,6 +60,10 @@ describe('helpers/dueStartDates', () => {
   describe('hasStartAndDueDate()', () => {
     test('true when both markers are present', () => {
       expect(hasStartAndDueDate('>2026-01-01 !2026-01-15')).toBe(true)
+      expect(hasStartAndDueDate('>2026-10-01 !>2026-10-10')).toBe(true)
+    })
+    test('the > inside !> is not a start date', () => {
+      expect(hasStartAndDueDate('!>2026-10-10')).toBe(false)
     })
     test('false with only a start date', () => {
       expect(hasStartAndDueDate('>2026-01-01')).toBe(false)
@@ -54,18 +74,24 @@ describe('helpers/dueStartDates', () => {
     test('false for >today, which is not a YYYY-MM-DD start date', () => {
       expect(hasStartAndDueDate('>today !2026-01-15')).toBe(false)
     })
-    test('false when the start date is an arrow-date link', () => {
-      expect(hasStartAndDueDate('>2026-01-01< !2026-01-15')).toBe(false)
+    test('an arrow-date link still counts as a start date', () => {
+      expect(hasStartAndDueDate('>2026-01-01< !2026-01-15')).toBe(true)
     })
-    test('start date allows the same boundaries as a due date', () => {
+    test('a non-digit before > counts, and a digit does not', () => {
       expect(hasStartAndDueDate('(>2026-01-01) !2026-01-15')).toBe(true)
-      expect(hasStartAndDueDate('task>2026-01-01 !2026-01-15')).toBe(false)
+      expect(hasStartAndDueDate('task>2026-01-01 !2026-01-15')).toBe(true)
+      expect(hasStartAndDueDate('5>2026-01-01 !2026-01-15')).toBe(false)
+      expect(hasStartAndDueDate('>2026-01-011 !2026-01-15')).toBe(false)
     })
   })
 
   describe('daysBetweenStartAndDueDate()', () => {
     test('returns due minus start in whole days', () => {
       expect(daysBetweenStartAndDueDate('start >2026-01-01 due !2026-01-11')).toBe(10)
+      expect(daysBetweenStartAndDueDate('>2026-10-01 !>2026-10-10')).toBe(9)
+    })
+    test('null when the only date is a !> due date', () => {
+      expect(daysBetweenStartAndDueDate('!>2026-10-10')).toBe(null)
     })
     test('is zero when the dates are the same day', () => {
       expect(daysBetweenStartAndDueDate('>2026-01-01 !2026-01-01')).toBe(0)
@@ -104,6 +130,7 @@ describe('helpers/dueStartDates', () => {
     })
     test('uses the first due date', () => {
       expect(daysBeforeDueDate(`!${isoOffset(1)} !${isoOffset(9)}`)).toBe(1)
+      expect(daysBeforeDueDate(`!>${isoOffset(4)} !${isoOffset(9)}`)).toBe(4)
     })
   })
 
@@ -162,21 +189,36 @@ describe('helpers/dueStartDates', () => {
     test('leaves text with no due date unchanged', () => {
       expect(contentWithoutDueDate('task >2026-01-01')).toBe('task >2026-01-01')
     })
+    test('removes an in-window !> due date and leaves the scheduled date', () => {
+      const due = isoOffset(3)
+      expect(contentWithoutDueDate(`Wedding Anniversary birthday TEST >2026-10-01 !>${due}`)).toBe(
+        'Wedding Anniversary birthday TEST >2026-10-01',
+      )
+    })
   })
 
   describe('replaceFarDueDatesWithChips()', () => {
     test('wraps a later due date in an inline chip and leaves an in-window date', () => {
       const near = isoOffset(1)
       const far = isoOffset(20)
-      const html = replaceFarDueDatesWithChips(`task !${far} !${near}`, 5)
+      const html = replaceFarDueDatesWithChips(`task !${far} !${near}`, 5, true)
       expect(html).toContain('class="dueDateAheadChip"')
-      expect(html).toContain(far)
+      expect(html).toContain(relativeDateFromNumber(20))
+      expect(html).not.toContain(far)
       expect(html).not.toContain(`!${far}`)
       expect(html).toContain(`!${near}`)
     })
     test('leaves an in-window due date unchanged', () => {
       const near = isoOffset(2)
       expect(replaceFarDueDatesWithChips(`task !${near}`, 5)).toBe(`task !${near}`)
+    })
+    test('wraps a far !> due date and leaves the scheduled >date', () => {
+      const far = isoOffset(20)
+      const html = replaceFarDueDatesWithChips(`task >2020-01-01 !>${far}`, 5, false)
+      expect(html).toContain('class="dueDateAheadChip"')
+      expect(html).toContain(far)
+      expect(html).not.toContain(`!>${far}`)
+      expect(html).toContain('>2020-01-01')
     })
   })
 })
