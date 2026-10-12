@@ -3,6 +3,12 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
+
+## [2.6.0.b1] 2026-10-11
+- New: Tasks due within a set number of days show a flag chip at the end of the task text. The `!date` is left out of the task line when that chip is shown. Due dates further ahead stay in the task text as a chip in the theme ok color. Settings, under Start Dates and Due Dates: "When to start showing due dates?" (default 5).
+- Fix: Display of the Theme field in Dashboard Settings, which was invisible in dark mode, and unreliable in search mode.
+- ??? The plan file is overdue_bang_dates_b09303f1.plan.md, at /Users/jonathan/.cursor/plans/overdue_bang_dates_b09303f1.plan.md.
+
 ## [2.5.2] 2026-10-10
 - The task dialog "Change to" button is now a "Change type" menu. It can switch an item between task, checklist, list, quote, and plain text (for @dwertheimer).
 - Overdue look-back of 0 (show every overdue task) stays 0 across a plugin update, and the settings field shows 0. The same update path keeps other real zeroes: idle refresh off, and heading level 0. (Thanks, @dwertheimer.)

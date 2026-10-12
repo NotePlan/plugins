@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show an HTML Input control, with various possible settings.
-// Last updated 2024-08-22 for v2.1.0.a9 by @jgclark
+// Last updated 2026-10-12 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 import React, { useState, useEffect } from 'react'
@@ -28,6 +28,12 @@ const InputBox = ({ label, value, onChange, onSave, inputType, showSaveButton = 
   useEffect(() => {
     setIsSaveEnabled(inputValue !== value)
   }, [inputValue, value])
+
+  // The settings list reuses this input when the filter changes the row index.
+  // Without this, the box keeps the previous row's text (for example a folder list in the theme field).
+  useEffect(() => {
+    setInputValue(value ?? '')
+  }, [value])
 
   const handleInputChange = (e: any) => {
     setInputValue(e.target.value)

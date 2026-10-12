@@ -67,6 +67,17 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
       expect(html).not.toContain('>today')
     })
 
+    test('renders a far due date as an inline chip in the task text', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('Anniversary >2020-01-01 !2099-01-01', {
+        truncateLength: 0,
+        showDueDatesWithinDays: 5,
+      })
+      expect(html).toContain('class="dueDateAheadChip"')
+      expect(html).toContain('2099-01-01')
+      expect(html).not.toContain('!2099-01-01')
+      expect(html).toContain('scheduledDate')
+    })
+
     test('wraps scheduled >dates in scheduledDate lozenge with calendar icon', () => {
       // Note: this date must stay in the past. stripTodaysDateRefsFromString() runs before the lozenge is applied
       // and deletes any >date that happens to be *today*, so a date that can become today makes this test fail on

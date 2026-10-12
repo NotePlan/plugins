@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2026-10-10 for v2.5.2 by @jgclark + @CursorAI
+// Last updated 2026-10-11 for v2.5.2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { DEFAULT_SECTION_DISPLAY_ORDER } from './constants.js'
@@ -297,6 +297,15 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'switch',
     default: true,
     description: 'Whether to display scheduled >dates for tasks in dashboard view',
+  },
+  {
+    key: 'showDueDatesWithinDays',
+    label: 'When to start showing Due dates?',
+    description:
+      "Show a flag chip when a task's Due date (written `!YYYY-MM-DD`) is this many days away or sooner, including today and overdue. The `!date` is left off the task line while the chip is shown. Dates further ahead stay on the line. 0 shows the chip only for today and overdue.",
+    type: 'number',
+    default: 5,
+    compactDisplay: true,
   },
   {
     key: 'parentChildMarkersEnabled',

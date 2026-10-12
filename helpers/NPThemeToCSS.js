@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
 // by @jgclark
-// Last updated 2026-10-03 by @jgclark and @CursorAI
+// Last updated 2026-10-12 by @jgclark and @CursorAI
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -139,7 +139,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Literal color-scheme for number fields. Stepper glyphs ignore `color`.
     // Repeated here (not only via var(--np-color-scheme)) so the used scheme is a keyword even if a stylesheet variable is ignored.
     const npColorScheme = currentThemeMode === 'light' ? 'light' : 'dark'
-    output.push(makeCSSSelector('.settings-dialog input[type="number"], .dynamic-dialog .input-box-input-number', [`color-scheme: ${npColorScheme}`]))
+    output.push(makeCSSSelector('.settings-dialog input[type="number"], .settings-dialog .input-box-wrapper > input[type="text"], .dynamic-dialog .input-box-input-number', [`color-scheme: ${npColorScheme}`]))
 
     // Set body:
     // - main font = styles.body.font
@@ -461,8 +461,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Scheduled >date lozenge: tint fill, main background text (same shape as .timeBlock)
     tempSel = []
     tempSel.push(`font-size: 84%`)
-    tempSel.push(`color: var(--tint-color)`)
-    tempSel.push(`background-color: rgb(from var(--tint-color) r g b / 0.2)`)
+    tempSel.push(`color: var(--fg-placeholder-color)`)
+    tempSel.push(`background-color: rgb(from var(--fg-placeholder-color) r g b / 0.1)`)
     tempSel.push('border-radius: 5px')
     tempSel.push('padding-inline: 3px')
     output.push(makeCSSSelector('.scheduledDate', tempSel))

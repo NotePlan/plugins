@@ -92,6 +92,8 @@ export type TDashboardSettings = {
   includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
   showFolderName: boolean,
   showScheduledDates: boolean,
+  /** Days ahead at which the due-date chip starts. 0 shows today and overdue only. */
+  showDueDatesWithinDays: number,
   showTaskContext: boolean,
   includeFutureTagMentions: boolean, // from v2.3.0
   interactiveProcessingHighlightTask: boolean,

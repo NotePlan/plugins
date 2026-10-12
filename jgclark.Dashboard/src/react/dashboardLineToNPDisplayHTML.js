@@ -9,6 +9,7 @@ import type { TDashboardSettings, TLinkedNoteIconInfo, TSectionItem } from '../t
 import type { TReminderDisplayById } from '@helpers/NPReminders'
 import { getNoteIconDisplayProps } from '../noteIconDisplay.js'
 import { replaceArrowDatesInString } from '@helpers/dateTime'
+import { contentWithoutDueDate, replaceFarDueDatesWithChips } from '@helpers/dueStartDates'
 import { logError } from '@helpers/react/reactDev.js'
 import {
   changeBareLinksToHTMLLink,
@@ -47,6 +48,8 @@ export type TDashboardLineDisplayOptions = {
   reminderDisplayById?: TReminderDisplayById,
   /** When true, keep >today and >this-week on the line (regular notes). Calendar rows still drop those as redundant. */
   keepRelativeScheduledDates?: boolean,
+  /** Days ahead at which the countdown chip starts. Due dates further out stay in the task text as an ok chip. */
+  showDueDatesWithinDays?: number,
 }
 
 /**
@@ -144,6 +147,7 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
   const linkedNoteIcons = options?.linkedNoteIcons
   const reminderDisplayById = options?.reminderDisplayById
   const keepRelativeScheduledDates = options?.keepRelativeScheduledDates === true
+  const showDueDatesWithinDays = options?.showDueDatesWithinDays
 
   try {
     if (content == null || content === '') {
@@ -223,6 +227,9 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
       }
     }
 
+    // Due dates further ahead than the countdown window stay in the task text, as an ok-colored chip.
+    output = replaceFarDueDatesWithChips(output, showDueDatesWithinDays)
+
     if (truncateLength > 0 && origContent.length > truncateLength) {
       output = truncateHTML(output, truncateLength, true)
     }
@@ -248,6 +255,8 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
  * @param {TSectionItem} thisItem
  * @param {number} truncateLength
  * @param {string} timeblockTextMustContainString
+ * @param {boolean} suppressDueDate - drop the in-window `!YYYY-MM-DD` when a countdown chip is shown for this line
+ * @param {number} showDueDatesWithinDays - countdown window; farther due dates render in the task text
  * @returns {string}
  */
 export function makeParaContentToLookLikeNPDisplayInReact(
@@ -255,13 +264,16 @@ export function makeParaContentToLookLikeNPDisplayInReact(
   truncateLength: number = 0,
   timeblockTextMustContainString: string = '',
   reminderDisplayById?: TReminderDisplayById,
+  suppressDueDate: boolean = false,
+  showDueDatesWithinDays?: number,
 ): string {
   try {
     const { para } = thisItem
     if (!para || !para.content) {
       throw new Error(`No para/content in item ${thisItem.ID}`)
     }
-    return makeStringContentToLookLikeNPDisplayInReact(para.content, {
+    const content = suppressDueDate ? contentWithoutDueDate(para.content, showDueDatesWithinDays) : para.content
+    return makeStringContentToLookLikeNPDisplayInReact(content, {
       truncateLength,
       taskPriority: para.priority ?? 0,
       startTime: para.startTime,
@@ -271,6 +283,7 @@ export function makeParaContentToLookLikeNPDisplayInReact(
       linkedNoteIcons: para.linkedNoteIcons,
       reminderDisplayById,
       keepRelativeScheduledDates: para.noteType === 'Notes',
+      showDueDatesWithinDays,
     })
   } catch (error) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, error.message)

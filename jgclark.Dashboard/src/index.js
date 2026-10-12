@@ -137,6 +137,10 @@ export async function onUpdateOrInstall(): Promise<void> {
       initialDashboardSettings.autoUpdateAfterIdleTime,
       numberSettingDefault('autoUpdateAfterIdleTime', 10),
     )
+    initialDashboardSettings.showDueDatesWithinDays = coerceStoredIntSetting(
+      initialDashboardSettings.showDueDatesWithinDays,
+      numberSettingDefault('showDueDatesWithinDays', 5),
+    )
 
     clo(initialDashboardSettings, `onUpdateOrInstall - initialDashboardSettings:`)
 

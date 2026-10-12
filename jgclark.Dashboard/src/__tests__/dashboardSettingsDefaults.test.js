@@ -17,6 +17,11 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(defaults.hideTimedRemindersUntilDue).toBe(true)
     })
 
+    test('getDashboardSettingsDefaults() starts showing due dates within 5 days', () => {
+      const defaults = getDashboardSettingsDefaults()
+      expect(defaults.showDueDatesWithinDays).toBe(5)
+    })
+
     test('getDashboardSettingsDefaults() defaults includedReminderLists to blank', () => {
       const defaults = getDashboardSettingsDefaults()
       expect(defaults.includedReminderLists).toBe('')
