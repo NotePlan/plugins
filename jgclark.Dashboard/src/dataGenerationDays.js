@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
-// Last updated 2026-08-20 for v2.4.0.b67 by @jgclark + @CursorAI
+// Last updated 2026-10-13 for v2.6.0.b1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -19,16 +19,23 @@ import {
   isTBSectionEnabled,
   setTimeFieldsOnDashboardPara,
   makeDashboardParas,
+  filterParasByAllowedTeamspaces,
+  filterParasByIgnoreTerms,
+  filterParasByIncludedCalendarSections,
+  filterParasByExcludedCalendarSections,
 } from './dashboardHelpers'
 import { openTodayItems, refTodayItems, openTomorrowParas, refTomorrowParas, openYesterdayParas, refYesterdayParas } from './demoData'
 import { assignReminderItemsToSection } from './reminderBuckets'
+import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { getTodaysDateUnhyphenated } from '@helpers/dateTime'
+import { explainStartDueWindow, todayIsBetweenStartAndDueDate } from '@helpers/dueStartDates'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
+import { isNoteFromAllowedFolder } from '@helpers/note'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { getHeadingsFromNote } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { isActiveOrFutureTimeBlockPara } from '@helpers/timeblocks'
-import { isOpen } from '@helpers/utils'
+import { isOpen, isOpenOrScheduled, removeDuplicates } from '@helpers/utils'
 
 //--------------------------------------------------------------------
 /**
@@ -40,19 +47,21 @@ import { isOpen } from '@helpers/utils'
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @param {Array<TSectionItem>} referencedReminderItems? - untimed today's reminders (starting point for referenced items)
- * @returns {Array<TSection>} 1 or 2 section(s)
+ * @returns {{ sections: Array<TSection>, overdueApiParas: ?$ReadOnlyArray<TParagraph> }} Today section(s), plus the raw overdue API list when this refresh loaded it
  */
-export function getTodaySectionData(
+export async function getTodaySectionData(
   config: TDashboardSettings,
   useDemoData: boolean = false,
   useEditorWherePossible: boolean,
   referencedReminderItems: Array<TSectionItem> = [],
-): Array<TSection> {
+): Promise<{ sections: Array<TSection>, overdueApiParas: ?$ReadOnlyArray<TParagraph> }> {
   try {
     const thisSectionCode = 'DT'
     const sections: Array<TSection> = []
     let items: Array<TSectionItem> = []
     let itemCount = 0
+    let overdueApiParas: ?$ReadOnlyArray<TParagraph> = null
+    let dueWindowTiming = ''
     const todayDateLocale = toNPLocaleDateString(new Date(), 'short') // uses moment's locale info from NP
     logDebug('getTodaySectionData', `--------- Gathering Today's ${useDemoData ? 'DEMO' : ''} items for section ${thisSectionCode} --------`)
     const startTime = new Date() // for timing only
@@ -106,6 +115,23 @@ export function getTodaySectionData(
       logDebug('getTodaySectionData', `- added ${String(assigned.length)} untimed reminder(s) into combined Today section`)
     }
 
+    // A !> due date still ahead is not overdue, so listOverdueTasks() does not return it.
+    // Today's own note also drops it: it is scheduled, but not scheduled to today.
+    if (!useDemoData) {
+      try {
+        const windowResult = await loadStartDueWindowParas(config, sortedOrCombinedParas.concat(sortedRefParas))
+        dueWindowTiming = windowResult.timing
+      const windowDashboardParas = makeDashboardParas(windowResult.windowParas)
+      for (const p of windowDashboardParas) {
+        const thisID = `${thisSectionCode}-${itemCount}`
+        items.push(createSectionItemObject(thisID, thisSectionCode, p))
+        itemCount++
+      }
+    } catch (windowError) {
+      logError('getTodaySectionData', `due-date window lookup failed: ${windowError.message}`)
+    }
+  }
+
     const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')
     // Omit "add to tomorrow" buttons when NotePlan has no tomorrow note filename (do not ship a sentinel like '(error)')
     const nextPeriodFilename = nextPeriodNote?.filename || ''
@@ -119,7 +145,9 @@ export function getTodaySectionData(
     const tomorrowFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
 
     let sectionDescription = `{closedOrOpenTaskCount}` // ` ` from ${todayDateLocale}`
-    if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
+  if (config?.FFlag_ShowSectionTimings) {
+    sectionDescription += dueWindowTiming ? ` [${timer(startTime)}, due window ${dueWindowTiming}]` : ` [${timer(startTime)}]`
+  }
 
     // Note: TB no longer needs to be in postActionRefresh for DT buttons; it refreshes along with DT when enabled
     const actionButtons: Array<TActionButton> = [
@@ -229,13 +257,103 @@ export function getTodaySectionData(
     }
 
     logTimer('getTodaySectionData', startTime, `- found ${itemCount} daily items from ${filenameDateStr}`)
-    
 
-    return sections
+  return { sections, overdueApiParas }
   } catch (error) {
     logError(`getTodaySectionData`, error.message)
-    return []
+  return { sections: [], overdueApiParas: null }
+}
+}
+
+/**
+ * One-line identity for a searched paragraph. Host paragraph objects are not reliable Set keys.
+ * @param {TParagraph} p
+ * @returns {string}
+ */
+function dueWindowParaKey(p: TParagraph): string {
+  return `${p.filename ?? ''}|${String(p.lineIndex ?? '')}|${p.content ?? ''}`
+}
+
+/**
+ * Short single-line preview for the due-window debug log.
+ * @param {string} content
+ * @returns {string}
+ */
+function dueWindowPreview(content: string): string {
+  const preview = content.replace(/\s+/g, ' ').trim()
+  return preview.length > 120 ? `${preview.slice(0, 117)}...` : preview
+}
+
+/**
+ * Open tasks whose start date is on or before today and whose `!>YYYY-MM-DD` due date is still today or ahead.
+ * `listOverdueTasks()` omits these while the due date is still ahead, so this searches for `!>`.
+ * @param {TDashboardSettings} config
+ * @param {Array<TParagraphForDashboard>} alreadyShown - Today and >Today rows already collected; matching content is not added again
+ * @returns {{ windowParas: Array<TParagraph>, timing: string }}
+ */
+async function loadStartDueWindowParas(
+  config: TDashboardSettings,
+  alreadyShown: Array<TParagraphForDashboard>,
+): Promise<{ windowParas: Array<TParagraph>, timing: string }> {
+  const windowStart = new Date()
+  const noteHits: $ReadOnlyArray<TParagraph> = await DataStore.search('!>', ['notes'], [], [], false)
+  const calendarHits: $ReadOnlyArray<TParagraph> = await DataStore.searchCalendarNotes('!>', false)
+  const hits: Array<TParagraph> = noteHits.concat(calendarHits)
+  logDebug('getTodaySectionData', `- !> search returned ${String(noteHits.length)} note line(s) and ${String(calendarHits.length)} calendar line(s)`)
+  const openHits: Array<TParagraph> = []
+  for (const p of hits) {
+    const checklistHidden = Boolean(config.ignoreChecklistItems) && (p.type === 'checklist' || p.type === 'checklistScheduled')
+    if (checklistHidden || !isOpenOrScheduled(p)) {
+      const why = checklistHidden ? 'checklist items are hidden' : `not an open task (type ${p.type})`
+      logDebug('getTodaySectionData', `- skip due window (${why}) {${dueWindowPreview(p.content || '')}} in ${p.filename ?? ''}`)
+      continue
+    }
+    openHits.push(p)
   }
+
+  const afterTeamspace = filterParasByAllowedTeamspaces(openHits, config, windowStart, 'getTodaySectionData')
+  const allowedFolders = getCurrentlyAllowedFolders(config)
+  const afterFolder = afterTeamspace.filter((p) => {
+    const note = p.note
+    return note != null && isNoteFromAllowedFolder(note, allowedFolders, true)
+  })
+  const afterIgnore = filterParasByIgnoreTerms(afterFolder, config, windowStart, 'getTodaySectionData')
+  const afterIncluded = filterParasByIncludedCalendarSections(afterIgnore, config, windowStart, 'getTodaySectionData')
+  const afterExcluded = filterParasByExcludedCalendarSections(afterIncluded, config, windowStart, 'getTodaySectionData')
+  // Casts: removeDuplicates() is typed over a generic indexed object, not TParagraph.
+  const filtered: Array<TParagraph> = (removeDuplicates((afterExcluded: any), ['content']): any)
+  const kept = new Set(filtered.map((p) => dueWindowParaKey(p)))
+  const teamKeys = new Set(afterTeamspace.map((p) => dueWindowParaKey(p)))
+  const folderKeys = new Set(afterFolder.map((p) => dueWindowParaKey(p)))
+  const ignoreKeys = new Set(afterIgnore.map((p) => dueWindowParaKey(p)))
+  const includedKeys = new Set(afterIncluded.map((p) => dueWindowParaKey(p)))
+  const shownContent = new Set(alreadyShown.map((p) => p.content))
+  const windowParas: Array<TParagraph> = []
+  for (const p of openHits) {
+    const content = p.content || ''
+    const shown = dueWindowPreview(content)
+    const where = p.filename ?? ''
+    const key = dueWindowParaKey(p)
+    let reason = ''
+    if (!teamKeys.has(key)) reason = 'teamspace'
+    else if (!folderKeys.has(key)) reason = 'folder'
+    else if (!ignoreKeys.has(key)) reason = 'ignore terms'
+    else if (!includedKeys.has(key)) reason = 'calendar section include'
+    else if (!kept.has(key)) reason = 'calendar section exclude or duplicate content'
+    if (reason !== '') {
+      logDebug('getTodaySectionData', `- skip due window (${reason}) {${shown}} in ${where}`)
+      continue
+    }
+    const inWindow = todayIsBetweenStartAndDueDate(content)
+    const alreadyShownInToday = shownContent.has(content)
+    const windowReason = alreadyShownInToday ? `already shown in Today; ${explainStartDueWindow(content)}` : explainStartDueWindow(content)
+    const include = inWindow && !alreadyShownInToday
+    if (include) windowParas.push(p)
+    logDebug('getTodaySectionData', `- ${include ? 'include' : 'skip'} due window (${windowReason}) {${shown}} in ${where}`)
+  }
+  const timing = timer(windowStart)
+  logInfo('getTodaySectionData', `due-date window lookup took ${timing} and is adding ${String(windowParas.length)} task(s)`)
+  return { windowParas, timing }
 }
 
 /**

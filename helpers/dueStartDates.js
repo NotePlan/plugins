@@ -94,6 +94,46 @@ export function daysBeforeDueDate(content: string): ?number {
   return daysBetween(getTodaysDateHyphenated(), due)
 }
 
+// `!>YYYY-MM-DD` only. A plain `!YYYY-MM-DD` is a deadline, not a start-to-due window.
+const RE_BANG_GT_DUE_DATE_PATTERN = `(?:^|\\D)!>(${RE_DATE})(?!\\d)`
+
+/**
+ * First valid `!>YYYY-MM-DD` due date, without the marker, or null.
+ * @param {string} content
+ * @returns {?string} YYYY-MM-DD
+ */
+function returnFirstValidBangGtDueDate(content: string): ?string {
+  return firstValidISODate(content, new RegExp(RE_BANG_GT_DUE_DATE_PATTERN, 'gm'))
+}
+
+/**
+ * Why today is or is not inside the start date and a `!>YYYY-MM-DD` due date.
+ * A plain `!YYYY-MM-DD` does not open this window. The `>` inside `!>` is not a start date.
+ * @param {string} content
+ * @returns {string}
+ */
+export function explainStartDueWindow(content: string): string {
+  const start = returnFirstValidStartDate(content)
+  const due = returnFirstValidBangGtDueDate(content)
+  if (start == null && due == null) return 'no start date and no !> due date'
+  if (start == null) return 'no start date'
+  if (due == null) return 'no !> due date'
+  const today = getTodaysDateHyphenated()
+  if (daysBetween(start, today) < 0) return `today ${today} is before start ${start} (due ${due})`
+  if (daysBetween(today, due) < 0) return `today ${today} is after due ${due} (start ${start})`
+  return `in window start ${start} due ${due}`
+}
+
+/**
+ * Whether today falls on or between the start date (`>YYYY-MM-DD`) and a due date written `!>YYYY-MM-DD`.
+ * A plain `!YYYY-MM-DD` does not open this window. The `>` inside `!>` is not a start date.
+ * @param {string} content
+ * @returns {boolean}
+ */
+export function todayIsBetweenStartAndDueDate(content: string): boolean {
+  return explainStartDueWindow(content).startsWith('in window')
+}
+
 export const DUE_CHIP_MAX_DAYS = 5
 
 export type dueDateSoonChip= {

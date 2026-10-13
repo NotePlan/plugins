@@ -2,7 +2,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { relativeDateFromNumber } from '../dateTime'
-import { contentWithoutDueDate, daysBeforeDueDate, daysBetweenStartAndDueDate, dueDateChip, hasDueDate, hasStartAndDueDate, replaceFarDueDatesWithChips } from '../dueStartDates'
+import { contentWithoutDueDate, daysBeforeDueDate, daysBetweenStartAndDueDate, dueDateChip, explainStartDueWindow, hasDueDate, hasStartAndDueDate, replaceFarDueDatesWithChips, todayIsBetweenStartAndDueDate } from '../dueStartDates'
 
 const isoOffset = (days) => moment().startOf('day').add(days, 'days').format('YYYY-MM-DD')
 
@@ -131,6 +131,41 @@ describe('helpers/dueStartDates', () => {
     test('uses the first due date', () => {
       expect(daysBeforeDueDate(`!${isoOffset(1)} !${isoOffset(9)}`)).toBe(1)
       expect(daysBeforeDueDate(`!>${isoOffset(4)} !${isoOffset(9)}`)).toBe(4)
+    })
+  })
+
+  describe('todayIsBetweenStartAndDueDate()', () => {
+    test('true on the start date, the due date, and a day strictly inside', () => {
+      expect(todayIsBetweenStartAndDueDate(`>${isoOffset(0)} !>${isoOffset(0)}`)).toBe(true)
+      expect(todayIsBetweenStartAndDueDate(`>${isoOffset(-3)} !>${isoOffset(0)}`)).toBe(true)
+      expect(todayIsBetweenStartAndDueDate(`>${isoOffset(0)} !>${isoOffset(4)}`)).toBe(true)
+      expect(todayIsBetweenStartAndDueDate(`>${isoOffset(-2)} !>${isoOffset(5)}`)).toBe(true)
+    })
+    test('false before the start date or after the due date', () => {
+      expect(todayIsBetweenStartAndDueDate(`>${isoOffset(1)} !>${isoOffset(5)}`)).toBe(false)
+      expect(todayIsBetweenStartAndDueDate(`>${isoOffset(-5)} !>${isoOffset(-1)}`)).toBe(false)
+    })
+    test('false when the !> due date or the start date is missing', () => {
+      expect(todayIsBetweenStartAndDueDate(`!>${isoOffset(3)}`)).toBe(false)
+      expect(todayIsBetweenStartAndDueDate(`>${isoOffset(-1)}`)).toBe(false)
+    })
+    test('a plain ! date plus a start date is not this window', () => {
+      expect(todayIsBetweenStartAndDueDate(`>${isoOffset(-1)} !${isoOffset(3)}`)).toBe(false)
+    })
+    test('the > inside !> is not the start date', () => {
+      expect(todayIsBetweenStartAndDueDate(`task !>${isoOffset(-1)} !>${isoOffset(2)}`)).toBe(false)
+    })
+    test('explainStartDueWindow matches the include decision', () => {
+      const inside = `>${isoOffset(-2)} !>${isoOffset(5)}`
+      const before = `>${isoOffset(1)} !>${isoOffset(5)}`
+      const after = `>${isoOffset(-5)} !>${isoOffset(-1)}`
+      const plainBang = `>${isoOffset(-1)} !${isoOffset(3)}`
+      expect(todayIsBetweenStartAndDueDate(inside)).toBe(true)
+      expect(explainStartDueWindow(inside).startsWith('in window')).toBe(true)
+      expect(explainStartDueWindow(before)).toContain('before start')
+      expect(explainStartDueWindow(after)).toContain('after due')
+      expect(explainStartDueWindow(plainBang)).toBe('no !> due date')
+      expect(explainStartDueWindow(`!>${isoOffset(2)}`)).toBe('no start date')
     })
   })
 

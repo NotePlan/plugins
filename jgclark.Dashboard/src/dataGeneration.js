@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-08-20 for v2.4.0.b67 by @CursorAI + @jgclark
+// Last updated 2026-10-12 for v2.6.0.b1 by @CursorAI + @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -220,10 +220,13 @@ export async function getSomeSectionsData(
       logWarn('getSomeSectionsData', `- ${parts.join('; ')} reminder(s) have no visible section and will not be shown anywhere`)
     }
 
-    // DT and TB sections are generated separately but share paragraph data fetching
+    // DT and TB sections are generated separately but share paragraph data fetching.
+    // Today's start-to-!>due window searches for !>. Overdue still loads listOverdueTasks() itself.
+    let overdueApiParasFromToday: ?$ReadOnlyArray<TParagraph> = null
     if (sectionCodesToGet.includes('DT')) {
-      const todaySections = getTodaySectionData(config, useDemoData, useEditorWherePossible, placement.forDT)
-      sections.push(...todaySections)
+      const todayResult = await getTodaySectionData(config, useDemoData, useEditorWherePossible, placement.forDT)
+      sections.push(...todayResult.sections)
+      overdueApiParasFromToday = todayResult.overdueApiParas
     }
     if (sectionCodesToGet.includes('TB') && isTBSectionEnabled(config)) {
       sections.push(...getTimeBlockSectionData(config, useDemoData, useEditorWherePossible, placement.forTB))
@@ -276,7 +279,7 @@ export async function getSomeSectionsData(
     }
 
     if (wantOVERDUE) {
-      const overdueSection = await getOverdueSectionData(config, useDemoData, placement.forOVERDUE, yesterdaySpillTaskParas, yesterdayParasForOverdueDedupe)
+      const overdueSection = await getOverdueSectionData(config, useDemoData, placement.forOVERDUE, yesterdaySpillTaskParas, yesterdayParasForOverdueDedupe, overdueApiParasFromToday)
       if (overdueSection) sections.push(overdueSection)
     }
 
@@ -306,6 +309,7 @@ export async function getSomeSectionsData(
  * @param {boolean} _useDemoData?
  * @returns {Array<TSection>} data
  */
+// eslint-disable-next-line require-await
 export async function getInfoSectionData(config: TDashboardSettings, _useDemoData: boolean = false): Promise<Array<TSection>> {
   const sections: Array<TSection> = []
   const thisSectionCode = 'INFO'

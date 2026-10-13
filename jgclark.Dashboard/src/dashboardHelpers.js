@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-10-02 for v2.5.1 by @jgclark + @CursorAI
+// Last updated 2026-10-13 for v2.6.0.b1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -44,6 +44,7 @@ import {
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
 } from '@helpers/dateTime'
+import { todayIsBetweenStartAndDueDate } from '@helpers/dueStartDates'
 import { DEFAULT_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { findNoteLinksForDisplay } from '@helpers/HTMLView'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
@@ -412,12 +413,11 @@ function getParagraphsFromCalendarNotes(
   }
 
   // Log if content contains TEST
-  // Log if content contains TEST
-  if (parasToUse.some((para) => para.content.includes('TEST'))) {
-    const testParas = parasToUse.filter((p) => p.content.includes('TEST'))
-    const testOutput = testParas.map((p) => `- ${String(p.lineIndex)}: ${p.rawContent}`).join('\n')
-    logInfo('getParagraphsFromCalendarNotes', `FYI 👉 found TEST in paragraph(s):\n${testOutput}`)
-  }
+  // if (parasToUse.some((para) => para.content.includes('TEST'))) {
+  //   const testParas = parasToUse.filter((p) => p.content.includes('TEST'))
+  //   const testOutput = testParas.map((p) => `- ${String(p.lineIndex)}: ${p.rawContent}`).join('\n')
+  //   logInfo('getParagraphsFromCalendarNotes', `FYI 👉 found TEST in paragraph(s):\n${testOutput}`)
+  // }
   return parasToUse
 }
 
@@ -503,12 +503,21 @@ export function filterBySchedulingRules(
   const isToday = theNoteDateHyphenated === todayHyphenated
   const thisNoteDateSched = `>${theNoteDateHyphenated}`
 
-  // Keep only items not scheduled (other than >today or whatever calendar note we're on)
-  let filteredParas = paras.filter((p) => isOpenNotScheduled(p) || p.content.includes(thisNoteDateSched) || (isToday && p.content.includes('>today')))
+  // Keep only items not scheduled (other than >today or whatever calendar note we're on).
+  // A start-to-!>due window that includes today stays, even though the line is not scheduled to today.
+  const inTodayWindow = (content: string): boolean => isToday && todayIsBetweenStartAndDueDate(content)
+  for (const p of paras) {
+    if ((p.content || '').includes('!>')) {
+      const keepForSchedule = isOpenNotScheduled(p) || p.content.includes(thisNoteDateSched) || (isToday && p.content.includes('>today')) || inTodayWindow(p.content)
+      const dropForFuture = includesScheduledFutureDate(p.content, latestDate) && !inTodayWindow(p.content)
+      logDebug('getTodaySectionData', `- !> line isToday=${String(isToday)} keep=${String(keepForSchedule && !dropForFuture)} {${p.content}} note ${NPCalendarFilenameStr}`)
+    }
+  }
+  let filteredParas = paras.filter((p) => isOpenNotScheduled(p) || p.content.includes(thisNoteDateSched) || (isToday && p.content.includes('>today')) || inTodayWindow(p.content))
   // logTimer('filterBySchedulingRules', startTime, `- after not-scheduled-apart-from-today filter: ${filteredParas.length} paras`)
 
-  // Filter out any future-scheduled tasks from this calendar note
-  filteredParas = filteredParas.filter((p) => !includesScheduledFutureDate(p.content, latestDate))
+  // Filter out any future-scheduled tasks from this calendar note. The same in-window tasks stay.
+  filteredParas = filteredParas.filter((p) => !includesScheduledFutureDate(p.content, latestDate) || inTodayWindow(p.content))
 
   return filteredParas
 }
@@ -637,11 +646,11 @@ function getReferencedOpenParagraphs(
   // note-priority-delta is applied in makeDashboardParas() (via getNoteFromPara) when combineOrSeparateResults runs.
 
   // Log if content contains TEST
-  if (refOpenParas.some((para) => para.content.includes('TEST'))) {
-    const testParas = refOpenParas.filter((p) => p.content.includes('TEST'))
-    const testOutput = testParas.map((p) => `- ${String(p.lineIndex)}: ${p.rawContent}`).join('\n')
-    logInfo('getReferencedOpenParagraphs', `FYI 👉 found TEST in paragraph(s):\n${testOutput}`)
-  }
+  // if (refOpenParas.some((para) => para.content.includes('TEST'))) {
+  //   const testParas = refOpenParas.filter((p) => p.content.includes('TEST'))
+  //   const testOutput = testParas.map((p) => `- ${String(p.lineIndex)}: ${p.rawContent}`).join('\n')
+  //   logInfo('getReferencedOpenParagraphs', `FYI 👉 found TEST in paragraph(s):\n${testOutput}`)
+  // }
 
   return refOpenParas
 }
@@ -1195,9 +1204,9 @@ export function makeDashboardParas(origParas: Array<TParagraph>, checkForPriorit
           iconColor: noteIconColor,
           ...(linkedNoteIcons ? { linkedNoteIcons } : {}),
         }
-        if (p.content.includes('TEST')) {
-          logInfo('makeDashboardParas', `👉👉👉 ${JSP(outputPara)}`)
-        }
+        // if (p.content.includes('TEST')) {
+        //   logInfo('makeDashboardParas', `👉👉👉 ${JSP(outputPara)}`)
+        // }
         acc.push(outputPara)
       } else {
         logWarn('makeDashboardParas', `No note found for para {${p.content}} - probably an API teamspace bug?`)

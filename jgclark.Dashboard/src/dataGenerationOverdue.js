@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate data for OVERDUE Section
-// Last updated 2026-08-12 for v2.4.0.b63, @jgclark + @CursorAI
+// Last updated 2026-10-12 for v2.6.0.b1, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -11,6 +11,7 @@ import { assignReminderItemsToSection } from './reminderBuckets'
 import { openYesterdayParas, refYesterdayParas } from './demoData'
 import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
+import { todayIsBetweenStartAndDueDate } from '@helpers/dueStartDates'
 import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
 import { sortListBy } from '@helpers/sorting'
 import { removeDuplicates } from '@helpers/utils'
@@ -30,6 +31,7 @@ import { removeDuplicates } from '@helpers/utils'
  * @param {Array<TSectionItem>} overdueReminderItems? - past-dated (and yesterday-fallback) reminders to append
  * @param {Array<TParagraphForDashboard>} yesterdaySpillDashboardParas? - DY-off spill of yesterday open tasks
  * @param {$ReadOnlyArray<{ content: string, ... }>} yesterdaysParasForDedupe? - DY-on list used to strip DY duplicates from overdue (only `content` is read)
+ * @param {?$ReadOnlyArray<TParagraph>} prefetchedOverdueParas? - raw `listOverdueTasks()` result from Today in this refresh; null means fetch here
  */
 export async function getOverdueSectionData(
   config: TDashboardSettings,
@@ -37,6 +39,7 @@ export async function getOverdueSectionData(
   overdueReminderItems: Array<TSectionItem> = [],
   yesterdaySpillDashboardParas: Array<TParagraphForDashboard> = [],
   yesterdaysParasForDedupe: $ReadOnlyArray<{ content: string, ... }> = [],
+  prefetchedOverdueParas: ?$ReadOnlyArray<TParagraph> = null,
 ): Promise<?TSection> {
   try {
     const thisSectionCode = 'OVERDUE'
@@ -100,7 +103,7 @@ export async function getOverdueSectionData(
     } else {
       // Get overdue tasks (de-duping any sync'd lines)
       // Note: Cannot move the reduce into here otherwise separate call to this function by scheduleAllOverdueOpenToToday() doesn't have all it needs to work
-      const { filteredOverdueParas, preLimitOverdueCount } = await getRelevantOverdueTasks(config, yesterdaysParasForDedupe)
+      const { filteredOverdueParas, preLimitOverdueCount } = await getRelevantOverdueTasks(config, yesterdaysParasForDedupe, prefetchedOverdueParas)
       overdueParas = filteredOverdueParas
       preLimitCount = preLimitOverdueCount
       logDebug('getOverdueSectionData', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
@@ -245,6 +248,49 @@ export async function getOverdueSectionData(
 }
 
 /**
+ * Teamspace, folder, ignore-term, and calendar-section filters, then content dedupe.
+ * Shared by Overdue and by Today's start-to-!>due window. Does not apply look-back.
+ * @param {$ReadOnlyArray<TParagraph>} overdueParas - raw `listOverdueTasks()` rows (API does not return open checklist items)
+ * @param {TDashboardSettings} dashboardSettings
+ * @param {Date} startTime
+ * @param {string} functionName - caller name used on the filter log lines
+ * @returns {Array<TParagraph>}
+ */
+export function filterOverdueApiParas(
+  overdueParas: $ReadOnlyArray<TParagraph>,
+  dashboardSettings: TDashboardSettings,
+  startTime: Date,
+  functionName: string,
+): Array<TParagraph> {
+  // Filter out items from non-allowed teamspaces
+  let filteredOverdueParas = filterParasByAllowedTeamspaces(overdueParas, dashboardSettings, startTime, functionName)
+  logTimer(functionName, startTime, `- after filtering by allowed teamspaces, ${filteredOverdueParas.length} overdue items`)
+
+  // Filter out items in non-valid folders
+  filteredOverdueParas = filterParasByRelevantFolders(filteredOverdueParas, dashboardSettings, startTime, functionName)
+  logTimer(functionName, startTime, `- after filtering by valid folders, ${filteredOverdueParas.length} overdue items`)
+
+  // Filter out anything from 'ignoreItemsWithTerms' setting
+  filteredOverdueParas = filterParasByIgnoreTerms(filteredOverdueParas, dashboardSettings, startTime, functionName)
+
+  // Filter out anything not matching 'includedCalendarSections' setting, if set
+  filteredOverdueParas = filterParasByIncludedCalendarSections(filteredOverdueParas, dashboardSettings, startTime, functionName)
+
+  // Also if wanted, apply to calendar headings in this note
+  filteredOverdueParas = filterParasByExcludedCalendarSections(filteredOverdueParas, dashboardSettings, startTime, functionName)
+  logTimer(functionName, startTime, `After filtering, ${filteredOverdueParas.length} overdue items`)
+
+  // Remove items that appear in this section twice (which can happen if a task is sync'd), based just on their content
+  // Note: this is a quick operation
+  // Casts: removeDuplicates() in helpers/utils.js is typed Array<{ [string]: any }> instead of generic
+  // <T>, and NotePlan's Paragraph is a class, so neither the argument nor the result can be related to
+  // Array<TParagraph>. Making removeDuplicates generic is the real fix; it lives outside this plugin.
+  filteredOverdueParas = (removeDuplicates((filteredOverdueParas: any), ['content']): any)
+  logTimer(functionName, startTime, `- after deduping, ${filteredOverdueParas.length} overdue items`)
+  return filteredOverdueParas
+}
+
+/**
  * Get all overdue tasks, filtered and sorted according to various settings:
  * - includedFolders
  * - excludedFolders
@@ -256,44 +302,34 @@ export async function getOverdueSectionData(
  * Note: scheduleAllOverdueOpenToToday intentionally passes [] so yesterday-dated overdue tasks are still moved.
  * @param {TDashboardSettings} dashboardSettings
  * @param {$ReadOnlyArray<{ content: string, ... }>} yesterdaysParas - items already shown in DY (content match); empty skips this filter. Read-only + inexact so callers can pass their own wider para arrays (arrays are invariant).
+ * @param {?$ReadOnlyArray<TParagraph>} prefetchedOverdueParas? - raw `listOverdueTasks()` result already loaded for Today; null means fetch here
  * @returns {{ filteredOverdueParas: Array<TParagraph>, preLimitOverdueCount: number }}
  */
 export async function getRelevantOverdueTasks(
   dashboardSettings: TDashboardSettings,
-  yesterdaysParas: $ReadOnlyArray<{ content: string, ... }>
+  yesterdaysParas: $ReadOnlyArray<{ content: string, ... }>,
+  prefetchedOverdueParas: ?$ReadOnlyArray<TParagraph> = null,
 ): Promise<{
   filteredOverdueParas: Array<TParagraph>, preLimitOverdueCount: number
 }> {
   try {
     const thisStartTime = new Date()
-    const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: API does not return open checklist items
-    logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
+    // note: API does not return open checklist items
+    const overdueParas: $ReadOnlyArray<TParagraph> = prefetchedOverdueParas != null ? prefetchedOverdueParas : await DataStore.listOverdueTasks()
+    if (prefetchedOverdueParas != null) {
+      logDebug('getRelevantOverdueTasks', `Reusing ${String(overdueParas.length)} overdue item(s) already loaded for Today`)
+    } else {
+      logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
+    }
 
-    // Filter out items from non-allowed teamspaces
-    let filteredOverdueParas = filterParasByAllowedTeamspaces(overdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after filtering by allowed teamspaces, ${filteredOverdueParas.length} overdue items`)
+    let filteredOverdueParas = filterOverdueApiParas(overdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
 
-    // Filter out items in non-valid folders
-    filteredOverdueParas = filterParasByRelevantFolders(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after filtering by valid folders, ${filteredOverdueParas.length} overdue items`)
-
-    // Filter out anything from 'ignoreItemsWithTerms' setting
-    filteredOverdueParas = filterParasByIgnoreTerms(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
-
-    // Filter out anything not matching 'includedCalendarSections' setting, if set
-    filteredOverdueParas = filterParasByIncludedCalendarSections(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
-
-    // Also if wanted, apply to calendar headings in this note
-    filteredOverdueParas = filterParasByExcludedCalendarSections(filteredOverdueParas, dashboardSettings, thisStartTime, 'getRelevantOverdueTasks')
-    logTimer('getRelevantOverdueTasks', thisStartTime, `After filtering, ${filteredOverdueParas.length} overdue items`)
-
-    // Remove items that appear in this section twice (which can happen if a task is sync'd), based just on their content
-    // Note: this is a quick operation
-    // Casts: removeDuplicates() in helpers/utils.js is typed Array<{ [string]: any }> instead of generic
-    // <T>, and NotePlan's Paragraph is a class, so neither the argument nor the result can be related to
-    // Array<TParagraph>. Making removeDuplicates generic is the real fix; it lives outside this plugin.
-    filteredOverdueParas = (removeDuplicates((filteredOverdueParas: any), ['content']): any)
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping, ${filteredOverdueParas.length} overdue items`)
+    // A start date in the past puts the task in this API result, but a !> due date that is still today or ahead belongs in Today.
+    const beforeWindowDrop = filteredOverdueParas.length
+    filteredOverdueParas = filteredOverdueParas.filter((p) => !todayIsBetweenStartAndDueDate(p.content || ''))
+    if (beforeWindowDrop !== filteredOverdueParas.length) {
+      logDebug('getRelevantOverdueTasks', `- removed ${String(beforeWindowDrop - filteredOverdueParas.length)} task(s) still inside a start-to-!>due window`)
+    }
 
     const preLimitOverdueCount = filteredOverdueParas.length
     logDebug('getRelevantOverdueTasks', `- preLimitOverdueCount: ${preLimitOverdueCount}`)
