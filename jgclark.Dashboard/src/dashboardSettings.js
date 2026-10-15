@@ -229,7 +229,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'dashboardTheme',
     label: 'Theme to use for Dashboard',
     description:
-      'If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.',
+      'If this is set to a valid Theme name from among those you have installed, then it will be used instead of your current NotePlan Theme. Leave blank to use your current Theme.',
     type: 'input',
     default: '',
     compactDisplay: true,

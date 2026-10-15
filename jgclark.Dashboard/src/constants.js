@@ -63,8 +63,9 @@ export const SECTIONS_PRIORITY_BEFORE_TAG_WHEN_CALENDAR_FOCUS: Array<TSectionCod
 // - PROJREVIEW and PROJACT as they aren't about paragraphs, but notes
 export const DONT_DEDUPE_SECTION_CODES = ['INFO', 'PROJACT', 'PROJREVIEW', 'SEARCH', 'SAVEDSEARCH']
 
-// Enable interactive processing for these itemTypes:
-export const INTERACTIVE_PROCESSING_POSSIBLE_SECTION_TYPES = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'REM', 'PROJACT', 'PROJREVIEW']
+// Enable interactive processing for these section codes.
+// TB is Time Blocks / Timed Items / Timed Reminders (timed reminders live here).
+export const INTERACTIVE_PROCESSING_POSSIBLE_SECTION_TYPES = ['DT', 'DY', 'DO', 'LW', 'W', 'M', 'Q', 'Y', 'TAG', 'OVERDUE', 'PRIORITY', 'REM', 'TB', 'PROJACT', 'PROJREVIEW']
 
 // When the user toggles visibility of a calendar period section only, refresh these sections (if enabled).
 // This ensures Wins / Priority / Overdue deduping stays correct.

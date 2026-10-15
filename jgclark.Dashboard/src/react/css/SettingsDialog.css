@@ -1,5 +1,5 @@
 /* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
-/* Last updated 2026-10-03 for v2.5.0 by @jgclark + @CursorAI */
+/* Last updated 2026-10-15 for v2.5.2 by @jgclark + @CursorAI */
 
 /* Style for the settings dialog */
 .settings-dialog {
@@ -23,6 +23,8 @@
     transition: opacity 0.2s ease-out;
     overflow: hidden;
     border-radius: 8px;
+    /* Lets text fields use cqw so a long theme name can use up to 18rem without growing past the dialog. */
+    container-type: inline-size;
     /* z-index: 1000; */
 
     /* Style for Section headings */
@@ -185,6 +187,9 @@
         margin: 0.2rem 0rem;
         /* fill rest of width in compact or normal mode */
         width: stretch; /* fill line but take into account scrollbar */
+        /* Unlayered, same reason as number fields: a layered color loses to color-scheme, which paints black text on a dark theme. */
+        color: var(--fg-sidebar-color);
+        color-scheme: var(--np-color-scheme, light);
     }
 
     input {
@@ -415,12 +420,20 @@
 .settings-dialog .ui-item.settings-control-end .input-box-wrapper {
     grid-area: auto;
     justify-self: end;
+    min-width: 0;
+    max-width: 100%;
 }
 
+/* Start-aligned so a long theme name shows its beginning. Right-align kept only the end of the name in view.
+   46cqw is the dialog width, so the box stays inside a narrow window and still grows to 18rem when there is room. */
 .settings-dialog .ui-item.settings-control-end .input-box-wrapper > input[type="text"] {
-    width: min(18rem, 42vw);
+    width: min(18rem, 46cqw);
+    max-width: 100%;
+    box-sizing: border-box;
     margin: 0;
-    text-align: right;
+    text-align: start;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .settings-dialog .ui-item.settings-control-end .input-box-wrapper > input[type="number"] {
