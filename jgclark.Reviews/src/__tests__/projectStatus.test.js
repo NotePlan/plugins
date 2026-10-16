@@ -3,12 +3,19 @@
 
 import {
   countClosedTasksAndChecklists,
+  getAllStatusHashtags,
+  getDefaultHiddenStatusTags,
   getMetadataTermRenames,
+  getProjectStatusHashtagForFilter,
   getStatusHashtagForState,
   initialStatusHashtagForNoteParas,
   normalizeMentionTerm,
+  noteHasExactFrontmatterKey,
+  planPausedHashtagMigrationFromCombined,
+  resolveStatusHashtagForFinishReviewWhenMissing,
   replaceBodyMentionTerm,
   replaceOrStripHashtagInCombinedValue,
+  resolveDisplayStatusHashtag,
   resolveStatusHashtagToWrite,
   statusValueMatchesHashtag,
 } from '../projectStatus'
@@ -88,6 +95,40 @@ describe('resolveStatusHashtagToWrite', () => {
   })
 })
 
+describe('getAllStatusHashtags / getDefaultHiddenStatusTags', () => {
+  test('returns five status hashtags and default hidden finished pair', () => {
+    expect(getAllStatusHashtags()).toEqual(['#notstarted', '#started', '#paused', '#completed', '#cancelled'])
+    expect(getDefaultHiddenStatusTags()).toEqual(['#completed', '#cancelled'])
+  })
+})
+
+describe('resolveDisplayStatusHashtag', () => {
+  test('returns empty when status feature off', () => {
+    preferenceValues['useProjectStatus'] = false
+    expect(resolveDisplayStatusHashtag('#started', { isCompleted: false, isCancelled: false, isPaused: false })).toBe('')
+  })
+
+  test('uses matching frontmatter hashtag when feature on', () => {
+    expect(resolveDisplayStatusHashtag('#started', { isCompleted: false, isCancelled: false, isPaused: false })).toBe('#started')
+    expect(resolveDisplayStatusHashtag('notstarted', { isCompleted: false, isCancelled: false, isPaused: false })).toBe('#notstarted')
+  })
+
+  test('infers from flags when frontmatter missing or unknown', () => {
+    expect(resolveDisplayStatusHashtag(null, { isCompleted: true, isCancelled: false, isPaused: false })).toBe('#completed')
+    expect(resolveDisplayStatusHashtag('#custom', { isCompleted: false, isCancelled: false, isPaused: true })).toBe('#paused')
+    expect(resolveDisplayStatusHashtag(null, { isCompleted: false, isCancelled: false, isPaused: false })).toBe('#notstarted')
+  })
+})
+
+describe('getProjectStatusHashtagForFilter', () => {
+  test('prefers stored statusHashtag; otherwise infers from flags', () => {
+    expect(getProjectStatusHashtagForFilter({ statusHashtag: '#started' })).toBe('#started')
+    expect(getProjectStatusHashtagForFilter({ isCompleted: true })).toBe('#completed')
+    expect(getProjectStatusHashtagForFilter({ isPaused: true })).toBe('#paused')
+    expect(getProjectStatusHashtagForFilter({})).toBe('#notstarted')
+  })
+})
+
 describe('initialStatusHashtagForNoteParas', () => {
   test('notstarted when no closed items; started when ≥1 closed', () => {
     expect(initialStatusHashtagForNoteParas([])).toBe('#notstarted')
@@ -109,6 +150,29 @@ describe('initialStatusHashtagForNoteParas', () => {
         { type: 'checklistDone', content: 'done checklist' },
       ]),
     ).toBe('#started')
+  })
+})
+
+describe('resolveStatusHashtagForFinishReviewWhenMissing', () => {
+  test('paused when project field has #paused, else started/notstarted from closed items', () => {
+    expect(
+      resolveStatusHashtagForFinishReviewWhenMissing([], '#project #paused @review(2w)'),
+    ).toBe('#paused')
+    expect(
+      resolveStatusHashtagForFinishReviewWhenMissing(
+        // $FlowFixMe[prop-missing]
+        [{ type: 'done', content: 'done' }],
+        '#project #paused',
+      ),
+    ).toBe('#paused')
+    expect(
+      resolveStatusHashtagForFinishReviewWhenMissing(
+        // $FlowFixMe[prop-missing]
+        [{ type: 'done', content: 'done' }],
+        '#project',
+      ),
+    ).toBe('#started')
+    expect(resolveStatusHashtagForFinishReviewWhenMissing([], '#project')).toBe('#notstarted')
   })
 })
 
@@ -150,9 +214,59 @@ describe('replaceBodyMentionTerm', () => {
   })
 })
 
+describe('noteHasExactFrontmatterKey', () => {
+  test('requires an exact frontmatter key line, not a hashtag or similar key name', () => {
+    const note: any = {
+      paragraphs: [
+        { content: '---' },
+        { content: 'title: Test' },
+        { content: 'project: #project #started' },
+        { content: 'started: 2020-01-01' },
+        { content: '---' },
+      ],
+    }
+    expect(noteHasExactFrontmatterKey(note, 'started')).toBe(true)
+    expect(noteHasExactFrontmatterKey(note, 'start')).toBe(false)
+    expect(noteHasExactFrontmatterKey(note, 'project')).toBe(true)
+  })
+})
+
 describe('replaceOrStripHashtagInCombinedValue', () => {
   test('renames or strips paused from combined tags', () => {
     expect(replaceOrStripHashtagInCombinedValue('#project #paused', 'paused', 'onhold', false)).toBe('#project #onhold')
     expect(replaceOrStripHashtagInCombinedValue('#project #paused', 'paused', 'onhold', true)).toBe('#project')
+  })
+
+  test('leaves combined value unchanged when target hashtag is absent (preserves @mentions)', () => {
+    const withMentions = '#area @reviewed(2023-09-25) @nextReview(2024-01-28) @review(3m)'
+    expect(replaceOrStripHashtagInCombinedValue(withMentions, 'paused', '__paused', true)).toBe(withMentions)
+    expect(replaceOrStripHashtagInCombinedValue(withMentions, 'paused', '__paused', false)).toBe(withMentions)
+  })
+
+  test('strips paused hashtag but keeps surrounding @mentions', () => {
+    expect(
+      replaceOrStripHashtagInCombinedValue('#project #paused @review(2m) @reviewed(2020-10-14)', 'paused', 'onhold', true),
+    ).toBe('#project @review(2m) @reviewed(2020-10-14)')
+  })
+})
+
+describe('planPausedHashtagMigrationFromCombined', () => {
+  test('moves paused hashtag off project field onto status hashtag (new term)', () => {
+    expect(
+      planPausedHashtagMigrationFromCombined(
+        '#project #paused @started(2022-09-03) @review(2w)',
+        'paused',
+        '_paused',
+      ),
+    ).toEqual({
+      nextCombined: '#project @started(2022-09-03) @review(2w)',
+      statusHashtag: '#_paused',
+    })
+  })
+
+  test('returns null when combined field has no paused hashtag', () => {
+    expect(
+      planPausedHashtagMigrationFromCombined('#project @started(2022-09-03)', 'paused', '_paused'),
+    ).toBeNull()
   })
 })

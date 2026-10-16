@@ -207,6 +207,7 @@ export const addToggleEvents: string = `
     if (input.type !== 'checkbox') continue;
     if (input.getAttribute('data-display-filter') === 'true') continue;
     if (input.getAttribute('data-tag-toggle')) continue; // tag toggles are client-side only
+    if (input.getAttribute('data-status-toggle')) continue; // status toggles are client-side only
     const thisSettingName = input.name;
     console.log("- adding event for checkbox '"+thisSettingName+"' currently set to state "+input.checked);
     input.addEventListener('change', function (event) {
@@ -242,10 +243,24 @@ export const displayFiltersDropdownScript: string = `
       return hidden;
     }
 
+    function getHiddenStatusTagsFromDom() {
+      var toggles = dropdown.querySelectorAll('input[data-status-toggle]');
+      var hidden = [];
+      for (var i = 0; i < toggles.length; i++) {
+        if (!toggles[i].checked) {
+          var tag = toggles[i].getAttribute('data-status-toggle');
+          if (tag) hidden.push(tag);
+        }
+      }
+      return hidden;
+    }
+
     function hiddenTagsEqual(a, b) {
-      if (!a || !b || a.length !== b.length) return false;
-      for (var i = 0; i < a.length; i++) {
-        if (a[i] !== b[i]) return false;
+      var aa = a || [];
+      var bb = b || [];
+      if (aa.length !== bb.length) return false;
+      for (var i = 0; i < aa.length; i++) {
+        if (aa[i] !== bb[i]) return false;
       }
       return true;
     }
@@ -256,16 +271,17 @@ export const displayFiltersDropdownScript: string = `
       var paused = dropdown.querySelector('input[name="displayPaused"]');
       var nextActions = dropdown.querySelector('input[name="displayNextActions"]');
       var displayOrder = dropdown.querySelector('#displayOrderSelect');
-      return onlyDue && finished && paused && nextActions
-        ? {
-            displayOnlyDue: onlyDue.checked,
-            displayFinished: finished.checked,
-            displayPaused: paused.checked,
-            displayNextActions: nextActions.checked,
-            displayOrder: displayOrder ? displayOrder.value : 'review',
-            hiddenProjectTypeTags: getHiddenProjectTypeTagsFromDom(),
-          }
-        : null;
+      // finished/paused are omitted from the DOM when status hashtag toggles are shown
+      if (!onlyDue || !nextActions) return null;
+      return {
+        displayOnlyDue: onlyDue.checked,
+        displayFinished: finished ? finished.checked : false,
+        displayPaused: paused ? paused.checked : true,
+        displayNextActions: nextActions.checked,
+        displayOrder: displayOrder ? displayOrder.value : 'review',
+        hiddenProjectTypeTags: getHiddenProjectTypeTagsFromDom(),
+        hiddenStatusTags: getHiddenStatusTagsFromDom(),
+      };
     }
 
     function applyHiddenTagsToCheckboxes(hiddenTags) {
@@ -273,6 +289,15 @@ export const displayFiltersDropdownScript: string = `
       var hidden = hiddenTags || [];
       for (var i = 0; i < toggles.length; i++) {
         var tag = toggles[i].getAttribute('data-tag-toggle');
+        toggles[i].checked = hidden.indexOf(tag) === -1;
+      }
+    }
+
+    function applyHiddenStatusTagsToCheckboxes(hiddenTags) {
+      var toggles = dropdown.querySelectorAll('input[data-status-toggle]');
+      var hidden = hiddenTags || [];
+      for (var i = 0; i < toggles.length; i++) {
+        var tag = toggles[i].getAttribute('data-status-toggle');
         toggles[i].checked = hidden.indexOf(tag) === -1;
       }
     }
@@ -291,7 +316,8 @@ export const displayFiltersDropdownScript: string = `
             state.displayPaused !== savedState.displayPaused ||
             state.displayNextActions !== savedState.displayNextActions ||
             state.displayOrder !== savedState.displayOrder ||
-            !hiddenTagsEqual(state.hiddenProjectTypeTags, savedState.hiddenProjectTypeTags);
+            !hiddenTagsEqual(state.hiddenProjectTypeTags, savedState.hiddenProjectTypeTags) ||
+            !hiddenTagsEqual(state.hiddenStatusTags, savedState.hiddenStatusTags);
           if (hasChanges) {
             var scrollPos = typeof window.__reviewsGetScrollPos === 'function' ? window.__reviewsGetScrollPos() : 0
             // console.log("Sending to backend: saveDisplayFilters scrollPos=" + String(scrollPos))
@@ -303,6 +329,7 @@ export const displayFiltersDropdownScript: string = `
               displayNextActions: state.displayNextActions,
               displayOrder: state.displayOrder,
               hiddenProjectTypeTags: state.hiddenProjectTypeTags,
+              hiddenStatusTags: state.hiddenStatusTags,
               scrollPos: scrollPos
             });
           }
@@ -312,10 +339,10 @@ export const displayFiltersDropdownScript: string = `
         var finished = dropdown.querySelector('input[name="displayFinished"]');
         var paused = dropdown.querySelector('input[name="displayPaused"]');
         var nextActions = dropdown.querySelector('input[name="displayNextActions"]');
-        if (onlyDue && finished && paused && nextActions) {
+        if (onlyDue && nextActions) {
           onlyDue.checked = savedState.displayOnlyDue;
-          finished.checked = savedState.displayFinished;
-          paused.checked = savedState.displayPaused;
+          if (finished) finished.checked = savedState.displayFinished;
+          if (paused) paused.checked = savedState.displayPaused;
           nextActions.checked = savedState.displayNextActions;
         }
         var orderSel = dropdown.querySelector('#displayOrderSelect');
@@ -323,12 +350,16 @@ export const displayFiltersDropdownScript: string = `
           orderSel.value = savedState.displayOrder;
         }
         applyHiddenTagsToCheckboxes(savedState.hiddenProjectTypeTags);
+        applyHiddenStatusTagsToCheckboxes(savedState.hiddenStatusTags);
         if (typeof window.__reviewsApplyTagToggleVisibility === 'function') {
           window.__reviewsApplyTagToggleVisibility();
         }
-        // Tag toggles save immediately on change; Escape must write the restored set back
+        // Tag/status toggles save immediately on change; Escape must write the restored set back
         sendMessageToPlugin('saveHiddenProjectTypeTags', {
           hiddenProjectTypeTags: savedState.hiddenProjectTypeTags || []
+        });
+        sendMessageToPlugin('saveHiddenStatusTags', {
+          hiddenStatusTags: savedState.hiddenStatusTags || []
         });
       }
     }
@@ -371,6 +402,7 @@ export const displayFiltersDropdownScript: string = `
             displayNextActions: state.displayNextActions,
             displayOrder: state.displayOrder,
             hiddenProjectTypeTags: state.hiddenProjectTypeTags,
+            hiddenStatusTags: state.hiddenStatusTags,
             scrollPos: scrollPos
           });
           savedState = state;
@@ -406,30 +438,63 @@ export const tagTogglesVisibilityScript: string = `
       }
       return hidden;
     }
-    function applyTagToggleVisibility() {
-      // Show a row iff it has at least one currently-ON project-type tag.
-      // (Previously only hid single-tag rows matching an OFF tag, so multi-tag
-      // notes like "#project #area" stayed visible when both toggles were off.)
-      var toggles = document.querySelectorAll('input[data-tag-toggle]');
-      var onTags = [];
+    function getHiddenStatusTagsFromDom() {
+      var toggles = document.querySelectorAll('input[data-status-toggle]');
+      var hidden = [];
       for (var i = 0; i < toggles.length; i++) {
-        if (toggles[i].checked) {
-          var onTag = toggles[i].getAttribute('data-tag-toggle');
-          if (onTag) onTags.push(onTag);
+        if (!toggles[i].checked) {
+          var tag = toggles[i].getAttribute('data-status-toggle');
+          if (tag) hidden.push(tag);
         }
       }
-      var rows = document.querySelectorAll('.projectRow[data-wanted-tags]');
-      for (var r = 0; r < rows.length; r++) {
-        var row = rows[r];
-        var raw = row.getAttribute('data-wanted-tags') || '';
-        var rowTags = raw ? raw.trim().split(/\\s+/) : [];
-        var show = false;
-        for (var t = 0; t < rowTags.length; t++) {
-          if (onTags.indexOf(rowTags[t]) !== -1) {
-            show = true;
-            break;
+      return hidden;
+    }
+    function rowPassesTagFilter(row, onTags) {
+      // No tag toggles in the menu: do not filter by project-type tag
+      if (onTags == null) return true;
+      // Rows without data-wanted-tags were left alone by the previous tag-only script
+      if (!row.hasAttribute('data-wanted-tags')) return true;
+      var raw = row.getAttribute('data-wanted-tags') || '';
+      var rowTags = raw ? raw.trim().split(/\\s+/) : [];
+      for (var t = 0; t < rowTags.length; t++) {
+        if (onTags.indexOf(rowTags[t]) !== -1) return true;
+      }
+      return false;
+    }
+    function rowPassesStatusFilter(row, onStatuses) {
+      // No status toggles in the menu: do not filter by status
+      if (onStatuses == null) return true;
+      var status = row.getAttribute('data-status') || '';
+      return status !== '' && onStatuses.indexOf(status) !== -1;
+    }
+    function applyTagToggleVisibility() {
+      // Show a row iff it passes both project-type tag and status filters (when present).
+      var tagToggles = document.querySelectorAll('input[data-tag-toggle]');
+      var onTags = null;
+      if (tagToggles.length > 0) {
+        onTags = [];
+        for (var i = 0; i < tagToggles.length; i++) {
+          if (tagToggles[i].checked) {
+            var onTag = tagToggles[i].getAttribute('data-tag-toggle');
+            if (onTag) onTags.push(onTag);
           }
         }
+      }
+      var statusToggles = document.querySelectorAll('input[data-status-toggle]');
+      var onStatuses = null;
+      if (statusToggles.length > 0) {
+        onStatuses = [];
+        for (var s = 0; s < statusToggles.length; s++) {
+          if (statusToggles[s].checked) {
+            var onStatus = statusToggles[s].getAttribute('data-status-toggle');
+            if (onStatus) onStatuses.push(onStatus);
+          }
+        }
+      }
+      var rows = document.querySelectorAll('.projectRow');
+      for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var show = rowPassesTagFilter(row, onTags) && rowPassesStatusFilter(row, onStatuses);
         row.style.display = show ? '' : 'none';
       }
       updateRichListVisibleProjectCount();
@@ -438,13 +503,22 @@ export const tagTogglesVisibilityScript: string = `
     window.__reviewsApplyTagToggleVisibility = applyTagToggleVisibility;
     document.addEventListener('DOMContentLoaded', function() {
       applyTagToggleVisibility();
-      var container = document.getElementById('tagToggles');
-      if (container) {
-        container.addEventListener('change', function() {
+      var tagContainer = document.getElementById('tagToggles');
+      if (tagContainer) {
+        tagContainer.addEventListener('change', function() {
           applyTagToggleVisibility();
           // Persist immediately (no re-render) so Refresh keeps the same hashtag filters
           sendMessageToPlugin('saveHiddenProjectTypeTags', {
             hiddenProjectTypeTags: getHiddenProjectTypeTagsFromDom()
+          });
+        });
+      }
+      var statusContainer = document.getElementById('statusToggles');
+      if (statusContainer) {
+        statusContainer.addEventListener('change', function() {
+          applyTagToggleVisibility();
+          sendMessageToPlugin('saveHiddenStatusTags', {
+            hiddenStatusTags: getHiddenStatusTagsFromDom()
           });
         });
       }

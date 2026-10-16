@@ -29,7 +29,7 @@ import {
   updateProjectInAllProjectsList,
 } from './allProjectsListHelpers.js'
 import { calcReviewFieldsForProject } from './projectClassCalculations.js'
-import { promoteNotstartedToStartedIfHasClosedItems } from './projectStatus'
+import { ensureOrPromoteStatusOnFinishReview } from './projectStatus'
 import {
   clearProjectReviewingInHTML,
   generateProjectListsAndRenderIfOpen,
@@ -185,11 +185,17 @@ async function finishReviewCoreLogic(
       if (wroteMetadata) {
         if (config.useProjectStatus === true) {
           const paras = focusedEditor.note != null ? focusedEditor.note.paragraphs : focusedEditor.paragraphs
-          promoteNotstartedToStartedIfHasClosedItems(focusedEditor, paras ?? [])
+          ensureOrPromoteStatusOnFinishReview(focusedEditor, paras ?? [])
         }
         await focusedEditor.save()
+        // So updateAllProjectsListAfterChange sees status: / reviewed: on the DataStore note.
+        if (focusedEditor.note != null) {
+          DataStore.updateCache(focusedEditor.note, true)
+        } else if (note.filename) {
+          const savedNote = DataStore.projectNoteByFilename(note.filename)
+          if (savedNote) DataStore.updateCache(savedNote, true)
+        }
       }
-      // Note: no longer seem to need to update cache
     } else {
       logDebug('finishReviewCoreLogic', `Updating note '${displayTitle(note)}' ...`)
       // If project metadata is in frontmatter, replace any body metadata line with migration message (or remove that message)
@@ -199,7 +205,7 @@ async function finishReviewCoreLogic(
       wroteMetadata = await applyFinishReviewMetadataUpdates(note, config, reviewedTodayString, 'note')
       if (wroteMetadata) {
         if (config.useProjectStatus === true) {
-          promoteNotstartedToStartedIfHasClosedItems(note, note.paragraphs ?? [])
+          ensureOrPromoteStatusOnFinishReview(note, note.paragraphs ?? [])
         }
         DataStore.updateCache(note, true)
       }

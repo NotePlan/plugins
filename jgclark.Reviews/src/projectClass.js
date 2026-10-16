@@ -42,6 +42,7 @@ import {
   detectIsPausedFromNote,
   getPausedHashtag,
   isProjectStatusFeatureEnabled,
+  resolveDisplayStatusHashtag,
   resolveStatusHashtagToWrite,
   STATUS_FRONTMATTER_KEY,
   statusValueMatchesHashtag,
@@ -145,6 +146,8 @@ export class Project {
   isCompleted: boolean = false
   isCancelled: boolean = false
   isPaused: boolean = false
+  /** Kanban status hashtag (e.g. '#started') when useProjectStatus is on; '' otherwise. */
+  statusHashtag: string = ''
   percentComplete: number = NaN
   lastProgressComment: string = '' // e.g. "Progress: 60@2022-08-09 comment
   mostRecentProgressLineIndex: number = NaN
@@ -607,6 +610,14 @@ export class Project {
         this.isPaused = true
         this.nextReviewDays = NaN
       }
+
+      // Cache configured status hashtag for Filter + Order (empty when feature off)
+      const existingStatusForDisplay = getFrontmatterAttribute(note, STATUS_FRONTMATTER_KEY)
+      this.statusHashtag = resolveDisplayStatusHashtag(existingStatusForDisplay, {
+        isCompleted: this.isCompleted,
+        isCancelled: this.isCancelled,
+        isPaused: this.isPaused,
+      })
 
       // calculate the durations from these dates
       this.calculateDueDays()

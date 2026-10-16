@@ -24,6 +24,7 @@ import {
   toggleDisplayNextActions,
   saveDisplayFilters,
   saveHiddenProjectTypeTags,
+  saveHiddenStatusTags,
 } from './reviews'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
@@ -126,6 +127,9 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
       case 'saveHiddenProjectTypeTags':
         await bridgeSaveHiddenProjectTypeTags(data)
         break
+      case 'saveHiddenStatusTags':
+        await bridgeSaveHiddenStatusTags(data)
+        break
       default:
         logError(pluginJson, `onMessageFromHTMLView(): unknown actionType '${actionType}' cannot be dispatched`)
         break
@@ -212,7 +216,7 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
 
 /**
  * Save display filters from the Display filters dropdown (all at once).
- * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean, displayOrder?: string, hiddenProjectTypeTags?: Array<string> }} data
+ * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean, displayOrder?: string, hiddenProjectTypeTags?: Array<string>, hiddenStatusTags?: Array<string> }} data
  */
 export async function bridgeSaveDisplayFilters(data: {
   displayOnlyDue: boolean,
@@ -221,6 +225,7 @@ export async function bridgeSaveDisplayFilters(data: {
   displayNextActions: boolean,
   displayOrder?: string,
   hiddenProjectTypeTags?: Array<string>,
+  hiddenStatusTags?: Array<string>,
   scrollPos?: number,
 }): Promise<void> {
   try {
@@ -233,6 +238,7 @@ export async function bridgeSaveDisplayFilters(data: {
       displayNextActions: data.displayNextActions,
       displayOrder: data.displayOrder,
       hiddenProjectTypeTags: Array.isArray(data.hiddenProjectTypeTags) ? data.hiddenProjectTypeTags : [],
+      hiddenStatusTags: Array.isArray(data.hiddenStatusTags) ? data.hiddenStatusTags : [],
     }
     // $FlowFixMe[incompatible-type]
     await saveDisplayFilters(filterData, scrollPos)
@@ -253,6 +259,21 @@ export async function bridgeSaveHiddenProjectTypeTags(data: {
     await saveHiddenProjectTypeTags(hidden)
   } catch (error) {
     logError('bridgeSaveHiddenProjectTypeTags', error.message)
+  }
+}
+
+/**
+ * Save only the status hashtag toggle state without re-rendering the list.
+ * @param {{ hiddenStatusTags?: Array<string> }} data
+ */
+export async function bridgeSaveHiddenStatusTags(data: {
+  hiddenStatusTags?: Array<string>,
+}): Promise<void> {
+  try {
+    const hidden = Array.isArray(data?.hiddenStatusTags) ? data.hiddenStatusTags : []
+    await saveHiddenStatusTags(hidden)
+  } catch (error) {
+    logError('bridgeSaveHiddenStatusTags', error.message)
   }
 }
 

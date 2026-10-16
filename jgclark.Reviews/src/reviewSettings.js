@@ -43,6 +43,8 @@ export type ReviewConfig = {
   displayProgress: boolean,
   /** Project-type hashtags currently toggled off in Filter + Order (Rich list only). */
   hiddenProjectTypeTags?: Array<string>,
+  /** Status hashtags currently toggled off in Filter + Order when useProjectStatus is on. */
+  hiddenStatusTags?: Array<string>,
   dueMentionStr: string,
   finishedListHeading: string,
   hideTopLevelFolder: boolean,
@@ -311,6 +313,14 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
     if (config.hiddenProjectTypeTags == null || !Array.isArray(config.hiddenProjectTypeTags)) {
       config.hiddenProjectTypeTags = []
     }
+    // First open with status filters: hide completed/cancelled (matches former displayFinished=false).
+    // Leave unset when status is off so enabling the feature later still gets this default.
+    // Inline terms here to avoid circular import with projectStatus.js.
+    if (config.useProjectStatus === true && (config.hiddenStatusTags == null || !Array.isArray(config.hiddenStatusTags))) {
+      const completedTerm = String(config.completedMentionStr || 'completed').replace(/^[@#]/, '').trim() || 'completed'
+      const cancelledTerm = String(config.cancelledMentionStr || 'cancelled').replace(/^[@#]/, '').trim() || 'cancelled'
+      config.hiddenStatusTags = [`#${completedTerm}`, `#${cancelledTerm}`]
+    }
     if (config.autoUpdateAfterIdleTime == null) {
       config.autoUpdateAfterIdleTime = 0
     }
@@ -389,6 +399,26 @@ export function getSettingsUpdateAction(previous: ?{ [string]: any }, current: ?
     return 'redisplay'
   }
   return 'none'
+}
+
+/**
+ * True when every list-affecting settings change is a metadata-term rename key
+ * (Customise the metadata terms / status term strings / project metadata key).
+ * Used to skip list rebuild when a vault-wide rename wrote 0 notes.
+ * @param {?{ [string]: any }} previous
+ * @param {?{ [string]: any }} current
+ * @param {$ReadOnlyArray<string>} metadataTermSettingKeys - e.g. METADATA_TERM_SETTINGS_FOR_RENAME
+ * @returns {boolean}
+ */
+export function settingsChangeIsOnlyMetadataTermRenames(
+  previous: ?{ [string]: any },
+  current: ?{ [string]: any },
+  metadataTermSettingKeys: $ReadOnlyArray<string>,
+): boolean {
+  if (previous == null || current == null) return false
+  const changed = getChangedSettingKeys(previous, current).filter((key) => !SETTINGS_FOR_OTHER_COMMANDS.includes(key))
+  if (changed.length === 0) return false
+  return changed.every((key) => metadataTermSettingKeys.includes(key))
 }
 
 /**

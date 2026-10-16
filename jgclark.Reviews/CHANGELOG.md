@@ -2,16 +2,12 @@
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 
 ## [2.4.0] - 2026-10-15
-- Fix: Completing/cancelling a project note that is outside the current Perspective folder/Space selection no longer triggers a useless full list rebuild (keeps WARNs, then skips).
-- Fix: Completing/archiving a project no longer triggers a list regenerate when the pre-move filename is already absent from `allProjectsList` (that path could return an empty list and blank the Rich list). If a regenerate still returns 0 while the on-disk list has rows, the disk snapshot is kept.
-- Fix: Perspective union partial refresh now rescans a folder when a changed perspective allows an extra Space id on a path another perspective already listed as private-only. If the `allProjectsList` is missing a whole union scope or Space forces a full rebuild.
-- Fix: Project list build/refresh progress dialog shows the Space display name (e.g. `[👥 Plugins] Dashboard v2.5`) instead of the raw `%%NotePlanCloud%%/<uuid>/…` path.
-- New optional **Maintain a status frontmatter hashtag?** setting for Kanban / Cards views. When on, the plugin writes `status: #notstarted` / `#started` / `#paused` / `#completed` / `#cancelled` (terms configurable) and updates them on pause, complete, cancel, finish review, and create/convert.
-- Change: when status is enabled, pause uses `status: #paused` instead of adding `#paused` to the combined `project:` tag field (legacy `#paused` on `project:` is still recognised and stripped on write).
-- Change: default **Project start string** is now `started` (new installs / missing setting only), so the start date key and started status hashtag align.
-- Change: create/convert sets `#started` when the note already has ≥1 completed task or checklist, otherwise `#notstarted`.
-- Change: finishing a review promotes `#notstarted` → `#started` when there is ≥1 completed task or checklist.
-- New: changing a metadata-term setting offers to update matching frontmatter keys, status hashtags, and `@mentions` across all project notes.
+- New optional **Maintain a status frontmatter hashtag?** for Kanban / Cards views: writes `status: #notstarted` / `#started` / `#paused` / `#completed` / `#cancelled` (terms configurable), updated on create/convert, pause, complete, cancel, and finish review. When on, pause uses `status:` instead of `#paused` on `project:`; 
+- New: When this 'status' feature is on, the "Filter + Order" menu shows toggles for those five statuses (completed/cancelled hidden by default).
+- New: renaming a metadata term offers a vault-wide update of matching keys, status hashtags, and `@mentions` (full `allProjectsList` / perspectives union when available).
+- Change: default **Project start string** is now `started` (new installs / missing setting only).
+- Fix: completing/cancelling outside the current Perspective, or when the note is already gone from `allProjectsList`, no longer blanks or needlessly rebuilds the Rich list; Space names show in the rebuild progress dialog; metadata-term rename is quieter and migrates legacy `#paused` from `project:` to `status:` when status is on.
+- dev: Rich list status toggles were empty for `#started` because `allProjectsList` rows lacked `statusHashtag` (so every active project was treated as `#notstarted`). List load backfills `statusHashtag` from notes; finish-review refreshes the note cache before updating the list row.
 
 ## [2.3.3] - 2026-10-17
 - Change: Increase the time between full rebuilds of the Project cache, up to 5 days. (There are quicker refreshes every day.)

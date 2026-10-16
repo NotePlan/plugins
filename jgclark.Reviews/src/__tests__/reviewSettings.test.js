@@ -1,9 +1,11 @@
 // @flow
 /* globals describe, expect, test */
 
+import { METADATA_TERM_SETTINGS_FOR_RENAME } from '../projectStatus'
 import {
   getChangedSettingKeys,
   getSettingsUpdateAction,
+  settingsChangeIsOnlyMetadataTermRenames,
 } from '../reviewSettings'
 
 /**
@@ -111,5 +113,28 @@ describe('getSettingsUpdateAction', () => {
   test('does nothing when settings are unchanged', () => {
     const { previous, current } = settingsPair({}, {})
     expect(getSettingsUpdateAction(previous, current)).toBe('none')
+  })
+})
+
+describe('settingsChangeIsOnlyMetadataTermRenames', () => {
+  test('true when only metadata-term keys change', () => {
+    const { previous, current } = settingsPair(
+      { pausedMentionStr: 'paused', startMentionStr: 'start' },
+      { pausedMentionStr: 'onhold', startMentionStr: 'begun' },
+    )
+    expect(settingsChangeIsOnlyMetadataTermRenames(previous, current, METADATA_TERM_SETTINGS_FOR_RENAME)).toBe(true)
+  })
+
+  test('false when a non-term rebuild key also changes', () => {
+    const { previous, current } = settingsPair(
+      { pausedMentionStr: 'paused' },
+      { pausedMentionStr: 'onhold', foldersToInclude: ['Work'] },
+    )
+    expect(settingsChangeIsOnlyMetadataTermRenames(previous, current, METADATA_TERM_SETTINGS_FOR_RENAME)).toBe(false)
+  })
+
+  test('false when only display settings change', () => {
+    const { previous, current } = settingsPair({}, { displayOrder: 'due' })
+    expect(settingsChangeIsOnlyMetadataTermRenames(previous, current, METADATA_TERM_SETTINGS_FOR_RENAME)).toBe(false)
   })
 })

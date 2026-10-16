@@ -8,6 +8,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { Project } from './projectClass'
+import { getAllStatusHashtags, getProjectStatusHashtagForFilter } from './projectStatus'
 import { addFAIcon, pluralise } from './reviewHelpers'
 import type { ReviewConfig } from './reviewSettings'
 import { checkBoolean, checkString } from '@helpers/checkType'
@@ -128,12 +129,16 @@ function buildProjectListRowDiv(thisProject: Project, config: ReviewConfig, want
   const wantedTagsAttr = (wantedTagsForRow != null && wantedTagsForRow.length > 0)
     ? ` data-wanted-tags="${wantedTagsForRow.join(' ').replace(/"/g, '&quot;')}"`
     : ''
+  const statusForRow = config.useProjectStatus === true ? getProjectStatusHashtagForFilter(thisProject) : ''
+  const statusAttr = statusForRow !== ''
+    ? ` data-status="${statusForRow.replace(/"/g, '&quot;')}"`
+    : ''
   // Set the left border colour to the project progress indicator colour
   // And if this is a paused project, reduce opacity 
   const extraStyle = `style="border-left: 5px solid ${getProjectIndicatorColor(thisProject)}; ${thisProject.isPaused ? 'opacity: 0.6;' : ''}"`
 
   // Start the row with the outer <div>, and inject the colour style for its left border
-  parts.push(`\t<div class="project-grid-row projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}"${wantedTagsAttr}${extraStyle}>\n\t\t`)
+  parts.push(`\t<div class="project-grid-row projectRow" data-encoded-filename="${encodeRFC3986URIComponent(thisProject.filename)}"${wantedTagsAttr}${statusAttr}${extraStyle}>\n\t\t`)
 
   // Edit button: pass encodedFolderDisplay so the dialog can show Teamspace names (frontend cannot import helpers)
   const encodedFilename = encodeRFC3986URIComponent(thisProject.filename)
@@ -692,6 +697,7 @@ export function buildProjectListTopBarHtml(config: any): string {
   const displayFinished = config.displayFinished ?? false
   const displayPaused = config.displayPaused ?? true
   const displayNextActions = config.displayNextActions ?? false
+  const useProjectStatus = config.useProjectStatus === true
   parts.push(`<span id="toggles" class="display-filters-wrapper">`)
   parts.push(`  <button type="button" class="PCButton" id="displayFiltersButton" aria-haspopup="true" aria-expanded="false" title="Open dropdown to change Filtering and Ordering of the list"><i class="fa-solid fa-filter pad-right"></i><span class="hideable-label">Filter +</span><i class="fa-regular fa-arrow-down-short-wide pad-left"></i><span class="hideable-label">Order…</span></button>`)
   parts.push(`  <div class="display-filters-dropdown" id="displayFiltersDropdown" role="menu" aria-label="Filter and order">`)
@@ -716,9 +722,30 @@ export function buildProjectListTopBarHtml(config: any): string {
     parts.push(`      </div>`)
     parts.push(`      <hr class="display-filters-divider">`)
   }
+  // Status hashtag toggles (when Kanban status feature is on): replace finished/paused switches
+  if (useProjectStatus) {
+    const statusTags = getAllStatusHashtags()
+    const statusActiveCounts = config.statusActiveCounts ?? []
+    const hiddenStatusTags: Array<string> = Array.isArray(config.hiddenStatusTags) ? config.hiddenStatusTags : []
+    parts.push(`      <div id="statusToggles" class="display-filters-tag-toggles">`)
+    for (let i = 0; i < statusTags.length; i++) {
+      const tag = statusTags[i]
+      const count = statusActiveCounts[i] != null ? statusActiveCounts[i] : 0
+      const safeId = `statusToggle-${tag.replace(/[^a-zA-Z0-9-_]/g, '_')}`
+      const isChecked = !hiddenStatusTags.includes(tag)
+      parts.push(`        <label class="display-filters-option display-filters-option--tag-row">`)
+      parts.push(`          <span class="display-filters-option-text">${tag}</span> <span class="display-filters-option-count">(${count})</span>`)
+      parts.push(`          <input type="checkbox" class="apple-switch" data-status-toggle="${tag.replace(/"/g, '&quot;')}" id="${safeId}"${isChecked ? ' checked' : ''}>`)
+      parts.push(`        </label>`)
+    }
+    parts.push(`      </div>`)
+    parts.push(`      <hr class="display-filters-divider">`)
+  }
   parts.push(`      <label class="display-filters-option">Show only projects ready for review?<input class="apple-switch pad-left" type="checkbox" ${displayOnlyDue ? 'checked' : ''} name="displayOnlyDue" data-display-filter="true"></label>`)
-  parts.push(`      <label class="display-filters-option">Show finished projects?<input class="apple-switch pad-left" type="checkbox" ${displayFinished ? 'checked' : ''} name="displayFinished" data-display-filter="true"></label>`)
-  parts.push(`      <label class="display-filters-option">Show paused projects?<input class="apple-switch pad-left" type="checkbox" ${displayPaused ? 'checked' : ''} name="displayPaused" data-display-filter="true"></label>`)
+  if (!useProjectStatus) {
+    parts.push(`      <label class="display-filters-option">Show finished projects?<input class="apple-switch pad-left" type="checkbox" ${displayFinished ? 'checked' : ''} name="displayFinished" data-display-filter="true"></label>`)
+    parts.push(`      <label class="display-filters-option">Show paused projects?<input class="apple-switch pad-left" type="checkbox" ${displayPaused ? 'checked' : ''} name="displayPaused" data-display-filter="true"></label>`)
+  }
   parts.push(`      <label class="display-filters-option">Show next actions?<input class="apple-switch pad-left" type="checkbox" ${displayNextActions ? 'checked' : ''} name="displayNextActions" data-display-filter="true"></label>`)
   parts.push(`      <hr class="display-filters-divider">`)
   parts.push(`      <div class="display-filters-order-row">`)
