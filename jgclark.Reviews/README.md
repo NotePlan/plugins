@@ -154,6 +154,7 @@ Other notes:
 - Each project row can show a **count badge** (grey square) with the number of open, non-future items; badges only appear for active projects when the count is greater than zero.
 - Long 'next action' lines are truncated when needed. If a project note has an icon set in its frontmatter, that icon is shown in the list.
 - This HTML window that picks up the NotePlan Theme you use (though see below on how to override this).
+- Review labels (overdue, review now, review soon) scale with that project's review interval. A project reviewed every few days only shows a label close to its review date. A longer interval is capped at review soon within 7 days, review now on the due day or the day before, and overdue once it is more than 5 days late. Due-date labels stay on fixed windows: overdue when more than 7 days late, due now from then until 6 days ahead, and due soon until 20 days ahead.
 
 The **Markdown style** list is quite different: it is stored as summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be). It creates one note per project tag (for example,  `#project` separate from `#area`).  Other notes:
 - the button 'Start reviews' / 'Start reviewing notes ready for review' is a shortcut to the '/start reviews' command (described below).
