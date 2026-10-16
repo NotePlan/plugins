@@ -1788,6 +1788,17 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
       }
       // Show the progress dialog. Skip Rich/Dashboard side effects (callers refresh UI themselves).
       projectInstances = await generateAllProjectsList(config, true, 0, true, true)
+      // If regenerate failed (returns []), keep the on-disk list so callers do not see a sudden empty Rich list.
+      if (projectInstances.length === 0) {
+        const fallback = loadRawAllProjectsListSnapshot()
+        if (fallback.length > 0) {
+          logWarn(
+            'getAllProjectsFromList',
+            `Regenerate returned 0 projects but on-disk list has ${String(fallback.length)}; using disk snapshot`,
+          )
+          projectInstances = fallback.map((project) => calcReviewFieldsForProject(project))
+        }
+      }
     } else {
       // Read from the list
       const fileAgeMs = getFileAgeMs(generatedDatePrefName)
@@ -2062,8 +2073,20 @@ export async function updateAllProjectsListAfterChange(
     // Find right project to update
     const reviewedProject = allProjects.find((project) => project.filename === filename)
     if (!reviewedProject) {
+      // simplyDelete after archive: list may already lack the pre-move path (or regenerate just failed).
+      // Do not kick off another generate -- that can return [] and empty the Rich list.
+      if (simplyDelete) {
+        logWarn(
+          'updateAllProjectsListAfterChange',
+          `Couldn't find '${filename}' to delete in allProjects list; nothing to remove`,
+        )
+        logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(skipped delete; '${filename}' not in list)`)
+        return
+      }
+
       logWarn('updateAllProjectsListAfterChange', `Couldn't find '${filename}' to update in allProjects list; trying incremental add if in scope`)
-      const noteForAdd = getNoteFromFilename(filename)
+      // After a move/archive the caller may still pass the old path; resolve under @Archive / by title.
+      const noteForAdd = resolveProjectNoteFromListFilename(filename)
       const projectTypeTags =
         config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
           ? [config.projectTypeTags]
@@ -2075,7 +2098,7 @@ export async function updateAllProjectsListAfterChange(
             ? projectTypeTags
             : getProjectTypeTagsFromNoteMetadata(noteForAdd)
 
-      if (noteForAdd && !simplyDelete) {
+      if (noteForAdd) {
         let added = false
         for (const tag of tagsToTry) {
           if (await addNewProjectToAllProjectsListIfInScope(noteForAdd, tag, config, scrollPosForRichList, options)) {

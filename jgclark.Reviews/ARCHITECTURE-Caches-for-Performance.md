@@ -16,7 +16,7 @@ None of these are NotePlan's own note cache (`DataStore.updateCache`). That call
 
 **Who writes it:** `writeAllProjectsList`, from a full generate, an incremental merge, a partial folder include, a settings recalculate, or a single-note update.
 
-**When it is reused:** `shouldRegenerateAllProjectsList` returns false when the file is a JSON array, younger than `maxAgeAllProjectsListInHours` (168 hours), and the scope stamp still matches. `getAllProjectsFromList` then maps each row through `calcReviewFieldsForProject` (review dates only) and does not construct `Project` objects.
+**When it is reused:** `shouldRegenerateAllProjectsList` returns false when the file is a JSON array, younger than `MAX_AGE_BEFORE_REFRESH_HOURS` (23 hours), and the scope stamp still matches. `getAllProjectsFromList` then maps each row through `calcReviewFieldsForProject` (review dates only) and does not construct `Project` objects. If a regenerate returns 0 projects while the on-disk file still has rows, the disk snapshot is kept (avoids blanking the Rich list after a failed generate).
 
 **Scope stamp** (preferences, shared `DataStore` keys):
 

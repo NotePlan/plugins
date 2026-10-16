@@ -79,6 +79,7 @@ beforeAll(() => {
   global.DataStore = {
     preference: (key: string): any => {
       if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
       if (key === 'Reviews-lastAllProjectsPerspective') return ''
       if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(makeConfig())
       return preferenceValues[key] ?? ''
@@ -109,6 +110,7 @@ beforeEach(() => {
   global.DataStore.projectNoteByFilename = jest.fn((filename: string) => notesByFilename[filename] ?? null)
   global.DataStore.preference = (key: string): any => {
     if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+    if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
     if (key === 'Reviews-lastAllProjectsPerspective') return ''
     if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(reviewSettingsHolder.config)
     return preferenceValues[key] ?? ''
@@ -193,6 +195,7 @@ describe('addNewProjectToAllProjectsListIfInScope', () => {
     reviewSettingsHolder.config = config
     global.DataStore.preference = (key: string): any => {
       if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
       if (key === 'Reviews-lastAllProjectsPerspective') return ''
       if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(config)
       return preferenceValues[key] ?? ''
@@ -225,6 +228,35 @@ describe('addNewProjectToAllProjectsListIfInScope', () => {
   })
 })
 
+describe('updateAllProjectsListAfterChange simplyDelete miss', () => {
+  test('does not regenerate when simplyDelete target is already absent from the list', async () => {
+    const config = makeConfig({ foldersToInclude: ['Home'], foldersToIgnore: [] })
+    reviewSettingsHolder.config = config
+    global.DataStore.folders = ['/', 'Home', 'Projects']
+    global.DataStore.preference = (key: string): any => {
+      if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsPerspective') return ''
+      if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(config)
+      return preferenceValues[key] ?? ''
+    }
+    global.DataStore.loadData.mockReturnValue(
+      JSON.stringify([
+        {
+          filename: 'Home/other.md',
+          title: 'Other',
+          allProjectTags: ['#project'],
+          reviewInterval: '1w',
+        },
+      ]),
+    )
+
+    await updateAllProjectsListAfterChange('Home Areas/Wills for J+M.md', true, config)
+
+    expect(global.DataStore.saveData).not.toHaveBeenCalled()
+  })
+})
+
 describe('updateAllProjectsListAfterChange out-of-scope miss', () => {
   test('does not regenerate when note is missing from list and outside folder selection', async () => {
     const config = makeConfig({ foldersToInclude: ['Home'], foldersToIgnore: [] })
@@ -232,6 +264,7 @@ describe('updateAllProjectsListAfterChange out-of-scope miss', () => {
     global.DataStore.folders = ['/', 'Home', 'Projects']
     global.DataStore.preference = (key: string): any => {
       if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
       if (key === 'Reviews-lastAllProjectsPerspective') return ''
       if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(config)
       return preferenceValues[key] ?? ''
@@ -273,6 +306,7 @@ describe('updateAllProjectsListAfterChange out-of-scope miss', () => {
     ]
     global.DataStore.preference = (key: string): any => {
       if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
       if (key === 'Reviews-lastAllProjectsPerspective') return ''
       if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(config)
       return preferenceValues[key] ?? ''
