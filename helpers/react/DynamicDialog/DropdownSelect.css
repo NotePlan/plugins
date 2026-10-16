@@ -28,7 +28,7 @@
 }
 
 /* Note: some of this gets overriden at run-time by DropdownSelect component */
-.dropdown-select-input {
+.dropdown-select-input-container > input[type="text"] {
 	flex: 1;
 	padding: 2px 20px 0px 8px; /* tried to make it look the same as HAButton */
 	width: 100%;
@@ -37,7 +37,7 @@
 	border-radius: 4px;
 }
 
-.dropdown-select-input:focus {
+.dropdown-select-input-container > input[type="text"]:focus {
 	border-color: var(--tint-color, #dc8a78);
 	border-width: 2px;
 	outline: none;
@@ -123,5 +123,106 @@
 .dropdown-select-input-container {
 	position: relative;
 	width: 100%;
+}
+
+/* Borderless macOS-style choice: value on the right, up/down chevron, menu aligned to that edge. */
+.dropdown-select-popup .dropdown-select-input-container > input[type="text"] {
+	flex: 0 1 auto;
+	width: auto;
+	max-width: 16rem;
+	border: none;
+	background: transparent;
+	text-align: right;
+	padding: 0;
+	cursor: pointer;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.dropdown-select-popup .dropdown-select-input-container > input[type="text"]:focus {
+	border: none;
+	outline: none;
+	box-shadow: none;
+}
+
+.dropdown-select-popup .dropdown-select-input-container {
+	width: auto;
+	/* Same gap as the number field's stepper (margin-inline-start on the spin button). */
+	gap: 0.5rem;
+}
+
+/* Two or three settings choices, shown in a row instead of a menu. */
+.dropdown-select-wrapper.dropdown-select-segmented {
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	gap: 0;
+	width: max-content;
+	max-width: 100%;
+	border: 1px solid rgba(from var(--fg-main-color) r g b / 0.25);
+	border-radius: 6px;
+	overflow: hidden;
+	background-color: var(--bg-main-color);
+}
+
+.dropdown-select-segmented button {
+	appearance: none;
+	border: none;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--fg-main-color);
+	font-family: system-ui;
+	font-size: medium;
+	font-weight: 400;
+	line-height: 1.2;
+	padding: 0.2rem 0.55rem;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.dropdown-select-segmented button + button {
+	border-left: 1px solid rgba(from var(--fg-main-color) r g b / 0.25);
+}
+
+.dropdown-select-segmented button.is-selected {
+	background-color: var(--tint-color);
+	color: var(--bg-main-color);
+	font-weight: 600;
+}
+
+.dropdown-select-segmented button:disabled {
+	cursor: default;
+	opacity: 0.6;
+}
+
+.dropdown-select-chevron {
+	position: relative;
+	width: 0.55rem;
+	height: 0.85rem;
+	flex-shrink: 0;
+	pointer-events: none;
+}
+
+.dropdown-select-chevron::before,
+.dropdown-select-chevron::after {
+	content: "";
+	position: absolute;
+	left: 0.08rem;
+	width: 0.32rem;
+	height: 0.32rem;
+	border-right: 1.5px solid var(--fg-alt-color);
+	border-bottom: 1.5px solid var(--fg-alt-color);
+}
+
+.dropdown-select-chevron::before {
+	top: 0;
+	transform: rotate(-135deg);
+}
+
+.dropdown-select-chevron::after {
+	bottom: 0;
+	transform: rotate(45deg);
 }
 

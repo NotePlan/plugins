@@ -131,7 +131,6 @@ const ComboBox = ({ label, options, value, onChange, inputRef, compactDisplay = 
       <div className="combobox-wrapper" onClick={toggleDropdown}>
         <input
           type="text"
-          className="combobox-input"
           value={selectedValue}
           readOnly
           ref={inputRef || comboboxInputRef} // Pass the inputRef to the input element

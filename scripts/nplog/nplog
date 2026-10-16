@@ -87,7 +87,7 @@ const PLUGINS_DIR = path.join(CONTAINER_DIR, 'Plugins')
 // there and missing here. The main log is a strict superset and the only ground truth.
 
 // Bump this and add a matching entry to CHANGELOG.md for any user-visible change.
-const VERSION = '1.4.0'
+const VERSION = '1.5.0'
 
 const MAX_LINES = 50000 // ring-buffer cap; ~50k lines keeps memory modest
 const CONTEXT_MODES = [0, 1, 5, 10] // 0 == matched lines only
@@ -1063,8 +1063,8 @@ function render() {
   // shows in the status bar above, so just describe the control.
   // "^G runs" became "^G rules" once ←/→ existed -- with run *navigation* on
   // the same bar, "runs" read as though ^G moved between them.
-  const full = ` TAB: context (match+N lines)   ←/→ prev/next run   ^T times   ^G rules   ^L clear display   ^B/^F page   ^P/^N line   ^A/^E top/end   ^C quit`
-  const compact = ` TAB: context   ←/→ run   ^T times   ^G rules   ^B/^F page   ^A/^E top/end   ^L clear  ^C quit`
+  const full = ` TAB: context (match+N lines)   ←/→ prev/next run   ^T times   ^G rules   ^S save   ^L clear display   ^B/^F page   ^P/^N line   ^A/^E top/end   ^C quit`
+  const compact = ` TAB: context   ←/→ run   ^T times   ^G rules   ^S save   ^B/^F page   ^A/^E top/end   ^L clear  ^C quit`
   const help = full.length <= cols ? full : compact
   buf += `${ESC}[${termRows};1H${ESC}[2K${ESC}[2m${pad(state.status || help, cols)}${ESC}[0m`
 
@@ -1356,6 +1356,54 @@ function jumpToBoundary(dir) {
   state.status = ` run ${marks.indexOf(target) + 1}/${marks.length}${label ? `   ${label}` : ''}`
 }
 
+// ^S writes what the current filter/context/rules/^T produce to a file, so a
+// slice worth keeping (or attaching to a bug report) survives quitting. It is
+// the same rows the screen shows, minus colour.
+function fileStamp(ms) {
+  const d = new Date(ms)
+  const p2 = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`
+}
+
+function saveView() {
+  const now = Date.now()
+  // Everything that scopes the slice comes first and the save time last, so
+  // saves of the same plugin/filter sort together in Finder.
+  const parts = ['nplog']
+  if (opts.pluginMode) parts.push(pluginSources.map((src) => src.id).join('+'))
+  // A regex is full of characters filesystems and shells dislike; keep a
+  // readable gist of it rather than the exact pattern (that's in the header).
+  const filterSlug = state.filter.replace(/[^A-Za-z0-9.+]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40)
+  if (filterSlug) parts.push(filterSlug)
+  parts.push(fileStamp(now))
+  const dir = process.env.NPLOG_SAVE_DIR || path.join(os.homedir(), 'Downloads')
+  const file = path.join(dir, `${parts.join('-')}.log`)
+  const ctx = CONTEXT_MODES[state.mode]
+  const view = buildView()
+  const entries = state.filter ? view.reduce((n, r) => n + (r.gap ? 0 : 1), 0) : lines.length
+  const body = [
+    `# nplog ${VERSION} export, ${localIso(now)}`,
+    `# source: ${opts.pluginMode ? pluginSources.map((src) => src.id).join(' + ') : currentFile || '(none)'}`,
+    `# filter: ${state.filter ? `/${state.filter}/i` : '(none)'}   context: ${ctx === 0 ? 'match only' : `match+${ctx} lines`}`,
+    `# entries: ${entries}/${lines.length}`,
+    '',
+  ]
+  for (const row of buildRows()) {
+    if (row.gap) body.push('┈'.repeat(40))
+    else if (row.sep) {
+      const label = row.label ? ` ${row.label} ` : ''
+      body.push('─'.repeat(label ? SEP_LABEL_INDENT : 0) + label + '─'.repeat(Math.max(4, 100 - SEP_LABEL_INDENT - label.length)))
+    } else body.push(state.showTime || row.cont ? row.text : stripTime(row.text))
+  }
+  try {
+    fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(file, `${body.join('\n')}\n`)
+    state.status = ` saved ${entries} entries -> ${file.replace(os.homedir(), '~')}`
+  } catch (err) {
+    state.status = ` save failed: ${err.message}`
+  }
+}
+
 function onKey(str) {
   const { rows: termRows } = termSize()
   const page = Math.max(1, termRows - 4)
@@ -1386,6 +1434,10 @@ function onKey(str) {
     closeEntry() // its index no longer refers to anything
     bufferVersion++
     state.follow = true
+    return render()
+  }
+  if (str === '\x13') {
+    saveView() // ^S -- save the filtered view to ~/Downloads
     return render()
   }
   if (str === '\t') {

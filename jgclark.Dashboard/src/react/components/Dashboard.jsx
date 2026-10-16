@@ -26,6 +26,8 @@ import Header from './Header'
 import IdleTimer from './IdleTimer.jsx'
 import Section from './Section/Section.jsx'
 import '../css/Dashboard.css'
+// JS import, not a CSS @import: rollup-plugin-postcss inlines this file. A CSS @import is left as a URL the webview cannot load.
+import '../../../../np.Shared/requiredFiles/apple-switch.css'
 import { getTestGroups } from './testing/tests'
 import PerspectivesTable from './PerspectivesTable.jsx'
 import DebugPanel from '@helpers/react/DebugPanel'

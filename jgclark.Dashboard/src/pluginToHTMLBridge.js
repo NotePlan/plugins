@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-09-08 for v2.5.0.b3 by @CursorAI & @jgclark
+// Last updated 2026-10-10 for v2.5.2 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -30,12 +30,13 @@ import {
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
-  doToggleType,
+  doChangeParagraphType,
   doUnscheduleItem,
   doWindowResized,
 } from './clickHandlers'
 import { ALL_CALENDAR_SECTION_CODES, ALL_SECTION_CODES, SEARCH_RELATED_SECTION_CODES, SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
 import { updateProjectsListIfProjectSection } from './projectsListSync'
+import { getReviewSettings } from '../../jgclark.Reviews/src/reviewSettings'
 import { scheduleReviewsListAfterPerspectiveSwitch, syncReviewsAfterDashboardFolderFilterChange } from './reviewsListSync'
 import {
   doAddNewPerspective,
@@ -63,6 +64,7 @@ import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickH
 import { scheduleAllOverdueOpenToToday, scheduleTodayToTomorrow, scheduleYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
 import {
+  applyUpdatedTaskParagraph,
   findSectionItems,
   getDashboardSettings,
   getDashboardSettingsForOpenWebView,
@@ -368,8 +370,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doRescheduleReminder(data)
         break
       }
-      case 'toggleType': {
-        result = await doToggleType(data)
+      case 'changeParagraphType': {
+        result = await doChangeParagraphType(data)
         break
       }
       case 'cyclePriorityStateUp': {
@@ -784,21 +786,28 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
         let sections = reactWindowData.pluginData.sections
         const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
-        const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
+        const clickedItemID = data.item?.ID ?? ''
+        let indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
           itemType: /open|checklist/,
           'para.filename': oldFilename,
           'para.content': oldContent,
         })
+        // Same task can be shown in more than one section; content+filename finds those copies.
+        // Fall back to the clicked row's ID when that match misses (content drifted since the click).
+        if (!indexes.length && clickedItemID) {
+          indexes = findSectionItems(sections, ['ID'], { ID: clickedItemID })
+          if (indexes.length) {
+            logDebug('processActionOnReturn', `-> content/filename match missed; updating by ID ${clickedItemID}`)
+          }
+        }
 
-        if (indexes.length) {
+        if (!updatedParagraph) {
+          logWarn('processActionOnReturn', `UPDATE_LINE_IN_JSON missing updatedParagraph for content="${oldContent}" filename="${oldFilename}"`)
+        } else if (indexes.length) {
           const itemsToUpdateStr = indexes.map((i) => `s[${i.sectionIndex}_${sections[i.sectionIndex].sectionCode}]:si[${i.itemIndex}]`).join(', ')
           logInfo('processActionOnReturn', `-> found ${indexes.length} items to update: ${itemsToUpdateStr}`)
-          indexes.reverse().forEach(() => {
-            // Note: simpler methods don't work here; need to use copyUpdatedSectionItemData()
-            const fieldPathsToUpdate = ['itemType', 'para.content', 'para.rawContent', 'para.type', 'para.priority']
-            sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { para: updatedParagraph }, sections)
-            // logDebug('processActionOnReturn', `after: ${JSP(sections[sectionIndex].sectionItems[itemIndex])}`)
-          })
+          // Note: simpler methods don't work here; need to use copyUpdatedSectionItemData() via applyUpdatedTaskParagraph()
+          sections = applyUpdatedTaskParagraph(sections, indexes, updatedParagraph)
           await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Updated items ${itemsToUpdateStr} following change in  ${data.item?.ID || '?'}`)
         } else {
           logWarn('processActionOnReturn', `-> no items found to update for content="${oldContent}" filename="${oldFilename}"`)
@@ -956,7 +965,11 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       }
 
       // Reviews Rich list: queue via x-callback (invokePluginCommandByName blocks the JSContext even without await).
-      scheduleReviewsListAfterPerspectiveSwitch(data?.perspectiveName || '')
+      // When the union flag is on and this switch did not change the destination scope's folders, render only.
+      const reviewsConfig = await getReviewSettings(true)
+      const useAllPerspectives = reviewsConfig?.FFlag_UseCacheOfAllPerspectives === true && reviewsConfig?.usePerspectives === true
+      const renderOnly = useAllPerspectives && handlerResultIn.perspectiveScopeFoldersChanged !== true
+      scheduleReviewsListAfterPerspectiveSwitch(data?.perspectiveName || handlerResultIn.perspectiveName || '', 'switch', renderOnly)
     }
 
     if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {

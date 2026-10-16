@@ -51,6 +51,22 @@ describe('jgclark.Dashboard/dashboardLineToNPDisplayHTML', () => {
       expect(html.length).toBeLessThan(long.length)
     })
 
+    test('keeps >today on a regular-note line so the date added by Move to Note stays visible', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('Buy milk >today', {
+        truncateLength: 0,
+        taskPriority: 0,
+        keepRelativeScheduledDates: true,
+      })
+      expect(html).toContain('class="scheduledDate"')
+      expect(html).toContain('today')
+    })
+
+    test('drops >today on a calendar-note line', () => {
+      const html = makeStringContentToLookLikeNPDisplayInReact('Buy milk >today', { truncateLength: 0, taskPriority: 0 })
+      expect(html).not.toContain('scheduledDate')
+      expect(html).not.toContain('>today')
+    })
+
     test('wraps scheduled >dates in scheduledDate lozenge with calendar icon', () => {
       // Note: this date must stay in the past. stripTodaysDateRefsFromString() runs before the lozenge is applied
       // and deletes any >date that happens to be *today*, so a date that can become today makes this test fail on

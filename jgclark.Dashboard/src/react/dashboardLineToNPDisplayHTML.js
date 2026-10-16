@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Shared: turn a raw task line string into HTML matching NotePlan-style display
 // (hashtags, mentions, links, etc.) for TaskItem (via ItemContent) and ProjectItem.
-// Last updated 2026-09-30 for v2.5.0.b8 by @jgclark/@Cursor
+// Last updated 2026-10-02 for v2.5.1 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 
 import type { TDashboardSettings, TLinkedNoteIconInfo, TSectionItem } from '../types.js'
@@ -45,6 +45,8 @@ export type TDashboardLineDisplayOptions = {
   noteTitle?: string,
   linkedNoteIcons?: { [string]: TLinkedNoteIconInfo },
   reminderDisplayById?: TReminderDisplayById,
+  /** When true, keep >today and >this-week on the line (regular notes). Calendar rows still drop those as redundant. */
+  keepRelativeScheduledDates?: boolean,
 }
 
 /**
@@ -141,6 +143,7 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
   const noteTitle = options?.noteTitle ?? ''
   const linkedNoteIcons = options?.linkedNoteIcons
   const reminderDisplayById = options?.reminderDisplayById
+  const keepRelativeScheduledDates = options?.keepRelativeScheduledDates === true
 
   try {
     if (content == null || content === '') {
@@ -201,8 +204,12 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
     output = convertStrikethroughToHTML(output)
     output = convertHighlightsToHTML(output)
     output = convertNPBlockIDToHTML(output)
-    output = stripTodaysDateRefsFromString(output)
-    output = stripThisWeeksDateRefsFromString(output)
+    // Calendar rows drop >today / >this-week (the section already is that period).
+    // Regular notes keep them: Move to Note appends that >date, and it has to stay visible.
+    if (!keepRelativeScheduledDates) {
+      output = stripTodaysDateRefsFromString(output)
+      output = stripThisWeeksDateRefsFromString(output)
+    }
     output = stripBackwardsDateRefsFromString(output)
     output = convertBoldAndItalicToHTML(output)
     output = convertUnderlinedToHTML(output)
@@ -263,6 +270,7 @@ export function makeParaContentToLookLikeNPDisplayInReact(
       noteTitle: para.title ?? '',
       linkedNoteIcons: para.linkedNoteIcons,
       reminderDisplayById,
+      keepRelativeScheduledDates: para.noteType === 'Notes',
     })
   } catch (error) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, error.message)

@@ -1,6 +1,10 @@
 # What's changed in 💭 Journalling Helpers Plugin?
 _Please also see the [Plugin Documentation](https://noteplan.co/plugins/jgclark.DailyJournal/)._
 
+## [1.16.1] - 2026-10-07 (unreleased)
+### Changed
+- dev: Remove settings migration code on update. Keeps backup of settings just in case.
+
 ## [1.16.0] - 2025-11-01
 ### Added
 - Can now have multiple review questions per line. To separate the questions on the same line, use `||`. See documentation for more details.

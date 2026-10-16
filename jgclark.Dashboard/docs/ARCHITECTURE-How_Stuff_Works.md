@@ -391,7 +391,7 @@ On older NotePlan builds, `NotePlan.openURL` only allows `http` / `https` / `mai
 
 - The interactive processing is initiated by clicking the button on a Section (not the task dialog).
 - It is triggered in `Section.jsx`, which sets `reactSettings.interactiveProcessing` to an object with the processable rows (`open` / `checklist` / `reminder` / `project`).
-- Eligible sections include calendar/tag/overdue/priority/reminders plus `PROJACT` and `PROJREVIEW` (project rows only; next-action children are not walked).
+- Eligible sections include calendar/tag/overdue/priority/reminders, `TB` (Time Blocks / Timed Items / Timed Reminders), plus `PROJACT` and `PROJREVIEW` (project rows only; next-action children are not walked). Title and list timeblock rows (`itemType` `timeblock`) are not walked.
 - `Dialog.jsx` routes by `details.item.itemType` (reminder) and `isTask` (task vs project) so a mixed IP session can switch dialogs mid-walk. Project starts set `isTask: false`.
 - Advancing / skipping is shared via `interactiveProcessingHelpers.js` (`buildReactSettingsAfterIPAdvance`, `buildReactSettingsForIPBackNavigate`).
 - Project dialog (`DialogForProjectItems`): Finish / Skip / calendar / Pause / Complete / Cancel / Add Progress advance; Start stays open. PROJACT allows true back-navigate; PROJREVIEW is forward-only. **Start Reviews** section button is unchanged.

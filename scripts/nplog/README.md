@@ -130,6 +130,7 @@ Everything is a control key, because compact Mac keyboards have no PgUp / PgDn /
 | `Tab` | cycle context: `match only` → `match+1 lines` → `+5` → `+10` → back |
 | `^T` | show / hide timestamps |
 | `^G` | show / hide the run + idle rules |
+| `^S` | **save** what's currently shown (filter + context + rules applied) to `~/Downloads/nplog[-pluginID][-filter]-YYYY-MM-DD_HHMMSS.log`. Timestamps are included only if `^T` is showing them. `NPLOG_SAVE_DIR` overrides the folder |
 | `^U` | clear the filter text |
 | `^L` | clear the display (drop buffer history, keep following, start fresh) |
 | `^B` / `^F` | page **b**ack / **f**orward |

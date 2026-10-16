@@ -185,34 +185,34 @@ function SearchPanel({ onClose }: SearchPanelProps): Node {
 
       <div className="panel-controls">
         <div className="controlItem">
-          <input className="apple-switch switch-input" type="checkbox" name="notetype" id="notes" value="notes" />
+          <input className="apple-switch" type="checkbox" name="notetype" id="notes" value="notes" />
           <label htmlFor="notes">Include Regular notes</label>
           {/* TODO: following will normally be hidden by CSS */}
           {/* <span id="noteTypeWarning" className="validationWarning">[Please select at least one!]</span> */}
         </div>
         <div className="controlItem">
-          <input className="apple-switch switch-input" type="checkbox" name="notetype" id="calendar" value="calendar" />
+          <input className="apple-switch" type="checkbox" name="notetype" id="calendar" value="calendar" />
           <label htmlFor="calendar">Include Calendar notes</label>
         </div>
 
         <div className="controlItem">
-          <input className="apple-switch switch-input" type="checkbox" name="notetype" id="calendar" value="calendar" />
+          <input className="apple-switch" type="checkbox" name="notetype" id="calendar" value="calendar" />
           <label htmlFor="calendar">Apply Perspective filtering?</label>
         </div>
 
         <div className="controlItem">
-          <input className="apple-switch switch-input" type="checkbox" name="notetype" id="calendar" value="calendar" />
+          <input className="apple-switch" type="checkbox" name="notetype" id="calendar" value="calendar" />
           <label htmlFor="calendar">Include future items?</label>
         </div>
 
         <div className="controlItem">
-          <input className="apple-switch switch-input" type="checkbox" id="casesens" name="casesens" value="casesens" />
+          <input className="apple-switch" type="checkbox" id="casesens" name="casesens" value="casesens" />
           <label htmlFor="casesens" className="switch">
             Case sensitive searching?
           </label>
         </div>
         <div className="controlItem">
-          <input className="apple-switch switch-input" type="checkbox" id="fullword" name="fullword" value="fullword" />
+          <input className="apple-switch" type="checkbox" id="fullword" name="fullword" value="fullword" />
           <label htmlFor="fullword" className="switch">
             Match full words only?
           </label>

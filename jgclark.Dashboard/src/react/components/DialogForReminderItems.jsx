@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React dialog for Apple Reminder items (Interactive Processing + actions).
 // Edit title/notes/time, reschedule, complete / convert to today / delete / open in Reminders.
-// Last updated 2026-08-26 for v2.4.3 by @CursorAI & @jgclark
+// Last updated 2026-10-02 for v2.5.1 by @CursorAI
 //--------------------------------------------------------------------------
 
 import React, { useRef, useLayoutEffect, useState, useCallback } from 'react'
@@ -426,7 +426,7 @@ actionButtons.push(
         <div className="buttonGrid reminderButtonGrid">
           <div className="preText reminderDialogRowLabel">Reminder:</div>
           <div id="reminderControlLine1" className="reminderDialogEditLine">
-            // $FlowFixMe[incompatible-type]
+            {/* $FlowFixMe[incompatible-type] */}
             <EditableInput
               ref={inputRef}
               initialValue={reminder.title || ''}
@@ -440,7 +440,7 @@ actionButtons.push(
 
           <div className="preText reminderDialogRowLabel">Notes:</div>
           <div id="reminderControlLineNotes" className="reminderDialogEditLine">
-            // $FlowFixMe[incompatible-type]
+            {/* $FlowFixMe[incompatible-type] */}
             <EditableInput
               ref={notesInputRef}
               initialValue={reminder.notes || ''}

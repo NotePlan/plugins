@@ -23,6 +23,8 @@
 import React, { useEffect, useRef, useState, useCallback, type ElementRef } from 'react'
 import { renderItem } from './dialogElementRenderer'
 import './DynamicDialog.css' // Import the CSS file
+// JS import, not a CSS @import: rollup-plugin-postcss inlines this file. A CSS @import is left as a URL the webview cannot load.
+import '../../../np.Shared/requiredFiles/apple-switch.css'
 import Modal from '@helpers/react/Modal'
 import { logWarn, timer, logDebug, logError } from '@helpers/react/reactDev.js'
 import { type NoteOption } from './NoteChooser.jsx'
@@ -108,6 +110,8 @@ export type TSettingItem = {
   options?: Array<string | { label: string, value: string, isDefault?: boolean }>,
   textType?: 'title' | 'description' | 'separator',
   description?: string,
+  iconClass?: string, // Font Awesome classes for a heading prefix, e.g. 'fa-regular fa-filter'
+  iconColor?: string, // Tailwind color class for the icon, e.g. 'text-blue-500'
   handleDescriptionItself?: boolean, // if true, then the description is handled by the item itself (e.g. for teamspace-multiselect)
   default?: any,
   compactDisplay?: boolean,

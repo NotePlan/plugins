@@ -45,6 +45,8 @@ export {
   getNextNoteToReview,
   getNextProjectsToReview,
   logAllProjectsList,
+  logPerspectiveScopeUnion,
+  rebuildAllProjectsListForUnion,
   recalculateAllProjectsListItems,
 } from './allProjectsListHelpers'
 export { migrateAllProjects } from './migration'

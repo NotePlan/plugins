@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2026-08-21 for v2.4.2 by @jgclark + @CursorAI
+// Last updated 2026-10-15 for v2.5.2 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -323,7 +323,6 @@ const SettingsDialog = ({
           <input
             ref={filterInputRef}
             type="search"
-            className="settings-dialog-filter-input"
             placeholder="Filter settings…"
             value={settingsFilterQuery}
             onChange={handleFilterChange}
@@ -341,10 +340,12 @@ const SettingsDialog = ({
             <div className="settings-dialog-filter-empty item-description">No settings match “{settingsFilterQuery.trim()}”.</div>
           ) : (
             filteredItems.map((item, index) => {
+              // Stable key: index keys reuse an input's local text when the filter shortens the list.
+              const rowKey = item.key || `${item.type || 'row'}-${index}`
               // Handle orderingPanel type specially
               if (item.type === 'orderingPanel') {
                 return (
-                  <details key={`sdc${index}`} data-settings-key={item.key} className="ui-item">
+                  <details key={rowKey} data-settings-key={item.key} className="ui-item">
                     <summary className="ordering-panel-summary">
                       <span className="switch-label">{item.label || 'Reorder Sections'}</span>
                       {item.description && <div className="item-description">{item.description}</div>}
@@ -365,7 +366,7 @@ const SettingsDialog = ({
               }
 
               return (
-                <div key={`sdc${index}`} data-settings-key={item.key}>
+                <div key={rowKey} data-settings-key={item.key}>
                   {renderItem({
                     index,
                     item: {
@@ -385,6 +386,7 @@ const SettingsDialog = ({
                     indent: !!item.dependsOnKey,
                     className: '', // for future use
                     showDescAsTooltips: false,
+                    controlEnd: true,
                   })}
                 </div>
               )

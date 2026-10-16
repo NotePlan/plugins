@@ -74,7 +74,7 @@ You can make many more changes by clicking on the **pencil** icon after each tas
 - `Move to note` opens the command bar asking which note + heading you want to move this item to
 - `↑ Priority` increases the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
 - `↓ Priority` decreases the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
-- `Change to ◯/◻︎` toggles an item between being a task and a checklist
+- `Change type` switches an item between task, completed task, list, checklist, completed checklist, and plain text
 - `<- Complete` completes an overdue task, but marks it `@done(...)` on the _original_ (earlier) due date, not today.
 - `Unsched` unschedules a task (i.e. removes any `>date`).
 - `+New Task` lets you add a completely new task in any note under any heading without having to leave the Dashboard, or even the Interactive Processing flow. (This is the same as running the '/quick add task under heading' command from the Quick Capture plugin.)

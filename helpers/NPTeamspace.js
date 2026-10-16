@@ -40,12 +40,16 @@ export function getAllTeamspaceIDsAndTitles(): Array<TTeamspace> {
 
 /**
  * Get the title of a teamspace from its ID.
- * @param {string} id - The ID of the teamspace.
+ * `private` is the non-teamspace space and returns "Private" (never with the emoji).
+ * @param {string} id - The ID of the teamspace, or `private`.
+ * @param {boolean} [includeEmoji=false] - When true, prefix a real teamspace title with 👥.
  * @returns {string} The title of the teamspace (or 'Unknown Teamspace' if not found).
  */
-export function getTeamspaceTitleFromID(id: string): string {
+export function getTeamspaceTitleFromID(id: string, includeEmoji: boolean = false): string {
+  if (id === 'private') return 'Private'
   const allTeamspaceTitles = getAllTeamspaceIDsAndTitles()
-  return allTeamspaceTitles.find((teamspace) => teamspace.id === id)?.title ?? 'Unknown Teamspace'
+  const title = allTeamspaceTitles.find((teamspace) => teamspace.id === id)?.title ?? 'Unknown Teamspace'
+  return includeEmoji ? `👥 ${title}` : title
 }
 
 export function getTeamspaceTitleFromNote(note: TNote): string {

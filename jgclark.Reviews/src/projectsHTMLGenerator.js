@@ -3,7 +3,7 @@
 // HTML Generation Functions for Reviews Plugin
 // Consolidated HTML generation logic from multiple files
 // by Jonathan Clark
-// Last updated 2026-09-11 for v2.1.2, @CursorAI & @jgclark
+// Last updated 2026-10-07 for v2.3.2, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -242,7 +242,7 @@ function buildReviewAndDueStatusSpans(thisProject: Project): Array<string> {
 
   // Make Review status lozenge (from mapReviewDaysToStatus)
   if (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays)) {
-    const reviewStatus = mapReviewDaysToStatus(thisProject.nextReviewDays)
+    const reviewStatus = mapReviewDaysToStatus(thisProject.nextReviewDays, thisProject.reviewInterval)
     if (reviewStatus.text !== '') {
       lozenges.push(
         `<span class="pad-left ${reviewStatus.colorClass}">${addFAIcon(reviewStatus.icon ?? '')} ${reviewStatus.text}</span>`,
@@ -518,16 +518,84 @@ function mapDueDaysToStatus(interval: number): IntervalStatus {
   return { text: '', colorClass: '', icon: '' }
 }
 
+/** Widest review-chip windows. A long interval lands on these caps. */
+const REVIEW_STATUS_SOON_CAP = 7
+const REVIEW_STATUS_NOW_CAP = 2
+const REVIEW_STATUS_LATE_CAP = 5
+
+/**
+ * Nominal calendar days for one review-interval unit.
+ * `b` counts as 1 so the window tracks the number of business days.
+ * @param {string} unit
+ * @returns {number}
+ */
+function nominalDaysForIntervalUnit(unit: string): number {
+  switch (unit) {
+    case 'b':
+    case 'd':
+      return 1
+    case 'w':
+      return 7
+    case 'm':
+      return 30
+    case 'q':
+      return 91
+    case 'y':
+      return 365
+    default:
+      return NaN
+  }
+}
+
+/**
+ * Review interval string (for example `2w` or `3d`) as a day count for chip windows.
+ * @param {string} reviewInterval
+ * @returns {number} day count, or NaN when the interval cannot be parsed
+ */
+export function reviewIntervalToDays(reviewInterval: string): number {
+  const match = /^([+\-]?\d+)([bdwmqy])$/i.exec(String(reviewInterval ?? '').trim())
+  if (!match) return NaN
+  const count = Math.abs(Number(match[1]))
+  const unitDays = nominalDaysForIntervalUnit(match[2].toLowerCase())
+  if (!Number.isFinite(count) || count === 0 || !Number.isFinite(unitDays)) return NaN
+  return count * unitDays
+}
+
+/**
+ * Chip windows for a review interval, as fractions of that interval, never wider than the fixed caps.
+ * soon starts at 1/4 of the interval (max 7 days), now at 1/45 (max 2, and at least the due day),
+ * and overdue starts after 1/12 late (max 5). An unparseable interval uses the caps.
+ * @param {string} reviewInterval
+ * @returns {{ soonLimit: number, nowLimit: number, lateLimit: number }}
+ */
+export function reviewStatusLimits(reviewInterval: string): { soonLimit: number, nowLimit: number, lateLimit: number } {
+  const intervalDays = reviewIntervalToDays(reviewInterval)
+  if (!Number.isFinite(intervalDays) || intervalDays <= 0) {
+    return { soonLimit: REVIEW_STATUS_SOON_CAP, nowLimit: REVIEW_STATUS_NOW_CAP, lateLimit: REVIEW_STATUS_LATE_CAP }
+  }
+  const soonLimit = Math.min(REVIEW_STATUS_SOON_CAP, Math.max(1, Math.round(intervalDays / 4)))
+  const nowLimit = Math.min(REVIEW_STATUS_NOW_CAP, Math.max(1, Math.round(intervalDays / 45)))
+  const lateLimit = Math.min(REVIEW_STATUS_LATE_CAP, Math.max(0, Math.round(intervalDays / 12)))
+  return {
+    soonLimit: Math.max(soonLimit, nowLimit),
+    nowLimit,
+    lateLimit,
+  }
+}
+
 /**
  * Map days-until-next-review to icon/text/css class for a status <span>.
- * @param {number} interval - days until next review (negative = overdue, positive = due in future)
+ * Windows scale with the review interval (see {@link reviewStatusLimits}).
+ * @param {number} daysUntilReview - days until next review (negative = overdue, positive = due in future)
+ * @param {string} reviewInterval - interval such as `1w` or `3m`
  * @returns {IntervalStatus}
  */
-function mapReviewDaysToStatus(interval: number): IntervalStatus {
-  // if (interval < -90) return { color: 'red', icon: 'fa-solid fa-user-clock', text: 'very overdue' }
-  if (interval < -7) return { colorClass: 'overdue', icon: 'fa-light fa-user-clock', text: 'overdue' }
-  if (interval < 2) return { colorClass: 'due', icon: 'fa-light fa-user-clock', text: 'review now' }
-  if (interval < 14) return { colorClass: 'soon', icon: 'fa-light fa-user-clock', text: 'review soon' }
+export function mapReviewDaysToStatus(daysUntilReview: number, reviewInterval: string): IntervalStatus {
+  // if (daysUntilReview < -90) return { color: 'red', icon: 'fa-solid fa-user-clock', text: 'very overdue' }
+  const limits = reviewStatusLimits(reviewInterval)
+  if (daysUntilReview < -limits.lateLimit) return { colorClass: 'overdue', icon: 'fa-light fa-user-clock', text: 'overdue' }
+  if (daysUntilReview < limits.nowLimit) return { colorClass: 'due', icon: 'fa-light fa-user-clock', text: 'review now' }
+  if (daysUntilReview < limits.soonLimit) return { colorClass: 'soon', icon: 'fa-light fa-user-clock', text: 'review soon' }
   return { text: '', colorClass: '', icon: '' }
 }
 

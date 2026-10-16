@@ -3,6 +3,7 @@
 
 import { CustomConsole } from '@jest/console'
 import {
+  applyUpdatedTaskParagraph,
   cloneDashboardSettingsBeforeSave,
   filterToOpenParagraphs,
   filterBySchedulingRules,
@@ -1254,6 +1255,52 @@ describe(`${PLUGIN_NAME}`, () => {
         copy.foo.x = 99
         expect(inner.x).toBe(1)
       })
+    })
+  })
+
+  describe('applyUpdatedTaskParagraph()', () => {
+    test('replaces calendar note identity and task text after a move to a regular note', () => {
+      const sections = [
+        {
+          sectionCode: 'DT',
+          sectionItems: [
+            {
+              ID: 'DT-0',
+              itemType: 'open',
+              para: {
+                filename: '20261002.md',
+                noteType: 'Calendar',
+                title: '2026-10-02',
+                content: 'Buy milk',
+                rawContent: '* Buy milk',
+                type: 'open',
+                priority: 0,
+                icon: 'calendar-star',
+              },
+            },
+          ],
+        },
+      ]
+      applyUpdatedTaskParagraph(sections, [{ sectionIndex: 0, itemIndex: 0 }], {
+        filename: 'Projects/Groceries.md',
+        noteType: 'Notes',
+        title: 'Groceries',
+        content: 'Buy milk >2026-10-02',
+        rawContent: '* Buy milk >2026-10-02',
+        type: 'open',
+        priority: 0,
+        dueDate: '2026-10-02',
+        prefix: '* ',
+        lineIndex: 4,
+        indents: 0,
+      })
+      const row = sections[0].sectionItems[0]
+      expect(row.updated).toBe(true)
+      expect(row.para.filename).toBe('Projects/Groceries.md')
+      expect(row.para.noteType).toBe('Notes')
+      expect(row.para.title).toBe('Groceries')
+      expect(row.para.content).toBe('Buy milk >2026-10-02')
+      expect(row.para.icon).toBe('')
     })
   })
 

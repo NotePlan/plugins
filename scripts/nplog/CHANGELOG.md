@@ -4,6 +4,18 @@ All notable changes to `nplog` are documented here. Versions follow
 [Semantic Versioning](https://semver.org/): MAJOR for breaking CLI/output changes, MINOR for
 new features, PATCH for fixes. Check the current version with `nplog --version`.
 
+## [1.5.0] - 2026-10-11
+
+- **`^S` saves the filtered view to a file** in `~/Downloads`, named for what's in it, with the
+  save time last so saves of the same slice sort together:
+  `nplog-jgclark.Dashboard-error-2026-10-11_151905.log`. The plugin ID(s) appear under
+  `--plugin` (several are joined with `+`); the filter is reduced to a filename-safe gist
+  (runs of other characters become `_`, capped at 40 chars) — the exact pattern is in the
+  file's header. It writes exactly the rows on screen (filter, context mode, run/idle rules and
+  the `^T` timestamp setting applied) as plain text, under a short `#` header recording source,
+  filter, context and entry count. `NPLOG_SAVE_DIR` overrides the folder. The footer confirms
+  the path.
+
 ## [1.4.0] - 2026-07-30
 
 - **`--plugin` can now be repeated** to tail several plugin logs at once, threaded together by

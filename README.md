@@ -17,14 +17,10 @@ If you want to develop plugins, Step 1 is to read the [NotePlan Knowledgebase Do
 
 The following items are required for NotePlan Plugin Development
 
-- Node 14 or 16 -- **Do Not Use any Node version <14 or >16** (see "Switching Node Versions")
+- Node -- we're currently running on v24. (You might find a Node version manager [like "n"](https://www.npmjs.com/package/n) helpful. This way you can flip in and out of Node versions at will.)
 - NotePlan 3.4 or greater
-- macOS Catalina 10.15.2 or greater (strongly recommend macOS Big Sur 11.x or Monterey 12.x)
+- macOS Catalina 10.15.2 or greater (and best to be on the latest version)
 - github CLI `gh` is strongly recommended - [how to install gh](https://cli.github.com/)
-
-## Switching Node Versions
-
-The NotePlan plugin code has not yet been migrated to Node versions >16. If you are developing elsewhere using Node v17+, you will want to switch to Node v16 when you are doing NotePlan Plugin development. The fast/easy way to do that is with a Node version manager [like "n"](https://www.npmjs.com/package/n). This way you can flip in and out of Node versions at will.
 
 ## Plugin Information
 
@@ -45,7 +41,7 @@ When you have cloned this repository, you will not only have the tooling, but yo
 
 **Step 2: Install Node (if not installed)**
 
-Make sure you have the proper version of `node` installed (if you need to install node, `brew install node@16` is the quickest method, or you can follow instructions on [node website](https://nodejs.org/en/download/)).
+Make sure you have the proper version of `node` installed (if you need to install node, `brew install node` is the quickest method, or you can follow instructions on [node website](https://nodejs.org/en/download/)).
 
 **Step 3: Initialize Local Development Environment**
 
@@ -219,7 +215,7 @@ The common script you will run `npc plugin:dev <plugin>` however, you may need t
 ### Viewing Plugin Logs
 
 Everything your plugin (or its WebView) logs goes into NotePlan's rolling log file. `nplog` is a
-terminal viewer for it — it follows the newest log file across NotePlan restarts, filters live by
+terminal viewer for it; it follows the newest log file across NotePlan restarts, filters live by
 regex as you type, and keeps pretty-printed objects together as a single entry instead of
 scattering them across lines.
 
@@ -244,6 +240,15 @@ symlinks under `.claude/skills/` and `.cursor/skills/`.
 
 See [scripts/nplog/README.md](scripts/nplog/README.md) for key bindings, headless
 options, and how to use the skill outside this repo.
+
+### Extra logging
+
+An extra level of logging from NP to the plugin console is available by running:
+`defaults write co.noteplan.NotePlan3 NotePlanAPIVerboseBridgeLogging --bool true`
+at a command line. ???
+
+It can be turned off with:
+`defaults delete co.noteplan.NotePlan3 NotePlanAPIVerboseBridgeLogging`
 
 ## Editor Setup
 
@@ -290,7 +295,9 @@ If you don't have an editor set up to lint as you code, you can run `npm run tes
 
 ### Using Flow
 
-By practice, NotePlan plugins use [flow](https://flow.org/) for static type checking. You can get more information by referencing [NotePlan Flow Guide](https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md)
+The NotePlan plugins in this official repository use [flow](https://flow.org/) for static type checking. You can get more information by referencing [NotePlan Flow Guide](https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md)
+
+Private plugins don't need to use flow, but it is recommended, if you want them to be visible in the list of plugins inside the NP app.
 
 ## NotePlan Plugin Support
 

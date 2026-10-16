@@ -74,6 +74,12 @@ dialog:modal {
   text-align: end; /* content */
 }
 
+/* Task dialog: centre For / Move to / Other actions against the controls in that row */
+.buttonGrid.taskButtonGrid > div.preText {
+  align-self: top;
+  padding-block-start: 2px;
+}
+
 /* Put very last div (Close button) on RHS -- no longer used */
 /* .buttonGrid div:nth-last-child(1) {
   justify-self: end;
@@ -109,6 +115,91 @@ dialog:modal {
 /* set FontAwesome icon colour to tint color */
 .dialogBody button i {
   color: var(--tint-color);
+}
+
+/* Closed label is "Change type". Menu items carry the flexiSearch line-type icons. */
+.changeTypeControl {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.dialogBody button.changeTypeSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.2rem;
+  color: var(--fg-sidebar-color);
+  background-color: var(--bg-alt-color);
+  box-shadow: 1px 1px 0px 0px rgba(from var(--fg-main-color) r g b / 0.2);
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.4);
+  border-radius: 4px;
+  /* Extra inline-end padding for the chevron; block padding matches .dialogBody button (1px 0). */
+  padding: 1px 1.15rem 0 4px;
+  margin: 0.1rem 0.3rem 0.2rem 0;
+  max-width: 100%;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 0.55rem) center, calc(100% - 0.35rem) center;
+  background-size: 0.28rem 0.28rem, 0.28rem 0.28rem;
+  background-repeat: no-repeat;
+}
+
+.changeTypeMenu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 100%;
+  margin: 0;
+  padding: 0.15rem 0;
+  background-color: var(--bg-main-color);
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.4);
+  border-radius: 4px;
+  box-shadow: 1px 1px 0px 0px rgba(from var(--fg-main-color) r g b / 0.2);
+}
+
+.dialogBody button.changeTypeMenuItem {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background-color: transparent;
+  text-align: start;
+  padding: 0.15rem 0.5rem;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.2rem;
+  color: var(--fg-sidebar-color);
+  white-space: nowrap;
+}
+
+.dialogBody button.changeTypeMenuItem:hover {
+  background-color: var(--bg-alt-color);
+  filter: none;
+}
+
+.changeTypeMenuIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  margin-inline-end: 0.35rem;
+  color: var(--tint-color);
+}
+
+.changeTypeMenuIcon kbd {
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  color: var(--tint-color);
+  background: none;
+  border: none;
+  padding: 0;
 }
 
 .itemActionsDialog {
@@ -333,7 +424,7 @@ dialog:modal {
 	color: var(--fg-alt-color);
 }
 
-.combobox-input {
+.combobox-wrapper > input[type="text"] {
 	flex: 1;
 	padding: 3px 6px 1px;
 	border-radius: 4px;
@@ -341,7 +432,7 @@ dialog:modal {
 	/* width: 100%; */
 }
 
-.combobox-input:focus {
+.combobox-wrapper > input[type="text"]:focus {
 	border-color: var(--hashtag-color);
 	outline: none;
 	box-shadow: 0 0 3px var(--hashtag-color);
@@ -418,7 +509,7 @@ dialog:modal {
 }
 
 .density-compact .itemControlDialog .dropdown-select-label,
-.density-compact .itemControlDialog .dropdown-select-input,
+.density-compact .itemControlDialog .dropdown-select-input-container > input[type="text"],
 .density-compact .itemControlDialog .dropdown-select-dropdiv,
 .density-compact .itemControlDialog .dropdown-select-option,
 .density-compact .itemControlDialog .dropdown-select-option .option-label,
@@ -428,7 +519,7 @@ dialog:modal {
 .density-compact .itemControlDialog .combobox-dropdown,
 .density-compact .itemControlDialog .combobox-option,
 .density-compact .projectControlDialog .dropdown-select-label,
-.density-compact .projectControlDialog .dropdown-select-input,
+.density-compact .projectControlDialog .dropdown-select-input-container > input[type="text"],
 .density-compact .projectControlDialog .dropdown-select-dropdiv,
 .density-compact .projectControlDialog .dropdown-select-option,
 .density-compact .projectControlDialog .dropdown-select-option .option-label,
@@ -438,7 +529,7 @@ dialog:modal {
 .density-compact .projectControlDialog .combobox-dropdown,
 .density-compact .projectControlDialog .combobox-option,
 .density-compact .add-to-any-note-dialog .dropdown-select-label,
-.density-compact .add-to-any-note-dialog .dropdown-select-input,
+.density-compact .add-to-any-note-dialog .dropdown-select-input-container > input[type="text"],
 .density-compact .add-to-any-note-dialog .dropdown-select-dropdiv,
 .density-compact .add-to-any-note-dialog .dropdown-select-option,
 .density-compact .add-to-any-note-dialog .dropdown-select-option .option-label,

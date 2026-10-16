@@ -1,11 +1,11 @@
-# 🖥️ Preview Plugin
+# Preview Plugin
 This plugin provides the **/preview note** and **/start live preview** commands that render a note to HTML including:
 - standard Markdown conversion (including referenced images)
 - [Mermaid diagrams](https://mermaid.js.org) (e.g. flowcharts, gantt charts, sequence diagrams ...)
 - [MathJax](https://www.mathjax.org/) fragments or lines (for mathematical equations and notation)
-- all open task and checklist types (according to user's Markdown settings) render as open tasks (using basic GFM rendering)
+- all open task and checklist types are rendered using as far as possible the same styles and colours as used in your theme, including priorities.
 - some non-standard Markdown conversion (e.g. strikethrough, footnotes, tasklists and tables)
-- it renders frontmatter slightly differently
+- it renders frontmatter differently, like NP does.
 
 It adds a 'Print (opens in system browser)' button to the preview window (on macOS). Clicking this opens the note in your default browser, where you can then select to print it. (There are limitations in the API that prevent me from making this a single button press, sorry.)
 

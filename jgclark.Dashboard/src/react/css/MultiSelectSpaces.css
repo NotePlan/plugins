@@ -1,5 +1,5 @@
 /* CSS specific to MultiSelectSpaces from jgclark.Dashboard plugin */
-/* Last updated 2025-12-05 for v2.4.0 by @jgclark */
+/* Last updated 2026-10-03 by @jgclark + @CursorAI */
 
 /* The panel containing the multi-select options -- forked from the ordering-panel-expanded class */
 .multi-select-panel {
@@ -8,6 +8,10 @@
   border-radius: 6px;
   margin: 0.2rem 0rem;
   padding: 0.5rem 1.0rem;
+
+  & + .multi-select-description {
+    margin-top: 0.35rem;
+  }
 
   .multi-select-options {
     display: flex;
@@ -21,6 +25,10 @@
       padding: 0.1rem 0;
       margin-right: 0.5rem;
       opacity: 1.0;
+      /* Same size as settings text fields (they use the control size, not the theme body size). */
+      font-family: system-ui;
+      font-size: 0.9rem;
+      font-weight: 500;
 
       &:disabled {
         cursor: not-allowed;

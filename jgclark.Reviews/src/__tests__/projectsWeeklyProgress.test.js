@@ -17,6 +17,9 @@ import {
   getFirstWeeklyProjectProgressParam,
   getTopLevelFolderPath,
   getWeeklyProjectProgressViewParam,
+  noteQualifiesForWeeklyProgress,
+  weeklyProgressFolderKey,
+  weeklyProgressLabelForFolder,
   normalizeWeeklyProjectProgressParam,
   parseWeekLabelParam,
   resolveShowEmptyFoldersFromParam,
@@ -199,6 +202,49 @@ describe('formatFolderTagSummaryLabel', () => {
   test('includes plural tag label when tag name not in folder name', () => {
     expect(formatFolderTagSummaryLabel('Health', '#area', 2)).toBe('**2 Health** areas')
     expect(formatFolderTagSummaryLabel('Health', '#area', 1)).toBe('**1 Health** area')
+  })
+})
+
+const SPACE_FOLDER_NOTE = '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard v2.5/430c57f0-95b5-4a74-9062-c10774a2af37'
+const SPACE_ROOT_NOTE = '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/430c57f0-95b5-4a74-9062-c10774a2af37'
+
+describe('noteQualifiesForWeeklyProgress', () => {
+  test('private area and project folders qualify', () => {
+    expect(noteQualifiesForWeeklyProgress('Ministry Projects/Foo.md')).toBe(true)
+    expect(noteQualifiesForWeeklyProgress('CCC Areas/Staff/Bar.md')).toBe(true)
+  })
+
+  test('private notes outside area or project folders do not qualify', () => {
+    expect(noteQualifiesForWeeklyProgress('Inbox/Foo.md')).toBe(false)
+  })
+
+  test('space notes qualify even when the folder name is not an area or project', () => {
+    expect(noteQualifiesForWeeklyProgress(SPACE_FOLDER_NOTE)).toBe(true)
+    expect(noteQualifiesForWeeklyProgress('Some Folder/Note.md', true)).toBe(true)
+  })
+})
+
+describe('weeklyProgressLabelForFolder', () => {
+  test('keeps a private folder path unchanged', () => {
+    expect(weeklyProgressLabelForFolder('Ministry Projects')).toBe('Ministry Projects')
+  })
+
+  test('labels a space folder with the space title', () => {
+    expect(weeklyProgressLabelForFolder('%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard v2.5', 'Plugins')).toBe('Plugins/Dashboard v2.5')
+  })
+})
+
+describe('weeklyProgressFolderKey', () => {
+  test('private notes keep their folder path', () => {
+    expect(weeklyProgressFolderKey('Ministry Projects/Note.md')).toBe('Ministry Projects')
+  })
+
+  test('space notes use the space title and folder', () => {
+    expect(weeklyProgressFolderKey(SPACE_FOLDER_NOTE, 'Plugins')).toBe('Plugins/Dashboard v2.5')
+  })
+
+  test('space root notes use the space title only', () => {
+    expect(weeklyProgressFolderKey(SPACE_ROOT_NOTE, 'Plugins')).toBe('Plugins')
   })
 })
 

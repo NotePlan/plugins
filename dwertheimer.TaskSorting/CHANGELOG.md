@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/README.md) for details on available commands and use case.
 
+## [1.3.2] - 2026-10-11 (@dwertheimer)
+
+### Fixed
+- **`Sort tasks under heading (choose)` no longer pops up dialogs when run from a template, x-callback or another plugin.** A daily-note template calling it for a heading that isn't in today's note (e.g. a "CCC" section on a day off) showed a "No tasks found under heading" warning every time. When the heading is passed as an argument, "No tasks found under heading" and "No note is open" are now written to the plugin log instead. Running the command from the menu still shows them. Thanks to @jgclark for reporting it.
+
 ## [1.3.1] - 2026-08-11 (@dwertheimer)
 
 ### Fixed

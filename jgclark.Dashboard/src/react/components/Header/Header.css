@@ -63,13 +63,13 @@
 
 /* Match perspective dropdown shadow to HAButton / Refresh etc. (Dashboard.css @layer A button shadow) */
 /* TODO: this isn't yet working as expected */
-.perspective-selector .dropdown-select-input {
+.perspective-selector .dropdown-select-input-container > input[type="text"] {
 	box-shadow: 1px 1px 0px 0px rgba(from var(--fg-main-color) r g b / 0.2);
 }
 
 /* Refresh / Hard Refresh / Perspective field: same height; text+icons 1px optically higher */
 .header .refreshButtons .HAButton,
-.header .perspective-selector .dropdown-select-input {
+.header .perspective-selector .dropdown-select-input-container > input[type="text"] {
 	box-sizing: border-box;
 	height: 1.4rem;
 	line-height: 1.15;
@@ -87,7 +87,7 @@
 	align-items: center;
 }
 
-.header .perspective-selector .dropdown-select-input {
+.header .perspective-selector .dropdown-select-input-container > input[type="text"] {
 	/* was 2px 20px 0px 8px - match button height; content 1px higher */
 	padding-top: 0;
 	padding-bottom: 1px;

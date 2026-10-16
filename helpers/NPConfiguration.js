@@ -738,10 +738,10 @@ export async function getSettingFromAnotherPlugin(pluginID: string, settingName:
  * @author @jgclark
  * @param {string} pluginID
  * @param {string} reason
- * @param {boolean?} suppressMessage - (optional; default is false) If true, suppress the showMessage call (default: false)
+ * @param {boolean?} suppressMessage - (optional; default is true) If true, skip the showMessage call. Pass false for a manual backup command so the user sees the confirmation.
  * @returns {boolean} true if successful, false if not
  */
-export async function backupSettings(pluginID: string, reason: string = 'backup', suppressMessage: boolean = false): Promise<boolean> {
+export async function backupSettings(pluginID: string, reason: string = 'backup', suppressMessage: boolean = true): Promise<boolean> {
   try {
     const pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     const backupFilename = `settings_${reason}_${moment().format('YYYYMMDDHHmmss')}.json`

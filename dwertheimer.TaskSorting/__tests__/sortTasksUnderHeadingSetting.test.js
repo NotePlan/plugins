@@ -95,3 +95,30 @@ describe('sortTasksUnderHeading() honours the "Combine Related Task Types?" sett
     expect(checklistIdx).toBeLessThan(openIdx)
   })
 })
+
+// A template like `invokePluginCommandByName("Sort tasks under heading (choose)", ..., ["CCC", [...]])`
+// in a daily-note template runs on days when the note has no "CCC" heading. That used to pop a
+// "No tasks found" dialog every time. Runs that pass a heading are scripted and must stay silent.
+describe('sortTasksUnderHeading() does not pop up dialogs when called with arguments', () => {
+  let promptSpy
+  beforeAll(() => {
+    promptSpy = jest.spyOn(CommandBar, 'prompt')
+  })
+  afterEach(() => promptSpy.mockClear())
+
+  test('a heading that is not in the note is silent when passed as an argument', async () => {
+    const note = makeNote()
+    global.Editor = note
+    global.Editor.note = note
+    const before = note.paragraphs.map((p) => p.content)
+    await f.sortTasksUnderHeading('CCC', ['-priority', 'content'], note)
+    expect(promptSpy).not.toHaveBeenCalled()
+    expect(note.paragraphs.map((p) => p.content)).toEqual(before)
+  })
+
+  test('no open note is silent when a heading was passed as an argument', async () => {
+    global.Editor = { note: null }
+    await f.sortTasksUnderHeading('CCC', ['content'])
+    expect(promptSpy).not.toHaveBeenCalled()
+  })
+})

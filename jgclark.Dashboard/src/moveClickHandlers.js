@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2026-07-23 for v2.4.0.b54 by @jgclark
+// Last updated 2026-10-02 for v2.5.1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import {
@@ -26,6 +26,7 @@ import {
   moveItemToRegularNote,
 } from '@helpers/NPMoveItems'
 import { findParaFromRawContentAndFilename, findParaFromStringAndFilename } from '@helpers/NPParagraph'
+import { convertRawContentToContent } from '@helpers/paragraph'
 import { scheduleItem, scheduleItemLiteMethod } from '@helpers/NPScheduleItems'
 
 //-----------------------------------------------------------------
@@ -157,8 +158,30 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
     }
     logDebug('doMoveToNote', `Success: moved to -> '${displayTitle(newNote)}'`)
 
+    // Re-read after the origin line is removed. The paragraph returned by the move can still
+    // describe the line before NotePlan has folded the appended >date into .content.
+    const lookupFilename = newNote.filename || newPara.filename || ''
+    const lookupRaw = newPara.rawContent || ''
+    let paraToShow: TParagraph = newPara
+    if (lookupFilename && lookupRaw) {
+      const refreshedPara = findParaFromRawContentAndFilename(lookupFilename, lookupRaw)
+      if (refreshedPara && typeof refreshedPara !== 'boolean') {
+        paraToShow = refreshedPara
+      }
+    }
+
     // Update the display for this line (as it will probably still be relevant in its section)
-    const newDashboardPara = makeDashboardParas([newPara])[0]
+    const newDashboardPara = makeDashboardParas([paraToShow])[0]
+    if (!newDashboardPara) {
+      throw new Error(`Couldn't build an updated Dashboard line after moving item ${item.ID} to '${displayTitle(newNote)}'.`)
+    }
+    const rawForDisplay = paraToShow.rawContent || newDashboardPara.rawContent || ''
+    const contentFromRaw = convertRawContentToContent(rawForDisplay)
+    if (contentFromRaw && contentFromRaw !== '<error>' && contentFromRaw.includes('>') && !newDashboardPara.content.includes('>')) {
+      logDebug('doMoveToNote', `- paragraph.content omitted scheduled date; using content from rawContent {${contentFromRaw}}`)
+      newDashboardPara.content = contentFromRaw
+      newDashboardPara.rawContent = rawForDisplay
+    }
     logDebug('doMoveToNote', `- newDashboardPara: ${JSP(newDashboardPara)}`)
     return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: newDashboardPara })
   } catch (error) {

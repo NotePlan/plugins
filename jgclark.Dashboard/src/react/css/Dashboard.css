@@ -201,7 +201,7 @@ dialog::backdrop {
 
 	/* Compact: tighter line-height for DropdownSelect menus (Perspective, Settings, etc.) */
 	.dropdown-select-label,
-	.dropdown-select-input,
+	.dropdown-select-input-container > input[type="text"],
 	.dropdown-select-dropdiv,
 	.dropdown-select-option,
 	.dropdown-select-option .option-label,
@@ -607,56 +607,6 @@ button,
 	/* Start from fully visible */
 	transition: opacity 500ms ease-out;
 	opacity: 0;
-}
-
-/* --------------------------------------------------------------- */
-
-/* For fancy toggle as checkbox */
-/* from [Pure CSS3 iOS switch checkbox by Pedro M. S. Duarte | codeburst](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb)
- */
- /* Note: This is forked from what is in helpers/.../DynamicDialog.css */
-input.apple-switch {
-	position: relative;
-	appearance: none;
-	vertical-align: baseline; /* top; */
-	outline: none;
-	width: 2.0rem;
-	height: 1.2rem;
-	border: 1px solid rgba(from var(--fg-main-color) r g b / 0.3);
-	border-radius: 1.9rem;
-	background-color: var(--bg-apple-switch-color);
-	/* box-shadow: 1px 1px 1px 0px var(--divider-color); */
-	margin-top: 0px;
-	margin-right: 4px;
-	transition: background-color 0.2s;
-}
-
-input.apple-switch:after {
-	content: "";
-	vertical-align: top;
-	position: absolute;
-	top: 1px;
-	left: 1px;
-	background-color: var(--fg-apple-switch-color);
-	width: 0.95rem;
-	height: 0.95rem;
-	border-radius: 50%;
-	box-shadow: 0px 0px 2px var(--divider-color);
-	margin-right: 1.0rem;
-	transition: left 0.2s ease, background-color 0.2s ease;
-}
-
-input.apple-switch:checked {
-	vertical-align: top;
-	background-color: hsl(from var(--tint-color) h s l); /* Note: in dark mode making this a little darker looks good, but not in light mode */
-	transition: background-color 0.3s ease;
-}
-
-input.apple-switch:checked:after {
-	vertical-align: top;
-	left: 0.85rem;
-	background-color: var(--fg-apple-switch-color);
-	box-shadow: 0px 0px 2px var(--divider-color);
 }
 
 /* Circular progress bar for Project items */

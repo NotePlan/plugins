@@ -310,6 +310,18 @@ const TAILWIND_COLORS = {
   'violet-800': '#581c87',
   'violet-900': '#4a148c',
   'violet-950': '#270847',
+  // Teal
+  'teal-50': '#f0fdfa',
+  'teal-100': '#ccfbf1',
+  'teal-200': '#99f6e4',
+  'teal-300': '#5eead4',
+  'teal-400': '#2dd4bf',
+  'teal-500': '#14b8a6',
+  'teal-600': '#0d9488',
+  'teal-700': '#0f766e',
+  'teal-800': '#115e59',
+  'teal-900': '#134e4a',
+  'teal-950': '#042f2e',
 }
 
 /** Ordered list of Tailwind color names (e.g. 'amber-100', 'red-500') for pickers. */

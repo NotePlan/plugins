@@ -501,6 +501,142 @@ describe('getNoteLinkDisplayText()', () => {
   })
 })
 
+describe('getNoteContentAsHTML() horizontal rules', () => {
+  const note = { filename: 'Notes/Example.md' }
+
+  test('renders --- after frontmatter as a horizontal rule, not a setext heading', async () => {
+    const content = ['---', 'title: My Note', 'tags: a', '---', 'My Note', '---', 'Hello'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).toContain('<h1 id="mynote">My Note</h1>')
+    expect(html).not.toContain('<h2')
+    expect(html).toContain('<hr />')
+    expect(html).toContain('class="frontmatter"')
+  })
+
+  test('leaves --- inside a fenced code block', async () => {
+    const content = ['---', 'title: My Note', 'tags: a', '---', '# My Note', '', '```', 'keep', '---', 'me', '```'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).not.toContain('<hr />')
+    expect(html).toContain('---')
+  })
+
+  test('renders frontmatter fields as a two-column table and keeps title as the H1', async () => {
+    const content = ['---', 'title: "My Note"', 'author: Jonathan', 'link: https://example.com/a', 'note: a < b & c', '---', '# My Note', 'Hello'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).toContain('<h1 id="mynote">My Note</h1>')
+    expect(html).toContain('<table class="frontmatter-fields"><tbody>')
+    expect(html).toContain('<td class="frontmatter-key">author</td><td class="frontmatter-value">Jonathan</td>')
+    expect(html).toContain('<td class="frontmatter-key">link</td><td class="frontmatter-value">https://example.com/a</td>')
+    expect(html).toContain('<td class="frontmatter-key">note</td><td class="frontmatter-value">a &lt; b &amp; c</td>')
+    expect(html).not.toContain('frontmatter-key">title<')
+    expect(html).not.toContain('<p>author:')
+  })
+
+  test('keeps wrapped frontmatter values in the value cell', async () => {
+    const content = ['---', 'notes: |', '  hello', '  world', 'tags:', '  - one', '  - two', 'status: draft', '---', 'Body'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).toContain('<td class="frontmatter-key">notes</td><td class="frontmatter-value">hello<br>world</td>')
+    expect(html).toContain('<td class="frontmatter-key">tags</td><td class="frontmatter-value">- one<br>- two</td>')
+    expect(html).toContain('<td class="frontmatter-key">status</td><td class="frontmatter-value">draft</td>')
+  })
+
+  test('renders a body --- with no frontmatter as a horizontal rule', async () => {
+    const content = ['Hello', '---', 'There'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).not.toContain('<h2')
+    expect(html).toContain('<hr />')
+    expect(html).toContain('<p>Hello</p>')
+    expect(html).toContain('<p>There</p>')
+  })
+})
+
+describe('getNoteContentAsHTML() tasks and checklists', () => {
+  const note = { filename: 'Notes/Example.md' }
+
+  test('renders a cancelled task with the theme class and an x-mark icon', async () => {
+    const content = '* [-] Add the iOS settings updater system back in #na'
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).toContain('class="task-list-item cancelled"')
+    expect(html).toContain('fa-circle-xmark')
+    expect(html).toContain('Add the iOS settings updater system back in')
+    expect(html).toContain('<span class="hashtag">#na</span>')
+    expect(html).not.toContain('type="checkbox"')
+    expect(html).not.toContain('<del')
+    expect(html).not.toContain('[-]')
+    expect(html).not.toContain('np-preview-task')
+  })
+
+  test('renders a cancelled checklist item and a quoted cancelled task', async () => {
+    const content = ['+ [-] checklist item', '> * [-] quoted cancel'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).toContain('class="task-list-item cancelled checklist"')
+    expect(html).toContain('fa-square-xmark')
+    expect(html).toContain('fa-circle-xmark')
+    expect(html).toContain('checklist item')
+    expect(html).toContain('quoted cancel')
+    expect(html).toContain('<blockquote>')
+    expect(html).not.toContain('[-]')
+    expect(html).not.toContain('type="checkbox"')
+  })
+
+  test('renders open, done, and scheduled tasks with distinct icons', async () => {
+    const content = ['* [ ] open task', '* [x] done thing', '* [>] later item'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).toContain('<ul class="task-list">')
+    expect(html).toContain('class="task-list-item todo"')
+    expect(html).toContain('<span class="task-text">open task</span>')
+    expect(html).toContain('fa-fw fa-circle"')
+    expect(html).toContain('class="task-list-item checked"')
+    expect(html).toContain('fa-circle-check')
+    expect(html).toContain('class="task-list-item task-scheduled"')
+    expect(html).toContain('fa-clock-four')
+    expect(html).not.toContain('fa-circle-arrow-right')
+    expect(html).not.toContain('type="checkbox"')
+    expect(html).not.toContain('<del')
+  })
+
+  test('renders a scheduled checklist with a square clock', async () => {
+    const content = '+ [>] later check'
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).toContain('class="task-list-item task-scheduled checklist"')
+    expect(html).toContain('task-icon-square-clock')
+    expect(html).not.toContain('fa-clock-four')
+  })
+
+  test('renders an open checklist with a square icon', async () => {
+    const content = '+ [ ] checklist item'
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).toContain('class="task-list-item todo checklist"')
+    expect(html).toContain('fa-square')
+    expect(html).not.toContain('fa-circle')
+  })
+
+  test('keeps a nested task inside its parent item', async () => {
+    const content = ['* [ ] parent', '    * [ ] child task'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).toContain('parent')
+    expect(html).toContain('child task')
+    expect(html).toMatch(/<li class="task-list-item todo"[^>]*>[\s\S]*<ul[\s\S]*child task/)
+  })
+
+  test('adds the theme priority class for !, !!, !!!, and >>', async () => {
+    const content = ['* [ ] ! low', '* [x] !! mid', '+ [ ] !!! high', '* [>] >> working'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).toContain('class="task-list-item todo priority1"')
+    expect(html).toContain('class="task-list-item checked priority2"')
+    expect(html).toContain('class="task-list-item todo checklist priority3"')
+    expect(html).toContain('class="task-list-item task-scheduled priority4"')
+  })
+
+  test('leaves a cancelled task inside a code fence unchanged', async () => {
+    const content = ['```', '* [-] not a task', '```'].join('\n')
+    const html = await h.getNoteContentAsHTML(content, note)
+    expect(html).toContain('[-]')
+    expect(html).not.toContain('np-preview-task')
+    expect(html).not.toContain('fa-circle-xmark')
+  })
+})
+
 describe('findNoteLinksForDisplay()', () => {
   test('returns empty array when no note links', () => {
     expect(h.findNoteLinksForDisplay('no links here')).toEqual([])

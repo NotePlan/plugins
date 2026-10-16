@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2026-08-15 for v2.4.0.b64 by @jgclark + @CursorAI
+// Last updated 2026-10-10 for v2.5.2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { DEFAULT_SECTION_DISPLAY_ORDER } from './constants.js'
@@ -76,6 +76,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-layer-group',
     label: 'Perspectives',
     description:
       "A 'Perspective' is a named set of all your Dashboard settings below, and also includes which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default, which can't be deleted.",
@@ -94,6 +95,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-filter',
     label: 'What to Include and Exclude',
     description:
       "These settings control what Spaces, folders, Reminder lists and items are included and excluded in Dashboard's many sections. It will first use only the included Spaces. Then, it includes the folders from the next setting, and removes any specified from the following setting. Then calendar note terms (heading prefixes or task text) can focus which calendar items appear. Reminder Lists to Include can override which Apple Reminders lists this Perspective looks in. Finally, individual lines in notes can be ignored by adding terms to the last setting.",
@@ -161,6 +163,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
 
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-sliders',
     label: 'Display settings',
     description:
       'Settings that control how the Dashboard displays information. There are also toggles that control filtering of which Sections to show in the Filters dropdown menu.',
@@ -226,7 +229,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'dashboardTheme',
     label: 'Theme to use for Dashboard',
     description:
-      'If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.',
+      'If this is set to a valid Theme name from among those you have installed, then it will be used instead of your current NotePlan Theme. Leave blank to use your current Theme.',
     type: 'input',
     default: '',
     compactDisplay: true,
@@ -309,6 +312,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-arrow-right-arrow-left',
     label: 'Moving/Scheduling Items',
   },
   {
@@ -372,6 +376,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'separator',
   }, {
     type: 'heading',
+    iconClass: 'fa-regular fa-hashtag',
     label: 'Tag/Mention settings',
   },
   {
@@ -395,6 +400,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-magnifying-glass',
     label: 'Search settings',
   },
   {
@@ -419,6 +425,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-alarm-exclamation',
     label: 'Overdue Tasks Section',
   },
   {
@@ -444,6 +451,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-bell',
     label: 'Reminders Section',
   },
   {
@@ -482,6 +490,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-chart-gantt',
     label: 'Active Projects Section',
   },
   {
@@ -496,6 +505,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-list-check',
     label: 'Interactive Processing settings',
   },
   {
@@ -528,6 +538,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-file-lines',
     label: 'Logging',
     description: 'Please use the NotePlan Settings Pane for the Dashboard Plugin to change logging settings.',
   },
@@ -577,6 +588,30 @@ export function applyDerivedDashboardSettings(priorSettings: { [string]: any }, 
     (settings, rule) => rule.apply(priorSettings, settings),
     nextSettings,
   )
+}
+
+/**
+ * Parse a stored number setting. `0` is kept (`0 || fallback` is the fallback, which reset
+ * look-back 0 to 7, idle refresh 0 to 10, and heading level 0 to 2). Blank / missing uses fallback.
+ * @param {mixed} value
+ * @param {number} fallback
+ * @returns {number}
+ */
+export function coerceStoredIntSetting(value: mixed, fallback: number): number {
+  if (value === null || value === undefined || value === '') return fallback
+  const parsed = typeof value === 'number' ? value : parseInt(String(value), 10)
+  return Number.isNaN(parsed) ? fallback : parsed
+}
+
+/**
+ * Default for a number setting def, or `fallback` when that def has no numeric default.
+ * @param {string} key
+ * @param {number} fallback
+ * @returns {number}
+ */
+export function numberSettingDefault(key: string, fallback: number): number {
+  const def = [...dashboardFilterDefs, ...dashboardSettingDefs].find((d) => d.key === key)
+  return typeof def?.default === 'number' ? def.default : fallback
 }
 
 /**
@@ -641,6 +676,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           type: 'heading',
           label: setting.label || '',
           description: setting.description || '',
+          iconClass: setting.iconClass,
           key: thisKey,
         }
       case 'header': // Note: deliberately the same as 'heading' above.
@@ -648,6 +684,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           type: 'heading',
           label: setting.label || '',
           description: setting.description || '',
+          iconClass: setting.iconClass,
           key: thisKey,
         }
       case 'switch':

@@ -1,6 +1,6 @@
 # Architecture: Communication between Projects + Reviews and Dashboard
 
-This note describes how `jgclark.Reviews` (Projects / Reviews, “P”) and `jgclark.Dashboard` (“D”) signal each other so one can refresh when the other’s data changes.
+This note describes how `jgclark.Reviews` (Projects / Reviews, "P") and `jgclark.Dashboard` ("D") signal each other so one can refresh when the other's data changes.
 
 ## Cross-plugin mechanism
 
@@ -34,7 +34,8 @@ Both directions use **NotePlan’s `DataStore.invokePluginCommandByName(commandN
 
 **Important:**
 
-- `generateProjectListsAndRenderIfOpen` (called when switching Dashboard perspective, if Reviews is installed) regenerates `allProjectsList.json` on the `afterBanner` hop via `generateAllProjectsList`. From Reviews v2.3.0 that may be an **incremental** merge (Shared notes-changed-recently cache) when a full scan is not required (full scan at least every 24h, or on missing list / folder / perspective change). The `paintFirst` hop only shows the updating banner and re-queues. That is file/data work and does **not** open the Projects Rich window. It then calls `renderProjectListsIfOpen`, which **does not** open the window (`shouldOpen: false`).
+- `generateProjectListsAndRenderIfOpen` (called when switching Dashboard perspective, if Reviews is installed and the Rich list is open) regenerates `allProjectsList.json` on the `afterBanner` hop via `generateAllProjectsList`. From Reviews v2.3.0 that may be an **incremental** merge (Shared notes-changed-recently cache) when a full scan is not required (full scan at least every 24h, or on missing list / stale list / folder or union fingerprint change). The `paintFirst` hop only shows the updating banner and re-queues. That is file/data work and does **not** open the Projects Rich window. It then calls `renderProjectListsIfOpen`, which **does not** open the window (`shouldOpen: false`).
+- When hidden `FFlag_UseCacheOfAllPerspectives` is on with Use Perspectives, a switch that did **not** change the destination scope's resolved folders queues `renderProjectListsIfOpen` only (`renderOnly`). The list file already holds the union of saved perspectives. The Rich window re-filters to the new active perspective. See `ARCHITECTURE-Caches-for-Performance.md`.
 - `updateProjectsListIfProjectSection` (after `REMOVE_LINE_FROM_JSON` in the bridge when the line was in `PROJACT` / `PROJREVIEW`) updates the shared JSON via Reviews helpers; it does not open any window. It calls `updateAllProjectsListAfterChange` with `skipUpdateDashboardIfOpen: true`, so `writeAllProjectsList` still runs `updateRichProjectListIfOpen` (Rich HTML, if open) but **skips** `updateDashboardIfOpen`. Dashboard then runs `refreshSectionsByCode` in-process (`projectsListSync.js`), and `processActionOnReturn` re-fetches shared data before sending `UPDATE_DATA` so PROJ* rows match the new JSON (avoids same-plugin invoke ordering; see **Scenario 2** and **Races and ordering**).
 - Opening the Dashboard or the Rich Project List for the user is reserved for explicit commands / UI (e.g. `displayProjectLists` with `shouldOpen: true`), not for these cross-plugin hooks.
 
@@ -44,11 +45,16 @@ Both directions use **NotePlan’s `DataStore.invokePluginCommandByName(commandN
 
 Each diagram uses **subgraphs** for plugin boundaries. `invokePluginCommandByName` is the usual hop between plugin runtimes. **Scenario 2** uses **direct imports** of Reviews helpers into Dashboard’s bundle for the JSON update: `writeAllProjectsList` still runs `updateRichProjectListIfOpen` then skips `updateDashboardIfOpen`; PROJ* refresh is `refreshSectionsByCode` awaited in Dashboard (not the invoke from `writeAllProjectsList`). **Scenario 3** is the generic Reviews-driven path where `writeAllProjectsList` runs Rich refresh then `updateDashboardIfOpen`.
 
-### Scenario 1 — Dashboard perspective change → Reviews regenerates list and re-renders if open
+### Scenario 1 — Dashboard perspective change → Reviews re-renders if open, and regenerates the list only when the union does not already cover it
 
 **Trigger:** User switches perspective in Dashboard → `doSwitchToPerspective()` / `PERSPECTIVE_CHANGED` in Dashboard.
 
-**Mechanism:** After Dashboard has posted new sections, `scheduleReviewsListAfterPerspectiveSwitch` queues an x-callback (`NotePlan.openURL`) to Reviews `generateProjectListsAndRenderIfOpen` with `paintFirst` (not `invokePluginCommandByName`, which would block Dashboard paint). Reviews shows the updating banner, then queues a second x-callback (`afterBanner`) so the Projects List WebView can paint before `generateAllProjectsList` beachballs the JSContext. That second run regenerates `allProjectsList.json`, then `renderProjectListsIfOpen` with `shouldOpen: false`.
+**Mechanism:** After Dashboard has posted new sections, `scheduleReviewsListAfterPerspectiveSwitch` queues an x-callback (`NotePlan.openURL`) to Reviews (not `invokePluginCommandByName`, which would block Dashboard paint). It skips the queue when the Rich list is closed.
+
+- Flag off, or the destination scope's folder list changed: command `generateProjectListsAndRenderIfOpen` with `paintFirst`. Reviews shows the updating banner, then queues `afterBanner` so the Projects List WebView can paint before `generateAllProjectsList` beachballs the JSContext. That second run regenerates `allProjectsList.json`, then `renderProjectListsIfOpen` with `shouldOpen: false`.
+- Flag `FFlag_UseCacheOfAllPerspectives` on, and `perspectiveScopeFoldersChanged` is not true: command `renderProjectListsIfOpen` only. No list rebuild. Dashboard decided that in `processActionOnReturn` after `getReviewSettings(true)`.
+
+A switch also re-resolves **only** the destination perspective's folders into `perspectiveScopeUnion.json` when that resolved list changed. It does not rewrite every scope. The default `-` perspective is not stored in that file, as by default it can resolve to every folder.
 
 ```mermaid
 flowchart LR
@@ -74,9 +80,11 @@ flowchart LR
 
 **Trigger:** User saves the active named Perspective (`doSavePerspective`) or Save & Close in Edit Perspectives (`doSavePerspectiveSettingsFromBridge`), and `includedFolders` / `excludedFolders` / `includedTeamspaces` changed vs the previously saved def.
 
-**Mechanism:** Handler returns `ACTIVE_PERSPECTIVE_DEFINITION_CHANGED`. `processActionOnReturn` queues Reviews `generateProjectListsAndRenderIfOpen` with `paintFirst` and banner reason `updated` (same x-callback pattern as Scenario 1). Banner text: "Recalculating projects for updated perspective Name...". Live folder edits on a named Perspective do **not** notify Reviews until Save, because Reviews reads the saved definition.
+**Mechanism:** Handler returns `ACTIVE_PERSPECTIVE_DEFINITION_CHANGED`. `processActionOnReturn` queues Reviews `generateProjectListsAndRenderIfOpen` with `paintFirst` and banner reason `updated` (same x-callback pattern as Scenario 1). Banner text: "Recalculating projects for updated perspective Name...". Live folder edits on a named Perspective do **not** notify Reviews until Save.
 
-Live folder/Space edits on the `-` (default) Perspective still notify immediately, because those writes update the saved `-` def.
+When Dashboard plugin saves a perspective's folder or teamspace definition, it also rewrites `../jgclark.Dashboard/perspectiveScopeUnion.json` when those definitions changed (or the file is missing). The default `-` perspective is omitted from that file. A switch that only changes which perspective is active does not full-rewrite it.
+
+Live folder/Space edits on the `-` (default) Perspective still notify Reviews immediately, because those writes update the saved `-` def. They do not add `-` to the union file.
 
 ### Scenario 2 — Dashboard completes/cancels a PROJ line → Reviews updates `allProjectsList.json` and Rich list (if open)
 
@@ -190,7 +198,7 @@ flowchart LR
 
 | Direction | NotePlan API | Command / helper |
 |-----------|--------------|------------------|
-| D → P (perspective switch) | `NotePlan.openURL` x-callback | `generateProjectListsAndRenderIfOpen` with `paintFirst`, then `afterBanner` |
+| D → P (perspective switch) | `NotePlan.openURL` x-callback | `generateProjectListsAndRenderIfOpen` with `paintFirst`, then `afterBanner`. With `FFlag_UseCacheOfAllPerspectives` and unchanged destination folders: `renderProjectListsIfOpen` only |
 | D → P | `invokePluginCommandByName` | `generateProjectListsAndRenderIfOpen`, `renderProjectListsIfOpen` |
 | D → P (task/checklist in `PROJ*` ) | After `REMOVE_LINE_FROM_JSON` in bridge | `updateProjectsListIfProjectSection` in [`projectsListSync.js`](../jgclark.Dashboard/src/projectsListSync.js) → `updateAllProjectsListAfterChange` (with `skipUpdateDashboardIfOpen`) → `writeAllProjectsList` → `updateRichProjectListIfOpen` → then in-process `refreshSectionsByCode` |
 | P → P (Rich, after list write) | `invokePluginCommandByName` | `updateRichProjectListIfOpen` in `reviewHelpers.js` → `renderProjectListsIfOpen` (Rich window must already be open) |
@@ -232,7 +240,7 @@ If `usePerspectives` is true but Dashboard has **no active perspective**, `getRe
 
 ### `outputStyle` = Markdown
 
-When `shouldOpen` is false** (e.g. `renderProjectListsIfOpen`), `renderProjectListsMarkdown` returns immediately and **does not** rewrite summary notes.
+When `shouldOpen` is false (e.g. `renderProjectListsIfOpen`), `renderProjectListsMarkdown` returns immediately and **does not** rewrite summary notes.
 
 ### `invokePluginCommandByName` argument shape
 
@@ -246,5 +254,6 @@ Reviews must pass `[['PROJACT', 'PROJREVIEW', 'PROJ']]` into `invokePluginComman
 
 ## Related source files
 
-- Reviews: `src/reviewHelpers.js` (`updateDashboardIfOpen`, `updateRichProjectListIfOpen`), `src/reviewSettings.js` (`getReviewSettings`, `getSettingsUpdateAction`), `src/allProjectsListHelpers.js` (`writeAllProjectsList`), `src/reviews.js` (`generateProjectListsAndRenderIfOpen`, `renderProjectListsIfOpen`, `renderProjectListsHTML`), `src/index.js` (`onSettingsUpdated`)
-- Dashboard: `src/perspectiveHelpers.js` (`switchToPerspective`), `src/projectsListSync.js` (`updateProjectsListIfProjectSection`, in-process `refreshSectionsByCode` after list write), `src/clickHandlers.js` (task handlers), `src/pluginToHTMLBridge.js` (`processActionOnReturn` / `REMOVE_LINE_FROM_JSON`), `src/dashboardHooks.js` (`refreshSectionsByCode`), `src/refreshClickHandlers.js` (`refreshSomeSections`)
+- Reviews: `src/reviewHelpers.js` (`updateDashboardIfOpen`, `updateRichProjectListIfOpen`), `src/reviewSettings.js` (`getReviewSettings`, `getSettingsUpdateAction`), `src/allProjectsListHelpers.js` (`writeAllProjectsList`, `generateAllProjectsList`), `src/reviewsList.js` (`generateProjectListsAndRenderIfOpen`, `renderProjectListsIfOpen`, `renderProjectListsHTML`), `src/index.js` (`onSettingsUpdated`)
+- Dashboard: `src/reviewsListSync.js` (`scheduleReviewsListAfterPerspectiveSwitch`, render-only vs generate), `src/perspectiveScopeUnion.js` (union file), `src/perspectiveClickHandlers.js` (`doSwitchToPerspective`, destination folder refresh), `src/projectsListSync.js` (`updateProjectsListIfProjectSection`, in-process `refreshSectionsByCode` after list write), `src/clickHandlers.js` (task handlers), `src/pluginToHTMLBridge.js` (`processActionOnReturn` / `REMOVE_LINE_FROM_JSON` / `PERSPECTIVE_CHANGED`), `src/dashboardHooks.js` (`refreshSectionsByCode`), `src/refreshClickHandlers.js` (`refreshSomeSections`)
+- Caches those paths read and write: `ARCHITECTURE-Caches-for-Performance.md`

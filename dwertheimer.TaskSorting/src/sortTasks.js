@@ -5,7 +5,7 @@ import { chooseOption, chooseHeading, showMessage } from '@helpers/userInput'
 import { getTagParamsFromString } from '@helpers/general'
 import { removeHeadingFromNote, getBlockUnderHeading } from '@helpers/NPParagraph'
 import { sortListBy, getTasksByType, getAllDescendants, TASK_TYPES, type GroupedTasks, type SortableParagraphSubset } from '@helpers/sorting'
-import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
+import { logDebug, logInfo, logWarn, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { saveEditorIfNecessary } from '@helpers/NPEditor'
 import { getBooleanValue, getStringArrayValue } from '@helpers/dataManipulation'
@@ -1145,6 +1145,14 @@ export async function sortTasksUnderHeading(
   // `null` default (not `true`) so the "Combine Related Task Types?" setting is consulted -- see #770.
   _interleaveTaskTypes: string | boolean | null = null,
 ): Promise<void> {
+  // A heading passed in as an argument means a template, x-callback or another plugin is driving this
+  // run, not someone choosing from the menu. Those runs must stay silent: e.g. a daily-note template
+  // that sorts a "CCC" section should not pop a dialog on days the note has no such heading.
+  const isInteractive = !_heading
+  const tellUser = async (message: string): Promise<void> => {
+    if (isInteractive) await showMessage(message)
+    else logInfo(pluginJson, `sortTasksUnderHeading: ${message} (not shown: called with arguments)`)
+  }
   try {
     logDebug(`sortTasksUnderHeading: starting for heading="${_heading ?? ''}" sortOrder="${String(_sortOrder)}" with note override? ${_noteOverride ? 'yes' : 'no'}`)
     logDebug(`sortTasksUnderHeading: About to saveEditorIfNecessary()`)
@@ -1153,7 +1161,7 @@ export async function sortTasksUnderHeading(
     const noteToUse = _noteOverride || Editor.note
     if (!noteToUse) {
       logError(pluginJson, `sortTasksUnderHeading: There is no noteToUse. Bailing`)
-      await showMessage('No note is open')
+      await tellUser('No note is open')
       return
     }
 
@@ -1193,11 +1201,11 @@ export async function sortTasksUnderHeading(
           if (noteToUse) await writeOutTasks(noteToUse, sortedTasks, false, false, '', heading, interleaveTaskTypes, false)
         }
       } else {
-        await showMessage(`No tasks found under heading "${heading}"`)
+        await tellUser(`No tasks found under heading "${heading}"`)
       }
     } else {
       logError(pluginJson, `sortTasksUnderHeading: There is no noteToUse. Bailing`)
-      await showMessage('No note is open')
+      await tellUser('No note is open')
     }
   } catch (error) {
     logError(pluginJson, JSON.stringify(error))

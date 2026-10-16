@@ -644,12 +644,20 @@ export async function renderProjectListsHTML(
   <meta name="startTime" content="${String(Date.now())}">
   <meta name="autoUpdateAfterIdleTime" content="${String(config.autoUpdateAfterIdleTime ?? 0)}">`
 
+    // Read the shared toggle CSS from the np.Shared plugin folder (not its data folder).
+    // A <link> to this file 404'd before the file existed, and the webview keeps that failed response.
+    // Inlining the text is the same place the old rules lived: the page style block.
+    const appleSwitchCSS = DataStore.loadData('../../np.Shared/apple-switch.css', true) ?? ''
+    if (appleSwitchCSS === '') {
+      logWarn('renderProjectListsHTML', 'Could not read ../../np.Shared/apple-switch.css, so toggles will render as plain checkboxes')
+    }
+
     const winOptions = {
       windowTitle: windowTitle,
       customId: richWinId,
       headerTags: headerTags,
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
-      specificCSS: '', // now in requiredFiles/projectList.css instead
+      specificCSS: appleSwitchCSS,
       makeModal: false, // = not modal window
       bodyOptions: 'class="project-list-shell"',
       preBodyScript: /* setPercentRingJSFunc + */ scrollPreLoadJSFuncs,

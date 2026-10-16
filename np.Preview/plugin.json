@@ -2,20 +2,32 @@
   "noteplan.minAppVersion": "3.9.2",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "np.Preview",
-  "plugin.name": "🖥️ Preview",
+  "plugin.name": "Preview",
   "plugin.description": "Shows HTML preview of a note, including Mermaid diagrams and MathJax equations. Runs on current Editor, or a specified note via x-callback. Requires NP v3.9.2.",
-  "plugin.icon": "",
+  "plugin.icon": "fa-eye",
+  "plugin.iconColor": "pink-500",
   "plugin.author": "Jonathan Clark",
-  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.Preview/",
-  "plugin.version": "0.5.0",
-  "plugin.lastUpdateInfo": "v0.5.0: Add basic table styling (bold thead/tfoot only; left/top-aligned cells; grey borders).\nDon't show title twice when frontmatter title and first H1 match.\nAdd support for x-callback to preview a specified note, rather than just the current note.\nv0.4.6: Update offline support for Mermaid to v11.16.1 (latest).\n",
+  "plugin.url": "https://noteplan.co/plugins/np.Preview/",
+  "plugin.version": "0.6.0",
+  "plugin.lastUpdateInfo": "v0.6.0: Rendering of tasks and checklists now picks up icons and coloring from your theme, including Priority markersread.\nFrontmatter fields render as a borderless table so values line up.\nNow doesn't render `---` as setext-style header indicators, but as a horizontal rule.\nCancelled tasks (for example `* [-] text`) render with strikethrough.\nOther small fixes.\nv0.5.0: Add basic table styling (bold thead/tfoot only; left/top-aligned cells; grey borders).\nDon't show title twice when frontmatter title and first H1 match.\nA --- line after frontmatter renders as a horizontal rule, not a second heading.\nAdd support for x-callback to preview a specified note, rather than just the current note.\nv0.4.6: Update offline support for Mermaid to v11.16.1 (latest).\n",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Preview/CHANGELOG.md",
   "plugin.dependencies": [],
+  "plugin.dependsOn": [
+    {
+      "id": "np.Shared",
+      "name": "Shared Resources",
+      "minVersion": "1.3.0"
+    }
+  ],
   "plugin.requiredFiles": [
     "mermaid@11.16.1.min.js",
     "tex-chtml.js"
   ],
-  "plugin.requiredSharedFiles": [],
+  "plugin.requiredSharedFiles": [
+    "fontawesome.css",
+    "regular.min.flat4NP.css",
+    "fa-regular-400.woff2"
+  ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [

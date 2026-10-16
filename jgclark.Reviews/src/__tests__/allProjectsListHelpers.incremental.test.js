@@ -19,7 +19,7 @@ jest.mock('../reviewHelpers', () => {
 })
 
 import { NotePlan } from '@mocks/index'
-import { shouldUseFullAllProjectsGenerate } from '../allProjectsListHelpers'
+import { shouldPartialIncludeChangedScopes, shouldUseFullAllProjectsGenerate } from '../allProjectsListHelpers'
 
 const preferenceValues: { [string]: any } = {}
 
@@ -109,5 +109,72 @@ describe('shouldUseFullAllProjectsGenerate', () => {
   test('never full-scanned requires full', () => {
     delete preferenceValues['Reviews-lastAllProjectsFullScanTime']
     expect(shouldUseFullAllProjectsGenerate(makeConfig())).toBe(true)
+  })
+
+  test('perspective name change does not force a full generate when the union fingerprint matches', () => {
+    const union = {
+      version: 1,
+      fingerprint: 'union-fp',
+      scopes: [{ name: 'Home', folders: ['Home'], teamspaces: ['private'], changedAt: 10 }],
+    }
+    preferenceValues['Reviews-lastAllProjectsFolderFilters'] = 'union-fp'
+    preferenceValues['Reviews-lastAllProjectsPerspective'] = 'Work'
+    global.DataStore.loadData = jest.fn((path: string) => {
+      if (String(path).includes('perspectiveScopeUnion')) return JSON.stringify(union)
+      return JSON.stringify([{ filename: 'Home/A.md', allProjectTags: ['#project'] }])
+    })
+    const config = makeConfig({
+      usePerspectives: true,
+      FFlag_UseCacheOfAllPerspectives: true,
+      perspectiveName: 'Home',
+    })
+    expect(shouldUseFullAllProjectsGenerate(config)).toBe(false)
+    expect(shouldPartialIncludeChangedScopes(config)).toBe(false)
+  })
+
+  test('a changed union fingerprint on a fresh list is a partial include, not a full generate', () => {
+    const union = {
+      version: 1,
+      fingerprint: 'union-new',
+      scopes: [{ name: 'Home', folders: ['Home', 'Extra'], teamspaces: ['private'], changedAt: 20 }],
+    }
+    preferenceValues['Reviews-lastAllProjectsFolderFilters'] = 'union-old'
+    global.DataStore.loadData = jest.fn((path: string) => {
+      if (String(path).includes('perspectiveScopeUnion')) return JSON.stringify(union)
+      return JSON.stringify([{ filename: 'Home/A.md', allProjectTags: ['#project'] }])
+    })
+    const config = makeConfig({ usePerspectives: true, FFlag_UseCacheOfAllPerspectives: true, perspectiveName: 'Home' })
+    expect(shouldUseFullAllProjectsGenerate(config)).toBe(false)
+    expect(shouldPartialIncludeChangedScopes(config)).toBe(true)
+  })
+
+  test('a changed union fingerprint on a list past max age is a full generate', () => {
+    const union = {
+      version: 1,
+      fingerprint: 'union-new',
+      scopes: [{ name: 'Home', folders: ['Home'], teamspaces: ['private'], changedAt: 20 }],
+    }
+    preferenceValues['Reviews-lastAllProjectsFolderFilters'] = 'union-old'
+    preferenceValues['Reviews-lastAllProjectsGenerationTime'] = Date.now() - 2 * 60 * 60 * 1000
+    global.DataStore.loadData = jest.fn((path: string) => {
+      if (String(path).includes('perspectiveScopeUnion')) return JSON.stringify(union)
+      return JSON.stringify([{ filename: 'Home/A.md', allProjectTags: ['#project'] }])
+    })
+    const config = makeConfig({ usePerspectives: true, FFlag_UseCacheOfAllPerspectives: true, perspectiveName: 'Home' })
+    expect(shouldPartialIncludeChangedScopes(config)).toBe(false)
+    expect(shouldUseFullAllProjectsGenerate(config)).toBe(true)
+  })
+
+  test('a missing union file falls back to the active perspective path', () => {
+    global.DataStore.fileExists = jest.fn((path: string) => !String(path).includes('perspectiveScopeUnion'))
+    const config = makeConfig({
+      usePerspectives: true,
+      FFlag_UseCacheOfAllPerspectives: true,
+      perspectiveName: 'Home',
+      foldersToInclude: ['Projects'],
+    })
+    preferenceValues['Reviews-lastAllProjectsPerspective'] = 'Work'
+    expect(shouldPartialIncludeChangedScopes(config)).toBe(false)
+    expect(shouldUseFullAllProjectsGenerate(config)).toBe(true)
   })
 })
