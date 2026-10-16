@@ -442,6 +442,8 @@ export function shouldPartialIncludeChangedScopes(config: ReviewConfig): boolean
   if (!DataStore.fileExists(allProjectsListFilename)) return false
   const parsed = parseAllProjectsListFileContent(DataStore.loadData(allProjectsListFilename, true))
   if (parsed == null || parsed.length === 0) return false
+  // Incomplete union cache must take the full-generate path, not an empty partial.
+  if (listMissesUnionScopeCoverage(parsed, union)) return false
   if (listIsOlderThanMaxAge()) return false
   const fullScanPref: mixed = DataStore.preference(lastFullScanPrefName)
   const fullScanMs = typeof fullScanPref === 'number' ? fullScanPref : 0
@@ -541,6 +543,41 @@ function shouldRegenerateAllProjectsList(config: ReviewConfig): boolean {
 }
 
 /**
+ * True when the on-disk list is missing whole union scopes (e.g. Home-only cache after a buggy
+ * empty partial, or Space folders skipped because a private-only scope shared the same paths).
+ * @param {Array<any>} rows
+ * @param {TPerspectiveScopeUnion} union
+ * @returns {boolean}
+ */
+export function listMissesUnionScopeCoverage(rows: Array<any>, union: TPerspectiveScopeUnion): boolean {
+  const listFolders: Set<string> = new Set()
+  let hasTeamspaceRow = false
+  for (const row of rows) {
+    const filename = typeof row?.filename === 'string' ? row.filename : ''
+    if (filename === '') continue
+    listFolders.add(getFolderFromFilename(filename))
+    if (filename.includes('%%NotePlanCloud%%')) {
+      hasTeamspaceRow = true
+    }
+  }
+  for (const scope of union.scopes ?? []) {
+    const folders = scope.folders ?? []
+    if (folders.length === 0) continue
+    const teamspaces = scope.teamspaces ?? ['private']
+    const allowsSpace = teamspaces.some((teamspace) => teamspace !== 'private')
+    const spaceFolders = folders.filter((folder) => folder.includes('%%NotePlanCloud%%'))
+    const privateFolders = folders.filter((folder) => !folder.includes('%%NotePlanCloud%%'))
+    if (allowsSpace && spaceFolders.length > 0 && !hasTeamspaceRow) {
+      return true
+    }
+    if (privateFolders.length > 0 && !privateFolders.some((folder) => listFolders.has(folder))) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
  * True when generateAllProjectsList must do a full vault enumerate (not incremental merge).
  * Reasons: force flag, missing/corrupt/empty baseline, perspective or folder fingerprint change, or last full scan older than {@link MAX_AGE_BEFORE_FULL_SCAN_DAYS}.
  * @param {ReviewConfig} config
@@ -563,6 +600,13 @@ export function shouldUseFullAllProjectsGenerate(config: ReviewConfig, forceFull
   }
   const unionForFull = readUnionForConfig(config)
   if (unionForFull) {
+    if (listMissesUnionScopeCoverage(parsed, unionForFull)) {
+      logInfo(
+        'shouldUseFullAllProjectsGenerate',
+        `allProjectsList is missing folders/Spaces from the perspective union; full generate`,
+      )
+      return true
+    }
     const lastFingerprintPrefUnion: mixed = DataStore.preference(lastFolderFiltersPrefName)
     const lastUnionFingerprint = typeof lastFingerprintPrefUnion === 'string' ? lastFingerprintPrefUnion : ''
     if (lastUnionFingerprint !== unionForFull.fingerprint) {
@@ -1560,7 +1604,7 @@ function recalculateProjectsFromSnapshotSync(
   let loadingShown = false
   try {
     if (showProgressToUser && total > 0) {
-      CommandBar.showLoading(true, `Recalculating project list\n0/${String(total)}`, 0)
+      CommandBar.showLoading(true, `Rescanning project list\n0/${String(total)}`, 0)
       loadingShown = true
     }
     let index = 0
@@ -1572,7 +1616,7 @@ function recalculateProjectsFromSnapshotSync(
           (typeof row?.title === 'string' && row.title.trim() !== '')
             ? row.title.trim()
             : (filename !== '' ? getFolderDisplayName(getFolderFromFilename(filename)) : `item ${String(index)}`)
-        CommandBar.showLoading(true, `Recalculating project list\n${String(index)}/${String(total)}\n${label}`, index / total)
+        CommandBar.showLoading(true, `Rescanning project list\n${String(index)}/${String(total)}\n${label}`, index / total)
       }
       if (filename === '') {
         logWarn('recalculateAllProjectsListItems', `Skipping row with no filename`)

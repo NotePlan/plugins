@@ -224,9 +224,9 @@ function projectListPerspectiveRecalcBannerMessage(config: { +usePerspectives?: 
   const perspectiveName = config.perspectiveName
   if (config.bannerReason === 'updated') {
     if (perspectiveName != null && perspectiveName !== '') {
-      return `Recalculating projects for updated perspective ${perspectiveName}...`
+      return `Rescanning project notes for updated perspective ${perspectiveName}...`
     }
-    return 'Recalculating projects for the updated perspective...'
+    return 'Rescanning project notes for the updated perspective...'
   }
   if (config.usePerspectives && perspectiveName != null && perspectiveName !== '') {
     return `Checking all projects for the ${perspectiveName} perspective...`

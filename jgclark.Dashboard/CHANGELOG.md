@@ -8,6 +8,7 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 - Change: The task dialog "Change to" button is now a "Change type" menu. It can switch an item between task, checklist, list, quote, and plain text (for @dwertheimer).
 - Fix: Overdue look-back of 0 (show every overdue task) stays 0 across a plugin update, and the settings field shows 0. The same update path keeps other real zeroes: idle refresh off, and heading level 0. (Thanks for the tip-off, @dwertheimer.)
 - Fix: Display of the Theme field in Dashboard Settings, which wasn't showing correctly in dark mode, or with a long name.
+- Fix: `perspectiveScopeUnion` partial folder scan now treats a folder as uncovered when a changed perspective allows an extra Space id on a path another perspective already listed as private-only (so Projects can pick up Space notes for perspectives like NotePlan).
 
 ## [2.5.1] 2026-10-03
 ### Changes

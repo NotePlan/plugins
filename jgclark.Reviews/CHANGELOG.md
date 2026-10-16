@@ -4,6 +4,7 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 ## [2.4.0] - 2026-10-15
 - Fix: Completing/cancelling a project note that is outside the current Perspective folder/Space selection no longer triggers a useless full list rebuild (keeps WARNs, then skips).
 - Fix: Completing/archiving a project no longer triggers a list regenerate when the pre-move filename is already absent from `allProjectsList` (that path could return an empty list and blank the Rich list). If a regenerate still returns 0 while the on-disk list has rows, the disk snapshot is kept.
+- Fix: Perspective union partial refresh now rescans a folder when a changed perspective allows an extra Space id on a path another perspective already listed as private-only. If the `allProjectsList` is missing a whole union scope or Space forces a full rebuild.
 - Fix: Project list build/refresh progress dialog shows the Space display name (e.g. `[👥 Plugins] Dashboard v2.5`) instead of the raw `%%NotePlanCloud%%/<uuid>/…` path.
 - New optional **Maintain a status frontmatter hashtag?** setting for Kanban / Cards views. When on, the plugin writes `status: #notstarted` / `#started` / `#paused` / `#completed` / `#cancelled` (terms configurable) and updates them on pause, complete, cancel, finish review, and create/convert.
 - Change: when status is enabled, pause uses `status: #paused` instead of adding `#paused` to the combined `project:` tag field (legacy `#paused` on `project:` is still recognised and stripped on write).
