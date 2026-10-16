@@ -111,7 +111,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
     const machineName = NotePlan.environment.machineName ?? NotePlan.environment.platform
     logDebug(pluginJson, `listConflicts: Starting with params '${params}' on ${machineName}`)
     let config = await getSettings()
-    const outputFilename = config.conflictNoteFilename ?? 'Conflicted Notes.md'
+    const outputFilename = config.conflictedNoteFilename ?? 'Conflicted Notes.md'
     let copiesMade = 0
 
     // Decide whether to run silently

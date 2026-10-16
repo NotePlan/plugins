@@ -1,6 +1,14 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.20.4] - 2026-10-16 @jgclark
+- fix: "List conflicted notes" command failing to honour the setting for the name of the note.
+- fix: '/Tidy Up' ran '/List conflicted notes' and '/List duplicate notes' under each other's switches.
+- fix: '/Remove empty elements from recent notes' skipped regular notes after the 'Also cover recent Regular notes?' setting was removed.
+- fix: '/Remove @done() markers' and '/Remove time parts from @done() dates' treated a recent-interval of 0 as "changed today", and their confirmations counted notes rather than markers.
+- fix: '/Remove section from all notes' ignored the Exact / Starts with / Contains match setting.
+- fix: '/List duplicated content' checked calendar notes shorter than 20 bytes.
+
 ## [1.20.3] - 2026-10-06 @jgclark
 ### Changes
 - **Remove empty elements from recent notes** now processes recently changed regular notes, plus calendar notes only when the whole period is already in the past. Today, this week, and the current month, quarter, and year are therefore skipped.

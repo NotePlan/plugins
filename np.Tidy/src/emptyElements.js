@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Remove empty blocks functionality for Tidy plugin
-// Last updated 2026-10-06 for v1.20.3, @jgclark & @CursorAI
+// Last updated 2026-10-16 for v1.20.4, @jgclark & @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -289,10 +289,6 @@ export async function removeEmptyLines(filenameIn: string = 'Editor'): Promise<v
  * Setting 'preserveHeadingStructure' controls whether to preserve all heading structure (no heading deletions).
  * Works on the note open in the Editor, unless a filename is provided.
  *
- * By default, this function only processes Calendar notes. To process Project notes as well, either:
- * - Enable the 'Also cover Project notes?' setting in plugin settings, or
- * - Pass coverRegularNotesAsWell=true as a parameter
- *
  * The function operates in three passes:
  * - PASS 1: Removes empty list items, quotes, and headings with no content
  * - PASS 2: Removes empty sections (headings with no content and no subheadings with content)
@@ -413,7 +409,7 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
     const stripAllEmptyLines: boolean = await getTagParamsFromString(params ?? '', 'stripAllEmptyLines', config.stripAllEmptyLines ?? false)
     const preserveHeadingStructure: boolean = await getTagParamsFromString(params ?? '', 'preserveHeadingStructure', false)
-    const coverRegularNotesAsWell: boolean = await getTagParamsFromString(params ?? '', 'coverRegularNotes', config.coverProjectNotes ?? false)
+    const coverRegularNotesAsWell: boolean = await getTagParamsFromString(params ?? '', 'coverRegularNotes', true)
     const noteTypesToProcess: Array<string> = coverRegularNotesAsWell ? ['Notes', 'Calendar'] : ['Calendar']
 
     const startTime = new Date()

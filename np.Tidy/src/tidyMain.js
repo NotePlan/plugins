@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2026-08-03 for v1.20.1, @jgclark
+// Last updated 2026-10-16 for v1.20.4, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -36,7 +36,7 @@ export async function tidyUpAll(): Promise<void> {
 
     if (config.runRemoveBlankNotes) {
       CommandBar.showLoading(true, `Tidying up blank notes ...`, 0.1)
-      logDebug('tidyUpAll', `Starting removeOrphanedBlockIDs...`)
+      logDebug('tidyUpAll', `Starting removeBlankNotes...`)
       await removeBlankNotes(config.runSilently)
     }
 
@@ -83,13 +83,13 @@ export async function tidyUpAll(): Promise<void> {
     //   await removeSectionFromRecentNotes()
     // }
 
-    if (config.runDuplicateFinderCommand) {
+    if (config.runConflictFinderCommand) {
       CommandBar.showLoading(true, `Making list of Conflicted notes ...`, 0.6)
       logDebug('tidyUpAll', `Starting listConflicts ...`)
       await listConflicts(param)
     }
 
-    if (config.runConflictFinderCommand) {
+    if (config.runDuplicateFinderCommand) {
       CommandBar.showLoading(true, `Making list of Duplicate notes  ...`, 0.7)
       logDebug('tidyUpAll', `Starting listDuplicates ...`)
       await listDuplicates(param)
@@ -97,7 +97,7 @@ export async function tidyUpAll(): Promise<void> {
 
     if (config.removeTriggersFromRecentCalendarNotes) {
       CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.8)
-      logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
+      logDebug('tidyUpAll', `Starting removeTriggersFromRecentCalendarNotes...`)
       await removeTriggersFromRecentCalendarNotes(param)
     }
 
@@ -164,21 +164,22 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
       logDebug('removeDoneMarkers', `- filtered out done tasks`)
     }
 
-    // Get date range to use
-    const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
-    const momentToStartLooking = todayStart.subtract(numDays, 'days')
-    const jsdateToStartLooking = momentToStartLooking.toDate()
+    // numDays 0 means every note. Otherwise keep notes changed since the start of (today - numDays).
+    let recentMatchedParas: Array<TParagraph> = allMatchedParas
+    if (numDays > 0) {
+      const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
+      const momentToStartLooking = todayStart.subtract(numDays, 'days')
+      const jsdateToStartLooking = momentToStartLooking.toDate()
 
-    // `TParagraph.note` is declared `?TNote`, but every paragraph returned by `DataStore.search()` above
-    // belongs to a note, so the real type here is TNote. Cast the one expression rather than the whole line.
-    const recentMatchedParas: Array<TParagraph> = allMatchedParas.filter((p) => ((p.note: any): TNote).changedDate >= jsdateToStartLooking)
+      // `TParagraph.note` is declared `?TNote`, but every paragraph returned by `DataStore.search()` above
+      // belongs to a note, so the real type here is TNote. Cast the one expression rather than the whole line.
+      recentMatchedParas = allMatchedParas.filter((p) => ((p.note: any): TNote).changedDate >= jsdateToStartLooking)
+    }
 
     // Now map from paras -> notes and dedupe
-    let numToRemove = allMatchedParas.length
     const recentMatchedNotes = recentMatchedParas.map((p) => p.note)
-    // Dedupe this list
     const dedupedMatchedNotes = [...new Set(recentMatchedNotes)]
-    numToRemove = dedupedMatchedNotes.length
+    const numToRemove = recentMatchedParas.length
     logDebug('removeDoneMarkers', `- ${String(numToRemove)} @done(...) matches from ${String(dedupedMatchedNotes.length)} recent notes`)
     logDebug('removeDoneMarkers', `Search took ${timer(start)}s`)
 
@@ -262,21 +263,22 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     // const RE = new RegExp(RE_DONE_DATE_TIME)
     const allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE_DONE_DATE_TIME.test(p.content)) ?? []
 
-    // Get date range to use
-    const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
-    const momentToStartLooking = todayStart.subtract(numDays, 'days')
-    const jsdateToStartLooking = momentToStartLooking.toDate()
+    // numDays 0 means every note. Otherwise keep notes changed since the start of (today - numDays).
+    let recentMatchedParas: Array<TParagraph> = allMatchedParas
+    if (numDays > 0) {
+      const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
+      const momentToStartLooking = todayStart.subtract(numDays, 'days')
+      const jsdateToStartLooking = momentToStartLooking.toDate()
 
-    // `TParagraph.note` is declared `?TNote`, but every paragraph returned by `DataStore.search()` above
-    // belongs to a note, so the real type here is TNote. Cast the one expression rather than the whole line.
-    const recentMatchedParas: Array<TParagraph> = allMatchedParas.filter((p) => ((p.note: any): TNote).changedDate >= jsdateToStartLooking)
+      // `TParagraph.note` is declared `?TNote`, but every paragraph returned by `DataStore.search()` above
+      // belongs to a note, so the real type here is TNote. Cast the one expression rather than the whole line.
+      recentMatchedParas = allMatchedParas.filter((p) => ((p.note: any): TNote).changedDate >= jsdateToStartLooking)
+    }
 
     // Now map from paras -> notes and dedupe
-    let numToRemove = allMatchedParas.length
     const recentMatchedNotes = recentMatchedParas.map((p) => p.note)
-    // Dedupe this list
     const dedupedMatchedNotes = [...new Set(recentMatchedNotes)]
-    numToRemove = dedupedMatchedNotes.length
+    const numToRemove = recentMatchedParas.length
     logDebug('removeDoneTimeParts', `- ${String(numToRemove)} @done(...) matches from ${String(dedupedMatchedNotes.length)} recent notes`)
 
     // // Now keep only those changed recently (or all if numDays === 0)

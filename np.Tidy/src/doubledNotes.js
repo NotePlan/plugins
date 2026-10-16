@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2025-11-01 for v1.15.2 by @jgclark
+// Last updated 2026-10-16 for v1.20.4 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -47,7 +47,7 @@ function findPotentialDoubledNotes(): Array<DoubleDetails> {
     let outputArray: Array<DoubleDetails> = [] // of NP filenames
 
     // Get all Calendar notes to check (that are at least 4 lines long)
-    const calendarNotes = DataStore.calendarNotes.slice().filter(n => n.content?.length ?? 0 >= 20)
+    const calendarNotes = DataStore.calendarNotes.slice().filter(n => (n.content?.length ?? 0) >= 20)
 
     // Look at each and see if it looks doubled
     let i = 0
