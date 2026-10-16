@@ -97,9 +97,15 @@ describe('shouldUseFullAllProjectsGenerate', () => {
     expect(shouldUseFullAllProjectsGenerate(makeConfig({ foldersToInclude: ['Projects'] }))).toBe(true)
   })
 
-  test('full scan older than 24h requires full', () => {
-    preferenceValues['Reviews-lastAllProjectsFullScanTime'] = Date.now() - 25 * 60 * 60 * 1000
+  test('full scan older than 5d requires full', () => {
+    preferenceValues['Reviews-lastAllProjectsFullScanTime'] = Date.now() - (5 * 24 + 1) * 60 * 60 * 1000
     expect(shouldUseFullAllProjectsGenerate(makeConfig())).toBe(true)
+  })
+
+  test('full scan within 5d allows incremental when generation is fresh', () => {
+    preferenceValues['Reviews-lastAllProjectsFullScanTime'] = Date.now() - 4 * 24 * 60 * 60 * 1000
+    preferenceValues['Reviews-lastAllProjectsGenerationTime'] = Date.now()
+    expect(shouldUseFullAllProjectsGenerate(makeConfig())).toBe(false)
   })
 
   test('fresh full scan and matching fingerprint allows incremental', () => {

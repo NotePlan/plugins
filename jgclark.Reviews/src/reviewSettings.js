@@ -63,6 +63,12 @@ export type ReviewConfig = {
   progressHeading?: string,
   writeMostRecentProgressToFrontmatter?: boolean,
   projectMetadataFrontmatterKey?: string,
+  /** When true, maintain Kanban `status` frontmatter hashtag on project notes. */
+  useProjectStatus?: boolean,
+  /** Term for not-started status hashtag (default notstarted). */
+  notstartedMentionStr?: string,
+  /** Term for paused status hashtag (default paused). */
+  pausedMentionStr?: string,
   weeklyProjectProgressHeading?: string,
   weeklyProjectProgressShowEmptyFolders?: boolean,
   weeklyProjectProgressBulletSummary?: string,
@@ -93,6 +99,9 @@ export const SETTINGS_THAT_REQUIRE_REBUILD: $ReadOnlyArray<string> = [
   'nextReviewMentionStr',
   'progressStr',
   'projectMetadataFrontmatterKey',
+  'useProjectStatus',
+  'notstartedMentionStr',
+  'pausedMentionStr',
 ]
 
 /**
@@ -282,7 +291,20 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
       }
     }
 
-    // Ensure following have sensible defaults if missing from settings
+    // Ensure following have sensible defaults if missing from settings (before copying into Preferences)
+    if (config.useProjectStatus == null) {
+      config.useProjectStatus = false
+    }
+    if (config.notstartedMentionStr == null || config.notstartedMentionStr === '') {
+      config.notstartedMentionStr = 'notstarted'
+    }
+    if (config.pausedMentionStr == null || config.pausedMentionStr === '') {
+      config.pausedMentionStr = 'paused'
+    }
+    DataStore.setPreference('useProjectStatus', config.useProjectStatus === true)
+    DataStore.setPreference('notstartedMentionStr', config.notstartedMentionStr)
+    DataStore.setPreference('pausedMentionStr', config.pausedMentionStr)
+    logDebug('getReviewSettings', `useProjectStatus=${String(config.useProjectStatus)}`)
     if (config.displayPaused == null) {
       config.displayPaused = true
     }

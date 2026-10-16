@@ -18,6 +18,7 @@ import {
   persistLastSettingsSnapshot,
   seedLastSettingsSnapshotIfMissing,
 } from './reviewSettings'
+import { offerAndRunMetadataTermRenames } from './projectStatusMigrate'
 import { JSP, compareObjects, logDebug, logError, logInfo } from '@helpers/dev'
 import { backupSettings, pluginUpdated, saveSettings, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
@@ -143,9 +144,13 @@ export async function onSettingsUpdated(): Promise<void> {
     const action = getSettingsUpdateAction(previousRaw, rawSettings)
     logInfo(pluginJson, `Have updated Review settings; action='${action}' (previous snapshot ${previousRaw == null ? 'missing' : 'present'})`)
 
+    const config = await getReviewSettings()
+    if (!config) throw new Error(`Can't get Review settings. Stopping.`)
+
+    // When metadata-term settings change, offer to rename keys/values across project notes first.
+    await offerAndRunMetadataTermRenames(previousRaw, rawSettings, config)
+
     if (action === 'rebuild' || action === 'recalculate' || action === 'redisplay') {
-      const config = await getReviewSettings()
-      if (!config) throw new Error(`Can't get Review settings. Stopping.`)
       if (action === 'rebuild') {
         // Skip the write-time Rich-list invoke; render once in-process below.
         await generateAllProjectsList(config, true, 0, false, true, true)

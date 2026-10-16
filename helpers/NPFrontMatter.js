@@ -1154,7 +1154,7 @@ export function updateFrontMatterVars(note: CoreNoteFields, newAttributes: { [st
         note.updateParagraph(paragraph)
         logDebug('updateFrontMatterVars', `updateFrontMatterVars: updated paragraph ${paragraph.lineIndex} to: "${paragraph.content}"`)
       } else {
-        logError('updateFrontMatterVars', `updateFrontMatterVars: Failed to find frontmatter paragraph for key "${key}".`)
+        logError('updateFrontMatterVars', `updateFrontMatterVars: Failed to find frontmatter paragraph for key "${key}" in note "${note.filename || ''}" .`)
       }
     })
 

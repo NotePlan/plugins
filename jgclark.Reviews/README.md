@@ -35,7 +35,7 @@ Each such project/area note contains some **metadata** fields including a hashta
 ---
 title: Secret Undertaking
 project: #project
-start: 2021-04-05
+started: 2021-04-05
 due: 2021-11-30
 reviewed: 2021-07-20
 review: 2w
@@ -57,7 +57,7 @@ The fields it uses are:
     - After the [number] is a character, which is one of: **b**usiness days (ignore weekends, but doesn't ignore public holidays, as they're different for each country), **d**ays, **w**eeks, **m**onths, **q**uarters, **y**ears.
 - `reviewed`: the last date this project was reviewed using this plugin
 - `nextReview`: specific date for next review (if wanted)
-- `start`: project's start date (optional)
+- `started`: project's start date (optional; key name from the "Project start string" setting, formerly often `start`)
 - `due`: project's due date (optional; not normally relevant for Areas)
 - `completed`: date project was completed (if relevant)
 - `cancelled`: date project was cancelled (if relevant)
@@ -90,10 +90,10 @@ Aim: Make sure 007's Aston Martin continues to run well, is legal etc.
 
 Other details about the metadata:
 - You can change the name of the Frontmatter key for the hashtags to use, by changing the "Frontmatter metadata key" setting (see below). Another good option might be `metadata`.
-- If you also add the `#paused` tag to the metadata line, then that stops that note from being included in active reviews, but can show up in the lists. Pausing or un-pausing also updates the metadata `reviewed: <date>`.
+- Pausing a project stops it from being included in active reviews, but it can still show up in the lists. Pausing or un-pausing also updates the metadata `reviewed: <date>`. With the optional status feature off, pause uses `#paused` on the combined project tag field; with it on, pause uses `status: #paused` instead.
 - From v1.3 you can add `project: #sequential` in the frontmatter: the plugin then treats the first open task/checklist in the note as the 'next action', without needing to use next-action tags on individual tasks.
 - If there are multiple copies of a metadata field, only the first one is used.
-- You can of course use any other frontmatter keys and values you wish. For example, you might want to use `status: started` or `status: complete` and use `status` as part of the ['Cards'  Kanban-style folder view definition](https://help.noteplan.co/article/239-card-kanban-view). For more on this see [Using with Folder Views](#using-with-folder-views) section below.
+- Optional Kanban `status` frontmatter is described under [Using with Folder Views](#using-with-folder-views) below.
 
 ## Project lifecycles
 Here's the underlying lifecycle that this plugin supports:
@@ -361,42 +361,45 @@ These keys are written or updated by the plugin and can be added as folder-view 
 - `completed` / `cancelled`: an ISO date (`YYYY-MM-DD`) set when you run **/complete project** or **/cancel project**
 - `progress`: the latest progress line, but only if **Also write most recent Progress line to frontmatter?** is on
 
-Any other frontmatter keys you add yourself (including `status` and NotePlan's card `order` field) are left alone.
+Any other frontmatter keys you add yourself (including NotePlan's card `order` field) are left alone, unless you turn on the optional `status` feature below.
 
-### Adding a `status` (or similar) flag for Kanban columns
+### Project `status` for Kanban columns
 
-The plugin does *not* create or update a `status` field. That is yours to maintain, which is what makes a Cards view work as a Kanban board.
+Turn on **Maintain a status frontmatter hashtag?** in settings. The plugin then writes and updates a `status` field with a hashtag, for use with NotePlan [Cards / Kanban](https://help.noteplan.co/article/239-card-kanban-view) folder views:
 
-Add a key such as `status` (or `stage`, or any name you prefer) to each project note:
+| State | Default `status` value | Also writes |
+| --- | --- | --- |
+| Not started | `#notstarted` | -- |
+| Started | `#started` | `started:` date key (name from settings) |
+| Paused | `#paused` | pause no longer adds a tag on `project:` |
+| Completed | `#completed` | `completed:` date |
+| Cancelled | `#cancelled` | `cancelled:` date |
+
+The hashtag text comes from the metadata-term settings (plus **Not-started status string** and **Paused status string**). The default project start string is now `started` (so the date key and status hashtag align).
+
+Example:
 
 ```markdown
 ---
 title: Secret Undertaking
 project: #project
 review: 2w
-start: 2021-04-05
+started: 2021-04-05
 due: 2021-11-30
-status: started
+status: #started
 ---
 ```
 
-Typical values might be `backlog`, `started`, `waiting`, `complete`, `cancelled` -- use whatever column names you want, and keep the spelling consistent.
+Automatic updates when the feature is on:
 
-Then in that folder:
+- **/create new project** / **/convert to project**: `#started` if the note already has ≥1 completed task or checklist, otherwise `#notstarted`
+- **/pause project toggle**: `#paused` while paused; `#started` when resumed
+- **/complete project** / **/cancel project**: `#completed` / `#cancelled`
+- **/finish project review**: if status is still `#notstarted` and there is ≥1 completed task or checklist, promotes to `#started`
 
-1. Open the folder and switch the view from List to **Cards**.
-2. Use **Group** and choose `status` (or your chosen key).
-3. Drag cards between columns to change status; NotePlan writes the new value back to that note's frontmatter.
+You can still drag cards between columns in a Cards view; NotePlan writes the new value back. If you rename a metadata term in settings, the plugin offers to update matching frontmatter keys, status hashtags, and `@mentions` across project notes.
 
-You can change the value on the card itself once at least two notes have different values (the view learns the options from the notes it can see).
-
-### How this relates to complete, cancel, and pause
-
-- **/complete project** and **/cancel project** set `completed:` or `cancelled:` to today's date. They do **not** change `status`. If you use Kanban columns, update `status` yourself (or drag the card) so the column matches.
-- If you archive the note as part of closeout, it leaves the folder and therefore leaves that folder view.
-- `#paused` lives on the `project:` hashtag list (`project: #project #paused`), not as `status: paused`. You can still give paused notes their own status value if you want a "Paused" column.
-
-A simple approach that stays in sync: use `status` for the *active* pipeline (`backlog` / `started` / `waiting`), and treat `completed` / `cancelled` dates as the finished flags. Hide the finished cards with a folder-view filter (see below) rather than expecting the plugin to move them to a "Done" column.
+When the status feature is **off**, behaviour matches earlier versions: `#paused` stays on the combined `project:` tag list, and `status` is left alone if you maintain it yourself.
 
 ### Hiding finished projects
 
@@ -404,7 +407,7 @@ Do **not** overwrite `completed` with `yes` / `no`. This plugin uses `completed:
 
 Instead, either:
 
-- hide the `complete` / `cancelled` **status** columns in the Cards view, or
+- hide the `#completed` / `#cancelled` **status** columns in the Cards view, or
 - filter the view so notes with a `completed` or `cancelled` date are hidden.
 
 ### Showing progress on cards

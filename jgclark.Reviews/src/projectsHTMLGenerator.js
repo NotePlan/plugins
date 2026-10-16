@@ -681,10 +681,7 @@ export function buildProjectListTopBarHtml(config: any): string {
 
   const controlButtons = `
 <div class="topbar-center-cluster">
-  <div id="reviews" class="topbar-item">Reviews: ${startReviewPCButton}
-  ${reviewedPCButton}
-  ${finishAndNextReviewPCButton}
-  ${nextReviewPCButton}
+  <div id="reviews" class="topbar-item">Reviews: <span class="topbar-button-group">${startReviewPCButton}${reviewedPCButton}${finishAndNextReviewPCButton}${nextReviewPCButton}</span>
   </div>
 </div>`
   parts.push(controlButtons)

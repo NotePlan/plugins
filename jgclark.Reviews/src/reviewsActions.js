@@ -29,6 +29,7 @@ import {
   updateProjectInAllProjectsList,
 } from './allProjectsListHelpers.js'
 import { calcReviewFieldsForProject } from './projectClassCalculations.js'
+import { promoteNotstartedToStartedIfHasClosedItems } from './projectStatus'
 import {
   clearProjectReviewingInHTML,
   generateProjectListsAndRenderIfOpen,
@@ -182,6 +183,10 @@ async function finishReviewCoreLogic(
       migrateProjectMetadataLineInEditor(focusedEditor)
       wroteMetadata = await applyFinishReviewMetadataUpdates(focusedEditor, config, reviewedTodayString, 'editor')
       if (wroteMetadata) {
+        if (config.useProjectStatus === true) {
+          const paras = focusedEditor.note != null ? focusedEditor.note.paragraphs : focusedEditor.paragraphs
+          promoteNotstartedToStartedIfHasClosedItems(focusedEditor, paras ?? [])
+        }
         await focusedEditor.save()
       }
       // Note: no longer seem to need to update cache
@@ -193,6 +198,9 @@ async function finishReviewCoreLogic(
       migrateProjectMetadataLineInNote(note)
       wroteMetadata = await applyFinishReviewMetadataUpdates(note, config, reviewedTodayString, 'note')
       if (wroteMetadata) {
+        if (config.useProjectStatus === true) {
+          promoteNotstartedToStartedIfHasClosedItems(note, note.paragraphs ?? [])
+        }
         DataStore.updateCache(note, true)
       }
     }
