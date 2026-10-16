@@ -9,9 +9,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.com/plugins/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "2.3.3",
-  "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "2.3.3: Increase the time between full rebuilds of the Project cache, up to 5 days. (There are quicker refreshes every day.)\n2.3.2: Rich list review labels (overdue / review now / review soon) scale with the project's review interval, capped at 7 days for review soon, 2 days for review now, and 5 days late for overdue. Short intervals get tighter windows. Due-date labels are unchanged.\n2.3.1: Small improvement to suit Dashboard plugin.\n2.3.0: Much faster Refresh via Shared notes-changed-recently cache. /weeklyProjectsProgress updates the weekly note from recently changed notes only; /heatmaps does the full scan and writes CSVs. More responsive on NotePlan 3.21.3+.\n2.2.1: Fix to root folder exclusion when using Perspectives. New progress dialogs.\n2.2.0: Updated layout of the top bar, and added a Settings button. The Refresh icon now spins while the list is regenerating.\nAvoids unnecessary refreshes when saving settings.\n2.1.1: bug fixes and small improvements.\n2.1.0: **/weeklyProjectsProgress** can upsert a current-week progress table into the weekly note (new settings **Heading for Weekly Project Progress output** and **Show folders with no progress in weekly table?**). Includes Refresh and Show/Hide empty-folder toggle pseudo-buttons.",
+  "plugin.version": "2.4.0.b1",
+  "plugin.releaseStatus": "beta",
+  "plugin.lastUpdateInfo": "2.4.0: Optional Kanban `status` frontmatter (#notstarted / #started / #paused / #completed / #cancelled), auto-updated on pause/complete/cancel/review/create. Pause lives on `status` when enabled. Default start term is now 'started'. Renaming metadata terms offers a vault-wide update.\n2.3.3: Increase the time between full rebuilds of the Project cache, up to 5 days. (There are quicker refreshes every day.)\n.3.2: Rich list review labels (overdue / review now / review soon) scale with the project's review interval, capped at 7 days for review soon, 2 days for review now, and 5 days late for overdue. Short intervals get tighter windows. Due-date labels are unchanged.\n2.3.1: Small improvement to suit Dashboard plugin.\n2.3.0: Much faster Refresh via Shared notes-changed-recently cache.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {
@@ -543,6 +543,18 @@
     },
     {
       "type": "heading",
+      "title": "Project status (Kanban)"
+    },
+    {
+      "key": "useProjectStatus",
+      "title": "Maintain a status frontmatter hashtag?",
+      "description": "When on, the plugin writes a 'status: frontmatter field with a hashtag (#notstarted, #started, #paused, #completed, or #cancelled) to use in NotePlan Cards / Kanban views. Pause now uses the 'status:' field instead of putting '#paused' in the 'project:' field. Status is updated automatically when you pause, complete, cancel, finish a review, or create/convert a project.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "type": "heading",
       "title": "Calculating Progress"
     },
     {
@@ -656,17 +668,41 @@
       "title": "Customise the metadata terms"
     },
     {
+      "key": "projectMetadataFrontmatterKey",
+      "title": "Frontmatter metadata key",
+      "description": "Frontmatter key used to store the combined project metadata string (defaults to 'project'; 'metadata' is a common alternative).",
+      "type": "string",
+      "default": "project",
+      "required": true
+    },
+    {
+      "key": "notstartedMentionStr",
+      "title": "Not-started status string",
+      "description": "Term used for the not-started status hashtag (default: 'notstarted' → status: #notstarted). Only used when 'Maintain a status frontmatter hashtag?' is on.",
+      "type": "string",
+      "default": "notstarted",
+      "required": true
+    },
+    {
       "key": "startMentionStr",
       "title": "Project started string",
-      "description": "Your name for the date a project/area was started (default: 'started'). This, and the others below, are used as the metadata key name in the frontmatter.",
+      "description": "Your name for the date a project/area was started, and (when status is enabled) the started status hashtag (default: 'started' → started: date and status: #started). This, and the others below, are used as the metadata key name in the frontmatter.",
       "type": "string",
       "default": "started",
       "required": true
     },
     {
+      "key": "pausedMentionStr",
+      "title": "Paused status string",
+      "description": "Term used for the paused status hashtag (default: 'paused' → status: #paused). When status is enabled, pause no longer adds this tag to the combined project field.",
+      "type": "string",
+      "default": "paused",
+      "required": true
+    },
+    {
       "key": "completedMentionStr",
       "title": "Project completed string",
-      "description": "Your name for the date a project/area was completed (default: 'completed')",
+      "description": "Your name for the date a project/area was completed, and (when status is enabled) the completed status hashtag (default: 'completed')",
       "type": "string",
       "default": "completed",
       "required": true
@@ -674,7 +710,7 @@
     {
       "key": "cancelledMentionStr",
       "title": "Project cancelled string",
-      "description": "Your name for the date a project/area was cancelled (default: 'cancelled')",
+      "description": "Your name for the date a project/area was cancelled, and (when status is enabled) the cancelled status hashtag (default: 'cancelled')",
       "type": "string",
       "default": "cancelled",
       "required": true
@@ -717,14 +753,6 @@
       "description": "Your name for progress lines in the note body and the progress frontmatter key (default: 'progress')",
       "type": "string",
       "default": "progress",
-      "required": true
-    },
-    {
-      "key": "projectMetadataFrontmatterKey",
-      "title": "Frontmatter metadata key",
-      "description": "Frontmatter key used to store the combined project metadata string (defaults to 'project'; 'metadata' is a common alternative).",
-      "type": "string",
-      "default": "project",
       "required": true
     },
     {

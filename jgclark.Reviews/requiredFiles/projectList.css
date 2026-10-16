@@ -222,9 +222,21 @@ input, label {
   justify-self: center;
 }
 
+/* Adjacent command buttons: same horizontal spacing in Reviews cluster and Filter/Settings */
+.topbar-button-group,
+.topbar-right-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem; /* Note: equivalent .PCButton margin-right is 3px, which should be updated. */
+}
+
+.topbar-button-group .PCButton,
+.topbar-right-cluster .PCButton {
+  margin-right: 0; /* horizontal spacing comes from gap only */
+}
+
 .topbar-right-cluster {
   display: flex;
-  align-items: center;
   justify-self: end;
   min-width: 0;
 }

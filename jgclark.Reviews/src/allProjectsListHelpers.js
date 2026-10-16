@@ -385,11 +385,11 @@ function readUnionForConfig(config: ReviewConfig): ?TPerspectiveScopeUnion {
 }
 
 /**
- * True when allProjectsList.json is older than maxAgeAllProjectsListInHours.
+ * True when allProjectsList.json is older than MAX_AGE_FULL_SCAN_MS.
  * @returns {boolean}
  */
 function listIsOlderThanMaxAge(): boolean {
-  return getFileAgeMs(generatedDatePrefName) > MS_PER_HOUR * maxAgeAllProjectsListInHours
+  return getFileAgeMs(generatedDatePrefName) > MAX_AGE_FULL_SCAN_MS
 }
 
 /**
