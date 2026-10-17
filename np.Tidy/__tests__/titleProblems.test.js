@@ -177,6 +177,25 @@ body
     expect(contentWithPipesReplaced('# How to erase | AppleInsider---\nnext\n')).toBe('# How to erase - AppleInsider---\nnext\n')
   })
 
+  test('replaces a pipe in the first H1 when it is not the first body line', () => {
+    const content = `---
+title: Foo | Bar
+---
+intro line
+
+# Foo | Bar
+# Later | heading
+`
+    expect(contentWithPipesReplaced(content)).toBe(`---
+title: Foo - Bar
+---
+intro line
+
+# Foo - Bar
+# Later | heading
+`)
+  })
+
   test('returns null when neither title field contains a pipe', () => {
     expect(contentWithPipesReplaced('---\ntitle: Hello\n---\n# Hello\n')).toBeNull()
   })

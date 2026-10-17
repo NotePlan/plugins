@@ -188,7 +188,23 @@ export function replacePipesInTitle(title: string): string {
 }
 
 /**
- * Replace `|` in the frontmatter `title:` line and in the H1 on body line 0.
+ * Index of the first ATX H1 at or after `start`, or -1 when there is none.
+ * `##` and deeper headings are not H1s.
+ * @param {Array<string>} lines
+ * @param {number} start
+ * @returns {number}
+ */
+function firstH1LineIndex(lines: Array<string>, start: number): number {
+  for (let i = start; i < lines.length; i++) {
+    const line = lines[i] ?? ''
+    if (/^#\s+\S/.test(line) && !line.trim().startsWith('##')) return i
+  }
+  return -1
+}
+
+/**
+ * Replace `|` in the frontmatter `title:` line and in the first H1 in the body.
+ * The H1 does not have to be the first body line.
  * Returns null when neither of those contains `|`.
  * One string so the caller can write the note once. A later frontmatterAttributes
  * write rebuilds the note from a stale body and puts the old H1 back.
@@ -217,11 +233,12 @@ export function contentWithPipesReplaced(content: string): ?string {
       bodyStart = closeAt + 1
     }
   }
-  const bodyLine = lines[bodyStart] ?? ''
-  if (/^#\s+\S/.test(bodyLine) && !bodyLine.trim().startsWith('##') && bodyLine.includes('|')) {
+  const h1Index = firstH1LineIndex(lines, bodyStart)
+  if (h1Index >= 0) {
+    const bodyLine = lines[h1Index] ?? ''
     const h1Match = bodyLine.match(/^#\s+(\S.*?)\s*$/)
     if (h1Match != null && h1Match[1].includes('|')) {
-      lines[bodyStart] = `# ${replacePipesInTitle(h1Match[1].trim())}`
+      lines[h1Index] = `# ${replacePipesInTitle(h1Match[1].trim())}`
       changed = true
     }
   }
@@ -415,8 +432,8 @@ function sectionLines(heading: string, rows: Array<noteTitleProblems>, kind: Tit
   }
   if (i === 0) return []
   if (kind === 'pipe-title') {
-    const fixAllButton = createPrettyRunPluginLink('Fix all', 'np.Tidy', 'fixAllTitlePipes', [])
-    return [`## ${heading}`, PIPE_TITLE_INTRO, fixAllButton, '', ...lines, '']
+    const fixAllButton = createPrettyRunPluginLink('Fix all notes', 'np.Tidy', 'fixAllTitlePipes', [])
+    return [`## ${heading}`, PIPE_TITLE_INTRO + ' ' + fixAllButton, '', ...lines, '']
   }
   return [`## ${heading}`, ...lines, '']
 }
@@ -524,6 +541,7 @@ export async function useFrontmatterTitle(filename: string): Promise<void> {
     if (fmTitle == null) {
       CommandBar.showLoading(false)
       await showMessage(`Note '${filename}' has no frontmatter title. I will re-run the command.`)
+      // Re-run the command to update the results note.
       await listTitleProblems('runSilently')
       return
     }
@@ -531,6 +549,7 @@ export async function useFrontmatterTitle(filename: string): Promise<void> {
     if (updated == null) {
       CommandBar.showLoading(false)
       await showMessage(`Couldn't find an H1 on the first line of '${filename}'. I will re-run the command.`)
+      // Re-run the command to update the results note.
       await listTitleProblems('runSilently')
       return
     }
@@ -554,6 +573,7 @@ export async function useH1Title(filename: string): Promise<void> {
     if (!note) {
       CommandBar.showLoading(false)
       await showMessage(`Couldn't find note '${filename}'. I will re-run the command.`)
+      // Re-run the command to update the results note.
       await listTitleProblems('runSilently')
       return
     }
@@ -561,6 +581,7 @@ export async function useH1Title(filename: string): Promise<void> {
     if (h1Title == null) {
       CommandBar.showLoading(false)
       await showMessage(`Couldn't find an H1 on the first line of '${filename}'. I will re-run the command.`)
+      // Re-run the command to update the results note.
       await listTitleProblems('runSilently')
       return
     }
@@ -575,7 +596,7 @@ export async function useH1Title(filename: string): Promise<void> {
 }
 
 /**
- * x-callback: replace `|` with `-` in the frontmatter title and in the H1 on body line 0, where either contains `|`.
+ * x-callback: replace `|` with `-` in the frontmatter title and in the first H1, where either contains `|`.
  * @param {string} filename
  */
 export async function fixTitlePipes(filename: string): Promise<void> {
@@ -586,6 +607,8 @@ export async function fixTitlePipes(filename: string): Promise<void> {
     if (!note) {
       CommandBar.showLoading(false)
       await showMessage(`Couldn't find note '${filename}'`)
+      // Re-run the command to update the results note.
+      await listTitleProblems('runSilently')
       return
     }
     // Prefer the open editor so its buffer cannot save the old H1 back over the file.
@@ -594,6 +617,8 @@ export async function fixTitlePipes(filename: string): Promise<void> {
     if (!changed) {
       CommandBar.showLoading(false)
       await showMessage(`Couldn't find a title containing | in '${filename}'`)
+      // Re-run the command to update the results note.
+      await listTitleProblems('runSilently')
       return
     }
     CommandBar.showLoading(false)
@@ -605,6 +630,7 @@ export async function fixTitlePipes(filename: string): Promise<void> {
 
 /**
  * x-callback: replace `|` with `-` in every listed note title.
+ * Starts and finishes with a synchronous scan, the last time to update the results note.
  */
 export async function fixAllTitlePipes(): Promise<void> {
   try {
@@ -630,12 +656,14 @@ export async function fixAllTitlePipes(): Promise<void> {
     let fixed = 0
     for (let index = 0; index < found.length; index++) {
       const row = found[index]
-      CommandBar.showLoading(true, `Replacing | in title ${String(index + 1)} of ${String(found.length)}`, (index + 1) / found.length)
+      CommandBar.showLoading(true, `Replacing '|' in title ${String(index + 1)} of ${String(found.length)}`, (index + 1) / found.length)
       const editor = openEditorForFilename(row.note.filename)
       if (applyPipeReplacement(editor ?? row.note)) fixed++
     }
     CommandBar.showLoading(false)
     logInfo('fixAllTitlePipes', `Replaced | in ${String(fixed)} of ${String(found.length)} notes`)
+
+    // Re-run the command to update the results note.
     await listTitleProblems('')
   } catch (err) {
     CommandBar.showLoading(false)

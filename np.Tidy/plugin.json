@@ -11,7 +11,7 @@
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
   "plugin.version": "1.21.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "v1.21.0: New '/List title problems' command to find notes whose title is `---` (often invalid frontmatter) and notes whose frontmatter title does not match the H1 on the first line of the body.\nLonger commands run on a background thread on NotePlan 3.21.3+ to keep it more responsive.\nv1.20.4: various bug fixes.\nv1.20.3: '/Remove empty elements from recent notes' now processes recently changed regular notes, plus calendar notes only when the whole period is already in the past (today, this week, and the current month, quarter, and year are skipped).\nv1.20.2: '/Remove empty elements from recent notes' now only processes current and past calendar notes, never future-dated ones.\nv1.20.1: fix to '/Remove orphaned blockIDs' not honouring 'run silently?' setting.\nv1.20.0: new '/Cancel incomplete tasks in a folder' command for import cleanup (#746).\nv1.19.4: fix '/Move top-level tasks in Editor to heading' when called from the CommandBar (#747).\nv1.19.3: further fix to '/Generate @repeats in recent notes' command.\nv1.19.2: fix to '/Generate @repeats in recent notes' command, which was failing on invalid lines from the API.",
+  "plugin.lastUpdateInfo": "v1.21.0: New '/List title problems' command to find notes whose title is `---` (often invalid frontmatter), notes whose frontmatter title does not match the H1 on the first line of the body, and notes whose title contains `|` (which can cause confusion in note links).\nLonger commands run on a background thread on NotePlan 3.21.3+ to keep it more responsive.\nv1.20.4: various bug fixes.\nv1.20.3: '/Remove empty elements from recent notes' now processes recently changed regular notes, plus calendar notes only when the whole period is already in the past (today, this week, and the current month, quarter, and year are skipped).\nv1.20.2: '/Remove empty elements from recent notes' now only processes current and past calendar notes, never future-dated ones.\nv1.20.1: fix to '/Remove orphaned blockIDs' not honouring 'run silently?' setting.\nv1.20.0: new '/Cancel incomplete tasks in a folder' command for import cleanup (#746).\nv1.19.4: fix '/Move top-level tasks in Editor to heading' when called from the CommandBar (#747).\nv1.19.3: further fix to '/Generate @repeats in recent notes' command.\nv1.19.2: fix to '/Generate @repeats in recent notes' command, which was failing on invalid lines from the API.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -72,6 +72,16 @@
       ]
     },
     {
+      "name": "List missing daily notes",
+      "description": "Creates/updates a note that lists any daily notes that don't exist in the last year",
+      "jsFunction": "listMissingDailyNotes"
+    },
+    {
+      "name": "List stubs",
+      "description": "Creates/updates a note that lists all your notes that have note links (wikilinks) that lead nowhere",
+      "jsFunction": "listStubs"
+    },
+    {
       "name": "List title problems",
       "description": "Creates/updates a note that lists notes whose title is `---` (often invalid frontmatter) and notes whose frontmatter title does not match the H1 on the first line of the body",
       "jsFunction": "listTitleProblems",
@@ -124,16 +134,6 @@
       ]
     },
     {
-      "name": "List missing daily notes",
-      "description": "Creates/updates a note that lists any daily notes that don't exist in the last year",
-      "jsFunction": "listMissingDailyNotes"
-    },
-    {
-      "name": "List stubs",
-      "description": "Creates/updates a note that lists all your notes that have note links (wikilinks) that lead nowhere",
-      "jsFunction": "listStubs"
-    },
-    {
       "name": "Move top-level tasks in Editor to heading",
       "description": "Tasks at top of active note (prior to any heading) will be placed under a specified heading",
       "jsFunction": "moveTopLevelTasksInEditor",
@@ -174,7 +174,7 @@
     },
     {
       "name": "Remove empty elements",
-      "description": "Removes empty list items, quotations, headings, and reduces multiple empty lines to a single empty line.",
+      "description": "Removes empty list items, quotations, headings, and reduces multiple empty lines to a single empty line. Also removes a blank line between frontmatter and the H1.",
       "jsFunction": "removeEmptyElements",
       "alias": [
         "ree",
@@ -434,14 +434,6 @@
       "required": false
     },
     {
-      "key": "titleProblemsNoteFilename",
-      "title": "/List title problems: Filepath for results",
-      "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Title Problems.md')",
-      "type": "string",
-      "default": "Title Problems.md",
-      "required": false
-    },
-    {
       "key": "doubledNoteFilename",
       "title": "/List duplicated content: Filepath for results",
       "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Possible Duplicated Content.md')",
@@ -463,6 +455,14 @@
       "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Stubs.md')",
       "type": "string",
       "default": "Stubs.md",
+      "required": false
+    },
+    {
+      "key": "titleProblemsNoteFilename",
+      "title": "/List title problems: Filepath for results",
+      "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Title Problems.md')",
+      "type": "string",
+      "default": "Title Problems.md",
       "required": false
     },
     {

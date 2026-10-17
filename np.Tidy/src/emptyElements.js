@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Remove empty blocks functionality for Tidy plugin
-// Last updated 2026-10-16 for v1.20.4, @jgclark & @CursorAI
+// Last updated 2026-10-17 for v1.21.0, @jgclark & @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -9,6 +9,7 @@ import { getSettings } from './tidyHelpers'
 import { filenameIsFullyInPast } from '@helpers/dateTime'
 import { JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
+import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import { getAllNotesOfType, getNoteFromFilename, getNotesChangedInInterval } from '@helpers/NPnote'
 import { showMessage } from '@helpers/userInput'
 
@@ -240,6 +241,54 @@ function removeConsecutiveEmptyLines(note: TNote, stripAllEmptyLines: boolean, p
   return numChangesMade
 }
 
+/**
+ * PASS 4: Removes blank lines between frontmatter and the H1.
+ *
+ * Those lines are the start of the body. A blank line after the H1 is left in place.
+ * When the note has no frontmatter, or the first content line after frontmatter is not an H1, this pass makes no change.
+ *
+ * @param {TNote} note - The note to process
+ * @returns {number} - Number of changes made
+ *
+ * @example
+ * Before: "---\ntitle: Note\n---\n\n# Note\n\nFirst paragraph"
+ * After:  "---\ntitle: Note\n---\n# Note\n\nFirst paragraph"
+ */
+function removeBlankLinesAtStartOfBody(note: TNote): number {
+  const paragraphs = note.paragraphs
+  if (!paragraphs || paragraphs.length === 0) return 0
+
+  const endOfFMIndex = endOfFrontmatterLineIndex(note) || 0
+  // No frontmatter, so there is no gap between frontmatter and an H1.
+  if (endOfFMIndex === 0) return 0
+
+  const bodyStart = endOfFMIndex + 1
+  if (bodyStart >= paragraphs.length) return 0
+
+  let firstContent = bodyStart
+  while (firstContent < paragraphs.length && paragraphs[firstContent].type === 'empty') firstContent++
+
+  // Only the gap that leads up to an H1. Stop there so the blank line under the H1 stays.
+  if (firstContent >= paragraphs.length || firstContent === bodyStart || paragraphs[firstContent].type !== 'title' || paragraphs[firstContent].headingLevel !== 1) {
+    return 0
+  }
+
+  const parasToRemove = []
+  for (let i = bodyStart; i < firstContent; i++) {
+    if (paragraphs[i].type === 'empty') parasToRemove.push(paragraphs[i])
+  }
+
+  let numChangesMade = 0
+  for (let i = parasToRemove.length - 1; i >= 0; i--) {
+    const para = parasToRemove[i]
+    logDebug('removeEmptyElements', `Removing blank line at start of body on line ${String(para.lineIndex)}`)
+    note.removeParagraph(para)
+    numChangesMade++
+  }
+  logDebug('removeEmptyElements', `Removed ${String(numChangesMade)} blank lines at start of body`)
+  return numChangesMade
+}
+
 // -----------------------------------------------------------------------------
 /**
  * Remove just empty lines from the open note, without removing any other empty elements.
@@ -289,10 +338,11 @@ export async function removeEmptyLines(filenameIn: string = 'Editor'): Promise<v
  * Setting 'preserveHeadingStructure' controls whether to preserve all heading structure (no heading deletions).
  * Works on the note open in the Editor, unless a filename is provided.
  *
- * The function operates in three passes:
+ * The function operates in four passes:
  * - PASS 1: Removes empty list items, quotes, and headings with no content
  * - PASS 2: Removes empty sections (headings with no content and no subheadings with content)
  * - PASS 3: Handles consecutive empty lines based on stripAllEmptyLines setting
+ * - PASS 4: Removes blank lines between frontmatter and the H1
  * @author @jgclark
  *
  * @param {string} filenameIn - Filename of note to work on. If not provided, works on the note open in the Editor. Can also pass literal string "Editor".
@@ -353,8 +403,9 @@ export async function removeEmptyElements(
     const changes1 = removeEmptyParagraphs(note, preserveHeadings)
     const changes2 = preserveHeadings ? 0 : removeEmptySections(note) // if preserving headings, don't remove any headings
     const changes3 = removeConsecutiveEmptyLines(note, Boolean(stripAllEmptyLines), preserveHeadings)
+    const changes4 = removeBlankLinesAtStartOfBody(note)
 
-    const numChangesMade = changes1 + changes2 + changes3
+    const numChangesMade = changes1 + changes2 + changes3 + changes4
 
     if (numChangesMade > 0) {
       logInfo('removeEmptyElements', `Removed ${String(numChangesMade)} empty elements from note '${displayTitle(note)}'`)

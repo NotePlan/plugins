@@ -21,7 +21,7 @@ This plugin provides commands to help tidy up your notes:
   3. Title contains `|`. This character is allowed, but in a note link it starts an alternative title, so can cause confusion. Each of those notes has "Open note" and "Fix" buttons, and the section has a "Fix all" button. Fix replaces each `|` with `-`. For a `` `---` `` title, the note includes the first 12 lines of the file. The results note is time-stamped and has a refresh button.
 - **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. Note: this command does not work inside a template. See section below.
 - **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character. Note: this command cannot remove Teamspace notes (as of NotePlan v3.18.1), so it won't try.
-- **/Remove empty elements** (alias: "ree"): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information.
+- **/Remove empty elements** (alias: "ree"): in the open note removes empty list items, quotations and headings, reduces multiple empty lines to a single empty line, and removes a blank line between frontmatter and the H1. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information.
 - **/Remove empty elements from recent notes** (alias: "reeRecent"): as above, but for recently changed regular notes, plus calendar notes whose whole period is already in the past. Today, this week, and the current month, quarter, and year are skipped, as are future-dated calendar notes. Template notes (those whose filename starts with '@Templates') are also always excluded from processing.
 - **/Remove empty lines**  (alias "rel"): Remove *all* empty lines from the open note.
 - **/Remove orphaned blockIDs** (alias "rob"): Remove blockIDs from lines that had been sync'd, but have become 'orphans' as the other copies of the blockID have since been deleted.
@@ -61,6 +61,7 @@ The **/Remove empty blocks** command intelligently cleans up your notes while pr
 - Empty quotations (e.g., `> ` with no content)  
 - Empty headings (e.g., `# ` with no text)
 - Multiple consecutive empty lines (reduces to single empty lines)
+- A blank line between frontmatter and the H1
 
 #### Note type coverage
 - **Open note**: "/Remove empty elements" works on the note open in the Editor
@@ -74,7 +75,7 @@ The **/Remove empty blocks** command intelligently cleans up your notes while pr
 - This ensures your note hierarchy stays intact when subheadings contain valuable information
 
 #### Empty line handling
-- **Default behavior**: Reduces multiple consecutive empty lines to a single empty line
+- **Default behavior**: Reduces multiple consecutive empty lines to a single empty line, and removes a blank line between frontmatter and the H1
 - **Strip all empty lines**: Available as an x-callback setting to remove ALL empty lines
 ```
 noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20empty%20elements&arg0=Editor&arg1=true
