@@ -1,7 +1,7 @@
 // @flow
 /* globals describe, expect, test */
 
-import { parseProjectFrontmatterValue, Project, readRawFrontmatterField } from '../projectClass'
+import { parseProjectFrontmatterValue, Project, readAllRawFrontmatterFields, readRawFrontmatterField } from '../projectClass'
 
 type MockParagraph = {
   content: string,
@@ -40,6 +40,24 @@ describe('projectClass frontmatter parsing helpers', () => {
       expect(missing).toEqual({ exists: false, value: undefined })
       expect(presentEmpty).toEqual({ exists: true, value: '' })
       expect(presentInvalid).toEqual({ exists: true, value: '@review()' })
+    })
+
+    test('readAllRawFrontmatterFields matches single-field reads in one pass', () => {
+      const note = makeNote([
+        '---',
+        'title: Example',
+        'due:',
+        'review: @review()',
+        'Started: 2026-01-01',
+        '---',
+        '# Note title',
+      ])
+
+      const all = readAllRawFrontmatterFields((note: any))
+      expect(readRawFrontmatterField((note: any), 'start', all)).toEqual({ exists: false, value: undefined })
+      expect(readRawFrontmatterField((note: any), 'due', all)).toEqual({ exists: true, value: '' })
+      expect(readRawFrontmatterField((note: any), 'review', all)).toEqual({ exists: true, value: '@review()' })
+      expect(readRawFrontmatterField((note: any), 'started', all)).toEqual({ exists: true, value: '2026-01-01' })
     })
   })
 

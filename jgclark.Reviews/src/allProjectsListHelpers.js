@@ -4,10 +4,16 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-10-02 for v2.3.1 by @jgclark + @CursorAI
+// Last updated 2026-10-16 for v2.3.3 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
+import {
+  generateNotesChangedRecentlyCache,
+  getFilenamesChangedSince,
+  isNotesChangedRecentlyCacheGenerationScheduled,
+  updateNotesChangedRecentlyCacheIfTooOld,
+} from '../../np.Shared/src/notesChangedRecentlyCache.js'
 import pluginJson from '../plugin.json'
 import {
   foldersToScanForChangedScopes,
@@ -18,13 +24,8 @@ import {
   readPerspectiveScopeUnion,
   type TPerspectiveScopeUnion,
 } from '../../jgclark.Dashboard/src/perspectiveScopeUnion.js'
-import {
-  generateNotesChangedRecentlyCache,
-  getFilenamesChangedSince,
-  isNotesChangedRecentlyCacheGenerationScheduled,
-  updateNotesChangedRecentlyCacheIfTooOld,
-} from '../../np.Shared/src/notesChangedRecentlyCache.js'
 import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
+import { projectConstructorPrefsFromReviewConfig, type ProjectConstructorPrefs } from './projectClassHelpers.js'
 import { calcReviewFieldsForProject, isProjectFinished } from './projectClassCalculations.js'
 import {
   getMatchingProjectTypeTagsOnNote,
@@ -50,7 +51,6 @@ import { sortListBy } from '@helpers/sorting'
 // Settings
 const pluginID = 'jgclark.Reviews'
 const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // fully specified to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
-const maxAgeAllProjectsListInHours = 168 // 1 week
 const generatedDatePrefName = 'Reviews-lastAllProjectsGenerationTime'
 const lastFullScanPrefName = 'Reviews-lastAllProjectsFullScanTime'
 const lastPerspectivePrefName = 'Reviews-lastAllProjectsPerspective'
@@ -58,7 +58,9 @@ const lastFolderFiltersPrefName = 'Reviews-lastAllProjectsFolderFilters'
 const lastScopeChangedAtPrefName = 'Reviews-lastAllProjectsScopeChangedAt'
 const MS_PER_HOUR = 1000 * 60 * 60
 const MS_PER_DAY = MS_PER_HOUR * 24
-const MAX_AGE_FULL_SCAN_MS = MS_PER_DAY
+const MAX_AGE_BEFORE_REFRESH_HOURS = 23 // refresh (incremental OK) when last write older than this
+const MAX_AGE_BEFORE_FULL_SCAN_DAYS = 5 // full vault enumerate at least this often, even if list was written recently
+const MAX_AGE_FULL_SCAN_MS = MS_PER_DAY * MAX_AGE_BEFORE_FULL_SCAN_DAYS
 const ERROR_FILENAME_PLACEHOLDER = 'error'
 const ERROR_READING_PLACEHOLDER = '<error reading'
 const SEQUENTIAL_TAG_DEFAULT = '#sequential'
@@ -384,11 +386,11 @@ function readUnionForConfig(config: ReviewConfig): ?TPerspectiveScopeUnion {
 }
 
 /**
- * True when allProjectsList.json is older than maxAgeAllProjectsListInHours.
+ * True when allProjectsList.json is older than {@link MAX_AGE_BEFORE_REFRESH_HOURS}.
  * @returns {boolean}
  */
 function listIsOlderThanMaxAge(): boolean {
-  return getFileAgeMs(generatedDatePrefName) > MS_PER_HOUR * maxAgeAllProjectsListInHours
+  return getFileAgeMs(generatedDatePrefName) > MS_PER_HOUR * MAX_AGE_BEFORE_REFRESH_HOURS
 }
 
 /**
@@ -458,7 +460,18 @@ function getFileAgeMs(prefName: string): number {
 }
 
 /**
- * Check if allProjects list file is too old, corrupt, or (when using Dashboard perspectives) out of date for the active perspective.
+ * True when there has never been a full vault enumerate, or the last one is older than {@link MAX_AGE_BEFORE_FULL_SCAN_DAYS}.
+ * @returns {boolean}
+ * @private
+ */
+function isAllProjectsFullScanOverdue(): boolean {
+  const fullScanPref: mixed = DataStore.preference(lastFullScanPrefName)
+  const fullScanMs = typeof fullScanPref === 'number' ? fullScanPref : 0
+  return fullScanMs <= 0 || Date.now() - fullScanMs > MAX_AGE_FULL_SCAN_MS
+}
+
+/**
+ * Check if allProjects list file is too old, corrupt, needs a periodic full scan, or (when using Dashboard perspectives) out of date for the active perspective.
  * @param {ReviewConfig} config - Current review config
  * @returns {boolean} True if file needs regeneration
  * @private
@@ -473,13 +486,21 @@ function shouldRegenerateAllProjectsList(config: ReviewConfig): boolean {
     logWarn('shouldRegenerateAllProjectsList', `allProjectsList.json is missing, empty, or not a JSON array; will regenerate`)
     return true
   }
+  // Periodic full scan must run even if an incremental write kept generation time fresh.
+  if (isAllProjectsFullScanOverdue()) {
+    logInfo(
+      'shouldRegenerateAllProjectsList',
+      `Last full scan older than ${String(MAX_AGE_BEFORE_FULL_SCAN_DAYS)}d or never; will regenerate`,
+    )
+    return true
+  }
   const fileAgeMs = getFileAgeMs(generatedDatePrefName)
-  const maxAgeMs = MS_PER_HOUR * maxAgeAllProjectsListInHours
+  const maxAgeMs = MS_PER_HOUR * MAX_AGE_BEFORE_REFRESH_HOURS
   if (fileAgeMs > maxAgeMs) {
     const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
     logInfo(
       'shouldRegenerateAllProjectsList',
-      `allProjects list is ${fileAgeHours}h old (max ${String(maxAgeAllProjectsListInHours)}h); will regenerate`,
+      `allProjects list is ${fileAgeHours}h old (max ${String(MAX_AGE_BEFORE_REFRESH_HOURS)}h); will regenerate`,
     )
     return true
   }
@@ -522,7 +543,7 @@ function shouldRegenerateAllProjectsList(config: ReviewConfig): boolean {
 
 /**
  * True when generateAllProjectsList must do a full vault enumerate (not incremental merge).
- * Reasons: force flag, missing/corrupt/empty baseline, perspective or folder fingerprint change, or last full scan older than 24h.
+ * Reasons: force flag, missing/corrupt/empty baseline, perspective or folder fingerprint change, or last full scan older than {@link MAX_AGE_BEFORE_FULL_SCAN_DAYS}.
  * @param {ReviewConfig} config
  * @param {boolean} [forceFullGenerate]
  * @returns {boolean}
@@ -587,10 +608,11 @@ export function shouldUseFullAllProjectsGenerate(config: ReviewConfig, forceFull
     logInfo('shouldUseFullAllProjectsGenerate', `Folder filters changed; full generate`)
     return true
   }
-  const fullScanPref: mixed = DataStore.preference(lastFullScanPrefName)
-  const fullScanMs = typeof fullScanPref === 'number' ? fullScanPref : 0
-  if (fullScanMs <= 0 || Date.now() - fullScanMs > MAX_AGE_FULL_SCAN_MS) {
-    logInfo('shouldUseFullAllProjectsGenerate', `Last full scan older than 24h or never; full generate`)
+  if (isAllProjectsFullScanOverdue()) {
+    logInfo(
+      'shouldUseFullAllProjectsGenerate',
+      `Last full scan older than ${String(MAX_AGE_BEFORE_FULL_SCAN_DAYS)}d or never; full generate`,
+    )
     return true
   }
   return false
@@ -683,6 +705,7 @@ async function generateAllProjectsListIncremental(
       : (config.projectTypeTags ?? [])
   const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
   const nextActionTags = config.nextActionTags ?? []
+  const ctorPrefs = projectConstructorPrefsFromReviewConfig(config)
 
   const changedSet = new Set(changedFilenames)
   let rebuiltCount = 0
@@ -720,7 +743,7 @@ async function generateAllProjectsListIncremental(
         if (!isNoteInCurrentProjectSelection(note, config, tag)) {
           continue
         }
-        const np = new Project(note, tag, true, nextActionTags, sequentialTagResolved, false)
+        const np = new Project(note, tag, true, nextActionTags, sequentialTagResolved, false, ctorPrefs)
         byKey.set(makeProjectListCacheKey(filename, tag), np)
         rebuiltCount += 1
       }
@@ -1013,6 +1036,7 @@ export async function addNewProjectToAllProjectsListIfInScope(
       config.nextActionTags,
       config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT,
       false,
+      projectConstructorPrefsFromReviewConfig(config),
     )
     allProjects.push(newProject)
     logInfo('addNewProjectToAllProjectsListIfInScope', `- Added Project '${newProject.title ?? note.filename ?? '?'}' (${projectTypeTag}) to allProjects list`)
@@ -1078,6 +1102,7 @@ function buildMatchingProjectNoteTagPairsSync(
     }
     let notesProcessed = 0
     for (const folder of filteredFolderList) {
+      const folderDisplayName = getFolderDisplayName(folder)
       const projectNotesInFolder = notesByFolder.get(folder) ?? []
       const folderLabel = getFolderDisplayName(folder)
       if (projectNotesInFolder.length === 0) {
@@ -1197,6 +1222,7 @@ export async function enumerateMatchingProjectNoteTagPairs(
  * @param {Map<string, any>} projectListRowByKey
  * @param {Array<string>} nextActionTags
  * @param {string} sequentialTagResolved
+ * @param {ProjectConstructorPrefs} ctorPrefs
  * @param {boolean} showProgressToUser
  * @param {'Generating' | 'Refreshing'} progressVerb - When Refreshing, progress text uses that verb instead of Building
  * @returns {Array<Project>}
@@ -1206,6 +1232,7 @@ function buildProjectsFromPairsSync(
   projectListRowByKey: Map<string, any>,
   nextActionTags: Array<string>,
   sequentialTagResolved: string,
+  ctorPrefs: ProjectConstructorPrefs,
   showProgressToUser: boolean = false,
   progressVerb: 'Generating' | 'Refreshing' = 'Generating',
 ): Array<Project> {
@@ -1242,7 +1269,7 @@ function buildProjectsFromPairsSync(
         np = calcReviewFieldsForProject(cloned)
       } else {
         logDebug('getAllMatchingProjects', `- Cache MISS, so calling Project constructor for ${tag} '${n.filename}'`)
-        np = new Project(n, tag, false, nextActionTags, sequentialTagResolved, false)
+        np = new Project(n, tag, false, nextActionTags, sequentialTagResolved, false, ctorPrefs)
       }
       projectInstances.push(np)
     }
@@ -1293,16 +1320,17 @@ async function getAllMatchingProjects(
 
   const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
   const nextActionTags = config.nextActionTags ?? []
+  const ctorPrefs = projectConstructorPrefsFromReviewConfig(config)
   // Side-channel: do not return large Project arrays from runOnAsyncThread.
   let projectInstancesHolder: ?Array<Project> = null
   await runSyncWorkOnAsyncThread('getAllMatchingProjects build', () => {
-    projectInstancesHolder = buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, showProgressToUser, progressVerb)
+    projectInstancesHolder = buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, ctorPrefs, showProgressToUser, progressVerb)
     return true
   })
   const projectInstances: Array<Project> =
     projectInstancesHolder != null
       ? projectInstancesHolder
-      : buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, showProgressToUser, progressVerb)
+      : buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, ctorPrefs, showProgressToUser, progressVerb)
   if (projectInstancesHolder == null) {
     logWarn('getAllMatchingProjects', `- async result missing; built projects on main thread`)
   }
@@ -1362,6 +1390,7 @@ async function generateAllProjectsListPartialForChangedScopes(
       : (config.projectTypeTags ?? [])
   const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
   const nextActionTags = config.nextActionTags ?? []
+  const ctorPrefs = projectConstructorPrefsFromReviewConfig(config)
   const notes = (DataStore.projectNotes ?? []).filter((note) => {
     const folder = getFolderFromFilename(note.filename ?? '')
     if (!foldersToScan.includes(folder)) return false
@@ -1372,7 +1401,7 @@ async function generateAllProjectsListPartialForChangedScopes(
   for (const note of notes) {
     const matchingTags = getMatchingProjectTypeTagsOnNote(note, projectTypeTags)
     for (const tag of matchingTags) {
-      const np = new Project(note, tag, true, nextActionTags, sequentialTagResolved, false)
+      const np = new Project(note, tag, true, nextActionTags, sequentialTagResolved, false, ctorPrefs)
       byKey.set(makeProjectListCacheKey(note.filename ?? '', tag), np)
       added += 1
     }
@@ -1395,7 +1424,8 @@ async function generateAllProjectsListPartialForChangedScopes(
 /**
  * Generate JSON representation of all project notes as Project objects that match the main folder and 'projectTypeTags' settings.
  * Uses an incremental merge from the Shared notes-changed-recently cache when safe; otherwise a full vault enumerate.
- * A full scan is forced at least every 24 hours (and when baseline/fingerprint requires it).
+ * A full scan is forced at least every {@link MAX_AGE_BEFORE_FULL_SCAN_DAYS} days (and when baseline/fingerprint requires it).
+ * A refresh (incremental when possible) runs when the last write is older than {@link MAX_AGE_BEFORE_REFRESH_HOURS} hours.
  * Not ordered in any particular way.
  * Output is written to file location set by `allProjectsListFilename`.
  * Note: Full enumerate can take between 600 and 3,333 ms/project for JGC's large vault in Sep 2026.
@@ -1522,6 +1552,7 @@ async function generateAllProjectsListNow(
  * @param {Array<any>} snapshotRows
  * @param {Array<string>} nextActionTags
  * @param {string} sequentialTagResolved
+ * @param {ProjectConstructorPrefs} ctorPrefs
  * @param {boolean} showProgressToUser
  * @returns {{ rebuilt: Array<Project>, keptStale: number }}
  */
@@ -1529,6 +1560,7 @@ function recalculateProjectsFromSnapshotSync(
   snapshotRows: Array<any>,
   nextActionTags: Array<string>,
   sequentialTagResolved: string,
+  ctorPrefs: ProjectConstructorPrefs,
   showProgressToUser: boolean,
 ): { rebuilt: Array<Project>, keptStale: number } {
   const rebuilt: Array<Project> = []
@@ -1545,7 +1577,10 @@ function recalculateProjectsFromSnapshotSync(
       index += 1
       const filename = typeof row?.filename === 'string' ? row.filename : ''
       if (loadingShown) {
-        const label = (typeof row?.title === 'string' && row.title.trim() !== '') ? row.title.trim() : (filename !== '' ? filename : `item ${String(index)}`)
+        const label =
+          (typeof row?.title === 'string' && row.title.trim() !== '')
+            ? row.title.trim()
+            : (filename !== '' ? getFolderDisplayName(getFolderFromFilename(filename)) : `item ${String(index)}`)
         CommandBar.showLoading(true, `Recalculating project list\n${String(index)}/${String(total)}\n${label}`, index / total)
       }
       if (filename === '') {
@@ -1567,6 +1602,7 @@ function recalculateProjectsFromSnapshotSync(
         nextActionTags,
         sequentialTagResolved,
         false,
+        ctorPrefs,
       ))
     }
   } finally {
@@ -1611,16 +1647,17 @@ export async function recalculateAllProjectsListItems(
     logInfo('recalculateAllProjectsListItems', `Recalculating ${String(snapshotRows.length)} existing allProjects list item(s)`)
     const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
     const nextActionTags = config.nextActionTags ?? []
+    const ctorPrefs = projectConstructorPrefsFromReviewConfig(config)
     // Side-channel: do not return large Project arrays from runOnAsyncThread.
     let recalcHolder: ?{ rebuilt: Array<Project>, keptStale: number } = null
     await runSyncWorkOnAsyncThread('recalculateAllProjectsListItems', () => {
-      recalcHolder = recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, showProgressToUser)
+      recalcHolder = recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, ctorPrefs, showProgressToUser)
       return true
     })
     const { rebuilt, keptStale } =
       recalcHolder != null
         ? recalcHolder
-        : recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, showProgressToUser)
+        : recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, ctorPrefs, showProgressToUser)
     if (recalcHolder == null) {
       logWarn('recalculateAllProjectsListItems', `- async result missing; recalculated on main thread`)
     }
@@ -1735,7 +1772,7 @@ export async function updateProjectInAllProjectsList(projectToUpdate: Project): 
 
 /**
  * Get all Project object instances from JSON list of all available project notes. Doesn't come ordered.
- * First checks how old the list is, and re-generates if more than 'maxAgeAllProjectsListInHours' hours old.
+ * First checks how old the list is, and re-generates if more than 'MAX_AGE_BEFORE_REFRESH_HOURS' hours old.
  * @author @jgclark
  * @returns {Promise<Array<Project>>} allProjects Object, the same as what is written to disk
  */
@@ -2038,15 +2075,18 @@ export async function updateAllProjectsListAfterChange(
     if (!reviewedProject) {
       logWarn('updateAllProjectsListAfterChange', `Couldn't find '${filename}' to update in allProjects list; trying incremental add if in scope`)
       const noteForAdd = getNoteFromFilename(filename)
-      if (noteForAdd && !simplyDelete) {
-        const projectTypeTags =
-          config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
-            ? [config.projectTypeTags]
-            : (config.projectTypeTags ?? [])
-        const tagsToTry =
-          projectTypeTags.length > 0
+      const projectTypeTags =
+        config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
+          ? [config.projectTypeTags]
+          : (config.projectTypeTags ?? [])
+      const tagsToTry =
+        noteForAdd == null
+          ? []
+          : projectTypeTags.length > 0
             ? projectTypeTags
             : getProjectTypeTagsFromNoteMetadata(noteForAdd)
+
+      if (noteForAdd && !simplyDelete) {
         let added = false
         for (const tag of tagsToTry) {
           if (await addNewProjectToAllProjectsListIfInScope(noteForAdd, tag, config, scrollPosForRichList, options)) {
@@ -2059,7 +2099,23 @@ export async function updateAllProjectsListAfterChange(
           return
         }
       }
-      logWarn('updateAllProjectsListAfterChange', `Incremental add failed or note out of scope; will regenerate whole list.`)
+
+      // Out of folder/Space/tag selection: regenerating cannot add the note either, so stop.
+      if (noteForAdd) {
+        const inScopeForAnyTag =
+          tagsToTry.length > 0 &&
+          tagsToTry.some((tag) => isNoteInCurrentProjectSelection(noteForAdd, config, tag))
+        if (!inScopeForAnyTag) {
+          logWarn(
+            'updateAllProjectsListAfterChange',
+            `Note '${filename}' is outside current folder/Space/tag selection; skipping list rebuild`,
+          )
+          logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(skipped; outside current selection for '${filename}')`)
+          return
+        }
+      }
+
+      logWarn('updateAllProjectsListAfterChange', `Incremental add failed while note appears in scope; will regenerate whole list.`)
       await generateAllProjectsList(config, false, scrollPosForRichList)
       logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(delegated to full rebuild for '${filename}')`)
       return
@@ -2087,6 +2143,7 @@ export async function updateAllProjectsListAfterChange(
         config.nextActionTags,
         config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT,
         false,
+        projectConstructorPrefsFromReviewConfig(config),
       )
       logInfo('updateAllProjectsListAfterChange', `- Built updated Project '${reviewedTitle}' for list`)
     }

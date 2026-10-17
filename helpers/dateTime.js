@@ -1417,17 +1417,20 @@ export function includesScheduledFutureDate(line: string, fromDateStr?: string):
  *
  * @param {string} line to search in
  * @param {number} futureStartsInDays - number of days into the future to regard as being 'the future'. If set to 0, then no future items are ignored.
+ * @param {string} [futureCutoffISOStr] - optional precomputed YYYY-MM-DD cutoff (avoids allocating moment per line when scanning many paragraphs)
  * @return {boolean}
  */
-export function includesScheduledFurtherFutureDate(line: string, futureStartsInDays: number): boolean {
+export function includesScheduledFurtherFutureDate(line: string, futureStartsInDays: number, futureCutoffISOStr?: string): boolean {
   if (futureStartsInDays < 0) {
     return false
   }
   // Test for days
   const m = line.match(RE_SCHEDULED_ISO_DATE) ?? []
   if (m.length > 0) {
-    const futureMoment = moment().add(futureStartsInDays, 'days')
-    const futureMomentStr = futureMoment.format('YYYY-MM-DD')
+    const futureMomentStr =
+      futureCutoffISOStr != null && futureCutoffISOStr !== ''
+        ? futureCutoffISOStr
+        : moment().add(futureStartsInDays, 'days').format('YYYY-MM-DD')
     const ISODateFromMatch = m[0].slice(1) // need to remove leading '>'
     // logDebug(`includesScheduledFurtherFutureDate`, `match: ${ISODateFromMatch} >= futureStart:${futureMomentStr} = ${String(ISODateFromMatch >= futureMomentStr)}`)
     return ISODateFromMatch >= futureMomentStr
