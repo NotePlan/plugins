@@ -1,6 +1,12 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [1.21.0] - 2026-10-17 @jgclark
+- fix: '/Clean up note filenames' could not be called, because `cleanUpNoteFilenames` was not exported from the plugin entry point.
+- new **/List title problems** command: creates/updates a note listing notes whose title is `` `---` `` (often from invalid frontmatter) and notes whose frontmatter `title:` does not match the H1 on the first line of the body. An H1 that contains a template tag (for example `<%- prompt(...) %>`) is not reported. Notes whose title contains `|` are listed separately, with **Open note** and **Fix** buttons, plus a **Fix all** button under the explanation. Fix replaces each `|` with `-`. **/Tidy Up** can run it when "Run '/List title problems' command?" is turned on. 
+- Longer clean-ups keep the app more responsive on NotePlan 3.21.3+. dev: Heavy scans run on a background thread. Earlier versions keep the previous background behavior.
+- '/Cancel incomplete tasks in a folder' progress and confirmation dialogs show the teamspace folder name.
+
 ## [1.20.4] - 2026-10-16 @jgclark
 - fix: "List conflicted notes" command failing to honour the setting for the name of the note.
 - fix: '/Tidy Up' ran '/List conflicted notes' and '/List duplicate notes' under each other's switches.

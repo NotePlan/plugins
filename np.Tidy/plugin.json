@@ -9,9 +9,9 @@
   "plugin.iconStyle": "solid",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "1.20.4",
+  "plugin.version": "1.21.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "v1.20.4: various bug fixes.\nv1.20.3: '/Remove empty elements from recent notes' now processes recently changed regular notes, plus calendar notes only when the whole period is already in the past (today, this week, and the current month, quarter, and year are skipped).\nv1.20.2: '/Remove empty elements from recent notes' now only processes current and past calendar notes, never future-dated ones.\nv1.20.1: fix to '/Remove orphaned blockIDs' not honouring 'run silently?' setting.\nv1.20.0: new '/Cancel incomplete tasks in a folder' command for import cleanup (#746).\nv1.19.4: fix '/Move top-level tasks in Editor to heading' when called from the CommandBar (#747).\nv1.19.3: further fix to '/Generate @repeats in recent notes' command.\nv1.19.2: fix to '/Generate @repeats in recent notes' command, which was failing on invalid lines from the API.",
+  "plugin.lastUpdateInfo": "v1.21.0: New '/List title problems' command to find notes whose title is `---` (often invalid frontmatter) and notes whose frontmatter title does not match the H1 on the first line of the body.\nLonger commands run on a background thread on NotePlan 3.21.3+ to keep it more responsive.\nv1.20.4: various bug fixes.\nv1.20.3: '/Remove empty elements from recent notes' now processes recently changed regular notes, plus calendar notes only when the whole period is already in the past (today, this week, and the current month, quarter, and year are skipped).\nv1.20.2: '/Remove empty elements from recent notes' now only processes current and past calendar notes, never future-dated ones.\nv1.20.1: fix to '/Remove orphaned blockIDs' not honouring 'run silently?' setting.\nv1.20.0: new '/Cancel incomplete tasks in a folder' command for import cleanup (#746).\nv1.19.4: fix '/Move top-level tasks in Editor to heading' when called from the CommandBar (#747).\nv1.19.3: further fix to '/Generate @repeats in recent notes' command.\nv1.19.2: fix to '/Generate @repeats in recent notes' command, which was failing on invalid lines from the API.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -53,6 +53,16 @@
       ]
     },
     {
+      "name": "List duplicated content",
+      "description": "Creates/updates a note that lists calendar notes that potentially have duplicated content",
+      "jsFunction": "listPotentialDoubles",
+      "alias": [
+        "doubles",
+        "duplicates",
+        "dupes"
+      ]
+    },
+    {
       "name": "List duplicate notes",
       "description": "Creates/updates a note that lists potentially duplicate notes because they have identical titles",
       "jsFunction": "listDuplicates",
@@ -62,14 +72,46 @@
       ]
     },
     {
-      "name": "List duplicated content",
-      "description": "Creates/updates a note that lists calendar notes that potentially have duplicated content with them",
-      "jsFunction": "listPotentialDoubles",
+      "name": "List title problems",
+      "description": "Creates/updates a note that lists notes whose title is `---` (often invalid frontmatter) and notes whose frontmatter title does not match the H1 on the first line of the body",
+      "jsFunction": "listTitleProblems",
       "alias": [
-        "doubles",
-        "duplicates",
-        "dupes"
+        "titles",
+        "titleproblems"
       ]
+    },
+    {
+      "hidden": true,
+      "name": "useFrontmatterTitle",
+      "description": "x-callback entry to copy the frontmatter title onto the H1",
+      "jsFunction": "useFrontmatterTitle",
+      "arguments": [
+        "filename"
+      ]
+    },
+    {
+      "hidden": true,
+      "name": "useH1Title",
+      "description": "x-callback entry to copy the H1 onto the frontmatter title",
+      "jsFunction": "useH1Title",
+      "arguments": [
+        "filename"
+      ]
+    },
+    {
+      "hidden": true,
+      "name": "fixTitlePipes",
+      "description": "x-callback entry to replace | characters in a note title with -",
+      "jsFunction": "fixTitlePipes",
+      "arguments": [
+        "filename"
+      ]
+    },
+    {
+      "hidden": true,
+      "name": "fixAllTitlePipes",
+      "description": "x-callback entry to replace | characters with - in every note title that contains one",
+      "jsFunction": "fixAllTitlePipes"
     },
     {
       "hidden": true,
@@ -392,6 +434,14 @@
       "required": false
     },
     {
+      "key": "titleProblemsNoteFilename",
+      "title": "/List title problems: Filepath for results",
+      "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Title Problems.md')",
+      "type": "string",
+      "default": "Title Problems.md",
+      "required": false
+    },
+    {
       "key": "doubledNoteFilename",
       "title": "/List duplicated content: Filepath for results",
       "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Possible Duplicated Content.md')",
@@ -534,6 +584,14 @@
     {
       "title": "Run '/List duplicate notes' command?",
       "key": "runDuplicateFinderCommand",
+      "description": "",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "title": "Run '/List title problems' command?",
+      "key": "runTitleProblemsCommand",
       "description": "",
       "type": "bool",
       "default": false,
