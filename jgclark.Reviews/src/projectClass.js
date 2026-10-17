@@ -34,6 +34,7 @@ import {
   getProjectConstructorPrefs,
   getRawFrontmatterFieldFromMap,
   normalizeProgressDateFromForm,
+  overlayFrontmatterAttributesApiIntoMap,
   parseDateMentionFromMentions,
   parseProjectFrontmatterValue,
   projectConstructorPrefsFromReviewConfig,
@@ -238,7 +239,20 @@ export class Project {
       }
 
       const singleKeyName = prefs.projectMetadataFrontmatterKey
-      let fieldsMap: FrontmatterFieldsMap = readAllRawFrontmatterFields(this.note)
+      /**
+       * Re-read + overlay API attrs. Editor.updateFrontMatterVars uses the frontmatterAttributes
+       * setter; paragraphs can lag, so overlay Editor/note API attrs after every paragraph scan.
+       * @returns {FrontmatterFieldsMap}
+       */
+      const readFieldsMapWithApiOverlay = (): FrontmatterFieldsMap => {
+        let map = readAllRawFrontmatterFields(this.note)
+        map = overlayFrontmatterAttributesApiIntoMap(map, this.note.frontmatterAttributes)
+        if (usingEditor && typeof Editor !== 'undefined' && Editor.frontmatterAttributes) {
+          map = overlayFrontmatterAttributesApiIntoMap(map, Editor.frontmatterAttributes)
+        }
+        return map
+      }
+      let fieldsMap: FrontmatterFieldsMap = readFieldsMapWithApiOverlay()
 
       const startMentionName = prefs.startMentionStr
       const dueMentionName = prefs.dueMentionStr
@@ -306,7 +320,7 @@ export class Project {
       // Re-read paragraphs / FM only when migration mutated the note
       if (didMutateNote) {
         paras = this.note.paragraphs
-        fieldsMap = readAllRawFrontmatterFields(this.note)
+        fieldsMap = readFieldsMapWithApiOverlay()
       }
       const metadataLineIndex = getProjectMetadataLineIndex(
         this.note,
@@ -438,7 +452,7 @@ export class Project {
               migrationAttrs[singleKeyName] = this.getProjectTagsFrontmatterValue(singleKeyName)
               updateFrontMatterVars(this.note, migrationAttrs)
               DataStore.updateCache(this.note, true)
-              fieldsMap = readAllRawFrontmatterFields(this.note)
+              fieldsMap = readFieldsMapWithApiOverlay()
               this.migrationLogDetailFromConstructor = mergeConstructorMigrationLogDetail(this.migrationLogDetailFromConstructor, 'ok')
               logTimer('ProjectConstructor', startTime, `- Migrated tags-key mentions for '${this.title}': wrote keys [${migratedKeys.join(', ')}], normalized '${singleKeyName}' to tags-only`)
             }
@@ -613,7 +627,7 @@ export class Project {
             wroteReviewIntervalToFrontmatter)
         ) {
           DataStore.updateCache(this.note, true)
-          fieldsMap = readAllRawFrontmatterFields(this.note)
+          fieldsMap = readFieldsMapWithApiOverlay()
         }
       } catch (e) {
         logWarn('ProjectConstructor', `- overlay from separate frontmatter keys failed for '${this.title}': ${e.message}`)
@@ -639,13 +653,24 @@ export class Project {
         this.nextReviewDays = NaN
       }
       // make project paused if status: #paused (or legacy #paused on project tags)
-      if (detectIsPausedFromNote(this.note, hashtags)) {
+      const statusFromMapForPause = getRawFrontmatterFieldFromMap(fieldsMap, STATUS_FRONTMATTER_KEY)
+      if (
+        statusValueMatchesHashtag(statusFromMapForPause.value, getPausedHashtag()) ||
+        statusValueMatchesHashtag(statusFromMapForPause.value, '#paused') ||
+        detectIsPausedFromNote(this.note, hashtags)
+      ) {
         this.isPaused = true
         this.nextReviewDays = NaN
       }
 
-      // Cache configured status hashtag for Filter + Order (empty when feature off)
-      const existingStatusForDisplay = getFrontmatterAttribute(note, STATUS_FRONTMATTER_KEY)
+      // Cache configured status hashtag for Filter + Order (empty when feature off).
+      // Prefer fieldsMap (paragraphs + overlaid Editor/API attrs) over the original DataStore note arg,
+      // which can still hold a pre-complete status: value.
+      const statusFieldForDisplay = getRawFrontmatterFieldFromMap(fieldsMap, STATUS_FRONTMATTER_KEY)
+      const existingStatusForDisplay =
+        statusFieldForDisplay.exists && statusFieldForDisplay.value != null && String(statusFieldForDisplay.value) !== ''
+          ? String(statusFieldForDisplay.value)
+          : getFrontmatterAttribute(this.note, STATUS_FRONTMATTER_KEY)
       this.statusHashtag = resolveDisplayStatusHashtag(existingStatusForDisplay, {
         isCompleted: this.isCompleted,
         isCancelled: this.isCancelled,
@@ -1548,7 +1573,7 @@ processProgressLines(fieldsMap ?: FrontmatterFieldsMap): void {
    * @author @jgclark
    * @returns {boolean} true if metadata was updated and saved successfully, false otherwise
    */
-  completeProject(): boolean {
+  async completeProject(): Promise<boolean> {
     try {
       // Ensure any legacy body metadata block is migrated into frontmatter first.
       // This avoids split metadata state.
@@ -1573,6 +1598,12 @@ processProgressLines(fieldsMap ?: FrontmatterFieldsMap): void {
       // re-write the note's metadata line
       logDebug('completeProject', `Completing '${this.title}' ...`)
       this.updateMetadataAndSave({ projectStatusState: 'completed' })
+      // Same as pause: flush Editor.frontmatterAttributes setter writes into paragraphs/disk
+      // so the list rebuild does not still see status:#started / missing completed.
+      const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
+      if (possibleThisEditor) {
+        await possibleThisEditor.save()
+      }
       logDebug('completeProject', `- metadata updated and note saved`)
       return true
     }
@@ -1588,7 +1619,7 @@ processProgressLines(fieldsMap ?: FrontmatterFieldsMap): void {
    * @author @jgclark
    * @returns {boolean} true if metadata was updated and saved successfully, false otherwise
    */
-  cancelProject(): boolean {
+  async cancelProject(): Promise<boolean> {
     try {
       // Ensure any legacy body metadata block is migrated into frontmatter first.
       // This avoids split metadata state.
@@ -1613,6 +1644,10 @@ processProgressLines(fieldsMap ?: FrontmatterFieldsMap): void {
       // re-write the note's metadata line
       logDebug('cancelProject', `Cancelling '${this.title}' ...`)
       this.updateMetadataAndSave({ projectStatusState: 'cancelled' })
+      const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
+      if (possibleThisEditor) {
+        await possibleThisEditor.save()
+      }
       logDebug('cancelProject', `- metadata updated and note saved`)
       return true
     }

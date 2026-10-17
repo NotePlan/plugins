@@ -6,6 +6,7 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 - New: renaming a metadata term offers a vault-wide update of matching keys, status hashtags, and `@mentions` (full `allProjectsList` / perspectives union when available).
 - Change: default **Project start string** is now `started` (new installs / missing setting only).
 - Fix: completing/cancelling outside the current Perspective, or when the note is already gone from `allProjectsList`, no longer blanks or needlessly rebuilds the Rich list; Space names show in the rebuild progress dialog; metadata-term rename is quieter and migrates legacy `#paused` from `project:` to `status:` when status is on.
+- fix: Completing (or cancelling) a project from the Rich list left it visible when completed/cancelled were hidden -- the list rebuild still had `statusHashtag=#started` because Editor frontmatter writes were not flushed (unlike pause), and `calcReviewFieldsForProject` was dropping `statusHashtag` on every list read (forcing a full-note backfill). Complete/cancel now save the open Editor; status/completed are overlaid from Editor attrs; finished flags win over a stale cached hashtag; list rows keep `statusHashtag`.
 - dev: Rich list status toggles were empty for `#started` because `allProjectsList` rows lacked `statusHashtag` (so every active project was treated as `#notstarted`). List load backfills `statusHashtag` from notes; finish-review refreshes the note cache before updating the list row.
 
 ## [2.3.4] - 2026-10-17

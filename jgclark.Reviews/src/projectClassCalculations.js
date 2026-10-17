@@ -67,6 +67,8 @@ function createImmutableProjectCopy(project: Project, updates: ProjectUpdates = 
     isCompleted: updates.isCompleted !== undefined ? updates.isCompleted : project.isCompleted,
     isCancelled: updates.isCancelled !== undefined ? updates.isCancelled : project.isCancelled,
     isPaused: project.isPaused,
+    // Must preserve: calcReviewFieldsForProject runs on every list read; dropping this forced a full-note backfill of every row and could re-apply stale status.
+    statusHashtag: project.statusHashtag != null ? project.statusHashtag : '',
     percentComplete: project.percentComplete,
     lastProgressComment: project.lastProgressComment,
     mostRecentProgressLineIndex: project.mostRecentProgressLineIndex,

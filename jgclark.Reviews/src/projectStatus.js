@@ -145,6 +145,10 @@ export function resolveDisplayStatusHashtag(
   flags: { isCompleted: boolean, isCancelled: boolean, isPaused: boolean },
 ): string {
   if (!isProjectStatusFeatureEnabled()) return ''
+  // Finished/paused flags win over a possibly-stale status: frontmatter value (e.g. still #started after complete).
+  if (flags.isCompleted || flags.isCancelled || flags.isPaused) {
+    return resolveStatusHashtagToWrite(flags, null, existingStatusValue)
+  }
   const known = getAllStatusHashtags()
   if (existingStatusValue != null && existingStatusValue !== '') {
     for (const tag of known) {
@@ -164,17 +168,18 @@ export function resolveDisplayStatusHashtag(
  * @returns {string}
  */
 export function getProjectStatusHashtagForFilter(project: any): string {
+  const flags = {
+    isCompleted: project != null && project.isCompleted === true,
+    isCancelled: project != null && project.isCancelled === true,
+    isPaused: project != null && project.isPaused === true,
+  }
+  // Finished/paused flags win over a stale cached statusHashtag (e.g. #started left after complete).
+  if (flags.isCompleted || flags.isCancelled || flags.isPaused) {
+    return resolveStatusHashtagToWrite(flags, null, null)
+  }
   const stored = project != null ? project.statusHashtag : null
   if (stored != null && stored !== '') return String(stored)
-  return resolveStatusHashtagToWrite(
-    {
-      isCompleted: project != null && project.isCompleted === true,
-      isCancelled: project != null && project.isCancelled === true,
-      isPaused: project != null && project.isPaused === true,
-    },
-    null,
-    null,
-  )
+  return resolveStatusHashtagToWrite(flags, null, null)
 }
 
 /**

@@ -63,4 +63,14 @@ describe('projectClassCalculations finished flags', () => {
     expect(Number.isNaN(result.nextReviewDays)).toBe(true)
     expect(result.cancelledDuration).toMatch(/^after /)
   })
+
+  test('calcReviewFieldsForProject preserves statusHashtag on the row', () => {
+    const project = makeProjectLike({
+      statusHashtag: '#completed',
+      completedDate: '2026-10-17',
+      isCompleted: true,
+    })
+    const result = calcReviewFieldsForProject(project)
+    expect(result.statusHashtag).toBe('#completed')
+  })
 })

@@ -386,8 +386,8 @@ async function runProjectCloseoutAction(
   }
 
   const success = actionType === 'completed'
-    ? thisProject.completeProject()
-    : thisProject.cancelProject()
+    ? await thisProject.completeProject()
+    : await thisProject.cancelProject()
 
   if (!success) {
     logError(`project/${actionVerb}`, `Error ${actionNoun} project.`)

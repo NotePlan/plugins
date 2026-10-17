@@ -75,6 +75,34 @@ export function readAllRawFrontmatterFields(note: CoreNoteFields): FrontmatterFi
 }
 
 /**
+ * Fill gaps in a paragraph-derived frontmatter map from NotePlan's frontmatterAttributes API.
+ * Editor writes via the attributes setter can land in the API before paragraphs catch up -- so
+ * after complete/cancel, overlay Editor.frontmatterAttributes or the list rebuild still sees the
+ * old status / missing completed date.
+ * Paragraph values win when already present.
+ * @param {FrontmatterFieldsMap} fieldsMap
+ * @param {?{ [string]: mixed }} attrs
+ * @returns {FrontmatterFieldsMap}
+ */
+export function overlayFrontmatterAttributesApiIntoMap(
+  fieldsMap: FrontmatterFieldsMap,
+  attrs: ?{ [string]: mixed },
+): FrontmatterFieldsMap {
+  if (attrs == null || typeof attrs !== 'object') return fieldsMap
+  const out: FrontmatterFieldsMap = { ...fieldsMap }
+  for (const key of Object.keys(attrs)) {
+    const lcKey = key.toLowerCase()
+    if (out[lcKey] != null) continue
+    const raw = attrs[key]
+    if (raw == null) continue
+    const value = String(raw).replace(/^\s+/, '')
+    if (value === '') continue
+    out[lcKey] = { exists: true, value }
+  }
+  return out
+}
+
+/**
  * Lookup a field in a map from {@link readAllRawFrontmatterFields}.
  * @param {FrontmatterFieldsMap} fieldsMap
  * @param {string} fieldName

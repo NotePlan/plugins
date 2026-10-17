@@ -127,12 +127,19 @@ describe('resolveDisplayStatusHashtag', () => {
     expect(resolveDisplayStatusHashtag('#custom', { isCompleted: false, isCancelled: false, isPaused: true })).toBe('#paused')
     expect(resolveDisplayStatusHashtag(null, { isCompleted: false, isCancelled: false, isPaused: false })).toBe('#notstarted')
   })
+
+  test('finished/paused flags override a stale known status: value', () => {
+    expect(resolveDisplayStatusHashtag('#started', { isCompleted: true, isCancelled: false, isPaused: false })).toBe('#completed')
+    expect(resolveDisplayStatusHashtag('#started', { isCompleted: false, isCancelled: true, isPaused: false })).toBe('#cancelled')
+    expect(resolveDisplayStatusHashtag('#notstarted', { isCompleted: false, isCancelled: false, isPaused: true })).toBe('#paused')
+  })
 })
 
 describe('getProjectStatusHashtagForFilter', () => {
-  test('prefers stored statusHashtag; otherwise infers from flags', () => {
+  test('prefers stored statusHashtag when not finished/paused; flags win when finished', () => {
     expect(getProjectStatusHashtagForFilter({ statusHashtag: '#started' })).toBe('#started')
     expect(getProjectStatusHashtagForFilter({ isCompleted: true })).toBe('#completed')
+    expect(getProjectStatusHashtagForFilter({ statusHashtag: '#started', isCompleted: true })).toBe('#completed')
     expect(getProjectStatusHashtagForFilter({ isPaused: true })).toBe('#paused')
     expect(getProjectStatusHashtagForFilter({})).toBe('#notstarted')
   })

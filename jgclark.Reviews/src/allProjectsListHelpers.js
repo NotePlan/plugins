@@ -47,6 +47,7 @@ import { getFolderDisplayName, getFolderFromFilename, getFoldersMatching, getFol
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { displayTitle } from '@helpers/general'
 import { RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
+import { getOpenEditorFromFilename } from '@helpers/NPEditor'
 import { getFrontmatterAttribute } from '@helpers/NPFrontMatter'
 import { getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
@@ -316,7 +317,42 @@ function syncStatusHashtagOnProjectFromNote(project: any, note: TNote): void {
     project.statusHashtag = ''
     return
   }
-  const existingStatus = getFrontmatterAttribute(note, STATUS_FRONTMATTER_KEY)
+  // Prefer open Editor.frontmatterAttributes: setter writes land there before paragraphs / DataStore catch up.
+  const openEditor = typeof note.filename === 'string' && note.filename !== ''
+    ? getOpenEditorFromFilename(note.filename)
+    : null
+  const editorAttrs = openEditor && openEditor.frontmatterAttributes ? openEditor.frontmatterAttributes : null
+  const noteAttrs = note.frontmatterAttributes && typeof note.frontmatterAttributes === 'object'
+    ? note.frontmatterAttributes
+    : null
+  const attrs = editorAttrs != null
+    ? { ...(noteAttrs || {}), ...editorAttrs }
+    : noteAttrs
+
+  // If the list row missed completed/cancelled (stale paragraph read), pull from attrs.
+  if (attrs != null) {
+    const completedRaw = attrs.completed ?? attrs.Completed
+    if (completedRaw != null && String(completedRaw).trim() !== '') {
+      project.isCompleted = true
+      project.isCancelled = false
+      if (project.completedDate == null || project.completedDate === '') {
+        project.completedDate = String(completedRaw).trim()
+      }
+    }
+    const cancelledRaw = attrs.cancelled ?? attrs.Cancelled
+    if (cancelledRaw != null && String(cancelledRaw).trim() !== '') {
+      project.isCancelled = true
+      project.isCompleted = false
+      if (project.cancelledDate == null || project.cancelledDate === '') {
+        project.cancelledDate = String(cancelledRaw).trim()
+      }
+    }
+  }
+
+  const existingStatus =
+    attrs != null && attrs[STATUS_FRONTMATTER_KEY] != null && String(attrs[STATUS_FRONTMATTER_KEY]) !== ''
+      ? String(attrs[STATUS_FRONTMATTER_KEY])
+      : getFrontmatterAttribute(note, STATUS_FRONTMATTER_KEY)
   project.statusHashtag = resolveDisplayStatusHashtag(existingStatus, {
     isCompleted: project.isCompleted === true,
     isCancelled: project.isCancelled === true,
@@ -2377,9 +2413,8 @@ export async function updateAllProjectsListAfterChange(
         // logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(skipped; could not load '${filename}')`)
         return
       }
-      // Refresh NotePlan's note cache so just-written status: / reviewed: are visible to the Project constructor.
-      DataStore.updateCache(reviewedNote, false)
-      // Note: there had been issue of stale data here in the past. Leaving comment in case it's needed again.
+      // Force-refresh so just-written status: / completed: are visible (false was leaving stale attrs).
+      DataStore.updateCache(reviewedNote, true)
       updatedProject = new Project(
         reviewedNote,
         getLeadingProjectTag(reviewedProject),

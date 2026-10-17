@@ -61,6 +61,23 @@ describe('filterProjectsList with status feature', () => {
     expect(filtered.map((p) => p.title)).toEqual(['A', 'B', 'C'])
   })
 
+  test('hides completed even when cached statusHashtag is still #started', async () => {
+    const config = filterConfig({
+      useProjectStatus: true,
+      hiddenStatusTags: ['#completed', '#cancelled'],
+    })
+    const staleComplete = {
+      title: 'StaleComplete',
+      statusHashtag: '#started',
+      isCompleted: true,
+      isCancelled: false,
+      isPaused: false,
+      nextReviewDays: NaN,
+    }
+    const filtered = await filterProjectsList([...projects, staleComplete], config)
+    expect(filtered.map((p) => p.title)).toEqual(['A', 'B', 'C'])
+  })
+
   test('when status on and skipStatusMembershipFilter, keeps all statuses', async () => {
     const config = filterConfig({
       useProjectStatus: true,
