@@ -50,7 +50,7 @@ const richProjectListWinId = `${reviewsPluginId}.rich-review-list`
  */
 function getMetadataMentionNameToFrontmatterKeyMap(): { [string]: string } {
   const map: { [string]: string } = {}
-  map[checkString(DataStore.preference('startMentionStr') || '@start')] = getFieldKeyStringFromPreference('startMentionStr', 'start')
+  map[checkString(DataStore.preference('startMentionStr') || '@started')] = getFieldKeyStringFromPreference('startMentionStr', 'started')
   map[checkString(DataStore.preference('dueMentionStr') || '@due')] = getFieldKeyStringFromPreference('dueMentionStr', 'due')
   map[checkString(DataStore.preference('reviewedMentionStr') || '@reviewed')] = getFieldKeyStringFromPreference('reviewedMentionStr', 'reviewed')
   map[checkString(DataStore.preference('completedMentionStr') || '@completed')] = getFieldKeyStringFromPreference('completedMentionStr', 'completed')
@@ -503,7 +503,11 @@ function getRecognisedProjectMetadataHashtags(): Array<string> {
     fromSettings = stringListOrArrayToArray(fromSettingsRaw, ',').map((t) => t.trim()).filter((t) => t !== '')
   }
   const sequentialTag = checkString(DataStore.preference('sequentialTag') || '#sequential').trim()
-  const specials: Array<string> = ['#paused', '#archive']
+  const pausedTerm = checkString(DataStore.preference('pausedMentionStr') || 'paused')
+    .replace(/^[@#]/, '')
+    .trim()
+  const pausedTag = pausedTerm !== '' ? `#${pausedTerm}` : '#paused'
+  const specials: Array<string> = ['#paused', pausedTag, '#archive']
   if (sequentialTag !== '') {
     specials.push(sequentialTag)
   }

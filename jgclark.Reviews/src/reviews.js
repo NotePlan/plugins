@@ -30,6 +30,7 @@ export {
   renderProjectListsMarkdown,
   saveDisplayFilters,
   saveHiddenProjectTypeTags,
+  saveHiddenStatusTags,
   setReviewingProjectInHTML,
   toggleDisplayFinished,
   toggleDisplayNextActions,

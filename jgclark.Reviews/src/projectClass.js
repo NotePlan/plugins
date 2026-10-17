@@ -47,6 +47,16 @@ import {
   type FrontmatterFieldsMap,
   type ProjectConstructorPrefs,
 } from './projectClassHelpers'
+import {
+  detectIsPausedFromNote,
+  getPausedHashtag,
+  isProjectStatusFeatureEnabled,
+  resolveDisplayStatusHashtag,
+  resolveStatusHashtagToWrite,
+  STATUS_FRONTMATTER_KEY,
+  statusValueMatchesHashtag,
+  type ProjectStatusState,
+} from './projectStatus'
 import { checkString } from '@helpers/checkType'
 import {
   daysBetween,
@@ -143,6 +153,8 @@ export class Project {
   isCompleted: boolean = false
   isCancelled: boolean = false
   isPaused: boolean = false
+  /** Kanban status hashtag (e.g. '#started') when useProjectStatus is on; '' otherwise. */
+  statusHashtag: string = ''
   percentComplete: number = NaN
   lastProgressComment: string = '' // e.g. "Progress: 60@2022-08-09 comment
   mostRecentProgressLineIndex: number = NaN
@@ -237,7 +249,7 @@ export class Project {
       const nextReviewMentionName = prefs.nextReviewMentionStr
 
       const fmKey = {
-        start: separateFmKeyFromMentionPref(startMentionName, 'start'),
+        start: separateFmKeyFromMentionPref(startMentionName, 'started'),
         due: separateFmKeyFromMentionPref(dueMentionName, 'due'),
         reviewed: separateFmKeyFromMentionPref(reviewedMentionName, 'reviewed'),
         completed: separateFmKeyFromMentionPref(completedMentionName, 'completed'),
@@ -327,9 +339,10 @@ export class Project {
         const hashtagsFromCombinedValue = getHashtagsFromString(String(combinedValueForPrimary ?? ''))
         const hashtagsFromMetadataLine = getHashtagsFromString(metadataLine)
         const hashtagsForPrimary = hashtagsFromCombinedValue.length > 0 ? hashtagsFromCombinedValue : hashtagsFromMetadataLine
+        const pausedTagForPrimary = getPausedHashtag()
         primaryProjectTag = (_projectTypeTag)
           ? _projectTypeTag
-          : (hashtagsForPrimary[0] !== '#paused')
+          : (!statusValueMatchesHashtag(hashtagsForPrimary[0], pausedTagForPrimary) && hashtagsForPrimary[0] !== '#paused')
             ? hashtagsForPrimary[0]
             : (hashtagsForPrimary[1])
               ? hashtagsForPrimary[1]
@@ -625,11 +638,19 @@ export class Project {
         this.isCancelled = true
         this.nextReviewDays = NaN
       }
-      // make project paused if #paused
-      if (getStringFromList(hashtags, '#paused') !== '') {
+      // make project paused if status: #paused (or legacy #paused on project tags)
+      if (detectIsPausedFromNote(this.note, hashtags)) {
         this.isPaused = true
         this.nextReviewDays = NaN
       }
+
+      // Cache configured status hashtag for Filter + Order (empty when feature off)
+      const existingStatusForDisplay = getFrontmatterAttribute(note, STATUS_FRONTMATTER_KEY)
+      this.statusHashtag = resolveDisplayStatusHashtag(existingStatusForDisplay, {
+        isCompleted: this.isCompleted,
+        isCancelled: this.isCancelled,
+        isPaused: this.isPaused,
+      })
 
       // calculate the durations from these dates
       this.calculateDueDays()
@@ -821,14 +842,16 @@ export class Project {
    * @param {boolean} [options.skipPlainBodyParagraphUpdate] - If true, only frontmatter is updated (e.g. before removing a body metadata line during migration so `getProjectTagsFrontmatterValue` can still read the old line)
    * @param {boolean} [options.preserveSeparateKeysWhenEmptyOnProject] - If true, do not remove separate frontmatter keys when the corresponding Project field is empty (avoids wiping keys not loaded on the instance). Still write non-empty Project fields and the combined key. Use with `explicitKeysToRemoveFromFrontmatter` to remove specific keys (e.g. `nextReview` when pausing).
    * @param {Array<string>} [options.explicitKeysToRemoveFromFrontmatter] - Keys to remove from frontmatter regardless of preserve mode (e.g. next review after `clearNextReviewMetadata`).
+   * @param {ProjectStatusState} [options.projectStatusState] - When status feature is on, force this status (e.g. started after unpause) unless completed/cancelled/paused flags win.
    * @private
    */
   updateProjectMetadata(
     newMetadataLine: string,
     options?: {|
       skipPlainBodyParagraphUpdate?: boolean,
-    preserveSeparateKeysWhenEmptyOnProject?: boolean,
-    explicitKeysToRemoveFromFrontmatter?: Array<string>,
+      preserveSeparateKeysWhenEmptyOnProject?: boolean,
+      explicitKeysToRemoveFromFrontmatter?: Array<string>,
+      projectStatusState?: ProjectStatusState,
     |},
   ): void {
   try {
@@ -845,7 +868,7 @@ const keysToRemove: Array<string> = []
 
 logDebug('updateProjectMetadata', `Updating project metadata for '${this.title}' with newMetadataLine: '${newMetadataLine}' and options: {${JSP(options)}}`)
 // Derive possible separate frontmatter key names from mention strings
-const startKey = checkString(DataStore.preference('startMentionStr') || '').replace(/^[@#]/, '') || 'start'
+const startKey = checkString(DataStore.preference('startMentionStr') || '').replace(/^[@#]/, '') || 'started'
 const dueKey = checkString(DataStore.preference('dueMentionStr') || '').replace(/^[@#]/, '') || 'due'
 const reviewedKey = checkString(DataStore.preference('reviewedMentionStr') || '').replace(/^[@#]/, '') || 'reviewed'
 const completedKey = checkString(DataStore.preference('completedMentionStr') || '').replace(/^[@#]/, '') || 'completed'
@@ -907,6 +930,22 @@ if (preserveEmpty) {
 
 // Invariant: combined frontmatter key value contains ONLY hashtags.
 attrs[singleKeyName] = this.getProjectTagsFrontmatterValue(singleKeyName)
+
+const statusFeatureOn = isProjectStatusFeatureEnabled()
+if (statusFeatureOn) {
+  const existingStatus = getFrontmatterAttribute(noteForWrites, STATUS_FRONTMATTER_KEY)
+  attrs[STATUS_FRONTMATTER_KEY] = resolveStatusHashtagToWrite(
+    { isCompleted: this.isCompleted, isCancelled: this.isCancelled, isPaused: this.isPaused },
+    options?.projectStatusState,
+    existingStatus,
+  )
+  logDebug(
+    'updateProjectMetadata',
+    `status feature on → writing ${STATUS_FRONTMATTER_KEY}: ${attrs[STATUS_FRONTMATTER_KEY]} (explicit=${String(options?.projectStatusState ?? '')})`,
+  )
+} else {
+  logDebug('updateProjectMetadata', `status feature off (useProjectStatus preference=${String(DataStore.preference('useProjectStatus'))}); not writing ${STATUS_FRONTMATTER_KEY}`)
+}
 
 // Prefer open Editor when present; getOpenEditorFromFilename returns false (not null), so use || not ??
 const success = updateFrontMatterVars(possibleThisEditor || noteForWrites, attrs)
@@ -994,22 +1033,26 @@ DataStore.updateCache(noteForWrites, true)
 
   /**
    * Build the combined frontmatter key value.
-   * Invariant: the combined key must contain ONLY project hashtags (e.g. '#project', '#area', '#sequential', and '#paused').
+   * Invariant: the combined key must contain ONLY project hashtags (e.g. '#project', '#area', '#sequential').
+   * When status feature is off, '#paused' (or configured paused tag) may also be included.
+   * When status feature is on, pause lives on `status:` and paused tags are stripped from this key.
    * @param {string} combinedKey
    * @returns {string}
    */
 getProjectTagsFrontmatterValue(combinedKey: string): string {
     const seen: Set<string> = new Set()
     const ordered: Array<string> = []
+    const statusFeatureOn = isProjectStatusFeatureEnabled()
+    const pausedTag = getPausedHashtag()
 
     const addTagsFromText = (text: string): void => {
       const candidates = getHashtagsFromString(checkString(text))
       for (const tag of candidates) {
         if (!tag || !tag.startsWith('#') || tag.length <= 1) continue
-        // When unpausing, strip any legacy '#paused' entries from existing metadata so they
-        // don't linger in the combined frontmatter key. When pausing, we add '#paused'
-        // explicitly below based on this.isPaused.
-        if (tag === '#paused' && !this.isPaused) continue
+        // Strip paused tags from the combined key when status owns pause, or when unpausing.
+        if (statusValueMatchesHashtag(tag, pausedTag) || statusValueMatchesHashtag(tag, '#paused')) {
+          if (statusFeatureOn || !this.isPaused) continue
+        }
         if (!seen.has(tag)) {
           seen.add(tag)
           ordered.push(tag)
@@ -1034,8 +1077,8 @@ getProjectTagsFrontmatterValue(combinedKey: string): string {
       }
     }
 
-    if (this.isPaused) {
-      const pausedTag = '#paused'
+    // Legacy path only: when status feature is off, keep #paused on the combined key.
+    if (this.isPaused && !statusFeatureOn) {
       if (!seen.has(pausedTag)) {
         seen.add(pausedTag)
         ordered.push(pausedTag)
@@ -1048,9 +1091,15 @@ getProjectTagsFrontmatterValue(combinedKey: string): string {
   /**
    * Update metadata paragraph and save to Editor or note.
    * Writes to frontmatter; if metadata was in the body, removes the body line after writing to frontmatter.
+   * @param {object} [options] - forwarded to {@link updateProjectMetadata}
    * @private
    */
-  updateMetadataAndSave(): void {
+  updateMetadataAndSave(options?: {|
+    skipPlainBodyParagraphUpdate?: boolean,
+    preserveSeparateKeysWhenEmptyOnProject?: boolean,
+    explicitKeysToRemoveFromFrontmatter?: Array<string>,
+    projectStatusState?: ProjectStatusState,
+  |}): void {
     const newMetadataLine = this.generateMarkdownOutputLine()
     const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
     const noteForWrites: TNote = (possibleThisEditor && possibleThisEditor.note != null) ? possibleThisEditor.note : this.note
@@ -1061,7 +1110,7 @@ getProjectTagsFrontmatterValue(combinedKey: string): string {
     const frontmatterPrefixRe = new RegExp(`^${singleKeyName}:\\s*`, 'i')
     const isFrontmatterStyleLine = currentContent.match(/^metadata:\s*/i) != null || frontmatterPrefixRe.test(currentContent)
 
-    this.updateProjectMetadata(newMetadataLine, { skipPlainBodyParagraphUpdate: true })
+    this.updateProjectMetadata(newMetadataLine, { ...(options || {}), skipPlainBodyParagraphUpdate: true })
     if(!isFrontmatterStyleLine) {
       // Metadata was in body; now in frontmatter, so remove the body line from the writable note.
       // Re-find after frontmatter update because line indices can shift.
@@ -1523,7 +1572,7 @@ processProgressLines(fieldsMap ?: FrontmatterFieldsMap): void {
 
       // re-write the note's metadata line
       logDebug('completeProject', `Completing '${this.title}' ...`)
-      this.updateMetadataAndSave()
+      this.updateMetadataAndSave({ projectStatusState: 'completed' })
       logDebug('completeProject', `- metadata updated and note saved`)
       return true
     }
@@ -1563,7 +1612,7 @@ processProgressLines(fieldsMap ?: FrontmatterFieldsMap): void {
 
       // re-write the note's metadata line
       logDebug('cancelProject', `Cancelling '${this.title}' ...`)
-      this.updateMetadataAndSave()
+      this.updateMetadataAndSave({ projectStatusState: 'cancelled' })
       logDebug('cancelProject', `- metadata updated and note saved`)
       return true
     }
@@ -1574,8 +1623,8 @@ processProgressLines(fieldsMap ?: FrontmatterFieldsMap): void {
   }
 
   /**
-   * Cancel a Project/Area note by updating the metadata and saving it:
-   * - adding #paused
+   * Toggle paused state on a Project/Area note.
+   * When status feature is on, writes status: #paused / #started; otherwise uses #paused on the combined project tag key.
    * @author @jgclark
    * @returns {boolean} true if metadata was updated and saved successfully, false otherwise
    */
@@ -1616,6 +1665,7 @@ const nextReviewKey = checkString(DataStore.preference('nextReviewMentionStr') |
 this.updateProjectMetadata(newMetadataLine, {
   preserveSeparateKeysWhenEmptyOnProject: true,
   explicitKeysToRemoveFromFrontmatter: this.isPaused ? [nextReviewKey] : [],
+  projectStatusState: this.isPaused ? 'paused' : 'started',
 })
       const possibleThisEditor = getOpenEditorFromFilename(this.note.filename)
       if (possibleThisEditor) {
@@ -1645,7 +1695,10 @@ this.updateProjectMetadata(newMetadataLine, {
    */
 generateMarkdownOutputLine(writeDateMentions: boolean = false): string {
     const parts: Array<string> = [... this.allProjectTags]
-    if (this.isPaused) parts.push('#paused')
+    // Legacy body/combined-line path: include paused hashtag only when status feature is off
+    if (this.isPaused && !isProjectStatusFeatureEnabled()) {
+      parts.push(getPausedHashtag())
+    }
     if (this.reviewInterval != null) {
       parts.push(`${mentionStrForMarkdownOutput('reviewIntervalMentionStr', '@review')}(${checkString(this.reviewInterval)})`)
     }
@@ -1654,7 +1707,7 @@ generateMarkdownOutputLine(writeDateMentions: boolean = false): string {
     if (writeDateMentions) {
       const startDate = this.startDate
       if (startDate != null) {
-        parts.push(`${mentionStrForMarkdownOutput('startMentionStr', '@start')}(${startDate})`)
+        parts.push(`${mentionStrForMarkdownOutput('startMentionStr', '@started')}(${startDate})`)
       }
       const dueDate = this.dueDate
       if (dueDate != null) {

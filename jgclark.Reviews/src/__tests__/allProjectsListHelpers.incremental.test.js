@@ -19,7 +19,11 @@ jest.mock('../reviewHelpers', () => {
 })
 
 import { NotePlan } from '@mocks/index'
-import { shouldPartialIncludeChangedScopes, shouldUseFullAllProjectsGenerate } from '../allProjectsListHelpers'
+import {
+  listMissesUnionScopeCoverage,
+  shouldPartialIncludeChangedScopes,
+  shouldUseFullAllProjectsGenerate,
+} from '../allProjectsListHelpers'
 
 const preferenceValues: { [string]: any } = {}
 
@@ -97,9 +101,15 @@ describe('shouldUseFullAllProjectsGenerate', () => {
     expect(shouldUseFullAllProjectsGenerate(makeConfig({ foldersToInclude: ['Projects'] }))).toBe(true)
   })
 
-  test('full scan older than 24h requires full', () => {
-    preferenceValues['Reviews-lastAllProjectsFullScanTime'] = Date.now() - 25 * 60 * 60 * 1000
+  test('full scan older than 5d requires full', () => {
+    preferenceValues['Reviews-lastAllProjectsFullScanTime'] = Date.now() - (5 * 24 + 1) * 60 * 60 * 1000
     expect(shouldUseFullAllProjectsGenerate(makeConfig())).toBe(true)
+  })
+
+  test('full scan within 5d allows incremental when generation is fresh', () => {
+    preferenceValues['Reviews-lastAllProjectsFullScanTime'] = Date.now() - 4 * 24 * 60 * 60 * 1000
+    preferenceValues['Reviews-lastAllProjectsGenerationTime'] = Date.now()
+    expect(shouldUseFullAllProjectsGenerate(makeConfig())).toBe(false)
   })
 
   test('fresh full scan and matching fingerprint allows incremental', () => {
@@ -155,7 +165,8 @@ describe('shouldUseFullAllProjectsGenerate', () => {
       scopes: [{ name: 'Home', folders: ['Home'], teamspaces: ['private'], changedAt: 20 }],
     }
     preferenceValues['Reviews-lastAllProjectsFolderFilters'] = 'union-old'
-    preferenceValues['Reviews-lastAllProjectsGenerationTime'] = Date.now() - 2 * 60 * 60 * 1000
+    // Older than MAX_AGE_FULL_SCAN_MS (5d): partial include is not allowed; full generate instead.
+    preferenceValues['Reviews-lastAllProjectsGenerationTime'] = Date.now() - (5 * 24 + 1) * 60 * 60 * 1000
     global.DataStore.loadData = jest.fn((path: string) => {
       if (String(path).includes('perspectiveScopeUnion')) return JSON.stringify(union)
       return JSON.stringify([{ filename: 'Home/A.md', allProjectTags: ['#project'] }])
@@ -174,6 +185,39 @@ describe('shouldUseFullAllProjectsGenerate', () => {
       foldersToInclude: ['Projects'],
     })
     preferenceValues['Reviews-lastAllProjectsPerspective'] = 'Work'
+    expect(shouldPartialIncludeChangedScopes(config)).toBe(false)
+    expect(shouldUseFullAllProjectsGenerate(config)).toBe(true)
+  })
+
+  test('a Home-only list missing union Space folders forces a full generate, not a partial', () => {
+    const spaceFolder = '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard v2.5'
+    const union = {
+      version: 1,
+      fingerprint: 'union-fp',
+      scopes: [
+        { name: 'Home', folders: ['Home'], teamspaces: ['private'], changedAt: 10 },
+        {
+          name: 'NotePlan',
+          folders: [spaceFolder, 'NotePlan Projects'],
+          teamspaces: ['private', '1b91b194-4c76-4a48-8d4d-4c499d64a919'],
+          changedAt: 20,
+        },
+      ],
+    }
+    preferenceValues['Reviews-lastAllProjectsFolderFilters'] = 'union-fp'
+    global.DataStore.loadData = jest.fn((path: string) => {
+      if (String(path).includes('perspectiveScopeUnion')) return JSON.stringify(union)
+      return JSON.stringify([{ filename: 'Home/A.md', allProjectTags: ['#project'] }])
+    })
+    const config = makeConfig({
+      usePerspectives: true,
+      FFlag_UseCacheOfAllPerspectives: true,
+      perspectiveName: 'NotePlan',
+    })
+    expect(listMissesUnionScopeCoverage(
+      [{ filename: 'Home/A.md' }],
+      union,
+    )).toBe(true)
     expect(shouldPartialIncludeChangedScopes(config)).toBe(false)
     expect(shouldUseFullAllProjectsGenerate(config)).toBe(true)
   })

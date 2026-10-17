@@ -10,13 +10,15 @@ None of these are NotePlan's own note cache (`DataStore.updateCache`). That call
 
 **Path:** `../jgclark.Reviews/allProjectsList.json` (written with a cross-plugin path so a call from the Dashboard bundle still lands in the Reviews data folder).
 
-**What it holds:** One JSON row per project note that is in scope, without the live `note` object. Date fields are `YYYY-MM-DD`. Each row can store `noteChangedAtMs` (epoch ms of `note.changedDate` after a full parse).
+**What it holds:** One JSON row per project note that is in scope, without the live `note` object. Date fields are `YYYY-MM-DD`. Each row can store `noteChangedAtMs` (epoch ms of `note.changedDate` after a full parse). When **Use project status** (`useProjectStatus`) is on, each row also stores `statusHashtag` (e.g. `#started`, `#notstarted`, `#paused`, `#completed`, `#cancelled`) -- the same hashtag written to the note's `status:` frontmatter. Filter + Order and Markdown list filtering read that field; they do not re-open notes for status.
 
-**Who reads it:** `getAllProjectsFromList`, then `filterAndSortProjectsList`. The Rich list, review commands, and Dashboard PROJACT / PROJREVIEW sections all go through that filter. With `FFlag_UseCacheOfAllPerspectives` on, the file can hold every saved perspective, and the filter narrows rows to the **active** perspective before display.
+**Who reads it:** `getAllProjectsFromList`, then `filterAndSortProjectsList`. The Rich list, review commands, and Dashboard PROJACT / PROJREVIEW sections all go through that filter. With `FFlag_UseCacheOfAllPerspectives` on, the file can hold every saved perspective, and the filter narrows rows to the **active** perspective before display. With status on, `filterProjectsList` can drop rows whose `statusHashtag` is in `hiddenStatusTags` (unless the Rich list asks to skip that membership filter so client toggles can show/hide rows in the DOM).
 
-**Who writes it:** `writeAllProjectsList`, from a full generate, an incremental merge, a partial folder include, a settings recalculate, or a single-note update.
+**Who writes it:** `writeAllProjectsList`, from a full generate, an incremental merge, a partial folder include, a settings recalculate, a single-note update (`updateAllProjectsListAfterChange`), or a one-time `statusHashtag` backfill (below). Full `Project` construction sets `statusHashtag` from `status:` frontmatter plus completed/cancelled/paused flags (`resolveDisplayStatusHashtag`). After finish-review (and similar single-note updates), the list refresh calls `DataStore.updateCache` on the note, rebuilds the `Project`, then `syncStatusHashtagOnProjectFromNote` so a lagging frontmatter cache cannot leave the row with an empty or wrong hashtag.
 
-**When it is reused:** `shouldRegenerateAllProjectsList` returns false when the file is a JSON array, younger than `maxAgeAllProjectsListInHours` (168 hours), and the scope stamp still matches. `getAllProjectsFromList` then maps each row through `calcReviewFieldsForProject` (review dates only) and does not construct `Project` objects.
+**When it is reused:** `shouldRegenerateAllProjectsList` returns false when the file is a JSON array, younger than `MAX_AGE_BEFORE_REFRESH_HOURS` (23 hours), and the scope stamp still matches. `getAllProjectsFromList` then maps each row through `calcReviewFieldsForProject` (review dates only) and does not construct `Project` objects. If status is on and any reused row has a missing or empty `statusHashtag`, `backfillMissingStatusHashtagsIfNeeded` reads each of those notes once, fills the field, and persists the list -- so older list files written before status was stored still filter correctly without a full regenerate. If a regenerate returns 0 projects while the on-disk file still has rows, the disk snapshot is kept (avoids blanking the Rich list after a failed generate).
+
+**Status filter fallback:** `getProjectStatusHashtagForFilter` prefers the stored `statusHashtag`. If it is missing, it infers only from `isCompleted` / `isCancelled` / `isPaused`, otherwise `#notstarted`. That is why a note with `status:#started` can disappear from the `#started` toggle until the row (or backfill) has written `statusHashtag`.
 
 **Scope stamp** (preferences, shared `DataStore` keys):
 
@@ -29,7 +31,7 @@ None of these are NotePlan's own note cache (`DataStore.updateCache`). That call
 **How a rebuild chooses work** (`generateAllProjectsList`):
 
 - **Full enumerate** when forced, the file is missing or empty, the last full scan is older than 24 hours (`MAX_AGE_FULL_SCAN_MS`), the list is older than 168 hours, or the scope stamp changed and the list is already stale. The folder list is deduped and sorted before the scan. One generate runs at a time; a second caller waits for that run.
-- **Partial include** when the union flag is on, the union fingerprint changed, the list is still fresh, and the last full scan is within `MAX_AGE_FULL_SCAN_MS`. It adds notes from folders that are new on changed scopes and not already covered by an unchanged scope. It does not delete rows. Removals wait for the next full enumerate.
+- **Partial include** when the union flag is on, the union fingerprint changed, the list is still fresh, and the last full scan is within `MAX_AGE_FULL_SCAN_MS`. It adds notes from folders that are new on changed scopes and not already covered by an unchanged scope **with the same or broader teamspace set**. A shared folder under private-only Review does not cover NotePlan when NotePlan also allows a Space id. It does not delete rows. Removals wait for the next full enumerate. If the on-disk list is missing whole union scopes or any Space notes the union allows, the next generate is a full enumerate instead of another empty partial.
 - **Incremental merge** otherwise. It keeps the current rows and re-parses notes the Shared notes-changed-recently cache (plus each note's `changedDate`) says have changed since the last list write.
 
 **Constructor hits during a full enumerate:** `buildProjectsFromPairsSync` reuses a stored row when `noteChangedAtMs` still equals the note's current `changedDate`. A miss calls `new Project(...)`.
@@ -63,7 +65,7 @@ A note is in the union only when **one** scope allows both its folder and its te
 
 **Path:** `../../data/np.Shared/notesChangedRecently.json`.
 
-**What it holds:** `generatedAt`, `lastUpdated`, `windowDays` (7), and `notes`: `{ filename, noteType: 'Notes' | 'Calendar', changedAt }`. Membership only. No tags, done counts, or project fields.
+**What it holds:** `generatedAt`, `lastUpdated`, `windowDays` (7), and `notes`: `{ filename, noteType: 'Notes' | 'Calendar', changedAt }`. Membership only. No tags, done counts, project fields, or `status:` / `statusHashtag`.
 
 **Freshness:** Incremental update when `lastUpdated` is older than 1 hour. A full regenerate is scheduled when `generatedAt` is older than 7 days. An update newer than 5 seconds is skipped.
 
@@ -96,11 +98,11 @@ A note is in the union only when **one** scope allows both its folder and its te
 
 **Why it exists:** Avoids a vault scan when the change does not affect which notes are projects.
 
-- Rebuild (`generateAllProjectsList`, forced full) when project-type tags, perspective use, `FFlag_UseCacheOfAllPerspectives`, folder filters, or metadata mention strings change.
+- Rebuild (`generateAllProjectsList`, forced full) when project-type tags, perspective use, `FFlag_UseCacheOfAllPerspectives`, folder filters, metadata mention strings, or status settings change (`useProjectStatus`, `notstartedMentionStr`, `pausedMentionStr` -- see `SETTINGS_THAT_REQUIRE_REBUILD`).
 - Recalculate (`recalculateAllProjectsListItems`) when only next-action or progress-calculation settings change. That re-parses rows already in `allProjectsList.json` and does not walk the vault.
-- Redisplay only, or no list work, for display and other settings.
+- Redisplay only, or no list work, for display and other settings (including Filter + Order toggles that only change `hiddenStatusTags` / `hiddenProjectTypeTags`).
 
-This snapshot does not store project rows.
+This snapshot does not store project rows. `useProjectStatus` and the status mention terms are also mirrored to `DataStore` preferences so the Project constructor and status helpers can read them without loading full plugin settings.
 
 ---
 
@@ -108,7 +110,7 @@ This snapshot does not store project rows.
 
 **Owner:** `np.Shared` (`np.Shared/src/tagMentionCache.js`). Projects does not read or register it.
 
-**What it holds:** Filenames of notes that contain registered `#tags` or `@mentions`. A hit is stored only when the item is on an open, checklist, or scheduled paragraph, or in any frontmatter field. No paragraph text, done dates, next actions, or project fields.
+**What it holds:** Filenames of notes that contain registered `#tags` or `@mentions`. A hit is stored only when the item is on an open, checklist, or scheduled paragraph, or in any frontmatter field. No paragraph text, done dates, next actions, project fields, or Reviews `statusHashtag` rows.
 
 Three long loops were considered. The cache is a poor fit for all three.
 

@@ -256,6 +256,28 @@ describe('foldersToScanForChangedScopes', () => {
     expect(foldersToScanForChangedScopes(scopes, { Work: 5, Home: 5 })).toEqual(['Work'])
   })
 
+  test('rescans a shared folder when the changed scope allows an extra Space id', () => {
+    const spaceFolder = '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard v2.5'
+    const scopes = [
+      {
+        name: 'Review',
+        folders: [spaceFolder, 'NotePlan Projects'],
+        teamspaces: ['private'],
+        changedAt: 5,
+      },
+      {
+        name: 'NotePlan',
+        folders: [spaceFolder, 'NotePlan Projects'],
+        teamspaces: ['private', '1b91b194-4c76-4a48-8d4d-4c499d64a919'],
+        changedAt: 20,
+      },
+    ]
+    expect(foldersToScanForChangedScopes(scopes, { Review: 5, NotePlan: 5 })).toEqual([
+      spaceFolder,
+      'NotePlan Projects',
+    ])
+  })
+
   test('does not treat a teamspace cross product as one shared folder list', () => {
     const scopes = [
       { name: 'Work', folders: ['Work'], teamspaces: ['teamA'], changedAt: 1 },

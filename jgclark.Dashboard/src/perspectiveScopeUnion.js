@@ -502,7 +502,10 @@ export function changedScopeNames(
 }
 
 /**
- * Folders on changed scopes that are not already listed on an unchanged scope.
+ * Folders on changed scopes that still need a scan.
+ * A folder is already covered only when some unchanged scope lists it and allows every
+ * teamspace the changed scope allows there. Same path under private-only Review must not
+ * skip a NotePlan scope that also allows a Space id -- otherwise Space projects never enter allProjectsList.
  * @param {Array<TPerspectiveScope>} scopes
  * @param {{ [string]: number }} lastChangedAtByName
  * @returns {Array<string>}
@@ -512,18 +515,36 @@ export function foldersToScanForChangedScopes(
   lastChangedAtByName: { [string]: number },
 ): Array<string> {
   const changed = new Set(changedScopeNames(scopes, lastChangedAtByName))
-  const covered = new Set<string>()
+  // folder -> teamspaces allowed by at least one unchanged scope that lists that folder
+  const coveredTeamspacesByFolder: Map<string, Set<string>> = new Map()
   for (const scope of scopes) {
     if (changed.has(scope.name)) continue
+    const teamspaces = scope.teamspaces ?? ['private']
     for (const folder of scope.folders ?? []) {
-      covered.add(folder)
+      let covered = coveredTeamspacesByFolder.get(folder)
+      if (covered == null) {
+        covered = new Set()
+        coveredTeamspacesByFolder.set(folder, covered)
+      }
+      for (const teamspace of teamspaces) {
+        covered.add(teamspace)
+      }
     }
   }
   const needed = new Set<string>()
   for (const scope of scopes) {
     if (!changed.has(scope.name)) continue
+    const neededTeamspaces = scope.teamspaces ?? ['private']
     for (const folder of scope.folders ?? []) {
-      if (!covered.has(folder)) needed.add(folder)
+      const covered = coveredTeamspacesByFolder.get(folder)
+      if (covered == null) {
+        needed.add(folder)
+        continue
+      }
+      const missingTeamspace = neededTeamspaces.some((teamspace) => !covered.has(teamspace))
+      if (missingTeamspace) {
+        needed.add(folder)
+      }
     }
   }
   return sortedCopy(Array.from(needed))

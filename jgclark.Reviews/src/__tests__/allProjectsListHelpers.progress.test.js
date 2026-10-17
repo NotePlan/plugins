@@ -95,6 +95,7 @@ beforeEach(() => {
   global.Editor = { note: null, filename: '' }
   global.DataStore.preference = (key: string): any => {
     if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+    if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
     if (key === 'Reviews-lastAllProjectsPerspective') return ''
     if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(reviewSettingsHolder.config)
     return preferenceValues[key] ?? ''

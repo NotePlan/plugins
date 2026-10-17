@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-09-18 for v2.3.0 by @jgclark + @CursorAI
+// Last updated 2026-10-16 for v2.4.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -11,12 +11,15 @@ import pluginJson from '../plugin.json'
 import { generateAllProjectsList, recalculateAllProjectsListItems } from './allProjectsListHelpers'
 import { migrateAllProjects } from './migration'
 import { renderProjectListsIfOpen } from './reviews'
+import { METADATA_TERM_SETTINGS_FOR_RENAME } from './projectStatus'
+import { offerAndRunMetadataTermRenames } from './projectStatusMigrate'
 import {
   getLastSettingsSnapshot,
   getReviewSettings,
   getSettingsUpdateAction,
   persistLastSettingsSnapshot,
   seedLastSettingsSnapshotIfMissing,
+  settingsChangeIsOnlyMetadataTermRenames,
 } from './reviewSettings'
 import { JSP, compareObjects, logDebug, logError, logInfo } from '@helpers/dev'
 import { backupSettings, pluginUpdated, saveSettings, updateSettingData } from '@helpers/NPConfiguration'
@@ -143,9 +146,18 @@ export async function onSettingsUpdated(): Promise<void> {
     const action = getSettingsUpdateAction(previousRaw, rawSettings)
     logInfo(pluginJson, `Have updated Review settings; action='${action}' (previous snapshot ${previousRaw == null ? 'missing' : 'present'})`)
 
-    if (action === 'rebuild' || action === 'recalculate' || action === 'redisplay') {
-      const config = await getReviewSettings()
-      if (!config) throw new Error(`Can't get Review settings. Stopping.`)
+    const config = await getReviewSettings()
+    if (!config) throw new Error(`Can't get Review settings. Stopping.`)
+
+    // When metadata-term settings change, offer to rename keys/values across project notes first.
+    const notesChangedByRename = await offerAndRunMetadataTermRenames(previousRaw, rawSettings, config)
+    const skipListWorkForZeroRenames =
+      notesChangedByRename === 0 &&
+      settingsChangeIsOnlyMetadataTermRenames(previousRaw, rawSettings, METADATA_TERM_SETTINGS_FOR_RENAME)
+
+    if (skipListWorkForZeroRenames) {
+      logInfo(pluginJson, `Skipping project list rebuild/refresh: metadata-term rename wrote 0 note(s)`)
+    } else if (action === 'rebuild' || action === 'recalculate' || action === 'redisplay') {
       if (action === 'rebuild') {
         // Skip the write-time Rich-list invoke; render once in-process below.
         await generateAllProjectsList(config, true, 0, false, true, true)

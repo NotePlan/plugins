@@ -112,7 +112,7 @@ export function getProjectConstructorPrefs(overrides?: Partial<ProjectConstructo
   }
   const base: ProjectConstructorPrefs = {
     projectMetadataFrontmatterKey: checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project'),
-    startMentionStr: mentionOr('startMentionStr', '@start'),
+    startMentionStr: mentionOr('startMentionStr', '@started'),
     dueMentionStr: mentionOr('dueMentionStr', '@due'),
     reviewedMentionStr: mentionOr('reviewedMentionStr', '@reviewed'),
     completedMentionStr: mentionOr('completedMentionStr', '@completed'),
@@ -160,7 +160,7 @@ export function projectConstructorPrefsFromReviewConfig(config: $ReadOnly<{
 }>): ProjectConstructorPrefs {
   return getProjectConstructorPrefs({
     projectMetadataFrontmatterKey: checkString(config.projectMetadataFrontmatterKey || 'project'),
-    startMentionStr: checkString(config.startMentionStr || '@start'),
+    startMentionStr: checkString(config.startMentionStr || '@started'),
     dueMentionStr: checkString(config.dueMentionStr || '@due'),
     reviewedMentionStr: checkString(config.reviewedMentionStr || '@reviewed'),
     completedMentionStr: checkString(config.completedMentionStr || '@completed'),

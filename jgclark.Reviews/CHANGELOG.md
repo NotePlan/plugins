@@ -1,8 +1,16 @@
 # What's changed in Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
-<!-- 
+## [2.4.0] - 2026-10-15
+- New optional **Maintain a status frontmatter hashtag?** for Kanban / Cards views: writes `status: #notstarted` / `#started` / `#paused` / `#completed` / `#cancelled` (terms configurable), updated on create/convert, pause, complete, cancel, and finish review. When on, pause uses `status:` instead of `#paused` on `project:`; 
+- New: When this 'status' feature is on, the "Filter + Order" menu shows toggles for those five statuses (completed/cancelled hidden by default).
+- New: renaming a metadata term offers a vault-wide update of matching keys, status hashtags, and `@mentions` (full `allProjectsList` / perspectives union when available).
+- Change: default **Project start string** is now `started` (new installs / missing setting only).
+- Fix: completing/cancelling outside the current Perspective, or when the note is already gone from `allProjectsList`, no longer blanks or needlessly rebuilds the Rich list; Space names show in the rebuild progress dialog; metadata-term rename is quieter and migrates legacy `#paused` from `project:` to `status:` when status is on.
+- dev: Rich list status toggles were empty for `#started` because `allProjectsList` rows lacked `statusHashtag` (so every active project was treated as `#notstarted`). List load backfills `statusHashtag` from notes; finish-review refreshes the note cache before updating the list row.
+
 ## [2.3.4] - 2026-10-17
 - Performance Improvement: Speed up of list refresh and rebuilds. dev: `Project` constructor is read-only unless migrate-all is on (no default `review:` write / `updateCache` on list regen); one-pass frontmatter map, batched prefs, fewer paragraph scans.
+
 
 ## [2.3.3] - 2026-10-16
 - Change: Increase the time between full rebuilds of the Project cache, up to 5 days. (There are quicker refreshes every day.)

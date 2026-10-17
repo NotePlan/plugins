@@ -7,6 +7,7 @@
 
 import { addNewProjectToAllProjectsListIfInScope, ALWAYS_EXCLUDED_PROJECT_FOLDERS } from './allProjectsListHelpers'
 import { normalizeProgressDateFromForm, separateFmKeyFromMentionPref } from './projectClassHelpers'
+import { initialStatusHashtagForNoteParas, STATUS_FRONTMATTER_KEY } from './projectStatus'
 import { formatProgressCommentString } from './reviewHelpers'
 import { getReviewSettings, type ReviewConfig } from './reviewSettings'
 import { renderProjectListsIfOpen } from './reviews'
@@ -220,9 +221,21 @@ export function resolveFolderPathFromChoice(folderChoices: Array<FolderChoice>, 
  * @param {ReviewConfig} config
  * @returns {{ [string]: string }}
  */
-function buildFrontmatterAttrs(inputs: ConvertToProjectInputs | CreateNewProjectInputs, config: ReviewConfig): { [string]: string } {
+/**
+ * Build frontmatter attrs for create/convert.
+ * When status feature is on, sets status from completed task/checklist count on the note (≥1 → #started, else #notstarted).
+ * @param {ConvertToProjectInputs | CreateNewProjectInputs} inputs
+ * @param {ReviewConfig} config
+ * @param {?TNote} noteForStatusCheck - note whose paragraphs are scanned for closed items (null/empty for brand-new notes)
+ * @returns {{ [string]: string }}
+ */
+function buildFrontmatterAttrs(
+  inputs: ConvertToProjectInputs | CreateNewProjectInputs,
+  config: ReviewConfig,
+  noteForStatusCheck: ?TNote,
+): { [string]: string } {
   const singleKeyName = checkString(config.projectMetadataFrontmatterKey || 'project')
-  const startKey = separateFmKeyFromMentionPref(checkString(DataStore.preference('startMentionStr') || '@start'), 'start')
+  const startKey = separateFmKeyFromMentionPref(checkString(DataStore.preference('startMentionStr') || '@started'), 'started')
   const dueKey = separateFmKeyFromMentionPref(checkString(DataStore.preference('dueMentionStr') || '@due'), 'due')
   const reviewedKey = separateFmKeyFromMentionPref(checkString(DataStore.preference('reviewedMentionStr') || '@reviewed'), 'reviewed')
   const reviewIntervalKey = separateFmKeyFromMentionPref(checkString(DataStore.preference('reviewIntervalMentionStr') || '@review'), 'review')
@@ -245,6 +258,10 @@ function buildFrontmatterAttrs(inputs: ConvertToProjectInputs | CreateNewProject
   }
   if (inputs.aim != null && inputs.aim !== '') {
     attrs.aim = inputs.aim
+  }
+  if (config.useProjectStatus === true) {
+    const paras = noteForStatusCheck != null && Array.isArray(noteForStatusCheck.paragraphs) ? noteForStatusCheck.paragraphs : []
+    attrs[STATUS_FRONTMATTER_KEY] = initialStatusHashtagForNoteParas(paras)
   }
   return attrs
 }
@@ -330,7 +347,7 @@ function buildSharedProjectMetadataFields(
  * @returns {Promise<boolean>}
  */
 async function applyProjectMetadataAndRefreshLists(note: TNote, inputs: ConvertToProjectInputs | CreateNewProjectInputs, config: ReviewConfig): Promise<boolean> {
-  const attrs = buildFrontmatterAttrs(inputs, config)
+  const attrs = buildFrontmatterAttrs(inputs, config, note)
   const possibleEditor = getOpenEditorFromFilename(note.filename)
   const targetForFm: TEditor | TNote = possibleEditor || note
   const noteForCache: TNote = (possibleEditor && possibleEditor.note) ? possibleEditor.note : note

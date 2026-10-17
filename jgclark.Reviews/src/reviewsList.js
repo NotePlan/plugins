@@ -17,6 +17,7 @@ import {
   generateAllProjectsList,
 } from './allProjectsListHelpers.js'
 import { Project } from './projectClass'
+import { getAllStatusHashtags, getProjectStatusHashtagForFilter } from './projectStatus'
 import {
   buildEmptyProjectListHelpHtml,
   PROJECT_LIST_SCROLL_ID,
@@ -224,9 +225,9 @@ function projectListPerspectiveRecalcBannerMessage(config: { +usePerspectives?: 
   const perspectiveName = config.perspectiveName
   if (config.bannerReason === 'updated') {
     if (perspectiveName != null && perspectiveName !== '') {
-      return `Recalculating projects for updated perspective ${perspectiveName}...`
+      return `Rescanning project notes for updated perspective ${perspectiveName}...`
     }
-    return 'Recalculating projects for the updated perspective...'
+    return 'Rescanning project notes for the updated perspective...'
   }
   if (config.usePerspectives && perspectiveName != null && perspectiveName !== '') {
     return `Checking all projects for the ${perspectiveName} perspective...`
@@ -575,8 +576,11 @@ export async function renderProjectListsHTML(
     // Ensure projectTypeTags is an array before proceeding
     if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
 
-    // Fetch project list first so we can compute per-tag active counts for the Filters dropdown
-    const [projectsToReview, countAfterTagFilterOnly] = await filterAndSortProjectsList(config, '', [], true)
+    // Fetch project list first so we can compute per-tag active counts for the Filters dropdown.
+    // Skip status membership filter so all statuses stay in the DOM for client-side status toggles.
+    const [projectsToReview, countAfterTagFilterOnly] = await filterAndSortProjectsList(config, '', [], true, {
+      skipStatusMembershipFilter: true,
+    })
 
     // Omit stale JSON entries whose note no longer exists so the top-bar count matches rendered rows
     const projectsForDisplay: Array<Project> = projectsToReview.filter((p) => {
@@ -594,10 +598,17 @@ export async function renderProjectListsHTML(
     )
     config.tagActiveCounts = tagActiveCounts
 
+    if (config.useProjectStatus === true) {
+      const statusTags = getAllStatusHashtags()
+      config.statusActiveCounts = statusTags.map((tag) =>
+        projectsForDisplay.filter((p) => getProjectStatusHashtagForFilter(p) === tag).length
+      )
+    }
+
     // String array to save all output
     const outputArray = []
 
-    // Generate top bar HTML (uses config.tagActiveCounts for dropdown tag counts)
+    // Generate top bar HTML (uses config.tagActiveCounts / statusActiveCounts for dropdown counts)
     config.projectsShownCount = projectsForDisplay.length
     outputArray.push(buildProjectListTopBarHtml(config))
     outputArray.push(`<div id="${PROJECT_LIST_SCROLL_ID}" class="project-list-scroll">`)
@@ -758,12 +769,19 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           if (due > 0) {
             outputArray.unshift(`**${startReviewButton}**. For open Project note: Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${newIntervalXCallbackButton} Project: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
           }
-        const displayFinished = config.displayFinished ?? false
         const displayOnlyDue = config.displayOnlyDue ?? false
-        const displayPaused = config.displayPaused ?? true
         let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
-        togglesValues += (displayFinished) ? ' plus finished ones' : ''
-        togglesValues += (!displayPaused) ? ' (paused projects hidden)' : ''
+        if (config.useProjectStatus === true) {
+          const hiddenStatus = Array.isArray(config.hiddenStatusTags) ? config.hiddenStatusTags : []
+          if (hiddenStatus.length > 0) {
+            togglesValues += ` (hiding ${hiddenStatus.join(', ')})`
+          }
+        } else {
+          const displayFinished = config.displayFinished ?? false
+          const displayPaused = config.displayPaused ?? true
+          togglesValues += (displayFinished) ? ' plus finished ones' : ''
+          togglesValues += (!displayPaused) ? ' (paused projects hidden)' : ''
+        }
           // Write out the count + metadata
           outputArray.unshift(`Total ${noteCount} active projects${perspectivePart} (${togglesValues}). Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
           outputArray.unshift(`# ${noteTitle}`)
@@ -982,7 +1000,7 @@ export async function toggleDisplayNextActions(scrollPos: number = 0): Promise<v
 
 /**
  * Save all display filter settings at once (used by Display filters dropdown).
- * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean, displayOrder?: string, hiddenProjectTypeTags?: Array<string> }} data
+ * @param {{ displayOnlyDue: boolean, displayFinished: boolean, displayPaused: boolean, displayNextActions: boolean, displayOrder?: string, hiddenProjectTypeTags?: Array<string>, hiddenStatusTags?: Array<string> }} data
  */
 export async function saveDisplayFilters(data: {
   displayOnlyDue: boolean,
@@ -991,6 +1009,7 @@ export async function saveDisplayFilters(data: {
   displayNextActions: boolean,
   displayOrder?: string,
   hiddenProjectTypeTags?: Array<string>,
+  hiddenStatusTags?: Array<string>,
 }, scrollPos: number = 0): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
@@ -1005,6 +1024,9 @@ export async function saveDisplayFilters(data: {
     }
     if (Array.isArray(data.hiddenProjectTypeTags)) {
       config.hiddenProjectTypeTags = data.hiddenProjectTypeTags
+    }
+    if (Array.isArray(data.hiddenStatusTags)) {
+      config.hiddenStatusTags = data.hiddenStatusTags
     }
     await DataStore.saveJSON(config, '../jgclark.Reviews/settings.json', true)
     await renderProjectListsIfOpen(config, scrollPos)
@@ -1028,5 +1050,23 @@ export async function saveHiddenProjectTypeTags(hiddenProjectTypeTags: Array<str
     await DataStore.saveJSON(config, '../jgclark.Reviews/settings.json', true)
   } catch (error) {
     logError('saveHiddenProjectTypeTags', error.message)
+  }
+}
+
+/**
+ * Persist which status hashtags are toggled off in Filter + Order, without re-rendering.
+ * Used when the user toggles a status while the dropdown is open (visibility is already applied client-side).
+ * @param {Array<string>} hiddenStatusTags
+ * @returns {Promise<void>}
+ */
+export async function saveHiddenStatusTags(hiddenStatusTags: Array<string>): Promise<void> {
+  try {
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+    config.hiddenStatusTags = Array.isArray(hiddenStatusTags) ? hiddenStatusTags : []
+    logDebug('saveHiddenStatusTags', `saving hiddenStatusTags=[${String(config.hiddenStatusTags)}]`)
+    await DataStore.saveJSON(config, '../jgclark.Reviews/settings.json', true)
+  } catch (error) {
+    logError('saveHiddenStatusTags', error.message)
   }
 }

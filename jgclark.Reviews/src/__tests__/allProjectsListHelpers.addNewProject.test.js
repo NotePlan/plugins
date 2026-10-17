@@ -21,14 +21,16 @@ jest.mock('../reviewSettings', () => {
   }
 })
 
-import { Note, NotePlan } from '@mocks/index'
 import {
   addNewProjectToAllProjectsListIfInScope,
   isNoteInCurrentProjectSelection,
+  updateAllProjectsListAfterChange,
 } from '../allProjectsListHelpers'
 import { Project } from '../projectClass'
+import { Note, NotePlan } from '@mocks/index'
 
 const preferenceValues: { [string]: any } = {}
+const notesByFilename: { [string]: TNote } = {}
 
 function makeConfig(overrides: any = {}): any {
   return {
@@ -77,6 +79,7 @@ beforeAll(() => {
   global.DataStore = {
     preference: (key: string): any => {
       if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
       if (key === 'Reviews-lastAllProjectsPerspective') return ''
       if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(makeConfig())
       return preferenceValues[key] ?? ''
@@ -87,17 +90,27 @@ beforeAll(() => {
     setPreference: jest.fn(),
     folders: ['/', 'Projects', 'Archive'],
     projectNotes: [],
+    projectNoteByFilename: jest.fn((filename: string) => notesByFilename[filename] ?? null),
+    noteByFilename: jest.fn(() => null),
     updateCache: jest.fn(),
   }
+  global.CommandBar = { showLoading: jest.fn() }
 })
 
 beforeEach(() => {
   jest.clearAllMocks()
   reviewSettingsHolder.config = makeConfig()
+  Object.keys(notesByFilename).forEach((key) => {
+    delete notesByFilename[key]
+  })
+  global.DataStore.projectNotes = []
+  global.DataStore.folders = ['/', 'Projects', 'Archive']
   global.DataStore.loadData.mockReturnValue('[]')
   global.DataStore.saveData.mockReturnValue(true)
+  global.DataStore.projectNoteByFilename = jest.fn((filename: string) => notesByFilename[filename] ?? null)
   global.DataStore.preference = (key: string): any => {
     if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+    if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
     if (key === 'Reviews-lastAllProjectsPerspective') return ''
     if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(reviewSettingsHolder.config)
     return preferenceValues[key] ?? ''
@@ -182,6 +195,7 @@ describe('addNewProjectToAllProjectsListIfInScope', () => {
     reviewSettingsHolder.config = config
     global.DataStore.preference = (key: string): any => {
       if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
       if (key === 'Reviews-lastAllProjectsPerspective') return ''
       if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(config)
       return preferenceValues[key] ?? ''
@@ -211,5 +225,117 @@ describe('addNewProjectToAllProjectsListIfInScope', () => {
     expect(parsed).toHaveLength(1)
     expect(parsed[0].filename).toBe('Projects/existing.md')
     expect(parsed[0].title).toBe('Test project')
+  })
+})
+
+describe('updateAllProjectsListAfterChange simplyDelete miss', () => {
+  test('does not regenerate when simplyDelete target is already absent from the list', async () => {
+    const config = makeConfig({ foldersToInclude: ['Home'], foldersToIgnore: [] })
+    reviewSettingsHolder.config = config
+    global.DataStore.folders = ['/', 'Home', 'Projects']
+    global.DataStore.preference = (key: string): any => {
+      if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsPerspective') return ''
+      if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(config)
+      return preferenceValues[key] ?? ''
+    }
+    global.DataStore.loadData.mockReturnValue(
+      JSON.stringify([
+        {
+          filename: 'Home/other.md',
+          title: 'Other',
+          allProjectTags: ['#project'],
+          reviewInterval: '1w',
+        },
+      ]),
+    )
+
+    await updateAllProjectsListAfterChange('Home Areas/Wills for J+M.md', true, config)
+
+    expect(global.DataStore.saveData).not.toHaveBeenCalled()
+  })
+})
+
+describe('updateAllProjectsListAfterChange out-of-scope miss', () => {
+  test('does not regenerate when note is missing from list and outside folder selection', async () => {
+    const config = makeConfig({ foldersToInclude: ['Home'], foldersToIgnore: [] })
+    reviewSettingsHolder.config = config
+    global.DataStore.folders = ['/', 'Home', 'Projects']
+    global.DataStore.preference = (key: string): any => {
+      if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsPerspective') return ''
+      if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(config)
+      return preferenceValues[key] ?? ''
+    }
+    // Baseline list has other projects so an accidental full regen would rewrite via saveData
+    global.DataStore.loadData.mockReturnValue(
+      JSON.stringify([
+        {
+          filename: 'Home/other.md',
+          title: 'Other',
+          allProjectTags: ['#project'],
+          reviewInterval: '1w',
+        },
+      ]),
+    )
+    const note = makeProjectNote('Projects/out-of-scope.md')
+    notesByFilename['Projects/out-of-scope.md'] = note
+
+    await updateAllProjectsListAfterChange('Projects/out-of-scope.md', false, config)
+
+    expect(global.DataStore.saveData).not.toHaveBeenCalled()
+  })
+
+  test('does not regenerate when teamspace note is outside includedTeamspaces', async () => {
+    const teamspaceFilename =
+      '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard v2.5/e571b525-968a-40eb-b658-5411e582383c'
+    const config = makeConfig({
+      foldersToInclude: [],
+      foldersToIgnore: [],
+      usePerspectives: true,
+      includedTeamspaces: ['private'],
+    })
+    reviewSettingsHolder.config = config
+    global.DataStore.folders = [
+      '/',
+      'Home',
+      '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919',
+      '%%NotePlanCloud%%/1b91b194-4c76-4a48-8d4d-4c499d64a919/Dashboard v2.5',
+    ]
+    global.DataStore.preference = (key: string): any => {
+      if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsFullScanTime') return Date.now()
+      if (key === 'Reviews-lastAllProjectsPerspective') return ''
+      if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(config)
+      return preferenceValues[key] ?? ''
+    }
+    global.DataStore.loadData.mockReturnValue(
+      JSON.stringify([
+        {
+          filename: 'Home/other.md',
+          title: 'Other',
+          allProjectTags: ['#project'],
+          reviewInterval: '1w',
+        },
+      ]),
+    )
+    const note = new Note({
+      title: 'IP for more sections',
+      filename: teamspaceFilename,
+      content: '---\nproject: #project\n---\n# IP for more sections\n#project\n',
+      hashtags: ['#project'],
+      isTeamspaceNote: true,
+      teamspaceID: '1b91b194-4c76-4a48-8d4d-4c499d64a919',
+    })
+    // getNoteFromFilename uses noteByFilename for teamspace paths
+    global.DataStore.noteByFilename = jest.fn((filename: string) =>
+      filename === teamspaceFilename ? note : null,
+    )
+
+    await updateAllProjectsListAfterChange(teamspaceFilename, false, config)
+
+    expect(global.DataStore.saveData).not.toHaveBeenCalled()
   })
 })

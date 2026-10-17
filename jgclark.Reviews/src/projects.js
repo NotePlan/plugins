@@ -364,6 +364,11 @@ async function runProjectCloseoutAction(
 ): Promise<void> {
   const actionVerb = actionType === 'completed' ? 'completeProject' : 'cancelProject'
   const actionNoun = actionType === 'completed' ? 'completing' : 'cancelling'
+  const config: ?ReviewConfig = await getReviewSettings()
+  if (!config) {
+    logError(`project/${actionVerb}`, 'Error getting review settings.')
+    return
+  }
   const note = validateAndGetNote(noteArg, actionVerb)
   const thisProject = new Project(note)
   const closeoutInputs = await promptProjectCloseoutInputs(actionType, thisProject.title)
@@ -389,11 +394,6 @@ async function runProjectCloseoutAction(
     return
   }
 
-  const config: ?ReviewConfig = await getReviewSettings()
-  if (!config) {
-    logError(`project/${actionVerb}`, 'Error getting review settings.')
-    return
-  }
   await handleProjectCompletionOrCancellation(thisProject, note, config, actionType, closeoutInputs, scrollPos)
 }
 
@@ -511,6 +511,11 @@ export async function togglePauseProject(noteArg?: TNote, scrollPos: number = 0)
   try {
     logDebug('togglePauseProject', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
 
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) {
+      logError('togglePauseProject', 'Error getting review settings.')
+      return
+    }
     const note = validateAndGetNote(noteArg, 'togglePauseProject')
     const thisProject = new Project(note)
 
@@ -519,14 +524,9 @@ export async function togglePauseProject(noteArg?: TNote, scrollPos: number = 0)
 
     // If this has worked, then handle post-processing
     if (success) {
-      const config: ?ReviewConfig = await getReviewSettings()
-      if (config) {
-        // Reload note and update lists (no archiving for pause)
-        await reloadAndUpdateLists(note, config, false, scrollPos)
-        logInfo('togglePauseProject', 'Project pause now toggled, review list updated, and window updated.')
-      } else {
-        logError('togglePauseProject', 'Error getting review settings.')
-      }
+      // Reload note and update lists (no archiving for pause)
+      await reloadAndUpdateLists(note, config, false, scrollPos)
+      logInfo('togglePauseProject', 'Project pause now toggled, review list updated, and window updated.')
     } else {
       logError('togglePauseProject', 'Error toggling pause.')
     }

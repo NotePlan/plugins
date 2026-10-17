@@ -28,6 +28,12 @@ import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
 import { projectConstructorPrefsFromReviewConfig, type ProjectConstructorPrefs } from './projectClassHelpers.js'
 import { calcReviewFieldsForProject, isProjectFinished } from './projectClassCalculations.js'
 import {
+  getProjectStatusHashtagForFilter,
+  isProjectStatusFeatureEnabled,
+  resolveDisplayStatusHashtag,
+  STATUS_FRONTMATTER_KEY,
+} from './projectStatus.js'
+import {
   getMatchingProjectTypeTagsOnNote,
   getProjectTypeTagsFromNoteMetadata,
   noteHasProjectTypeTag,
@@ -41,6 +47,7 @@ import { getFolderDisplayName, getFolderFromFilename, getFoldersMatching, getFol
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { displayTitle } from '@helpers/general'
 import { RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
+import { getFrontmatterAttribute } from '@helpers/NPFrontMatter'
 import { getNoteFromFilename, getOrMakeRegularNoteInFolder } from '@helpers/NPnote'
 import { runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
 import { smartPrependPara } from '@helpers/paragraph'
@@ -296,6 +303,69 @@ export function buildSortingSpecification(
   return sortingSpec
 }
 
+/**
+ * Set project.statusHashtag from the note's status frontmatter + lifecycle flags.
+ * Used after finish-review updates and when backfilling older allProjectsList rows.
+ * @param {any} project - Project instance or plain list row
+ * @param {TNote} note
+ * @returns {void}
+ */
+function syncStatusHashtagOnProjectFromNote(project: any, note: TNote): void {
+  if (project == null || note == null) return
+  if (!isProjectStatusFeatureEnabled()) {
+    project.statusHashtag = ''
+    return
+  }
+  const existingStatus = getFrontmatterAttribute(note, STATUS_FRONTMATTER_KEY)
+  project.statusHashtag = resolveDisplayStatusHashtag(existingStatus, {
+    isCompleted: project.isCompleted === true,
+    isCancelled: project.isCancelled === true,
+    isPaused: project.isPaused === true,
+  })
+}
+
+/**
+ * When status is on, fill missing statusHashtag on list rows by reading each note (once).
+ * Persists the list when any value was written so Filter + Order toggles work.
+ * @param {Array<any>} projectInstances
+ * @param {ReviewConfig} config
+ * @returns {Promise<Array<any>>}
+ */
+async function backfillMissingStatusHashtagsIfNeeded(
+  projectInstances: Array<any>,
+  config: ReviewConfig,
+): Promise<Array<any>> {
+  if (config.useProjectStatus !== true || projectInstances.length === 0) {
+    return projectInstances
+  }
+  const missingCount = projectInstances.filter((p) => p == null || p.statusHashtag == null || p.statusHashtag === '').length
+  if (missingCount === 0) {
+    return projectInstances
+  }
+  logInfo(
+    'backfillMissingStatusHashtagsIfNeeded',
+    `Backfilling statusHashtag on ${String(missingCount)}/${String(projectInstances.length)} list row(s) from notes`,
+  )
+  for (const project of projectInstances) {
+    if (project == null) continue
+    if (project.statusHashtag != null && project.statusHashtag !== '') continue
+    const filename = typeof project.filename === 'string' ? project.filename : ''
+    const note = filename !== '' ? getNoteFromFilename(filename) : null
+    if (note != null) {
+      syncStatusHashtagOnProjectFromNote(project, note)
+    } else {
+      project.statusHashtag = resolveDisplayStatusHashtag(null, {
+        isCompleted: project.isCompleted === true,
+        isCancelled: project.isCancelled === true,
+        isPaused: project.isPaused === true,
+      })
+    }
+  }
+  await writeAllProjectsList(projectInstances, 0, true, config, true)
+  logInfo('backfillMissingStatusHashtagsIfNeeded', `Persisted statusHashtag backfill to allProjectsList`)
+  return projectInstances
+}
+
 function stringifyProjectObjects(objArray: Array<any>): string {
   /**
    * a function for JSON.stringify to pass through all except .note property
@@ -443,6 +513,8 @@ export function shouldPartialIncludeChangedScopes(config: ReviewConfig): boolean
   if (!DataStore.fileExists(allProjectsListFilename)) return false
   const parsed = parseAllProjectsListFileContent(DataStore.loadData(allProjectsListFilename, true))
   if (parsed == null || parsed.length === 0) return false
+  // Incomplete union cache must take the full-generate path, not an empty partial.
+  if (listMissesUnionScopeCoverage(parsed, union)) return false
   if (listIsOlderThanMaxAge()) return false
   const fullScanPref: mixed = DataStore.preference(lastFullScanPrefName)
   const fullScanMs = typeof fullScanPref === 'number' ? fullScanPref : 0
@@ -542,6 +614,118 @@ function shouldRegenerateAllProjectsList(config: ReviewConfig): boolean {
 }
 
 /**
+ * Config for vault-wide project note discovery (e.g. metadata-term renames).
+ * When Perspectives are on and Dashboard's perspectiveScopeUnion.json exists, force the
+ * all-perspectives cache flag so discovery uses the full union -- not only the active
+ * perspective's folders / allProjectsList subset.
+ * @param {ReviewConfig} config
+ * @returns {ReviewConfig}
+ */
+export function getConfigForVaultWideProjectRename(config: ReviewConfig): ReviewConfig {
+  if (config.usePerspectives !== true) return config
+  if (config.FFlag_UseCacheOfAllPerspectives === true) return config
+  if (readPerspectiveScopeUnion() == null) return config
+  return { ...config, FFlag_UseCacheOfAllPerspectives: true }
+}
+
+/**
+ * True when allProjectsList.json is missing, unreadable, empty, or older than
+ * {@link MAX_AGE_BEFORE_REFRESH_HOURS}. Ignores perspective / union fingerprint mismatches so a
+ * list written a few minutes ago can be reused for metadata renames without a full re-enumerate.
+ * @returns {boolean}
+ */
+function allProjectsListMissingOrAgeStaleForRename(): boolean {
+  if (!DataStore.fileExists(allProjectsListFilename)) {
+    logInfo('tryGetUniqueProjectNotesFromFreshAllProjectsList', `allProjectsList.json is missing`)
+    return true
+  }
+  const content = DataStore.loadData(allProjectsListFilename, true)
+  const parsed = parseAllProjectsListFileContent(content)
+  if (parsed == null || parsed.length === 0) {
+    logInfo('tryGetUniqueProjectNotesFromFreshAllProjectsList', `allProjectsList.json is empty or not a JSON array`)
+    return true
+  }
+  const fileAgeMs = getFileAgeMs(generatedDatePrefName)
+  const maxAgeMs = MS_PER_HOUR * MAX_AGE_BEFORE_REFRESH_HOURS
+  if (fileAgeMs > maxAgeMs) {
+    const fileAgeHours = (fileAgeMs / MS_PER_HOUR).toFixed(2)
+    logInfo(
+      'tryGetUniqueProjectNotesFromFreshAllProjectsList',
+      `allProjectsList is ${fileAgeHours}h old (max ${String(MAX_AGE_BEFORE_REFRESH_HOURS)}h); too old to reuse for rename`,
+    )
+    return true
+  }
+  return false
+}
+
+/**
+ * When allProjectsList.json exists and was written recently enough, return unique project notes
+ * for every filename in the file (deduped). Does not filter to the active perspective and does
+ * not require union/perspective fingerprint sync (unlike normal list reads).
+ * Returns null when missing, corrupt, empty, or age-stale -- caller may fall back to
+ * {@link enumerateMatchingProjectNoteTagPairs}.
+ * @returns {?Array<TNote>}
+ */
+export function tryGetUniqueProjectNotesFromFreshAllProjectsList(): ?Array<TNote> {
+  if (allProjectsListMissingOrAgeStaleForRename()) {
+    return null
+  }
+  const rows = loadRawAllProjectsListSnapshot()
+  const seen: Set<string> = new Set()
+  const notes: Array<TNote> = []
+  for (const row of rows) {
+    const filename = typeof row?.filename === 'string' ? row.filename : ''
+    if (filename === '' || seen.has(filename)) continue
+    seen.add(filename)
+    const note = resolveProjectNoteFromListFilename(filename)
+    if (note != null) {
+      notes.push(note)
+    }
+  }
+  const fileAgeHours = (getFileAgeMs(generatedDatePrefName) / MS_PER_HOUR).toFixed(2)
+  logInfo(
+    'tryGetUniqueProjectNotesFromFreshAllProjectsList',
+    `Reusing allProjectsList (${fileAgeHours}h old): ${String(notes.length)} unique note(s) from ${String(rows.length)} row(s)`,
+  )
+  return notes
+}
+
+/**
+ * True when the on-disk list is missing whole union scopes (e.g. Home-only cache after a buggy
+ * empty partial, or Space folders skipped because a private-only scope shared the same paths).
+ * @param {Array<any>} rows
+ * @param {TPerspectiveScopeUnion} union
+ * @returns {boolean}
+ */
+export function listMissesUnionScopeCoverage(rows: Array<any>, union: TPerspectiveScopeUnion): boolean {
+  const listFolders: Set<string> = new Set()
+  let hasTeamspaceRow = false
+  for (const row of rows) {
+    const filename = typeof row?.filename === 'string' ? row.filename : ''
+    if (filename === '') continue
+    listFolders.add(getFolderFromFilename(filename))
+    if (filename.includes('%%NotePlanCloud%%')) {
+      hasTeamspaceRow = true
+    }
+  }
+  for (const scope of union.scopes ?? []) {
+    const folders = scope.folders ?? []
+    if (folders.length === 0) continue
+    const teamspaces = scope.teamspaces ?? ['private']
+    const allowsSpace = teamspaces.some((teamspace) => teamspace !== 'private')
+    const spaceFolders = folders.filter((folder) => folder.includes('%%NotePlanCloud%%'))
+    const privateFolders = folders.filter((folder) => !folder.includes('%%NotePlanCloud%%'))
+    if (allowsSpace && spaceFolders.length > 0 && !hasTeamspaceRow) {
+      return true
+    }
+    if (privateFolders.length > 0 && !privateFolders.some((folder) => listFolders.has(folder))) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
  * True when generateAllProjectsList must do a full vault enumerate (not incremental merge).
  * Reasons: force flag, missing/corrupt/empty baseline, perspective or folder fingerprint change, or last full scan older than {@link MAX_AGE_BEFORE_FULL_SCAN_DAYS}.
  * @param {ReviewConfig} config
@@ -564,6 +748,13 @@ export function shouldUseFullAllProjectsGenerate(config: ReviewConfig, forceFull
   }
   const unionForFull = readUnionForConfig(config)
   if (unionForFull) {
+    if (listMissesUnionScopeCoverage(parsed, unionForFull)) {
+      logInfo(
+        'shouldUseFullAllProjectsGenerate',
+        `allProjectsList is missing folders/Spaces from the perspective union; full generate`,
+      )
+      return true
+    }
     const lastFingerprintPrefUnion: mixed = DataStore.preference(lastFolderFiltersPrefName)
     const lastUnionFingerprint = typeof lastFingerprintPrefUnion === 'string' ? lastFingerprintPrefUnion : ''
     if (lastUnionFingerprint !== unionForFull.fingerprint) {
@@ -1051,14 +1242,24 @@ export async function addNewProjectToAllProjectsListIfInScope(
 }
 
 /**
- * Sync: build note/tag pairs from already-filtered notes (nested folder × tag × note loops).
- * Safe for `runSyncWorkOnAsyncThread` (only `CommandBar.showLoading` for UI).
- * Progress dialog text shows folder n/m; the progress ring is updated per note (notesProcessed / totalNotes).
+ * Build note/tag pairs from already-filtered notes within specified folders and project tags.
+ * 
+ * For each note, the function searches for the project type tag in any of the following locations:
+ *   - The note's frontmatter fields (such as project metadata keys or status tags)
+ *   - Any tags present anywhere in the note's body (e.g. #type or other configured project tags)
+ * 
+ * The tag can match anywhere it's recognized as a project "type tag" by the Reviews plugin,
+ * and the resulting pairs represent Notes which are in the filtered list and which include one of 
+ * the given projectTypeTags, organized per-folder.
+ * 
+ * Safe to execute inside runSyncWorkOnAsyncThread. If showProgressToUser is true, a CommandBar loading indicator
+ * is shown, with progress advanced for each note scanned.
+ * 
  * @param {Array<TNote>} filteredProjectNotes
  * @param {Array<string>} filteredFolderList
- * @param {Array<string>} projectTypeTags
+ * @param {Array<string>} projectTypeTags - List of tags to match, checked in frontmatter and body
  * @param {boolean} showProgressToUser
- * @param {'Generating' | 'Refreshing'} progressVerb - 'Refreshing' when an existing list is being updated
+ * @param {'Generating' | 'Refreshing'} progressVerb - 'Refreshing' if updating existing list, else 'Generating'
  * @returns {Array<ProjectNoteTagPair>}
  */
 function buildMatchingProjectNoteTagPairsSync(
@@ -1104,12 +1305,11 @@ function buildMatchingProjectNoteTagPairsSync(
     for (const folder of filteredFolderList) {
       const folderDisplayName = getFolderDisplayName(folder)
       const projectNotesInFolder = notesByFolder.get(folder) ?? []
-      const folderLabel = getFolderDisplayName(folder)
       if (projectNotesInFolder.length === 0) {
         // Keep folder counter text moving; ring stays on notes-based fraction.
         if (loadingShown) {
           const progressFraction = totalNotes > 0 ? notesProcessed / totalNotes : 0
-          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folderLabel}'`, progressFraction)
+          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folderDisplayName}'`, progressFraction)
         }
         continue
       }
@@ -1122,7 +1322,7 @@ function buildMatchingProjectNoteTagPairsSync(
         }
         // Update ring per note so % tracks notes, not folders (even when one folder has many notes).
         if (loadingShown && totalNotes > 0) {
-          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folderLabel}'`, notesProcessed / totalNotes)
+          CommandBar.showLoading(true, `${listLabel}:\nscanning notes in folder '${folderDisplayName}'`, notesProcessed / totalNotes)
         }
       }
     }
@@ -1569,7 +1769,7 @@ function recalculateProjectsFromSnapshotSync(
   let loadingShown = false
   try {
     if (showProgressToUser && total > 0) {
-      CommandBar.showLoading(true, `Recalculating project list\n0/${String(total)}`, 0)
+      CommandBar.showLoading(true, `Rescanning project list\n0/${String(total)}`, 0)
       loadingShown = true
     }
     let index = 0
@@ -1581,7 +1781,7 @@ function recalculateProjectsFromSnapshotSync(
           (typeof row?.title === 'string' && row.title.trim() !== '')
             ? row.title.trim()
             : (filename !== '' ? getFolderDisplayName(getFolderFromFilename(filename)) : `item ${String(index)}`)
-        CommandBar.showLoading(true, `Recalculating project list\n${String(index)}/${String(total)}\n${label}`, index / total)
+        CommandBar.showLoading(true, `Rescanning project list\n${String(index)}/${String(total)}\n${label}`, index / total)
       }
       if (filename === '') {
         logWarn('recalculateAllProjectsListItems', `Skipping row with no filename`)
@@ -1799,6 +1999,17 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
       }
       // Show the progress dialog. Skip Rich/Dashboard side effects (callers refresh UI themselves).
       projectInstances = await generateAllProjectsList(config, true, 0, true, true)
+      // If regenerate failed (returns []), keep the on-disk list so callers do not see a sudden empty Rich list.
+      if (projectInstances.length === 0) {
+        const fallback = loadRawAllProjectsListSnapshot()
+        if (fallback.length > 0) {
+          logWarn(
+            'getAllProjectsFromList',
+            `Regenerate returned 0 projects but on-disk list has ${String(fallback.length)}; using disk snapshot`,
+          )
+          projectInstances = fallback.map((project) => calcReviewFieldsForProject(project))
+        }
+      }
     } else {
       // Read from the list
       const fileAgeMs = getFileAgeMs(generatedDatePrefName)
@@ -1816,6 +2027,7 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
         // Recalculate review fields for all projects since nextReviewDays may be stale
         logDebug('getAllProjectsFromList', `- Recalculating review fields for ${projectInstances.length} projects loaded from JSON`)
         projectInstances = projectInstances.map((project) => calcReviewFieldsForProject(project))
+        projectInstances = await backfillMissingStatusHashtagsIfNeeded(projectInstances, config)
       }
     }
     logTimer(`getAllProjectsFromList`, startTime, `- read ${projectInstances.length} Projects from allProjects list`)
@@ -1886,34 +2098,50 @@ export function resolveProjectNoteFromListFilename(filename: string): ?TNote {
 }
 
 /**
- * Filter the list of Projects by finished/paused/due according to config.
+ * Filter the list of Projects by finished/paused/due/status according to config.
  * Used by filterAndSortProjectsList(); can be used when only filtering is needed.
+ * When useProjectStatus is on: skip finished/paused switches; optionally apply hiddenStatusTags
+ * (Rich list passes skipStatusMembershipFilter so completed/paused rows stay in the DOM for client toggles).
  * @param {Array<Project>} projectInstancesIn projects to filter (e.g. from getAllProjectsFromList)
  * @param {ReviewConfig} config
  * @param {boolean?} dedupeList? (Optional, default is false)
+ * @param {{ skipStatusMembershipFilter?: boolean }?} options
  * @returns {Promise<Array<Project>>} filtered projects (unsorted)
  */
 export async function filterProjectsList(
   projectInstancesIn: Array<Project>,
   config: ReviewConfig,
   dedupeList?: boolean = false,
+  options?: { skipStatusMembershipFilter?: boolean } = {},
 ): Promise<Array<Project>> {
   try {
     let projectInstances = projectInstancesIn
+    const useProjectStatus = config.useProjectStatus === true
+    const skipStatusMembership = options?.skipStatusMembershipFilter === true
 
-    // Filter out finished projects if required
-    const displayFinished = config.displayFinished ?? false
-    // if (displayFinished === 'hide') {
-    if (!displayFinished) {
-      projectInstances = projectInstances.filter((pi) => !isProjectFinished(pi))
-      logDebug('filterProjectsList', `- after filtering out finished, ${projectInstances.length} projects`)
-    }
+    if (useProjectStatus) {
+      // Status hashtag toggles replace finished/paused; membership filter for Markdown / non-Rich callers
+      if (!skipStatusMembership) {
+        const hiddenStatusTags: Array<string> = Array.isArray(config.hiddenStatusTags) ? config.hiddenStatusTags : []
+        if (hiddenStatusTags.length > 0) {
+          projectInstances = projectInstances.filter((pi) => !hiddenStatusTags.includes(getProjectStatusHashtagForFilter(pi)))
+          logDebug('filterProjectsList', `- after filtering hidden status tags, ${projectInstances.length} projects`)
+        }
+      }
+    } else {
+      // Filter out finished projects if required
+      const displayFinished = config.displayFinished ?? false
+      if (!displayFinished) {
+        projectInstances = projectInstances.filter((pi) => !isProjectFinished(pi))
+        logDebug('filterProjectsList', `- after filtering out finished, ${projectInstances.length} projects`)
+      }
 
-    // Filter out paused projects if required
-    const displayPaused = config.displayPaused ?? true
-    if (!displayPaused) {
-      projectInstances = projectInstances.filter((pi) => !pi.isPaused)
-      logDebug('filterProjectsList', `- after filtering out paused, ${projectInstances.length} projects`)
+      // Filter out paused projects if required
+      const displayPaused = config.displayPaused ?? true
+      if (!displayPaused) {
+        projectInstances = projectInstances.filter((pi) => !pi.isPaused)
+        logDebug('filterProjectsList', `- after filtering out paused, ${projectInstances.length} projects`)
+      }
     }
 
     // Filter out non-due projects if required
@@ -2008,6 +2236,7 @@ function filenameMatchesActivePerspective(filename: string, config: ReviewConfig
  * @param {string?} tag to filter by (optional)
  * @param {Array<string>?} sortingOrder array of field names to sort by; if given overrides the default sorting order from the Reviews plugin. (Optional)
  * @param {boolean?} dedupeList if true, deduplicate the list by removing projects with multiple 'tags'. (Optional, default is false)
+ * @param {{ skipStatusMembershipFilter?: boolean }?} filterOptions - Rich list sets skipStatusMembershipFilter so status toggles can show/hide client-side
  * @returns {Promise<[Array<Project>, number]>} [sorted projects, count after tag filter only - i.e. length before folder/due/paused/dedupe filters; use tuple[0].length for rows in the sorted list]
  */
 export async function filterAndSortProjectsList(
@@ -2015,6 +2244,7 @@ export async function filterAndSortProjectsList(
   tag: string = '',
   sortingOrder: Array<string> = [],
   dedupeList?: boolean = false,
+  filterOptions?: { skipStatusMembershipFilter?: boolean } = {},
 ): Promise<[Array<Project>, number]> {
   const allProjectInstances = await getAllProjectsFromList()
   logInfo('filterAndSortProjectsList', `Starting with tag '${tag}' for ${allProjectInstances.length} projects`)
@@ -2029,7 +2259,7 @@ export async function filterAndSortProjectsList(
     logDebug('filterAndSortProjectsList', `- after active perspective filter: ${String(projectInstancesForTag.length)} projects`)
   }
 
-  const filteredProjectList = await filterProjectsList(projectInstancesForTag, config, dedupeList)
+  const filteredProjectList = await filterProjectsList(projectInstancesForTag, config, dedupeList, filterOptions)
 
   const sortedProjectList = sortProjectsList(filteredProjectList, config, sortingOrder) 
   logInfo('filterAndSortProjectsList', `- filtered ${filteredProjectList.length} projects, sorted ${sortedProjectList.length} projects (before perspective filters: ${String(projectInstancesForTag.length)})`)
@@ -2073,8 +2303,20 @@ export async function updateAllProjectsListAfterChange(
     // Find right project to update
     const reviewedProject = allProjects.find((project) => project.filename === filename)
     if (!reviewedProject) {
+      // simplyDelete after archive: list may already lack the pre-move path (or regenerate just failed).
+      // Do not kick off another generate -- that can return [] and empty the Rich list.
+      if (simplyDelete) {
+        logWarn(
+          'updateAllProjectsListAfterChange',
+          `Couldn't find '${filename}' to delete in allProjects list; nothing to remove`,
+        )
+        logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(skipped delete; '${filename}' not in list)`)
+        return
+      }
+
       logWarn('updateAllProjectsListAfterChange', `Couldn't find '${filename}' to update in allProjects list; trying incremental add if in scope`)
-      const noteForAdd = getNoteFromFilename(filename)
+      // After a move/archive the caller may still pass the old path; resolve under @Archive / by title.
+      const noteForAdd = resolveProjectNoteFromListFilename(filename)
       const projectTypeTags =
         config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
           ? [config.projectTypeTags]
@@ -2086,7 +2328,7 @@ export async function updateAllProjectsListAfterChange(
             ? projectTypeTags
             : getProjectTypeTagsFromNoteMetadata(noteForAdd)
 
-      if (noteForAdd && !simplyDelete) {
+      if (noteForAdd) {
         let added = false
         for (const tag of tagsToTry) {
           if (await addNewProjectToAllProjectsListIfInScope(noteForAdd, tag, config, scrollPosForRichList, options)) {
@@ -2135,6 +2377,8 @@ export async function updateAllProjectsListAfterChange(
         // logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(skipped; could not load '${filename}')`)
         return
       }
+      // Refresh NotePlan's note cache so just-written status: / reviewed: are visible to the Project constructor.
+      DataStore.updateCache(reviewedNote, false)
       // Note: there had been issue of stale data here in the past. Leaving comment in case it's needed again.
       updatedProject = new Project(
         reviewedNote,
@@ -2145,7 +2389,12 @@ export async function updateAllProjectsListAfterChange(
         false,
         projectConstructorPrefsFromReviewConfig(config),
       )
-      logInfo('updateAllProjectsListAfterChange', `- Built updated Project '${reviewedTitle}' for list`)
+      // Ensure statusHashtag is set even if frontmatterAttributes lagged during construct.
+      syncStatusHashtagOnProjectFromNote(updatedProject, reviewedNote)
+      logInfo(
+        'updateAllProjectsListAfterChange',
+        `- Built updated Project '${reviewedTitle}' for list (statusHashtag=${String(updatedProject.statusHashtag || '')})`,
+      )
     }
 
     // Remove old row, then append rebuilt Project (if any), then persist - only after we know we can load the note for updates.
