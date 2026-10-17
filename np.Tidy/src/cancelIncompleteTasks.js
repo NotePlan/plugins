@@ -3,18 +3,19 @@
 // Cancel incomplete tasks and checklists in calendar notes for a given past year,
 // or in a chosen folder of regular notes (import cleanup).
 // Jonathan Clark
-// Last updated 2026-07-21 for v1.20.0, @jgclark + @CursorAI
+// Last updated 2026-10-16 for v1.21.0, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getCalendarNoteTimeframe, getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { JSP, clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getRegularNotesInFolder } from '@helpers/folders'
-import { displayTitle, getTagParamsFromString } from '@helpers/general'
+import { getFolderDisplayName, getRegularNotesInFolder } from '@helpers/folders'
+import { getTagParamsFromString } from '@helpers/general'
 import { pastCalendarNotes } from '@helpers/note'
 import { getTeamspaceTitleFromID } from '@helpers/NPTeamspace'
 import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { chooseFolder, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { runHeavySyncWork } from './tidyHelpers'
 
 type IncompleteCounts = {
   tasks: number,
@@ -239,26 +240,41 @@ export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Prom
     }
 
     CommandBar.showLoading(true, `Scanning calendar notes for year ${targetYearStr} ...`, 0)
-    await CommandBar.onAsyncThread()
 
+    // Side-channel: do not return large arrays from runOnAsyncThread.
+    let notesToProcessHolder: ?Array<TNote> = null
     const totalPast = allPastCalendarNotes.length
-    for (let i = 0; i < totalPast; i += 1) {
-      const n = allPastCalendarNotes[i]
-      const dateStr = getDateStringFromCalendarFilename(n.filename)
-      if (!dateStr || dateStr === '(invalid date)') {
-        continue
+    /**
+     * Synchronous year filter. Safe for runOnAsyncThread (read-only; showLoading allowed).
+     * @returns {true}
+     */
+    const syncFilterNotesForYear = (): true => {
+      const notesForYear: Array<TNote> = []
+      for (let i = 0; i < totalPast; i += 1) {
+        const n = allPastCalendarNotes[i]
+        const dateStr = getDateStringFromCalendarFilename(n.filename)
+        if (!dateStr || dateStr === '(invalid date)') {
+          continue
+        }
+        const thisYear = dateStr.slice(0, 4)
+        if (thisYear === targetYearStr) {
+          notesForYear.push(n)
+        }
+        if (i % 10 === 0) {
+          const progress = i / totalPast
+          CommandBar.showLoading(true, `Scanning calendar notes for year ${targetYearStr} ...`, progress)
+        }
       }
-      const thisYear = dateStr.slice(0, 4)
-      if (thisYear === targetYearStr) {
-        notesToProcess.push(n)
-      }
-      if (i % 50 === 0) {
-        const progress = i / totalPast
-        CommandBar.showLoading(true, `Scanning calendar notes for year ${targetYearStr} …`, progress)
-      }
+      notesToProcessHolder = notesForYear
+      return true
     }
+    await runHeavySyncWork('cancelIncompleteTasksInPastYear scan', syncFilterNotesForYear)
+    if (notesToProcessHolder == null) {
+      logWarn('cancelIncompleteTasksInPastYear', `async scan result missing; scanning on main thread`)
+      syncFilterNotesForYear()
+    }
+    notesToProcess.push(...(notesToProcessHolder ?? []))
 
-    await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 
     if (notesToProcess.length === 0) {
@@ -267,61 +283,80 @@ export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Prom
     }
 
     // Aggregate counts per Teamspace and timeframe
-    const statsMap: TeamspaceStatsMap = {}
-    let grandTotalTasks = 0
-    let grandTotalChecklists = 0
-    let grandTotalNotes = 0
-
     CommandBar.showLoading(true, `Counting incomplete items for year ${targetYearStr} ...`, 0)
     logInfo(pluginJson, `Listing incomplete items for year ${targetYearStr} ...`)
-    await CommandBar.onAsyncThread()
 
+    // Side-channel: do not return large results from runOnAsyncThread.
+    let yearCountHolder: ?{
+      statsMap: TeamspaceStatsMap,
+      grandTotalTasks: number,
+      grandTotalChecklists: number,
+      grandTotalNotes: number,
+    } = null
     const numNotes = notesToProcess.length
-    for (let i = 0; i < numNotes; i += 1) {
-      const note = notesToProcess[i]
-      const counts = countIncompleteTasksAndChecklistsInNote(note)
-      if (counts.tasks === 0 && counts.checklists === 0) {
-        continue
-      }
+    /**
+     * Synchronous incomplete-item count. Safe for runOnAsyncThread (read-only; showLoading allowed).
+     * @returns {true}
+     */
+    const syncCountYear = (): true => {
+      const statsMap: TeamspaceStatsMap = {}
+      let grandTotalTasks = 0
+      let grandTotalChecklists = 0
+      let grandTotalNotes = 0
+      for (let i = 0; i < numNotes; i += 1) {
+        const note = notesToProcess[i]
+        const counts = countIncompleteTasksAndChecklistsInNote(note)
+        if (counts.tasks === 0 && counts.checklists === 0) {
+          continue
+        }
 
-      const timeframe: Timeframe | false = getCalendarNoteTimeframe(note)
-      const tfLabel: TimeframeKey = timeframe ? TIMEFRAME_LABELS[timeframe] : TIMEFRAME_LABELS.unknown
+        const timeframe: Timeframe | false = getCalendarNoteTimeframe(note)
+        const tfLabel: TimeframeKey = timeframe ? TIMEFRAME_LABELS[timeframe] : TIMEFRAME_LABELS.unknown
 
-      const { teamspaceID, isTeamspace } = parseTeamspaceFilename(note.filename)
-      const teamspaceKey: string = isTeamspace && teamspaceID ? teamspaceID : 'local'
-      const teamspaceTitle: string = isTeamspace && teamspaceID ? getTeamspaceTitleFromID(teamspaceID) : 'Local notes'
+        const { teamspaceID, isTeamspace } = parseTeamspaceFilename(note.filename)
+        const teamspaceKey: string = isTeamspace && teamspaceID ? teamspaceID : 'local'
+        const teamspaceTitle: string = isTeamspace && teamspaceID ? getTeamspaceTitleFromID(teamspaceID) : 'Local notes'
 
-      const tsStats = getOrCreateTeamspaceStats(statsMap, teamspaceKey, teamspaceTitle)
+        const tsStats = getOrCreateTeamspaceStats(statsMap, teamspaceKey, teamspaceTitle)
 
-      const tfCounts = tsStats.timeframeCounts[tfLabel]
-      tfCounts.notes += 1
-      tfCounts.tasks += counts.tasks
-      tfCounts.checklists += counts.checklists
+        const tfCounts = tsStats.timeframeCounts[tfLabel]
+        tfCounts.notes += 1
+        tfCounts.tasks += counts.tasks
+        tfCounts.checklists += counts.checklists
 
-      tsStats.totalNotes += 1
-      tsStats.totalTasks += counts.tasks
-      tsStats.totalChecklists += counts.checklists
+        tsStats.totalNotes += 1
+        tsStats.totalTasks += counts.tasks
+        tsStats.totalChecklists += counts.checklists
 
-      grandTotalNotes += 1
-      grandTotalTasks += counts.tasks
-      grandTotalChecklists += counts.checklists
+        grandTotalNotes += 1
+        grandTotalTasks += counts.tasks
+        grandTotalChecklists += counts.checklists
 
-      // Log each matching paragraph for traceability
-      const titleForLog = displayTitle(note)
-      for (const p of note.paragraphs ?? []) {
-        if (!p) continue
-        if (p.type === 'open' || p.type === 'scheduled' || p.type === 'checklist' || p.type === 'checklistScheduled') {
-          console.log(`- ${note.filename} line ${String(p.lineIndex)} [${p.type}] {${p.content}}`)
+        // Log each matching paragraph for traceability
+        for (const p of note.paragraphs ?? []) {
+          if (!p) continue
+          if (p.type === 'open' || p.type === 'scheduled' || p.type === 'checklist' || p.type === 'checklistScheduled') {
+            console.log(`- ${note.filename} line ${String(p.lineIndex)} [${p.type}] {${p.content}}`)
+          }
+        }
+
+        if (i % 10 === 0) {
+          const progress = i / numNotes
+          CommandBar.showLoading(true, `Counting incomplete items for year ${targetYearStr} ...`, progress)
         }
       }
-
-      if (i % 50 === 0) {
-        const progress = i / numNotes
-        CommandBar.showLoading(true, `Counting incomplete items for year ${targetYearStr} ...`, progress)
-      }
+      yearCountHolder = { statsMap, grandTotalTasks, grandTotalChecklists, grandTotalNotes }
+      return true
     }
-
-    await CommandBar.onMainThread()
+    await runHeavySyncWork('cancelIncompleteTasksInPastYear count', syncCountYear)
+    if (yearCountHolder == null) {
+      logWarn('cancelIncompleteTasksInPastYear', `async count result missing; counting on main thread`)
+      syncCountYear()
+    }
+    const statsMap: TeamspaceStatsMap = yearCountHolder?.statsMap ?? {}
+    const grandTotalTasks = yearCountHolder?.grandTotalTasks ?? 0
+    const grandTotalChecklists = yearCountHolder?.grandTotalChecklists ?? 0
+    const grandTotalNotes = yearCountHolder?.grandTotalNotes ?? 0
     CommandBar.showLoading(false)
 
     if (grandTotalTasks === 0 && grandTotalChecklists === 0) {
@@ -376,21 +411,34 @@ export async function cancelIncompleteTasksInPastYear(yearIn: string = ''): Prom
 
     // Apply cancellations
     CommandBar.showLoading(true, `Cancelling incomplete items for ${targetYearStr} ...`, 0)
-    await CommandBar.onAsyncThread()
 
-    let changedTotal = 0
+    // Side-channel: return a small flag, not the running total, so a missed async run is detectable.
+    let changedTotalHolder: ?number = null
     const numNotesToProcess = notesToProcess.length
-    for (let i = 0; i < numNotesToProcess; i += 1) {
-      const note = notesToProcess[i]
-      const changedForNote = cancelIncompleteTasksAndChecklistsInNote(note)
-      changedTotal += changedForNote
-      if (i % 50 === 0) {
-        const progress = i / numNotesToProcess
-        CommandBar.showLoading(true, `Cancelling incomplete items for ${targetYearStr} ...`, progress)
+    /**
+     * Synchronous cancel pass. Safe for runOnAsyncThread (no await; showLoading allowed).
+     * @returns {true}
+     */
+    const syncCancelYear = (): true => {
+      let changedTotal = 0
+      for (let i = 0; i < numNotesToProcess; i += 1) {
+        const note = notesToProcess[i]
+        const changedForNote = cancelIncompleteTasksAndChecklistsInNote(note)
+        changedTotal += changedForNote
+        if (i % 10 === 0) {
+          const progress = i / numNotesToProcess
+          CommandBar.showLoading(true, `Cancelling incomplete items for ${targetYearStr} ...`, progress)
+        }
       }
+      changedTotalHolder = changedTotal
+      return true
     }
-
-    await CommandBar.onMainThread()
+    await runHeavySyncWork('cancelIncompleteTasksInPastYear cancel', syncCancelYear)
+    if (changedTotalHolder == null) {
+      logWarn('cancelIncompleteTasksInPastYear', `async cancel result missing; cancelling on main thread`)
+      syncCancelYear()
+    }
+    const changedTotal = changedTotalHolder ?? 0
     CommandBar.showLoading(false)
 
     const completedMsg = `Cancelled ${changedTotal.toLocaleString()} incomplete tasks/checklists in ${grandTotalNotes.toLocaleString()} calendar notes from ${targetYearStr}.`
@@ -425,41 +473,60 @@ export async function cancelIncompleteTasksInFolder(params: string = ''): Promis
     }
 
     logInfo(pluginJson, `cancelIncompleteTasksInFolder: starting for folder '${folderToStart}'`)
+    const folderLabel = getFolderDisplayName(String(folderToStart))
 
     const notesInFolder = getRegularNotesInFolder(folderToStart, true, [])
     const notesToScan = filterNotesForFolderCancel(notesInFolder)
 
     if (notesToScan.length === 0) {
-      await showMessage(`No regular notes were found in folder '${folderToStart}' (and subfolders).`, 'OK', 'Cancel incomplete tasks in a folder')
+      await showMessage(`No regular notes were found in folder '${folderLabel}' (and subfolders).`, 'OK', 'Cancel incomplete tasks in a folder')
       return
     }
 
-    CommandBar.showLoading(true, `Counting incomplete items in '${folderToStart}' ...`, 0)
-    await CommandBar.onAsyncThread()
+    CommandBar.showLoading(true, `Counting incomplete items in '${folderLabel}' ...`, 0)
 
-    const { notesWithItems, totalTasks, totalChecklists } = aggregateIncompleteCountsForNotes(notesToScan)
-
-    // Log matching paragraphs for traceability
-    for (const note of notesWithItems) {
-      for (const p of note.paragraphs ?? []) {
-        if (!p) continue
-        if (p.type === 'open' || p.type === 'scheduled' || p.type === 'checklist' || p.type === 'checklistScheduled') {
-          console.log(`- ${note.filename} line ${String(p.lineIndex)} [${p.type}] {${p.content}}`)
+    // Side-channel: do not return large arrays from runOnAsyncThread.
+    let folderCountHolder: ?{
+      notesWithItems: Array<TNote>,
+      totalTasks: number,
+      totalChecklists: number,
+    } = null
+    /**
+     * Synchronous folder count. Safe for runOnAsyncThread (read-only).
+     * @returns {true}
+     */
+    const syncCountFolder = (): true => {
+      const counted = aggregateIncompleteCountsForNotes(notesToScan)
+      // Log matching paragraphs for traceability
+      for (const note of counted.notesWithItems) {
+        for (const p of note.paragraphs ?? []) {
+          if (!p) continue
+          if (p.type === 'open' || p.type === 'scheduled' || p.type === 'checklist' || p.type === 'checklistScheduled') {
+            console.log(`- ${note.filename} line ${String(p.lineIndex)} [${p.type}] {${p.content}}`)
+          }
         }
       }
+      folderCountHolder = counted
+      return true
     }
-
-    await CommandBar.onMainThread()
+    await runHeavySyncWork('cancelIncompleteTasksInFolder count', syncCountFolder)
+    if (folderCountHolder == null) {
+      logWarn('cancelIncompleteTasksInFolder', `async count result missing; counting on main thread`)
+      syncCountFolder()
+    }
+    const notesWithItems: Array<TNote> = folderCountHolder?.notesWithItems ?? []
+    const totalTasks = folderCountHolder?.totalTasks ?? 0
+    const totalChecklists = folderCountHolder?.totalChecklists ?? 0
     CommandBar.showLoading(false)
 
     if (totalTasks === 0 && totalChecklists === 0) {
       logInfo('cancelIncompleteTasksInFolder', `No incomplete tasks or checklists were found in folder '${folderToStart}'.`)
-      await showMessage(`No incomplete tasks or checklists were found in folder '${folderToStart}' (and subfolders).`, 'OK', 'Cancel incomplete tasks in a folder')
+      await showMessage(`No incomplete tasks or checklists were found in folder '${folderLabel}' (and subfolders).`, 'OK', 'Cancel incomplete tasks in a folder')
       return
     }
 
     const lines = []
-    lines.push(`In folder '${folderToStart}' (and subfolders), I found:`)
+    lines.push(`In folder '${folderLabel}' (and subfolders), I found:`)
     lines.push('')
     lines.push(`${notesWithItems.length.toLocaleString()} notes with incomplete items:`)
     lines.push(`- ${totalTasks.toLocaleString()} incomplete tasks`)
@@ -481,23 +548,36 @@ export async function cancelIncompleteTasksInFolder(params: string = ''): Promis
       return
     }
 
-    CommandBar.showLoading(true, `Cancelling incomplete items in '${folderToStart}' ...`, 0)
-    await CommandBar.onAsyncThread()
+    CommandBar.showLoading(true, `Cancelling incomplete items in '${folderLabel}' ...`, 0)
 
-    let changedTotal = 0
+    // Side-channel: a null holder means the async run did not finish, including a real zero.
+    let folderChangedHolder: ?number = null
     const numNotes = notesWithItems.length
-    for (let i = 0; i < numNotes; i += 1) {
-      const note = notesWithItems[i]
-      changedTotal += cancelIncompleteTasksAndChecklistsInNote(note)
-      if (i % 50 === 0) {
-        CommandBar.showLoading(true, `Cancelling incomplete items in '${folderToStart}' ...`, i / numNotes)
+    /**
+     * Synchronous folder cancel. Safe for runOnAsyncThread (no await; showLoading allowed).
+     * @returns {true}
+     */
+    const syncCancelFolder = (): true => {
+      let changedTotal = 0
+      for (let i = 0; i < numNotes; i += 1) {
+        const note = notesWithItems[i]
+        changedTotal += cancelIncompleteTasksAndChecklistsInNote(note)
+        if (i % 10 === 0) {
+          CommandBar.showLoading(true, `Cancelling incomplete items in '${folderLabel}' ...`, i / numNotes)
+        }
       }
+      folderChangedHolder = changedTotal
+      return true
     }
-
-    await CommandBar.onMainThread()
+    await runHeavySyncWork('cancelIncompleteTasksInFolder cancel', syncCancelFolder)
+    if (folderChangedHolder == null) {
+      logWarn('cancelIncompleteTasksInFolder', `async cancel result missing; cancelling on main thread`)
+      syncCancelFolder()
+    }
+    const changedTotal = folderChangedHolder ?? 0
     CommandBar.showLoading(false)
 
-    const completedMsg = `Cancelled ${changedTotal.toLocaleString()} incomplete tasks/checklists in ${notesWithItems.length.toLocaleString()} notes in folder '${folderToStart}'.`
+    const completedMsg = `Cancelled ${changedTotal.toLocaleString()} incomplete tasks/checklists in ${notesWithItems.length.toLocaleString()} notes in folder '${folderLabel}'.`
     await showMessage(completedMsg, 'OK', 'Cancel incomplete tasks in a folder')
     logInfo('cancelIncompleteTasksInFolder', completedMsg)
   } catch (error) {

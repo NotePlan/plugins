@@ -2,17 +2,18 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2026-10-16 for v1.20.4, @jgclark
+// Last updated 2026-10-16 for v1.21.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { listConflicts } from './conflicts'
 import { listDuplicates } from './duplicates'
+import { listTitleProblems } from './titleProblems'
 import { removeEmptyElementsFromRecentNotes } from './emptyElements'
 import { generateRepeatsFromRecentNotes } from './tidyRepeats'
 import { moveTopLevelTasksInNote } from './topLevelTasks'
-import { getSettings, type TidyConfig } from './tidyHelpers'
+import { getSettings, runHeavySyncWork, type TidyConfig } from './tidyHelpers'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
@@ -30,9 +31,8 @@ export async function tidyUpAll(): Promise<void> {
     const config: TidyConfig = await getSettings()
     logDebug(pluginJson, `tidyUpAll: Starting, with runSilently=${String(config.runSilently)}`)
 
-    // Show spinner dialog
+    // Each step owns its own thread and returns to the main thread before any prompt.
     CommandBar.showLoading(true, `Tidying up ...`, 0)
-    await CommandBar.onAsyncThread()
 
     if (config.runRemoveBlankNotes) {
       CommandBar.showLoading(true, `Tidying up blank notes ...`, 0.1)
@@ -95,6 +95,12 @@ export async function tidyUpAll(): Promise<void> {
       await listDuplicates(param)
     }
 
+    if (config.runTitleProblemsCommand) {
+      CommandBar.showLoading(true, `Making list of title problems ...`, 0.75)
+      logDebug('tidyUpAll', `Starting listTitleProblems ...`)
+      await listTitleProblems(param)
+    }
+
     if (config.removeTriggersFromRecentCalendarNotes) {
       CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.8)
       logDebug('tidyUpAll', `Starting removeTriggersFromRecentCalendarNotes...`)
@@ -112,8 +118,6 @@ export async function tidyUpAll(): Promise<void> {
       await generateRepeatsFromRecentNotes(param)
     }
 
-    // stop spinner
-    await CommandBar.onMainThread()
     CommandBar.showLoading(false)
   } catch (error) {
     logError('tidyUpAll', JSP(error))
@@ -544,26 +548,39 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     logDebug(pluginJson, `removeBlankNotes() with runSilently? '${String(runSilently)}'`)
 
     // Find all notes with 2 or fewer bytes' length.
-    // Show spinner dialog
     CommandBar.showLoading(true, `Finding blank notes ...`)
-    await CommandBar.onAsyncThread()
     const start = new Date()
 
-    // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
-    const blankNotes = allNotesSortedByChanged()
-      .filter((n) => n.filename.match(/(.txt|.md)$/))
-      // Note: `TNote.content` is `string | void`. The previous guard compared against the *string* 'undefined'
-      // (`n.content !== 'undefined' && n.content.length !== 'undefined'`), which was always true and then threw a
-      // TypeError whenever content really was undefined. The intent was `typeof n.content !== 'undefined'`.
-      .filter((n) => {
-        const content = n.content
-        return typeof content === 'string' && content.length <= 2
-      })
-    
-    const nonTeamspaceNotes = blankNotes.filter((n) => !isTeamspaceNoteFromFilename(n.filename))
-    const teamspaceNotes = blankNotes.filter((n) => isTeamspaceNoteFromFilename(n.filename))
-    
-    await CommandBar.onMainThread()
+    // Side-channel: do not return large arrays from runOnAsyncThread.
+    let nonTeamspaceNotesHolder: ?Array<TNote> = null
+    let teamspaceNotesHolder: ?Array<TNote> = null
+    /**
+     * Synchronous blank-note scan. Safe for runOnAsyncThread (read-only).
+     * @returns {true}
+     */
+    const syncFindBlankNotes = (): true => {
+      // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
+      const blankNotes = allNotesSortedByChanged()
+        .filter((n) => n.filename.match(/(.txt|.md)$/))
+        // Note: `TNote.content` is `string | void`. The previous guard compared against the *string* 'undefined'
+        // (`n.content !== 'undefined' && n.content.length !== 'undefined'`), which was always true and then threw a
+        // TypeError whenever content really was undefined. The intent was `typeof n.content !== 'undefined'`.
+        .filter((n) => {
+          const content = n.content
+          return typeof content === 'string' && content.length <= 2
+        })
+
+      nonTeamspaceNotesHolder = blankNotes.filter((n) => !isTeamspaceNoteFromFilename(n.filename))
+      teamspaceNotesHolder = blankNotes.filter((n) => isTeamspaceNoteFromFilename(n.filename))
+      return true
+    }
+    await runHeavySyncWork('removeBlankNotes', syncFindBlankNotes)
+    if (nonTeamspaceNotesHolder == null || teamspaceNotesHolder == null) {
+      logWarn('removeBlankNotes', `async scan result missing; scanning on main thread`)
+      syncFindBlankNotes()
+    }
+    const nonTeamspaceNotes: Array<TNote> = nonTeamspaceNotesHolder ?? []
+    const teamspaceNotes: Array<TNote> = teamspaceNotesHolder ?? []
     CommandBar.showLoading(false)
 
     // Now count the notes found

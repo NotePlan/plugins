@@ -2,13 +2,15 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2026-10-16 for v1.20.4, @jgclark
+// Last updated 2026-10-16 for v1.21.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import { castStringFromMixed } from '@helpers/dataManipulation'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
+import { usersVersionHas } from '@helpers/NPVersions'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 
 //------------------------------------------------------------------------------
@@ -27,6 +29,7 @@ export type TidyConfig = {
   conflictedNoteFilename: string,
   doubledNoteFilename: string,
   duplicateNoteFilename: string,
+  titleProblemsNoteFilename: string,
   missingDailyNotesNoteFilename: string,
   stubsNoteFilename: string,
   removeFoldersToExclude: Array<string>,
@@ -35,6 +38,7 @@ export type TidyConfig = {
   runGenerateRepeatsCommand: boolean,
   savePreviousVersion: boolean,
   runDuplicateFinderCommand: boolean,
+  runTitleProblemsCommand: boolean,
   runFileRootNotesCommand: boolean,
   runRemoveOrphansCommand: boolean,
   runRemoveDoneMarkersCommand: boolean,
@@ -143,6 +147,31 @@ export function percentWithTerm(value: number, total: number, term: string): str
 
 // Get locale: if blank in settings then get from NP environment (from 3.3.2)
 // or if not available default to 'en-US'
+/**
+ * Run a synchronous scan off the main thread.
+ * NotePlan 3.21.3+ uses `runSyncWorkOnAsyncThread` (`CommandBar.runOnAsyncThread`).
+ * Earlier versions keep `onAsyncThread` / `onMainThread`, which these scans already used.
+ * `work` must be synchronous (no async / await). Do not return large arrays from it:
+ * write them to a closed-over holder and return true. Prompts and Editor stay outside.
+ * `CommandBar.showLoading` inside `work` is allowed.
+ * @param {string} label
+ * @param {() => mixed} work
+ * @returns {Promise<void>}
+ */
+export async function runHeavySyncWork(label: string, work: () => mixed): Promise<void> {
+  if (usersVersionHas('runOnAsyncThread')) {
+    await runSyncWorkOnAsyncThread(label, work)
+    return
+  }
+  logInfo('runHeavySyncWork', `${label}: onAsyncThread (runOnAsyncThread not available)`)
+  await CommandBar.onAsyncThread()
+  try {
+    work()
+  } finally {
+    await CommandBar.onMainThread()
+  }
+}
+
 function getLocale(tempConfig: Object): string {
   const envRegion = NotePlan?.environment ? NotePlan?.environment?.regionCode : ''
   const envLanguage = NotePlan?.environment ? NotePlan?.environment?.languageCode : ''

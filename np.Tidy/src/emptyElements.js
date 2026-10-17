@@ -414,6 +414,7 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
 
     const startTime = new Date()
     CommandBar.showLoading(true, `Finding recent notes`)
+    // Stays on onAsyncThread: the loop awaits note updates and may prompt, which runOnAsyncThread rejects.
     await CommandBar.onAsyncThread()
 
     // Find notes changed in interval (or all when numDays === 0)
@@ -449,8 +450,13 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
     // }
 
     let numChanged = 0
-    CommandBar.showLoading(true, `Looking for empty elements in ${String(recentNotes.length)} recent notes...`)
+    let count = 0
     for (const note of recentNotes) {
+      count++
+      if (count % 10 === 0) {
+        await CommandBar.onMainThread()
+        CommandBar.showLoading(true, `Removing empty elements from note ${String(count)} of ${String(recentNotes.length)}...`, count / recentNotes.length)
+      }
       const before = note.paragraphs.map((p) => p.rawContent).join('\n')
       const hasMeaningfulContent = noteHasMeaningfulContent(note)
       await removeEmptyElements(note.filename, stripAllEmptyLines, preserveHeadingStructure)

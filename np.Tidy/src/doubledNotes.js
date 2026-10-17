@@ -1,13 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2026-10-16 for v1.20.4 by @jgclark
+// Last updated 2026-10-17 for v1.21.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { noteOpenInEditor } from '@helpers/NPEditor'
 import { constrainMainWindow } from '@helpers/NPWindows'
-import { getSettings, percentWithTerm } from './tidyHelpers'
+import { getSettings, percentWithTerm, runHeavySyncWork } from './tidyHelpers'
 import { relativeDateFromDate } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, getTagParamsFromString } from '@helpers/general'
@@ -83,7 +83,7 @@ function findPotentialDoubledNotes(): Array<DoubleDetails> {
 }
 
 /**
- * Command to show details of duplicates in a NP note (replacing any earlier version of the note)
+ * Command to show details of duplicated content ('doubles') in a NP note (replacing any earlier version of the note)
  * @author @jgclark
  * @params {string?} params
  */
@@ -107,10 +107,23 @@ export async function listPotentialDoubles(params: string = ''): Promise<void> {
     }
 
     CommandBar.showLoading(true, `Finding possible doubles`)
-    await CommandBar.onAsyncThread()
     const startTime = new Date()
-    const doubles: Array<DoubleDetails> = findPotentialDoubledNotes()
-    await CommandBar.onMainThread()
+    // Side-channel: do not return large arrays from runOnAsyncThread.
+    let doublesHolder: ?Array<DoubleDetails> = null
+    /**
+     * Synchronous doubled-content scan. Safe for runOnAsyncThread (read-only; showLoading allowed).
+     * @returns {true}
+     */
+    const syncFindDoubles = (): true => {
+      doublesHolder = findPotentialDoubledNotes()
+      return true
+    }
+    await runHeavySyncWork('listPotentialDoubles', syncFindDoubles)
+    if (doublesHolder == null) {
+      logWarn('listPotentialDoubles', `async scan result missing; scanning on main thread`)
+      syncFindDoubles()
+    }
+    const doubles: Array<DoubleDetails> = doublesHolder ?? []
     CommandBar.showLoading(false)
     logDebug('listPotentialDoubles', `Found ${doubles.length} potential doubles in ${timer(startTime)}:`)
 
@@ -123,6 +136,14 @@ export async function listPotentialDoubles(params: string = ''): Promise<void> {
 
     const summaryLine = `Found ${doubles.length} potential doubles at ${nowLocaleShortDateTime()}. ${xCallbackRefreshButton}`
     outputArray.push(summaryLine)
+
+    // Show message if no doubles found
+    if (doubles.length === 0) {
+      if (!runSilently) {
+        await showMessage(`No potentially duplicated content found! 🥳`)
+      }
+      return
+    }
 
     // Write out details for each possible duplicated content note
     for (const d of doubles) {
@@ -152,11 +173,6 @@ export async function listPotentialDoubles(params: string = ''): Promise<void> {
       } else {
         throw new Error(`Couldn't find note '${outputFilename}' to write to`)
       }
-    }
-
-    // Show message if no doubles found
-    if (doubles.length === 0 && !runSilently) {
-      await showMessage(`No possible duplicated content found! 🥳`)
     }
   }
   catch (err) {

@@ -2,10 +2,10 @@
 //-----------------------------------------------------------------------------
 // listStubs function for Tidy
 // Jonathan Clark
-// Last updated 2025-09-09 for v0.14.11 by @jgclark
+// Last updated 2026-10-17 for v1.21.0 by @jgclark
 //-----------------------------------------------------------------------------
 
-import { getSettings, type TidyConfig } from './tidyHelpers'
+import { getSettings, runHeavySyncWork, type TidyConfig } from './tidyHelpers'
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { isValidCalendarNoteTitleStr } from '@helpers/dateTime'
@@ -74,7 +74,9 @@ function findStubs(
       if (filenamesToExclude.includes(thisNote.filename)) {
         continue
       }
-      CommandBar.showLoading(true, `Checking note ${String(noteCount)}`, noteCount / numNotes)
+      if (noteCount % 10 === 0) {
+        CommandBar.showLoading(true, `Checking note ${String(noteCount)}`, noteCount / numNotes)
+      }
       const thisContent = thisNote.content ?? ''
       // logDebug('findStubs', `- checking in note: ${displayTitle(thisNote)}`)
       // Find all wikilinks in this note
@@ -125,10 +127,23 @@ export async function listStubs(params: string = ''): Promise<void> {
     logDebug(pluginJson, `listStubs() starting, with runSilently = ${String(runSilently)}`)
 
     CommandBar.showLoading(true, `Finding wikilink stubs`)
-    await CommandBar.onAsyncThread()
     const startTime = new Date()
-    const stubs: Array<stubDetails> = findStubs(config.listFoldersToExclude, [config.stubsNoteFilename])
-    await CommandBar.onMainThread()
+    // Side-channel: do not return large arrays from runOnAsyncThread.
+    let stubsHolder: ?Array<stubDetails> = null
+    /**
+     * Synchronous stub scan. Safe for runOnAsyncThread (read-only; showLoading allowed).
+     * @returns {true}
+     */
+    const syncFindStubs = (): true => {
+      stubsHolder = findStubs(config.listFoldersToExclude, [config.stubsNoteFilename])
+      return true
+    }
+    await runHeavySyncWork('listStubs', syncFindStubs)
+    if (stubsHolder == null) {
+      logWarn('listStubs', `async scan result missing; scanning on main thread`)
+      syncFindStubs()
+    }
+    const stubs: Array<stubDetails> = stubsHolder ?? []
     CommandBar.showLoading(false)
 
     // Only continue if there are stubs found

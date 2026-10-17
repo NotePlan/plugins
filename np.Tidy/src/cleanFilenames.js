@@ -14,9 +14,9 @@ import { parseTeamspaceFilename } from '@helpers/teamspace'
 import { chooseFolder, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 /**
- * Clean up note filenames in a folder and all subfolders.
- * Optional folderToStart from params (e.g. template/callback); if missing, prompts user to choose folder.
+ * Clean up note filenames in a folder and all subfolders: decode entities, fix path-unsafe chars in a folder and subfolders.
  * Excludes Calendar and Teamspace notes. Renames only when cleaned basename differs from current.
+ * Optional folderToStart from params (e.g. template/callback); if missing, prompts user to choose folder.
  * @param {string} params - Optional JSON string with folderToStart
  */
 export async function cleanUpNoteFilenames(params: string = ''): Promise<void> {

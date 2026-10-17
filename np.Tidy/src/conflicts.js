@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2025-11-01 for v1.15.2+ by @jgclark
+// Last updated 2026-10-17 for v1.21.0 by @jgclark
 // Minimum NP version: 3.9.3
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getSettings, percentWithTerm } from './tidyHelpers'
+import { getSettings, percentWithTerm, runHeavySyncWork } from './tidyHelpers'
 import {
   daysBetween,
   getDateStringFromCalendarFilename,
@@ -57,16 +57,13 @@ type conflictDetails = {
 /**
  * Private function to generate list of conflicted notes
  * NB: Only available from NP 3.9.3
+ * Synchronous. Call only after the noteVersions availability check.
  * @author @jgclark
  * @param {Array<string>} foldersToExclude
- * @returns {Array<conflictDetails>} array of strings, one for each output line
-*/
-async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise<Array<conflictDetails>> {
+ * @returns {Array<conflictDetails>}
+ */
+function getConflictedNotes(foldersToExclude: Array<string> = []): Array<conflictDetails> {
   try {
-    if (!usersVersionHas('noteVersions')) {
-      await showMessage("Command '/List conflicted notes' is only available from NP 3.9.3")
-      return []
-    }
     logDebug(pluginJson, `getConflictedNotes() starting`)
 
     const outputArray: Array<conflictDetails> = []
@@ -119,10 +116,23 @@ export async function listConflicts(params: string = ''): Promise<void> {
     logDebug('listConflicts', `runSilently = ${String(runSilently)}`)
 
     CommandBar.showLoading(true, `Looking for notes with conflicts on ${machineName}`)
-    await CommandBar.onAsyncThread()
     const startTime = new Date()
-    const conflictedNotes: Array<conflictDetails> = await getConflictedNotes(config.listFoldersToExclude)
-    await CommandBar.onMainThread()
+    // Side-channel: do not return large arrays from runOnAsyncThread.
+    let conflictedNotesHolder: ?Array<conflictDetails> = null
+    /**
+     * Synchronous conflict scan. Safe for runOnAsyncThread (read-only).
+     * @returns {true}
+     */
+    const syncFindConflicts = (): true => {
+      conflictedNotesHolder = getConflictedNotes(config.listFoldersToExclude)
+      return true
+    }
+    await runHeavySyncWork('listConflicts', syncFindConflicts)
+    if (conflictedNotesHolder == null) {
+      logWarn('listConflicts', `async scan result missing; scanning on main thread`)
+      syncFindConflicts()
+    }
+    const conflictedNotes: Array<conflictDetails> = conflictedNotesHolder ?? []
     CommandBar.showLoading(false)
 
     // Now also try to remove (Trash) the copies made on any previous run of this command

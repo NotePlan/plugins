@@ -5,7 +5,7 @@
 // Last updated 2025-10-13 for v1.15.0 by @jgclark
 //-----------------------------------------------------------------------------
 
-import { getSettings, type TidyConfig } from './tidyHelpers'
+import { getSettings, runHeavySyncWork, type TidyConfig } from './tidyHelpers'
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, getTagParamsFromString } from '@helpers/general'
@@ -42,26 +42,41 @@ export async function listMissingDailyNotes(params: string = ''): Promise<void> 
     // Helper: format Date -> 'YYYY-MM-DD'
     const pad = (n: number) => (n < 10 ? '0' + n : '' + n)
     const toISO = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-    const missing = []
     const startTime = new Date()
-    let notesChecked = 0
 
     CommandBar.showLoading(true, `Finding missing daily notes`)
-    await CommandBar.onAsyncThread()
-
-    for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
-      const ds = toISO(d)
-      const note = DataStore.calendarNoteByDateString(ds) // returns TNote or undefined if not created
-      if (!note || !note.content || note.content == '') {
-        logInfo(`Missing: ${ds}`)
-        missing.push(ds)
-      } else {
-        // logDebug(`Found: ${ds}`)
+    // Side-channel: do not return the result array from runOnAsyncThread.
+    let missingHolder: ?Array<string> = null
+    let notesCheckedHolder: ?number = null
+    /**
+     * Synchronous missing-daily scan. Safe for runOnAsyncThread (read-only).
+     * @returns {true}
+     */
+    const syncFindMissingDailyNotes = (): true => {
+      const missing: Array<string> = []
+      let notesChecked = 0
+      for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
+        const ds = toISO(d)
+        const note = DataStore.calendarNoteByDateString(ds) // returns TNote or undefined if not created
+        if (!note || !note.content || note.content == '') {
+          logInfo(`Missing: ${ds}`)
+          missing.push(ds)
+        } else {
+          // logDebug(`Found: ${ds}`)
+        }
+        notesChecked++
       }
-      notesChecked++
+      missingHolder = missing
+      notesCheckedHolder = notesChecked
+      return true
     }
-
-    await CommandBar.onMainThread()
+    await runHeavySyncWork('listMissingDailyNotes', syncFindMissingDailyNotes)
+    if (missingHolder == null || notesCheckedHolder == null) {
+      logWarn('listMissingDailyNotes', `async scan result missing; scanning on main thread`)
+      syncFindMissingDailyNotes()
+    }
+    const missing = missingHolder ?? []
+    const notesChecked = notesCheckedHolder ?? 0
     CommandBar.showLoading(false)
 
     // Only continue if there are missing Notes
