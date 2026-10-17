@@ -1,17 +1,10 @@
 # What's changed in Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 <!-- 
-## [2.4.0] - 2026-10-15
-- Fix: Completing/cancelling a project note that is outside the current Perspective folder/Space selection no longer triggers a useless full list rebuild (keeps WARNs, then skips).
-- Fix: Project list build/refresh progress dialog shows the Space display name (e.g. `[👥 Plugins] Dashboard v2.5`) instead of the raw `%%NotePlanCloud%%/<uuid>/…` path.
-- New optional **Maintain a status frontmatter hashtag?** setting for Kanban / Cards views. When on, the plugin writes `status: #notstarted` / `#started` / `#paused` / `#completed` / `#cancelled` (terms configurable) and updates them on pause, complete, cancel, finish review, and create/convert.
-- Change: when status is enabled, pause uses `status: #paused` instead of adding `#paused` to the combined `project:` tag field (legacy `#paused` on `project:` is still recognised and stripped on write).
-- Change: default **Project start string** is now `started` (new installs / missing setting only), so the start date key and started status hashtag align.
-- Change: create/convert sets `#started` when the note already has ≥1 completed task or checklist, otherwise `#notstarted`.
-- Change: finishing a review promotes `#notstarted` → `#started` when there is ≥1 completed task or checklist.
-- New: changing a metadata-term setting offers to update matching frontmatter keys, status hashtags, and `@mentions` across all project notes. -->
+## [2.3.4] - 2026-10-17
+- Performance Improvement: Speed up of list refresh and rebuilds. dev: `Project` constructor is read-only unless migrate-all is on (no default `review:` write / `updateCache` on list regen); one-pass frontmatter map, batched prefs, fewer paragraph scans.
 
-## [2.3.3] - 2026-10-17
+## [2.3.3] - 2026-10-16
 - Change: Increase the time between full rebuilds of the Project cache, up to 5 days. (There are quicker refreshes every day.)
 
 ## [2.3.2] - 2026-10-07

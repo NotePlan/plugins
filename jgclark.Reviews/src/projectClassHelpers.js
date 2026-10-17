@@ -7,7 +7,8 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { getMetadataLineIndexFromBody, getParamMentionFromList } from './reviewHelpers'
-import { RE_DATE, todaysDateISOString, toISODateString } from '@helpers/dateTime'
+import { checkString } from '@helpers/checkType'
+import { RE_DATE, RE_DATE_INTERVAL, todaysDateISOString, toISODateString } from '@helpers/dateTime'
 import { logDebug, logError, logWarn } from '@helpers/dev'
 import { getContentFromBrackets } from '@helpers/general'
 import { getFrontmatterParagraphs } from '@helpers/NPFrontMatter'
@@ -19,8 +20,159 @@ export type FrontmatterFieldRead = {
   value: ?string,
 }
 
+/** Case-insensitive key -> field read from a single frontmatter scan. */
+export type FrontmatterFieldsMap = { [string]: FrontmatterFieldRead }
+
+/**
+ * Prefs needed by Project constructor. Resolve once per batch and pass in to avoid repeated DataStore.preference calls.
+ */
+export type ProjectConstructorPrefs = {
+  projectMetadataFrontmatterKey: string,
+  startMentionStr: string,
+  dueMentionStr: string,
+  reviewedMentionStr: string,
+  completedMentionStr: string,
+  cancelledMentionStr: string,
+  reviewIntervalMentionStr: string,
+  nextReviewMentionStr: string,
+  ignoreChecklistsInProgress: boolean,
+  numberDaysForFutureToIgnore: number,
+  /** When true, emit ProjectConstructor logDebug / logTimer lines. */
+  logConstructorTiming: boolean,
+}
+
 /** Full-line match for ISO YYYY-MM-DD (same rule as RE_DATE). */
 export const RE_ISO_DATE_LINE: RegExp = new RegExp(`^${RE_DATE}$`)
+
+/** Full-line match for a date interval (same rule as RE_DATE_INTERVAL). */
+export const RE_INTERVAL_LINE: RegExp = new RegExp(`^${RE_DATE_INTERVAL}$`)
+
+/**
+ * Read all frontmatter key/value pairs in one pass over frontmatter paragraphs.
+ * Keys in the returned map are lowercased for case-insensitive lookup.
+ * Distinguishes missing vs present-but-empty the same way as {@link readRawFrontmatterField}.
+ * @param {CoreNoteFields} note
+ * @returns {FrontmatterFieldsMap}
+ */
+export function readAllRawFrontmatterFields(note: CoreNoteFields): FrontmatterFieldsMap {
+  const out: FrontmatterFieldsMap = {}
+  const fmParas = getFrontmatterParagraphs(note, false)
+  if (!fmParas || fmParas.length === 0) {
+    return out
+  }
+  for (const para of fmParas) {
+    const content = para.content || ''
+    const colonIndex = content.indexOf(':')
+    if (colonIndex <= 0) continue
+    const rawKey = content.slice(0, colonIndex).trim()
+    if (rawKey === '') continue
+    const lcKey = rawKey.toLowerCase()
+    // First occurrence wins (matches readRawFrontmatterField scan order)
+    if (out[lcKey] != null) continue
+    out[lcKey] = { exists: true, value: content.slice(colonIndex + 1).replace(/^\s+/, '') }
+  }
+  return out
+}
+
+/**
+ * Lookup a field in a map from {@link readAllRawFrontmatterFields}.
+ * @param {FrontmatterFieldsMap} fieldsMap
+ * @param {string} fieldName
+ * @returns {FrontmatterFieldRead}
+ */
+export function getRawFrontmatterFieldFromMap(fieldsMap: FrontmatterFieldsMap, fieldName: string): FrontmatterFieldRead {
+  const entry = fieldsMap[fieldName.toLowerCase()]
+  if (entry == null) {
+    return { exists: false, value: undefined }
+  }
+  return entry
+}
+
+/**
+ * Resolve constructor prefs from DataStore (or overlay with an optional partial).
+ * @param {Partial<ProjectConstructorPrefs>} [overrides]
+ * @returns {ProjectConstructorPrefs}
+ */
+export function getProjectConstructorPrefs(overrides?: Partial<ProjectConstructorPrefs>): ProjectConstructorPrefs {
+  const mentionOr = (prefKey: string, defaultMention: string): string =>
+    checkString(DataStore.preference(prefKey) || defaultMention)
+  const prefAsBoolean = (prefKey: string): boolean => {
+    const raw = DataStore.preference(prefKey)
+    if (raw === true || raw === false) return raw
+    if (raw === 'true') return true
+    if (raw === 'false' || raw == null || raw === '') return false
+    return Boolean(raw)
+  }
+  const prefAsNumber = (prefKey: string): number => {
+    const raw = DataStore.preference(prefKey)
+    if (typeof raw === 'number' && !Number.isNaN(raw)) return raw
+    if (raw == null || raw === '') return 0
+    const n = Number(raw)
+    return Number.isNaN(n) ? 0 : n
+  }
+  const base: ProjectConstructorPrefs = {
+    projectMetadataFrontmatterKey: checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project'),
+    startMentionStr: mentionOr('startMentionStr', '@start'),
+    dueMentionStr: mentionOr('dueMentionStr', '@due'),
+    reviewedMentionStr: mentionOr('reviewedMentionStr', '@reviewed'),
+    completedMentionStr: mentionOr('completedMentionStr', '@completed'),
+    cancelledMentionStr: mentionOr('cancelledMentionStr', '@cancelled'),
+    reviewIntervalMentionStr: mentionOr('reviewIntervalMentionStr', '@review'),
+    nextReviewMentionStr: mentionOr('nextReviewMentionStr', '@nextReview'),
+    ignoreChecklistsInProgress: prefAsBoolean('ignoreChecklistsInProgress'),
+    numberDaysForFutureToIgnore: prefAsNumber('numberDaysForFutureToIgnore'),
+    logConstructorTiming: prefAsBoolean('_logTimer'),
+  }
+  if (overrides == null) return base
+  return { ...base, ...overrides }
+}
+
+/**
+ * Build constructor prefs from a ReviewConfig-like object (batch list regen).
+ * @param {{
+ *   projectMetadataFrontmatterKey?: string,
+ *   startMentionStr?: string,
+ *   dueMentionStr?: string,
+ *   reviewedMentionStr?: string,
+ *   completedMentionStr?: string,
+ *   cancelledMentionStr?: string,
+ *   reviewIntervalMentionStr?: string,
+ *   nextReviewMentionStr?: string,
+ *   ignoreChecklistsInProgress?: boolean,
+ *   numberDaysForFutureToIgnore?: number,
+ *   _logTimer?: boolean,
+ * }} config
+ * @returns {ProjectConstructorPrefs}
+ */
+export function projectConstructorPrefsFromReviewConfig(config: $ReadOnly<{
+  projectMetadataFrontmatterKey?: ?string,
+  startMentionStr?: ?string,
+  dueMentionStr?: ?string,
+  reviewedMentionStr?: ?string,
+  completedMentionStr?: ?string,
+  cancelledMentionStr?: ?string,
+  reviewIntervalMentionStr?: ?string,
+  nextReviewMentionStr?: ?string,
+  ignoreChecklistsInProgress?: ?boolean,
+  numberDaysForFutureToIgnore?: ?number,
+  _logTimer?: ?boolean,
+  ...
+}>): ProjectConstructorPrefs {
+  return getProjectConstructorPrefs({
+    projectMetadataFrontmatterKey: checkString(config.projectMetadataFrontmatterKey || 'project'),
+    startMentionStr: checkString(config.startMentionStr || '@start'),
+    dueMentionStr: checkString(config.dueMentionStr || '@due'),
+    reviewedMentionStr: checkString(config.reviewedMentionStr || '@reviewed'),
+    completedMentionStr: checkString(config.completedMentionStr || '@completed'),
+    cancelledMentionStr: checkString(config.cancelledMentionStr || '@cancelled'),
+    reviewIntervalMentionStr: checkString(config.reviewIntervalMentionStr || '@review'),
+    nextReviewMentionStr: checkString(config.nextReviewMentionStr || '@nextReview'),
+    ignoreChecklistsInProgress: Boolean(config.ignoreChecklistsInProgress),
+    numberDaysForFutureToIgnore: typeof config.numberDaysForFutureToIgnore === 'number' ? config.numberDaysForFutureToIgnore : 0,
+    // Batch list regen: only emit per-project timing when the user turned _logTimer on.
+    logConstructorTiming: Boolean(config._logTimer),
+  })
+}
 
 /**
  * Milliseconds since epoch for a note's `changedDate` (Date or number in some contexts).
@@ -85,24 +237,17 @@ export function parseProjectFrontmatterValue(rawValue: string): string {
  * This distinguishes between:
  * - key missing
  * - key present but empty/invalid
+ * Prefer {@link readAllRawFrontmatterFields} + {@link getRawFrontmatterFieldFromMap} when reading multiple keys.
  * @param {CoreNoteFields} note
  * @param {string} fieldName
+ * @param {FrontmatterFieldsMap} [fieldsMap] - optional pre-scanned map
  * @returns {FrontmatterFieldRead}
  */
-export function readRawFrontmatterField(note: CoreNoteFields, fieldName: string): FrontmatterFieldRead {
-  const fmParas = getFrontmatterParagraphs(note, false)
-  if (!fmParas || fmParas.length === 0) {
-    return { exists: false, value: undefined }
+export function readRawFrontmatterField(note: CoreNoteFields, fieldName: string, fieldsMap?: FrontmatterFieldsMap): FrontmatterFieldRead {
+  if (fieldsMap != null) {
+    return getRawFrontmatterFieldFromMap(fieldsMap, fieldName)
   }
-  const escapedFieldName = fieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const re = new RegExp(`^${escapedFieldName}:\\s*(.*)$`, 'i')
-  for (const para of fmParas) {
-    const match = para.content.match(re)
-    if (match) {
-      return { exists: true, value: match[1] != null ? match[1] : '' }
-    }
-  }
-  return { exists: false, value: undefined }
+  return getRawFrontmatterFieldFromMap(readAllRawFrontmatterFields(note), fieldName)
 }
 
 /**
@@ -291,23 +436,42 @@ export async function promptAddProgressLineInputs(
  * Detect whether frontmatter metadata keys or body metadata line exist.
  * @param {TNote} note
  * @param {string} combinedKey
- * @returns {{ hasCombinedTagsMetadata: boolean, hasSeparateFrontmatterMetadata: boolean, hasFrontmatterMetadata: boolean, metadataBodyLineIndex: false | number }}
+ * @param {Array<string>} [separateKeys] - configured separate FM keys (defaults to common defaults)
+ * @param {FrontmatterFieldsMap} [fieldsMap] - optional pre-scanned map
+ * @returns {{ hasCombinedTagsMetadata: boolean, hasSeparateFrontmatterMetadata: boolean, hasFrontmatterMetadata: boolean, metadataBodyLineIndex: false | number, combinedMetadataField: FrontmatterFieldRead }}
  */
-export function getMetadataPresenceState(note: TNote, combinedKey: string): {
+export function getMetadataPresenceState(
+  note: TNote,
+  combinedKey: string,
+  separateKeys?: Array<string>,
+  fieldsMap?: FrontmatterFieldsMap,
+): {
   hasCombinedTagsMetadata: boolean,
   hasSeparateFrontmatterMetadata: boolean,
   hasFrontmatterMetadata: boolean,
   metadataBodyLineIndex: false | number,
+  combinedMetadataField: FrontmatterFieldRead,
 } {
-  const combinedMetadataField = readRawFrontmatterField(note, combinedKey)
+  const map = fieldsMap != null ? fieldsMap : readAllRawFrontmatterFields(note)
+  const combinedMetadataField = getRawFrontmatterFieldFromMap(map, combinedKey)
   const hasCombinedTagsMetadata = combinedMetadataField.exists && String(combinedMetadataField.value ?? '').trim() !== ''
-  const hasSeparateFrontmatterMetadata =
-    ['start', 'due', 'reviewed', 'completed', 'cancelled', 'review', 'nextReview']
-      .map((k) => readRawFrontmatterField(note, k))
-      .some((field) => field.exists && String(field.value ?? '').trim() !== '')
+  const keysToCheck =
+    separateKeys != null && separateKeys.length > 0
+      ? separateKeys
+      : ['start', 'due', 'reviewed', 'completed', 'cancelled', 'review', 'nextReview', 'started']
+  const hasSeparateFrontmatterMetadata = keysToCheck.some((k) => {
+    const field = getRawFrontmatterFieldFromMap(map, k)
+    return field.exists && String(field.value ?? '').trim() !== ''
+  })
   const hasFrontmatterMetadata = hasCombinedTagsMetadata || hasSeparateFrontmatterMetadata
   const metadataBodyLineIndex = getMetadataLineIndexFromBody(note)
-  return { hasCombinedTagsMetadata, hasSeparateFrontmatterMetadata, hasFrontmatterMetadata, metadataBodyLineIndex }
+  return {
+    hasCombinedTagsMetadata,
+    hasSeparateFrontmatterMetadata,
+    hasFrontmatterMetadata,
+    metadataBodyLineIndex,
+    combinedMetadataField,
+  }
 }
 
 /**

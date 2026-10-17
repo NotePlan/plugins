@@ -31,18 +31,25 @@ import {
   getMetadataPresenceState,
   getNoteChangedDateMs,
   getNoteChangeTimeMsForCache,
+  getProjectConstructorPrefs,
+  getRawFrontmatterFieldFromMap,
   normalizeProgressDateFromForm,
   parseDateMentionFromMentions,
   parseProjectFrontmatterValue,
+  projectConstructorPrefsFromReviewConfig,
   promptAddProgressLineInputs,
+  readAllRawFrontmatterFields,
   readRawFrontmatterField,
+  RE_INTERVAL_LINE,
+  RE_ISO_DATE_LINE,
   separateFmKeyFromMentionPref,
+  type FrontmatterFieldRead,
+  type FrontmatterFieldsMap,
+  type ProjectConstructorPrefs,
 } from './projectClassHelpers'
-import { checkBoolean, checkNumber, checkString } from '@helpers/checkType'
+import { checkString } from '@helpers/checkType'
 import {
   daysBetween,
-  RE_DATE,
-  RE_DATE_INTERVAL,
   includesScheduledFurtherFutureDate,
   includesScheduledFutureDate,
   todaysDateISOString,
@@ -105,8 +112,8 @@ export type Progress = {
  * Holds title, last reviewed date, due date, review interval, completion date, progress information that is read from the note,
  * and other derived data.
  * @example To create a project instance for a note call 'const x = new Project(note, ...)'
- * @param {boolean} migrateMetadataNowIfNeeded - When true, runs body/frontmatter and embedded-mention migrations inside the constructor (batch migrate-all command).
- * Note: with my projects this is taking on average 1ms/line/note.
+ * @param {boolean} migrateMetadataNowIfNeeded - When true, runs body/frontmatter and embedded-mention migrations and other note writes inside the constructor (batch migrate-all). When false, construction is read-only (in-memory defaults only).
+ * @param {ProjectConstructorPrefs} [prefsIn] - Optional pre-resolved prefs (batch list regen should pass these once).
  * @author @jgclark
  */
 export class Project {
@@ -175,16 +182,26 @@ export class Project {
     checkEditor: boolean = true,
     nextActionTags: Array<string> = [],
     sequentialTag: string = '',
-    migrateMetadataNowIfNeeded: boolean = false, // don't do this by default.
+    migrateMetadataNowIfNeeded: boolean = false, // don't do this by default. Also gates other constructor note writes.
+    prefsIn?: ProjectConstructorPrefs,
   ) {
     try {
       const startTime = new Date()
-      if (note == null || note.title == null) {
+      if (note == null) {
         throw new Error('Error in constructor: invalid note passed')
       }
-      this.title = note.title
+      // Local binding so Flow can refine +title (string | void) after the null check.
+      const noteTitle = note.title
+      if (noteTitle == null) {
+        throw new Error('Error in constructor: invalid note passed')
+      }
+      const prefs = prefsIn != null ? prefsIn : getProjectConstructorPrefs()
+      const logTiming = prefs.logConstructorTiming
+      // Only write/migrate the note when explicitly requested (batch migrate-all).
+      const allowWrites = migrateMetadataNowIfNeeded
+      this.title = noteTitle
       this.filename = note.filename
-      logDebug('ProjectConstructor', `Starting for '${this.title}' (${this.filename})`)
+      logTimer('ProjectConstructor', startTime, `Starting for '${noteTitle}' (${this.filename})`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
@@ -201,27 +218,23 @@ export class Project {
         this.note = Editor.note // Note: not plain Editor, as otherwise it isn't the right type and will throw app run-time errors later.
         const versionDateMS = editorNote.versions && editorNote.versions.length > 0 ? new Date(editorNote.versions[0].date).getTime() : NaN
         const timeSinceLastEdit: number = isNaN(versionDateMS) ? NaN : Date.now() - versionDateMS
-        logDebug('ProjectConstructor', `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
+        logTimer('ProjectConstructor', startTime, `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
       } else {
         // read note from DataStore in the usual way
         paras = note.paragraphs
         this.note = note
-        // logDebug('ProjectConstructor', `- read note from datastore `)
       }
 
-      const singleKeyName = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-      const combinedMetadataField = readRawFrontmatterField(this.note, singleKeyName)
+      const singleKeyName = prefs.projectMetadataFrontmatterKey
+      let fieldsMap: FrontmatterFieldsMap = readAllRawFrontmatterFields(this.note)
 
-      // Same defaults as reviewHelpers so embedded mentions match when prefs are unset.
-      const mentionFromPrefWithDefault = (prefKey: string, defaultMention: string): string =>
-        checkString(DataStore.preference(prefKey) || defaultMention)
-      const startMentionName = mentionFromPrefWithDefault('startMentionStr', '@start')
-      const dueMentionName = mentionFromPrefWithDefault('dueMentionStr', '@due')
-      const reviewedMentionName = mentionFromPrefWithDefault('reviewedMentionStr', '@reviewed')
-      const completedMentionName = mentionFromPrefWithDefault('completedMentionStr', '@completed')
-      const cancelledMentionName = mentionFromPrefWithDefault('cancelledMentionStr', '@cancelled')
-      const reviewIntervalMentionName = mentionFromPrefWithDefault('reviewIntervalMentionStr', '@review')
-      const nextReviewMentionName = mentionFromPrefWithDefault('nextReviewMentionStr', '@nextReview')
+      const startMentionName = prefs.startMentionStr
+      const dueMentionName = prefs.dueMentionStr
+      const reviewedMentionName = prefs.reviewedMentionStr
+      const completedMentionName = prefs.completedMentionStr
+      const cancelledMentionName = prefs.cancelledMentionStr
+      const reviewIntervalMentionName = prefs.reviewIntervalMentionStr
+      const nextReviewMentionName = prefs.nextReviewMentionStr
 
       const fmKey = {
         start: separateFmKeyFromMentionPref(startMentionName, 'start'),
@@ -233,38 +246,56 @@ export class Project {
         nextReview: separateFmKeyFromMentionPref(nextReviewMentionName, 'nextReview'),
       }
 
-      const ignoreChecklistsInProgress = checkBoolean(DataStore.preference('ignoreChecklistsInProgress')) || false
-      const numberDaysForFutureToIgnore = checkNumber(DataStore.preference('numberDaysForFutureToIgnore')) || 0
+      const ignoreChecklistsInProgress = prefs.ignoreChecklistsInProgress
+      const numberDaysForFutureToIgnore = prefs.numberDaysForFutureToIgnore
 
-      const { hasCombinedTagsMetadata, hasSeparateFrontmatterMetadata, hasFrontmatterMetadata, metadataBodyLineIndex } = getMetadataPresenceState(this.note, singleKeyName)
-      logDebug('ProjectConstructor', `- metadata: combined=${String(hasCombinedTagsMetadata)} separate=${String(hasSeparateFrontmatterMetadata)} bodyIndex=${String(metadataBodyLineIndex)}`)
+      const {
+        hasCombinedTagsMetadata,
+        hasSeparateFrontmatterMetadata,
+        hasFrontmatterMetadata,
+        metadataBodyLineIndex,
+        combinedMetadataField,
+      } = getMetadataPresenceState(this.note, singleKeyName, [
+        fmKey.start,
+        fmKey.due,
+        fmKey.reviewed,
+        fmKey.completed,
+        fmKey.cancelled,
+        fmKey.reviewInterval,
+        fmKey.nextReview,
+      ], fieldsMap)
+      logTimer('ProjectConstructor', startTime, `- metadata: combined=${String(hasCombinedTagsMetadata)} separate=${String(hasSeparateFrontmatterMetadata)} bodyIndex=${String(metadataBodyLineIndex)}`)
 
+      let didMutateNote = false
       if (hasFrontmatterMetadata && metadataBodyLineIndex !== false) {
-        if (migrateMetadataNowIfNeeded) {
+        if (allowWrites) {
           logInfo('ProjectConstructor', `Both frontmatter and body metadata exist for '${this.title}'. Keeping frontmatter values and migrating/cleaning body metadata block.`)
           const bodyMigrationDetail = usingEditor
             ? migrateProjectMetadataLineInEditor(Editor)
             : migrateProjectMetadataLineInNote(this.note)
           this.migrationLogDetailFromConstructor = mergeConstructorMigrationLogDetail(this.migrationLogDetailFromConstructor, bodyMigrationDetail)
           DataStore.updateCache(this.note, true)
-        } else {
-          logDebug('ProjectConstructor', `MIGRATE...=false: skipping body->frontmatter cleanup for '${this.title}'`)
+          didMutateNote = true
         }
+        logTimer('ProjectConstructor', startTime, `MIGRATE...=false: skipping body->frontmatter cleanup for '${this.title}'`)
       } else if (!hasFrontmatterMetadata && metadataBodyLineIndex !== false) {
-        if (migrateMetadataNowIfNeeded) {
+        if (allowWrites) {
           logInfo('ProjectConstructor', `Only body metadata exists for '${this.title}'. Migrating metadata block to frontmatter.`)
           const bodyMigrationDetail = usingEditor
             ? migrateProjectMetadataLineInEditor(Editor)
             : migrateProjectMetadataLineInNote(this.note)
           this.migrationLogDetailFromConstructor = mergeConstructorMigrationLogDetail(this.migrationLogDetailFromConstructor, bodyMigrationDetail)
           DataStore.updateCache(this.note, true)
-        } else {
-          logDebug('ProjectConstructor', `MIGRATE...=false: skipping body-only migration for '${this.title}'`)
+          didMutateNote = true
         }
+        logTimer('ProjectConstructor', startTime, `MIGRATE...=false: skipping body-only migration for '${this.title}'`)
       }
 
-      // Get the single metadata line (where it still exists; we're now trying to remove them from the note body)
-      paras = this.note.paragraphs
+      // Re-read paragraphs / FM only when migration mutated the note
+      if (didMutateNote) {
+        paras = this.note.paragraphs
+        fieldsMap = readAllRawFrontmatterFields(this.note)
+      }
       const metadataLineIndex = getProjectMetadataLineIndex(
         this.note,
         metadataBodyLineIndex === false ? false : undefined,
@@ -275,7 +306,7 @@ export class Project {
       const metadataLine = metadataLineIndex === false ? '' : paras[metadataLineIndex].content
 
       if (mentions.length === 0) {
-        logDebug('ProjectConstructor', `- Grr: .mentions empty: will use metadata line instead`)
+        logTimer('ProjectConstructor', startTime, `- Grr: .mentions empty: will use metadata line instead`)
         // Note: If necessary, fall back to getting mentions just from the metadataLine
         mentions = (`${metadataLine} `).split(' ').filter((f) => f[0] === '@')
       }
@@ -287,8 +318,12 @@ export class Project {
       // - if projectTypeTag given, then use that
       // - else first or second hashtag in note
       let primaryProjectTag = ''
+      const combinedFieldForReads: FrontmatterFieldRead =
+        didMutateNote ? getRawFrontmatterFieldFromMap(fieldsMap, singleKeyName) : combinedMetadataField
       try {
-        const combinedValueForPrimary = combinedMetadataField.exists ? combinedMetadataField.value : getFrontmatterAttribute(this.note, singleKeyName)
+        const combinedValueForPrimary = combinedFieldForReads.exists
+          ? combinedFieldForReads.value
+          : getFrontmatterAttribute(this.note, singleKeyName)
         const hashtagsFromCombinedValue = getHashtagsFromString(String(combinedValueForPrimary ?? ''))
         const hashtagsFromMetadataLine = getHashtagsFromString(metadataLine)
         const hashtagsForPrimary = hashtagsFromCombinedValue.length > 0 ? hashtagsFromCombinedValue : hashtagsFromMetadataLine
@@ -329,28 +364,26 @@ export class Project {
         }
       }
 
-      if (migrateMetadataNowIfNeeded) {
+      if (allowWrites) {
         // One-time migration path: if the tags key still contains embedded date/interval mentions
         // (e.g. `project: #project @start(YYYY-MM-DD) @due(...) @review(1w) ...`), extract them into separate
         // frontmatter-backed fields and normalize the tags key to hashtags-only.
         try {
-          const combinedStrRaw = combinedMetadataField.exists ? combinedMetadataField.value : getFrontmatterAttribute(this.note, singleKeyName)
+          const combinedStrRaw = combinedFieldForReads.exists ? combinedFieldForReads.value : getFrontmatterAttribute(this.note, singleKeyName)
           const combinedStr = combinedStrRaw != null && typeof combinedStrRaw === 'string' ? combinedStrRaw : ''
           if (combinedStr !== '') {
-            const reISODate = new RegExp(`^${RE_DATE}$`)
-            const reInterval = new RegExp(`^${RE_DATE_INTERVAL}$`)
             const migrationAttrs: { [string]: any } = {}
             const migratedKeys: Array<string> = []
 
             // YAML wins: skip extracting an embedded mention when that separate key already exists on disk.
             const persistedSeparateFieldNonEmpty = (key: string): boolean => {
-              const field = readRawFrontmatterField(this.note, key)
+              const field = getRawFrontmatterFieldFromMap(fieldsMap, key)
               return field.exists && String(field.value ?? '').trim() !== ''
             }
 
             const mentionRegex = /@[\w\-\.]+\([^)]*\)/g
             const embeddedMentions: Array<string> = combinedStr.match(mentionRegex) ?? []
-            if (embeddedMentions.length > 0) {
+            if (embeddedMentions.length > 0 && logTiming) {
               logDebug('ProjectConstructor', `- Found ${String(embeddedMentions.length)} embedded mention(s) in '${singleKeyName}' key: <${combinedStr}>`)
             }
             for (const embeddedMention of embeddedMentions) {
@@ -358,31 +391,31 @@ export class Project {
               const parsed = parseProjectFrontmatterValue(embeddedMention)
               if (parsed === '') continue
 
-              if (mentionName === startMentionName && reISODate.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.start)) {
+              if (mentionName === startMentionName && RE_ISO_DATE_LINE.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.start)) {
                 this.startDate = parsed
                 migrationAttrs[fmKey.start] = parsed
                 migratedKeys.push(fmKey.start)
-              } else if (mentionName === dueMentionName && reISODate.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.due)) {
+              } else if (mentionName === dueMentionName && RE_ISO_DATE_LINE.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.due)) {
                 this.dueDate = parsed
                 migrationAttrs[fmKey.due] = parsed
                 migratedKeys.push(fmKey.due)
-              } else if (mentionName === reviewedMentionName && reISODate.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.reviewed)) {
+              } else if (mentionName === reviewedMentionName && RE_ISO_DATE_LINE.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.reviewed)) {
                 this.reviewedDate = parsed
                 migrationAttrs[fmKey.reviewed] = parsed
                 migratedKeys.push(fmKey.reviewed)
-              } else if (mentionName === completedMentionName && reISODate.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.completed)) {
+              } else if (mentionName === completedMentionName && RE_ISO_DATE_LINE.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.completed)) {
                 this.completedDate = parsed
                 migrationAttrs[fmKey.completed] = parsed
                 migratedKeys.push(fmKey.completed)
-              } else if (mentionName === cancelledMentionName && reISODate.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.cancelled)) {
+              } else if (mentionName === cancelledMentionName && RE_ISO_DATE_LINE.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.cancelled)) {
                 this.cancelledDate = parsed
                 migrationAttrs[fmKey.cancelled] = parsed
                 migratedKeys.push(fmKey.cancelled)
-              } else if (mentionName === nextReviewMentionName && reISODate.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.nextReview)) {
+              } else if (mentionName === nextReviewMentionName && RE_ISO_DATE_LINE.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.nextReview)) {
                 this.nextReviewDateStr = parsed
                 migrationAttrs[fmKey.nextReview] = parsed
                 migratedKeys.push(fmKey.nextReview)
-              } else if (mentionName === reviewIntervalMentionName && reInterval.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.reviewInterval)) {
+              } else if (mentionName === reviewIntervalMentionName && RE_INTERVAL_LINE.test(parsed) && !persistedSeparateFieldNonEmpty(fmKey.reviewInterval)) {
                 this.reviewInterval = parsed
                 migrationAttrs[fmKey.reviewInterval] = parsed
                 migratedKeys.push(fmKey.reviewInterval)
@@ -392,8 +425,9 @@ export class Project {
               migrationAttrs[singleKeyName] = this.getProjectTagsFrontmatterValue(singleKeyName)
               updateFrontMatterVars(this.note, migrationAttrs)
               DataStore.updateCache(this.note, true)
+              fieldsMap = readAllRawFrontmatterFields(this.note)
               this.migrationLogDetailFromConstructor = mergeConstructorMigrationLogDetail(this.migrationLogDetailFromConstructor, 'ok')
-              logDebug('ProjectConstructor', `- Migrated tags-key mentions for '${this.title}': wrote keys [${migratedKeys.join(', ')}], normalized '${singleKeyName}' to tags-only`)
+              logTimer('ProjectConstructor', startTime, `- Migrated tags-key mentions for '${this.title}': wrote keys [${migratedKeys.join(', ')}], normalized '${singleKeyName}' to tags-only`)
             }
           }
         } catch (e) {
@@ -407,12 +441,9 @@ export class Project {
         // Even when migration is disabled, prefer embedded mentions in the combined frontmatter key
         // over legacy body metadata for in-memory values. Do not write any changes back to the note.
         try {
-          const combinedStrRaw = combinedMetadataField.exists ? combinedMetadataField.value : getFrontmatterAttribute(this.note, singleKeyName)
+          const combinedStrRaw = combinedFieldForReads.exists ? combinedFieldForReads.value : getFrontmatterAttribute(this.note, singleKeyName)
           const combinedStr = combinedStrRaw != null && typeof combinedStrRaw === 'string' ? combinedStrRaw : ''
           if (combinedStr !== '') {
-            const reISODate = new RegExp(`^${RE_DATE}$`)
-            const reInterval = new RegExp(`^${RE_DATE_INTERVAL}$`)
-
             const mentionRegex = /@[\w\-\.]+\([^)]*\)/g
             const embeddedMentions: Array<string> = combinedStr.match(mentionRegex) ?? []
             for (const embeddedMention of embeddedMentions) {
@@ -421,34 +452,34 @@ export class Project {
               if (parsed === '') continue
 
               if (mentionName === startMentionName && (this.startDate == null || this.startDate === '')) {
-                if (reISODate.test(parsed)) {
+                if (RE_ISO_DATE_LINE.test(parsed)) {
                   this.startDate = parsed
                 }
               } else if (mentionName === dueMentionName && (this.dueDate == null || this.dueDate === '')) {
-                if (reISODate.test(parsed)) {
+                if (RE_ISO_DATE_LINE.test(parsed)) {
                   this.dueDate = parsed
                 }
               } else if (mentionName === reviewedMentionName && (this.reviewedDate == null || this.reviewedDate === '')) {
-                if (reISODate.test(parsed)) {
+                if (RE_ISO_DATE_LINE.test(parsed)) {
                   this.reviewedDate = parsed
                 }
               } else if (mentionName === completedMentionName && (this.completedDate == null || this.completedDate === '')) {
-                if (reISODate.test(parsed)) {
+                if (RE_ISO_DATE_LINE.test(parsed)) {
                   this.completedDate = parsed
                 }
               } else if (mentionName === cancelledMentionName && (this.cancelledDate == null || this.cancelledDate === '')) {
-                if (reISODate.test(parsed)) {
+                if (RE_ISO_DATE_LINE.test(parsed)) {
                   this.cancelledDate = parsed
                 }
               } else if (mentionName === nextReviewMentionName && (this.nextReviewDateStr == null || this.nextReviewDateStr === '')) {
-                if (reISODate.test(parsed)) {
+                if (RE_ISO_DATE_LINE.test(parsed)) {
                   this.nextReviewDateStr = parsed
                 }
               } else if (
                 mentionName === reviewIntervalMentionName &&
-                (this.reviewInterval == null || this.reviewInterval === '' || !this.reviewInterval.match(reInterval))
+                (this.reviewInterval == null || this.reviewInterval === '' || !RE_INTERVAL_LINE.test(this.reviewInterval))
               ) {
-                if (reInterval.test(parsed)) {
+                if (RE_INTERVAL_LINE.test(parsed)) {
                   this.reviewInterval = parsed
                 }
               }
@@ -457,14 +488,12 @@ export class Project {
         } catch (e) {
           logWarn('ProjectConstructor', `- non-migrating embedded mention read failed for '${this.title}': ${e.message}`)
         }
-      } else {
-        logDebug('ProjectConstructor', `MIGRATE...=false: skipping tags-key embedded mention migration for '${this.title}'`)
+        logTimer('ProjectConstructor', startTime, `MIGRATE...=false: skipping tags-key embedded mention migration for '${this.title}'`)
       }
 
       // Overlay metadata fields from separate frontmatter keys (if they exist)
       try {
         const invalidFrontmatterKeysToRemove: Set<string> = new Set()
-        const reISODate = new RegExp(`^${RE_DATE}$`)
         const normalizedFrontmatterAttrs: { [string]: string } = {}
 
         /**
@@ -474,58 +503,60 @@ export class Project {
          * @returns {void}
          */
         const readAndAssignDateField = (fieldKey: string, setter: (value: string) => void): void => {
-          const field = readRawFrontmatterField(this.note, fieldKey)
+          const field = getRawFrontmatterFieldFromMap(fieldsMap, fieldKey)
           if (!field.exists) {
             return
           }
           if (field.value == null || String(field.value).trim() === '') {
-            logWarn('ProjectConstructor', `Found empty frontmatter '${fieldKey}' value in '${this.title}' (${this.filename}). Will remove the key.`)
-            invalidFrontmatterKeysToRemove.add(fieldKey)
+            logWarn('ProjectConstructor', `Found empty frontmatter '${fieldKey}' value in '${this.title}' (${this.filename}). ${allowWrites ? 'Will remove the key.' : 'Ignoring for in-memory read.'}`)
+            if (allowWrites) invalidFrontmatterKeysToRemove.add(fieldKey)
             return
           }
           const originalValue = String(field.value)
           const parsed = parseProjectFrontmatterValue(originalValue)
-          if (parsed !== '' && reISODate.test(parsed)) {
+          if (parsed !== '' && RE_ISO_DATE_LINE.test(parsed)) {
             setter(parsed)
-            if (originalValue.trim() !== parsed) {
+            if (allowWrites && originalValue.trim() !== parsed) {
               normalizedFrontmatterAttrs[fieldKey] = parsed
             }
           } else {
-            logWarn('ProjectConstructor', `Found empty or invalid frontmatter '${fieldKey}' value '${String(field.value)}' in '${this.title}' (${this.filename}). Will remove the key.`)
-            invalidFrontmatterKeysToRemove.add(fieldKey)
+            logWarn('ProjectConstructor', `Found empty or invalid frontmatter '${fieldKey}' value '${String(field.value)}' in '${this.title}' (${this.filename}). ${allowWrites ? 'Will remove the key.' : 'Ignoring for in-memory read.'}`)
+            if (allowWrites) invalidFrontmatterKeysToRemove.add(fieldKey)
           }
         }
 
         // Get/set reviewInterval. Note: this is unlike the following metadata fields
-        const fmReviewInterval = readRawFrontmatterField(this.note, fmKey.reviewInterval)
-        const reInterval = new RegExp(`^${RE_DATE_INTERVAL}$`)
+        const fmReviewInterval = getRawFrontmatterFieldFromMap(fieldsMap, fmKey.reviewInterval)
 
         let wroteReviewIntervalToFrontmatter = false
         if (fmReviewInterval.exists && fmReviewInterval.value) {
           this.reviewInterval = parseProjectFrontmatterValue(fmReviewInterval.value)
           // Now check for valid value in this.reviewInterval, and if not, then log warning and set to default
-          if (!this.reviewInterval || this.reviewInterval === '' || !this.reviewInterval.match(reInterval)) {
+          if (!this.reviewInterval || this.reviewInterval === '' || !RE_INTERVAL_LINE.test(this.reviewInterval)) {
             logWarn(
               'ProjectConstructor',
-              `Found invalid frontmatter '${fmKey.reviewInterval}' value '${String(this.reviewInterval)}' in '${this.title}' (${this.filename}). Will set it to default '${DEFAULT_REVIEW_INTERVAL}'.`,
+              `Found invalid frontmatter '${fmKey.reviewInterval}' value '${String(this.reviewInterval)}' in '${this.title}' (${this.filename}). Will set it to default '${DEFAULT_REVIEW_INTERVAL}'${allowWrites ? ' and write frontmatter' : ' (in memory only)'}.`,
             )
             this.reviewInterval = DEFAULT_REVIEW_INTERVAL
+            if (allowWrites) {
+              const newAttr: { [string]: any } = {}
+              newAttr[fmKey.reviewInterval] = this.reviewInterval
+              updateFrontMatterVars(this.note, newAttr)
+              wroteReviewIntervalToFrontmatter = true
+            }
+          }
+        } else {
+          // No frontmatter reviewInterval key yet. Prefer in-memory value from embedded mentions; else default.
+          // Persist only when allowWrites (migrate-all); normal list regen stays read-only.
+          const hasValidExistingInterval =
+            this.reviewInterval != null && this.reviewInterval !== '' && RE_INTERVAL_LINE.test(this.reviewInterval)
+          this.reviewInterval = hasValidExistingInterval ? this.reviewInterval : DEFAULT_REVIEW_INTERVAL
+          if (allowWrites) {
             const newAttr: { [string]: any } = {}
             newAttr[fmKey.reviewInterval] = this.reviewInterval
             updateFrontMatterVars(this.note, newAttr)
             wroteReviewIntervalToFrontmatter = true
           }
-        } else {
-          // No frontmatter reviewInterval key yet. If we already have a valid in-memory value (e.g. from embedded mentions),
-          // write that to frontmatter; otherwise write the DEFAULT_REVIEW_INTERVAL.
-          const hasValidExistingInterval =
-            this.reviewInterval != null && this.reviewInterval !== '' && this.reviewInterval.match(reInterval)
-          const intervalToWrite = hasValidExistingInterval ? this.reviewInterval : DEFAULT_REVIEW_INTERVAL
-          this.reviewInterval = intervalToWrite
-          const newAttr: { [string]: any } = {}
-          newAttr[fmKey.reviewInterval] = this.reviewInterval
-          updateFrontMatterVars(this.note, newAttr)
-          wroteReviewIntervalToFrontmatter = true
         }
 
         readAndAssignDateField(fmKey.start, (value) => {
@@ -547,7 +578,7 @@ export class Project {
           this.nextReviewDateStr = value
         })
 
-        if (invalidFrontmatterKeysToRemove.size > 0) {
+        if (allowWrites && invalidFrontmatterKeysToRemove.size > 0) {
           for (const invalidKey of invalidFrontmatterKeysToRemove) {
             logInfo('ProjectConstructor', `About to remove invalid frontmatter key '${invalidKey}' from '${this.title}' (${this.filename})`)
             const removed = removeFrontMatterField(this.note, invalidKey)
@@ -557,27 +588,29 @@ export class Project {
           }
         }
 
-        if (Object.keys(normalizedFrontmatterAttrs).length > 0) {
+        if (allowWrites && Object.keys(normalizedFrontmatterAttrs).length > 0) {
           updateFrontMatterVars(this.note, normalizedFrontmatterAttrs)
-          logDebug('ProjectConstructor', `Normalized frontmatter date fields [${Object.keys(normalizedFrontmatterAttrs).join(', ')}] in '${this.title}'`)
+          logTimer('ProjectConstructor', startTime, `Normalized frontmatter date fields [${Object.keys(normalizedFrontmatterAttrs).join(', ')}] in '${this.title}'`)
         }
 
         if (
-          invalidFrontmatterKeysToRemove.size > 0 ||
-          Object.keys(normalizedFrontmatterAttrs).length > 0 ||
-          wroteReviewIntervalToFrontmatter
+          allowWrites &&
+          (invalidFrontmatterKeysToRemove.size > 0 ||
+            Object.keys(normalizedFrontmatterAttrs).length > 0 ||
+            wroteReviewIntervalToFrontmatter)
         ) {
           DataStore.updateCache(this.note, true)
+          fieldsMap = readAllRawFrontmatterFields(this.note)
         }
       } catch (e) {
         logWarn('ProjectConstructor', `- overlay from separate frontmatter keys failed for '${this.title}': ${e.message}`)
       }
 
       // read in icon and iconColor from frontmatter (if present)
-      const iconValue = getFrontmatterAttribute(note, 'icon')
-      this.icon = iconValue != null && iconValue !== '' ? iconValue : undefined
-      const iconColorValue = getFrontmatterAttribute(note, 'icon-color')
-      this.iconColor = iconColorValue != null && iconColorValue !== '' ? iconColorValue : undefined
+      const iconField = getRawFrontmatterFieldFromMap(fieldsMap, 'icon')
+      this.icon = iconField.exists && iconField.value != null && iconField.value !== '' ? iconField.value : undefined
+      const iconColorField = getRawFrontmatterFieldFromMap(fieldsMap, 'icon-color')
+      this.iconColor = iconColorField.exists && iconColorField.value != null && iconColorField.value !== '' ? iconColorField.value : undefined
 
       // count tasks (includes both tasks and checklists)
       this.countTasks(paras, ignoreChecklistsInProgress, numberDaysForFutureToIgnore)
@@ -607,8 +640,7 @@ export class Project {
       }
 
       // Find progress field lines (if any) and process
-      // logDebug('ProjectConstructor', `- about to call processProgressLines() for ${this.title}`)//  ✅
-      this.processProgressLines()
+      this.processProgressLines(fieldsMap)
 
       // If percentComplete not set via progress line, then calculate
       if (this.lastProgressComment === '' || isNaN(this.percentComplete)) {
@@ -617,35 +649,46 @@ export class Project {
 
       // If we want to track next actions, find any tagged next actions or sequential first open task/checklist (not for completed/cancelled projects)
       if ((nextActionTags.length > 0 || sequentialTag !== '') && !this.isCompleted && !this.isCancelled) {
-        this.gatherAnyNextActionContent(nextActionTags, paras, sequentialTag, Array.from(hashtags ?? []), metadataLine)
+        this.gatherAnyNextActionContent(
+          nextActionTags,
+          paras,
+          sequentialTag,
+          Array.from(hashtags ?? []),
+          metadataLine,
+          combinedFieldForReads.exists ? String(combinedFieldForReads.value ?? '') : '',
+          singleKeyName,
+        )
       }
 
       // Build allProjectTags: all hashtags from metadata line and combined frontmatter metadata field, then de-duped
-      this.allProjectTags = this.buildAllProjectTags(primaryProjectTag)
-      // logDebug('ProjectConstructor', `  - allProjectTags = [${String(this.allProjectTags)}]`)
+      this.allProjectTags = this.buildAllProjectTags(
+        primaryProjectTag,
+        metadataLine,
+        combinedFieldForReads.exists ? String(combinedFieldForReads.value ?? '') : '',
+      )
 
-      if (this.title.toLowerCase().includes('test')) {
-        logDebug('ProjectConstructor', `Constructed ${this.getLeadingProjectTag()} ${this.filename}:`)
-        logDebug('ProjectConstructor', `  - folder = ${this.folder}`)
-        logDebug('ProjectConstructor', `  - folder (for display) = ${getFolderDisplayName(this.folder)}`)
-        logDebug('ProjectConstructor', `  - reviewInterval = ${String(this.reviewInterval)}`)
-        logDebug('ProjectConstructor', `  - metadataLine = ${metadataLine}`)
-        if (this.isCompleted) logDebug('ProjectConstructor', `  - isCompleted ✔️`)
-        if (this.isCancelled) logDebug('ProjectConstructor', `  - isCancelled ✔️`)
-        if (this.isPaused) logDebug('ProjectConstructor', `  - isPaused ✔️`)
-        logDebug('ProjectConstructor', `  - mentions: ${String(mentions)}`)
-        // logDebug('ProjectConstructor', `  - altMentions: ${String(altMentions)}`)
-        logDebug('ProjectConstructor', `  - hashtags: ${String(hashtags)}`)
-        // logDebug('ProjectConstructor', `  - altHashtags: ${String(altHashtags)}`)
-        logDebug('ProjectConstructor', `  - ${String(this.numTotalItems)} items: open:${String(this.numOpenItems)} completed:${String(this.numCompletedItems)} waiting:${String(this.numWaitingItems)} future:${String(this.numFutureItems)}`)
-        logDebug('ProjectConstructor', `  - completed: ${String(this.numCompletedItems)}`)
-        logDebug('ProjectConstructor', `  - progressLineIndex: #${String(this.mostRecentProgressLineIndex ?? '-')}`)
-        logDebug('ProjectConstructor', `  - progress: <${String(this.lastProgressComment)}>`)
-        logDebug('ProjectConstructor', `  - % complete = ${String(this.percentComplete)}`)
-        logDebug('ProjectConstructor', `  - nextActionRawContent = <${String(this.nextActionsRawContent)}>`)
-        logDebug('ProjectConstructor', `  - allProjectTags = <${String(this.allProjectTags)}>`)
-      } else {
-        logTimer('ProjectConstructor', startTime, `Constructed ${this.getLeadingProjectTag()} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
+      if (logTiming) {
+        if (this.title.toLowerCase().includes('test')) {
+          logDebug('ProjectConstructor', `Constructed ${this.getLeadingProjectTag()} ${this.filename}:`)
+          logDebug('ProjectConstructor', `  - folder = ${this.folder}`)
+          logDebug('ProjectConstructor', `  - folder (for display) = ${getFolderDisplayName(this.folder)}`)
+          logDebug('ProjectConstructor', `  - reviewInterval = ${String(this.reviewInterval)}`)
+          logDebug('ProjectConstructor', `  - metadataLine = ${metadataLine}`)
+          if (this.isCompleted) logDebug('ProjectConstructor', `  - isCompleted`)
+          if (this.isCancelled) logDebug('ProjectConstructor', `  - isCancelled`)
+          if (this.isPaused) logDebug('ProjectConstructor', `  - isPaused`)
+          logDebug('ProjectConstructor', `  - mentions: ${String(mentions)}`)
+          logDebug('ProjectConstructor', `  - hashtags: ${String(hashtags)}`)
+          logDebug('ProjectConstructor', `  - ${String(this.numTotalItems)} items: open:${String(this.numOpenItems)} completed:${String(this.numCompletedItems)} waiting:${String(this.numWaitingItems)} future:${String(this.numFutureItems)}`)
+          logDebug('ProjectConstructor', `  - completed: ${String(this.numCompletedItems)}`)
+          logDebug('ProjectConstructor', `  - progressLineIndex: #${String(this.mostRecentProgressLineIndex ?? '-')}`)
+          logDebug('ProjectConstructor', `  - progress: <${String(this.lastProgressComment)}>`)
+          logDebug('ProjectConstructor', `  - % complete = ${String(this.percentComplete)}`)
+          logDebug('ProjectConstructor', `  - nextActionRawContent = <${String(this.nextActionsRawContent)}>`)
+          logDebug('ProjectConstructor', `  - allProjectTags = <${String(this.allProjectTags)}>`)
+        } else {
+          logTimer('ProjectConstructor', startTime, `Constructed ${this.getLeadingProjectTag()} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
+        }
       }
 
       const changedMs = getNoteChangedDateMs(this.note)
@@ -683,21 +726,30 @@ export class Project {
 
   /**
    * Build allProjectTags: all hashtags from metadata line and combined frontmatter metadata field, then de-duped
+   * @param {string} primaryProjectTag
+   * @param {string} [metadataLineStrIn] - optional; avoids re-reading paragraphs when caller already has it
+   * @param {string} [combinedFrontmatterStrIn] - optional; avoids re-reading frontmatter when caller already has it
    */
-  buildAllProjectTags(primaryProjectTag: string = ''): Array<string> {
+  buildAllProjectTags(primaryProjectTag: string = '', metadataLineStrIn?: string, combinedFrontmatterStrIn?: string): Array<string> {
     const allTags: Array<string> = []
     if (primaryProjectTag !== '' && primaryProjectTag.startsWith('#') && primaryProjectTag.length > 1) {
       allTags.push(primaryProjectTag)
     }
-    const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
-    const metadataLineStr = metadataPara != null ? metadataPara.content ?? '' : ''
+    let metadataLineStr = metadataLineStrIn
+    if (metadataLineStr == null) {
+      const metadataPara = this.note.paragraphs[this.metadataParaLineIndex]
+      metadataLineStr = metadataPara != null ? metadataPara.content ?? '' : ''
+    }
     const metadataLineHashtags = getHashtagsFromString(metadataLineStr)
     allTags.push(...metadataLineHashtags)
 
-    const frontmatterKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-    const frontmatterRawField = readRawFrontmatterField(this.note, frontmatterKey)
-    const frontmatterValue = frontmatterRawField.exists ? frontmatterRawField.value : getFrontmatterAttribute(this.note, frontmatterKey)
-    const frontmatterStr = frontmatterValue != null && typeof frontmatterValue === 'string' ? frontmatterValue : ''
+    let frontmatterStr = combinedFrontmatterStrIn
+    if (frontmatterStr == null) {
+      const frontmatterKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+      const frontmatterRawField = readRawFrontmatterField(this.note, frontmatterKey)
+      const frontmatterValue = frontmatterRawField.exists ? frontmatterRawField.value : getFrontmatterAttribute(this.note, frontmatterKey)
+      frontmatterStr = frontmatterValue != null && typeof frontmatterValue === 'string' ? frontmatterValue : ''
+    }
     const frontmatterHashtags = getHashtagsFromString(frontmatterStr)
     allTags.push(...frontmatterHashtags)
     return allTags.filter((t, index, self) => self.indexOf(t) === index)
@@ -723,12 +775,30 @@ export class Project {
   countTasks(paras: Array<TParagraph>, ignoreChecklistsInProgress: boolean, numberDaysForFutureToIgnore: number): void {
     const openFilter = ignoreChecklistsInProgress ? isOpenTask : isOpen
     const closedFilter = ignoreChecklistsInProgress ? isClosedTask : isClosed
+    const futureCutoffISOStr =
+      numberDaysForFutureToIgnore >= 0
+        ? moment().add(numberDaysForFutureToIgnore, 'days').format('YYYY-MM-DD')
+        : ''
 
-    const openParas = paras.filter(openFilter)
-    this.numOpenItems = openParas.length
-    this.numCompletedItems = paras.filter(closedFilter).length
-    this.numWaitingItems = openParas.filter((p) => p.content.match('#waiting')).length
-    this.numFutureItems = openParas.filter((p) => includesScheduledFurtherFutureDate(p.content, numberDaysForFutureToIgnore)).length
+    let numOpen = 0
+    let numCompleted = 0
+    let numWaiting = 0
+    let numFuture = 0
+    for (const p of paras) {
+      if (openFilter(p)) {
+        numOpen += 1
+        if (p.content.indexOf('#waiting') !== -1) numWaiting += 1
+        if (numberDaysForFutureToIgnore >= 0 && includesScheduledFurtherFutureDate(p.content, numberDaysForFutureToIgnore, futureCutoffISOStr)) {
+          numFuture += 1
+        }
+      } else if (closedFilter(p)) {
+        numCompleted += 1
+      }
+    }
+    this.numOpenItems = numOpen
+    this.numCompletedItems = numCompleted
+    this.numWaitingItems = numWaiting
+    this.numFutureItems = numFuture
   }
 
   /**
@@ -1111,7 +1181,15 @@ getProjectTagsFrontmatterValue(combinedKey: string): string {
    * @param {string?} metadataLine - (optional) Content of the metadata line
    * @author @jgclark
    */
-gatherAnyNextActionContent(nextActionTags: Array < string >, paras: Array < Paragraph >, sequentialTag ?: string, hashtags ?: Array < string >, metadataLine ?: string): void {
+gatherAnyNextActionContent(
+  nextActionTags: Array < string >,
+  paras: Array < Paragraph >,
+  sequentialTag ?: string,
+  hashtags ?: Array < string >,
+  metadataLine ?: string,
+  combinedFrontmatterStrIn ?: string,
+  combinedKeyIn ?: string,
+): void {
     // Set defaults for optional parameters
     const sequentialTagValue = sequentialTag ?? ''
     const hashtagsValue = hashtags ?? []
@@ -1119,9 +1197,13 @@ gatherAnyNextActionContent(nextActionTags: Array < string >, paras: Array < Para
     // Check if sequential tag is present in frontmatter 'project' attribute or metadata line
     let hasSequentialTag = false
     if (sequentialTagValue !== '') {
-      // Check combined frontmatter metadata attribute
-      const combinedKey = checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
-      const projectAttribute = getFrontmatterAttribute(this.note, combinedKey)
+  const combinedKey = combinedKeyIn != null && combinedKeyIn !== ''
+    ? combinedKeyIn
+    : checkString(DataStore.preference('projectMetadataFrontmatterKey') || 'project')
+  const projectAttribute =
+    combinedFrontmatterStrIn != null && combinedFrontmatterStrIn !== ''
+      ? combinedFrontmatterStrIn
+      : getFrontmatterAttribute(this.note, combinedKey)
       if (projectAttribute && typeof projectAttribute === 'string' && projectAttribute.includes(sequentialTagValue)) {
         hasSequentialTag = true
         logDebug('gatherAnyNextActionContent', `  - found sequential tag '${sequentialTagValue}' in frontmatter '${combinedKey}' attribute`)
@@ -1140,27 +1222,27 @@ gatherAnyNextActionContent(nextActionTags: Array < string >, paras: Array < Para
       }
     }
 
-    // First, look for tagged next actions - use the first non-future-scheduled one found
+const todayISO = todaysDateISOString
+// Prefer configured next-action tags in list order (same as before), one scan per tag.
     for (const nextActionTag of nextActionTags) {
-      const nextActionParas = paras.filter(isOpen).filter((p) => p.content.match(nextActionTag))
-      const eligibleNextAction = nextActionParas.find((p) => !includesScheduledFutureDate(p.content))
-
-      if (eligibleNextAction) {
-        const thisNextAction = eligibleNextAction.rawContent
-        this.nextActionsRawContent.push(thisNextAction)
-        logDebug('gatherAnyNextActionContent', `  - found nextActionRawContent <${thisNextAction}>`)
-        return // Found a tagged action, so we're done (at most 1 next action)
+      for (const p of paras) {
+        if (!isOpen(p)) continue
+        if (p.content.indexOf(nextActionTag) !== -1 && !includesScheduledFutureDate(p.content, todayISO)) {
+          this.nextActionsRawContent.push(p.rawContent)
+          logDebug('gatherAnyNextActionContent', `  - found nextActionRawContent <${p.rawContent}>`)
+          return
+        }
       }
     }
 
-    // If no tagged next actions found, and hasSequentialTag is true, use first open non-future item
     if (hasSequentialTag) {
-      const firstOpenParas = paras.filter(isOpen)
-      const eligibleOpenAction = firstOpenParas.find((p) => !includesScheduledFutureDate(p.content))
-      if (eligibleOpenAction) {
-        const firstOpenAction = eligibleOpenAction.rawContent
-        this.nextActionsRawContent.push(firstOpenAction)
-        logDebug('gatherAnyNextActionContent', `  - found sequential nextActionRawContent <${firstOpenAction}>`)
+      for (const p of paras) {
+        if (!isOpen(p)) continue
+        if (!includesScheduledFutureDate(p.content, todayISO)) {
+          this.nextActionsRawContent.push(p.rawContent)
+          logDebug('gatherAnyNextActionContent', `  - found sequential nextActionRawContent <${p.rawContent}>`)
+          return
+        }
       }
     }
   }
@@ -1388,29 +1470,25 @@ clearNextReviewMetadata(): void {
    *   Progress: YYYY-MM-DD message     [in which case % is calculated from tasks]
    * + variations with optional ':' after the date (parsed either way)
    */
-  processProgressLines(): void {
+processProgressLines(fieldsMap ?: FrontmatterFieldsMap): void {
     // Get specific 'Progress' field lines
     const progressParas = getFieldParagraphsFromNote(this.note, getProgressFieldNameForBodyLines())
-    // logDebug('Project::processProgressLines', `  - found ${String(progressParas.length)} progress lines for ${this.title}`)
 
     if (progressParas.length > 0) {
       // Get the most recent progressItem from these lines
       const progressItem: Progress = processMostRecentProgressParagraph(progressParas)
       this.percentComplete = progressItem.percentComplete
       this.lastProgressComment = progressItem.comment
-      this.mostRecentProgressLineIndex = progressItem.lineIndex
-      // logDebug('Project::processProgressLines', `  -> ${String(this.percentComplete)}% from progress line`)
-      // logDebug('Project::processProgressLines', `  -> lastProgressComment: ${this.lastProgressComment}`)
+  this.mostRecentProgressLineIndex = progressItem.lineIndex
     }
 
     const bodyProgressFound = this.lastProgressComment !== '' && !isNaN(this.percentComplete)
     if (!bodyProgressFound) {
-      const progressField = readRawFrontmatterField(this.note, getProgressFrontmatterKey())
+      const progressField = readRawFrontmatterField(this.note, getProgressFrontmatterKey(), fieldsMap)
       if (progressField.exists && String(progressField.value ?? '').trim() !== '') {
         const progressItem = parseProgressValueString(String(progressField.value))
         this.lastProgressComment = progressItem.comment
         this.percentComplete = progressItem.percentComplete
-        // logDebug('Project::processProgressLines', `  -> ${String(this.percentComplete)}% from frontmatter progress key`)
       }
     }
   }
@@ -1609,4 +1687,13 @@ export function clearNextReviewMetadataFields(project: Project): void {
   project.nextReviewDays = NaN
 }
 
-export { getNoteChangeTimeMsForCache, getNoteChangedDateMs, parseProjectFrontmatterValue, readRawFrontmatterField }
+export {
+  getNoteChangeTimeMsForCache,
+  getNoteChangedDateMs,
+  getProjectConstructorPrefs,
+  parseProjectFrontmatterValue,
+  projectConstructorPrefsFromReviewConfig,
+  readAllRawFrontmatterFields,
+  readRawFrontmatterField,
+}
+

@@ -36,33 +36,50 @@ describe('Project constructor: default review interval in frontmatter', () => {
     preferenceValues['numberDaysForFutureToIgnore'] = 0
   })
 
-  test('writes review: 1w when review key is absent and no interval elsewhere', () => {
+  test('sets reviewInterval in memory without writing when migration is disabled', () => {
     const note = new Note({
       title: 'Example',
       filename: 'example.md',
       content: fmBlock(['project: #project']),
     })
+    const contentBefore = note.content
 
     const project = new Project((note: any), '', false, [], '')
 
     expect(project.reviewInterval).toBe('1w')
-    expect(note.content).toMatch(/^---\n[\s\S]*\breview:\s*1w\b[\s\S]*\n---\n/m)
-    expect(global.DataStore.updateCache).toHaveBeenCalledWith(note, true)
+    expect(note.content).toBe(contentBefore)
+    expect(note.content).not.toMatch(/\breview:\s*1w\b/)
+    expect(global.DataStore.updateCache).not.toHaveBeenCalled()
   })
 
-  test('uses embedded @review interval and writes default review key when constructor migration is disabled and no review key exists', () => {
+  test('uses embedded @review interval in memory without writing when migration is disabled', () => {
     const note = new Note({
       title: 'Example',
       filename: 'example.md',
       content: fmBlock(['project: #project @start(2026-02-09) @due(2026-06-30) @review(1w)']),
     })
+    const contentBefore = note.content
 
     const project = new Project((note: any), '', false, [], '')
 
     expect(project.reviewInterval).toBe('1w')
     expect(project.startDate).toBe('2026-02-09')
     expect(project.dueDate).toBe('2026-06-30')
-    expect(note.content).toMatch(/\breview:\s*1w\b/)
+    expect(note.content).toBe(contentBefore)
+    expect(global.DataStore.updateCache).not.toHaveBeenCalled()
+  })
+
+  test('writes review: 1w when migrateMetadataNowIfNeeded is true and review key is absent', () => {
+    const note = new Note({
+      title: 'Example',
+      filename: 'example.md',
+      content: fmBlock(['project: #project']),
+    })
+
+    const project = new Project((note: any), '', false, [], '', true)
+
+    expect(project.reviewInterval).toBe('1w')
+    expect(note.content).toMatch(/^---\n[\s\S]*\breview:\s*1w\b[\s\S]*\n---\n/m)
     expect(global.DataStore.updateCache).toHaveBeenCalledWith(note, true)
   })
 })

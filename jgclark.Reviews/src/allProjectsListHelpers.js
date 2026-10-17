@@ -25,6 +25,7 @@ import {
   type TPerspectiveScopeUnion,
 } from '../../jgclark.Dashboard/src/perspectiveScopeUnion.js'
 import { Project, getNoteChangeTimeMsForCache } from './projectClass.js'
+import { projectConstructorPrefsFromReviewConfig, type ProjectConstructorPrefs } from './projectClassHelpers.js'
 import { calcReviewFieldsForProject, isProjectFinished } from './projectClassCalculations.js'
 import {
   getMatchingProjectTypeTagsOnNote,
@@ -385,11 +386,11 @@ function readUnionForConfig(config: ReviewConfig): ?TPerspectiveScopeUnion {
 }
 
 /**
- * True when allProjectsList.json is older than maxAgeAllProjectsListInHours.
+ * True when allProjectsList.json is older than {@link MAX_AGE_BEFORE_REFRESH_HOURS}.
  * @returns {boolean}
  */
 function listIsOlderThanMaxAge(): boolean {
-  return getFileAgeMs(generatedDatePrefName) > MS_PER_HOUR * maxAgeAllProjectsListInHours
+  return getFileAgeMs(generatedDatePrefName) > MS_PER_HOUR * MAX_AGE_BEFORE_REFRESH_HOURS
 }
 
 /**
@@ -704,6 +705,7 @@ async function generateAllProjectsListIncremental(
       : (config.projectTypeTags ?? [])
   const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
   const nextActionTags = config.nextActionTags ?? []
+  const ctorPrefs = projectConstructorPrefsFromReviewConfig(config)
 
   const changedSet = new Set(changedFilenames)
   let rebuiltCount = 0
@@ -741,7 +743,7 @@ async function generateAllProjectsListIncremental(
         if (!isNoteInCurrentProjectSelection(note, config, tag)) {
           continue
         }
-        const np = new Project(note, tag, true, nextActionTags, sequentialTagResolved, false)
+        const np = new Project(note, tag, true, nextActionTags, sequentialTagResolved, false, ctorPrefs)
         byKey.set(makeProjectListCacheKey(filename, tag), np)
         rebuiltCount += 1
       }
@@ -1034,6 +1036,7 @@ export async function addNewProjectToAllProjectsListIfInScope(
       config.nextActionTags,
       config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT,
       false,
+      projectConstructorPrefsFromReviewConfig(config),
     )
     allProjects.push(newProject)
     logInfo('addNewProjectToAllProjectsListIfInScope', `- Added Project '${newProject.title ?? note.filename ?? '?'}' (${projectTypeTag}) to allProjects list`)
@@ -1219,6 +1222,7 @@ export async function enumerateMatchingProjectNoteTagPairs(
  * @param {Map<string, any>} projectListRowByKey
  * @param {Array<string>} nextActionTags
  * @param {string} sequentialTagResolved
+ * @param {ProjectConstructorPrefs} ctorPrefs
  * @param {boolean} showProgressToUser
  * @param {'Generating' | 'Refreshing'} progressVerb - When Refreshing, progress text uses that verb instead of Building
  * @returns {Array<Project>}
@@ -1228,6 +1232,7 @@ function buildProjectsFromPairsSync(
   projectListRowByKey: Map<string, any>,
   nextActionTags: Array<string>,
   sequentialTagResolved: string,
+  ctorPrefs: ProjectConstructorPrefs,
   showProgressToUser: boolean = false,
   progressVerb: 'Generating' | 'Refreshing' = 'Generating',
 ): Array<Project> {
@@ -1264,7 +1269,7 @@ function buildProjectsFromPairsSync(
         np = calcReviewFieldsForProject(cloned)
       } else {
         logDebug('getAllMatchingProjects', `- Cache MISS, so calling Project constructor for ${tag} '${n.filename}'`)
-        np = new Project(n, tag, false, nextActionTags, sequentialTagResolved, false)
+        np = new Project(n, tag, false, nextActionTags, sequentialTagResolved, false, ctorPrefs)
       }
       projectInstances.push(np)
     }
@@ -1315,16 +1320,17 @@ async function getAllMatchingProjects(
 
   const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
   const nextActionTags = config.nextActionTags ?? []
+  const ctorPrefs = projectConstructorPrefsFromReviewConfig(config)
   // Side-channel: do not return large Project arrays from runOnAsyncThread.
   let projectInstancesHolder: ?Array<Project> = null
   await runSyncWorkOnAsyncThread('getAllMatchingProjects build', () => {
-    projectInstancesHolder = buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, showProgressToUser, progressVerb)
+    projectInstancesHolder = buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, ctorPrefs, showProgressToUser, progressVerb)
     return true
   })
   const projectInstances: Array<Project> =
     projectInstancesHolder != null
       ? projectInstancesHolder
-      : buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, showProgressToUser, progressVerb)
+      : buildProjectsFromPairsSync(pairs, projectListRowByKey, nextActionTags, sequentialTagResolved, ctorPrefs, showProgressToUser, progressVerb)
   if (projectInstancesHolder == null) {
     logWarn('getAllMatchingProjects', `- async result missing; built projects on main thread`)
   }
@@ -1384,6 +1390,7 @@ async function generateAllProjectsListPartialForChangedScopes(
       : (config.projectTypeTags ?? [])
   const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
   const nextActionTags = config.nextActionTags ?? []
+  const ctorPrefs = projectConstructorPrefsFromReviewConfig(config)
   const notes = (DataStore.projectNotes ?? []).filter((note) => {
     const folder = getFolderFromFilename(note.filename ?? '')
     if (!foldersToScan.includes(folder)) return false
@@ -1394,7 +1401,7 @@ async function generateAllProjectsListPartialForChangedScopes(
   for (const note of notes) {
     const matchingTags = getMatchingProjectTypeTagsOnNote(note, projectTypeTags)
     for (const tag of matchingTags) {
-      const np = new Project(note, tag, true, nextActionTags, sequentialTagResolved, false)
+      const np = new Project(note, tag, true, nextActionTags, sequentialTagResolved, false, ctorPrefs)
       byKey.set(makeProjectListCacheKey(note.filename ?? '', tag), np)
       added += 1
     }
@@ -1545,6 +1552,7 @@ async function generateAllProjectsListNow(
  * @param {Array<any>} snapshotRows
  * @param {Array<string>} nextActionTags
  * @param {string} sequentialTagResolved
+ * @param {ProjectConstructorPrefs} ctorPrefs
  * @param {boolean} showProgressToUser
  * @returns {{ rebuilt: Array<Project>, keptStale: number }}
  */
@@ -1552,6 +1560,7 @@ function recalculateProjectsFromSnapshotSync(
   snapshotRows: Array<any>,
   nextActionTags: Array<string>,
   sequentialTagResolved: string,
+  ctorPrefs: ProjectConstructorPrefs,
   showProgressToUser: boolean,
 ): { rebuilt: Array<Project>, keptStale: number } {
   const rebuilt: Array<Project> = []
@@ -1593,6 +1602,7 @@ function recalculateProjectsFromSnapshotSync(
         nextActionTags,
         sequentialTagResolved,
         false,
+        ctorPrefs,
       ))
     }
   } finally {
@@ -1637,16 +1647,17 @@ export async function recalculateAllProjectsListItems(
     logInfo('recalculateAllProjectsListItems', `Recalculating ${String(snapshotRows.length)} existing allProjects list item(s)`)
     const sequentialTagResolved = config.sequentialTag ? config.sequentialTag : SEQUENTIAL_TAG_DEFAULT
     const nextActionTags = config.nextActionTags ?? []
+    const ctorPrefs = projectConstructorPrefsFromReviewConfig(config)
     // Side-channel: do not return large Project arrays from runOnAsyncThread.
     let recalcHolder: ?{ rebuilt: Array<Project>, keptStale: number } = null
     await runSyncWorkOnAsyncThread('recalculateAllProjectsListItems', () => {
-      recalcHolder = recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, showProgressToUser)
+      recalcHolder = recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, ctorPrefs, showProgressToUser)
       return true
     })
     const { rebuilt, keptStale } =
       recalcHolder != null
         ? recalcHolder
-        : recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, showProgressToUser)
+        : recalculateProjectsFromSnapshotSync(snapshotRows, nextActionTags, sequentialTagResolved, ctorPrefs, showProgressToUser)
     if (recalcHolder == null) {
       logWarn('recalculateAllProjectsListItems', `- async result missing; recalculated on main thread`)
     }
@@ -2132,6 +2143,7 @@ export async function updateAllProjectsListAfterChange(
         config.nextActionTags,
         config.sequentialTag ?? SEQUENTIAL_TAG_DEFAULT,
         false,
+        projectConstructorPrefsFromReviewConfig(config),
       )
       logInfo('updateAllProjectsListAfterChange', `- Built updated Project '${reviewedTitle}' for list`)
     }
