@@ -92,11 +92,8 @@ beforeAll(() => {
     projectNotes: [],
     projectNoteByFilename: jest.fn((filename: string) => notesByFilename[filename] ?? null),
     noteByFilename: jest.fn(() => null),
-    projectNoteByFilename: jest.fn((filename: string) => notesByFilename[filename] ?? null),
-    noteByFilename: jest.fn(() => null),
     updateCache: jest.fn(),
   }
-  global.CommandBar = { showLoading: jest.fn() }
   global.CommandBar = { showLoading: jest.fn() }
 })
 
@@ -108,14 +105,8 @@ beforeEach(() => {
   })
   global.DataStore.projectNotes = []
   global.DataStore.folders = ['/', 'Projects', 'Archive']
-  Object.keys(notesByFilename).forEach((key) => {
-    delete notesByFilename[key]
-  })
-  global.DataStore.projectNotes = []
-  global.DataStore.folders = ['/', 'Projects', 'Archive']
   global.DataStore.loadData.mockReturnValue('[]')
   global.DataStore.saveData.mockReturnValue(true)
-  global.DataStore.projectNoteByFilename = jest.fn((filename: string) => notesByFilename[filename] ?? null)
   global.DataStore.projectNoteByFilename = jest.fn((filename: string) => notesByFilename[filename] ?? null)
   global.DataStore.preference = (key: string): any => {
     if (key === 'Reviews-lastAllProjectsGenerationTime') return Date.now()
