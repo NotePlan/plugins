@@ -32,7 +32,7 @@ describe('Project constructor: embedded combined mentions', () => {
       filename: 'migrate-me.md',
       content:
         '---\n' +
-        'project: #area #plugin @start(2021-06-10) @review(3m) @reviewed(2025-08-30)\n' +
+        'project: #area #plugin @started(2021-06-10) @review(3m) @reviewed(2025-08-30)\n' +
         '---\n' +
         '# Migrate me\n' +
         'Body line\n',
@@ -45,10 +45,10 @@ describe('Project constructor: embedded combined mentions', () => {
     expect(projectLine?.content).toMatch(/#area/)
     expect(projectLine?.content).toMatch(/#plugin/)
     const keys = new Set(note.paragraphs.map((p) => String(p.content).split(':')[0]))
-    expect(keys.has('start')).toBe(true)
+    expect(keys.has('started')).toBe(true)
     expect(keys.has('review')).toBe(true)
     expect(keys.has('reviewed')).toBe(true)
-    expect(note.paragraphs.some((p) => p.content === 'start: 2021-06-10')).toBe(true)
+    expect(note.paragraphs.some((p) => p.content === 'started: 2021-06-10')).toBe(true)
     expect(note.paragraphs.some((p) => p.content === 'review: 3m')).toBe(true)
     expect(note.paragraphs.some((p) => p.content === 'reviewed: 2025-08-30')).toBe(true)
   })

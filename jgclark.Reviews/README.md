@@ -369,9 +369,9 @@ These keys are written or updated by the plugin and can be added as folder-view 
 
 Any other frontmatter keys you add yourself (including NotePlan's card `order` field) are left alone, unless you turn on the optional `status` feature below.
 
-### Project `status` for Kanban columns
+### Project 'status'
 
-Turn on **Maintain a status frontmatter hashtag?** in settings. The plugin then writes and updates a `status` field with a hashtag, for use with NotePlan [Cards / Kanban](https://help.noteplan.co/article/239-card-kanban-view) folder views:
+Turn on **Maintain a status frontmatter hashtag?** in settings. The plugin then writes and updates a `status` field with a hashtag, which can be used with NotePlan [Cards / Kanban](https://help.noteplan.co/article/239-card-kanban-view) folder views:
 
 | State | Default `status` value | Also writes |
 | --- | --- | --- |

@@ -22,6 +22,15 @@ import {
 
 const preferenceValues: { [string]: any } = {}
 
+/**
+ * Minimal paragraph stubs for helpers that only read `type` / `content`.
+ * @param {Array<{ type: string, content: string }>} items
+ * @returns {Array<TParagraph>}
+ */
+function stubParas(items: Array<{ type: string, content: string }>): Array<TParagraph> {
+  return (items: any)
+}
+
 beforeEach(() => {
   // $FlowFixMe[prop-missing] test stub
   global.DataStore = {
@@ -133,22 +142,19 @@ describe('initialStatusHashtagForNoteParas', () => {
   test('notstarted when no closed items; started when ≥1 closed', () => {
     expect(initialStatusHashtagForNoteParas([])).toBe('#notstarted')
     expect(
-      initialStatusHashtagForNoteParas([
-        // $FlowFixMe[prop-missing]
+      initialStatusHashtagForNoteParas(stubParas([
         { type: 'open', content: 'todo' },
-      ]),
+      ])),
     ).toBe('#notstarted')
     expect(
-      initialStatusHashtagForNoteParas([
-        // $FlowFixMe[prop-missing]
+      initialStatusHashtagForNoteParas(stubParas([
         { type: 'done', content: 'done task' },
-      ]),
+      ])),
     ).toBe('#started')
     expect(
-      initialStatusHashtagForNoteParas([
-        // $FlowFixMe[prop-missing]
+      initialStatusHashtagForNoteParas(stubParas([
         { type: 'checklistDone', content: 'done checklist' },
-      ]),
+      ])),
     ).toBe('#started')
   })
 })
@@ -160,15 +166,13 @@ describe('resolveStatusHashtagForFinishReviewWhenMissing', () => {
     ).toBe('#paused')
     expect(
       resolveStatusHashtagForFinishReviewWhenMissing(
-        // $FlowFixMe[prop-missing]
-        [{ type: 'done', content: 'done' }],
+        stubParas([{ type: 'done', content: 'done' }]),
         '#project #paused',
       ),
     ).toBe('#paused')
     expect(
       resolveStatusHashtagForFinishReviewWhenMissing(
-        // $FlowFixMe[prop-missing]
-        [{ type: 'done', content: 'done' }],
+        stubParas([{ type: 'done', content: 'done' }]),
         '#project',
       ),
     ).toBe('#started')
@@ -179,18 +183,13 @@ describe('resolveStatusHashtagForFinishReviewWhenMissing', () => {
 describe('countClosedTasksAndChecklists', () => {
   test('counts done and cancelled tasks and checklists', () => {
     expect(
-      countClosedTasksAndChecklists([
-        // $FlowFixMe[prop-missing]
+      countClosedTasksAndChecklists(stubParas([
         { type: 'done', content: 'a' },
-        // $FlowFixMe[prop-missing]
         { type: 'cancelled', content: 'b' },
-        // $FlowFixMe[prop-missing]
         { type: 'checklistDone', content: 'c' },
-        // $FlowFixMe[prop-missing]
         { type: 'checklistCancelled', content: 'd' },
-        // $FlowFixMe[prop-missing]
         { type: 'open', content: 'e' },
-      ]),
+      ])),
     ).toBe(4)
   })
 })
