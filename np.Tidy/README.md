@@ -2,6 +2,7 @@
 
 This plugin provides commands to help tidy up your notes:
 
+- **/Clean up note filenames** command: cleans encoded characters (e.g. `&#039;` `&mdash;`) and invalid path characters (e.g. `\\` `/` `:`) from note filenames in a chosen folder and its subfolders.
 - **/File root-level notes** (alias "frnl"): For each root-level note, asks which folder you'd like it moved to, including the option of creating a new folder. (There's a setting for ones to permanently ignore.)
 - **/Generate @repeats in recent notes** (alias "grrn"): Generates any needed new @repeat() lines in all recently-changed notes. This is only useful for people using the extended @repeat() syntax of the separate [Repeat Extensions plugin](https://noteplan.co/plugins/jgclark.RepeatExtensions).  This means you don't have to add the special trigger on every relevant note: instead you can include this command in your Daily Note template, or run it manually every day or two. Please see [extra details below](#details-on-generate-repeats-in-recent-notes).
 - **/List conflicted notes** (alias "conflicts"): creates/updates a note that lists all your notes on your current device with file-level conflicts, along with summary details about them. It gives options to delete one or other of the conflicted versions, or to open them side-by-side for easier comparison.
@@ -14,10 +15,13 @@ This plugin provides commands to help tidy up your notes:
     ![](duplicate-note-display@2x.png)
 - **/List missing daily notes**: create a note that lists any missing or empty daily notes in the last year.
 - **/List stubs**: creates a note that lists all your notes that contain "stubs" -- i.e. that caontain `[[note links]]` (aka "wikilinks") that don't lead to other notes in NotePlan.
+- **/List title problems** (alias "titles"): creates/updates a note that lists notes with one or more of the following problems:
+  1. Title is `` `---` `` (this can happen when frontmatter is invalid).
+  2. Frontmatter `title:` field does not match the H1 on the first line of the body, when that H1 is present. An H1 that contains a template tag (for example `<%- prompt('Where are we going?') %>`) is skipped. Each mismatch is two bullets, with a "Use title" or "Use H1" button that copies that value onto the other field. 
+  3. Title contains `|`. This character is allowed, but in a note link it starts an alternative title, so can cause confusion. Each of those notes has "Open note" and "Fix" buttons, and the section has a "Fix all" button. Fix replaces each `|` with `-`. For a `` `---` `` title, the note includes the first 12 lines of the file. The results note is time-stamped and has a refresh button.
 - **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. Note: this command does not work inside a template. See section below.
-- **/Clean up note filenames** command: cleans encoded characters (e.g. `&#039;` `&mdash;`) and invalid path characters (e.g. `\\` `/` `:`) from note filenames in a chosen folder and its subfolders.
 - **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character. Note: this command cannot remove Teamspace notes (as of NotePlan v3.18.1), so it won't try.
-- **/Remove empty elements** (alias: "ree"): in the open note removes empty list items, quotations and headings, and reduces multiple empty lines to a single empty line. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information.
+- **/Remove empty elements** (alias: "ree"): in the open note removes empty list items, quotations and headings, reduces multiple empty lines to a single empty line, and removes a blank line between frontmatter and the H1. **Smart heading preservation**: If a subheading has content, its parent heading will be preserved even if the parent appears to have no direct content. This ensures your note structure remains intact when subheadings contain valuable information.
 - **/Remove empty elements from recent notes** (alias: "reeRecent"): as above, but for recently changed regular notes, plus calendar notes whose whole period is already in the past. Today, this week, and the current month, quarter, and year are skipped, as are future-dated calendar notes. Template notes (those whose filename starts with '@Templates') are also always excluded from processing.
 - **/Remove empty lines**  (alias "rel"): Remove *all* empty lines from the open note.
 - **/Remove orphaned blockIDs** (alias "rob"): Remove blockIDs from lines that had been sync'd, but have become 'orphans' as the other copies of the blockID have since been deleted.
@@ -57,6 +61,7 @@ The **/Remove empty blocks** command intelligently cleans up your notes while pr
 - Empty quotations (e.g., `> ` with no content)  
 - Empty headings (e.g., `# ` with no text)
 - Multiple consecutive empty lines (reduces to single empty lines)
+- A blank line between frontmatter and the H1
 
 #### Note type coverage
 - **Open note**: "/Remove empty elements" works on the note open in the Editor
@@ -70,7 +75,7 @@ The **/Remove empty blocks** command intelligently cleans up your notes while pr
 - This ensures your note hierarchy stays intact when subheadings contain valuable information
 
 #### Empty line handling
-- **Default behavior**: Reduces multiple consecutive empty lines to a single empty line
+- **Default behavior**: Reduces multiple consecutive empty lines to a single empty line, and removes a blank line between frontmatter and the H1
 - **Strip all empty lines**: Available as an x-callback setting to remove ALL empty lines
 ```
 noteplan://x-callback-url/runPlugin?pluginID=np.Tidy&command=Remove%20empty%20elements&arg0=Editor&arg1=true
@@ -136,6 +141,7 @@ Some commands have parameters that can be passed:
 | --------- | --------- | --------- | --------- |
 | List conflicted notes | runSilently |
 | List duplicate notes | runSilently |
+| List title problems | runSilently |
 | Move top-level tasks in Editor to heading | Heading name to place the tasks under | runSilently | return content (true) rather than insert (false) | running from a template? |
 | Remove blank notes | runSilently |
 | Remove @done() markers | parameters (JSON) |

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2025-11-22 for v1.17.0, @jgclark
+// Last updated 2026-10-16 for v1.20.4, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -172,8 +172,20 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     // For speed, first multi-core search the notes to find the notes that contain this string. 
     let allInstancesOfSectionHeadingString = await DataStore.search(sectionHeading, ['calendar', 'notes'], [], config.removeFoldersToExclude)
 
-    // Then filter to just the headings that match sectionHeading.
-    let parasToRemove = allInstancesOfSectionHeadingString.filter((p) => p.type === 'title' && p.content === sectionHeading && p.headingLevel !== 1)
+    // Then filter to just the headings that match sectionHeading, using the same match types as removeSectionFromRecentNotes.
+    let parasToRemove = allInstancesOfSectionHeadingString
+    switch (config.matchType) {
+      case 'Starts with':
+        parasToRemove = parasToRemove.filter((p) => p.type === 'title' && p.content.startsWith(sectionHeading) && p.headingLevel !== 1)
+        break
+      case 'Contains':
+        parasToRemove = parasToRemove.filter((p) => p.type === 'title' && p.content.includes(sectionHeading) && p.headingLevel !== 1)
+        break
+      case 'Exact':
+      default:
+        parasToRemove = parasToRemove.filter((p) => p.type === 'title' && p.content === sectionHeading && p.headingLevel !== 1)
+        break
+    }
     let numToRemove = parasToRemove.length
 
     // Then filter out any future calendar notes, if the setting is enabled

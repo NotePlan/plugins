@@ -2,17 +2,18 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 2026-08-03 for v1.20.1, @jgclark
+// Last updated 2026-10-16 for v1.21.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { listConflicts } from './conflicts'
 import { listDuplicates } from './duplicates'
+import { listTitleProblems } from './titleProblems'
 import { removeEmptyElementsFromRecentNotes } from './emptyElements'
 import { generateRepeatsFromRecentNotes } from './tidyRepeats'
 import { moveTopLevelTasksInNote } from './topLevelTasks'
-import { getSettings, type TidyConfig } from './tidyHelpers'
+import { getSettings, runHeavySyncWork, type TidyConfig } from './tidyHelpers'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
@@ -30,13 +31,12 @@ export async function tidyUpAll(): Promise<void> {
     const config: TidyConfig = await getSettings()
     logDebug(pluginJson, `tidyUpAll: Starting, with runSilently=${String(config.runSilently)}`)
 
-    // Show spinner dialog
+    // Each step owns its own thread and returns to the main thread before any prompt.
     CommandBar.showLoading(true, `Tidying up ...`, 0)
-    await CommandBar.onAsyncThread()
 
     if (config.runRemoveBlankNotes) {
       CommandBar.showLoading(true, `Tidying up blank notes ...`, 0.1)
-      logDebug('tidyUpAll', `Starting removeOrphanedBlockIDs...`)
+      logDebug('tidyUpAll', `Starting removeBlankNotes...`)
       await removeBlankNotes(config.runSilently)
     }
 
@@ -83,21 +83,27 @@ export async function tidyUpAll(): Promise<void> {
     //   await removeSectionFromRecentNotes()
     // }
 
-    if (config.runDuplicateFinderCommand) {
+    if (config.runConflictFinderCommand) {
       CommandBar.showLoading(true, `Making list of Conflicted notes ...`, 0.6)
       logDebug('tidyUpAll', `Starting listConflicts ...`)
       await listConflicts(param)
     }
 
-    if (config.runConflictFinderCommand) {
+    if (config.runDuplicateFinderCommand) {
       CommandBar.showLoading(true, `Making list of Duplicate notes  ...`, 0.7)
       logDebug('tidyUpAll', `Starting listDuplicates ...`)
       await listDuplicates(param)
     }
 
+    if (config.runTitleProblemsCommand) {
+      CommandBar.showLoading(true, `Making list of title problems ...`, 0.75)
+      logDebug('tidyUpAll', `Starting listTitleProblems ...`)
+      await listTitleProblems(param)
+    }
+
     if (config.removeTriggersFromRecentCalendarNotes) {
       CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.8)
-      logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
+      logDebug('tidyUpAll', `Starting removeTriggersFromRecentCalendarNotes...`)
       await removeTriggersFromRecentCalendarNotes(param)
     }
 
@@ -112,8 +118,6 @@ export async function tidyUpAll(): Promise<void> {
       await generateRepeatsFromRecentNotes(param)
     }
 
-    // stop spinner
-    await CommandBar.onMainThread()
     CommandBar.showLoading(false)
   } catch (error) {
     logError('tidyUpAll', JSP(error))
@@ -164,21 +168,22 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
       logDebug('removeDoneMarkers', `- filtered out done tasks`)
     }
 
-    // Get date range to use
-    const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
-    const momentToStartLooking = todayStart.subtract(numDays, 'days')
-    const jsdateToStartLooking = momentToStartLooking.toDate()
+    // numDays 0 means every note. Otherwise keep notes changed since the start of (today - numDays).
+    let recentMatchedParas: Array<TParagraph> = allMatchedParas
+    if (numDays > 0) {
+      const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
+      const momentToStartLooking = todayStart.subtract(numDays, 'days')
+      const jsdateToStartLooking = momentToStartLooking.toDate()
 
-    // `TParagraph.note` is declared `?TNote`, but every paragraph returned by `DataStore.search()` above
-    // belongs to a note, so the real type here is TNote. Cast the one expression rather than the whole line.
-    const recentMatchedParas: Array<TParagraph> = allMatchedParas.filter((p) => ((p.note: any): TNote).changedDate >= jsdateToStartLooking)
+      // `TParagraph.note` is declared `?TNote`, but every paragraph returned by `DataStore.search()` above
+      // belongs to a note, so the real type here is TNote. Cast the one expression rather than the whole line.
+      recentMatchedParas = allMatchedParas.filter((p) => ((p.note: any): TNote).changedDate >= jsdateToStartLooking)
+    }
 
     // Now map from paras -> notes and dedupe
-    let numToRemove = allMatchedParas.length
     const recentMatchedNotes = recentMatchedParas.map((p) => p.note)
-    // Dedupe this list
     const dedupedMatchedNotes = [...new Set(recentMatchedNotes)]
-    numToRemove = dedupedMatchedNotes.length
+    const numToRemove = recentMatchedParas.length
     logDebug('removeDoneMarkers', `- ${String(numToRemove)} @done(...) matches from ${String(dedupedMatchedNotes.length)} recent notes`)
     logDebug('removeDoneMarkers', `Search took ${timer(start)}s`)
 
@@ -262,21 +267,22 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     // const RE = new RegExp(RE_DONE_DATE_TIME)
     const allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE_DONE_DATE_TIME.test(p.content)) ?? []
 
-    // Get date range to use
-    const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
-    const momentToStartLooking = todayStart.subtract(numDays, 'days')
-    const jsdateToStartLooking = momentToStartLooking.toDate()
+    // numDays 0 means every note. Otherwise keep notes changed since the start of (today - numDays).
+    let recentMatchedParas: Array<TParagraph> = allMatchedParas
+    if (numDays > 0) {
+      const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
+      const momentToStartLooking = todayStart.subtract(numDays, 'days')
+      const jsdateToStartLooking = momentToStartLooking.toDate()
 
-    // `TParagraph.note` is declared `?TNote`, but every paragraph returned by `DataStore.search()` above
-    // belongs to a note, so the real type here is TNote. Cast the one expression rather than the whole line.
-    const recentMatchedParas: Array<TParagraph> = allMatchedParas.filter((p) => ((p.note: any): TNote).changedDate >= jsdateToStartLooking)
+      // `TParagraph.note` is declared `?TNote`, but every paragraph returned by `DataStore.search()` above
+      // belongs to a note, so the real type here is TNote. Cast the one expression rather than the whole line.
+      recentMatchedParas = allMatchedParas.filter((p) => ((p.note: any): TNote).changedDate >= jsdateToStartLooking)
+    }
 
     // Now map from paras -> notes and dedupe
-    let numToRemove = allMatchedParas.length
     const recentMatchedNotes = recentMatchedParas.map((p) => p.note)
-    // Dedupe this list
     const dedupedMatchedNotes = [...new Set(recentMatchedNotes)]
-    numToRemove = dedupedMatchedNotes.length
+    const numToRemove = recentMatchedParas.length
     logDebug('removeDoneTimeParts', `- ${String(numToRemove)} @done(...) matches from ${String(dedupedMatchedNotes.length)} recent notes`)
 
     // // Now keep only those changed recently (or all if numDays === 0)
@@ -542,26 +548,39 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     logDebug(pluginJson, `removeBlankNotes() with runSilently? '${String(runSilently)}'`)
 
     // Find all notes with 2 or fewer bytes' length.
-    // Show spinner dialog
     CommandBar.showLoading(true, `Finding blank notes ...`)
-    await CommandBar.onAsyncThread()
     const start = new Date()
 
-    // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
-    const blankNotes = allNotesSortedByChanged()
-      .filter((n) => n.filename.match(/(.txt|.md)$/))
-      // Note: `TNote.content` is `string | void`. The previous guard compared against the *string* 'undefined'
-      // (`n.content !== 'undefined' && n.content.length !== 'undefined'`), which was always true and then threw a
-      // TypeError whenever content really was undefined. The intent was `typeof n.content !== 'undefined'`.
-      .filter((n) => {
-        const content = n.content
-        return typeof content === 'string' && content.length <= 2
-      })
-    
-    const nonTeamspaceNotes = blankNotes.filter((n) => !isTeamspaceNoteFromFilename(n.filename))
-    const teamspaceNotes = blankNotes.filter((n) => isTeamspaceNoteFromFilename(n.filename))
-    
-    await CommandBar.onMainThread()
+    // Side-channel: do not return large arrays from runOnAsyncThread.
+    let nonTeamspaceNotesHolder: ?Array<TNote> = null
+    let teamspaceNotesHolder: ?Array<TNote> = null
+    /**
+     * Synchronous blank-note scan. Safe for runOnAsyncThread (read-only).
+     * @returns {true}
+     */
+    const syncFindBlankNotes = (): true => {
+      // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
+      const blankNotes = allNotesSortedByChanged()
+        .filter((n) => n.filename.match(/(.txt|.md)$/))
+        // Note: `TNote.content` is `string | void`. The previous guard compared against the *string* 'undefined'
+        // (`n.content !== 'undefined' && n.content.length !== 'undefined'`), which was always true and then threw a
+        // TypeError whenever content really was undefined. The intent was `typeof n.content !== 'undefined'`.
+        .filter((n) => {
+          const content = n.content
+          return typeof content === 'string' && content.length <= 2
+        })
+
+      nonTeamspaceNotesHolder = blankNotes.filter((n) => !isTeamspaceNoteFromFilename(n.filename))
+      teamspaceNotesHolder = blankNotes.filter((n) => isTeamspaceNoteFromFilename(n.filename))
+      return true
+    }
+    await runHeavySyncWork('removeBlankNotes', syncFindBlankNotes)
+    if (nonTeamspaceNotesHolder == null || teamspaceNotesHolder == null) {
+      logWarn('removeBlankNotes', `async scan result missing; scanning on main thread`)
+      syncFindBlankNotes()
+    }
+    const nonTeamspaceNotes: Array<TNote> = nonTeamspaceNotesHolder ?? []
+    const teamspaceNotes: Array<TNote> = teamspaceNotesHolder ?? []
     CommandBar.showLoading(false)
 
     // Now count the notes found

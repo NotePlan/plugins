@@ -59,6 +59,7 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
 
     const startTime = new Date() // for timing only
     CommandBar.showLoading(true, `Finding completed @repeats`)
+    // Stays on onAsyncThread: generateRepeats is async, which runOnAsyncThread rejects.
     await CommandBar.onAsyncThread()
 
     // Find past notes changed in the last numDays (or all if numDays === 0)

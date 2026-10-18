@@ -1,16 +1,16 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2026-03-20 for v1.18.1+ by @jgclark
+// Last updated 2026-10-17 for v1.21.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getSettings, percentWithTerm } from './tidyHelpers'
+import { getSettings, percentWithTerm, runHeavySyncWork } from './tidyHelpers'
 import {
   daysBetween,
 } from '@helpers/dateTime'
 import { relativeDateFromDate } from '@helpers/NPdateTime'
-import { clo, JSP, logDebug, logError, logInfo, logTimer, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import {
   getFolderListMinusExclusions,
   getFolderFromFilename,
@@ -72,7 +72,7 @@ function findDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDet
     const dupes = notes.filter(n => (counter[displayTitle(n, false)] = counter[displayTitle(n, false)] + 1 || 1) === 2)
     const dupeTitles = dupes.map(n => n.title ?? '')
 
-    // Log details of each dupe
+    // Gather details of each dupe into the output array
     for (const dt of dupeTitles) {
       const notesForThisTitle = DataStore.projectNoteByTitle(dt)
       if (notesForThisTitle && notesForThisTitle.length > 0) {
@@ -103,10 +103,23 @@ export async function listDuplicates(params: string = ''): Promise<void> {
     logDebug('listDuplicates', `runSilently = ${String(runSilently)}`)
 
     CommandBar.showLoading(true, `Looking for duplicated notes`)
-    await CommandBar.onAsyncThread()
     const startTime = new Date()
-    const dupes: Array<dupeDetails> = findDuplicateNotes(config.listFoldersToExclude)
-    await CommandBar.onMainThread()
+    // Side-channel: do not return large arrays from runOnAsyncThread.
+    let dupesHolder: ?Array<dupeDetails> = null
+    /**
+     * Synchronous duplicate scan. Safe for runOnAsyncThread (read-only).
+     * @returns {true}
+     */
+    const syncFindDuplicates = (): true => {
+      dupesHolder = findDuplicateNotes(config.listFoldersToExclude)
+      return true
+    }
+    await runHeavySyncWork('listDuplicates', syncFindDuplicates)
+    if (dupesHolder == null) {
+      logWarn('listDuplicates', `async scan result missing; scanning on main thread`)
+      syncFindDuplicates()
+    }
+    const dupes: Array<dupeDetails> = dupesHolder ?? []
     CommandBar.showLoading(false)
 
     // Only continue if there are dupes found
@@ -118,7 +131,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
       // remove old conflicted note list (if it exists)
       const res = DataStore.moveNote(outputFilename, '@Trash')
       if (res) {
-        logDebug('listDuplicates', `Moved existing duplicate note list '${outputFilename}' to @Trash.`)
+        logInfo('listDuplicates', `Moved existing duplicate note list '${outputFilename}' to @Trash.`)
       }
       return
     } else {

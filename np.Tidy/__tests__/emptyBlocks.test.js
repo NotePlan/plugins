@@ -512,6 +512,73 @@ describe(`${PLUGIN_NAME}`, () => {
         const emptyParagraphs = paragraphs.filter((p) => p.type === 'empty')
         expect(emptyParagraphs.length).toBe(3) // Should have 3 empty lines (removed 1 consecutive empty line)
       })
+
+      it('should remove a blank line between frontmatter and the H1', async () => {
+        const testParagraphs = [
+          { content: '---', rawContent: '---', type: 'separator', headingLevel: 0, lineIndex: 0, indents: 0, noteType: 'Notes' },
+          { content: 'title: Note', rawContent: 'title: Note', type: 'text', headingLevel: 0, lineIndex: 1, indents: 0, noteType: 'Notes' },
+          { content: '---', rawContent: '---', type: 'separator', headingLevel: 0, lineIndex: 2, indents: 0, noteType: 'Notes' },
+          { content: '', rawContent: '', type: 'empty', headingLevel: 0, lineIndex: 3, indents: 0, noteType: 'Notes' },
+          { content: 'Note', rawContent: '# Note', type: 'title', headingLevel: 1, lineIndex: 4, indents: 0, noteType: 'Notes' },
+          { content: '', rawContent: '', type: 'empty', headingLevel: 0, lineIndex: 5, indents: 0, noteType: 'Notes' },
+          { content: 'First paragraph', rawContent: 'First paragraph', type: 'text', headingLevel: 0, lineIndex: 6, indents: 0, noteType: 'Notes' },
+        ]
+        Editor.note = new Note({ paragraphs: testParagraphs })
+
+        await f.removeEmptyElements('Editor', false)
+        const result = Editor.note.paragraphs.map((p) => p.rawContent)
+
+        expect(result).toEqual(['---', 'title: Note', '---', '# Note', '', 'First paragraph'])
+      })
+
+      it('should remove several blank lines between frontmatter and the H1', async () => {
+        const testParagraphs = [
+          { content: '---', rawContent: '---', type: 'separator', headingLevel: 0, lineIndex: 0, indents: 0, noteType: 'Notes' },
+          { content: 'title: Note', rawContent: 'title: Note', type: 'text', headingLevel: 0, lineIndex: 1, indents: 0, noteType: 'Notes' },
+          { content: '---', rawContent: '---', type: 'separator', headingLevel: 0, lineIndex: 2, indents: 0, noteType: 'Notes' },
+          { content: '', rawContent: '', type: 'empty', headingLevel: 0, lineIndex: 3, indents: 0, noteType: 'Notes' },
+          { content: '', rawContent: '', type: 'empty', headingLevel: 0, lineIndex: 4, indents: 0, noteType: 'Notes' },
+          { content: 'Note', rawContent: '# Note', type: 'title', headingLevel: 1, lineIndex: 5, indents: 0, noteType: 'Notes' },
+          { content: '', rawContent: '', type: 'empty', headingLevel: 0, lineIndex: 6, indents: 0, noteType: 'Notes' },
+          { content: 'First paragraph', rawContent: 'First paragraph', type: 'text', headingLevel: 0, lineIndex: 7, indents: 0, noteType: 'Notes' },
+        ]
+        Editor.note = new Note({ paragraphs: testParagraphs })
+
+        await f.removeEmptyElements('Editor', false)
+        const result = Editor.note.paragraphs.map((p) => p.rawContent)
+
+        expect(result).toEqual(['---', 'title: Note', '---', '# Note', '', 'First paragraph'])
+      })
+
+      it('should keep a blank line after the H1 when the note has no frontmatter', async () => {
+        const testParagraphs = [
+          { content: 'Note', rawContent: '# Note', type: 'title', headingLevel: 1, lineIndex: 0, indents: 0, noteType: 'Notes' },
+          { content: '', rawContent: '', type: 'empty', headingLevel: 0, lineIndex: 1, indents: 0, noteType: 'Notes' },
+          { content: 'First paragraph', rawContent: 'First paragraph', type: 'text', headingLevel: 0, lineIndex: 2, indents: 0, noteType: 'Notes' },
+        ]
+        Editor.note = new Note({ paragraphs: testParagraphs })
+
+        await f.removeEmptyElements('Editor', false)
+        const result = Editor.note.paragraphs.map((p) => p.rawContent)
+
+        expect(result).toEqual(['# Note', '', 'First paragraph'])
+      })
+
+      it('should keep a blank line after frontmatter when the next line is not an H1', async () => {
+        const testParagraphs = [
+          { content: '---', rawContent: '---', type: 'separator', headingLevel: 0, lineIndex: 0, indents: 0, noteType: 'Notes' },
+          { content: 'title: Note', rawContent: 'title: Note', type: 'text', headingLevel: 0, lineIndex: 1, indents: 0, noteType: 'Notes' },
+          { content: '---', rawContent: '---', type: 'separator', headingLevel: 0, lineIndex: 2, indents: 0, noteType: 'Notes' },
+          { content: '', rawContent: '', type: 'empty', headingLevel: 0, lineIndex: 3, indents: 0, noteType: 'Notes' },
+          { content: 'First paragraph', rawContent: 'First paragraph', type: 'text', headingLevel: 0, lineIndex: 4, indents: 0, noteType: 'Notes' },
+        ]
+        Editor.note = new Note({ paragraphs: testParagraphs })
+
+        await f.removeEmptyElements('Editor', false)
+        const result = Editor.note.paragraphs.map((p) => p.rawContent)
+
+        expect(result).toEqual(['---', 'title: Note', '---', '', 'First paragraph'])
+      })
     })
   })
 })
