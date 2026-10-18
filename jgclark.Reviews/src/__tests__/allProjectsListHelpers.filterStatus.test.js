@@ -66,7 +66,7 @@ describe('filterProjectsList with status feature', () => {
       useProjectStatus: true,
       hiddenStatusTags: ['#completed', '#cancelled'],
     })
-    const staleComplete = {
+    const staleComplete: any = {
       title: 'StaleComplete',
       statusHashtag: '#started',
       isCompleted: true,
