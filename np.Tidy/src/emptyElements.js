@@ -296,7 +296,7 @@ function removeBlankLinesAtStartOfBody(note: TNote): number {
  */
 export async function removeEmptyLines(filenameIn: string = 'Editor'): Promise<void> {
   try {
-    logDebug(pluginJson, `Starting removeEmptyLines() with filenameIn: "${filenameIn}"`)
+    // logDebug(pluginJson, `Starting removeEmptyLines() with filenameIn: "${filenameIn}"`)
     // Get the note to work on
     let note: TNote | null
     let workingInEditor = false
@@ -312,7 +312,7 @@ export async function removeEmptyLines(filenameIn: string = 'Editor'): Promise<v
       note = await getNoteFromFilename(filenameIn)
       if (!note) throw new Error(`Cannot open note with filename '${filenameIn}'`)
     }
-    logInfo(pluginJson, `Starting removeEmptyLines() for note '${displayTitle(note)}' ${workingInEditor ? ' (open in Editor)' : ''}`)
+    // logDebug(pluginJson, `Starting removeEmptyLines() for note '${displayTitle(note)}' ${workingInEditor ? ' (open in Editor)' : ''}`)
     // Remove just empty lines, preserving empty headings
     const changes1 = removeConsecutiveEmptyLines(note, true, true)
     const numChangesMade = changes1
@@ -324,7 +324,7 @@ export async function removeEmptyLines(filenameIn: string = 'Editor'): Promise<v
         await Editor.save()
       }
     } else {
-      logInfo('removeEmptyElements', `No empty elements found to remove in note '${displayTitle(note)}' `)
+      // logDebug('removeEmptyElements', `No empty elements found to remove in note '${displayTitle(note)}' `)
     }
 
   } catch (error) {
@@ -385,7 +385,7 @@ export async function removeEmptyElements(
       note = await getNoteFromFilename(filenameIn)
       if (!note) throw new Error(`Cannot open note with filename '${filenameIn}'`)
     }
-    logDebug(pluginJson, `Starting removeEmptyElements() for note '${displayTitle(note)}' ${workingInEditor ? ' (open in Editor)' : ''}`)
+    // logDebug(pluginJson, `Starting removeEmptyElements() for note '${displayTitle(note)}' ${workingInEditor ? ' (open in Editor)' : ''}`)
 
     const paragraphs = note.paragraphs
     if (!paragraphs || paragraphs.length === 0) {
@@ -496,9 +496,6 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
       return
     }
     logDebug('removeEmptyElementsFromRecentNotes', `- found ${String(recentNotes.length)} recently-changednotes to process`)
-    // for (const note of recentNotes) {
-    //   logDebug('removeEmptyElementsFromRecentNotes', `- ${displayTitle(note)}`)
-    // }
 
     let numChanged = 0
     let count = 0
@@ -524,10 +521,7 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
         await showMessage(
           `Note '${displayTitle(note)}' has meaningful content but no content after removal; this is unexpected and may be a bug. Please report it to @jgclark. Stopping.`,
         )
-        logError(
-          'removeEmptyElementsFromRecentNotes',
-          `- note '${displayTitle(note)}' has meaningful content but no content after removal! Note before:\n${before}\n===\nafter: (empty)`,
-        )
+        logError('removeEmptyElementsFromRecentNotes', `note '${displayTitle(note)}' has meaningful content but no content after removal! Note before:\n${before}\n===\nafter: (empty)`)
         note.content = before // restore the note to its original content
         return
       }
