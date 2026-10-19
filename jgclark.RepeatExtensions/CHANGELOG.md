@@ -2,6 +2,7 @@
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
 ## [1.2.1] - 2026-10-19
+- Fix: with "Delete completed item?" on, the completed repeat is removed. A repeat written to a future calendar note, or into a synced source note, no longer deletes the following line instead. Background runs (such as Tidy) do not touch the Editor.
 - Fix: several completed `@repeat` tasks in one `/generate repeats` run, or in one save with the trigger, each get a next task. The plugin walks from the bottom of the note so an insert does not skip or misplace the later lines.
 - Fix: the save trigger no longer ignores a completion when the previous save was within 2 seconds. A note with no previous version is skipped instead of throwing.
 - Fix: a concrete base date keeps its own calendar format. `@repeat(1w, 2026-W19)` on a project note schedules `>2026-W20`, and a different `>date` on the completed line does not override it. A `+` interval still schedules from the completion date.

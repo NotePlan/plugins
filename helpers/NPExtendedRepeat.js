@@ -338,12 +338,15 @@ export async function generateRepeatForPara(
       noteContainingNewPara.updateParagraph(newPara)
     }
 
-    Editor.skipNextRepeatDeletionCheck = true
+    // Delete the completed paragraph object. lineIndex + 1 is only right after an insert in this same note;
+    // a future calendar append or a sync-source insert does not shift it, so + 1 would remove the next line.
+    // Touch Editor only when this note is the open editor (Tidy passes allowedToUseEditor false on a background thread).
     if (config.deleteCompletedRepeat) {
       if (noteIsOpenInEditor) {
-        Editor.removeParagraphAtIndex(origPara.lineIndex + 1)
+        Editor.skipNextRepeatDeletionCheck = true
+        Editor.removeParagraph(origPara)
       } else {
-        origNote.removeParagraphAtIndex(origPara.lineIndex + 1)
+        origNote.removeParagraph(origPara)
       }
     } else {
       origPara.content = lineWithoutDoneTime

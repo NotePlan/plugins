@@ -234,6 +234,183 @@ describe('NPExtendedRepeat generateRepeatForPara', () => {
   })
 })
 
+describe('NPExtendedRepeat generateRepeatForPara: deleteCompletedRepeat', () => {
+  const deleteConfig = { ...repeatConfig, deleteCompletedRepeat: true }
+
+  function completedTask(content, lineIndex) {
+    const para = new Paragraph({
+      type: 'done',
+      content,
+      lineIndex,
+      rawContent: `* [x] ${content}`,
+    })
+    return para
+  }
+
+  test('project note: removes the completed line and keeps the new task and the following line', async () => {
+    const origPara = completedTask('Water plants @done(2026-05-03 10:30 AM) @repeat(+1d)', 1)
+    const neighbor = new Paragraph({ type: 'open', content: 'leave this line', lineIndex: 2, rawContent: '* [ ] leave this line' })
+    const origNote = new Note({
+      type: 'Notes',
+      filename: 'Projects/chores.md',
+      paragraphs: [
+        new Paragraph({ type: 'title', content: 'Chores', headingLevel: 1, lineIndex: 0 }),
+        origPara,
+        neighbor,
+      ],
+    })
+    origPara.note = origNote
+    neighbor.note = origNote
+    origNote.resetLineIndexesAndContent()
+
+    const newPara = await generateRepeatForPara(origPara, origNote, deleteConfig, false)
+
+    expect(newPara).not.toBeNull()
+    const contents = origNote.paragraphs.map((p) => p.content)
+    expect(contents.some((c) => c.includes('Water plants') && c.includes('>'))).toBe(true)
+    expect(contents).toContain('leave this line')
+    expect(contents.some((c) => c.includes('@done('))).toBe(false)
+    expect(Editor.skipNextRepeatDeletionCheck).toBe(false)
+  })
+
+  test('future calendar note: appends the new task there and deletes the completed line, not the next one', async () => {
+    const origPara = completedTask('Take bins out @done(2026-05-03 08:00 AM) @repeat(+1d)', 1)
+    const neighbor = new Paragraph({ type: 'open', content: 'keep me', lineIndex: 2, rawContent: '* [ ] keep me' })
+    const origNote = new Note({
+      type: 'Calendar',
+      filename: '20260503.md',
+      date: moment('2026-05-03').toDate(),
+      paragraphs: [
+        new Paragraph({ type: 'empty', content: '', lineIndex: 0 }),
+        origPara,
+        neighbor,
+      ],
+    })
+    origPara.note = origNote
+    neighbor.note = origNote
+    origNote.resetLineIndexesAndContent()
+
+    const futureNote = new Note({
+      type: 'Calendar',
+      filename: '20260504.md',
+      paragraphs: [new Paragraph({ type: 'empty', content: '', lineIndex: 0 })],
+    })
+    futureNote.appendTodo = async (content) => {
+      futureNote.paragraphs.push({ content, type: 'open', lineIndex: futureNote.paragraphs.length })
+    }
+    DataStore.calendarNoteByDateString = jest.fn(async () => futureNote)
+
+    const newPara = await generateRepeatForPara(origPara, origNote, deleteConfig, false)
+
+    expect(newPara).not.toBeNull()
+    expect(futureNote.paragraphs.some((p) => p.content.includes('Take bins out'))).toBe(true)
+    const kept = origNote.paragraphs.map((p) => p.content)
+    expect(kept).toContain('keep me')
+    expect(kept.some((c) => c.includes('Take bins out'))).toBe(false)
+    expect(Editor.skipNextRepeatDeletionCheck).toBe(false)
+  })
+
+  test('synced source insert: deletes the completed line in the original note, not the following line', async () => {
+    const origPara = completedTask('Task-Test-A @done(2026-05-21 10:00 AM) @repeat(+2w) ^6itdjd', 0)
+    const neighbor = new Paragraph({ type: 'open', content: 'neighbor task', lineIndex: 1, rawContent: '* [ ] neighbor task' })
+    const origNote = new Note({
+      type: 'Notes',
+      filename: 'TEST/Repeat TESTs/TEST Repeats.md',
+      paragraphs: [origPara, neighbor],
+    })
+    origPara.note = origNote
+    neighbor.note = origNote
+    origNote.resetLineIndexesAndContent()
+
+    const syncCopyPara = new Paragraph({
+      type: 'open',
+      content: 'Task-Test-A @repeat(+2w) ^6itdjd',
+      lineIndex: 0,
+      rawContent: '* [ ] Task-Test-A @repeat(+2w) ^6itdjd',
+    })
+    const syncSourceNote = new Note({
+      type: 'Notes',
+      filename: 'Home Areas/Garden.md',
+      paragraphs: [syncCopyPara],
+    })
+    syncCopyPara.note = syncSourceNote
+    DataStore.referencedBlocks = jest.fn(() => [syncCopyPara])
+    global.NotePlan.editors = []
+
+    const newPara = await generateRepeatForPara(origPara, origNote, deleteConfig, false)
+
+    expect(newPara).not.toBeNull()
+    expect(syncSourceNote.paragraphs.some((p) => typeof p.content === 'string' && p.content.includes('Task-Test-A') && p.content.includes('>'))).toBe(true)
+    const kept = origNote.paragraphs.map((p) => p.content)
+    expect(kept).toContain('neighbor task')
+    expect(kept.some((c) => c.includes('@done('))).toBe(false)
+  })
+
+  test('open Editor: sets skipNextRepeatDeletionCheck and removes the completed paragraph object', async () => {
+    const origPara = completedTask('Water plants @done(2026-05-03 10:30 AM) @repeat(+1d)', 0)
+    const origNote = new Note({
+      type: 'Notes',
+      filename: 'Projects/chores.md',
+      paragraphs: [origPara],
+    })
+    origPara.note = origNote
+    origNote.resetLineIndexesAndContent()
+
+    global.NotePlan.editors = [Editor]
+    Editor.filename = origNote.filename
+    Editor.note = { content: '' }
+    Editor.content = ''
+    Editor.paragraphs = origNote.paragraphs
+    Editor.updateParagraph = jest.fn()
+    Editor.insertParagraphBeforeParagraph = jest.fn(async () => {})
+    Editor.removeParagraph = jest.fn()
+    Editor.removeParagraphAtIndex = jest.fn()
+    Editor.save = jest.fn(async () => {})
+
+    await generateRepeatForPara(origPara, origNote, deleteConfig, true, true)
+
+    expect(Editor.skipNextRepeatDeletionCheck).toBe(true)
+    expect(Editor.removeParagraph).toHaveBeenCalledWith(origPara)
+    expect(Editor.removeParagraphAtIndex).not.toHaveBeenCalled()
+  })
+
+  test('allowedToUseEditor false does not read Editor', async () => {
+    const origPara = completedTask('Water plants @done(2026-05-03 10:30 AM) @repeat(+1d)', 0)
+    const origNote = new Note({
+      type: 'Notes',
+      filename: 'Projects/chores.md',
+      paragraphs: [origPara],
+    })
+    origPara.note = origNote
+    origNote.resetLineIndexesAndContent()
+
+    const realEditor = global.Editor
+    const touches = []
+    global.Editor = new Proxy(
+      {},
+      {
+        get(target, prop) {
+          touches.push(String(prop))
+          return undefined
+        },
+        set(target, prop) {
+          touches.push(String(prop))
+          return true
+        },
+      },
+    )
+
+    try {
+      const newPara = await generateRepeatForPara(origPara, origNote, deleteConfig, false)
+      expect(newPara).not.toBeNull()
+      expect(touches).toEqual([])
+      expect(origNote.paragraphs.some((p) => p.content.includes('@done('))).toBe(false)
+    } finally {
+      global.Editor = realEditor
+    }
+  })
+})
+
 describe('NPExtendedRepeat generateRepeatForPara: concrete @repeat(...) base date is advanced in the new repeat', () => {
   async function expectAdvancedConcreteDate(repeatTag, expectedRepeatTag, expectedSchedule) {
     const taskLine = `* [x] Task @done(2026-05-20 09:00 AM) @repeat(${repeatTag})`
