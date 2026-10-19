@@ -4,6 +4,7 @@
 // Note: This is shared under /helpers so other plugins' bundles (e.g. Filer) do not import plugin paths.
 // Note: Depends on ./NPEditorBasics only — not full NPEditor — to avoid Rollup circular dependency warnings.
 // Refactored 2026-05-02, for RE plugin v1.1.3, by @Cursor & @jgclark
+// last updated 2026-10-19, for RE plugin v1.2.1
 // -----------------------------------------------------------------
 
 import { getOpenEditorFromFilename, saveEditorIfNecessary } from './NPEditorBasics'
@@ -134,8 +135,9 @@ export function generateNewRepeatDate(noteToUse: CoreNoteFields, currentContent:
       // + prefix takes precedence: concrete date is immaterial, fall through to completion-date branch
       logWarn('generateNewRepeatDate', `- concrete base date ${concreteBaseDate} ignored because + prefix takes precedence; scheduling from completion date`)
     } else {
-      // No + prefix: concrete date wins over scheduled/completion date
-      newRepeatDateStr = calcOffsetDateStr(concreteBaseDate, dateIntervalString, outputTimeframe)
+      // No + prefix: concrete date wins over the note type, a scheduled >date, and the completion date.
+      // 'base' keeps the concrete spec (week stays >YYYY-Www on a project note; a day spec stays a day).
+      newRepeatDateStr = calcOffsetDateStr(concreteBaseDate, dateIntervalString, 'base')
       logDebug('generateNewRepeatDate', `- adding from concrete base date ${concreteBaseDate} -> ${newRepeatDateStr}`)
       return newRepeatDateStr
     }

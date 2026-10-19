@@ -235,7 +235,7 @@ describe('NPExtendedRepeat generateRepeatForPara', () => {
 })
 
 describe('NPExtendedRepeat generateRepeatForPara: concrete @repeat(...) base date is advanced in the new repeat', () => {
-  async function expectAdvancedConcreteDate(repeatTag: string, expectedRepeatTag: string) {
+  async function expectAdvancedConcreteDate(repeatTag, expectedRepeatTag, expectedSchedule) {
     const taskLine = `* [x] Task @done(2026-05-20 09:00 AM) @repeat(${repeatTag})`
     const origPara = new Paragraph({
       type: 'done',
@@ -258,26 +258,30 @@ describe('NPExtendedRepeat generateRepeatForPara: concrete @repeat(...) base dat
     expect(newPara).not.toBeNull()
     const inserted = origNote.paragraphs[1]
     expect(inserted.content).toContain(`@repeat(${expectedRepeatTag})`)
+    if (expectedSchedule) {
+      const escaped = expectedSchedule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      expect(inserted.content).toMatch(new RegExp(`>${escaped}(?!\\d)`))
+    }
   }
 
-  test('day-spec: @repeat(1m, 2024-01-15) -> @repeat(1m, 2024-02-15)', async () => {
-    await expectAdvancedConcreteDate('1m, 2024-01-15', '1m, 2024-02-15')
+  test('day-spec: @repeat(1m, 2024-01-15) -> @repeat(1m, 2024-02-15) >2024-02-15', async () => {
+    await expectAdvancedConcreteDate('1m, 2024-01-15', '1m, 2024-02-15', '2024-02-15')
   })
 
-  test('week-spec: @repeat(1w, 2026-W19) -> @repeat(1w, 2026-W20)', async () => {
-    await expectAdvancedConcreteDate('1w, 2026-W19', '1w, 2026-W20')
+  test('week-spec: @repeat(1w, 2026-W19) -> @repeat(1w, 2026-W20) >2026-W20', async () => {
+    await expectAdvancedConcreteDate('1w, 2026-W19', '1w, 2026-W20', '2026-W20')
   })
 
-  test('month-spec: @repeat(1m, 2026-05) -> @repeat(1m, 2026-06)', async () => {
-    await expectAdvancedConcreteDate('1m, 2026-05', '1m, 2026-06')
+  test('month-spec: @repeat(1m, 2026-05) -> @repeat(1m, 2026-06) >2026-06', async () => {
+    await expectAdvancedConcreteDate('1m, 2026-05', '1m, 2026-06', '2026-06')
   })
 
-  test('quarter-spec: @repeat(1q, 2026-Q2) -> @repeat(1q, 2026-Q3)', async () => {
-    await expectAdvancedConcreteDate('1q, 2026-Q2', '1q, 2026-Q3')
+  test('quarter-spec: @repeat(1q, 2026-Q2) -> @repeat(1q, 2026-Q3) >2026-Q3', async () => {
+    await expectAdvancedConcreteDate('1q, 2026-Q2', '1q, 2026-Q3', '2026-Q3')
   })
 
-  test('year-spec: @repeat(1y, 2026) -> @repeat(1y, 2027)', async () => {
-    await expectAdvancedConcreteDate('1y, 2026', '1y, 2027')
+  test('year-spec: @repeat(1y, 2026) -> @repeat(1y, 2027) >2027', async () => {
+    await expectAdvancedConcreteDate('1y, 2026', '1y, 2027', '2027')
   })
 
   test('week-spec year end: @repeat(1w, 2026-W53) -> @repeat(1w, 2027-W01)', async () => {

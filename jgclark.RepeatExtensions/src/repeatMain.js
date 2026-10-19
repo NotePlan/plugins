@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------
 // Main functions for Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 2026-04-28, for v1.1.2
+// last updated 2026-10-19, for v1.2.1, @jgclark
 //-----------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -116,6 +116,38 @@ export function recordRepeatHeading(headingList: Array<string>, lastHeading: str
     headingList.push(heading)
   }
   return heading
+}
+
+/**
+ * Find the paragraph to repeat after earlier inserts in the same note.
+ * Walks use a snapshot; NotePlan does not recalculate lineIndex, and a fresh paragraphs array is new objects.
+ * Bottom-up callers keep an unchanged lineIndex valid. Identity, then that index, then content from the end.
+ * @param {CoreNoteFields} note - note being edited
+ * @param {TParagraph} snapshot - paragraph captured before this generate
+ * @returns {TParagraph | null} live paragraph, or null if it can no longer be found
+ */
+export function resolveLiveRepeatParagraph(note: CoreNoteFields, snapshot: TParagraph): TParagraph | null {
+  const liveParas: Array<TParagraph> = note.paragraphs ?? []
+  const byIdentity = liveParas.find((p) => p === snapshot)
+  if (byIdentity) {
+    return byIdentity
+  }
+  const atIndex = liveParas[snapshot.lineIndex]
+  if (atIndex && atIndex.content === snapshot.content) {
+    return atIndex
+  }
+  for (let j = liveParas.length - 1; j >= 0; j--) {
+    const candidate = liveParas[j]
+    if (!candidate) {
+      continue
+    }
+    const sameContent = candidate.content === snapshot.content
+    const sameRaw = candidate.rawContent === snapshot.rawContent
+    if (sameContent && sameRaw) {
+      return candidate
+    }
+  }
+  return null
 }
 
 /**
@@ -297,10 +329,10 @@ export async function generateRepeats(
     let noteToUse: CoreNoteFields
     if (noteArg) {
       noteToUse = noteArg
-      logDebug(pluginJson, `generateRepeats starting: noteArg '${noteToUse.filename}'`)
+      // logDebug(pluginJson, `generateRepeats starting: noteArg '${noteToUse.filename}'`)
     } else if (Editor && Editor.note) {
       noteToUse = Editor
-      logDebug(pluginJson, `generateRepeats starting: EDITOR (${noteToUse.filename})`)
+      // logDebug(pluginJson, `generateRepeats starting: EDITOR (${noteToUse.filename})`)
     } else {
       throw new Error(`Couldn't get either passed Note argument or Editor.note: stopping`)
     }
@@ -336,31 +368,41 @@ export async function generateRepeats(
     let repeatCount = 0
     let lastHeading = ''
     const headingList: Array<string> = []
+    const toRepeat: Array<TParagraph> = []
 
-    // Go through each line in the active part of the file
+    // Collect first, then walk bottom-up. An insert shifts every later line, and lineIndex is not recalculated.
     for (let n = 0; n <= lastLineIndexToCheck - 1; n++) {
       const origPara = paragraphs[n]
       if (!origPara || typeof origPara.content !== 'string') {
         continue
       }
-      // Test if this is a special extended repeat with a datetime to shorten
       const content = origPara.content
       if (RE_EXTENDED_REPEAT.test(content) && RE_DONE_DATE_TIME.test(content)) {
-        // Defer Editor.save until all repeats are generated (mid-loop save can drop the latest repeat line; same as onEditorWillSave trigger path).
-        const skipEditorSave = allowedToUseEditor
-        const newPara = await generateRepeatForPara(origPara, noteToUse, config, allowedToUseEditor, skipEditorSave)
-        if (newPara) {
-          repeatCount++
-          if (config.runTaskSorter) {
-            lastHeading = recordRepeatHeading(headingList, lastHeading, noteToUse, origPara)
-          }
+        toRepeat.push(origPara)
+      }
+    }
+
+    for (let i = toRepeat.length - 1; i >= 0; i--) {
+      const snapshot = toRepeat[i]
+      const origPara = snapshot ? resolveLiveRepeatParagraph(noteToUse, snapshot) : null
+      if (!origPara || typeof origPara.content !== 'string') {
+        logError(pluginJson, `generateRepeats: could not find paragraph to repeat after earlier inserts`)
+        continue
+      }
+      // Defer Editor.save until all repeats are generated (mid-loop save can drop the latest repeat line; same as onEditorWillSave trigger path).
+      const skipEditorSave = allowedToUseEditor
+      const newPara = await generateRepeatForPara(origPara, noteToUse, config, allowedToUseEditor, skipEditorSave)
+      if (newPara) {
+        repeatCount++
+        if (config.runTaskSorter) {
+          lastHeading = recordRepeatHeading(headingList, lastHeading, noteToUse, origPara)
         }
       }
     }
 
     // Report if no repeats were found, and stop.
     if (repeatCount === 0) {
-      // logDebug('generateRepeats', 'No suitable completed repeats were found')
+      logDebug('generateRepeats', 'No suitable completed repeats were found')
       if (!runSilently) {
         await showMessage('No suitable completed repeats were found', 'OK', 'Repeat Extensions')
       }

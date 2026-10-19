@@ -2,16 +2,22 @@
 //-----------------------------------------------------------------------
 // Trigger function for Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 2026-03-19, for v1.1.0
+// last updated 2026-10-19, for v1.2.1
 //-----------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { getRepeatSettings, RE_CANCELLED_TASK, RE_EXTENDED_REPEAT, type RepeatConfig } from './repeatHelpers'
-import { recordRepeatHeading, runTaskSorterAfterRepeats } from './repeatMain'
+import { recordRepeatHeading, resolveLiveRepeatParagraph, runTaskSorterAfterRepeats } from './repeatMain'
 import { generateRepeatForCancelledPara, generateRepeatForPara } from './repeatPara'
 import { RE_DONE_DATE_TIME } from "@helpers/dateTime"
 import { logDebug, logError, logInfo } from "@helpers/dev"
 import { makeBasicParasFromContent, selectedLinesIndex } from "@helpers/NPParagraph"
+
+type PendingRepeat = {
+  kind: 'done' | 'cancelled',
+  para: TParagraph,
+  lineIndex: number,
+}
 
 /**
  * Respond to onEditorWillSave trigger for the currently open note. 
@@ -24,12 +30,12 @@ export async function onEditorWillSave(): Promise<void> {
     if (Editor.content && Editor.note) {
       const latestContent = Editor.content ?? ''
       const noteReadOnly: CoreNoteFields = Editor.note
-      const previousContent = noteReadOnly.versions[0].content
-      const timeSinceLastEdit: number = Date.now() - Number(noteReadOnly.versions[0].date)
-
-      if (timeSinceLastEdit <= 2000) {
+      const versions = noteReadOnly.versions
+      if (!versions || versions.length === 0 || versions[0] == null || typeof versions[0].content !== 'string') {
+        logDebug('repeatExtensions/onEditorWillSave', 'No previous note version to diff; stopping')
         return
       }
+      const previousContent = versions[0].content
 
       const config: RepeatConfig = await getRepeatSettings()
       if (config == null) {
@@ -55,6 +61,9 @@ export async function onEditorWillSave(): Promise<void> {
         let repeatCount = 0
         let lastHeading = ''
         const headingList: Array<string> = []
+        // Collect before any insert. Each new line shifts later indexes, so a top-down walk
+        // sees the line just inserted and skips the next completed task.
+        const pending: Array<PendingRepeat> = []
 
         if (changedExtent.match(RE_DONE_DATE_TIME)) {
           for (let i = startParaIndex; i <= endParaIndex; i++) {
@@ -64,17 +73,7 @@ export async function onEditorWillSave(): Promise<void> {
             }
             const content = origPara.content
             if (RE_EXTENDED_REPEAT.test(content) && RE_DONE_DATE_TIME.test(content)) {
-              logDebug('repeatExtensions/onEditorWillSave', `Found @done(...) at line ${String(i)}; calling generateRepeatForPara() (skipEditorSave)`)
-              const newPara = await generateRepeatForPara(origPara, Editor, config, true, true)
-              if (newPara) {
-                repeatCount++
-                if (config.runTaskSorter) {
-                  lastHeading = recordRepeatHeading(headingList, lastHeading, Editor, origPara)
-                }
-                logDebug('repeatExtensions/onEditorWillSave', `New repeat generated: {${newPara.content}} at line ${String(i)}`)
-              } else {
-                throw new Error(`No new repeat generated from completed task at line ${String(i)}`)
-              }
+              pending.push({ kind: 'done', para: origPara, lineIndex: i })
             }
           }
         }
@@ -95,18 +94,45 @@ export async function onEditorWillSave(): Promise<void> {
             const latestIsCancelled = latestPara.type === 'cancelled' || latestPara.type === 'checklistCancelled' || RE_CANCELLED_TASK.test(latestPara.rawContent)
             const prevIsCancelled = prevPara.type === 'cancelled' || prevPara.type === 'checklistCancelled' || RE_CANCELLED_TASK.test(prevPara.rawContent)
             if (latestIsCancelled && !prevIsCancelled && latestPara.content.match(RE_EXTENDED_REPEAT)) {
-              logDebug('repeatExtensions/onEditorWillSave', `Found newly cancelled extended repeat at line ${String(i)} so will call generateRepeatForCancelledPara() ...`)
               const origPara = Editor.paragraphs[i]
-              const newPara = await generateRepeatForCancelledPara(origPara, noteReadOnly, true)
-              if (newPara) {
-                repeatCount++
-                if (config.runTaskSorter) {
-                  lastHeading = recordRepeatHeading(headingList, lastHeading, Editor, origPara)
-                }
-                logDebug('repeatExtensions/onEditorWillSave', `New repeat generated: {${newPara.content}} at line ${String(i)}`)
-              } else {
-                throw new Error(`No new repeat generated from cancelled task at line ${String(i)}`)
+              if (origPara) {
+                pending.push({ kind: 'cancelled', para: origPara, lineIndex: i })
               }
+            }
+          }
+        }
+
+        pending.sort((a, b) => b.lineIndex - a.lineIndex)
+
+        for (const job of pending) {
+          const origPara = resolveLiveRepeatParagraph(Editor, job.para)
+          if (!origPara) {
+            logError(pluginJson, `onEditorWillSave: could not find paragraph at line ${String(job.lineIndex)} after earlier inserts`)
+            continue
+          }
+          if (job.kind === 'done') {
+            logDebug('repeatExtensions/onEditorWillSave', `Found @done(...) at line ${String(job.lineIndex)}; calling generateRepeatForPara() (skipEditorSave)`)
+            const newPara = await generateRepeatForPara(origPara, Editor, config, true, true)
+            if (newPara) {
+              repeatCount++
+              if (config.runTaskSorter) {
+                lastHeading = recordRepeatHeading(headingList, lastHeading, Editor, origPara)
+              }
+              logDebug('repeatExtensions/onEditorWillSave', `New repeat generated: {${newPara.content}} at line ${String(job.lineIndex)}`)
+            } else {
+              throw new Error(`No new repeat generated from completed task at line ${String(job.lineIndex)}`)
+            }
+          } else {
+            logDebug('repeatExtensions/onEditorWillSave', `Found newly cancelled extended repeat at line ${String(job.lineIndex)} so will call generateRepeatForCancelledPara() ...`)
+            const newPara = await generateRepeatForCancelledPara(origPara, noteReadOnly, true)
+            if (newPara) {
+              repeatCount++
+              if (config.runTaskSorter) {
+                lastHeading = recordRepeatHeading(headingList, lastHeading, Editor, origPara)
+              }
+              logDebug('repeatExtensions/onEditorWillSave', `New repeat generated: {${newPara.content}} at line ${String(job.lineIndex)}`)
+            } else {
+              throw new Error(`No new repeat generated from cancelled task at line ${String(job.lineIndex)}`)
             }
           }
         }

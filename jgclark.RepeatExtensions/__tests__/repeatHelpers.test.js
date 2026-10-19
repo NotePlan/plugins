@@ -135,20 +135,20 @@ describe('generateNewRepeatDate', () => {
       expect(result).toBe('2027-01-15')
     })
 
-    test('@repeat(1w, 2026-12-28) — day-spec concrete date in the last (53rd) week of a 53-week year, with week outputTimeframe, crosses year end to 2027-W01', () => {
-      const mockNote = { date: moment('2026-10-01').toDate(), type: 'Calendar', filename: '2026-W40.md' }
+    test('@repeat(1w, 2026-12-28) — day-spec concrete date keeps the day, including across year end (2027-01-04)', () => {
+      const mockNote = { date: moment('2026-12-31').toDate(), type: 'Calendar', filename: '2026-W40.md' }
       const currentContent = 'task @repeat(1w, 2026-12-28)'
       const completedDate = '2027-01-03'
       const result = generateNewRepeatDate(mockNote, currentContent, completedDate)
-      expect(result).toBe('2027-W01')
+      expect(result).toBe('2027-01-04')
     })
 
-    test('@repeat(1w, 2025-12-22) — day-spec concrete date in the last (52nd) week of a 52-week year, with week outputTimeframe, crosses year end to 2026-W01', () => {
-      const mockNote = { date: moment('2025-07-25').toDate(), type: 'Calendar', filename: '2025-W30.md' }
+    test('@repeat(1w, 2025-12-22) — day-spec concrete date keeps the day across a 52-week year end (2025-12-29)', () => {
+      const mockNote = { date: moment('2025-12-22').toDate(), type: 'Calendar', filename: '2025-W30.md' }
       const currentContent = 'task @repeat(1w, 2025-12-22)'
       const completedDate = '2025-12-29'
       const result = generateNewRepeatDate(mockNote, currentContent, completedDate)
-      expect(result).toBe('2026-W01')
+      expect(result).toBe('2025-12-29')
     })
   })
 
@@ -201,12 +201,12 @@ describe('generateNewRepeatDate', () => {
       expect(result).toBe('2026-W22')
     })
 
-    test('@repeat(1w, 2024-01-15) — day-spec concrete date with week outputTimeframe gives 2024-W04', () => {
+    test('@repeat(1w, 2024-01-15) — day-spec concrete date stays a day even on a weekly note (2024-01-22)', () => {
       const mockNote = { date: moment('2024-01-15').toDate(), type: 'Calendar', filename: '2024-W03.md' }
       const currentContent = 'task @repeat(1w, 2024-01-15) >2024-W03'
       const completedDate = '2024-01-25'
       const result = generateNewRepeatDate(mockNote, currentContent, completedDate)
-      expect(result).toBe('2024-W04')
+      expect(result).toBe('2024-01-22')
     })
 
     test('@repeat(1m, 2026-W99) — invalid week number falls through gracefully (no concrete date applied)', () => {
@@ -255,6 +255,45 @@ describe('generateNewRepeatDate', () => {
       const completedDate = '2026-01-10'
       const result = generateNewRepeatDate(mockNote, currentContent, completedDate)
       expect(result).toBe('2027-Q1')
+    })
+  })
+
+  describe('concrete base date on a project note keeps its own calendar format', () => {
+    const projectNote = { type: 'Notes', filename: 'Projects/reporting.md' }
+
+    test('@repeat(1w, 2026-W19) gives 2026-W20, not a day date', () => {
+      const result = generateNewRepeatDate(projectNote, 'review backlog @repeat(1w, 2026-W19)', '2026-05-20')
+      expect(result).toBe('2026-W20')
+    })
+
+    test('@repeat(1m, 2026-05) gives 2026-06', () => {
+      const result = generateNewRepeatDate(projectNote, 'do expenses @repeat(1m, 2026-05)', '2026-05-20')
+      expect(result).toBe('2026-06')
+    })
+
+    test('@repeat(1q, 2026-Q2) gives 2026-Q3', () => {
+      const result = generateNewRepeatDate(projectNote, 'review @repeat(1q, 2026-Q2)', '2026-05-20')
+      expect(result).toBe('2026-Q3')
+    })
+
+    test('@repeat(1y, 2026) gives 2027', () => {
+      const result = generateNewRepeatDate(projectNote, 'annual @repeat(1y, 2026)', '2026-05-20')
+      expect(result).toBe('2027')
+    })
+
+    test('a conflicting >date does not win over the concrete week spec', () => {
+      const result = generateNewRepeatDate(projectNote, 'review backlog @repeat(1w, 2026-W19) >2026-05-17', '2026-05-20')
+      expect(result).toBe('2026-W20')
+    })
+
+    test('a conflicting >date does not win over a concrete day', () => {
+      const result = generateNewRepeatDate(projectNote, 'project reporting @repeat(1m, 2026-05-13) >2026-05-17', '2026-05-20')
+      expect(result).toBe('2026-06-13')
+    })
+
+    test('+ prefix still schedules from the completion date as a day', () => {
+      const result = generateNewRepeatDate(projectNote, 'task @repeat(+1w, 2026-W19)', '2026-05-20')
+      expect(result).toBe('2026-05-27')
     })
   })
 })

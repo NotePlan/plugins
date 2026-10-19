@@ -1,6 +1,12 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
+## [1.2.1] - 2026-10-19
+- Fix: several completed `@repeat` tasks in one `/generate repeats` run, or in one save with the trigger, each get a next task. The plugin walks from the bottom of the note so an insert does not skip or misplace the later lines.
+- Fix: the save trigger no longer ignores a completion when the previous save was within 2 seconds. A note with no previous version is skipped instead of throwing.
+- Fix: a concrete base date keeps its own calendar format. `@repeat(1w, 2026-W19)` on a project note schedules `>2026-W20`, and a different `>date` on the completed line does not override it. A `+` interval still schedules from the completion date.
+- dev: Turn down some logging
+
 ## [1.2.0] - 2026-07-30
 - New: `@repeat(interval, <date>)` now supports a concrete base date, written using any of NotePlan's calendar-note date formats — day (`YYYY-MM-DD`), week (`YYYY-Wnn`), month (`YYYY-MM`), quarter (`YYYY-Qn`) or year (`YYYY`). This works the same whether the task is in a project note or a calendar note. When present, the next repeat is calculated from that fixed date rather than from the task's scheduled date or completion date. The `+` prefix (e.g. `@repeat(+1m, 2026-05-12)`) still takes precedence, in which case the concrete date is ignored for scheduling.
 - After each completion or cancellation, the concrete date is advanced by the same interval and keeps its original format (e.g. `2026-W19` → `2026-W20`), including correctly across 52- and 53-week year boundaries.

@@ -114,6 +114,9 @@ describe('generateRepeats batch save (regression)', () => {
 
     expect(count).toBe(4)
     expect(mockGenerateRepeatForPara).toHaveBeenCalledTimes(4)
+    const processed = mockGenerateRepeatForPara.mock.calls.map((call) => call[0].content)
+    expect(processed[0]).toContain('Task-Test-D')
+    expect(processed[3]).toContain('Task-Test-A')
     for (const call of mockGenerateRepeatForPara.mock.calls) {
       expect(call[3]).toBe(true)
       expect(call[4]).toBe(true)

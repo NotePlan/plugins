@@ -1,4 +1,4 @@
-# 🔁 Repeat Extension plugin
+# Repeat Extension plugin
 
 NotePlan has a simple [built-in repeat mechanism](https://noteplan.co/faq/Notes%20&%20Todos/How%20to%20create%20a%20recurring%20or%20repeating%20todo/), which allows for `@repeat(1/n)`.  That wasn't flexible enough for my purposes, so I wrote this plugin to allow repeats **every x days, weeks, months, quarters or years**. It does the work of creating the next task using information from completed tasks that include a `@repeat(interval)` string and a completed `@done(...)` date.
 
@@ -104,7 +104,7 @@ Note: because NotePlan never appends the completion date to **completed checklis
 
 There are some settings in the Plugin Settings pane for this plugin:
 - 'Delete completed item?', which deletes the completed repeated item (on either done or cancelled tasks).
-- Don't look for repeats in Done or Archive note sections? If set, it will not look for repeats in the ## Done or ## Archive sections of notes.
+- Don't look for repeats in Done or Archive note sections? If set, it will not look for repeats in the `## Done` or `## Cancelled` sections of notes.
 - Allow repeats in cancelled paragraphs? If set, it will generate a new repeat when a task with `@repeat(...)` is newly changed to cancelled (`[-]`) in a note that has the save trigger enabled.
 - Run Task Sorter after changes? If turned on, it will run the Task Sorting plugin on the section that includes the new repeat, using the sort order from the 'Order for Task Sorting' setting above (or Task Sorting defaults). Requires the [Task Sorting & Tools](https://noteplan.co/plugins/dwertheimer.TaskSorting/) plugin to be installed.
 
