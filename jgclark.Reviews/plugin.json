@@ -9,9 +9,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://noteplan.com/plugins/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "2.4.0.b1",
+  "plugin.version": "2.4.0.b2",
   "plugin.releaseStatus": "beta",
-  "plugin.lastUpdateInfo": "2.4.0: Optional `status` frontmatter (#notstarted / #started / #paused / #completed / #cancelled), auto-updated on pause/complete/cancel/review/create. Pause lives on `status` when enabled. Default start term is now 'started'. Renaming metadata terms offers a vault-wide update.\n2.3.4: Performance Improvement: Speed up of list refresh and rebuilds.\n2.3.3: Increase the time between full rebuilds of the Project cache, up to 5 days. (There are quicker refreshes every day.)\n2.3.2: Rich list review labels (overdue / review now / review soon) scale with the project's review interval, capped at 7 days for review soon, 2 days for review now, and 5 days late for overdue. Short intervals get tighter windows. Due-date labels are unchanged.\n2.3.1: Small improvement to suit Dashboard plugin.\n2.3.0: Much faster Refresh via Shared notes-changed-recently cache.",
+  "plugin.lastUpdateInfo": "2.4.0: Optional `status` frontmatter (#notstarted / #started / #paused / #completed / #cancelled), auto-updated on pause/complete/cancel/review/create. Pause lives on `status` when enabled. Default start term is now 'started'. Renaming metadata terms offers a vault-wide update.\nOther updates and fixes.\n2.3.4: Performance Improvement: Speed up of list refresh and rebuilds.\n2.3.3: Increase the time between full rebuilds of the Project cache, up to 5 days. (There are quicker refreshes every day.)\n2.3.2: Rich list review labels (overdue / review now / review soon) scale with the project's review interval, capped at 7 days for review soon, 2 days for review now, and 5 days late for overdue. Short intervals get tighter windows. Due-date labels are unchanged.\n2.3.1: Small improvement to suit Dashboard plugin.\n2.3.0: Much faster Refresh via Shared notes-changed-recently cache.",
   "plugin.script": "script.js",
   "plugin.dependsOn": [
     {

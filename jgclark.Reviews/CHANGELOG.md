@@ -1,6 +1,9 @@
 # What's changed in Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
-## [2.4.0] - 2026-10-15
+## [2.4.0.b2] - 2026-10-22
+- Fix: **/finish project review** (and other single-note list updates) no longer kick off a full `allProjectsList` regenerate when the list is stale or the last write was under a different Perspective -- they patch that one row instead.
+
+## [2.4.0.b1] - 2026-10-15
 - New optional **Maintain a status frontmatter hashtag?** for Kanban / Cards views: writes `status: #notstarted` / `#started` / `#paused` / `#completed` / `#cancelled` (terms configurable), updated on create/convert, pause, complete, cancel, and finish review. When on, pause uses `status:` instead of `#paused` on `project:`; 
 - New: When this 'status' feature is on, the "Filter + Order" menu shows toggles for those five statuses (completed/cancelled hidden by default).
 - New: renaming a metadata term offers a vault-wide update of matching keys, status hashtags, and `@mentions` (full `allProjectsList` / perspectives union when available).
