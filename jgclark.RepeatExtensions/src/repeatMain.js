@@ -211,7 +211,7 @@ async function runTaskSorterAfterRepeatsImpl(
  * @param {Array<string>} headingList - section headings to sort
  * @param {RepeatConfig} config - Repeat Extensions settings (unused here; re-loaded in sortRepeatsAfterSave)
  */
-function deferTaskSortAfterSave(filename: string, headingList: Array<string>, config: RepeatConfig): void {
+function deferTaskSortAfterSave(filename: string, headingList: Array<string>, _config: RepeatConfig): void {
   const headings = normalizeRepeatHeadingList(headingList)
   if (headings.length === 0) {
     logTaskSortSkippedNoSectionHeading(filename)
@@ -314,21 +314,31 @@ export async function sortRepeatsAfterSave(filename: string = '', headingsJson: 
  * Note: The actual repeat generation is done by generateRepeatForPara() -- see that function for more details of how it works.
  * TEST: fails to appendTodo to note with same stem?
  * @author @jgclark
- * @param {boolean} runSilently? [default: false]
+ * @param {boolean | CoreNoteFields} runSilently? [default: false]. A note object is also accepted here so an x-callback that still passes the note as the first argument keeps working.
  * @param {CoreNoteFields?} noteArg optional note to process
  * @param {boolean} allowedToUseEditor? [default: true] If false, never use Editor.* funcs to edit the note. This is required for running onAsyncThread from Tidy Up plugin.
  * @returns {number} number of generated repeats. Note: this is only relevant if the note is passed as an argument, not if the currently open note is used.
  */
 export async function generateRepeats(
-  runSilently: boolean = false,
+  runSilently: boolean | CoreNoteFields = false,
   noteArg?: CoreNoteFields,
   allowedToUseEditor: boolean = true
 ): Promise<number> {
   try {
+    // plugin.json used to list "note" as the only parameter, so some x-callbacks pass the note as the first argument.
+    let silent = false
+    let resolvedNote = noteArg
+    if (runSilently != null && typeof runSilently === 'object') {
+      resolvedNote = runSilently
+      silent = false
+    } else {
+      silent = runSilently === true
+    }
+
     // Get passed note details, or fall back to Editor
     let noteToUse: CoreNoteFields
-    if (noteArg) {
-      noteToUse = noteArg
+    if (resolvedNote) {
+      noteToUse = resolvedNote
       // logDebug(pluginJson, `generateRepeats starting: noteArg '${noteToUse.filename}'`)
     } else if (Editor && Editor.note) {
       noteToUse = Editor
@@ -403,7 +413,7 @@ export async function generateRepeats(
     // Report if no repeats were found, and stop.
     if (repeatCount === 0) {
       logDebug('generateRepeats', 'No suitable completed repeats were found')
-      if (!runSilently) {
+      if (!silent) {
         await showMessage('No suitable completed repeats were found', 'OK', 'Repeat Extensions')
       }
       return 0

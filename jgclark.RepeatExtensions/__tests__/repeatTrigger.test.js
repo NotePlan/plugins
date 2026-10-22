@@ -89,10 +89,11 @@ describe('repeatTrigger onEditorWillSave', () => {
     ]
     NotePlan.stringDiff = jest.fn(() => [{ start: 0, end: latestContent.length }])
 
-    mockGetRepeatSettings.mockResolvedValue({
+    const repeatConfig = {
       allowRepeatsInCancelledParas: true,
       runTaskSorter: true,
-    })
+    }
+    mockGetRepeatSettings.mockResolvedValue(repeatConfig)
     mockSelectedLinesIndex.mockReturnValue([0, 0])
     mockMakeBasicParasFromContent.mockImplementation((content) => {
       if (content === previousContent) {
@@ -105,7 +106,7 @@ describe('repeatTrigger onEditorWillSave', () => {
     await onEditorWillSave()
 
     expect(mockGenerateRepeatForCancelledPara).toHaveBeenCalledTimes(1)
-    expect(mockGenerateRepeatForCancelledPara).toHaveBeenCalledWith(Editor.paragraphs[0], noteReadOnly, true)
+    expect(mockGenerateRepeatForCancelledPara).toHaveBeenCalledWith(Editor.paragraphs[0], noteReadOnly, true, repeatConfig)
     expect(mockGenerateRepeatForPara).not.toHaveBeenCalled()
     expect(mockRunTaskSorterAfterRepeats).toHaveBeenCalledWith(
       ['Open'],
@@ -252,5 +253,47 @@ describe('repeatTrigger onEditorWillSave', () => {
     expect(mockGenerateRepeatForPara).toHaveBeenCalledTimes(2)
     expect(mockGenerateRepeatForPara.mock.calls[0][0]).toBe(second)
     expect(mockGenerateRepeatForPara.mock.calls[1][0]).toBe(first)
+  })
+
+  test('keeps generating the other repeat when one line fails, then sorts what succeeded', async () => {
+    const { onEditorWillSave } = require('../src/repeatTrigger')
+
+    const previousContent = '- [ ] First @repeat(+1d)\n- [ ] Second @repeat(+1d)'
+    const latestContent = '- [x] First @done(2026-05-03 10:30 AM) @repeat(+1d)\n- [x] Second @done(2026-05-03 10:30 AM) @repeat(+1d)'
+    Editor.content = latestContent
+    Editor.note = {
+      versions: [{ content: previousContent, date: Date.now() - 5000 }],
+    }
+    Editor.paragraphs = [
+      {
+        content: 'First @done(2026-05-03 10:30 AM) @repeat(+1d)',
+        rawContent: '- [x] First @done(2026-05-03 10:30 AM) @repeat(+1d)',
+        lineIndex: 0,
+        heading: 'Tasks',
+      },
+      {
+        content: 'Second @done(2026-05-03 10:30 AM) @repeat(+1d)',
+        rawContent: '- [x] Second @done(2026-05-03 10:30 AM) @repeat(+1d)',
+        lineIndex: 1,
+        heading: 'Tasks',
+      },
+    ]
+    NotePlan.stringDiff = jest.fn(() => [{ start: 0, end: latestContent.length }])
+    mockGetRepeatSettings.mockResolvedValue({
+      allowRepeatsInCancelledParas: false,
+      runTaskSorter: true,
+    })
+    mockSelectedLinesIndex.mockReturnValue([0, 1])
+    mockGenerateRepeatForPara.mockResolvedValueOnce(null).mockResolvedValueOnce({ content: 'next' })
+
+    await onEditorWillSave()
+
+    expect(mockGenerateRepeatForPara).toHaveBeenCalledTimes(2)
+    expect(mockRunTaskSorterAfterRepeats).toHaveBeenCalledWith(
+      ['Tasks'],
+      expect.objectContaining({ filename: expect.any(String) }),
+      { allowRepeatsInCancelledParas: false, runTaskSorter: true },
+      true,
+    )
   })
 })

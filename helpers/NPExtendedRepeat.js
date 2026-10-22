@@ -173,6 +173,132 @@ export function generateNewRepeatDate(noteToUse: CoreNoteFields, currentContent:
   return newRepeatDateStr
 }
 
+type PlacedRepeat = {
+  newPara: ?TParagraph,
+  noteContainingNewPara: CoreNoteFields,
+}
+
+/**
+ * Insert the next open repeat in the same place a completion would:
+ * the sync source note, this project note, or the future calendar note.
+ * `newRepeatContentIn` must not already include the scheduled >date. That marker is added when the task stays in the current note.
+ * @param {string} newRepeatContentIn - open task text, without a scheduled >date
+ * @param {string} newRepeatDateStrIn - next repeat date
+ * @param {TParagraph} origPara - completed or cancelled paragraph
+ * @param {CoreNoteFields} origNote - note that holds origPara
+ * @param {boolean} noteIsOpenInEditor - true when origNote is the open Editor
+ * @returns {Promise<PlacedRepeat>} the new paragraph and the note that received it
+ */
+async function insertNewRepeatParagraph(
+  newRepeatContentIn: string,
+  newRepeatDateStrIn: string,
+  origPara: TParagraph,
+  origNote: CoreNoteFields,
+  noteIsOpenInEditor: boolean,
+): Promise<PlacedRepeat> {
+  let newRepeatContent = newRepeatContentIn
+  let newRepeatDateStr = newRepeatDateStrIn
+  const newParaLineIndex = origPara.lineIndex
+  let newPara: ?TParagraph = null
+  let noteContainingNewPara: ?CoreNoteFields = null
+
+  const syncCopyParas: Array<TParagraph> = DataStore.referencedBlocks(origPara)
+  const origParaIsSynced = syncCopyParas.length >= 1
+  const syncCopiesInRegularNotes = origParaIsSynced ? syncCopyParas.filter((p) => p?.note?.type === 'Notes') : []
+  logDebug('generateRepeatForPara', `- found ${syncCopiesInRegularNotes.length} syncCopiesInRegularNotes`)
+
+  const insertInOpenEditor =
+    noteIsOpenInEditor &&
+    typeof Editor !== 'undefined' &&
+    Editor != null &&
+    Editor.filename != null &&
+    origNote.filename === Editor.filename
+
+  if (syncCopiesInRegularNotes.length > 0 && !insertInOpenEditor) {
+    const syncSourceNote: ?TNote = syncCopiesInRegularNotes[0]?.note
+    if (syncSourceNote == null) {
+      throw new Error(`generateRepeatForPara: Cannot get syncSourceNote for origPara: "${origPara.content}" in ${origNote.filename}`)
+    }
+    const syncCopyPara = syncCopiesInRegularNotes[0]
+    logDebug('generateRepeatForPara', `- adding repeat to regular note where origPara is synced (${syncSourceNote.filename})`)
+    newRepeatContent += ` >${newRepeatDateStr}`
+    await syncSourceNote.insertParagraphBeforeParagraph(newRepeatContent, syncCopyPara, 'open')
+    const syncNewLineIndex = syncCopyPara.lineIndex
+    newPara = syncSourceNote.paragraphs[syncNewLineIndex]
+    noteContainingNewPara = syncSourceNote
+  } else if (origNote.type === 'Notes') {
+    if (syncCopiesInRegularNotes.length > 0) {
+      logDebug('generateRepeatForPara', `- adding repeat in open Editor for synced block in ${origNote.filename}`)
+    } else {
+      logDebug('generateRepeatForPara', `- adding repeat to regular note ${origNote.filename}`)
+    }
+    newRepeatContent += ` >${newRepeatDateStr}`
+    if (noteIsOpenInEditor) {
+      noteContainingNewPara = Editor
+      await Editor.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
+      newPara = Editor.paragraphs[newParaLineIndex]
+    } else {
+      noteContainingNewPara = origNote
+      await origNote.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
+      newPara = origNote.paragraphs[newParaLineIndex]
+    }
+  } else {
+    if (newRepeatDateStr.match(RE_ISO_DATE)) {
+      newRepeatDateStr = convertISODateFilenameToNPDayFilename(newRepeatDateStr)
+    }
+    noteContainingNewPara = await DataStore.calendarNoteByDateString(newRepeatDateStr)
+    if (noteContainingNewPara != null) {
+      logDebug('generateRepeatForPara', `- adding repeat to FUTURE calendar note for ${newRepeatDateStr}`)
+      await noteContainingNewPara.appendTodo(newRepeatContent)
+      newPara = noteContainingNewPara.paragraphs[noteContainingNewPara.paragraphs.length - 1]
+    } else {
+      newRepeatContent += ` >${newRepeatDateStr}`
+      if (noteIsOpenInEditor) {
+        logDebug('generateRepeatForPara', `- adding repeat to Editor calendar note for ${newRepeatDateStr}`)
+        await Editor.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
+        newPara = Editor.paragraphs[newParaLineIndex]
+        noteContainingNewPara = Editor
+      } else {
+        logDebug('generateRepeatForPara', `- adding repeat to calendar note for ${newRepeatDateStr} (not open in Editor)`)
+        await origNote.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
+        newPara = origNote.paragraphs[newParaLineIndex]
+        noteContainingNewPara = origNote
+      }
+    }
+  }
+
+  if (!noteContainingNewPara) {
+    throw new Error(`generateRepeatForPara: Couldn't get noteContainingNewPara for newRepeatContent: "${newRepeatContent}" in ${newRepeatDateStr}`)
+  }
+
+  if (newPara) {
+    newPara.indents = origPara.indents
+    noteContainingNewPara.updateParagraph(newPara)
+  }
+
+  return { newPara, noteContainingNewPara }
+}
+
+/**
+ * Remove the original repeat paragraph when "Delete completed item?" is on.
+ * Uses the paragraph object. Editor is touched only when that note is the open editor.
+ * @param {TParagraph} origPara - completed or cancelled paragraph
+ * @param {CoreNoteFields} origNote - note that holds origPara
+ * @param {boolean} noteIsOpenInEditor - true when origNote is the open Editor
+ * @param {boolean} shouldDelete - Repeat Extensions deleteCompletedRepeat setting
+ */
+function deleteOriginalRepeatIfConfigured(origPara: TParagraph, origNote: CoreNoteFields, noteIsOpenInEditor: boolean, shouldDelete: boolean): void {
+  if (!shouldDelete) {
+    return
+  }
+  if (noteIsOpenInEditor) {
+    Editor.skipNextRepeatDeletionCheck = true
+    Editor.removeParagraph(origPara)
+  } else {
+    origNote.removeParagraph(origPara)
+  }
+}
+
 //------------------------------------------------------------------
 // Generate paragraphs
 
@@ -213,13 +339,6 @@ export async function generateRepeatForPara(
     }
     let lineWithoutDoneTime = ''
     let completedDate = ''
-    // Maybe-typed: one branch assigns DataStore.calendarNoteByDateString(), which returns ?TNote and is null-checked below
-    let noteContainingNewPara: ?CoreNoteFields
-
-    const syncCopyParas: Array<TParagraph> = DataStore.referencedBlocks(origPara)
-    const origParaIsSynced = syncCopyParas.length >= 1
-    const syncCopiesInRegularNotes = origParaIsSynced ? syncCopyParas.filter((p) => p?.note?.type === 'Notes') : []
-    logDebug('generateRepeatForPara', `- found ${syncCopiesInRegularNotes.length} syncCopiesInRegularNotes`)
 
     const doneMatch = line.match(RE_DONE_DATE_TIME_CAPTURES)
     if (!doneMatch || doneMatch[1] == null) {
@@ -238,9 +357,6 @@ export async function generateRepeatForPara(
     } else {
       origNote.updateParagraph(origPara)
     }
-
-    const newParaLineIndex = origPara.lineIndex
-    let newPara: TParagraph
 
     let newRepeatDateStr = generateNewRepeatDate(origNote, origPara.content, completedDate)
     if (newRepeatDateStr === completedDate) {
@@ -269,85 +385,15 @@ export async function generateRepeatForPara(
 
     logDebug('generateRepeatForPara', `- newRepeatContent: "${newRepeatContent}"`)
 
-    const insertInOpenEditor =
-      noteIsOpenInEditor &&
-      typeof Editor !== 'undefined' &&
-      Editor != null &&
-      Editor.filename != null &&
-      origNote.filename === Editor.filename
-
-    if (syncCopiesInRegularNotes.length > 0 && !insertInOpenEditor) {
-      const syncSourceNote: ?TNote = syncCopiesInRegularNotes[0]?.note
-      if (syncSourceNote == null) {
-        throw new Error(`generateRepeatForPara: Cannot get syncSourceNote for origPara: "${origPara.content}" in ${origNote.filename}`)
-      }
-      const syncCopyPara = syncCopiesInRegularNotes[0]
-      logDebug('generateRepeatForPara', `- adding repeat to regular note where origPara is synced (${syncSourceNote.filename})`)
-      newRepeatContent += ` >${newRepeatDateStr}`
-      await syncSourceNote.insertParagraphBeforeParagraph(newRepeatContent, syncCopyPara, 'open')
-      const syncNewLineIndex = syncCopyPara.lineIndex
-      newPara = syncSourceNote.paragraphs[syncNewLineIndex]
-      noteContainingNewPara = syncSourceNote
-    } else if (origNote.type === 'Notes') {
-      if (syncCopiesInRegularNotes.length > 0) {
-        logDebug('generateRepeatForPara', `- adding repeat in open Editor for synced block in ${origNote.filename}`)
-      } else {
-        logDebug('generateRepeatForPara', `- adding repeat to regular note ${origNote.filename}`)
-      }
-      newRepeatContent += ` >${newRepeatDateStr}`
-      if (noteIsOpenInEditor) {
-        noteContainingNewPara = Editor
-        await Editor.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
-        newPara = Editor.paragraphs[newParaLineIndex]
-      } else {
-        noteContainingNewPara = origNote
-        await origNote.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
-        newPara = origNote.paragraphs[newParaLineIndex]
-      }
-    } else {
-      if (newRepeatDateStr.match(RE_ISO_DATE)) {
-        newRepeatDateStr = convertISODateFilenameToNPDayFilename(newRepeatDateStr)
-      }
-      noteContainingNewPara = await DataStore.calendarNoteByDateString(newRepeatDateStr)
-      if (noteContainingNewPara != null) {
-        logDebug('generateRepeatForPara', `- adding repeat to FUTURE calendar note for ${newRepeatDateStr}`)
-        await noteContainingNewPara.appendTodo(newRepeatContent)
-        newPara = noteContainingNewPara.paragraphs[noteContainingNewPara.paragraphs.length - 1]
-      } else {
-        newRepeatContent += ` >${newRepeatDateStr}`
-        if (noteIsOpenInEditor) {
-          logDebug('generateRepeatForPara', `- adding repeat to Editor calendar note for ${newRepeatDateStr}`)
-          await Editor.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
-          newPara = Editor.paragraphs[newParaLineIndex]
-          noteContainingNewPara = Editor
-        } else {
-          logDebug('generateRepeatForPara', `- adding repeat to calendar note for ${newRepeatDateStr} (not open in Editor)`)
-          await origNote.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
-          newPara = origNote.paragraphs[newParaLineIndex]
-          noteContainingNewPara = origNote
-        }
-      }
-    }
-
-    if (!noteContainingNewPara) {
-      throw new Error(`generateRepeatForPara: Couldn't get noteContainingNewPara for newRepeatContent: "${newRepeatContent}" in ${newRepeatDateStr}`)
-    }
-
-    if (newPara) {
-      newPara.indents = origPara.indents
-      noteContainingNewPara.updateParagraph(newPara)
-    }
+    const placed = await insertNewRepeatParagraph(newRepeatContent, newRepeatDateStr, origPara, origNote, noteIsOpenInEditor)
+    const newPara = placed.newPara
+    const noteContainingNewPara = placed.noteContainingNewPara
 
     // Delete the completed paragraph object. lineIndex + 1 is only right after an insert in this same note;
     // a future calendar append or a sync-source insert does not shift it, so + 1 would remove the next line.
     // Touch Editor only when this note is the open editor (Tidy passes allowedToUseEditor false on a background thread).
     if (config.deleteCompletedRepeat) {
-      if (noteIsOpenInEditor) {
-        Editor.skipNextRepeatDeletionCheck = true
-        Editor.removeParagraph(origPara)
-      } else {
-        origNote.removeParagraph(origPara)
-      }
+      deleteOriginalRepeatIfConfigured(origPara, origNote, noteIsOpenInEditor, true)
     } else {
       origPara.content = lineWithoutDoneTime
       if (noteIsOpenInEditor) {
@@ -369,7 +415,7 @@ export async function generateRepeatForPara(
       await saveEditorIfNecessary()
     }
 
-    return newPara
+    return newPara ?? null
   } catch (error) {
     logError(LOG_CONTEXT, `generateRepeatForPara(): ${JSP(error)}`)
     return null
@@ -378,11 +424,18 @@ export async function generateRepeatForPara(
 
 /**
  * Generate a repeat task for a cancelled paragraph that contains an extended @repeat(interval) tag.
+ * Uses the same destination as a completion (project note, future calendar note, or sync source).
+ * When config.deleteCompletedRepeat is set, the cancelled line is removed.
+ * @param {TParagraph} origPara - newly cancelled paragraph
+ * @param {CoreNoteFields} noteToUse - note that holds origPara
+ * @param {boolean} noteIsOpenInEditor - true when noteToUse is the open Editor
+ * @param {RepeatConfig} config - Repeat Extensions settings; delete defaults off when omitted
  */
 export async function generateRepeatForCancelledPara(
   origPara: TParagraph,
   noteToUse: CoreNoteFields,
   noteIsOpenInEditor: boolean,
+  config?: RepeatConfig,
 ): Promise<TParagraph | null> {
   try {
     const line = origPara.content ?? ''
@@ -400,6 +453,7 @@ export async function generateRepeatForCancelledPara(
       .replace(/^\s*?\-\s\[-\]\s/, '')
       .replace(/^\s*?\+\s\[+\]\s/, '')
     newRepeatContent = textWithoutSyncedCopyTag(newRepeatContent).trim()
+    newRepeatContent = stripTaskMarkersFromString(newRepeatContent)
 
     // Advance the concrete base date in @repeat(...) if present
     const capturedRepeat = origPara.content.match(RE_EXTENDED_REPEAT_CAPTURE)
@@ -413,25 +467,10 @@ export async function generateRepeatForCancelledPara(
       }
     }
 
-    let newPara: TParagraph
-    if (noteIsOpenInEditor) {
-      await Editor.insertParagraphBeforeParagraph(`${newRepeatContent} >${newRepeatDateStr}`, origPara, 'open')
-      newPara = Editor.paragraphs[origPara.lineIndex]
-    } else {
-      await noteToUse.insertParagraphBeforeParagraph(`${newRepeatContent} >${newRepeatDateStr}`, origPara, 'open')
-      newPara = noteToUse.paragraphs[origPara.lineIndex]
-    }
+    const placed = await insertNewRepeatParagraph(newRepeatContent, newRepeatDateStr, origPara, noteToUse, noteIsOpenInEditor)
+    deleteOriginalRepeatIfConfigured(origPara, noteToUse, noteIsOpenInEditor, config?.deleteCompletedRepeat === true)
 
-    if (newPara) {
-      newPara.indents = origPara.indents
-      if (noteIsOpenInEditor) {
-        Editor.updateParagraph(newPara)
-      } else {
-        noteToUse.updateParagraph(newPara)
-      }
-    }
-
-    return newPara
+    return placed.newPara ?? null
   } catch (error) {
     logError(LOG_CONTEXT, `generateRepeatForCancelledPara(): ${JSP(error)}`)
     return null

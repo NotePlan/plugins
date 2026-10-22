@@ -508,3 +508,79 @@ describe('NPExtendedRepeat generateRepeatForCancelledPara: concrete @repeat(...)
     await expectAdvancedConcreteDate('1m, 2026-05', '1m, 2026-06')
   })
 })
+
+describe('NPExtendedRepeat generateRepeatForCancelledPara: destination and delete', () => {
+  const deleteConfig = { ...repeatConfig, deleteCompletedRepeat: true }
+
+  test('calendar note: appends the next task on the future calendar note', async () => {
+    const origPara = new Paragraph({
+      type: 'cancelled',
+      content: 'Take bins out @repeat(+1d)',
+      lineIndex: 1,
+      rawContent: '* [-] Take bins out @repeat(+1d)',
+    })
+    const neighbor = new Paragraph({ type: 'open', content: 'keep me', lineIndex: 2, rawContent: '* [ ] keep me' })
+    const origNote = new Note({
+      type: 'Calendar',
+      filename: '20261019.md',
+      date: moment('2026-10-19').toDate(),
+      paragraphs: [
+        new Paragraph({ type: 'empty', content: '', lineIndex: 0 }),
+        origPara,
+        neighbor,
+      ],
+    })
+    origPara.note = origNote
+    neighbor.note = origNote
+    origNote.resetLineIndexesAndContent()
+
+    const futureNote = new Note({
+      type: 'Calendar',
+      filename: '20261020.md',
+      paragraphs: [new Paragraph({ type: 'empty', content: '', lineIndex: 0 })],
+    })
+    futureNote.appendTodo = async (content) => {
+      futureNote.paragraphs.push({ content, type: 'open', lineIndex: futureNote.paragraphs.length })
+    }
+    DataStore.calendarNoteByDateString = jest.fn(async () => futureNote)
+
+    const newPara = await generateRepeatForCancelledPara(origPara, origNote, false, repeatConfig)
+
+    expect(newPara).not.toBeNull()
+    expect(futureNote.paragraphs.some((p) => p.content.includes('Take bins out') && p.content.includes('@repeat(+1d)'))).toBe(true)
+    expect(futureNote.paragraphs.some((p) => p.content.includes('>'))).toBe(false)
+    const kept = origNote.paragraphs.map((p) => p.content)
+    expect(kept).toContain('keep me')
+    expect(kept).toContain('Take bins out @repeat(+1d)')
+  })
+
+  test('deleteCompletedRepeat removes the cancelled line and keeps the new task', async () => {
+    const origPara = new Paragraph({
+      type: 'cancelled',
+      content: 'Water plants @repeat(+1d)',
+      lineIndex: 1,
+      rawContent: '* [-] Water plants @repeat(+1d)',
+    })
+    const neighbor = new Paragraph({ type: 'open', content: 'leave this line', lineIndex: 2, rawContent: '* [ ] leave this line' })
+    const origNote = new Note({
+      type: 'Notes',
+      filename: 'Projects/chores.md',
+      paragraphs: [
+        new Paragraph({ type: 'title', content: 'Chores', headingLevel: 1, lineIndex: 0 }),
+        origPara,
+        neighbor,
+      ],
+    })
+    origPara.note = origNote
+    neighbor.note = origNote
+    origNote.resetLineIndexesAndContent()
+
+    const newPara = await generateRepeatForCancelledPara(origPara, origNote, false, deleteConfig)
+
+    expect(newPara).not.toBeNull()
+    const contents = origNote.paragraphs.map((p) => p.content)
+    expect(contents.some((c) => c.includes('Water plants') && c.includes('>'))).toBe(true)
+    expect(contents).toContain('leave this line')
+    expect(contents.some((c) => c.includes('Water plants @repeat(+1d)') && !c.includes('>'))).toBe(false)
+  })
+})

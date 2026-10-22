@@ -6,6 +6,9 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 - Fix: several completed `@repeat` tasks in one `/generate repeats` run, or in one save with the trigger, each get a next task. The plugin walks from the bottom of the note so an insert does not skip or misplace the later lines.
 - Fix: the save trigger no longer ignores a completion when the previous save was within 2 seconds. A note with no previous version is skipped instead of throwing.
 - Fix: a concrete base date keeps its own calendar format. `@repeat(1w, 2026-W19)` on a project note schedules `>2026-W20`, and a different `>date` on the completed line does not override it. A `+` interval still schedules from the completion date.
+- Change: "Delete completed item?" also removes a cancelled repeat when the save trigger generates the next one. A cancelled repeat on a calendar note is written to the future calendar note, the same way a completion is.
+- Fix: if one changed line fails during a save, the trigger still generates the other repeats and sorts the ones that succeeded.
+- Fix: `/generate repeats` command arguments follow the function: `runSilently`, then `note`, then `allowedToUseEditor`. A note passed on its own as the first argument is still accepted.
 - dev: Turn down some logging
 
 ## [1.2.0] - 2026-07-30

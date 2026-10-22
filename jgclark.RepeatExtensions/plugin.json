@@ -23,7 +23,9 @@
       "description": "Generate new @repeat(...) tasks from completed ones",
       "jsFunction": "generateRepeats",
       "parameters": [
-        "note"
+        "runSilently",
+        "note",
+        "allowedToUseEditor"
       ]
     },
     {

@@ -147,4 +147,18 @@ describe('generateRepeats batch save (regression)', () => {
     expect(mockSaveEditorIfNecessary).not.toHaveBeenCalled()
     expect(mockSortTasksUnderHeading).not.toHaveBeenCalled()
   })
+
+  test('treats a note object passed as the first argument as the note to process', async () => {
+    const { generateRepeats } = require('../src/repeatMain')
+    const noteArg = {
+      filename: 'Projects/chores.md',
+      paragraphs: makeTasksSectionParagraphs(),
+    }
+
+    const count = await generateRepeats(noteArg)
+
+    expect(count).toBe(4)
+    expect(mockGenerateRepeatForPara.mock.calls[0][1]).toBe(noteArg)
+    expect(mockGenerateRepeatForPara.mock.calls[0][3]).toBe(true)
+  })
 })

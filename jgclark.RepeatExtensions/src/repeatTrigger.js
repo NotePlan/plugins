@@ -120,11 +120,11 @@ export async function onEditorWillSave(): Promise<void> {
               }
               logDebug('repeatExtensions/onEditorWillSave', `New repeat generated: {${newPara.content}} at line ${String(job.lineIndex)}`)
             } else {
-              throw new Error(`No new repeat generated from completed task at line ${String(job.lineIndex)}`)
+              logError(pluginJson, `No new repeat generated from completed task at line ${String(job.lineIndex)}`)
             }
           } else {
             logDebug('repeatExtensions/onEditorWillSave', `Found newly cancelled extended repeat at line ${String(job.lineIndex)} so will call generateRepeatForCancelledPara() ...`)
-            const newPara = await generateRepeatForCancelledPara(origPara, noteReadOnly, true)
+            const newPara = await generateRepeatForCancelledPara(origPara, noteReadOnly, true, config)
             if (newPara) {
               repeatCount++
               if (config.runTaskSorter) {
@@ -132,7 +132,7 @@ export async function onEditorWillSave(): Promise<void> {
               }
               logDebug('repeatExtensions/onEditorWillSave', `New repeat generated: {${newPara.content}} at line ${String(job.lineIndex)}`)
             } else {
-              throw new Error(`No new repeat generated from cancelled task at line ${String(job.lineIndex)}`)
+              logError(pluginJson, `No new repeat generated from cancelled task at line ${String(job.lineIndex)}`)
             }
           }
         }
