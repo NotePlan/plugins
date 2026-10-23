@@ -147,7 +147,7 @@ function buildProjectListRowDiv(thisProject: Project, config: ReviewConfig, want
   const encodedFolderDisplay = encodeRFC3986URIComponent(projectFolderDisplayLabel(thisProject, config))
   const projectIcon = thisProject.icon != null && thisProject.icon !== '' ? thisProject.icon : 'file-lines'
   const dialogPayload = `{encodedFilename: '${encodedFilename}', reviewInterval:'${thisProject.reviewInterval}', encodedTitle:'${encodedTitle}', encodedLastProgressComment:'${encodedLastProgress}', encodedFolderDisplay:'${encodedFolderDisplay}', projectIcon:'${projectIcon.replace(/'/g, '')}'}`
-  const editButtonSpan = `\t\t\t\t\t<span class="pad-left dialogTrigger" onclick="showProjectControlDialog(${dialogPayload})"><i class="fa-light fa-edit"></i></span>\n`
+  const editButtonSpan = `\t\t\t\t\t<span class="pad-left dialogTrigger" onclick="showProjectControlDialog(${dialogPayload})" title="Open action dialog for this project"><i class="fa-light fa-edit"></i></span>\n`
 
   const projectTags = buildProjectTagLozengeSpans(thisProject).join('\n')
 

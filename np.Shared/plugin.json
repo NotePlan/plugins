@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.8.1",
   "plugin.id": "np.Shared",
   "plugin.name": "Shared Resources",
-  "plugin.version": "1.3.0",
+  "plugin.version": "1.3.1",
   "plugin.releaseStatus": "full",
   "plugin.description": "Shared resources for NotePlan plugins. (There are no commands for users to run directly.)",
   "plugin.icon": "fa-handshake",
@@ -14,7 +14,7 @@
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/plugins/np.Shared",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Shared/CHANGELOG.md",
-  "plugin.lastUpdateInfo": "New: shared notes-changed-recently cache (7-day rolling index) for Dashboard, Reviews, and other plugins.",
+  "plugin.lastUpdateInfo": "Fix: notes-changed-recently cache update no longer hangs on runOnAsyncThread (could leave Projects Refresh spinning).",
   "plugin.requiredFiles": [
     "apple-switch.css",
     "css.w3.css",

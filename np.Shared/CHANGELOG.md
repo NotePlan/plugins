@@ -2,10 +2,13 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [1.3.1] 2026-10-23
+- Fix: notes-changed-recently `generate` / `update` no longer use `runOnAsyncThread` for entry build/merge. Reading `TNote` fields inside that API hung the Promise live, which left Projects Refresh spinning indefinitely after a stale-cache update.
+
 ## [1.3.0] 2026-09-18
 - New: `apple-switch.css` is the shared style for `input.apple-switch`. HTML windows load it with `../np.Shared/apple-switch.css`.
 - New: Shared **notes-changed-recently cache** (`notesChangedRecentlyCache.js`) -- rolling **7 calendar day** index of which notes changed (`filename`, `noteType`, `changedAt` only). Any plugin can read sync getters or call generate/update. Does **not** replace `getNotesChangedInInterval`; generate/update call the new helper `getNotesChangedInLastCalendarDays(7)` (clearer than interval arg `6`). See README and `PLAN-notes-changed-recently-cache.md`.
-- Missing/corrupt cache: `update` / `updateIfTooOld` **generate immediately** (entry build/prune on async thread when available); vault scan stays on the main thread.
+- Missing/corrupt cache: `update` / `updateIfTooOld` **generate immediately**; vault scan and entry build/prune stay on the main thread.
 - Commands: `/generateNotesChangedRecentlyCache` (`gncrc`), `/updateNotesChangedRecentlyCache` (`uncrc`).
 
 ## [1.2.0] 2026-09-16

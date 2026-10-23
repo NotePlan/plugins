@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Shared rolling cache of notes changed in the last N calendar days (owned by np.Shared)
-// last updated 2026-09-18 for v1.3.0 by @CursorAI, guided by @jgclark
+// last updated 2026-10-23 for v1.3.1 by @CursorAI, guided by @jgclark
 // Plan: np.Shared/PLAN-notes-changed-recently-cache.md
 //-----------------------------------------------------------------------------
 // Cache body (`notesChangedRecently.json`):
@@ -20,7 +20,6 @@ import moment from 'moment/min/moment-with-locales'
 import { JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getNotesChangedInLastCalendarDays } from '@helpers/NPnote'
 import { noteType } from '@helpers/note'
-import { runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
 
 //--------------------------------------------------------------------------
 // Constants
@@ -395,7 +394,8 @@ function entriesFromNotes(notes: Array<TNote>): Array<TNotesChangedRecentlyEntry
 
 /**
  * Full rebuild of the 7-calendar-day cache via getNotesChangedInLastCalendarDays.
- * Vault scan stays on the main thread; entry build/prune uses `runSyncWorkOnAsyncThread` when available.
+ * Stays on the main thread: work is typically under 1s, and reading TNote bridge fields
+ * inside `runOnAsyncThread` has hung the Promise live (Projects Refresh spin never stopped).
  * @param {string} [reason]
  * @returns {Promise<void>}
  */
@@ -409,24 +409,14 @@ export async function generateNotesChangedRecentlyCache(reason: string = ''): Pr
     notesChangedRecentlyGenerationInProgress = true
     logInfo('generateNotesChangedRecentlyCache', `Starting full rebuild${reason !== '' ? ` (${reason})` : ''}`)
 
-    // DataStore note-list scan on main thread (same pattern as tagMentionCache).
     const changedNotes = getNotesChangedInLastCalendarDays(NOTES_CHANGED_RECENTLY_WINDOW_DAYS)
     logTimer('generateNotesChangedRecentlyCache', startTime, `scan returned ${changedNotes.length} notes`)
 
     const windowStart = getNotesChangedRecentlyWindowStart(NOTES_CHANGED_RECENTLY_WINDOW_DAYS, startTime)
-    // Side-channel: do not return large arrays from runOnAsyncThread (can hang the Promise).
-    let notesHolder: ?Array<TNotesChangedRecentlyEntry> = null
-    await runSyncWorkOnAsyncThread('generateNotesChangedRecentlyCache build', () => {
-      notesHolder = pruneNotesChangedRecentlyEntries(entriesFromNotes(changedNotes), windowStart)
-      return true
-    })
-    const notes: Array<TNotesChangedRecentlyEntry> =
-      notesHolder != null
-        ? notesHolder
-        : pruneNotesChangedRecentlyEntries(entriesFromNotes(changedNotes), windowStart)
-    if (notesHolder == null) {
-      logWarn('generateNotesChangedRecentlyCache', `- async build result missing; built entries on main thread`)
-    }
+    const notes: Array<TNotesChangedRecentlyEntry> = pruneNotesChangedRecentlyEntries(
+      entriesFromNotes(changedNotes),
+      windowStart,
+    )
 
     const stamp = serializeNotesChangedRecentlyTimestamp(startTime)
     const cache: TNotesChangedRecentlyCache = {
@@ -452,8 +442,9 @@ export async function generateNotesChangedRecentlyCache(reason: string = ''): Pr
 
 /**
  * Incremental update: upsert notes changed since last run; prune outside window.
- * If the cache file is missing or corrupt, runs a full `generateNotesChangedRecentlyCache` immediately
- * (build/prune on async thread when available).
+ * If the cache file is missing or corrupt, runs a full `generateNotesChangedRecentlyCache` immediately.
+ * Merge stays on the main thread (typically well under 500ms); reading TNote fields inside
+ * `runOnAsyncThread` hung Projects Refresh indefinitely in practice.
  * @returns {Promise<void>}
  */
 export async function updateNotesChangedRecentlyCache(): Promise<void> {
@@ -496,41 +487,23 @@ export async function updateNotesChangedRecentlyCache(): Promise<void> {
 
     const existingNotes = existing.notes
     const existingGeneratedAt = existing.generatedAt
-    let notesHolder: ?Array<TNotesChangedRecentlyEntry> = null
     const windowStart = getNotesChangedRecentlyWindowStart(NOTES_CHANGED_RECENTLY_WINDOW_DAYS, startTime)
-    await runSyncWorkOnAsyncThread('updateNotesChangedRecentlyCache merge', () => {
-      const byFilename: Map<string, TNotesChangedRecentlyEntry> = new Map()
-      for (const entry of existingNotes) {
-        byFilename.set(entry.filename, entry)
-      }
-      for (const note of recentlyChanged) {
-        const entry = noteToNotesChangedRecentlyEntry({
-          filename: note.filename,
-          type: note.type,
-          changedDate: note.changedDate,
-        })
-        if (entry != null) byFilename.set(entry.filename, entry)
-      }
-      notesHolder = pruneNotesChangedRecentlyEntries(Array.from(byFilename.values()), windowStart)
-      return true
-    })
-    let notes: Array<TNotesChangedRecentlyEntry> = notesHolder != null ? notesHolder : []
-    if (notesHolder == null) {
-      logWarn('updateNotesChangedRecentlyCache', `- async merge result missing; merging on main thread`)
-      const byFilename: Map<string, TNotesChangedRecentlyEntry> = new Map()
-      for (const entry of existingNotes) {
-        byFilename.set(entry.filename, entry)
-      }
-      for (const note of recentlyChanged) {
-        const entry = noteToNotesChangedRecentlyEntry({
-          filename: note.filename,
-          type: note.type,
-          changedDate: note.changedDate,
-        })
-        if (entry != null) byFilename.set(entry.filename, entry)
-      }
-      notes = pruneNotesChangedRecentlyEntries(Array.from(byFilename.values()), windowStart)
+    const byFilename: Map<string, TNotesChangedRecentlyEntry> = new Map()
+    for (const entry of existingNotes) {
+      byFilename.set(entry.filename, entry)
     }
+    for (const note of recentlyChanged) {
+      const entry = noteToNotesChangedRecentlyEntry({
+        filename: note.filename,
+        type: note.type,
+        changedDate: note.changedDate,
+      })
+      if (entry != null) byFilename.set(entry.filename, entry)
+    }
+    const notes: Array<TNotesChangedRecentlyEntry> = pruneNotesChangedRecentlyEntries(
+      Array.from(byFilename.values()),
+      windowStart,
+    )
 
     const stamp = serializeNotesChangedRecentlyTimestamp(startTime)
     const cache: TNotesChangedRecentlyCache = {
