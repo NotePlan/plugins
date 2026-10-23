@@ -8,8 +8,12 @@ full text.
 
 - Never use `require` or dynamic/inline imports -- static `import` at the top of
   the file only. Rollup will not process dynamic imports correctly.
-- Do not run `npm run build`. Leave building to the programmer (Rollup /
-  `npc plugin:dev`). Tooling is described in the root `README.md`.
+- Do not run `npm run build`. Leave building to the programmer. For React/
+  WebView plugins, that is **two** steps -- `npc plugin:dev` alone does **not**
+  rebuild `requiredFiles/` React bundles:
+  1. `node ./<plugin-id>/src/react/support/performRollup.node.js`
+  2. `npc plugin:dev <plugin-id> -nc` (or `-c`)
+  Dashboard shortcut: `./buildDashboard.sh`. See `agents/docs/programming.md`.
 
 ## Globals
 

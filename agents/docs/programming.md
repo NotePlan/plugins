@@ -10,8 +10,10 @@ is the full text.
   static imports at the top of files.
 - Never use `require` in NotePlan plugin code -- use `import` at the top of the
   file (same Rollup reason). See also `agents/docs/react-html.md`.
-- Do not run `npm run build` for plugins -- leave building to the programmer
-  (`npc plugin:dev`, Rollup). See root `README.md`.
+- Do not run `npm run build` for plugins -- leave building to the programmer.
+  For React/WebView plugins, both steps are required: performRollup **then**
+  `npc plugin:dev` (`npc` alone copies stale `requiredFiles/`). See Build /
+  test commands below and root `README.md`.
 - Do not commit or push unless the user explicitly asks.
 - Do not use raw `Promise.resolve`, `Promise.all`, or `Promise.race` in plugin code—NotePlan's JSContext may not have them. Use polyfills from `@helpers/promisePolyfill.js` (`promiseResolve`, `promiseAll`, `promiseRace`).
 
@@ -58,8 +60,12 @@ NotePlan provides globals available to all plugins (`DataStore`, `CommandBar`, `
 
 ## Build / test commands
 
-- Build plugin: `npc plugin:dev <plugin-id> -nc`
-- Build React runtime: `node ./<plugin-id>/src/react/support/performRollup.node.js`
+- Build React runtime (required when React/`requiredFiles` bundles change, or
+  when shared helpers they import change):  
+  `node ./<plugin-id>/src/react/support/performRollup.node.js`
+- Build/install plugin: `npc plugin:dev <plugin-id> -nc` (after performRollup
+  for React plugins; `npc` does not re-rollup `requiredFiles/`)
+- Dashboard one-shot: `./buildDashboard.sh`
 - Lint: `npm run lint` or `npm run lint-fix`
 - Type check: prefer `npx flow` (or `npm run typecheck:fast` when Flow server is warm).
   Do not use `npm run typecheck...` unless the user asks for that script by name.
