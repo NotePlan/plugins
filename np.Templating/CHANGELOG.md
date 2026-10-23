@@ -6,6 +6,12 @@ See Plugin [Documentation](https://noteplan.co/templates/docs) for details on av
 
 DBW: REMEMBER THAT IF YOU ADDED ANY HELPERS IMPORTS, ADD THEM TO THE HELPER MODULE TO GIVE SCRIPTS ACCESS TO THEM ALSO
 
+## [2.4.7] 2026-10-23 @jgclark -- unreleased
+
+### Fixed tests
+- **`dt()` jest coverage is locale-stable:** asserts against host-locale `toLocaleTimeString()` output (12h or 24h) instead of requiring US-style `AM`/`PM`.
+- **`web.verse()` / `getVersePlain()` soft-fail messages** no longer contain the word "error" (aligned with the existing bible-service fallback), and the web API jest check uses a word-boundary match so incidental verse text like "terror" does not fail the suite.
+
 ## [2.4.6] 2026-08-03 @dwertheimer
 
 ### Removed
