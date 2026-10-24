@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2026-10-17 for v1.21.0 by @jgclark
+// Last updated 2026-10-24 for v1.21.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -38,24 +38,31 @@ type DoubleDetails = {
 /**
  * Private function to generate a list of potentially doubled Calendar notes.
  * Does this by comparing the first and second halves of each note, and if the difference is <= 10%, then its likely to be doubled.
+ * Synchronous. Safe for runOnAsyncThread (read-only; showLoading allowed).
  * @author @jgclark
+ * @param {boolean} showProgress - when true, update CommandBar.showLoading during the scan
  * @returns {Array<DoubleDetails>} array of filenames, one for each suspected doubled Calendar note
 */
-function findPotentialDoubledNotes(): Array<DoubleDetails> {
+function findPotentialDoubledNotes(showProgress: boolean = false): Array<DoubleDetails> {
   try {
     logDebug(pluginJson, `findPotentialDoubledNotes() starting`)
-    let outputArray: Array<DoubleDetails> = [] // of NP filenames
+    const outputArray: Array<DoubleDetails> = [] // of NP filenames
 
     // Get all Calendar notes to check (that are at least 4 lines long)
     const calendarNotes = DataStore.calendarNotes.slice().filter(n => (n.content?.length ?? 0) >= 20)
+    const total = calendarNotes.length
+    logDebug('findPotentialDoubledNotes', `- Will check ${String(total)} calendar notes`)
 
     // Look at each and see if it looks doubled
-    let i = 0
-    for (const n of calendarNotes) {
-      i++
-      CommandBar.showLoading(true, `Checking note ${String(i)}`, i / calendarNotes.length)
+    for (let i = 0; i < total; i++) {
+      const n = calendarNotes[i]
+      if (showProgress && i % 10 === 0) {
+        CommandBar.showLoading(true, `Checking note ${String(i + 1)} of ${String(total)} for doubled content...`, i / total)
+      }
+      if (i > 0 && i % 250 === 0) {
+        logDebug('findPotentialDoubledNotes', `- checked ${String(i)}/${String(total)} notes, found ${String(outputArray.length)} so far`)
+      }
       // Split note content into halves
-      const contentLength = n.paragraphs.length
       // Get all content by joining .content of all paragraphs
       const allContent = n.paragraphs.map(p => p.content).join('\n')
 
@@ -69,11 +76,11 @@ function findPotentialDoubledNotes(): Array<DoubleDetails> {
       const percentDiff: number = (totalDiffBytes > 0) ? ((totalDiffBytes / allContent.length / 2) * 100) : 0
       // If diff is <= MAX_PERCENT_DIFF_FOR_DOUBLED_NOTE%, then it's likely to be doubled
       if (percentDiff <= MAX_PERCENT_DIFF_FOR_DOUBLED_NOTE) {
-        outputArray.push({ filename: n.filename, contentLength: allContent.length, matchLevel: (100-percentDiff) })
+        outputArray.push({ filename: n.filename, contentLength: allContent.length, matchLevel: (100 - percentDiff) })
         logDebug('findPotentialDoubledNotes', `${n.filename} = ${percentDiff}`)
       }
     }
-    CommandBar.showLoading(false)
+    logDebug('findPotentialDoubledNotes', `- finished: ${String(outputArray.length)} potential doubles from ${String(total)} notes`)
     return outputArray
   }
   catch (err) {
@@ -88,13 +95,14 @@ function findPotentialDoubledNotes(): Array<DoubleDetails> {
  * @params {string?} params
  */
 export async function listPotentialDoubles(params: string = ''): Promise<void> {
+  let runSilently: boolean = false
   try {
     logDebug(pluginJson, `listPotentialDoubles: Starting with params '${params}'`)
     let config = await getSettings()
     const outputFilename = config.doubledNoteFilename ?? FALLBACK_OUTPUT_FILENAME
 
     // Decide whether to run silently
-    const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
+    runSilently = await getTagParamsFromString(params ?? '', 'runSilently', false)
     logDebug('listPotentialDoubledNotes', `runSilently = ${String(runSilently)}`)
 
     // If we're running NP 3.19.2+ then show a message about the new built-in feature
@@ -106,7 +114,9 @@ export async function listPotentialDoubles(params: string = ''): Promise<void> {
       }
     }
 
-    CommandBar.showLoading(true, `Finding possible doubles`)
+    if (!runSilently) {
+      CommandBar.showLoading(true, `Finding possible doubles`)
+    }
     const startTime = new Date()
     // Side-channel: do not return large arrays from runOnAsyncThread.
     let doublesHolder: ?Array<DoubleDetails> = null
@@ -115,7 +125,7 @@ export async function listPotentialDoubles(params: string = ''): Promise<void> {
      * @returns {true}
      */
     const syncFindDoubles = (): true => {
-      doublesHolder = findPotentialDoubledNotes()
+      doublesHolder = findPotentialDoubledNotes(!runSilently)
       return true
     }
     await runHeavySyncWork('listPotentialDoubles', syncFindDoubles)
@@ -124,7 +134,9 @@ export async function listPotentialDoubles(params: string = ''): Promise<void> {
       syncFindDoubles()
     }
     const doubles: Array<DoubleDetails> = doublesHolder ?? []
-    CommandBar.showLoading(false)
+    if (!runSilently) {
+      CommandBar.showLoading(false)
+    }
     logDebug('listPotentialDoubles', `Found ${doubles.length} potential doubles in ${timer(startTime)}:`)
 
     // Form the contents of a note to display the details of doubles
@@ -176,6 +188,13 @@ export async function listPotentialDoubles(params: string = ''): Promise<void> {
     }
   }
   catch (err) {
+    if (!runSilently) {
+      try {
+        CommandBar.showLoading(false)
+      } catch (_) {
+        // ignore cleanup failures
+      }
+    }
     logError('listPotentialDoubles', JSP(err))
   }
 }
