@@ -35,7 +35,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
         // dt() uses host-locale toLocaleTimeString() (12h AM/PM or 24h). Match any
         // second in [before, after] so the assertion is locale-stable.
-        const pad = (value) => (value < 10 ? '0' + value : String(value))
+        const pad = (value: number) => (value < 10 ? '0' + value : String(value))
         const expected = []
         for (let t = before.getTime(); t <= after.getTime(); t++) {
           const d = new Date(t)
