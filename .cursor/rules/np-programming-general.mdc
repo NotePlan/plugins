@@ -10,4 +10,5 @@ Follow `agents/docs/programming.md`. Hub: `AGENTS.md`.
 - Static `import` only -- no `require`, no dynamic imports (Rollup)
 - Do not commit or push until the user asks
 - Prefer `npx flow`; fix Flow errors before finishing new code. Save `flow check` as indented JSON at `/tmp/flow-check-now.json`
+- Jest/`__tests__` keep `// @flow` -- do not strip it. After editing `@flow` tests, run `npx flow focus-check` (or full check) before finishing; jest alone is not enough
 - Run tests yourself when relevant (`jest ... --no-watch`); never hard-code Jest workarounds

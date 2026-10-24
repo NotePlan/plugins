@@ -85,6 +85,12 @@ NotePlan provides globals available to all plugins (`DataStore`, `CommandBar`, `
 - Prefer `npx flow` over `npm run typecheck...` unless the user names that script.
   Before finishing a task where you added new code, check there are no Flow type errors.
   When you run `flow check`, write indented JSON to `/tmp/flow-check-now.json` as above.
+- **Jest / `__tests__` keep `// @flow`.** Do not strip the directive to dodge
+  typing. Jest does not enforce Flow, so an unannotated local (e.g. `(value) =>`)
+  passes tests and fails later under Flow. Before finishing any edit to a
+  `@flow` test file, run Flow on the changed paths
+  (`npx flow focus-check path/to/file.test.js`, or a full `flow check` when the
+  change is broader) and fix annotations / types until clean.
 - Allow in sandbox: `cd`, `npm test`, `npx flow`, `jest`, `npx jest`, `grep`,
   `head`, `tail`, `node`
 - **Never hard-code Jest workarounds into functions under test**
