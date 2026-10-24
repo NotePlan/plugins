@@ -29,8 +29,8 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        # node-version: [14.x, 16.x, 18.x, 19.x, 20.x]
-        node-version: [24.x,25.x]
+        # node-version: [24.x, 25.x]
+        node-version: [26.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
@@ -80,7 +80,8 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        node-version: [24.x,25.x]
+        # node-version: [24.x,25.x]
+        node-version: [26.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
