@@ -8,7 +8,7 @@ See [website documentation for more details](https://noteplan.co/plugins/jgclark
 - Change: default **Project start string** is now `started` (new installs / missing setting only).
 - Fix: completing/cancelling outside the current Perspective, or when the note is already gone from `allProjectsList`, no longer blanks or needlessly rebuilds the Rich list; Space names show in the rebuild progress dialog; metadata-term rename is quieter and migrates legacy `#paused` from `project:` to `status:` when status is on.
 - dev: Rich list status toggles were empty for `#started` because `allProjectsList` rows lacked `statusHashtag` (so every active project was treated as `#notstarted`). List load backfills `statusHashtag` from notes; finish-review refreshes the note cache before updating the list row.
-- Fix: a settings save that does not change project-list scope (including the log regex or log timer, and the first save after a plugin update) no longer rebuilds the project list. A stale settings snapshot left by plugin update, or a perspective-folder overlay written back onto the cached settings object, was treated as a real scope change.
+- Fix: a settings save that does not change project-list scope (including the log regex or log timer, and the first save after a plugin update) no longer rebuilds the project list.
 
 ## [2.3.3] - 2026-10-17
 - Change: Increase the time between full rebuilds of the Project cache, up to 5 days. (There are quicker refreshes every day.)
