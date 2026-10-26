@@ -1063,21 +1063,30 @@ export function getIndentLevelFromRawContent(rawContentIn: string): number {
  * @param {string} headingToFind if empty, means 'end of note'. Can also be the special string '<<top of note>>' or '<<bottom of note>>'
  * @param {string} whereToAddInSection to add after a heading: 'start' or 'end'
  * @param {boolean} allowNotePreambleBeforeHeading?
+ * @param {string?} firstParaSuffix optional text appended to the first inserted line only (e.g. a date backlink). Does not mutate `paragraphs`.
  */
 export function addParagraphsToNote(
   destinationNote: TNote,
   paragraphs: Array<TParagraph>,
   headingToFind: string,
   whereToAddInSection: string,
-  allowNotePreambleBeforeHeading: boolean
+  allowNotePreambleBeforeHeading: boolean,
+  firstParaSuffix: string = '',
 ): void {
   try {
     if (paragraphs.length === 0) {
       throw new Error('No paragraphs to add!')
     }
     logDebug('paragraph/addParagraphsToNote', `-> adding ${paragraphs.length} paragraphs to note '${displayTitle(destinationNote)}' under heading '${headingToFind}'. whereToAddInSection=${whereToAddInSection}`)
-    // Turn the paragraphs into a (multi-line) text string
-    const selectedParasAsText = parasToText(paragraphs)
+    // Turn the paragraphs into a (multi-line) text string.
+    // Optional firstParaSuffix is appended to the first line only, without mutating source paragraphs
+    // (mutating TParagraph.content before removeParagraphs breaks NotePlan's delete matching).
+    let selectedParasAsText = parasToText(paragraphs)
+    if (firstParaSuffix !== '' && selectedParasAsText !== '') {
+      const lines = selectedParasAsText.split('\n')
+      lines[0] = `${lines[0]}${firstParaSuffix}`
+      selectedParasAsText = lines.join('\n')
+    }
 
     const destinationNoteParas = destinationNote.paragraphs
     let insertionIndex: number

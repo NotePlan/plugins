@@ -1,6 +1,9 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.6.2] - 2026-10-26
+- fix **/move paragraph...** (and calendar move variants): when "Add date reference?" is on, the source line is deleted again. Previously mutating the paragraph before `removeParagraphs` caused NotePlan to remove 0 lines, leaving a duplicate in the calendar note.
+
 ## [1.6.1] - 2026-06-26
 - fixes and improvements to **/move completed items to done section**:
   - recreated/moved section headings are now nested one level deeper inside the Done section (e.g. an active `## Section` becomes `### Section` under `## Done`), so they sit inside Done rather than as a sibling of it. This also lets completed items correctly merge into matching existing sub-headings in the Done section.
