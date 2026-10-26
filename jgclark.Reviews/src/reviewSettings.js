@@ -3,7 +3,7 @@
 // Settings for the Reviews plugin: load/normalise config, heading-setting parse,
 // and what a settings-pane save should do to the project list.
 // by @jgclark
-// Last updated 2026-10-05 for v2.3.1 by @jgclark + @CursorAI
+// Last updated 2026-10-26 for v2.4.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { getActivePerspectiveDef, loadPerspectiveDefsFromPluginSettings } from '../../jgclark.Dashboard/src/perspectiveHelpers'
@@ -118,7 +118,7 @@ export const SETTINGS_THAT_REQUIRE_RECALCULATE: $ReadOnlyArray<string> = [
 ]
 
 /**
- * Settings for commands other than the project list (weekly progress, complete/cancel, pause, next review, progress lines, log level). 
+ * Settings for commands other than the project list (weekly progress, complete/cancel, pause, next review, progress lines, log level, log regex, and log timer).
  * Changing only these must not rebuild, recalculate, or redisplay allProjectsList.
  */
 export const SETTINGS_FOR_OTHER_COMMANDS: $ReadOnlyArray<string> = [
@@ -133,6 +133,8 @@ export const SETTINGS_FOR_OTHER_COMMANDS: $ReadOnlyArray<string> = [
   'weeklyProjectProgressBulletSummary',
   'weeklyProjectProgressShowEmptyFolders',
   '_logLevel',
+  '_logFunctionRE',
+  '_logTimer',
 ]
 
 /**
@@ -226,11 +228,11 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
       logInfo(pluginJson, `getReviewSettings() Starting from a different plugin ...`)
     }
     // Get settings
-    const config: ReviewConfig = await DataStore.loadJSON('../jgclark.Reviews/settings.json')
+    const loaded: ReviewConfig = await DataStore.loadJSON('../jgclark.Reviews/settings.json')
 
     // If an external call allow silent return of null if no settings found.
     // Otherwise complain, as there should be settings.
-    if (config == null || Object.keys(config).length === 0) {
+    if (loaded == null || Object.keys(loaded).length === 0) {
       if (externalCall) {
         // Fail silently
         return null
@@ -239,6 +241,10 @@ export async function getReviewSettings(externalCall: boolean = false): Promise<
       throw new Error('No Reviews settings found')
     }
     // clo(config, `Review settings for '${pluginJson['plugin.version']}' version:`)
+    // Clone before any default fill or perspective overlay. DataStore.loadJSON may
+    // return a cached object; mutating it makes the next settings-pane save look
+    // like a folder or scope change.
+    const config: ReviewConfig = (cloneRawSettings((loaded: any)): any)
 
     // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
     DataStore.setPreference('startMentionStr', config.startMentionStr)
@@ -377,6 +383,27 @@ export function getChangedSettingKeys(previous: ?{ [string]: any }, current: ?{ 
 }
 
 /**
+ * Deep-copy a plain settings object so later default fills and perspective overlays
+ * cannot mutate the object DataStore.loadJSON returned.
+ * @param {{ [string]: any }} settings
+ * @returns {{ [string]: any }}
+ */
+export function cloneRawSettings(settings: { [string]: any }): { [string]: any } {
+  return (JSON.parse(JSON.stringify(settings)): any)
+}
+
+/**
+ * Keys that differ, ignoring SETTINGS_FOR_OTHER_COMMANDS (log level, log regex, log timer, and other non-list commands).
+ * Empty when either side is missing.
+ * @param {?{ [string]: any }} previous
+ * @param {?{ [string]: any }} current
+ * @returns {Array<string>}
+ */
+export function getProjectListRelevantChangedKeys(previous: ?{ [string]: any }, current: ?{ [string]: any }): Array<string> {
+  return getChangedSettingKeys(previous, current).filter((key) => !SETTINGS_FOR_OTHER_COMMANDS.includes(key))
+}
+
+/**
  * Decide what a settings-pane save should do to the project list.
  * Priority: rebuild (membership/metadata) > recalculate (existing rows) > redisplay (render only) > none.
  * With no previous snapshot, return rebuild so the first save after upgrade stays safe.
@@ -388,7 +415,7 @@ export function getSettingsUpdateAction(previous: ?{ [string]: any }, current: ?
   if (previous == null || current == null) {
     return 'rebuild'
   }
-  const changed = getChangedSettingKeys(previous, current).filter((key) => !SETTINGS_FOR_OTHER_COMMANDS.includes(key))
+  const changed = getProjectListRelevantChangedKeys(previous, current)
   if (changed.some((key) => SETTINGS_THAT_REQUIRE_REBUILD.includes(key))) {
     return 'rebuild'
   }
@@ -416,7 +443,7 @@ export function settingsChangeIsOnlyMetadataTermRenames(
   metadataTermSettingKeys: $ReadOnlyArray<string>,
 ): boolean {
   if (previous == null || current == null) return false
-  const changed = getChangedSettingKeys(previous, current).filter((key) => !SETTINGS_FOR_OTHER_COMMANDS.includes(key))
+  const changed = getProjectListRelevantChangedKeys(previous, current)
   if (changed.length === 0) return false
   return changed.every((key) => metadataTermSettingKeys.includes(key))
 }

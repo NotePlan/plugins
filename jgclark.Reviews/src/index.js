@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2026-10-16 for v2.4.0 by @jgclark + @CursorAI
+// Last updated 2026-10-26 for v2.4.0 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -11,17 +11,18 @@ import pluginJson from '../plugin.json'
 import { generateAllProjectsList, recalculateAllProjectsListItems } from './allProjectsListHelpers'
 import { migrateAllProjects } from './migration'
 import { renderProjectListsIfOpen } from './reviews'
-import { METADATA_TERM_SETTINGS_FOR_RENAME } from './projectStatus'
+import { getMetadataTermRenames, METADATA_TERM_SETTINGS_FOR_RENAME } from './projectStatus'
 import { offerAndRunMetadataTermRenames } from './projectStatusMigrate'
 import {
+  cloneRawSettings,
   getLastSettingsSnapshot,
+  getProjectListRelevantChangedKeys,
   getReviewSettings,
   getSettingsUpdateAction,
   persistLastSettingsSnapshot,
-  seedLastSettingsSnapshotIfMissing,
   settingsChangeIsOnlyMetadataTermRenames,
 } from './reviewSettings'
-import { JSP, compareObjects, logDebug, logError, logInfo } from '@helpers/dev'
+import { JSP, compareObjects, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { backupSettings, pluginUpdated, saveSettings, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
@@ -137,14 +138,18 @@ export async function onSettingsUpdated(): Promise<void> {
   // - otherwise do neither
   // Only refresh the project list window if it is already open; do not open it from saving settings alone.
   try {
-    const rawSettings: { [string]: any } = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    if (rawSettings == null || Object.keys(rawSettings).length === 0) {
+    const loadedRaw: { [string]: any } = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    if (loadedRaw == null || Object.keys(loadedRaw).length === 0) {
       throw new Error(`Can't get Review settings. Stopping.`)
     }
+    // Copy before getReviewSettings(), which fills defaults and may overlay perspective
+    // folders on the object DataStore.loadJSON returned when that object is cached.
+    const rawSettings: { [string]: any } = cloneRawSettings(loadedRaw)
 
     const previousRaw = getLastSettingsSnapshot()
     const action = getSettingsUpdateAction(previousRaw, rawSettings)
-    logInfo(pluginJson, `Have updated Review settings; action='${action}' (previous snapshot ${previousRaw == null ? 'missing' : 'present'})`)
+    const changed = getProjectListRelevantChangedKeys(previousRaw, rawSettings)
+    logInfo(pluginJson, `Have updated Review settings; action='${action}' (previous snapshot ${previousRaw == null ? 'missing' : 'present'}) changed=[${changed.join(',')}]`)
 
     const config = await getReviewSettings()
     if (!config) throw new Error(`Can't get Review settings. Stopping.`)
@@ -191,8 +196,24 @@ export async function onUpdateOrInstall(): Promise<void> {
     const updateSettingsResult = updateSettingData(pluginJson)
     logInfo(pluginID, `- updateSettingData returned code: ${updateSettingsResult}`)
 
-    const settingsAfterUpdate = (await DataStore.loadJSON(`../${pluginID}/settings.json`)) || migratedSettings
-    seedLastSettingsSnapshotIfMissing(settingsAfterUpdate)
+    const loadedAfterUpdate: { [string]: any } = (await DataStore.loadJSON(`../${pluginID}/settings.json`)) || migratedSettings
+    // Snapshot a copy of the post-update file. getReviewSettings() may overlay perspective
+    // folders on a cached loadJSON object, and a pre-update snapshot must not survive
+    // or the next settings-pane save replays that diff as a rebuild.
+    const settingsAfterUpdate = cloneRawSettings(loadedAfterUpdate)
+    const previousRaw = getLastSettingsSnapshot()
+    if (previousRaw != null) {
+      const renames = getMetadataTermRenames(previousRaw, settingsAfterUpdate)
+      if (renames.length > 0) {
+        const config = await getReviewSettings()
+        if (config) {
+          await offerAndRunMetadataTermRenames(previousRaw, settingsAfterUpdate, config)
+        } else {
+          logWarn(pluginID, `onUpdateOrInstall: metadata terms changed but Review settings could not be loaded, so no rename was offered`)
+        }
+      }
+    }
+    persistLastSettingsSnapshot(settingsAfterUpdate)
 
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'Plugin Installed or Updated.' })
