@@ -781,6 +781,30 @@ describe('paragraph.js', () => {
     })
   })
 
+  describe('findHeading()', () => {
+    const noteFolded = {
+      paragraphs: [
+        { type: 'title', lineIndex: 0, content: 'Note Title', headingLevel: 1 },
+        { type: 'title', lineIndex: 1, content: 'Section A …', headingLevel: 2 },
+        { type: 'open', lineIndex: 2, content: 'task 1' },
+        { type: 'title', lineIndex: 3, content: 'Done ...', headingLevel: 2 },
+      ],
+    }
+    test('matches clean name against folded heading content', () => {
+      const found = p.findHeading(noteFolded, 'Section A')
+      expect(found).toBeDefined()
+      expect(found?.content).toBe('Section A …')
+    })
+    test('matches when search term itself has fold ellipsis', () => {
+      const found = p.findHeading(noteFolded, 'Done …')
+      expect(found).toBeDefined()
+      expect(found?.content).toBe('Done ...')
+    })
+    test('returns null when no heading matches', () => {
+      expect(p.findHeading(noteFolded, 'Missing')).toBeNull()
+    })
+  })
+
   describe('findHeadingStartsWith()', () => {
     const noteA = {
       paragraphs: [

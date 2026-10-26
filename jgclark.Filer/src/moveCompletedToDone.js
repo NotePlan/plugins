@@ -28,7 +28,7 @@ import type { FilerConfig } from './filerHelpers'
 import { getFilerSettings } from './filerHelpers'
 import { blockHasActiveTasks, getParagraphBlock } from '@helpers/blocks'
 import { clo, JSP, logDebug, logInfo, logError, logTimer, logWarn, timer } from '@helpers/dev'
-import { getCurrentHeading, isParaAMatchForHeading } from '@helpers/headings'
+import { getCurrentHeading, isParaAMatchForHeading, stripFoldedHeadingEllipsis } from '@helpers/headings'
 import { insertParas } from '@helpers/paragraph'
 import { isClosed } from '@helpers/utils'
 import { showMessage, showMessageYesNoCancel } from '@helpers/userInput'
@@ -143,9 +143,10 @@ function getSubheadingMatchDetails(sourceHeading: TParagraph): { headingTextCont
     (sourceHeading.headingLevel ?? 2) + (MAKE_HEADINGS_ONE_DEEPER ? 1 : 0),
     5,
   ): any): 1 | 2 | 3 | 4 | 5)
-  const headingTextContent = (sourceHeading.rawContent ?? sourceHeading.content ?? '')
-    .replace(/^\s*#+\s+/, '')
-    .trim()
+  const headingTextContent = stripFoldedHeadingEllipsis(
+    (sourceHeading.rawContent ?? sourceHeading.content ?? '')
+      .replace(/^\s*#+\s+/, ''),
+  )
   return { headingTextContent, desiredHeadingLevel }
 }
 
@@ -568,7 +569,9 @@ function removeEmptiedSectionHeadings(note: TNote, parentHeadings: Array<TParagr
     if (!h || h.type !== 'title') continue
     const level = h.headingLevel ?? 2
     if (level <= 1) continue
-    const text = (h.rawContent ?? h.content ?? '').replace(/^\s*#+\s+/, '').trim()
+    const text = stripFoldedHeadingEllipsis(
+      (h.rawContent ?? h.content ?? '').replace(/^\s*#+\s+/, ''),
+    )
     const key = `${level}:${text}`
     if (!seen.has(key)) {
       seen.add(key)

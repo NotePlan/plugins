@@ -3,7 +3,8 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 
 ## [1.6.2] - 2026-10-26
 - fix **/move paragraph...** (and calendar move variants): when "Add date reference?" is on, the source line is deleted again. Previously mutating the paragraph before `removeParagraphs` caused NotePlan to remove 0 lines, leaving a duplicate in the calendar note.
-- fix **/move completed items to done section** creating a new heading if the existing sub-heading was folded (e.g. `### Section …`).
+- fix **/move completed items to done section** creating a new heading if the existing sub-heading was folded (e.g. `### Section …`), and when the *source* section heading was folded.
+- fix **/move note links** (and recent variant): stripping the `[[note link]]` could fail after the copy. Also resolves folded destination headings and skips delete if the insert failed.
 
 ## [1.6.1] - 2026-06-26
 - fixes and improvements to **/move completed items to done section**:

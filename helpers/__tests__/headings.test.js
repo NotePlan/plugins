@@ -205,6 +205,24 @@ describe('helpers/headings', () => {
     })
   })
 
+  describe('stripFoldedHeadingEllipsis', () => {
+    test('strips unicode ellipsis', () => {
+      expect(h.stripFoldedHeadingEllipsis('Done …')).toBe('Done')
+    })
+
+    test('strips three-dot ellipsis', () => {
+      expect(h.stripFoldedHeadingEllipsis('Done ...')).toBe('Done')
+    })
+
+    test('leaves plain heading text unchanged', () => {
+      expect(h.stripFoldedHeadingEllipsis('Done')).toBe('Done')
+    })
+
+    test('does not strip ellipsis that is not trailing', () => {
+      expect(h.stripFoldedHeadingEllipsis('Done (more)')).toBe('Done (more)')
+    })
+  })
+
   describe('isParaAMatchForHeading', () => {
     test('matches exact heading text at correct level', () => {
       const para = { type: 'title', content: 'Done', headingLevel: 2 }
@@ -239,6 +257,17 @@ describe('helpers/headings', () => {
     test('trims whitespace around heading name and content', () => {
       const para = { type: 'title', content: '  Done  …  ', headingLevel: 2 }
       expect(h.isParaAMatchForHeading(para, '  Done  ', 2)).toBe(true)
+    })
+
+    test('matches when headingName itself has a fold ellipsis', () => {
+      const para = { type: 'title', content: 'Done', headingLevel: 2 }
+      expect(h.isParaAMatchForHeading(para, 'Done …', 2)).toBe(true)
+      expect(h.isParaAMatchForHeading(para, 'Done ...', 2)).toBe(true)
+    })
+
+    test('matches when both sides have fold ellipsis', () => {
+      const para = { type: 'title', content: 'Done …', headingLevel: 2 }
+      expect(h.isParaAMatchForHeading(para, 'Done ...', 2)).toBe(true)
     })
 
     test('returns false for non-title paragraph', () => {

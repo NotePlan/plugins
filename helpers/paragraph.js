@@ -6,7 +6,7 @@
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
-import { isParaAMatchForHeading } from '@helpers/headings'
+import { isParaAMatchForHeading, stripFoldedHeadingEllipsis } from '@helpers/headings'
 import {
   RE_DONE_MENTION,
   RE_EVENT_LINK,
@@ -814,9 +814,15 @@ export function getParaFromContent(note: CoreNoteFields, contentToFind: string):
 export function findHeading(note: CoreNoteFields, headingToFind: string, includesString: boolean = false): TParagraph | null {
   if (headingToFind && headingToFind !== '') {
     const paragraphs = note.paragraphs
-    const para = paragraphs.find(
-      (paragraph) => paragraph.type === 'title' && (includesString ? paragraph.content.includes(headingToFind) : paragraph.content.trim() === headingToFind.trim()),
-    )
+    const searchTerm = stripFoldedHeadingEllipsis(headingToFind)
+    const para = paragraphs.find((paragraph) => {
+      if (paragraph.type !== 'title') return false
+      if (includesString) {
+        return stripFoldedHeadingEllipsis(paragraph.content).includes(searchTerm)
+      }
+      // Fold-aware exact match (either side may carry a NotePlan fold ellipsis)
+      return isParaAMatchForHeading(paragraph, searchTerm, paragraph.headingLevel ?? 0)
+    })
 
     if (para) return para
   }
@@ -1064,6 +1070,7 @@ export function getIndentLevelFromRawContent(rawContentIn: string): number {
  * @param {string} whereToAddInSection to add after a heading: 'start' or 'end'
  * @param {boolean} allowNotePreambleBeforeHeading?
  * @param {string?} firstParaSuffix optional text appended to the first inserted line only (e.g. a date backlink). Does not mutate `paragraphs`.
+ * @param {((rawFirstLine: string) => string)?} firstParaRawRewrite optional rewrite of the first inserted raw line only (e.g. strip a [[note link]]). Does not mutate `paragraphs`.
  */
 export function addParagraphsToNote(
   destinationNote: TNote,
@@ -1072,6 +1079,7 @@ export function addParagraphsToNote(
   whereToAddInSection: string,
   allowNotePreambleBeforeHeading: boolean,
   firstParaSuffix: string = '',
+  firstParaRawRewrite: ?((rawFirstLine: string) => string) = null,
 ): void {
   try {
     if (paragraphs.length === 0) {
@@ -1079,12 +1087,17 @@ export function addParagraphsToNote(
     }
     logDebug('paragraph/addParagraphsToNote', `-> adding ${paragraphs.length} paragraphs to note '${displayTitle(destinationNote)}' under heading '${headingToFind}'. whereToAddInSection=${whereToAddInSection}`)
     // Turn the paragraphs into a (multi-line) text string.
-    // Optional firstParaSuffix is appended to the first line only, without mutating source paragraphs
+    // Optional first-line rewrite/suffix are applied without mutating source paragraphs
     // (mutating TParagraph.content before removeParagraphs breaks NotePlan's delete matching).
     let selectedParasAsText = parasToText(paragraphs)
-    if (firstParaSuffix !== '' && selectedParasAsText !== '') {
+    if (selectedParasAsText !== '' && (firstParaRawRewrite != null || firstParaSuffix !== '')) {
       const lines = selectedParasAsText.split('\n')
-      lines[0] = `${lines[0]}${firstParaSuffix}`
+      if (firstParaRawRewrite != null) {
+        lines[0] = firstParaRawRewrite(lines[0])
+      }
+      if (firstParaSuffix !== '') {
+        lines[0] = `${lines[0]}${firstParaSuffix}`
+      }
       selectedParasAsText = lines.join('\n')
     }
 
