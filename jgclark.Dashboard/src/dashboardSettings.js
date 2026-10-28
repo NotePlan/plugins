@@ -132,7 +132,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'includedCalendarSections',
     label: 'Calendar note terms to include',
     description:
-      "Comma-separated list of terms for calendar notes only. A task is included if (1) any heading above it starts with one of these values (case-insensitive prefix; e.g. 'Wins' matches 'Wins for 2026 Q2'), or (2) the task text itself contains the term (e.g. #acme, @acme, or acme). If left blank, all calendar items are included. Short terms can over-match. When this is set and Hide Duplicates is on, matching items stay in calendar / Overdue sections rather than only in a TAG section.",
+      "Comma-separated list of terms for calendar notes only. A task is included if (1) any heading above it starts with one of these values (case-insensitive prefix; e.g. 'Wins' matches 'Wins for 2026 Q2'), or (2) the task text itself contains the term (e.g. #acme, @acme, or acme). The destination of a labeled markdown link [label](url) is ignored (the label is still matched), and the contents of [[note links]] are ignored. If left blank, all calendar items are included. Short terms can over-match. When this is set and Hide Duplicates is on, matching items stay in calendar / Overdue sections rather than only in a TAG section.",
     type: 'input',
     default: '',
     compactDisplay: true,

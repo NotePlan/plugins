@@ -12,6 +12,7 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 - Today includes an open task on each day from its start date (`>YYYY-MM-DD`) through a due date written `!>YYYY-MM-DD`. Tasks in other notes are found by searching for `!>`, because the overdue list leaves them out while that due date is still ahead. A task written in today's note stays there too, instead of being hidden for not being scheduled to today. The lookup time is logged, and shown beside the section time when Show Section Timings is on.
 - dev: Today logs at debug, for each `!>` line, whether that start-to-due window includes it and why.
 ### Fixes
+- Fix: Calendar note terms no longer match inside the URL of a labeled markdown link, or inside `[[note links]]`. The link label is still matched.
 - Fix: Display of the Theme field in Dashboard Settings, which was invisible in dark mode, and unreliable in search mode.
 - ??? The plan file is overdue_bang_dates_b09303f1.plan.md, at /Users/jonathan/.cursor/plans/overdue_bang_dates_b09303f1.plan.md.
 

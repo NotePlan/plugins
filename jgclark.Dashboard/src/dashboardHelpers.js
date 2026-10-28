@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2026-10-13 for v2.6.0.b1 by @jgclark + @CursorAI
+// Last updated 2026-10-28 for v2.6.0.b1 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -1393,11 +1393,24 @@ export function filterParasByIgnoreTerms(
 }
 
 /**
+ * Task text used for calendar-term substring matching.
+ * Drops [[note link]] contents, then reduces [label](url) to the label.
+ * Bare URLs stay. Fresh regexes avoid a shared lastIndex.
+ * @param {string} content
+ * @returns {string}
+ */
+function contentForCalendarTermMatch(content: string): string {
+  const withoutNoteLinks = content.replace(/\[\[[^\[]+\]\]/g, '')
+  return withoutNoteLinks.replace(/\[(.+?)\]\([^)]*?\)/g, '$1')
+}
+
+/**
  * Filter paragraphs to only include those matching included calendar note terms.
  * Applies only to calendar notes (project notes always pass through).
  * A calendar task is kept if either:
  * - any heading in its hierarchy matches a term as a case-insensitive prefix, or
  * - its content contains a term as a case-insensitive substring (so `#acme`, `@acme`, or `acme` all work).
+ * The content check ignores [[note link]] contents and the destination of a labeled markdown link. The link label is still matched. Bare URLs are still matched.
  * Blank / unset setting keeps all paragraphs.
  * Note: resolves the source note via filename when `para.note` is missing (typical backlink / referenced shape).
  * @tests in jest file
@@ -1429,8 +1442,9 @@ export function filterParasByIncludedCalendarSections(
     const note = getNoteFromPara(p)
     if (!note || note.type !== 'Calendar') return true
 
-    // Keep if task content contains any of the filter terms (e.g. #acme, @acme, or acme)
-    const contentLower = (p.content || '').toLowerCase()
+    // Keep if task content contains any of the filter terms (e.g. #acme, @acme, or acme).
+    // Ignore [[note links]] and the URL of [label](url); the label is still searched.
+    const contentLower = contentForCalendarTermMatch(p.content || '').toLowerCase()
     if (includedCalendarSections.some((inc) => contentLower.includes(inc.toLowerCase()))) {
       return true
     }

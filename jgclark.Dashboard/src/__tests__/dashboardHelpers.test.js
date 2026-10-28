@@ -974,6 +974,82 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).not.toContain(paraNeither)
       })
 
+      test('should ignore the URL of a labeled markdown link when matching content terms', () => {
+        const calendarNote = new Note({ filename: '2025-01-25.md', type: 'Calendar' })
+        const para = new Paragraph({
+          type: 'open',
+          content: '[Review](noteplan://x-callback-url/runPlugin?pluginID=jgclark.PeriodicReviews&command=Weekly%20Review)',
+          note: calendarNote,
+        })
+        const paras = [para]
+        const dashboardSettings = { includedCalendarSections: 'NotePlan' }
+        const startTime = new Date()
+        const functionName = 'testFunction'
+
+        jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockReturnValue(['Inbox'])
+
+        const result = filterParasByIncludedCalendarSections(paras, dashboardSettings, startTime, functionName)
+        expect(result).toHaveLength(0)
+        expect(result).not.toContain(para)
+      })
+
+      test('should match a calendar term in a markdown link label', () => {
+        const calendarNote = new Note({ filename: '2025-01-25.md', type: 'Calendar' })
+        const para = new Paragraph({
+          type: 'open',
+          content: '[NotePlan docs](https://example.com)',
+          note: calendarNote,
+        })
+        const paras = [para]
+        const dashboardSettings = { includedCalendarSections: 'NotePlan' }
+        const startTime = new Date()
+        const functionName = 'testFunction'
+
+        jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockReturnValue(['Inbox'])
+
+        const result = filterParasByIncludedCalendarSections(paras, dashboardSettings, startTime, functionName)
+        expect(result).toHaveLength(1)
+        expect(result).toContain(para)
+      })
+
+      test('should ignore note link contents when matching content terms', () => {
+        const calendarNote = new Note({ filename: '2025-01-25.md', type: 'Calendar' })
+        const para = new Paragraph({
+          type: 'open',
+          content: 'Review [[NotePlan project]]',
+          note: calendarNote,
+        })
+        const paras = [para]
+        const dashboardSettings = { includedCalendarSections: 'NotePlan' }
+        const startTime = new Date()
+        const functionName = 'testFunction'
+
+        jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockReturnValue(['Inbox'])
+
+        const result = filterParasByIncludedCalendarSections(paras, dashboardSettings, startTime, functionName)
+        expect(result).toHaveLength(0)
+        expect(result).not.toContain(para)
+      })
+
+      test('should keep a task when the term sits outside a note link', () => {
+        const calendarNote = new Note({ filename: '2025-01-25.md', type: 'Calendar' })
+        const para = new Paragraph({
+          type: 'open',
+          content: 'NotePlan [[other]]',
+          note: calendarNote,
+        })
+        const paras = [para]
+        const dashboardSettings = { includedCalendarSections: 'NotePlan' }
+        const startTime = new Date()
+        const functionName = 'testFunction'
+
+        jest.spyOn(headings, 'getHeadingHierarchyForThisPara').mockReturnValue(['Inbox'])
+
+        const result = filterParasByIncludedCalendarSections(paras, dashboardSettings, startTime, functionName)
+        expect(result).toHaveLength(1)
+        expect(result).toContain(para)
+      })
+
       test('should filter calendar paras that only have filename (no .note) like backlink refs', () => {
         // Referenced/scheduled items often arrive without .note; resolve via filename instead
         const calendarNote = new Note({ filename: '20260701.md', type: 'Calendar' })
