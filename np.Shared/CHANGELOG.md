@@ -1,6 +1,9 @@
 # Changes to 🤝 Shared Resources plugin
 
-See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
+See [Shared Plugin's README](https://noteplan.co/plugins/np.Shared) for details on this plugin.
+
+## [1.3.2] 2026-10-28 (not yet released)
+- Fix: tag/mention cache generate/update now scans notes via `runSyncWorkOnAsyncThread(..., { items, batchSize })` (helpers/NPThreads) -- short async-thread batches with a main-thread breather between them -- instead of one long `runOnAsyncThread` call. Mitigates stuck "Generating tag/mention cache" progress when the async Promise never settles after many `TNote` bridge reads (NotePlan/plugins#793). Progress dialog updates every 20 notes (and after each batch).
 
 ## [1.3.1] 2026-10-23
 - Fix: notes-changed-recently `generate` / `update` no longer use `runOnAsyncThread` for entry build/merge. Reading `TNote` fields inside that API hung the Promise live, which left Projects Refresh spinning indefinitely after a stale-cache update.

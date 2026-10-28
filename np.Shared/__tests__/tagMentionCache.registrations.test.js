@@ -196,6 +196,26 @@ describe('register / unregister', () => {
     expect(CommandBar.showLoading).toHaveBeenCalledWith(false)
   })
 
+  test('generateTagMentionCache batches calendar notes across multiple async calls', async () => {
+    mockUsersVersionHas.mockImplementation((feature: string) => feature === 'runOnAsyncThread')
+    files[SHARED_WANTED] = JSON.stringify({
+      registrations: { 'jgclark.Dashboard': ['@bob'] },
+    })
+    DataStore.calendarNotes = Array.from({ length: 101 }, (_, i) => ({
+      filename: `2026${String(i).padStart(4, '0')}.md`,
+      type: 'Calendar',
+      content: '',
+      paragraphs: [],
+      frontmatterAttributes: {},
+    }))
+    DataStore.projectNotes = []
+    await generateTagMentionCache('test async batches', true)
+    // 101 calendar notes => 2 batches; 0 regular notes => no regular batches
+    expect(CommandBar.runOnAsyncThread).toHaveBeenCalledTimes(2)
+    expect(files[SHARED_CACHE]).toBeDefined()
+    expect(CommandBar.showLoading).toHaveBeenCalledWith(false)
+  })
+
   test('generateTagMentionCache stays on main thread when usersVersionHas is false', async () => {
     mockUsersVersionHas.mockImplementation(() => false)
     files[SHARED_WANTED] = JSON.stringify({

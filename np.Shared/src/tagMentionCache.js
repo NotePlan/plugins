@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Shared tag/mention cache for any plugin (owned by np.Shared)
 // Written originally by @jgclark for Dashboard plugin.
-// last updated 2026-09-15 for v1.2.0 by @jgclark + @CursorAI
+// last updated 2026-10-28 for v1.3.2 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 // Cache body (`tagMentionCache.json`):
 // {
@@ -25,7 +25,7 @@ import { JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@hel
 import { CaseInsensitiveSet } from '@helpers/general'
 import { noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { getNotesChangedInInterval } from '@helpers/NPnote'
-import { runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
+import { DEFAULT_ASYNC_THREAD_DIALOG_UPDATE_INTERVAL, runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
 import { RE_NP_HASHTAG_G, RE_NP_MENTION_G } from '@helpers/regex'
 import { caseInsensitiveArrayIncludes, caseInsensitiveMatch, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
 import { getHashtagsFromString } from '@helpers/stringTransforms'
@@ -54,7 +54,31 @@ const TAG_CACHE_SKIP_REDUNDANT_REBUILD_MS = 2 * 60 * 1000
 const TAG_CACHE_ONLY_FOR_OPEN_ITEMS = true // Note: if false, then for JGC the cache file is 20x larger.
 const SHOW_PROGRESS_DIALOG = true // if true, use CommandBar.showLoading during generate / note-scan progress
 
+// Keep using runOnAsyncThread, but only for short batches so a hung Promise cannot strand the whole vault scan
+// (see API bug report in NotePlan/plugins#793). Main thread gets a breather between batches to refresh progress / settle the API.
+// Batch size and dialog refresh cadence use NPThreads defaults (100 / 20) unless overridden in options.
+
 let tagMentionCacheGenerationInProgress = false
+
+type TProcessNotesResult = {
+  entries: Array<{ filename: string, items: Array<string> }>,
+  matchingNoteCount: number,
+  totalFoundItems: number,
+  notesSkippedByPrefilter: number,
+}
+
+function emptyProcessNotesResult(): TProcessNotesResult {
+  return { entries: [], matchingNoteCount: 0, totalFoundItems: 0, notesSkippedByPrefilter: 0 }
+}
+
+function mergeProcessNotesResults(into: TProcessNotesResult, from: TProcessNotesResult): void {
+  for (const entry of from.entries) {
+    into.entries.push(entry)
+  }
+  into.matchingNoteCount += from.matchingNoteCount
+  into.totalFoundItems += from.totalFoundItems
+  into.notesSkippedByPrefilter += from.notesSkippedByPrefilter
+}
 
 //--------------------------------------------------------------------------
 // Types
@@ -411,28 +435,44 @@ function getWantedTagOrMentionListFromNoteOpenItemsOnly(
 
 /**
  * Process notes for cache build; returns cache rows and stats.
- * @param {Array<TNote>} notes
+ * Sync; intended for one batch (or a main-thread fallback). Progress uses absolute counts when scanning in slices.
+ * @param {Array<TNote>} notes slice (or full list) to process
  * @param {TagMentionLookupContext} ctx
- * @param {string} noteTypeStr description for showing in the progress dialog.
- * @returns {{ entries: Array<{ filename: string, items: Array<string> }>, matchingNoteCount: number, totalFoundItems: number, notesSkippedByPrefilter: number }}
+ * @param {string} noteTypeStr description for showing in the progress dialog
+ * @param {number} progressOffset how many notes already processed before this slice (0-based)
+ * @param {number} progressTotal total notes in the full scan (for dialog denominator)
+ * @param {number} dialogUpdateInterval refresh CommandBar.showLoading every N notes (from NPThreads)
+ * @returns {TProcessNotesResult}
  */
 function processNotesForTagMentionCache(
   notes: $ReadOnlyArray<TNote>,
   ctx: TagMentionLookupContext,
   noteTypeStr: string = '',
-): { entries: Array<{ filename: string, items: Array<string> }>, matchingNoteCount: number, totalFoundItems: number, notesSkippedByPrefilter: number } {
+  progressOffset: number = 0,
+  progressTotal: number = notes.length,
+  dialogUpdateInterval: number = DEFAULT_ASYNC_THREAD_DIALOG_UPDATE_INTERVAL,
+): TProcessNotesResult {
   const entries = []
   let matchingNoteCount = 0
   let totalFoundItems = 0
   let notesSkippedByPrefilter = 0
-  let noteCount = 0
+  const totalForProgress = progressTotal > 0 ? progressTotal : notes.length
+  const progressEvery =
+    dialogUpdateInterval > 0 ? dialogUpdateInterval : DEFAULT_ASYNC_THREAD_DIALOG_UPDATE_INTERVAL
 
-  for (const note of notes) {
-    noteCount++
+  for (let i = 0; i < notes.length; i++) {
+    const note = notes[i]
+    const absoluteCount = progressOffset + i + 1
     // Progress updates; hide loading in generateTagMentionCache finally (not here) so multi-batch scans keep one indicator.
+    const shouldUpdateProgress =
+      totalForProgress > 0 && (absoluteCount % progressEvery === 0 || absoluteCount === totalForProgress)
     // $FlowFixMe[constant-condition]
-    if (SHOW_PROGRESS_DIALOG && noteCount % 100 === 0) {
-      CommandBar.showLoading(true, `Generating tag/mention cache: reading ${noteTypeStr} ${noteCount} / ${notes.length}`, noteCount / notes.length)
+    if (SHOW_PROGRESS_DIALOG && shouldUpdateProgress) {
+      CommandBar.showLoading(
+        true,
+        `Generating tag/mention cache: reading ${noteTypeStr} ${String(absoluteCount)} / ${String(totalForProgress)}`,
+        absoluteCount / totalForProgress,
+      )
     }
     if (!noteMayContainCacheItems(note, ctx)) {
       notesSkippedByPrefilter++
@@ -810,12 +850,13 @@ export async function getFilenamesOfNotesWithTagOrMentions(
  * Writes all instances of wanted mentions and tags (from the wantedTagMentionsList) to the tagMentionCacheFile, by filename.
  * Note: this includes all calendar notes, and all regular notes, apart from those in special folders (starts with '@'), including @Templates, @Archive and @Trash folders.
  *
- * **Threading:** When `usersVersionHas('runOnAsyncThread')` (gated in `NPVersions.js`; currently `4.0.0` so
- * this stays on the main thread until the API is reliable), the note scan runs inside
- * `CommandBar.runOnAsyncThread()` via `runSyncWorkOnAsyncThread`. `showLoading` progress is allowed inside
- * the callback. Large scan results are stored in outer variables; the async callback only returns a
- * primitive (`true`) because returning large objects previously hung the Promise (scan finished, await
- * never resumed). Save / banners / prefs run on the main thread after await.
+ * **Threading:** When `usersVersionHas('runOnAsyncThread')` (gated in `NPVersions.js` from 3.21.3), the note
+ * scan uses `runSyncWorkOnAsyncThread(..., { items, batchSize, onBatchComplete })` (helpers/NPThreads.js):
+ * short async-thread batches with a main-thread breather between them. That mitigates NotePlan/plugins#793
+ * (long `TNote` bridge work in one `runOnAsyncThread` call can leave the Promise unresolved). `showLoading`
+ * is allowed inside the batch callback and is also refreshed on the main thread after each batch. Large
+ * scan results stay in outer variables; the async callback only returns a primitive. Save / banners / prefs
+ * run on the main thread.
  *
  * @param {string} generationReason The reason for the generation, for info & logging purposes.
  * @param {boolean} forceRebuild If true, the cache will be rebuilt from scratch, otherwise it will revert to the quicker 'updateTagMentionCache' function if the WANTED_PARA_TYPES are all already in the cache.
@@ -886,37 +927,71 @@ export async function generateTagMentionCache(
       loadingIndicatorShown = true
     }
     // Side-channel results: do not return large objects from runOnAsyncThread (that hung the Promise live).
-    type TProcessNotesResult = {
-      entries: Array<{ filename: string, items: Array<string> }>,
-      matchingNoteCount: number,
-      totalFoundItems: number,
-      notesSkippedByPrefilter: number,
-    }
-    let calResultHolder: ?TProcessNotesResult = null
-    let regResultHolder: ?TProcessNotesResult = null
+    const calResult: TProcessNotesResult = emptyProcessNotesResult()
+    const regResult: TProcessNotesResult = emptyProcessNotesResult()
 
     logDebug('generateTagMentionCache', `- scanning ${String(allCalNotes.length)} calendar notes ...`)
-    await runSyncWorkOnAsyncThread('generateTagMentionCache calendar', () => {
-      calResultHolder = processNotesForTagMentionCache(allCalNotes, lookupCtx, 'calendar note')
-      return true
-    })
-    const calResult: TProcessNotesResult =
-      calResultHolder != null ? calResultHolder : processNotesForTagMentionCache(allCalNotes, lookupCtx, 'calendar note')
-    if (calResultHolder == null) {
-      logWarn('generateTagMentionCache', `- calendar async result missing; scanned on main thread`)
-    }
+    await runSyncWorkOnAsyncThread(
+      'generateTagMentionCache calendar',
+      (batch, start, _end, dialogUpdateInterval) => {
+        mergeProcessNotesResults(
+          calResult,
+          processNotesForTagMentionCache(
+            batch,
+            lookupCtx,
+            'calendar note',
+            start,
+            allCalNotes.length,
+            dialogUpdateInterval,
+          ),
+        )
+      },
+      {
+        items: allCalNotes,
+        onBatchComplete: ({ endIndex, total }) => {
+          // $FlowFixMe[constant-condition]
+          if (SHOW_PROGRESS_DIALOG && total > 0) {
+            CommandBar.showLoading(
+              true,
+              `Generating tag/mention cache: reading calendar note ${String(endIndex)} / ${String(total)}`,
+              endIndex / total,
+            )
+          }
+        },
+      },
+    )
     logDebug('generateTagMentionCache', `  - pre-filter skipped ${String(calResult.notesSkippedByPrefilter)} calendar notes with no possible wanted items`)
 
     logDebug('generateTagMentionCache', `- scanning ${String(allRegularNotes.length)} regular notes ...`)
-    await runSyncWorkOnAsyncThread('generateTagMentionCache regular', () => {
-      regResultHolder = processNotesForTagMentionCache(allRegularNotes, lookupCtx, 'regular note')
-      return true
-    })
-    const regResult: TProcessNotesResult =
-      regResultHolder != null ? regResultHolder : processNotesForTagMentionCache(allRegularNotes, lookupCtx, 'regular note')
-    if (regResultHolder == null) {
-      logWarn('generateTagMentionCache', `- regular async result missing; scanned on main thread`)
-    }
+    await runSyncWorkOnAsyncThread(
+      'generateTagMentionCache regular',
+      (batch, start, _end, dialogUpdateInterval) => {
+        mergeProcessNotesResults(
+          regResult,
+          processNotesForTagMentionCache(
+            batch,
+            lookupCtx,
+            'regular note',
+            start,
+            allRegularNotes.length,
+            dialogUpdateInterval,
+          ),
+        )
+      },
+      {
+        items: allRegularNotes,
+        onBatchComplete: ({ endIndex, total }) => {
+          // $FlowFixMe[constant-condition]
+          if (SHOW_PROGRESS_DIALOG && total > 0) {
+            CommandBar.showLoading(
+              true,
+              `Generating tag/mention cache: reading regular note ${String(endIndex)} / ${String(total)}`,
+              endIndex / total,
+            )
+          }
+        },
+      },
+    )
     logDebug('generateTagMentionCache', `  - pre-filter skipped ${String(regResult.notesSkippedByPrefilter)} regular notes with no possible wanted items`)
 
     const calWantedItems = calResult.entries
@@ -981,8 +1056,8 @@ export async function generateTagMentionCache(
  * Update the tagMentionCacheFile.
  * It works smartly: it only recalculates notes that have been updated since the last run.
  * Last-run time comes from `cache.lastUpdated` (ISO UTC in JSON) and `lastTimeThisWasRunPref` (Date in preferences); see `getTagMentionCacheLastRunInfo`.
- * `getNotesChangedInInterval` stays on the main thread; reindexing changed notes uses `runOnAsyncThread` when available
- * (side-channel stats, primitive return -- see generateTagMentionCache).
+ * `getNotesChangedInInterval` stays on the main thread; reindexing changed notes uses
+ * `runSyncWorkOnAsyncThread` with `items` batches when available (see generateTagMentionCache).
  */
 export async function updateTagMentionCache(): Promise<void> {
   try {
@@ -1027,16 +1102,16 @@ export async function updateTagMentionCache(): Promise<void> {
     const recentlychangedNotes = getNotesChangedInInterval(numDaysBack).filter((n) => n.changedDate >= jsdateToStartLooking)
     logTimer('updateTagMentionCache', startTime, `Found ${recentlychangedNotes.length} changed notes in that time`)
 
-    let reindexStatsHolder: ?{ notesWithWantedItems: number, changedNoteCount: number } = null
-    await runSyncWorkOnAsyncThread('updateTagMentionCache reindex', () => {
-      reindexStatsHolder = reindexChangedNotesInTagMentionCache(cache, recentlychangedNotes, lookupCtx)
-      return true
-    })
-    const reindexStats =
-      reindexStatsHolder != null ? reindexStatsHolder : reindexChangedNotesInTagMentionCache(cache, recentlychangedNotes, lookupCtx)
-    if (reindexStatsHolder == null) {
-      logWarn('updateTagMentionCache', `- reindex async result missing; reindexed on main thread`)
-    }
+    const reindexStats = { notesWithWantedItems: 0, changedNoteCount: 0 }
+    await runSyncWorkOnAsyncThread(
+      'updateTagMentionCache reindex',
+      (batch) => {
+        const batchStats = reindexChangedNotesInTagMentionCache(cache, batch, lookupCtx)
+        reindexStats.notesWithWantedItems += batchStats.notesWithWantedItems
+        reindexStats.changedNoteCount += batchStats.changedNoteCount
+      },
+      { items: recentlychangedNotes },
+    )
     logTimer('updateTagMentionCache', startTime, `-> ${String(reindexStats.notesWithWantedItems)} recently changed notes with wanted items`)
 
     // Update the last updated time and wanted items (which should be the same,)

@@ -13,6 +13,7 @@
 
 - **helpers/NPVersions.js** — added `runOnAsyncThread` feature gate (NotePlan >= 3.21.3) for `CommandBar.runOnAsyncThread()`.
 - **helpers/NPThreads.js** — new `runSyncWorkOnAsyncThread()` helper for `CommandBar.runOnAsyncThread()` (with main-thread fallback).
+- **helpers/NPThreads.js** — `runSyncWorkOnAsyncThread(label, work, { items, batchSize?, onBatchComplete? })` can split list scans into short async-thread batches with a main-thread breather between them (mitigates hung Promises when reading many `TNote` fields in one `runOnAsyncThread` call; NotePlan/plugins#793). Single-shot `runSyncWorkOnAsyncThread(label, work)` unchanged.
 - **helpers/NPnote.js** — `getNoteFromIdentifier` improvements:
   - Resolve by filename first when the identifier ends with `DataStore.defaultFileExtension` (e.g. `Note.md` or `folder/Note.md`) via `DataStore.noteByFilename(identifier, 'Notes')`.
   - Fallback chain for project note by title: exact title, then quoted title (e.g. `"Title"`), then case-insensitive + search all folders.
