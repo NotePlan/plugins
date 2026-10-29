@@ -2,14 +2,14 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2026-10-10 by @jgclark + @CursorAI
+// Last updated 2026-10-29 by @jgclark + @CursorAI
 // ---------------------------------------------------------
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
 import { getReminderMarkerColors, RE_REMIND_UUID_IN_CONTENT, type TReminderDisplayById } from '@helpers/NPReminders'
 import { hasFrontMatter } from '@helpers/NPFrontMatter'
 import { getFolderFromFilename } from '@helpers/folders'
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
-import { getStoredWindowRect, getWindowFromCustomId, getWindowIdFromCustomId, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
+import { getStoredWindowRect, getWindowFromCustomId, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInEventLinkHiddenPart, isTermInNotelinkOrURI, isTermInMarkdownPath } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
@@ -1093,13 +1093,17 @@ export async function updateGlobalSharedData(windowId: string, data: any, mergeD
     return undefined
   }
   let newData
-  const currentData = await getGlobalSharedData(windowId, varName)
-  if (currentData === undefined) {
-    logDebug(`updateGlobalSharedData`, `Variable ${varName} was not defined (creating it now)...ignore the WebView error above ^^^`)
-    await HTMLView.runJavaScript(`let ${varName} = {};`, windowId) // create the global var if it doesn't exist
-  }
   if (mergeData) {
-    newData = { ...currentData, ...data }
+  // Only read back from the WebView when merging. A full replace already has the payload;
+  // getGlobalSharedData serializes the whole window state and can hang after a large UPDATE_DATA.
+    const currentData = await getGlobalSharedData(windowId, varName)
+    if (currentData === undefined) {
+      logDebug(`updateGlobalSharedData`, `Variable ${varName} was not defined (creating it now)...ignore the WebView error above ^^^`)
+      await HTMLView.runJavaScript(`let ${varName} = {};`, windowId) // create the global var if it doesn't exist
+      newData = { ...data }
+    } else {
+      newData = { ...currentData, ...data }
+    }
   } else {
     newData = data
   }

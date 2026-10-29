@@ -1,10 +1,36 @@
 /* globals describe, expect, test */
 
+// getNPWeekData reads the Calendar global. An empty object takes the moment week fallback.
+if (typeof global.Calendar === 'undefined') global.Calendar = {}
+
 import moment from 'moment/min/moment-with-locales'
 import { relativeDateFromNumber } from '../dateTime'
-import { contentWithoutDueDate, daysBeforeDueDate, daysBetweenStartAndDueDate, dueDateChip, explainStartDueWindow, hasDueDate, hasStartAndDueDate, replaceFarDueDatesWithChips, todayIsBetweenStartAndDueDate } from '../dueStartDates'
+import { getNPWeekData } from '../NPdateTime'
+import { contentWithoutDueDate, daysBeforeDueDate, daysBetweenStartAndDueDate, daysUntilWeekDue, dueDateChip, explainStartDueWindow, explainThisWeekSpan, hasDueDate, hasStartAndDueDate, replaceFarDueDatesWithChips, thisWeekIsInStartDueWeekSpan, todayIsBetweenStartAndDueDate, weekDueIsPast } from '../dueStartDates'
 
 const isoOffset = (days) => moment().startOf('day').add(days, 'days').format('YYYY-MM-DD')
+
+const weekSpec = (offset) => {
+  const info = getNPWeekData(new Date(), offset, 'week')
+  if (info == null) throw new Error(`no week data for offset ${offset}`)
+  return info.weekString
+}
+
+const expectedWeekChip = (days) => {
+  if (days >= -6 && days <= 6) {
+    if (days === 0) return { days, label: 'today', urgent: true }
+    if (days < 0) {
+      const ago = Math.abs(days)
+      return { days, label: `${ago} ${ago === 1 ? 'day' : 'days'} ago`, urgent: true }
+    }
+    return { days, label: `${days} ${days === 1 ? 'day' : 'days'}`, urgent: false }
+  }
+  const weeks = Math.trunc(days / 7)
+  const count = Math.abs(weeks)
+  const word = count === 1 ? 'week' : 'weeks'
+  if (weeks < 0) return { days, label: `${count} ${word} ago`, urgent: true }
+  return { days, label: `${count} ${word}`, urgent: false }
+}
 
 describe('helpers/dueStartDates', () => {
   describe('hasDueDate()', () => {
@@ -155,6 +181,9 @@ describe('helpers/dueStartDates', () => {
     test('the > inside !> is not the start date', () => {
       expect(todayIsBetweenStartAndDueDate(`task !>${isoOffset(-1)} !>${isoOffset(2)}`)).toBe(false)
     })
+    test('a week due does not open the day window', () => {
+      expect(todayIsBetweenStartAndDueDate(`>${weekSpec(-1)} !>${weekSpec(1)}`)).toBe(false)
+    })
     test('explainStartDueWindow matches the include decision', () => {
       const inside = `>${isoOffset(-2)} !>${isoOffset(5)}`
       const before = `>${isoOffset(1)} !>${isoOffset(5)}`
@@ -166,6 +195,71 @@ describe('helpers/dueStartDates', () => {
       expect(explainStartDueWindow(after)).toContain('after due')
       expect(explainStartDueWindow(plainBang)).toBe('no !> due date')
       expect(explainStartDueWindow(`!>${isoOffset(2)}`)).toBe('no start date')
+    })
+  })
+
+  describe('thisWeekIsInStartDueWeekSpan()', () => {
+    test('true from the start week through the due week', () => {
+      expect(thisWeekIsInStartDueWeekSpan(`>${weekSpec(0)} !>${weekSpec(0)}`)).toBe(true)
+      expect(thisWeekIsInStartDueWeekSpan(`>${weekSpec(-1)} !>${weekSpec(0)}`)).toBe(true)
+      expect(thisWeekIsInStartDueWeekSpan(`>${weekSpec(-2)} !>${weekSpec(1)}`)).toBe(true)
+    })
+    test('false before the start week and after the due week', () => {
+      expect(thisWeekIsInStartDueWeekSpan(`>${weekSpec(1)} !>${weekSpec(2)}`)).toBe(false)
+      expect(thisWeekIsInStartDueWeekSpan(`>${weekSpec(-3)} !>${weekSpec(-1)}`)).toBe(false)
+    })
+    test('false without a week start, and for a plain week due', () => {
+      expect(thisWeekIsInStartDueWeekSpan(`!>${weekSpec(1)}`)).toBe(false)
+      expect(thisWeekIsInStartDueWeekSpan(`>${weekSpec(-1)} !${weekSpec(1)}`)).toBe(false)
+    })
+    test('the > inside !> is not the start week, and a day start does not count', () => {
+      expect(explainThisWeekSpan(`!>${weekSpec(1)}`)).toBe('no start week')
+      expect(thisWeekIsInStartDueWeekSpan(`>${isoOffset(-1)} !>${weekSpec(1)}`)).toBe(false)
+    })
+    test('invalid week numbers do not open the span', () => {
+      expect(thisWeekIsInStartDueWeekSpan('>2026-W00 !>2026-W01')).toBe(false)
+      expect(thisWeekIsInStartDueWeekSpan('>2026-W01 !>2026-W54')).toBe(false)
+    })
+    test('explainThisWeekSpan matches the include decision', () => {
+      const inside = `>${weekSpec(-1)} !>${weekSpec(1)}`
+      const before = `>${weekSpec(1)} !>${weekSpec(2)}`
+      const after = `>${weekSpec(-3)} !>${weekSpec(-1)}`
+      expect(thisWeekIsInStartDueWeekSpan(inside)).toBe(true)
+      expect(explainThisWeekSpan(inside).startsWith('in week span')).toBe(true)
+      expect(explainThisWeekSpan(before)).toContain('before start week')
+      expect(explainThisWeekSpan(after)).toContain('after due week')
+    })
+  })
+
+  describe('week due chip', () => {
+    test('uses days when the last day of the due week is within 6 days', () => {
+      const spec = weekSpec(0)
+      const days = daysUntilWeekDue(`!${spec}`)
+      expect(days).toBeGreaterThanOrEqual(0)
+      expect(days).toBeLessThanOrEqual(6)
+      expect(dueDateChip(`!${spec}`)).toEqual(expectedWeekChip(days))
+    })
+    test('uses whole weeks outside that day range, partial week dropped', () => {
+      const ahead = weekSpec(2)
+      const aheadDays = daysUntilWeekDue(`!>${ahead}`)
+      expect(aheadDays).toBeGreaterThan(6)
+      expect(dueDateChip(`!>${ahead}`, 0)).toEqual(expectedWeekChip(aheadDays))
+      const behind = weekSpec(-2)
+      const behindDays = daysUntilWeekDue(`!${behind}`)
+      expect(behindDays).toBeLessThan(-6)
+      expect(weekDueIsPast(`!${behind}`)).toBe(true)
+      expect(dueDateChip(`!${behind}`)).toEqual(expectedWeekChip(behindDays))
+    })
+    test('removes the week marker when the chip is shown, and does not turn it into a far day chip', () => {
+      const spec = weekSpec(2)
+      const line = `Plan trip !>${spec}`
+      expect(contentWithoutDueDate(line, 0)).toBe('Plan trip')
+      expect(replaceFarDueDatesWithChips(line, 5)).toBe(line)
+    })
+    test('hasDueDate sees a week due', () => {
+      expect(hasDueDate(`!${weekSpec(0)}`)).toBe(true)
+      expect(hasDueDate('!>2026-W00')).toBe(false)
+      expect(hasDueDate('!>2026-W54')).toBe(false)
     })
   })
 

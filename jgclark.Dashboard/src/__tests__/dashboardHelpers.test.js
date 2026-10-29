@@ -20,6 +20,7 @@ import {
 import { DataStore, Editor, CommandBar, NotePlan, Paragraph, Note, simpleFormatter } from '@mocks/index'
 import * as timeblocks from '@helpers/timeblocks'
 import * as dateTime from '@helpers/dateTime'
+import { getNPWeekData } from '@helpers/NPdateTime'
 import * as dev from '@helpers/dev'
 import * as headings from '@helpers/headings'
 import * as NPFrontMatter from '@helpers/NPFrontMatter'
@@ -516,6 +517,21 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result[0]).toBe(para1)
         expect(result[1]).toBe(para3)
         expect(result[2]).toBe(para5)
+      })
+
+      test('should keep a start-week to due-week span in the current weekly note', () => {
+        if (typeof global.Calendar === 'undefined' || typeof global.Calendar.weekNumber !== 'function') global.Calendar = {}
+        const thisWeek = dateTime.getNPWeekStr(new Date())
+        const startWeek = getNPWeekData(new Date(), -1, 'week')
+        const dueWeek = getNPWeekData(new Date(), 1, 'week')
+        expect(startWeek).not.toBeNull()
+        expect(dueWeek).not.toBeNull()
+        const spanPara = new Paragraph({ type: 'open', content: `Task >${startWeek.weekString} !>${dueWeek.weekString}` })
+        const futureOnly = new Paragraph({ type: 'open', content: `Later >${dueWeek.weekString} !>${dueWeek.weekString}` })
+
+        const result = filterBySchedulingRules([spanPara, futureOnly], thisWeek, dateTime.getTodaysDateHyphenated())
+        expect(result).toContain(spanPara)
+        expect(result).not.toContain(futureOnly)
       })
     })
 

@@ -44,8 +44,6 @@ declare var globalSharedData: {
   },
 }
 
-declare function runPluginCommand(command: string, id: string, args: Array<any>): void
-
 type Props = {
   pluginData: Object, // the data that was sent from the plugin in the field "pluginData"
 }
@@ -236,26 +234,30 @@ const Dashboard = ({ pluginData }: Props): React.Node => {
     logChanges('pluginData', pluginData)
   }, [pluginData])
 
-  // At Startup, request the Dashboard Sections content by telling the plugin that Dashboard is loaded.
-  // Sections starts out as empty array, so this is the first time it will be populated.
+  // Sections are loaded before the window opens. Do not call the plugin from this effect:
+  // a command started from the WebView while the open path is still settling can leave the
+  // JSContext unable to run later clicks (perspective switch included).
   useEffect(() => {
     // Note: This executes before globalSharedData is saved into state
     logInfo('Dashboard/useEffect [] (startup only)', `${sections.length} sections (${origSections.length} origSections): [${sections.map((s) => s.sectionCode).join(', ')}]`)
-    logDebug('Dashboard', `React: sending reactWindowInitialisedSoStartGeneratingData command to plugin`)
-    runPluginCommand('reactWindowInitialisedSoStartGeneratingData', 'jgclark.Dashboard', [''])
-    // Do NOT call refreshRelativeDatesISOCache() here. Its Calendar/DataStore bridge traffic
-    // contends on the same JSContext as generation and was aborting firstRun completion
-    // ('generating' stuck while sections from ForceInitialLoad already looked done).
+    if (pluginData.firstRun) {
+      logInfo('Dashboard', `Clearing Generating in the window without calling the plugin`)
+      updatePluginData({ ...pluginData, firstRun: false }, 'Startup: clear Generating')
+    }
   }, [])
 
-  // After generation clears firstRun, refresh relative-week ISO cache once (bridge is quiet).
+  // Relative-week ISO cache after the window is quiet. Calendar bridge traffic during open contended
+  // with plugin commands on the same JSContext.
   const relativeDatesRefreshedAfterGenerationRef = useRef(false)
   useEffect(() => {
     if (pluginData.firstRun || relativeDatesRefreshedAfterGenerationRef.current) return
     relativeDatesRefreshedAfterGenerationRef.current = true
-    refreshRelativeDatesISOCache().catch((err) => {
-      logWarn('Dashboard', `refreshRelativeDatesISOCache failed: ${err?.message ?? String(err)}`)
-    })
+    const timeoutId = setTimeout(() => {
+      refreshRelativeDatesISOCache().catch((err) => {
+        logWarn('Dashboard', `refreshRelativeDatesISOCache failed: ${err?.message ?? String(err)}`)
+      })
+    }, 2000)
+    return () => clearTimeout(timeoutId)
   }, [pluginData.firstRun])
 
   // Keep the window/tab title in sync. In Main Window / Split View, NotePlan's chrome uses the
@@ -414,9 +416,17 @@ const Dashboard = ({ pluginData }: Props): React.Node => {
     sendActionToPlugin(actionType, { actionType }, 'Date rollover detected; sending refreshEnabledSections', true)
   }, [sendActionToPlugin])
 
+  // Skip the appear event that fires while the window is first shown. A refresh then is redundant
+  // (sections were loaded before open) and used to contend with the open path.
+  const skipOpeningAppearRef = useRef(true)
   const refreshVisibleDashboard = useCallback(() => {
     logDebug('Dashboard', 'onViewDidAppear event handler called for Dashboard window')
     setIsViewVisible(true)
+    if (skipOpeningAppearRef.current) {
+      skipOpeningAppearRef.current = false
+      logInfo('Dashboard', 'Window just opened; not starting a refresh from this appear event')
+      return
+    }
     const actionType = 'refreshEnabledSections'
     sendActionToPlugin(actionType, { actionType }, 'Dashboard window became visible; sending action refreshEnabledSections', true)
   }, [sendActionToPlugin])

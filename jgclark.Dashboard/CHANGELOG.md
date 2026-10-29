@@ -3,6 +3,14 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
+## [2.6.0.b1] 2026-10-29
+### Changes
+- Extend due dates to support week dates (`!>YYYY-Wnn`) as well:
+  - This Week includes an open task on each week from its start week (`>YYYY-Wnn`) through a due week written `!>YYYY-Wnn`, through the last day of that due week. Those tasks are left out of Overdue while that week is still current. After the due week, `!YYYY-Wnn` and `!>YYYY-Wnn` are overdue. The chip counts days when the due day is within 6 days, and whole weeks otherwise.
+### Fixes
+- Fix: Do not generate TAG sections when every `showTagSection_*` toggle is off. Perspectives can keep a tag in `tagsToShow` while hiding it (e.g. NotePlan with `@home` hidden).
+- Fix: Perspective switch could hang at "sending revised perspectiveSettings" (never regenerate sections) or stall mid-refresh with the Refresh spinner stuck. Cause: `setPluginData` / `getGlobalSharedData` re-serialized the whole WebView state and could deadlock after a large paint. `setPluginData` now merges `pluginData` inside the WebView (no read-back). Perspective switch seeds the incremental refresh so it also skips that get. Scheduled Priority/tag caches run via x-callback. Perspective switch skips done-count recount and clears "Generating" after the first section.
+- Fix: After opening Dashboard, a perspective change could do nothing (log stopped at "Sending command onMessageFromHTMLView"). Opening no longer awaits `openReactWindow` (that wait never resumed). Sections load before open. Mount-time WebView plugin calls are held until after the first paint. The WebView also sends only one plugin command at a time (a Time Block timer refresh racing a perspective switch left both hung on `getGlobalSharedData`).
 
 ## [2.6.0.b1] 2026-10-11
 ### Main feature: "due dates"
@@ -11,10 +19,10 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 - New settings, under Display settings: "When to start showing due dates?" (default 5).
 - Today includes an open task on each day from its start date (`>YYYY-MM-DD`) through a due date written `!>YYYY-MM-DD`. Tasks in other notes are found by searching for `!>`, because the overdue list leaves them out while that due date is still ahead. A task written in today's note stays there too, instead of being hidden for not being scheduled to today. The lookup time is logged, and shown beside the section time when Show Section Timings is on.
 - dev: Today logs at debug, for each `!>` line, whether that start-to-due window includes it and why.
-### Fixes
+- dev: The plan file is overdue_bang_dates_b09303f1.plan.md, at /Users/jonathan/.cursor/plans/overdue_bang_dates_b09303f1.plan.md.
+### Changes
 - Fix: Calendar note terms no longer match inside the URL of a labeled markdown link, or inside `[[note links]]`. The link label is still matched.
 - Fix: Display of the Theme field in Dashboard Settings, which was invisible in dark mode, and unreliable in search mode.
-- ??? The plan file is overdue_bang_dates_b09303f1.plan.md, at /Users/jonathan/.cursor/plans/overdue_bang_dates_b09303f1.plan.md.
 
 ## [2.5.2] 2026-10-10
 - The task dialog "Change to" button is now a "Change type" menu. It can switch an item between task, checklist, list, quote, and plain text (for @dwertheimer).

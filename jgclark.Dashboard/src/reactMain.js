@@ -7,8 +7,8 @@
 
 import pluginJson from '../plugin.json'
 import { ALL_SECTION_DETAILS, WEBVIEW_WINDOW_ID } from './constants'
-import { getCachedHeaderDoneCount, updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import { getDashboardSettings, getDashboardSettingsDefaults, getLogSettings, getNotePlanSettings, getListOfEnabledSections, setPluginData, cloneDashboardSettingsBeforeSave } from './dashboardHelpers'
+import { getCachedHeaderDoneCount } from './countDoneTasks'
+import { getDashboardSettings, getDashboardSettingsDefaults, getLogSettings, getNotePlanSettings, cloneDashboardSettingsBeforeSave } from './dashboardHelpers'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
@@ -20,9 +20,7 @@ import {
   mergeDashboardSettingsForPerspectiveDef,
   activatePerspectiveInDefs,
 } from './perspectiveHelpers'
-import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
 import { onMessageFromHTMLView } from './routeRequestsFromReact'
-import { generateTagMentionCache, isTagMentionCacheGenerationScheduled } from './tagMentionCache'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings, TSettingItem } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
@@ -425,7 +423,11 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     logTimer('showDashboardReact', startTime, `Finished getting initial data. Now will call React:`)
 
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact is finished. It's all React from this point forward...\n`)
-    await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
+    // Do not await. On NotePlan Beta, invokePluginCommandByName('openReactWindow') does not resume after the
+    // window is shown, so an await here left this command holding the JSContext. Later clicks only logged
+    // "Executing function 'onMessageFromHTMLView'" and never ran the handler (perspective switch included).
+    // Sections must already be in `data` (see getPluginData); the WebView must not start generation on mount.
+    DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
   } catch (error) {
     logError('showDashboardReact', JSP(error))
   }
@@ -442,63 +444,14 @@ export async function restartDashboard(): Promise<void> {
 }
 
 /**
- * This is called from Dashboard.jsx when the React Window has initialised, and is ready to start receiving Sections.
- * It kicks off the incremental generation of the Sections.
+ * Called from Dashboard.jsx only when the window opened with no sections.
+ * When sections are already in the initial payload, React clears Generating itself and does not call this.
+ * This command must not await and must not open a follow-up command. An await started from the
+ * WebView bridge never resumes, and later clicks stop at "Sending command onMessageFromHTMLView".
  * @returns {Promise<void>}
  */
 export async function reactWindowInitialisedSoStartGeneratingData(): Promise<void> {
-  try {
-    logInfo('reactWindowInitialisedSoStartGeneratingData', `--> React Window reported back to plugin that it has loaded <--`)
-    const startTime = new Date()
-    const config = await getDashboardSettings()
-    const logSettings = await getLogSettings()
-    const enabledSections = getListOfEnabledSections(config)
-
-    // Start generating data for the enabled sections
-    if (config.FFlag_ForceInitialLoadForBrowserDebugging) {
-      // Sections are already in the initial payload. Clear Generating (firstRun) before any expensive
-      // work so the UI is interactive even if done-count recount is slow. Avoid a prior
-      // getGlobalSharedData probe -- setPluginData already round-trips once.
-      await setPluginData({ firstRun: false }, 'Setting firstRun to false after force initial load')
-      logTimer('reactWindowInitialisedSoStartGeneratingData', startTime, `----- END OF GENERATION ------`)
-      logDebug('reactWindowInitialisedSoStartGeneratingData', `----- END OF GENERATION ------`)
-
-      // Header recount after the window is interactive (can take >1s)
-      const NPSettings = getNotePlanSettings()
-      if (NPSettings.doneDatesAvailable) {
-        const totalDoneCount = updateDoneCountsFromChangedNotes('after force initial load, window already shown')
-        await setPluginData({ totalDoneCount, firstRun: false }, 'Updating doneCounts after force initial load')
-      }
-    } else {
-      // Note: Full header done-count recount runs at the end of incrementallyRefreshSomeSections
-      await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
-      logTimer('reactWindowInitialisedSoStartGeneratingData', startTime, `----- END OF GENERATION ------`)
-      logDebug('reactWindowInitialisedSoStartGeneratingData', `----- END OF GENERATION ------`)
-    }
-
-    // ---------------------------------------------------------------
-    // Now is the time to do any other background processing after the initial display is done
-    // ---------------------------------------------------------------
-
-    // Rebuild the tag mention cache, if scheduled to do so.
-    if (isTagMentionCacheGenerationScheduled()) {
-      logInfo('reactWindowInitialisedSoStartGeneratingData', `- now generating tag mention cache`)
-      await generateTagMentionCache('After initial display, as scheduled', true)
-      // Now that the cache is generated, we want to re-generate any enabled tag section(s), just in case
-      if (enabledSections.length > 0 && enabledSections.includes('TAG')) {
-        logInfo('reactWindowInitialisedSoStartGeneratingData', `- now re-generating tag section(s)`)
-        await incrementallyRefreshSomeSections({ sectionCodes: ['TAG'], actionType: 'incrementallyRefreshSomeSections' }, false, true)
-      }
-    }
-  } catch (error) {
-    logError('reactWindowInitialisedSoStartGeneratingData', error.message)
-    // Ensure Generating does not stick if we failed mid-path
-    try {
-      await setPluginData({ firstRun: false, refreshing: false }, 'Clearing firstRun after reactWindowInitialised error')
-    } catch (clearErr) {
-      logError('reactWindowInitialisedSoStartGeneratingData', `Also failed to clear firstRun: ${clearErr.message}`)
-    }
-  }
+  logInfo('reactWindowInitialisedSoStartGeneratingData', `--> React Window reported back to plugin that it has loaded (no await; window stays responsive) <--`)
 }
 
 /**
@@ -631,11 +584,10 @@ export { onMessageFromHTMLView } from './routeRequestsFromReact'
 export async function getPluginData(dashboardSettings: TDashboardSettings, perspectiveSettings: Array<TPerspectiveDef>, useDemoData: boolean = false): Promise<TPluginData> {
   logDebug('getPluginData', `Starting ${useDemoData ? 'with DEMO DATA!' : ''}`)
 
-  // Important Note: If we need to force load everything, it's easy.
-  // Otherwise sections start empty; once the HTML window is ready, Dashboard.jsx calls reactWindowInitialisedSoStartGeneratingData,
-  // which runs incrementallyRefreshSomeSections for all enabled sections.
-  const allSectionsResult =
-    dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true ? await getAllSectionsData(useDemoData, true, true) : { sections: [] }
+    // Always load sections before opening the window. showDashboardReact must not await openReactWindow
+  // (that await never resumes), so there is no safe place to generate after the window opens.
+  // The WebView must not call the plugin on mount for the same reason.
+  const allSectionsResult = await getAllSectionsData(useDemoData, true, true)
   const sections = allSectionsResult.sections
 
   const NPSettings = getNotePlanSettings()
@@ -658,7 +610,8 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
     dashboardSettingsBaseline: dashboardSettings,
     // Cheap JSON read only. The full recount (all notes changed today) runs after the window is shown.
     totalDoneCount: NPSettings.doneDatesAvailable ? getCachedHeaderDoneCount() : 0,
-    firstRun: true,
+    // Sections are already loaded; firstRun true would leave the Refresh button on "Generating".
+    firstRun: false,
     currentMaxPriorityFromAllVisibleSections: 0,
     mainWindowModeSupported: NotePlan.environment.platform === 'macOS' ? usersVersionHas('showInMainWindow') : usersVersionHas('showInMainWindowOniOS'),
     appleAppCallbacksAvailable: usersVersionHas('appleAppCallbacksAvailable'),

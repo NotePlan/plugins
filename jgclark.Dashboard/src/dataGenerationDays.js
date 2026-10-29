@@ -29,6 +29,7 @@ import { assignReminderItemsToSection } from './reminderBuckets'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { getTodaysDateUnhyphenated } from '@helpers/dateTime'
 import { explainStartDueWindow, todayIsBetweenStartAndDueDate } from '@helpers/dueStartDates'
+import { searchBangGtParagraphs } from './dataGenerationWeeks'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { isNoteFromAllowedFolder } from '@helpers/note'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
@@ -47,6 +48,8 @@ import { isOpen, isOpenOrScheduled, removeDuplicates } from '@helpers/utils'
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @param {Array<TSectionItem>} referencedReminderItems? - untimed today's reminders (starting point for referenced items)
+ * @param {?$ReadOnlyArray<TParagraph>} prefetchedBangGtParas? - lines from the shared `!>` search; null means search here
+ * @param {string} prefetchedBangGtTiming - duration of that shared search, shown on the section when timings are on
  * @returns {{ sections: Array<TSection>, overdueApiParas: ?$ReadOnlyArray<TParagraph> }} Today section(s), plus the raw overdue API list when this refresh loaded it
  */
 export async function getTodaySectionData(
@@ -54,6 +57,8 @@ export async function getTodaySectionData(
   useDemoData: boolean = false,
   useEditorWherePossible: boolean,
   referencedReminderItems: Array<TSectionItem> = [],
+  prefetchedBangGtParas: ?$ReadOnlyArray<TParagraph> = null,
+  prefetchedBangGtTiming: string = '',
 ): Promise<{ sections: Array<TSection>, overdueApiParas: ?$ReadOnlyArray<TParagraph> }> {
   try {
     const thisSectionCode = 'DT'
@@ -119,7 +124,7 @@ export async function getTodaySectionData(
     // Today's own note also drops it: it is scheduled, but not scheduled to today.
     if (!useDemoData) {
       try {
-        const windowResult = await loadStartDueWindowParas(config, sortedOrCombinedParas.concat(sortedRefParas))
+        const windowResult = await loadStartDueWindowParas(config, sortedOrCombinedParas.concat(sortedRefParas), prefetchedBangGtParas, prefetchedBangGtTiming)
         dueWindowTiming = windowResult.timing
       const windowDashboardParas = makeDashboardParas(windowResult.windowParas)
       for (const p of windowDashboardParas) {
@@ -289,17 +294,18 @@ function dueWindowPreview(content: string): string {
  * `listOverdueTasks()` omits these while the due date is still ahead, so this searches for `!>`.
  * @param {TDashboardSettings} config
  * @param {Array<TParagraphForDashboard>} alreadyShown - Today and >Today rows already collected; matching content is not added again
+ * @param {?$ReadOnlyArray<TParagraph>} prefetchedBangGtParas
+ * @param {string} prefetchedBangGtTiming
  * @returns {{ windowParas: Array<TParagraph>, timing: string }}
  */
 async function loadStartDueWindowParas(
   config: TDashboardSettings,
   alreadyShown: Array<TParagraphForDashboard>,
+  prefetchedBangGtParas: ?$ReadOnlyArray<TParagraph>,
+  prefetchedBangGtTiming: string,
 ): Promise<{ windowParas: Array<TParagraph>, timing: string }> {
   const windowStart = new Date()
-  const noteHits: $ReadOnlyArray<TParagraph> = await DataStore.search('!>', ['notes'], [], [], false)
-  const calendarHits: $ReadOnlyArray<TParagraph> = await DataStore.searchCalendarNotes('!>', false)
-  const hits: Array<TParagraph> = noteHits.concat(calendarHits)
-  logDebug('getTodaySectionData', `- !> search returned ${String(noteHits.length)} note line(s) and ${String(calendarHits.length)} calendar line(s)`)
+  const hits: $ReadOnlyArray<TParagraph> = prefetchedBangGtParas != null ? prefetchedBangGtParas : await searchBangGtParagraphs()
   const openHits: Array<TParagraph> = []
   for (const p of hits) {
     const checklistHidden = Boolean(config.ignoreChecklistItems) && (p.type === 'checklist' || p.type === 'checklistScheduled')
@@ -351,7 +357,7 @@ async function loadStartDueWindowParas(
     if (include) windowParas.push(p)
     logDebug('getTodaySectionData', `- ${include ? 'include' : 'skip'} due window (${windowReason}) {${shown}} in ${where}`)
   }
-  const timing = timer(windowStart)
+  const timing = prefetchedBangGtTiming || timer(windowStart)
   logInfo('getTodaySectionData', `due-date window lookup took ${timing} and is adding ${String(windowParas.length)} task(s)`)
   return { windowParas, timing }
 }
