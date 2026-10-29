@@ -24,7 +24,7 @@
  *                             IMPORTS
  ****************************************************************************************************************************/
 
-import React, { useEffect, useLayoutEffect, useState, type Node } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import type { TPerspectiveDef, TReactSettings, TSettingItem } from '../../types'
 import { createDashboardSettingsItems } from '../../dashboardSettings'
@@ -32,7 +32,7 @@ import { createFilterDropdownItems } from './Header/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
 import { dashboardSettingsDefaults } from '../support/settingsHelpers.js'
-import { clo, logDebug, logError, logInfo } from '@helpers/dev'
+import { clo, logDebug, logError } from '@helpers/dev'
 
 /**
  * Reduces an array of dashboard settings or filter items into an object with keys and values
@@ -119,6 +119,23 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     setReactSettings((prev) => ({ ...prev, ...defaultReactSettings, lastChange: `_Webview_firstLoad` }))
   }, [])
 
+  // Mount effects must not call the plugin in the same turn as the window opening.
+  const suppressPluginCommandsRef = useRef(true)
+  // NotePlan can start a second onMessageFromHTMLView while the first is at an await; both then
+  // hang on getGlobalSharedData. Keep one plugin command in flight from this window.
+  const pluginCommandInFlightRef = useRef(false)
+  const pluginCommandSawBusyRef = useRef(false)
+  const pendingPluginCommandRef = useRef<?{ command: string, dataToSend: any, additionalInfo: string, updateGlobalData: boolean }>(null)
+  const pluginCommandWatchdogRef = useRef<?TimeoutID>(null)
+
+  useEffect(() => {
+    const openGate = setTimeout(() => {
+      suppressPluginCommandsRef.current = false
+      logDebug('WebView', 'Plugin command gate open after startup')
+    }, 0)
+    return () => clearTimeout(openGate)
+  }, [])
+
   /**
    * Scroll lives on `.dashboard-sections` (header stays fixed). Fall back to window for older layouts.
    * @returns {number} Current vertical scroll offset
@@ -174,6 +191,17 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     return newData
   }
 
+  const isPerspectiveSwitchCommand = (command: string): boolean =>
+    command === 'switchToPerspective' || command === 'savePerspectiveAndSwitch'
+
+  const isPluginBusyFromData = (pluginDataIn: any): boolean =>
+    Boolean(
+      pluginDataIn?.firstRun ||
+        pluginDataIn?.perspectiveChanging ||
+        pluginDataIn?.refreshing === true ||
+        (Array.isArray(pluginDataIn?.refreshing) && pluginDataIn.refreshing.length > 0),
+    )
+
   /**
    * Convenience function to send an action to the plugin and saving any passthrough data first in the Root data store
    * This is useful if you want to save data that you want to persist when the plugin sends data back to the Webview
@@ -184,6 +212,34 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @param {boolean} updateGlobalData - if false, don't save any passthrough data (eg scroll position, to try to limit redraws)
    */
   const sendActionToPlugin = (command: string, dataToSend: any, additionalInfo: string = '', updateGlobalData: boolean = true) => {
+    if (suppressPluginCommandsRef.current) {
+      logDebug('WebView', `Startup gate: not sending "${command}" (${additionalInfo})`)
+      return
+    }
+    if (pluginCommandInFlightRef.current) {
+      if (isPerspectiveSwitchCommand(command)) {
+        pendingPluginCommandRef.current = { command, dataToSend, additionalInfo, updateGlobalData }
+        logDebug('WebView', `Queued "${command}" until the in-flight plugin command finishes (${additionalInfo})`)
+        return
+      }
+      logDebug('WebView', `Not sending "${command}" while another plugin command is in flight (${additionalInfo})`)
+      return
+    }
+    pluginCommandInFlightRef.current = true
+    pluginCommandSawBusyRef.current = false
+    if (pluginCommandWatchdogRef.current) clearTimeout(pluginCommandWatchdogRef.current)
+    // Commands that never set refreshing/firstRun still need the lock released.
+    pluginCommandWatchdogRef.current = setTimeout(() => {
+      if (!pluginCommandInFlightRef.current) return
+      logDebug('WebView', `Plugin command watchdog releasing in-flight lock`)
+      pluginCommandInFlightRef.current = false
+      pluginCommandSawBusyRef.current = false
+      const pending = pendingPluginCommandRef.current
+      pendingPluginCommandRef.current = null
+      if (pending) {
+        sendActionToPlugin(pending.command, pending.dataToSend, pending.additionalInfo, pending.updateGlobalData)
+      }
+    }, 30000)
     logDebug(`Webview`, `sendActionToPlugin: sending sendToPlugin with command:${command}: "${additionalInfo}" dataToSend:`, { messageObject: dataToSend })
     if (updateGlobalData) {
       const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
@@ -191,6 +247,28 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     }
     sendToPlugin([command, dataToSend, additionalInfo]) // send action to plugin
   }
+
+  // Release the in-flight lock once the plugin has started and then finished a generation/switch.
+  useEffect(() => {
+    const busy = isPluginBusyFromData(pluginData)
+    if (busy) {
+      pluginCommandSawBusyRef.current = true
+      return
+    }
+    if (!pluginCommandInFlightRef.current || !pluginCommandSawBusyRef.current) return
+    pluginCommandInFlightRef.current = false
+    pluginCommandSawBusyRef.current = false
+    if (pluginCommandWatchdogRef.current) {
+      clearTimeout(pluginCommandWatchdogRef.current)
+      pluginCommandWatchdogRef.current = null
+    }
+    const pending = pendingPluginCommandRef.current
+    pendingPluginCommandRef.current = null
+    if (pending) {
+      logDebug('WebView', `Flushing queued "${pending.command}" after plugin became idle`)
+      sendActionToPlugin(pending.command, pending.dataToSend, pending.additionalInfo, pending.updateGlobalData)
+    }
+  }, [pluginData.firstRun, pluginData.perspectiveChanging, pluginData.refreshing])
 
   /**
    * Send data back to the plugin to update the data in the plugin

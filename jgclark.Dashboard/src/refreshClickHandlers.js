@@ -22,14 +22,32 @@ import { applyDemoModeGenerationOverrides, getSomeSectionsData, sectionCodesNeed
 import { getRemindersGeneratedData, type TRemindersGeneratedData } from './dataGenerationReminders'
 import { syncTagSectionsWithSettings } from './dashboardSettingsClean'
 import { uniqueSectionCodes } from './react/components/Section/sectionHelpers'
-import { isTagMentionCacheGenerationScheduled, generateTagMentionCache } from './tagMentionCache'
-import { generatePriorityNoteIndexCache, shouldRunScheduledPriorityNoteIndexCacheGeneration } from './priorityNoteIndexCache'
+import { isTagMentionCacheGenerationScheduled } from './tagMentionCache'
+import {
+  scheduleDeferredPriorityNoteIndexCacheGeneration,
+  shouldRunScheduledPriorityNoteIndexCacheGeneration,
+} from './priorityNoteIndexCache'
 import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData, TSection } from './types'
 // TAnyObject is a global from flow-typed/Noteplan.js (do not import from ./types)
 import { mergeReminderDisplayById } from '@helpers/NPReminders'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
+import { createRunPluginCallbackUrl } from '@helpers/general'
 import { getGlobalSharedData } from '@helpers/HTMLView'
 import { isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
+
+/**
+ * Queue tag/mention cache rebuild via np.Shared x-callback (separate plugin invocation).
+ * Inline `generateTagMentionCache` (even without await) can still block the JSContext after its first await.
+ * @param {string} reason
+ * @returns {void}
+ */
+function scheduleDeferredTagMentionCacheGeneration(reason: string): void {
+  const url = createRunPluginCallbackUrl('np.Shared', 'generateTagMentionCache', [reason])
+  logInfo('scheduleDeferredTagMentionCacheGeneration', `Queuing x-callback for: ${reason}`)
+  // Clear schedule flag so a concurrent refresh end does not queue a second openURL before this runs.
+  DataStore.setPreference('np.Shared.tagMentionCache.regenerateTagMentionCache', null)
+  NotePlan.openURL(url)
+}
 
 /**
  * Dev / A-B toggle for perspective switch section loading.
@@ -77,15 +95,18 @@ function getDuplicateTagSectionNames(sections: Array<TSection>): Array<string> {
  * - a trailing setPluginData for refreshing/firstRun after the last section (now folded into that last section update)
  * - callers using this for 1-3 section post-action refreshes (those now use refreshSomeSections)
  *
- * @param {MessageDataObject} data
+ * @param {MessageDataObject} data - set `skipPostRefreshHeavyWork` on perspective switch to skip done-count
+ *   recount and to clear firstRun/perspectiveChanging on the first section
  * @param {boolean} calledByTrigger? (default: false)
  * @param {boolean} setFullRefreshDate? (default: false) - whether to set the lastFullRefresh date (default is no)
+ * @param {?TAnyObject} seedReactWindowData? - plugin-side window seed (perspective switch); skips getGlobalSharedData
  * @returns {TBridgeClickHandlerResult}
  */
 export async function incrementallyRefreshSomeSections(
   data: MessageDataObject,
   calledByTrigger: boolean = false,
   setFullRefreshDate: boolean = false,
+  seedReactWindowData: ?TAnyObject = null,
 ): Promise<TBridgeClickHandlerResult> {
   try {
     const start = new Date()
@@ -108,10 +129,23 @@ export async function incrementallyRefreshSomeSections(
     // onViewWillDisappear never delivers windowResized (common for floating HTML windows).
     storeWindowRect(WEBVIEW_WINDOW_ID)
 
-    logDebug('incrementallyRefreshSomeSections', `Starting incremental refresh for sections [${String(sectionCodes)}]`)
-    await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
+    const skipPostRefreshHeavyWork = data.skipPostRefreshHeavyWork === true
+    logDebug(
+      'incrementallyRefreshSomeSections',
+      `Starting incremental refresh for sections [${String(sectionCodes)}] (skipPostRefreshHeavyWork=${String(skipPostRefreshHeavyWork)})`,
+    )
+    // Prefer a seed (perspective switch) so we never getGlobalSharedData right after a large UPDATE_DATA.
+    // Otherwise one get for the whole pass; section updates carry this payload forward.
+    let reactWindowData: ?TAnyObject = seedReactWindowData
+    if (!reactWindowData) {
+      reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    }
+    reactWindowData = (await setPluginData(
+      { refreshing: true },
+      `Starting incremental refresh for sections ${String(sectionCodes)}`,
+      reactWindowData,
+    )) ?? reactWindowData
 
-    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     const config = await getDashboardSettingsForOpenWebView(reactWindowData?.pluginData?.dashboardSettings)
     const demoMode = reactWindowData?.pluginData?.demoMode ?? false
 
@@ -128,36 +162,73 @@ export async function incrementallyRefreshSomeSections(
     // section patch so React does not redraw everything again after the last section is already on screen.
     // Also clear perspectiveChanging here so perspective-switch can reuse this path without a trailing
     // setPluginData({ perspectiveChanging: false }) that would re-serialize the full section list.
+    // On perspective switch, clear firstRun/perspectiveChanging on the *first* section so a mid-loop
+    // hang does not leave the Refresh control stuck on "Generating".
     const endFlags: TAnyObject = { refreshing: false, firstRun: false, perspectiveChanging: false }
     if (setFullRefreshDate) endFlags.lastFullRefresh = new Date()
+    const earlyClearGeneratingFlags: ?TAnyObject = skipPostRefreshHeavyWork
+      ? { firstRun: false, perspectiveChanging: false }
+      : null
+    // Carry the plugin-side window payload across sections so each setPluginData does not
+    // getGlobalSharedData after a large UPDATE_DATA (that round-trip can hang the JSContext).
+    let carriedReactWindowData: ?TAnyObject = reactWindowData
     for (let i = 0; i < sectionCodes.length; i++) {
       const sectionCode = sectionCodes[i]
-      const extraPatch = i === sectionCodes.length - 1 ? endFlags : null
-      await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger, cachedRemindersData, extraPatch)
+      logInfo(
+        'incrementallyRefreshSomeSections',
+        `Generating section ${String(i + 1)}/${String(sectionCodes.length)}: ${sectionCode}`,
+      )
+      let extraPatch: ?TAnyObject = null
+      if (i === sectionCodes.length - 1) {
+        extraPatch = endFlags
+      } else if (i === 0 && earlyClearGeneratingFlags) {
+        extraPatch = earlyClearGeneratingFlags
+      }
+      const sectionResult = await refreshSomeSections(
+        { ...data, sectionCodes: [sectionCode] },
+        calledByTrigger,
+        cachedRemindersData,
+        extraPatch,
+        carriedReactWindowData,
+      )
+      if (sectionResult.reactWindowData) {
+        carriedReactWindowData = sectionResult.reactWindowData
+      }
+      logInfo(
+        'incrementallyRefreshSomeSections',
+        `Finished section ${String(i + 1)}/${String(sectionCodes.length)}: ${sectionCode}`,
+      )
     }
     logTimer('incrementallyRefreshSomeSections', start, `- to generate ${sectionCodes.length} sections: ${sectionCodes.toString()}`)
 
-    // Header done counts after sections have been sent (this scan can take >1s)
-    const NPSettings = await getNotePlanSettings()
-    if (NPSettings.doneDatesAvailable) {
-      const startTime = new Date()
-      const totalDoneCount = await updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSomeSections (for [${sectionCodes.join(',')}])`)
-      const changedData = {
-        totalDoneCount: totalDoneCount,
-        firstRun: false, // Ensure firstRun remains false after generation completes
+    // Header done counts after sections have been sent (this scan can take >1s).
+    // Skip on perspective switch: total is not perspective-scoped; scan would hold the JSContext after paint.
+    if (!skipPostRefreshHeavyWork) {
+      const NPSettings = await getNotePlanSettings()
+      if (NPSettings.doneDatesAvailable) {
+        const startTime = new Date()
+        const totalDoneCount = await updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSomeSections (for [${sectionCodes.join(',')}])`)
+        const changedData = {
+          totalDoneCount: totalDoneCount,
+          firstRun: false, // Ensure firstRun remains false after generation completes
+        }
+        await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSomeSections')
+        logTimer('incrementallyRefreshSomeSections', startTime, `- to calculate done counts at end of incrementallyRefreshSomeSections`, 200)
       }
-      await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSomeSections')
-      logTimer('incrementallyRefreshSomeSections', startTime, `- to calculate done counts at end of incrementallyRefreshSomeSections`, 200)
+    } else {
+      logDebug('incrementallyRefreshSomeSections', `- skipping done counts (skipPostRefreshHeavyWork)`)
     }
 
-    // Finally, if relevant, rebuild scheduled caches (fire-and-forget so we do not block the UI).
+    // Rebuild scheduled caches in a *separate* plugin invocation (x-callback). Inline generate*
+    // (even without await) still runs a sync multi-second scan after its first await and beachballs
+    // the JSContext, delaying the next WebView command (measured ~7s scan + stuck follow-up switch).
     if (isTagMentionCacheGenerationScheduled()) {
-      logInfo('incrementallyRefreshSomeSections', `- generating scheduled tag mention cache`)
-      const _tagPromise = generateTagMentionCache('After incrementally refreshing some sections, as scheduled') // no await
+      logInfo('incrementallyRefreshSomeSections', `- scheduling deferred tag mention cache via x-callback`)
+      scheduleDeferredTagMentionCacheGeneration('After incrementally refreshing some sections, as scheduled')
     }
     if (shouldRunScheduledPriorityNoteIndexCacheGeneration()) {
-      logInfo('incrementallyRefreshSomeSections', `- generating scheduled Priority note-index cache`)
-      const _priorityPromise = generatePriorityNoteIndexCache('After incrementally refreshing some sections, as scheduled') // no await
+      logInfo('incrementallyRefreshSomeSections', `- scheduling deferred Priority note-index cache via x-callback`)
+      scheduleDeferredPriorityNoteIndexCacheGeneration('After incrementally refreshing some sections, as scheduled')
     }
 
     return handlerResult(true)
@@ -226,14 +297,14 @@ export async function batchReplaceSections(data: MessageDataObject): Promise<TBr
 
     // Do not recount header done counts here (not perspective-scoped; scan would hold the switch spinner). See JSDoc.
 
-    // If scheduled, rebuild caches without blocking the switch spinner.
+    // Never kick caches inline (same beachball as incremental). Queue x-callback after this command returns.
     if (isTagMentionCacheGenerationScheduled()) {
-      logInfo('batchReplaceSections', `- generating scheduled tag mention cache`)
-      const _tagPromise = generateTagMentionCache('After batch replacing sections, as scheduled')
+      logInfo('batchReplaceSections', `- scheduling deferred tag mention cache via x-callback`)
+      scheduleDeferredTagMentionCacheGeneration('After batch replacing sections, as scheduled')
     }
     if (shouldRunScheduledPriorityNoteIndexCacheGeneration()) {
-      logInfo('batchReplaceSections', `- generating scheduled Priority note-index cache`)
-      const _priorityPromise = generatePriorityNoteIndexCache('After batch replacing sections, as scheduled')
+      logInfo('batchReplaceSections', `- scheduling deferred Priority note-index cache via x-callback`)
+      scheduleDeferredPriorityNoteIndexCacheGeneration('After batch replacing sections, as scheduled')
     }
     return handlerResult(true)
   }
@@ -258,6 +329,7 @@ export async function batchReplaceSections(data: MessageDataObject): Promise<TBr
  * @param {boolean} calledByTrigger? (default: false)
  * @param {?TRemindersGeneratedData} cachedRemindersData? - prefetched Reminders payload reused across an incremental batch
  * @param {?TAnyObject} extraPluginDataPatch? - folded into this call's setPluginData (used by incrementallyRefreshSomeSections on the last section so spinner / firstRun / lastFullRefresh do not need a trailing extra redraw)
+ * @param {?TAnyObject} carriedReactWindowData? - plugin-side window payload from a prior section in an incremental loop (skips getGlobalSharedData)
  * @returns {TBridgeClickHandlerResult}
  */
 export async function refreshSomeSections(
@@ -265,6 +337,7 @@ export async function refreshSomeSections(
   calledByTrigger: boolean = false,
   cachedRemindersData?: ?TRemindersGeneratedData,
   extraPluginDataPatch?: ?TAnyObject,
+  carriedReactWindowData?: ?TAnyObject,
 ): Promise<TBridgeClickHandlerResult> {
   try {
     const startTime = new Date()
@@ -278,7 +351,7 @@ export async function refreshSomeSections(
     if (isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
       storeWindowRect(WEBVIEW_WINDOW_ID)
     }
-    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    let reactWindowData: ?TAnyObject = carriedReactWindowData ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID))
     if (!reactWindowData?.pluginData) {
       logDebug('refreshSomeSections', 'Dashboard shared data not ready yet (no pluginData); cannot refresh')
       return handlerResult(false, [], {
@@ -293,9 +366,9 @@ export async function refreshSomeSections(
       if (sectionCodesToRefresh.length === 0) {
         logDebug('refreshSomeSections', 'No eligible sections remain after filtering; skipping refresh')
         if (extraPluginDataPatch) {
-          await setPluginData(extraPluginDataPatch, 'No eligible sections after TB filter; applying extra pluginData patch')
+          reactWindowData = (await setPluginData(extraPluginDataPatch, 'No eligible sections after TB filter; applying extra pluginData patch', reactWindowData)) ?? reactWindowData
         }
-        return handlerResult(true)
+        return handlerResult(true, [], { reactWindowData })
       }
     }
     if (sectionCodesToRefresh.includes('REM') && pluginData.dashboardSettings && !isUndatedOverdueRemindersEnabled(pluginData.dashboardSettings)) {
@@ -304,19 +377,20 @@ export async function refreshSomeSections(
       if (sectionCodesToRefresh.length === 0) {
         logDebug('refreshSomeSections', 'No eligible sections remain after filtering; skipping refresh')
         if (extraPluginDataPatch) {
-          await setPluginData(extraPluginDataPatch, 'No eligible sections after REM filter; applying extra pluginData patch')
+          reactWindowData = (await setPluginData(extraPluginDataPatch, 'No eligible sections after REM filter; applying extra pluginData patch', reactWindowData)) ?? reactWindowData
         }
-        return handlerResult(true)
+        return handlerResult(true, [], { reactWindowData })
       }
     }
     // show refreshing message until done
     // `refreshing` is not always a boolean: it can also be an array of section codes while a refresh is in flight.
     // Only start a new refresh marker when there is no active refresh already underway; otherwise preserve the current state.
     if (pluginData.refreshing !== true && !Array.isArray(pluginData.refreshing)) {
-      await setPluginData(
+      reactWindowData = (await setPluginData(
         { refreshing: sectionCodesToRefresh, currentMaxPriorityFromAllVisibleSections: 0 },
         `Starting refresh for sections ${sectionCodesToRefresh.toString()}`,
-      )
+        reactWindowData,
+      )) ?? reactWindowData
     }
     const config = await getDashboardSettingsForOpenWebView(pluginData.dashboardSettings)
     let existingSections = pluginData.sections
@@ -372,13 +446,17 @@ export async function refreshSomeSections(
     } else if (pluginData.refreshing !== true && !Array.isArray(pluginData.refreshing)) {
       updates.refreshing = false
     }
-    await setPluginData(updates, `Finished refreshSomeSections for [${String(sectionCodesToRefresh)}] (${timer(startTime)})`)
+    reactWindowData = (await setPluginData(
+      updates,
+      `Finished refreshSomeSections for [${String(sectionCodesToRefresh)}] (${timer(startTime)})`,
+      reactWindowData,
+    )) ?? reactWindowData
 
     // count sectionItems in all sections
     const totalSectionItems = mergedSectionsClean.reduce((acc, section) => acc + section.sectionItems.length, 0)
     // logDebug('refreshSomeSections', `Total section items: ${totalSectionItems} from [${sectionCodes.toString()}]`)
     logTimer('refreshSomeSections', startTime, `- to generate ${sectionCodesToRefresh.length} section(s) ${sectionCodesToRefresh.toString()}`, 2000)
-    return handlerResult(true, [], { sectionItems: totalSectionItems })
+    return handlerResult(true, [], { sectionItems: totalSectionItems, reactWindowData })
   }
   catch (error) {
     // try to close the modal spinner

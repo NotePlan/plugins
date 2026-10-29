@@ -323,9 +323,22 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   }
   logDebug(`doSwitchToPerspective`, `sending revised perspectiveSettings and dashboardSettings to react window after switching to '${data?.perspectiveName || ''}'. Current excludedFolders=${newDashboardSettings.excludedFolders ? newDashboardSettings.excludedFolders : 'not set'}`)
   // logPerspectiveNames(afterPerspSettings, 'doSwitchToPerspective: Sending these perspectiveSettings to react window in pluginData')
+  // setPluginData with no base uses in-WebView merge (no getGlobalSharedData) -- that get was hanging
+  // perspective switch when the window still held a large prior section list.
   await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)
 
-  return handlerResult(true, ['PERSPECTIVE_CHANGED'], { perspectiveName: switchToName, perspectiveScopeFoldersChanged })
+  // Seed for PERSPECTIVE_CHANGED incremental refresh: continue without reading the WebView back.
+  const reactWindowDataSeed: TAnyObject = {
+    pluginData: {
+      demoMode: false,
+      ...updatesToPluginData,
+    },
+  }
+  return handlerResult(true, ['PERSPECTIVE_CHANGED'], {
+    perspectiveName: switchToName,
+    perspectiveScopeFoldersChanged,
+    reactWindowData: reactWindowDataSeed,
+  })
 }
 
 /**

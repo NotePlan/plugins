@@ -20,6 +20,7 @@
 import moment from 'moment/min/moment-with-locales'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { createRunPluginCallbackUrl } from '@helpers/general'
 import { sendBannerMessage } from '@helpers/HTMLView'
 import { getNotesChangedInInterval } from '@helpers/NPnote'
 import { getNoteByFilename, pastCalendarNotes } from '@helpers/note'
@@ -239,6 +240,22 @@ export function isPriorityNoteIndexCacheGenerationScheduled(): boolean {
 export function schedulePriorityNoteIndexCacheGeneration(): void {
   logInfo('schedulePriorityNoteIndexCacheGeneration', `Scheduling priority note-index cache generation.`)
   DataStore.setPreference(regeneratePriorityNoteIndexCachePref, true)
+}
+
+/**
+ * Queue a full regenerate via x-callback so it runs in a separate plugin invocation.
+ * Calling `generatePriorityNoteIndexCache` inline (even without await) still runs a multi-second
+ * sync note scan after the first `await sendBannerMessage`, which beachballs the JSContext and
+ * delays the next WebView command (e.g. perspective switch).
+ * Clears the schedule pref so a concurrent refresh end does not queue a second openURL.
+ * @param {string} reason
+ * @returns {void}
+ */
+export function scheduleDeferredPriorityNoteIndexCacheGeneration(reason: string): void {
+  const url = createRunPluginCallbackUrl('jgclark.Dashboard', 'generatePriorityNoteIndexCache', [reason])
+  logInfo('scheduleDeferredPriorityNoteIndexCacheGeneration', `Queuing x-callback for: ${reason}`)
+  clearPriorityNoteIndexCacheGenerationPref()
+  NotePlan.openURL(url)
 }
 
 /**

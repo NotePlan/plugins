@@ -294,9 +294,20 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   }, [section, dashboardSettings])
 
   const refreshTimeBlockSection = useCallback(() => {
+    // Do not start a TB refresh while a generation or perspective switch is already in flight.
+    // A second onMessageFromHTMLView during an await hangs both commands (perspective switch included).
+    if (
+      pluginData.firstRun ||
+      pluginData.perspectiveChanging ||
+      pluginData.refreshing === true ||
+      (Array.isArray(pluginData.refreshing) && pluginData.refreshing.length > 0)
+    ) {
+      logDebug('Section', 'TBTimer skipped; Dashboard is already generating or refreshing')
+      return
+    }
     const detailsMessageObject = { actionType: 'refreshSomeSections', sectionCodes: ['TB'] }
     sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'TBTimer fired refreshSomeSections', true)
-  }, [section.sectionCode, sendActionToPlugin])
+  }, [section.sectionCode, sendActionToPlugin, pluginData.firstRun, pluginData.perspectiveChanging, pluginData.refreshing])
 
   /**
    * Set a timer to refresh the TB section every ~1 minute while the Dashboard window is visible.

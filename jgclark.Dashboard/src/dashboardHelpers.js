@@ -10,6 +10,7 @@ import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { getDashboardSettingsDefaults } from './dashboardSettingsDefaults'
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { removeInvalidTagSections } from './dashboardSettingsClean'
+import { hasAnyEnabledTagToShow } from './react/components/Section/sectionHelpers'
 import { getActivePerspectiveNameSync, getCurrentlyAllowedFolders } from './perspectivesShared'
 import { normalizePreferredWindowType } from './preferredWindowType'
 import { parseSettings, validateAndFlattenMessageObject } from './shared'
@@ -35,6 +36,7 @@ import { getNestedValue, setNestedValue, stringListOrArrayToArray } from '@helpe
 import {
   getISODateStringFromYYYYMMDD,
   getTimeStringFromHM,
+  getNPWeekStr,
   getTodaysDateHyphenated,
   includesScheduledFutureDate,
   isDailyDateStr,
@@ -44,16 +46,16 @@ import {
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
 } from '@helpers/dateTime'
-import { todayIsBetweenStartAndDueDate } from '@helpers/dueStartDates'
+import { thisWeekIsInStartDueWeekSpan, todayIsBetweenStartAndDueDate } from '@helpers/dueStartDates'
 import { DEFAULT_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { findNoteLinksForDisplay } from '@helpers/HTMLView'
 import { clo, clof, clvt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getFoldersMatching, getFolderFromFilename } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getHeadingHierarchyForThisPara } from '@helpers/headings'
-import { sendToHTMLWindow, getGlobalSharedData, updateGlobalSharedData } from '@helpers/HTMLView'
+import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { isNoteFromAllowedFolder } from '@helpers/note'
-import { getDueDateOrStartOfCalendarDate } from '@helpers/NPdateTime'
+import { getDueDateOrStartOfCalendarDate, getNPWeekData } from '@helpers/NPdateTime'
 import { getFrontmatterAttributes } from '@helpers/NPFrontMatter'
 import { getNoteFromFilename, getReferencedParagraphs } from '@helpers/NPnote'
 import { usersVersionHas } from '@helpers/NPVersions'
@@ -72,7 +74,7 @@ import {
   isActiveOrFutureTimeBlockPara,
   normalizeTimeBlockStartToHHMM,
 } from '@helpers/timeblocks'
-import { isOpen, isOpenNotScheduled } from '@helpers/utils'
+import { isOpen, isOpenNotScheduled, isOpenOrScheduled, removeDuplicates } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Constants
@@ -486,6 +488,39 @@ function hyphenatedCalendarDayKeyFromNPDateInput(npcStr: string): string {
 }
 
 /**
+ * Open tasks from a due-marker search, after the same teamspace, folder, ignore, and calendar-section filters as Overdue.
+ * Calendar notes stay allowed (a slash-less filename is folder `/`).
+ * @param {$ReadOnlyArray<TParagraph>} hits
+ * @param {TDashboardSettings} dashboardSettings
+ * @param {string} logName
+ * @returns {Array<TParagraph>}
+ */
+export function filterDueMarkerSearchHits(
+  hits: $ReadOnlyArray<TParagraph>,
+  dashboardSettings: TDashboardSettings,
+  logName: string,
+): Array<TParagraph> {
+  const startTime = new Date()
+  const openHits: Array<TParagraph> = []
+  for (const p of hits) {
+    const checklistHidden = Boolean(dashboardSettings.ignoreChecklistItems) && (p.type === 'checklist' || p.type === 'checklistScheduled')
+    if (checklistHidden || !isOpenOrScheduled(p)) continue
+    openHits.push(p)
+  }
+  const afterTeamspace = filterParasByAllowedTeamspaces(openHits, dashboardSettings, startTime, logName)
+  const allowedFolders = getCurrentlyAllowedFolders(dashboardSettings)
+  const afterFolder = afterTeamspace.filter((p) => {
+    const note = p.note
+    return note != null && isNoteFromAllowedFolder(note, allowedFolders, true)
+  })
+  const afterIgnore = filterParasByIgnoreTerms(afterFolder, dashboardSettings, startTime, logName)
+  const afterIncluded = filterParasByIncludedCalendarSections(afterIgnore, dashboardSettings, startTime, logName)
+  const afterExcluded = filterParasByExcludedCalendarSections(afterIncluded, dashboardSettings, startTime, logName)
+  // Casts: removeDuplicates() is typed over a generic indexed object, not TParagraph.
+  return (removeDuplicates((afterExcluded: any), ['content']): any)
+}
+
+/**
  * Filter paragraphs by scheduling rules (not scheduled except for current date/today).
  * @tests in jest file
  * @param {Array<TParagraph>} paras - Paragraphs to filter
@@ -502,22 +537,29 @@ export function filterBySchedulingRules(
   const theNoteDateHyphenated = hyphenatedCalendarDayKeyFromNPDateInput(NPCalendarFilenameStr)
   const isToday = theNoteDateHyphenated === todayHyphenated
   const thisNoteDateSched = `>${theNoteDateHyphenated}`
+  const currentWeekKeys = new Set([getNPWeekStr(new Date())])
+  const npWeek = getNPWeekData(new Date())
+  if (npWeek?.weekString) currentWeekKeys.add(npWeek.weekString)
+  const isThisWeekNote = isWeeklyDateStr(theNoteDateHyphenated) && currentWeekKeys.has(theNoteDateHyphenated)
 
   // Keep only items not scheduled (other than >today or whatever calendar note we're on).
   // A start-to-!>due window that includes today stays, even though the line is not scheduled to today.
+  // A start-week-to-!>due-week span that includes this week stays in this week's note.
   const inTodayWindow = (content: string): boolean => isToday && todayIsBetweenStartAndDueDate(content)
+  const inWeekSpan = (content: string): boolean => isThisWeekNote && thisWeekIsInStartDueWeekSpan(content)
   for (const p of paras) {
     if ((p.content || '').includes('!>')) {
-      const keepForSchedule = isOpenNotScheduled(p) || p.content.includes(thisNoteDateSched) || (isToday && p.content.includes('>today')) || inTodayWindow(p.content)
-      const dropForFuture = includesScheduledFutureDate(p.content, latestDate) && !inTodayWindow(p.content)
-      logDebug('getTodaySectionData', `- !> line isToday=${String(isToday)} keep=${String(keepForSchedule && !dropForFuture)} {${p.content}} note ${NPCalendarFilenameStr}`)
+      const keepForSchedule = isOpenNotScheduled(p) || p.content.includes(thisNoteDateSched) || (isToday && p.content.includes('>today')) || inTodayWindow(p.content) || inWeekSpan(p.content)
+      const dropForFuture = includesScheduledFutureDate(p.content, latestDate) && !inTodayWindow(p.content) && !inWeekSpan(p.content)
+      const logName = isThisWeekNote ? 'getThisWeekSectionData' : 'getTodaySectionData'
+      logDebug(logName, `- !> line isToday=${String(isToday)} isThisWeek=${String(isThisWeekNote)} keep=${String(keepForSchedule && !dropForFuture)} {${p.content}} note ${NPCalendarFilenameStr}`)
     }
   }
-  let filteredParas = paras.filter((p) => isOpenNotScheduled(p) || p.content.includes(thisNoteDateSched) || (isToday && p.content.includes('>today')) || inTodayWindow(p.content))
+  let filteredParas = paras.filter((p) => isOpenNotScheduled(p) || p.content.includes(thisNoteDateSched) || (isToday && p.content.includes('>today')) || inTodayWindow(p.content) || inWeekSpan(p.content))
   // logTimer('filterBySchedulingRules', startTime, `- after not-scheduled-apart-from-today filter: ${filteredParas.length} paras`)
 
   // Filter out any future-scheduled tasks from this calendar note. The same in-window tasks stay.
-  filteredParas = filteredParas.filter((p) => !includesScheduledFutureDate(p.content, latestDate) || inTodayWindow(p.content))
+  filteredParas = filteredParas.filter((p) => !includesScheduledFutureDate(p.content, latestDate) || inTodayWindow(p.content) || inWeekSpan(p.content))
 
   return filteredParas
 }
@@ -1007,7 +1049,8 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   if (config.showYearSection) sectionsToShow.push('Y')
   if (config.showProjectActiveSection) sectionsToShow.push('PROJACT')
   if (config.showProjectReviewSection) sectionsToShow.push('PROJREVIEW')
-  if (config.tagsToShow) sectionsToShow.push('TAG')
+  // Require at least one tag with showTagSection_* enabled (not merely tagsToShow set).
+  if (hasAnyEnabledTagToShow(config)) sectionsToShow.push('TAG')
   if (config.showOverdueSection) sectionsToShow.push('OVERDUE')
   if (config.showPrioritySection) sectionsToShow.push('PRIORITY')
   if (config.showInfoSection) sectionsToShow.push('INFO')
@@ -1623,25 +1666,75 @@ export function validateMessageDataForHandler(
 }
 
 /**
- * Convenience function to update the global shared data in the webview window, telling React to update it
+ * Merge fields into `globalSharedData.pluginData` inside the WebView and post UPDATE_DATA.
+ * Never serializes window state back to the plugin (avoids getGlobalSharedData hangs after large paints).
+ * @param {TAnyObject} changeObject
+ * @param {string} changeMessage
+ * @returns {Promise<string>} 'ok' | 'no-data' | 'no-window' | 'no-api' | 'err:...'
+ */
+export async function patchPluginDataInWebView(changeObject: TAnyObject, changeMessage: string = ''): Promise<string> {
+  if (typeof HTMLView === 'undefined' || typeof HTMLView.runJavaScript !== 'function') {
+    logWarn('patchPluginDataInWebView', 'HTMLView API is not available; cannot patch pluginData')
+    return 'no-api'
+  }
+  if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
+    logWarn('patchPluginDataInWebView', `Window ${WEBVIEW_WINDOW_ID} is not open; skipping patch`)
+    return 'no-window'
+  }
+  // Double-stringify so the object literal embeds safely inside the runJavaScript source.
+  const changeJsonLiteral = JSON.stringify(JSON.stringify(changeObject))
+  const messageLiteral = JSON.stringify(changeMessage)
+  const jsCode = `
+    (function() {
+      try {
+        if (typeof globalSharedData === 'undefined' || !globalSharedData || !globalSharedData.pluginData) {
+          return 'no-data';
+        }
+        const changes = JSON.parse(${changeJsonLiteral});
+        globalSharedData.pluginData = Object.assign({}, globalSharedData.pluginData, changes);
+        const payload = Object.assign({}, globalSharedData, {
+          lastUpdated: { msg: 'UPDATE_DATA ' + ${messageLiteral}, date: new Date().toLocaleString() },
+        });
+        window.postMessage({ type: 'UPDATE_DATA', payload: payload }, '*');
+        return 'ok';
+      } catch (e) {
+        return 'err:' + (e && e.message ? e.message : String(e));
+      }
+    })();
+  `
+  const result: mixed = await HTMLView.runJavaScript(jsCode, WEBVIEW_WINDOW_ID)
+  const resultStr = result == null ? '' : String(result)
+  logDebug('patchPluginDataInWebView', `result=${resultStr} changeMessage="${changeMessage}"`)
+  return resultStr
+}
+
+/**
+ * Convenience function to update pluginData in the React window.
+ * Always merges inside the WebView (`patchPluginDataInWebView`) so the plugin never calls
+ * `getGlobalSharedData` / re-serializes the full window (that hung perspective switch after large paints).
+ * Optional `baseReactWindowData` is only updated locally for incremental carry-forward (section merge).
  * @param {TAnyObject} changeObject - the fields inside pluginData to update
  * @param {string} changeMessage
+ * @param {?TAnyObject} baseReactWindowData - prior window payload to mutate locally for carry-forward
+ * @returns {Promise<?TAnyObject>} the carried window data (for further merges), or a shell / null
  * @usage await setPluginData({ refreshing: false, lastFullRefresh: new Date() }, 'Finished Refreshing all sections')
  */
-export async function setPluginData(changeObject: TAnyObject, changeMessage: string = ''): Promise<void> {
-  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  if (!reactWindowData) {
-    logDebug('setPluginData', 'Dashboard shared data not ready yet; skipping update')
-    return
+export async function setPluginData(
+  changeObject: TAnyObject,
+  changeMessage: string = '',
+  baseReactWindowData: ?TAnyObject = null,
+): Promise<?TAnyObject> {
+  const patchResult = await patchPluginDataInWebView(changeObject, changeMessage)
+  if (patchResult !== 'ok') {
+    logWarn('setPluginData', `patchPluginDataInWebView returned "${patchResult}" for "${changeMessage}"`)
+    return baseReactWindowData
   }
-  reactWindowData.pluginData = { ...(reactWindowData.pluginData || {}), ...changeObject }
-
-  // Write synchronously so plugin-side getGlobalSharedData() (e.g. processActionOnReturn right after save)
-  // sees perspectiveSettings / isModified before React finishes handling postMessage UPDATE_DATA.
-  await updateGlobalSharedData(WEBVIEW_WINDOW_ID, reactWindowData, false)
-
-  logDebug('setPluginData', `Sending changeMessage: "${changeMessage}"`)
-  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, changeMessage)
+  if (baseReactWindowData) {
+    baseReactWindowData.pluginData = { ...(baseReactWindowData.pluginData || {}), ...changeObject }
+    return baseReactWindowData
+  }
+  // Shell for callers that want to continue without a follow-up get (e.g. perspective switch seed).
+  return { pluginData: { ...changeObject } }
 }
 
 /**
