@@ -1,6 +1,21 @@
 /* CSS specific to AddToAnyNote component from jgclark.Dashboard plugin */
 
 /* Position the Add Task dialog relative to the button that opens it */
+
+/* Same joined row as Settings multi-choice (DropdownSelect appearance=popup, 2-3 options). Left aligned, tight to the first field. */
+.add-to-any-note-dialog .add-kind-choice {
+	align-self: flex-start;
+	margin-bottom: -0.7rem;
+}
+
+.add-to-any-note-dialog .add-kind-choice .dropdown-select-label {
+	display: none;
+}
+
+.add-to-any-note-dialog .add-kind-choice .dropdown-select-container {
+	align-items: flex-start;
+	padding-top: 0;
+}
 /* CSS variables are set via inline styles from AddToAnyNote component */
 .add-to-any-note-dialog.dynamic-dialog {
 	position: fixed !important;

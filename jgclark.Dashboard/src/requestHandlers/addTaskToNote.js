@@ -8,7 +8,7 @@
 import { getDashboardSettings } from '../dashboardHelpers'
 import { isValidCalendarNoteFilename, convertISOToYYYYMMDD, isDailyDateStr } from '@helpers/dateTime'
 import { logDebug, logError } from '@helpers/dev'
-import { coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
+import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { getUsersNoteFileExtension, RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
 import { getNoteFromFilename } from '@helpers/NPnote'
 import { resolveNoteChooserFilenameForLookup } from '@helpers/noteChooserFilenameResolve'
@@ -28,13 +28,22 @@ export type RequestResponse = {
  * @param {string} params.taskText - The task text to add
  * @param {string?} params.heading - Optional heading to add the task under
  * @param {string?} params.space - Optional space ID (empty string for Private, teamspace ID for teamspace notes)
+ * @param {'task' | 'checklist'} params.itemKind - Task (default) or checklist
  * @param {Object} pluginJson - Plugin JSON object for logging
  * @returns {RequestResponse}
  */
-export async function addTaskToNote(params: { filename: string, taskText: string, heading?: ?string, space?: ?string }, pluginJson: any): Promise<RequestResponse> {
+export async function addTaskToNote(
+  params: { filename: string, taskText: string, heading?: ?string, space?: ?string, itemKind?: 'task' | 'checklist' },
+  pluginJson: any,
+): Promise<RequestResponse> {
   try {
     const { filename, taskText, heading, space } = params
-    logDebug('requestHandlers/addTaskToNote', `Starting with filename="${filename}", taskText="${taskText}", heading="${heading || 'none'}", space="${space || 'private'}"`)
+    const isChecklist = params.itemKind === 'checklist'
+    const kindLabel = isChecklist ? 'checklist' : 'task'
+    logDebug(
+      'requestHandlers/addTaskToNote',
+      `Starting with filename="${filename}", taskText="${taskText}", heading="${heading || 'none'}", space="${space || 'private'}", itemKind="${kindLabel}"`,
+    )
 
     // Validate inputs
     if (!filename || !taskText || !taskText.trim()) {
@@ -107,35 +116,40 @@ export async function addTaskToNote(params: { filename: string, taskText: string
       ? await processChosenHeading(destNote, heading, newHeadingLevel)
       : config.newTaskSectionHeading || ''
 
-    // Add the task to the note
+    // Add the task or checklist to the note
     // logDebug('requestHandlers/addTaskToNote', `Adding task to note: "${destNote?.title || '?'}" with heading: "${headingToUse}"`)
-    const resultingPara = coreAddTaskToNoteHeading(destNote, headingToUse, taskText.trim(), newHeadingLevel, true)
+    const trimmedText = taskText.trim()
+    const resultingPara = isChecklist
+      ? coreAddChecklistToNoteHeading(destNote, headingToUse, trimmedText, newHeadingLevel, true)
+      : coreAddTaskToNoteHeading(destNote, headingToUse, trimmedText, newHeadingLevel, true)
     // logDebug('requestHandlers/addTaskToNote', `Resulting paragraph: "${resultingPara?.rawContent || '?'}"`)
 
     if (!resultingPara) {
       return {
         success: false,
-        message: 'Failed to add task to note',
+        message: `Failed to add ${kindLabel} to note`,
         data: null,
       }
     }
 
-    logDebug('requestHandlers/addTaskToNote', `Successfully added task "${taskText}" to note "${filename}" under heading "${headingToUse || 'default'}"`)
+    const kindTitle = isChecklist ? 'Checklist' : 'Task'
+    logDebug('requestHandlers/addTaskToNote', `Successfully added ${kindLabel} "${taskText}" to note "${filename}" under heading "${headingToUse || 'default'}"`)
     return {
       success: true,
-      message: `Task added successfully to ${destNote.title || filename}`,
+      message: `${kindTitle} added successfully to ${destNote.title || filename}`,
       data: {
         filename,
         taskText,
         heading: headingToUse || null,
         space: space || null,
+        itemKind: kindLabel,
       },
     }
   } catch (error) {
     logError(pluginJson, `requestHandlers/addTaskToNote ERROR: ${error.message}`)
     return {
       success: false,
-      message: `Error adding task: ${error.message}`,
+      message: `Error adding item: ${error.message}`,
       data: null,
     }
   }

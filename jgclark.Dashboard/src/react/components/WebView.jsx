@@ -216,7 +216,11 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       logDebug('WebView', `Startup gate: not sending "${command}" (${additionalInfo})`)
       return
     }
-    if (pluginCommandInFlightRef.current) {
+    // Lookups (getNotes, getHeadings, getReminderAddOptions, ...) must not take or wait on the
+    // refresh lock. That lock stays up for 30s after a request that never sets `refreshing`,
+    // and anything sent meanwhile was dropped, so the caller timed out.
+    const isPluginRequest = Boolean(dataToSend && dataToSend.__requestType === 'REQUEST')
+    if (!isPluginRequest && pluginCommandInFlightRef.current) {
       if (isPerspectiveSwitchCommand(command)) {
         pendingPluginCommandRef.current = { command, dataToSend, additionalInfo, updateGlobalData }
         logDebug('WebView', `Queued "${command}" until the in-flight plugin command finishes (${additionalInfo})`)
@@ -225,21 +229,23 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       logDebug('WebView', `Not sending "${command}" while another plugin command is in flight (${additionalInfo})`)
       return
     }
-    pluginCommandInFlightRef.current = true
-    pluginCommandSawBusyRef.current = false
-    if (pluginCommandWatchdogRef.current) clearTimeout(pluginCommandWatchdogRef.current)
-    // Commands that never set refreshing/firstRun still need the lock released.
-    pluginCommandWatchdogRef.current = setTimeout(() => {
-      if (!pluginCommandInFlightRef.current) return
-      logDebug('WebView', `Plugin command watchdog releasing in-flight lock`)
-      pluginCommandInFlightRef.current = false
+    if (!isPluginRequest) {
+      pluginCommandInFlightRef.current = true
       pluginCommandSawBusyRef.current = false
-      const pending = pendingPluginCommandRef.current
-      pendingPluginCommandRef.current = null
-      if (pending) {
-        sendActionToPlugin(pending.command, pending.dataToSend, pending.additionalInfo, pending.updateGlobalData)
-      }
-    }, 30000)
+      if (pluginCommandWatchdogRef.current) clearTimeout(pluginCommandWatchdogRef.current)
+      // Commands that never set refreshing/firstRun still need the lock released.
+      pluginCommandWatchdogRef.current = setTimeout(() => {
+        if (!pluginCommandInFlightRef.current) return
+        logDebug('WebView', `Plugin command watchdog releasing in-flight lock`)
+        pluginCommandInFlightRef.current = false
+        pluginCommandSawBusyRef.current = false
+        const pending = pendingPluginCommandRef.current
+        pendingPluginCommandRef.current = null
+        if (pending) {
+          sendActionToPlugin(pending.command, pending.dataToSend, pending.additionalInfo, pending.updateGlobalData)
+        }
+      }, 30000)
+    }
     logDebug(`Webview`, `sendActionToPlugin: sending sendToPlugin with command:${command}: "${additionalInfo}" dataToSend:`, { messageObject: dataToSend })
     if (updateGlobalData) {
       const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level

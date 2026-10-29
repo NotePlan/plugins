@@ -8,6 +8,7 @@
 import pluginJson from '../plugin.json'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { addTaskToNote } from './requestHandlers/addTaskToNote'
+import { getReminderAddOptions } from './requestHandlers/getReminderAddOptions'
 import { doWindowResized } from './clickHandlers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
@@ -36,6 +37,9 @@ async function routeRequest(actionType: string, data: any): Promise<RequestRespo
     switch (actionType) {
       case 'addTaskToNote': {
         return await addTaskToNote(data, pluginJson)
+      }
+      case 'getReminderAddOptions': {
+        return await getReminderAddOptions(data, pluginJson)
       }
       default: {
         // Return "not found" to trigger shared handler fallback

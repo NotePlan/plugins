@@ -139,7 +139,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Literal color-scheme for number fields. Stepper glyphs ignore `color`.
     // Repeated here (not only via var(--np-color-scheme)) so the used scheme is a keyword even if a stylesheet variable is ignored.
     const npColorScheme = currentThemeMode === 'light' ? 'light' : 'dark'
-    output.push(makeCSSSelector('.settings-dialog input[type="number"], .settings-dialog .input-box-wrapper > input[type="text"], .dynamic-dialog .input-box-input-number', [`color-scheme: ${npColorScheme}`]))
+    output.push(makeCSSSelector('.settings-dialog input[type="number"], .settings-dialog .input-box-wrapper > input[type="text"], .dynamic-dialog .input-box-input-number, .generic-date-picker-input', [`color-scheme: ${npColorScheme}`]))
 
     // Set body:
     // - main font = styles.body.font

@@ -9,8 +9,9 @@ import { isCurrentRemindersEnabled, isUndatedOverdueRemindersEnabled } from './d
 import { reminderItems } from './demoData'
 import { bucketReminderItems } from './reminderBuckets'
 import { createReminderSectionItem, getReminderListsForConfig } from './reminderMapping'
+import { buildReminderAddFormFields, reminderListTitlesFromSectionItems, REMINDER_ADD_REFRESH_SECTIONS } from './reminderAddForm'
 import { placeReminderBuckets, type TReminderPlacement } from './reminderPlacement'
-import type { TActionButton, TDashboardSettings, TSection, TSectionItem, TDialogSettingItem } from './types'
+import type { TActionButton, TDashboardSettings, TSection, TSectionItem } from './types'
 import { logDebug, logError, logTimer, timer } from '@helpers/dev'
 import { buildReminderDisplayByIdFromReminders, fetchIncompleteRemindersByLists, type TReminderDisplayById } from '@helpers/NPReminders'
 import { usersVersionHas } from '@helpers/NPVersions'
@@ -80,15 +81,8 @@ export async function getRemindersGeneratedData(
 
     if (useDemoData) {
       allItems = reminderItems.slice()
-      // Create a unique list of list names from demo items so the add-Reminder heading button is shown in demo mode
-      const seenListTitles: { [string]: boolean } = {}
-      for (const item of allItems) {
-        const listTitle = item.reminder?.listname
-        if (listTitle && !seenListTitles[listTitle]) {
-          seenListTitles[listTitle] = true
-          listTitlesForAdd.push(listTitle)
-        }
-      }
+      // Unique list names from demo items so the add-Reminder heading button is shown in demo mode
+      listTitlesForAdd = reminderListTitlesFromSectionItems(allItems)
     } else {
       // Resolve list titles for this Perspective (override or NotePlan-enabled), then fetch incomplete reminders
       const { titles: listTitles, colorByTitle } = getReminderListsForConfig(config)
@@ -126,22 +120,8 @@ export async function getRemindersGeneratedData(
     }
 
     // Adding Reminders only supported on NotePlan >= 3.21.2 (macOS build 1525)
-    // Form fields for the heading add-Reminder button (CommandButton -> showDialog)
-    const reminderFormFields: Array<TDialogSettingItem> = [
-      { type: 'input', label: 'Reminder:', key: 'text', focus: true },
-      {
-        type: 'dropdown-select',
-        label: 'Reminder List:',
-        key: 'list',
-        // Cast: TDialogSettingItem.options (in helpers/react/DynamicDialog) is Array<TOptionObject>, but
-        // dropdown-select also accepts a plain Array<string>. Arrays are invariant so this can't be widened here.
-        options: (listTitlesForAdd: any),
-        noWrapOptions: true,
-        value: listTitlesForAdd[0] || '',
-      },
-      { type: 'calendarpicker', label: 'Date (optional):', key: 'date', dateFormat: 'YYYY-MM-DD' },
-      { type: 'input', label: 'Time (optional, HH:MM):', key: 'time' },
-    ]
+    // Form fields for the heading add-Reminder button (CommandButton -> showDialog). Same helper as the topbar.
+    const reminderFormFields = buildReminderAddFormFields(listTitlesForAdd)
     const actionButtons: Array<TActionButton> =
       usersVersionHas('addRemindersSupport') && listTitlesForAdd.length > 0
         ? [
@@ -150,7 +130,7 @@ export async function getRemindersGeneratedData(
             actionPluginID: `${pluginJson['plugin.id']}`,
             display: '<i class= "fa-regular fa-fw fa-circle-plus RemindersColor" ></i> ',
             tooltip: 'Add a new Reminder',
-            postActionRefresh: ['REM', 'DT', 'TB', 'DO', 'DY', 'OVERDUE'],
+            postActionRefresh: REMINDER_ADD_REFRESH_SECTIONS,
             formFields: reminderFormFields,
             submitOnEnter: true,
             submitButtonText: 'Add & Close',

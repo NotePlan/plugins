@@ -22,11 +22,22 @@
   /* Use accent-color to set the selected date color to tint-color */
   /* This controls the selected date background in the native date picker popup */
   accent-color: var(--tint-color, #dc8a78) !important;
-  /* Also set color-scheme to ensure accent-color is respected */
-  color-scheme: light;
+  /* WebKit paints native date text from color-scheme, not from color. A hardcoded light scheme stays black on a dark NotePlan theme. */
+  color: var(--fg-sidebar-color);
+  color-scheme: var(--np-color-scheme, light);
   /* CRITICAL: Safari requires native appearance for calendar icon to show */
   /* Do NOT set -webkit-appearance: none as that removes the calendar icon */
   /* The default appearance for type="date" inputs is what Safari needs */
+}
+
+/* The month/day/year segments are separate WebKit controls. color on the input alone does not reach them. */
+.generic-date-picker-input::-webkit-datetime-edit,
+.generic-date-picker-input::-webkit-datetime-edit-fields-wrapper,
+.generic-date-picker-input::-webkit-datetime-edit-text,
+.generic-date-picker-input::-webkit-datetime-edit-month-field,
+.generic-date-picker-input::-webkit-datetime-edit-day-field,
+.generic-date-picker-input::-webkit-datetime-edit-year-field {
+  color: var(--fg-sidebar-color);
 }
 
 /* Use tint-color for focus state border */

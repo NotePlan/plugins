@@ -3,6 +3,13 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
+## [2.6.0.b4] 2026-10-29
+### New
+- The topbar add button now offers adding Reminders and Checklists, as well as Tasks. (Reminder opens the same dialog as the Reminders section button.)
+
+## [2.6.0.b3] 2026-10-29
+- dev: Rebuild with changes to np.Shared v1.3.1 to pick up improvements to tagMentionCache
+
 ## [2.6.0.b2] 2026-10-29
 ### Changes
 - Extend due dates to support week dates (`!>YYYY-Wnn`) as well:

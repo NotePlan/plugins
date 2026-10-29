@@ -115,6 +115,7 @@ export type TSettingItem = {
   handleDescriptionItself?: boolean, // if true, then the description is handled by the item itself (e.g. for teamspace-multiselect)
   default?: any,
   compactDisplay?: boolean,
+  rowGroup?: string, // consecutive fields with the same rowGroup render on one row (first field on the left)
   dependsOnKey?: string, // DEPRECATED: use requiresKey instead. Only show/allow this field if the field named in requiresKey is true (prerequisite for visibility/editability)
   requiresKey?: string, // Prerequisite: only show/allow this field if the field named in requiresKey is true/has a value (for visibility/editability)
   step?: number, // only applies to number type -- the increment/decrement amount
@@ -129,6 +130,8 @@ export type TSettingItem = {
   numberOfMonths?: number, // for calendarpicker, the number of months to show
   size?: number, // for calendarpicker, the size scale factor (0.5 = 50%, default)
   required?: boolean, // for input fields, require the field to be filled out
+  gatesSubmit?: boolean, // when set on any field, the submit button stays inactive until each such field has non-empty text
+  debounceOnChange?: boolean, // for input fields, debounce the change callback (default true in InputBox)
   validationType?: 'email' | 'number' | 'date-interval', // for input fields, validate the input
   isEditable?: boolean, // for dropdown-select, allow the user to edit the value
   placeholder?: string, // for dropdown-select, placeholder text when no value is selected
@@ -812,8 +815,15 @@ const DynamicDialog = ({
 
   if (!updatedSettings) return null // Prevent rendering before items are loaded
 
-  // Use internal changesMade state only if externalChangesMade is not provided
-  const changesMadeToUse = allowEmptySubmit || (typeof externalChangesMade === 'boolean' ? externalChangesMade : changesMade)
+  // Use internal changesMade state only if externalChangesMade is not provided.
+  // Fields marked gatesSubmit keep the button inactive until each of them has text, even if another field changed.
+  const submitGateKeys: Array<string> = []
+  items.forEach((item) => {
+    if (item.gatesSubmit && item.key) submitGateKeys.push(item.key)
+  })
+  const submitGateOpen = submitGateKeys.every((key) => String(updatedSettings[key] ?? '').trim() !== '')
+  const changesFromEdits = allowEmptySubmit || (typeof externalChangesMade === 'boolean' ? externalChangesMade : changesMade)
+  const changesMadeToUse = submitGateKeys.length > 0 ? submitGateOpen : changesFromEdits
   const setChangesMade = externalSetChangesMade || setChangesMadeInternal
 
   //----------------------------------------------------------------------
@@ -835,6 +845,14 @@ const DynamicDialog = ({
 
   // handleSave defined before handleEnterKey so it can be used in handleEnterKey and in useCallback deps
   const handleSave = useCallback(async () => {
+    const gateBlocked = items.some((item) => {
+      const key = item.key
+      if (!item.gatesSubmit || !key) return false
+      const el = document.getElementById(`input-${key}`)
+      const raw = el instanceof HTMLInputElement ? el.value : updatedSettingsRef.current[key]
+      return String(raw ?? '').trim() === ''
+    })
+    if (gateBlocked) return
     // Guard against multiple simultaneous saves
     if (isSavingRef.current) {
       logDebug('DynamicDialog', 'Save already in progress, skipping duplicate save')
@@ -1103,7 +1121,8 @@ const DynamicDialog = ({
           </div>
         )}
         {children}
-        {items.map((item, index) => {
+        {(() => {
+          const renderField = (item: TSettingItem, index: number) => {
           const renderItemProps: any = {
             index,
             item: {
@@ -1146,7 +1165,29 @@ const DynamicDialog = ({
               {item.description && item.type !== 'heading' && <div className="item-description">{item.description}</div>}
             </div>
           )
-        })}
+          }
+          const rows: Array<React.Node> = []
+          for (let index = 0; index < items.length; ) {
+            const rowGroup = items[index].rowGroup
+            if (rowGroup) {
+              const start = index
+              const members: Array<number> = []
+              while (index < items.length && items[index].rowGroup === rowGroup) {
+                members.push(index)
+                index++
+              }
+              rows.push(
+                <div className="dynamic-dialog-field-row-group" key={`ddg-${rowGroup}-${start}`}>
+                  {members.map((memberIndex) => renderField(items[memberIndex], memberIndex))}
+                </div>,
+              )
+            } else {
+              rows.push(renderField(items[index], index))
+              index++
+            }
+          }
+          return rows
+        })()}
       </div>
     </dialog>
   )

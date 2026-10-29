@@ -46,6 +46,30 @@
         opacity: 1;
     }
 
+    /* Consecutive fields that share a rowGroup sit side by side, first field on the left. */
+    .dynamic-dialog-field-row-group {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: flex-start;
+        gap: 1rem;
+        width: 100%;
+    }
+
+    .dynamic-dialog-field-row-group > .dynamic-dialog-field-row {
+        flex: 0 0 auto;
+        width: auto;
+        max-width: max-content;
+    }
+
+    .dynamic-dialog-field-row-group .input-box-container {
+        width: auto;
+    }
+
+    .dynamic-dialog-field-row-group .input-box-input {
+        width: 7.5rem;
+    }
+
     /* Ensure the settings dialog content is hidden when closed */
     .dynamic-dialog-content {
         display: flex;

@@ -1,17 +1,21 @@
 // @flow
 // --------------------------------------------------------------------------
-// AddToAnyNote Component - Encapsulates the "Add task to any note" dialog functionality
+// AddToAnyNote Component - Add a task or checklist to any note, or open the shared Reminder dialog
+// Last updated: 2026-10-29 by @CursorAI
 // --------------------------------------------------------------------------
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import './AddToAnyNote.css' // Import CSS for dialog positioning
 import { useAppContext } from '../AppContext'
+import { buildReminderAddFormFields, REMINDER_ADD_REFRESH_SECTIONS } from '../../../reminderAddForm'
 import { logDebug, logError } from '@helpers/dev'
 import { pluginEnvelopeFromResponsePayload, unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { getElementCoordinates } from '@helpers/react/reactUtils.js'
 import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
 import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog'
+import DropdownSelect, { type Option } from '@helpers/react/DynamicDialog/DropdownSelect.jsx'
 import type { NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
+import { showDialog } from '@helpers/react/userInput'
 
 type Props = {
   sendActionToPlugin: (actionType: string, dataToSend?: any, message?: string, isUrgent?: boolean) => void,
@@ -25,11 +29,14 @@ type Props = {
  * @returns {React.Node}
  */
 const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
-    const { dispatch } = useAppContext()
+    const { dispatch, pluginData } = useAppContext()
     // ----------------------------------------------------------------------
     // State
     // ----------------------------------------------------------------------
     const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [itemKind, setItemKind] = useState<'task' | 'checklist'>('task')
+    // null = not loaded yet (still show Reminder). false = hide it.
+    const [canAddReminder, setCanAddReminder] = useState<?boolean>(null)
     const [notes, setNotes] = useState<Array<NoteOption>>([])
     const [notesLoaded, setNotesLoaded] = useState(false)
     const [loadingNotes, setLoadingNotes] = useState(false)
@@ -39,6 +46,9 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
     const currentSpaceRef = useRef<?string>(null) // Track current space for note chooser lazy loading
     const buttonRef = useRef<?HTMLButtonElement>(null) // Ref to the button that opens the dialog
     const pendingRequestsRef = useRef<Map<string, { resolve: (value: any) => void, reject: (error: Error) => void, timeoutId: TimeoutID }>>(new Map())
+    const taskTextRef = useRef<string>('') // Latest task/checklist text, copied into the Reminder dialog
+    const reminderListTitlesRef = useRef<?Array<string>>(null) // null until getReminderAddOptions returns
+    const reminderListsPromiseRef = useRef<?Promise<Array<string>>>(null) // shared so Reminder click waits for the open-dialog fetch
 
     // ----------------------------------------------------------------------
     // Request/Response handling
@@ -235,6 +245,9 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
      */
     const handleFieldChange = useCallback(
       (key: string, value: any, _allValues: { [key: string]: any }) => {
+        if (key === 'task') {
+          taskTextRef.current = typeof value === 'string' ? value : ''
+        }
         // If space field changed, reload notes
         if (key === 'space') {
           logDebug('AddToAnyNote', `Space field changed to "${String(value || 'Private')}" - reloading notes`)
@@ -358,6 +371,11 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
         }
 
         currentSpaceRef.current = null
+        taskTextRef.current = ''
+        reminderListTitlesRef.current = null
+        reminderListsPromiseRef.current = null
+        setItemKind('task')
+        setCanAddReminder(null)
         setErrorMessage(null)
         setIsDialogOpen(true)
       },
@@ -371,6 +389,52 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
       setIsDialogOpen(false)
       setDialogStyle({})
     }, [])
+
+    /**
+     * Reminder list titles for this Perspective. Reuses an in-flight request so the Reminder click
+     * does not start a second one that the plugin never answers.
+     */
+    const loadReminderListTitles = useCallback(async (): Promise<Array<string>> => {
+      if (reminderListTitlesRef.current) return reminderListTitlesRef.current
+      if (reminderListsPromiseRef.current) return reminderListsPromiseRef.current
+
+      const pending = requestFromPlugin('getReminderAddOptions', { demoMode: Boolean(pluginData.demoMode) })
+        .then((envelope) => {
+          const data = unwrapPluginRequestData(envelope)
+          const titles = data && Array.isArray(data.listTitles) ? data.listTitles.filter((title) => typeof title === 'string' && title !== '') : []
+          const canAdd = Boolean(data && data.canAdd) && titles.length > 0
+          reminderListTitlesRef.current = canAdd ? titles : null
+          setCanAddReminder(canAdd)
+          return canAdd ? titles : []
+        })
+        .catch((error) => {
+          reminderListsPromiseRef.current = null
+          throw error
+        })
+      reminderListsPromiseRef.current = pending
+      return pending
+    }, [pluginData.demoMode, requestFromPlugin])
+
+    /**
+     * Load Reminder list titles while the add dialog is open so the Reminder choice can be hidden when unsupported.
+     */
+    useEffect(() => {
+      if (!isDialogOpen) return
+      let cancelled = false
+      loadReminderListTitles()
+        .then((titles) => {
+          if (cancelled) return
+          setCanAddReminder(titles.length > 0)
+        })
+        .catch((error) => {
+          if (cancelled) return
+          logError('AddToAnyNote', `Failed to load reminder lists: ${error.message}`)
+          setCanAddReminder(false)
+        })
+      return () => {
+        cancelled = true
+      }
+    }, [isDialogOpen, loadReminderListTitles])
 
     /**
      * Convert a Date object to calendar note filename format (YYYY-MM-DD)
@@ -404,17 +468,19 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
         const date = formValues.date // Date object from calendar picker
         const task = formValues.task || ''
         const heading = formValues.heading || ''
+        const kindToSave = itemKind === 'checklist' ? 'checklist' : 'task'
+        const kindLabel = kindToSave === 'checklist' ? 'Checklist' : 'Task'
 
         logDebug(
           'AddToAnyNote',
           `Add task dialog save: space="${space}", note="${note}", date="${
             date ? (date instanceof Date ? dateToCalendarFilename(date) : String(date)) : ''
-          }", task="${task}", heading="${heading}"`,
+          }", task="${task}", heading="${heading}", itemKind="${kindToSave}"`,
         )
 
         // Validation errors - show to user and don't close dialog
         if (!task.trim()) {
-          const errorMsg = 'Task text is required'
+          const errorMsg = `${kindLabel} text is required`
           logError('AddToAnyNote', errorMsg)
           setErrorMessage(`❌ ${errorMsg}`)
           return
@@ -457,6 +523,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
             taskText: task.trim() || '',
             heading: heading || null,
             space: space || null,
+            itemKind: kindToSave,
           }
           const envelope = await requestFromPlugin('addTaskToNote', taskData)
 
@@ -479,20 +546,101 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
             })
           }
         } catch (error) {
-          logError('AddToAnyNote', `Failed to add task: ${error.message}`)
+          logError('AddToAnyNote', `Failed to add ${kindToSave}: ${error.message}`)
           // Show error banner
           dispatch('SHOW_BANNER', {
             type: 'error',
-            msg: `❌ Failed to add task: ${error.message}`,
+            msg: `❌ Failed to add ${kindToSave}: ${error.message}`,
           })
         }
       },
-      [requestFromPlugin, dispatch],
+      [requestFromPlugin, dispatch, itemKind],
     )
 
     // ----------------------------------------------------------------------
     // Form fields definition
     // ----------------------------------------------------------------------
+    const showReminderChoice = canAddReminder !== false
+    const textLabel = itemKind === 'checklist' ? 'Checklist' : 'Task'
+    const dialogTitle = itemKind === 'checklist' ? 'Add a new checklist' : 'Add a new task'
+
+    /**
+     * Close this dialog and open the same Reminder dialog the REM section heading uses.
+     * @returns {Promise<void>}
+     */
+    const openReminderDialog = useCallback(async () => {
+      const prefill = taskTextRef.current.trim()
+
+      let closedDialog = false
+      try {
+        const listTitles = await loadReminderListTitles()
+        if (listTitles.length === 0) {
+          setErrorMessage('❌ No Reminder lists are available')
+          setCanAddReminder(false)
+          return
+        }
+
+        closedDialog = true
+        setIsDialogOpen(false)
+        setDialogStyle({})
+        setItemKind('task')
+
+        const userInputObj = await showDialog({
+          title: 'Add a new Reminder',
+          items: buildReminderAddFormFields(listTitles, prefill),
+          submitOnEnter: true,
+          submitButtonText: 'Add & Close',
+          isOpen: true,
+          isModal: true,
+        })
+        if (!userInputObj) return
+
+        sendActionToPlugin(
+          'addReminder',
+          {
+            actionType: 'addReminder',
+            userInputObj,
+            sectionCodes: REMINDER_ADD_REFRESH_SECTIONS,
+          },
+          'Add reminder',
+          false,
+        )
+      } catch (error) {
+        logError('AddToAnyNote', `Failed to add reminder: ${error.message}`)
+        const msg = `Failed to add reminder: ${error.message}`
+        if (closedDialog) {
+          dispatch('SHOW_BANNER', { type: 'error', msg })
+        } else {
+          setErrorMessage(`❌ ${msg}`)
+        }
+      }
+    }, [dispatch, loadReminderListTitles, sendActionToPlugin])
+
+    const kindOptions: Array<string | Option> = useMemo(() => {
+      const options: Array<string | Option> = [
+        { label: 'Task', value: 'task' },
+        { label: 'Checklist', value: 'checklist' },
+      ]
+      if (showReminderChoice) options.push({ label: 'Reminder', value: 'reminder' })
+      return options
+    }, [showReminderChoice])
+
+    /**
+     * Task and Checklist stay in this dialog. Reminder closes it and opens the shared Reminder dialog.
+     */
+    const handleKindChange = useCallback(
+      (option: Option) => {
+        if (option.value === 'reminder') {
+          void openReminderDialog()
+          return
+        }
+        if (option.value === 'task' || option.value === 'checklist') {
+          setItemKind(option.value)
+        }
+      },
+      [openReminderDialog],
+    )
+
     /**
      * Form fields for the add task dialog
      */
@@ -501,8 +649,8 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
         {
           type: 'input',
           key: 'task',
-          label: 'Task',
-          placeholder: 'Enter task text...',
+          label: textLabel,
+          placeholder: itemKind === 'checklist' ? 'Enter checklist text...' : 'Enter task text...',
           focus: true,
           required: true,
           value: '',
@@ -540,7 +688,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
           value: '',
         },
       ],
-      [handleNoteChooserOpen],
+      [handleNoteChooserOpen, itemKind, textLabel],
     )
 
     // ----------------------------------------------------------------------
@@ -596,7 +744,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
     return (
       <>
         {/* Button to open the dialog */}
-        <button ref={buttonRef} accessKey="a" className="buttonsWithoutBordersOrBackground add-to-any-note-button" title="Add new task/checklist" onClick={handleOpenDialog}>
+        <button ref={buttonRef} accessKey="a" className="buttonsWithoutBordersOrBackground add-to-any-note-button" title="Add task, checklist, or reminder" onClick={handleOpenDialog}>
           <i className="fa-solid fa-hexagon-plus"></i>
         </button>
 
@@ -604,7 +752,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
         {isDialogOpen && (
           <DynamicDialog
             isOpen={isDialogOpen}
-            title="Add a new task"
+            title={dialogTitle}
             items={addTaskFormFields}
             onSave={handleSave}
             onCancel={handleCloseDialog}
@@ -618,7 +766,16 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
             className="add-to-any-note-dialog"
             style={dialogStyle}
             fieldLoadingStates={fieldLoadingStates}
-          />
+          >
+            <DropdownSelect
+              className="add-kind-choice"
+              label="Item type"
+              appearance="popup"
+              options={kindOptions}
+              controlledValue={itemKind}
+              onChange={handleKindChange}
+            />
+          </DynamicDialog>
         )}
       </>
     )

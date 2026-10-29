@@ -365,11 +365,11 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React.Nod
           <SearchBar onSearch={handleSearch} />
           {/* )} */}
 
-          {/* Add task to any note button and dialog */}
+          {/* Add task, checklist, or reminder */}
           {useDynamicAddToAnywhere ? (
             <AddToAnyNote sendActionToPlugin={sendActionToPlugin} />
           ) : (
-            <button accessKey="a" className="buttonsWithoutBordersOrBackground" title="Add new task/checklist" onClick={handleAddTaskAnywhere}>
+            <button accessKey="a" className="buttonsWithoutBordersOrBackground" title="Add new task to any note" onClick={handleAddTaskAnywhere}>
               <i className="fa-solid fa-hexagon-plus"></i>
             </button>
           )}
