@@ -92,6 +92,8 @@ export type TDashboardSettings = {
   includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
   showFolderName: boolean,
   showScheduledDates: boolean,
+  /** Days ahead at which the due-date chip starts. 0 shows today and overdue only. */
+  showDueDatesWithinDays: number,
   showTaskContext: boolean,
   includeFutureTagMentions: boolean, // from v2.3.0
   interactiveProcessingHighlightTask: boolean,
@@ -448,6 +450,13 @@ export type MessageDataObject = {
   perspectiveName?: string,
   switchToPerspectiveName?: string /* only used when actionType = 'savePerspectiveAndSwitchToPerspective': the perspective to switch to after saving */,
   stringToEvaluate?: string,
+  /**
+   * When true (perspective switch): skip done-count recount at end of
+   * incrementallyRefreshSomeSections, and clear firstRun/perspectiveChanging on the first section
+   * so a mid-loop hang does not leave the Refresh control stuck on Generating.
+   * Scheduled caches still queue via x-callback (never inline).
+   */
+  skipPostRefreshHeavyWork?: boolean,
 }
 
 /**
@@ -495,6 +504,11 @@ export type TBridgeClickHandlerResult = {
   perspectiveScopeFoldersChanged?: boolean,
   errorMsg?: string,
   errorMessageLevel?: 'WARN' | 'ERROR' | 'INFO',
+  /**
+   * Plugin-side copy of the React window payload after setPluginData (incremental carry-forward).
+   * Avoids getGlobalSharedData between sections once the WebView is busy painting.
+   */
+  reactWindowData?: TAnyObject,
 }
 
 export type TClickPosition = {

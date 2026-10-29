@@ -561,6 +561,22 @@ export function getTagSectionDetails(dashboardSettings: TDashboardSettingsIn): A
 }
 
 /**
+ * True when tagsToShow has at least one tag whose showTagSection_* toggle is on (or unset).
+ * Perspectives often keep a tag in tagsToShow with showTagSection_*=false; those must not queue a TAG refresh.
+ * @param {TDashboardSettingsIn} dashboardSettings
+ * @returns {boolean}
+ */
+export function hasAnyEnabledTagToShow(dashboardSettings: TDashboardSettingsIn): boolean {
+  const tagDetails = getTagSectionDetails(dashboardSettings)
+  if (tagDetails.length === 0) return false
+  return tagDetails.some((detail) => {
+    // Cast: showSettingName is a dynamic `showTagSection_<tag>` key.
+    const showSettingValue = (dashboardSettings: $ReadOnly<TAnyObject>)[detail.showSettingName]
+    return typeof showSettingValue === 'undefined' || showSettingValue
+  })
+}
+
+/**
  * Sorts the sections array by sectionCode based on a predefined order and then by sectionName alphabetically.
  * TAG sections are sorted by the order in dashboardSettings.tagsToShow instead of alphabetically.
  * @param {Array<TSection>} sections - The array of sections to be sorted.

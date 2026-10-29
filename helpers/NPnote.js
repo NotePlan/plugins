@@ -817,9 +817,9 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
         }
 
         // Log if content contains TEST. TODO(later): remove after testing backlinks workaround
-        if (resolved.content.includes('TEST')) {
-          logInfo(`getReferencedParagraphs`, `FYI 👉 found TEST in #${resolved.lineIndex}: '${calNote.filename}' [${resolved.type}] {${resolved.rawContent}}`)
-        }
+        // if (resolved.content.includes('TEST')) {
+        //   logInfo(`getReferencedParagraphs`, `FYI 👉 found TEST in #${resolved.lineIndex}: '${calNote.filename}' [${resolved.type}] {${resolved.rawContent}}`)
+        // }
 
         wantedParas.push(resolved)
       } else {

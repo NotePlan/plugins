@@ -2,13 +2,14 @@
 //--------------------------------------------------------------------------
 // Shared: turn a raw task line string into HTML matching NotePlan-style display
 // (hashtags, mentions, links, etc.) for TaskItem (via ItemContent) and ProjectItem.
-// Last updated 2026-10-02 for v2.5.1 by @jgclark/@Cursor
+// Last updated 2026-10-12 for v2.6.0 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 
+import { getNoteIconDisplayProps } from '../noteIconDisplay.js'
 import type { TDashboardSettings, TLinkedNoteIconInfo, TSectionItem } from '../types.js'
 import type { TReminderDisplayById } from '@helpers/NPReminders'
-import { getNoteIconDisplayProps } from '../noteIconDisplay.js'
 import { replaceArrowDatesInString } from '@helpers/dateTime'
+import { contentWithoutDueDate, replaceFarDueDatesWithChips } from '@helpers/dueStartDates'
 import { logError } from '@helpers/react/reactDev.js'
 import {
   changeBareLinksToHTMLLink,
@@ -47,6 +48,10 @@ export type TDashboardLineDisplayOptions = {
   reminderDisplayById?: TReminderDisplayById,
   /** When true, keep >today and >this-week on the line (regular notes). Calendar rows still drop those as redundant. */
   keepRelativeScheduledDates?: boolean,
+  /** Days ahead at which the countdown chip starts. Due dates further out stay in the task text as an ok chip. */
+  showDueDatesWithinDays?: number,
+  /** Far due-date chips use a relative date ("in 3 wks") instead of YYYY-MM-DD. */
+  showFarDueDateAsRelative?: boolean,
 }
 
 /**
@@ -129,6 +134,29 @@ function extractRepeatMarkers(input: string): { rest: string, markersHtml: strin
 }
 
 /**
+ * Turn scheduled `>date` markers into calendar lozenges.
+ * A due date written `!>YYYY-MM-DD` starts with `>` too; leave that marker for the due-date chip.
+ * @param {string} output
+ * @returns {string}
+ */
+function replaceScheduledDatesWithLozenges(output: string): string {
+  const re = new RegExp(RE_SCHEDULED_DATES_G.source, 'g')
+  let result = ''
+  let lastIndex = 0
+  for (const match of output.matchAll(re)) {
+    const index = match.index
+    if (typeof index !== 'number') continue
+    if (index > 0 && output.charAt(index - 1) === '!') continue
+    const capture = match[0]
+    const dateText = capture.startsWith('>') ? capture.slice(1) : capture
+    const lozenge = `<span class="scheduledDate"><i class="fa-regular fa-calendar pad-right"></i>${dateText}</span>`
+    result += `${output.slice(lastIndex, index)}${lozenge}`
+    lastIndex = index + capture.length
+  }
+  return `${result}${output.slice(lastIndex)}`
+}
+
+/**
  * Produce HTML from a raw line string to mimic NP's native display (same pipeline as task rows).
  * @param {string} content - raw paragraph content
  * @param {TDashboardLineDisplayOptions} options
@@ -144,6 +172,8 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
   const linkedNoteIcons = options?.linkedNoteIcons
   const reminderDisplayById = options?.reminderDisplayById
   const keepRelativeScheduledDates = options?.keepRelativeScheduledDates === true
+  const showDueDatesWithinDays = options?.showDueDatesWithinDays
+  const showFarDueDateAsRelative = options?.showFarDueDateAsRelative === true
 
   try {
     if (content == null || content === '') {
@@ -214,14 +244,10 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
     output = convertBoldAndItalicToHTML(output)
     output = convertUnderlinedToHTML(output)
 
-    const captures = output.match(RE_SCHEDULED_DATES_G)
-    if (captures) {
-      for (const capture of captures) {
-        // Lozenge like .timeBlock: calendar icon + date text (without leading '>')
-        const dateText = capture.startsWith('>') ? capture.slice(1) : capture
-        output = output.replace(capture, `<span class="scheduledDate"><i class="fa-regular fa-calendar pad-right"></i>${dateText}</span>`)
-      }
-    }
+    output = replaceScheduledDatesWithLozenges(output)
+
+    // Due dates further ahead than the countdown window stay in the task text, as an ok-colored chip.
+    output = replaceFarDueDatesWithChips(output, showDueDatesWithinDays, showFarDueDateAsRelative)
 
     if (truncateLength > 0 && origContent.length > truncateLength) {
       output = truncateHTML(output, truncateLength, true)
@@ -248,6 +274,9 @@ export function makeStringContentToLookLikeNPDisplayInReact(content: string, opt
  * @param {TSectionItem} thisItem
  * @param {number} truncateLength
  * @param {string} timeblockTextMustContainString
+ * @param {boolean} suppressDueDate - drop the in-window `!YYYY-MM-DD` or `!>YYYY-MM-DD` when a countdown chip is shown for this line
+ * @param {number} showDueDatesWithinDays - countdown window; farther due dates render in the task text
+ * @param {boolean} showFarDueDateAsRelative - far due chips use a relative date instead of YYYY-MM-DD
  * @returns {string}
  */
 export function makeParaContentToLookLikeNPDisplayInReact(
@@ -255,13 +284,17 @@ export function makeParaContentToLookLikeNPDisplayInReact(
   truncateLength: number = 0,
   timeblockTextMustContainString: string = '',
   reminderDisplayById?: TReminderDisplayById,
+  suppressDueDate: boolean = false,
+  showDueDatesWithinDays?: number,
+  showFarDueDateAsRelative?: boolean,
 ): string {
   try {
     const { para } = thisItem
     if (!para || !para.content) {
       throw new Error(`No para/content in item ${thisItem.ID}`)
     }
-    return makeStringContentToLookLikeNPDisplayInReact(para.content, {
+    const content = suppressDueDate ? contentWithoutDueDate(para.content, showDueDatesWithinDays) : para.content
+    return makeStringContentToLookLikeNPDisplayInReact(content, {
       truncateLength,
       taskPriority: para.priority ?? 0,
       startTime: para.startTime,
@@ -271,6 +304,8 @@ export function makeParaContentToLookLikeNPDisplayInReact(
       linkedNoteIcons: para.linkedNoteIcons,
       reminderDisplayById,
       keepRelativeScheduledDates: para.noteType === 'Notes',
+      showDueDatesWithinDays,
+      showFarDueDateAsRelative,
     })
   } catch (error) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, error.message)

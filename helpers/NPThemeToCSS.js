@@ -461,8 +461,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Scheduled >date lozenge: tint fill, main background text (same shape as .timeBlock)
     tempSel = []
     tempSel.push(`font-size: 84%`)
-    tempSel.push(`color: var(--tint-color)`)
-    tempSel.push(`background-color: rgb(from var(--tint-color) r g b / 0.2)`)
+    tempSel.push(`color: var(--fg-placeholder-color)`)
+    tempSel.push(`background-color: rgb(from var(--fg-placeholder-color) r g b / 0.1)`)
     tempSel.push('border-radius: 5px')
     tempSel.push('padding-inline: 3px')
     output.push(makeCSSSelector('.scheduledDate', tempSel))

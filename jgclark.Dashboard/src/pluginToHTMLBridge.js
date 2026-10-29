@@ -956,12 +956,18 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       // $FlowFixMe[constant-condition]
       if (PERSPECTIVE_SWITCH_USES_REPLACE_METHOD) {
         logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling batchReplaceSections (for ${String(enabledSections)}; PERSPECTIVE_SWITCH_USES_REPLACE_METHOD=true) ...`)
-        await batchReplaceSections({ ...data, sectionCodes: enabledSections })
+        await batchReplaceSections({ ...data, sectionCodes: enabledSections, skipPostRefreshHeavyWork: true })
         logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (firstRun/perspectiveChanging cleared in the replace payload)`)
       } else {
         logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}; PERSPECTIVE_SWITCH_USES_REPLACE_METHOD=false) ...`)
-        await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
-        logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (firstRun/perspectiveChanging cleared on last incremental section)`)
+        // Seed from doSwitch avoids getGlobalSharedData right after the wipe UPDATE_DATA (that get hung switches).
+        await incrementallyRefreshSomeSections(
+          { ...data, sectionCodes: enabledSections, skipPostRefreshHeavyWork: true },
+          false,
+          false,
+          handlerResultIn.reactWindowData,
+        )
+        logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (firstRun/perspectiveChanging cleared on first + last incremental section)`)
       }
 
       // Reviews Rich list: queue via x-callback (invokePluginCommandByName blocks the JSContext even without await).

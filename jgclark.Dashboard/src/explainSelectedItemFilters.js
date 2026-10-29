@@ -26,6 +26,7 @@ import { getActivePerspectiveName, loadPerspectiveDefsFromPluginSettings } from 
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import type { TDashboardSettings, TSectionCode } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
+import { thisWeekIsInStartDueWeekSpan } from '@helpers/dueStartDates'
 import {
   findScheduledDates,
   getDateStringFromCalendarFilename,
@@ -322,13 +323,16 @@ function explainCalendarSection(para: TParagraph, sectionCode: TSectionCode, set
   const NPSettings = getNotePlanSettings()
   const mustContainString = NPSettings.timeblockMustContainString
   const isTodaySection = sectionCode === 'DT'
+  const content = para.content || ''
   const inNote = isInNoteForPeriod(para, period)
   const asRef = isReferencedToPeriod(para, period, isTodaySection)
-  const scheduledDates = findScheduledDates(para.content || '')
+  // This Week also keeps a task for every week from >YYYY-Wnn through !>YYYY-Wnn, even when it is not scheduled to this week.
+  const weekSpan = sectionCode === 'W' && thisWeekIsInStartDueWeekSpan(content)
+  const scheduledDates = findScheduledDates(content)
 
   const steps: Array<TStepResult> = []
 
-  if (!inNote && !asRef) {
+  if (!inNote && !asRef && !weekSpan) {
     steps.push({
       label: 'candidate path',
       pass: false,
@@ -343,11 +347,13 @@ function explainCalendarSection(para: TParagraph, sectionCode: TSectionCode, set
     }
   }
 
-  const path = inNote ? 'in-note' : 'referenced'
+  const path = inNote ? 'in-note' : weekSpan && !asRef ? 'week span' : 'referenced'
   steps.push({
     label: 'candidate path',
     pass: true,
-    detail: `${path} for ${period.periodName} ${period.dateStrForSchedule}`,
+    detail: weekSpan && !asRef
+      ? `week span covers ${period.dateStrForSchedule}`
+      : `${path} for ${period.periodName} ${period.dateStrForSchedule}`,
   })
 
   const openParas = filterToOpenParagraphs([para], false, mustContainString)
@@ -376,9 +382,10 @@ function explainCalendarSection(para: TParagraph, sectionCode: TSectionCode, set
     })
   }
 
+  const fromAnotherNote = !inNote && (asRef || weekSpan)
   const shared = explainSharedFilters(para, settings, {
-    applyFolders: asRef && !inNote,
-    applyTeamspaces: asRef && !inNote,
+    applyFolders: fromAnotherNote,
+    applyTeamspaces: fromAnotherNote,
     applyCalendarSectionFilters: true,
     folderStyle: 'referenced',
   })

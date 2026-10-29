@@ -1,5 +1,13 @@
 /* CSS specific to ItemContent (task rows) and ReminderItem content layout.
-/* Last updated 2026-09-16 for v2.5.0.b6, @jgclark */
+/* Last updated 2026-10-11, @jgclark */
+
+/* Borrow definitions from Projects plugin to use in due date chips */
+html {
+  --fg-due-color: hsla(45, 85%, 40%, 1); 
+  --fg-overdue-color: hsla(0, 85%, 40%, 1); 
+  --fg-soon-color: hsla(210, 85%, 45%, 1); 
+  --fg-not-due-color: hsla(120, 85%, 30%, 1); 
+}
 
 /* Fill remaining width in the sectionItemRow. flow-root contains the floated note link. */
 .taskItemContent {
@@ -16,9 +24,79 @@
 }
 
 /* Note-link lozenge: right-aligned on the same line when it fits (not used by ProjectItem).
-   float keeps it with the trailing content instead of dropping onto its own flex line. */
+   float keeps it with the trailing content instead of dropping onto its own flex line.
+   Task rows wrap the due chip and note link in .taskItemTrailing so the chip stays left of the title. */
 .itemNoteLinkEnd {
 	float: right;
+	margin-left: 0.35rem;
+}
+
+.taskItemTrailing {
+	float: right;
+	display: inline-flex;
+	align-items: center;
+	margin-left: 0.35rem;
+	white-space: nowrap;
+}
+
+.taskItemTrailing .itemNoteLinkEnd {
+	float: none;
+	margin-left: 0.35rem;
+}
+
+.taskItemTrailing .itemNoteLink {
+	line-height: 1;
+}
+
+.taskItemTrailing .itemNoteLinkEnd:first-child {
+	margin-left: 0;
+}
+
+/* Countdown chip in the task text. Due-soon and overdue are separate classes.
+   AtStart sits before the words. AtEnd sits after them. */
+.dueDateSoonChip,
+.dueDateOverdueChip,
+.dueDateAheadChip {
+	display: inline-block;
+	align-items: center;
+	font-size: 84%;
+	line-height: 1;
+	border: 1px solid transparent;
+	border-radius: 5px;
+	padding-inline: 3px;
+	white-space: nowrap;
+	vertical-align: middle;
+}
+
+.dueDateSoonChip i,
+.dueDateOverdueChip i,
+.dueDateAheadChip i {
+	line-height: 1;
+	vertical-align: middle;
+}
+
+.dueDateSoonChip {
+	color: var(--fg-soon-color);
+	background-color: rgb(from var(--fg-soon-color) r g b / 0.10);
+}
+
+.dueDateOverdueChip {
+	color: var(--fg-overdue-color);
+	background-color: rgb(from var(--fg-overdue-color) r g b / 0.10);
+	font-weight: 600;
+}
+
+/* Due date that is still too far for the countdown chip. Stays in the task text. */
+.dueDateAheadChip {
+	color: var(--fg-placeholder-color);
+	background-color: rgb(from var(--fg-placeholder-color) r g b / 0.1);
+}
+
+.dueDateChipAtStart {
+	margin-right: 0.35rem;
+}
+
+.dueDateChipAtEnd {
 	margin-left: 0.35rem;
 }
 
@@ -33,13 +111,14 @@
 	text-wrap: nowrap;
 }
 
-/* Main group fills leftover width; children stay start-aligned so edit sits after the text */
+/* Main group fills leftover width; children stay start-aligned so edit sits after the text.
+   Center on the cross axis so due chips sit in the middle of the line, not on the text baseline. */
 .density-compact .taskItemContent > .taskItemMainText,
 .density-compact .reminderItemContent > .taskItemMainText {
 	display: flex;
 	flex: 1 1 auto;
 	flex-wrap: nowrap;
-	align-items: baseline;
+	align-items: center;
 	justify-content: flex-start;
 	min-width: 0;
 	overflow: hidden;
@@ -55,8 +134,11 @@
 }
 
 .density-compact .taskItemMainText > .parentMarkerIcon,
-.density-compact .taskItemMainText > .dialogTriggerIcon {
+.density-compact .taskItemMainText > .dialogTriggerIcon,
+.density-compact .taskItemMainText > .dueDateSoonChip,
+.density-compact .taskItemMainText > .dueDateOverdueChip {
 	flex: 0 0 auto;
+	align-self: center;
 }
 
 /* Trailing note/list link: pin to RHS; can shrink so some title stays visible */
@@ -66,6 +148,28 @@
 	max-width: 40%;
 	min-width: 0;
 	overflow: hidden;
+	margin-left: 0.35rem;
+}
+
+/* Task rows: chip stays full size; the note title is what shrinks */
+.density-compact .taskItemTrailing {
+	float: none;
+	display: flex;
+	flex: 0 1 auto;
+	align-items: center;
+	max-width: 45%;
+	min-width: 0;
+	margin-left: 0.35rem;
+}
+
+.density-compact .taskItemTrailing .dueDateSoonChip,
+.density-compact .taskItemTrailing .dueDateOverdueChip {
+	flex: 0 0 auto;
+}
+
+.density-compact .taskItemTrailing .itemNoteLinkEnd {
+	flex: 1 1 auto;
+	max-width: none;
 	margin-left: 0.35rem;
 }
 

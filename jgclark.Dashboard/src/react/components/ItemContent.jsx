@@ -1,20 +1,26 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated 2026-09-16 for v2.5.0.b6 by @jgclark/@Cursor
+// Last updated 2026-10-11 by @jgclark/@Cursor
 //--------------------------------------------------------------------------
 import React from 'react'
-import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
 import { applyDashboardSettingsToDisplayedItemHtml, makeParaContentToLookLikeNPDisplayInReact } from '../dashboardLineToNPDisplayHTML.js'
+import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
+import DueDateChip from './DueDateChip.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
-import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import './ItemContent.css'
+import { dueDateChip } from '@helpers/dueStartDates'
+import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 //--------------------------------------------------------------------------
 
 const NORMAL_ITEM_TRUNCATE_LENGTH = 140
 const COMPACT_ITEM_TRUNCATE_LENGTH = 70 // half of Normal when Display Density is Compact
+/** Where the today/overdue chip sits in the task text. 'end' is after the words, 'start' is before them. */
+const OVERDUE_CHIP_PLACE: 'start' | 'end' = 'end'
+/** Far due-date chips show a relative date ("in 3 wks") when true, or the YYYY-MM-DD date when false. */
+const SHOW_FAR_DUE_DATE_AS_RELATIVE = false
 
 type Props = {
   item: TSectionItem,
@@ -41,7 +47,22 @@ function ItemContent({ item /*, children */, thisSection }: Props): React.Node {
   // compute the things we need later
   const isCompactDensity = dashboardSettings?.displayDensity === 'Compact'
   const truncateLength = isCompactDensity ? COMPACT_ITEM_TRUNCATE_LENGTH : NORMAL_ITEM_TRUNCATE_LENGTH
-  let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, truncateLength, timeblockMustContainString, pluginData?.reminderDisplayById)
+  // Countdown chip when the task is due today, overdue, or within the user's day window.
+  // Due-soon sits at the end of the task text. Today and overdue follow OVERDUE_CHIP_PLACE.
+  // The same !YYYY-MM-DD or !>YYYY-MM-DD is left out of the task line.
+  const rawDueWindow = dashboardSettings?.showDueDatesWithinDays
+  const parsedDueWindow = typeof rawDueWindow === 'number' ? rawDueWindow : parseInt(String(rawDueWindow ?? ''), 10)
+  const dueWindow = Number.isNaN(parsedDueWindow) ? undefined : parsedDueWindow
+  const dueChip = dueDateChip(item.para?.content ?? '', dueWindow)
+  let mainContent = makeParaContentToLookLikeNPDisplayInReact(
+    item,
+    truncateLength,
+    timeblockMustContainString,
+    pluginData?.reminderDisplayById,
+    dueChip != null,
+    dueWindow,
+    SHOW_FAR_DUE_DATE_AS_RELATIVE,
+  )
   mainContent = applyDashboardSettingsToDisplayedItemHtml(mainContent, dashboardSettings)
 
   // Note: This is how to remove tag/mention, if they match the item's sectionCode. Decided not to keep this, as it is doesn't suit some use cases for tags/mentions.
@@ -101,7 +122,9 @@ function ItemContent({ item /*, children */, thisSection }: Props): React.Node {
       {possChildMarker}
       {/* Keep task text + parent marker + edit together; note link alone is RHS in Compact */}
       <span className="taskItemMainText">
+        {dueChip != null && dueChip.urgent && OVERDUE_CHIP_PLACE === 'start' ? <DueDateChip chip={dueChip} place="start" /> : null}
         <a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>
+        {dueChip != null && (!dueChip.urgent || OVERDUE_CHIP_PLACE === 'end') ? <DueDateChip chip={dueChip} place="end" /> : null}
         {possParentIcon}
         {/* <span className="pad-left">[ID:{item.ID}]</span> */}
         <a className="dialogTriggerIcon">
@@ -109,14 +132,16 @@ function ItemContent({ item /*, children */, thisSection }: Props): React.Node {
         </a>
       </span>
       {showItemNoteLink && (
-        <span className="itemNoteLinkEnd">
-          <ItemNoteLink
-            item={item}
-            thisSection={thisSection}
-            alwaysShowNoteTitle={false}
-            suppressTeamspaceName={suppressTeamspaceName}
-            suppressFolderName={isCompactDensity}
-          />
+        <span className="taskItemTrailing">
+          <span className="itemNoteLinkEnd">
+            <ItemNoteLink
+              item={item}
+              thisSection={thisSection}
+              alwaysShowNoteTitle={false}
+              suppressTeamspaceName={suppressTeamspaceName}
+              suppressFolderName={isCompactDensity}
+            />
+          </span>
         </span>
       )}
     </div>

@@ -10,7 +10,7 @@ import { WEBVIEW_WINDOW_ID } from './constants'
 import { addTaskToNote } from './requestHandlers/addTaskToNote'
 import { doWindowResized } from './clickHandlers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
-import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
+import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { logDebug, logError } from '@helpers/dev'
 import { newCommsRouter } from '@helpers/react/routerUtils'
 
@@ -66,6 +66,7 @@ async function handleNonRequestAction(actionType: string, data: any): Promise<an
   try {
     const dataToSend = { ...data }
     if (!dataToSend.actionType) dataToSend.actionType = actionType
+    logDebug(pluginJson, `[Dashboard/routeRequestsFromReact] handleNonRequestAction: "${actionType}"`)
 
     // Window size/position save: do NOT call getGlobalSharedData / sendToHTMLWindow. On hide/close the WebView is
     // already null (NP logs "The web view is null..."), so the usual router preamble would throw and
@@ -76,20 +77,17 @@ async function handleNonRequestAction(actionType: string, data: any): Promise<an
       return {}
     }
 
-    // For other non-REQUEST actions, use the existing bridgeClickDashboardItem pattern
-    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
-    if (data.passThroughVars && reactWindowData) {
-      reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
-    }
     switch (actionType) {
       case 'SHOW_BANNER': {
         await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', dataToSend)
         break
       }
       // Note: SO THAT JGCLARK DOESN'T HAVE TO RE-INVENT THE WHEEL HERE, WE WILL JUST CALL THE PRE-EXISTING FUNCTION bridgeDashboardItem
-      // every time
+      // every time.
+      // Do not await getGlobalSharedData here first. That round trip from a WebView-invoked command often never
+      // resumes on NotePlan Beta, and the previous passThroughVars merge was never written back anyway.
       default: {
-        const _newData = (await bridgeClickDashboardItem(dataToSend)) || reactWindowData // the processing function can update the reactWindowData object and return it
+        await bridgeClickDashboardItem(dataToSend)
         break
       }
     }

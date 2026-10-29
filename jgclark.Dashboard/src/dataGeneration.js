@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-08-20 for v2.4.0.b67 by @CursorAI + @jgclark
+// Last updated 2026-10-12 for v2.6.0.b1 by @CursorAI + @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,12 +29,12 @@ import { getProjectReviewSectionData, getProjectActiveSectionData } from './data
 import { getRemindersGeneratedData, type TRemindersGeneratedData } from './dataGenerationReminders'
 import { getSavedSearchResults } from './dataGenerationSearch'
 import { getTaggedSectionData } from './dataGenerationTags'
-import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
+import { getLastWeekSectionData, getThisWeekSectionData, searchBangGtParagraphs } from './dataGenerationWeeks'
 import type { TReminderPlacement } from './reminderPlacement'
 import { getTagSectionDetails, selectTagSectionsToGenerate } from './react/components/Section/sectionHelpers'
 import type { TReminderDisplayById } from '@helpers/NPReminders'
 import { getNestedValue, setNestedValue } from '@helpers/dataManipulation'
-import { logDebug, logError, logWarn } from '@helpers/dev'
+import { logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getLiveWindowRect, getStoredWindowRect, rectToString } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------
@@ -196,6 +196,19 @@ export async function getSomeSectionsData(
     // -------------------------------------------------------------------------
     const wantDY = sectionCodesToGet.includes('DY') && Boolean(config.showYesterdaySection)
     const wantOVERDUE = sectionCodesToGet.includes('OVERDUE') && Boolean(config.showOverdueSection)
+    const wantWeek = sectionCodesToGet.includes('W') && Boolean(config.showWeekSection)
+
+    // One `!>` search for Today's day window, This Week's week span, and week dues that are already past.
+    // A leading `-` is "exclude" in NotePlan search, so this must not be a `-W` query.
+    const wantBangGt = sectionCodesToGet.includes('DT') || wantWeek || wantOVERDUE
+    let bangGtHits: ?Array<TParagraph> = null
+    let bangGtTiming = ''
+    if (!useDemoData && wantBangGt) {
+      const bangGtStart = new Date()
+      bangGtHits = await searchBangGtParagraphs()
+      bangGtTiming = timer(bangGtStart)
+      logInfo('getSomeSectionsData', `!> search took ${bangGtTiming} (${String(bangGtHits.length)} line(s))`)
+    }
 
     // Shared yesterday task fetch when either DY or OVERDUE needs those paras (skip demo: generators use demoData)
     let yesterdayOpenAndRef: ?[Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] = null
@@ -220,10 +233,13 @@ export async function getSomeSectionsData(
       logWarn('getSomeSectionsData', `- ${parts.join('; ')} reminder(s) have no visible section and will not be shown anywhere`)
     }
 
-    // DT and TB sections are generated separately but share paragraph data fetching
+    // DT and TB sections are generated separately but share paragraph data fetching.
+    // Today's start-to-!>due window uses the shared `!>` search. Overdue still loads listOverdueTasks() itself.
+    let overdueApiParasFromToday: ?$ReadOnlyArray<TParagraph> = null
     if (sectionCodesToGet.includes('DT')) {
-      const todaySections = getTodaySectionData(config, useDemoData, useEditorWherePossible, placement.forDT)
-      sections.push(...todaySections)
+      const todayResult = await getTodaySectionData(config, useDemoData, useEditorWherePossible, placement.forDT, bangGtHits, bangGtTiming)
+      sections.push(...todayResult.sections)
+      overdueApiParasFromToday = todayResult.overdueApiParas
     }
     if (sectionCodesToGet.includes('TB') && isTBSectionEnabled(config)) {
       sections.push(...getTimeBlockSectionData(config, useDemoData, useEditorWherePossible, placement.forTB))
@@ -240,7 +256,7 @@ export async function getSomeSectionsData(
       sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible, placement.forDO))
     }
     if (sectionCodesToGet.includes('LW') && config.showLastWeekSection) sections.push(...getLastWeekSectionData(config, useDemoData, useEditorWherePossible))
-    if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
+    if (wantWeek) sections.push(...(await getThisWeekSectionData(config, useDemoData, useEditorWherePossible, bangGtHits, bangGtTiming)))
     if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('Q') && config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('Y') && config.showYearSection) sections.push(...getThisYearSectionData(config, useDemoData, useEditorWherePossible))
@@ -276,7 +292,7 @@ export async function getSomeSectionsData(
     }
 
     if (wantOVERDUE) {
-      const overdueSection = await getOverdueSectionData(config, useDemoData, placement.forOVERDUE, yesterdaySpillTaskParas, yesterdayParasForOverdueDedupe)
+      const overdueSection = await getOverdueSectionData(config, useDemoData, placement.forOVERDUE, yesterdaySpillTaskParas, yesterdayParasForOverdueDedupe, overdueApiParasFromToday, bangGtHits)
       if (overdueSection) sections.push(overdueSection)
     }
 
@@ -306,6 +322,7 @@ export async function getSomeSectionsData(
  * @param {boolean} _useDemoData?
  * @returns {Array<TSection>} data
  */
+// eslint-disable-next-line require-await
 export async function getInfoSectionData(config: TDashboardSettings, _useDemoData: boolean = false): Promise<Array<TSection>> {
   const sections: Array<TSection> = []
   const thisSectionCode = 'INFO'
