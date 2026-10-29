@@ -39,10 +39,12 @@ debugging: [`.cursor/agents/dashboard-log-debugger.md`](.cursor/agents/dashboard
 ## Non-negotiables (always)
 
 1. Static `import` only -- no `require`, no dynamic imports (Rollup).
-2. Do not `npm run build` plugins; leave builds to the programmer.
+2. Do not `npm run build` plugins; leave builds to the programmer. React/
+   WebView plugins need `performRollup` **then** `npc` (`npc` alone does not
+   refresh `requiredFiles/` bundles) -- see `agents/docs/programming.md`.
 3. Do not commit or push unless the user explicitly asks.
 4. Never grep the raw NotePlan log -- use the nplog skill.
-5. Prefer `npx flow` for typecheck. Save `flow check` as indented JSON at `/tmp/flow-check-now.json`. Always pass `--no-watch` to jest.
+5. Prefer `npx flow` for typecheck. Save `flow check` as indented JSON at `/tmp/flow-check-now.json`. Always pass `--no-watch` to jest. Jest/`__tests__` keep `// @flow`; after editing those files, run Flow (`focus-check` or full check) -- jest alone misses `missing-local-annot` and similar.
 6. Wrap React context/child callbacks in `useCallback`; memoize AppContext with
    `useMemo` (see react-html doc).
 

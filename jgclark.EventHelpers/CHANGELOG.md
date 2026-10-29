@@ -1,4 +1,4 @@
-# What's changed in 🕓 Event Helpers?
+# What's changed in Event Helpers?
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 

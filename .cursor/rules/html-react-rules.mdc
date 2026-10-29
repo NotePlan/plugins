@@ -7,7 +7,7 @@ alwaysApply: true
 
 Follow `agents/docs/react-html.md`. Hub: `AGENTS.md`.
 
-- Static `import` only; do not `npm run build`
+- Static `import` only; do not `npm run build` (React: performRollup then npc)
 - Use Promise polyfills from `@helpers/promisePolyfill.js`
 - Memoize Context/child callbacks with `useCallback`; AppContext with `useMemo`
 - Use `DynamicDialog` (handlers in `useCallback`)

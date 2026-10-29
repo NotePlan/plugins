@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2026-10-17 for v1.21.0 by @jgclark
+// Last updated 2026-10-24 for v1.21.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -348,28 +348,37 @@ export function findProblemsInNote(title: ?string, content: string, frontmatterA
 /**
  * Scan project notes for title problems.
  * Ignores folders in `foldersToExclude`, plus Trash, and any filenames in `filenamesToSkip`.
+ * Synchronous. Safe for runOnAsyncThread (read-only; showLoading allowed).
  * @param {Array<string>} foldersToExclude
  * @param {Array<string>} filenamesToSkip
+ * @param {boolean} showProgress - when true, update CommandBar.showLoading during the scan
  * @returns {Array<noteTitleProblems>}
  */
-function findTitleProblems(foldersToExclude: Array<string> = [], filenamesToSkip: Array<string> = []): Array<noteTitleProblems> {
+function findTitleProblems(foldersToExclude: Array<string> = [], filenamesToSkip: Array<string> = [], showProgress: boolean = false): Array<noteTitleProblems> {
   try {
     logDebug(pluginJson, `findTitleProblems() starting`)
 
-    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, false, false)
-    logDebug('findTitleProblems', `- Found ${relevantFolderList.length} folders to check`)
+    const relevantFolderList = getFolderListMinusExclusions(foldersToExclude, false, false)
+    const folderCount = relevantFolderList.length
+    logDebug('findTitleProblems', `- Found ${String(folderCount)} folders to check`)
     let notes: Array<TNote> = []
-    for (const thisFolder of relevantFolderList) {
-      notes = notes.concat(getProjectNotesInFolder(thisFolder))
+    for (let f = 0; f < folderCount; f++) {
+      if (showProgress && f % 5 === 0) {
+        CommandBar.showLoading(true, `Looking for title problems (folder ${String(f + 1)} of ${String(folderCount)})...`, (f / folderCount) * 0.3)
+      }
+      notes = notes.concat(getProjectNotesInFolder(relevantFolderList[f]))
     }
 
     const output: Array<noteTitleProblems> = []
-    let count = 0
-    for (const note of notes) {
-      if (count % 10 === 0) {
-        CommandBar.showLoading(true, `Looking for title problems in note ${String(count)} of ${String(notes.length)}...`, count / notes.length)
+    const total = notes.length
+    for (let i = 0; i < total; i++) {
+      if (showProgress && i % 25 === 0) {
+        CommandBar.showLoading(true, `Looking for title problems in note ${String(i)} of ${String(total)}...`, 0.3 + (i / total) * 0.7)
       }
-      count++
+      if (i > 0 && i % 250 === 0) {
+        logDebug('findTitleProblems', `- checked ${String(i)}/${String(total)} notes, found ${String(output.length)} with problems so far`)
+      }
+      const note = notes[i]
       if (filenamesToSkip.includes(note.filename)) continue
       const problems = findProblemsInNote(note.title, note.content ?? '', note.frontmatterAttributes)
       if (problems.length > 0) {
@@ -377,6 +386,7 @@ function findTitleProblems(foldersToExclude: Array<string> = [], filenamesToSkip
       }
     }
     output.sort((a, b) => (a.note.filename || '').localeCompare(b.note.filename || ''))
+    logDebug('findTitleProblems', `- finished: ${String(output.length)} notes with problems from ${String(total)} notes`)
     return output
   } catch (err) {
     logError(pluginJson, 'findTitleProblems() ' + JSP(err))
@@ -443,22 +453,25 @@ function sectionLines(heading: string, rows: Array<noteTitleProblems>, kind: Tit
  * @param {string?} params
  */
 export async function listTitleProblems(params: string = ''): Promise<void> {
+  let runSilently: boolean = false
   try {
     logDebug(pluginJson, `listTitleProblems: Starting with params '${params}'`)
     const config = await getSettings()
     const outputFilename = config.titleProblemsNoteFilename ?? FALLBACK_OUTPUT_FILENAME
-    const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
+    runSilently = await getTagParamsFromString(params ?? '', 'runSilently', false)
     logDebug('listTitleProblems', `runSilently = ${String(runSilently)}`)
 
-    CommandBar.showLoading(true, `Looking for title problems`)
+    if (!runSilently) {
+      CommandBar.showLoading(true, `Looking for title problems`)
+    }
     const startTime = new Date()
     let holder: ?Array<noteTitleProblems> = null
     /**
-     * Synchronous title scan. Safe for runOnAsyncThread (read-only).
+     * Synchronous title scan. Safe for runOnAsyncThread (read-only; showLoading allowed).
      * @returns {true}
      */
     const syncFindTitleProblems = (): true => {
-      holder = findTitleProblems(config.listFoldersToExclude, [outputFilename])
+      holder = findTitleProblems(config.listFoldersToExclude, [outputFilename], !runSilently)
       return true
     }
     await runHeavySyncWork('listTitleProblems', syncFindTitleProblems)
@@ -467,7 +480,9 @@ export async function listTitleProblems(params: string = ''): Promise<void> {
       syncFindTitleProblems()
     }
     const found: Array<noteTitleProblems> = holder ?? []
-    CommandBar.showLoading(false)
+    if (!runSilently) {
+      CommandBar.showLoading(false)
+    }
 
     const problemCount = found.reduce((sum, row) => sum + row.problems.length, 0)
     if (problemCount === 0) {
@@ -508,6 +523,13 @@ export async function listTitleProblems(params: string = ''): Promise<void> {
     }
     stampResultsNote(noteToUse, checkedAt)
   } catch (err) {
+    if (!runSilently) {
+      try {
+        CommandBar.showLoading(false)
+      } catch (_) {
+        // ignore cleanup failures
+      }
+    }
     logError('listTitleProblems', JSP(err))
   }
 }
@@ -644,7 +666,7 @@ export async function fixAllTitlePipes(): Promise<void> {
      * @returns {true}
      */
     const syncFindTitleProblems = (): true => {
-      holder = findTitleProblems(config.listFoldersToExclude, [outputFilename])
+      holder = findTitleProblems(config.listFoldersToExclude, [outputFilename], true)
       return true
     }
     await runHeavySyncWork('fixAllTitlePipes', syncFindTitleProblems)

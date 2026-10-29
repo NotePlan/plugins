@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Move completed / cancelled tasks and checklists in a note to a '## Done' section
 // Jonathan Clark, aided by Cursor AI
-// Last updated 2026-06-26 for v1.6.1 by @jgclark
+// Last updated 2026-10-26 for v1.6.2 by @jgclark
 // ----------------------------------------------------------------------------
 /**
  * Original prompt for AI:
@@ -28,7 +28,7 @@ import type { FilerConfig } from './filerHelpers'
 import { getFilerSettings } from './filerHelpers'
 import { blockHasActiveTasks, getParagraphBlock } from '@helpers/blocks'
 import { clo, JSP, logDebug, logInfo, logError, logTimer, logWarn, timer } from '@helpers/dev'
-import { getCurrentHeading, isParaAMatchForHeading } from '@helpers/headings'
+import { getCurrentHeading, isParaAMatchForHeading, stripFoldedHeadingEllipsis } from '@helpers/headings'
 import { insertParas } from '@helpers/paragraph'
 import { isClosed } from '@helpers/utils'
 import { showMessage, showMessageYesNoCancel } from '@helpers/userInput'
@@ -143,9 +143,10 @@ function getSubheadingMatchDetails(sourceHeading: TParagraph): { headingTextCont
     (sourceHeading.headingLevel ?? 2) + (MAKE_HEADINGS_ONE_DEEPER ? 1 : 0),
     5,
   ): any): 1 | 2 | 3 | 4 | 5)
-  const headingTextContent = (sourceHeading.rawContent ?? sourceHeading.content ?? '')
-    .replace(/^\s*#+\s+/, '')
-    .trim()
+  const headingTextContent = stripFoldedHeadingEllipsis(
+    (sourceHeading.rawContent ?? sourceHeading.content ?? '')
+      .replace(/^\s*#+\s+/, ''),
+  )
   return { headingTextContent, desiredHeadingLevel }
 }
 
@@ -167,14 +168,9 @@ function findSubheadingInDoneSection(
 
   for (let i = doneHeadingLineIndex + 1; i < endIndex; i++) {
     const p = paras[i]
-    const pContent = (p.rawContent ?? p.content ?? '')
-      .replace(/^\s*#+\s+/, '')
-      .trim()
-    if (
-      p.type === 'title' &&
-      p.headingLevel === desiredHeadingLevel &&
-      pContent === headingTextContent
-    ) {
+    // Use isParaAMatchForHeading so folded subsections ('### Section …') are reused
+    // instead of creating a duplicate heading under Done.
+    if (isParaAMatchForHeading(p, headingTextContent, desiredHeadingLevel)) {
       return p
     }
   }
@@ -210,14 +206,7 @@ function getOrCreateSubheadingInDoneSection(
   // After insertion, re-read the paragraph and verify/fix if needed
   const updatedParas = note.paragraphs
   const insertedHeading = updatedParas.find(
-    (p, idx) => {
-      if (idx < doneHeadingLineIndex) return false
-      if (p.type !== 'title' || p.headingLevel !== desiredHeadingLevel) return false
-      const pContent = (p.rawContent ?? p.content ?? '')
-        .replace(/^\s*#+\s+/, '')
-        .trim()
-      return pContent === headingTextContent
-    },
+    (p, idx) => idx >= doneHeadingLineIndex && isParaAMatchForHeading(p, headingTextContent, desiredHeadingLevel),
   )
 
   // If heading was found but has wrong rawContent (extra #), fix by setting content and updating
@@ -555,12 +544,8 @@ function blockStartsWithSectionHeading(block: Array<TParagraph>): boolean {
 function findActiveHeadingLineIndex(note: TNote, level: number, text: string, boundaryIndex: number): number {
   const paras = note.paragraphs
   for (let i = 0; i < boundaryIndex && i < paras.length; i++) {
-    const p = paras[i]
-    if (p.type === 'title' && (p.headingLevel ?? 1) === level) {
-      const pText = (p.rawContent ?? p.content ?? '').replace(/^\s*#+\s+/, '').trim()
-      if (pText === text) {
-        return i
-      }
+    if (isParaAMatchForHeading(paras[i], text, level)) {
+      return i
     }
   }
   return -1
@@ -584,7 +569,9 @@ function removeEmptiedSectionHeadings(note: TNote, parentHeadings: Array<TParagr
     if (!h || h.type !== 'title') continue
     const level = h.headingLevel ?? 2
     if (level <= 1) continue
-    const text = (h.rawContent ?? h.content ?? '').replace(/^\s*#+\s+/, '').trim()
+    const text = stripFoldedHeadingEllipsis(
+      (h.rawContent ?? h.content ?? '').replace(/^\s*#+\s+/, ''),
+    )
     const key = `${level}:${text}`
     if (!seen.has(key)) {
       seen.add(key)
@@ -723,13 +710,9 @@ export function moveCompletedItemsToDoneSection(
         }
       }
 
-      taskBlock.forEach((bp) => {
-        if (typeof bp.lineIndex === 'number') {
-          processedLineIndexes.add(bp.lineIndex)
-        }
-      })
-
-      // Check that all *child* task lines in this block are themselves completed/cancelled
+      // Check that all *child* task lines in this block are themselves completed/cancelled.
+      // Do not mark lines processed until we actually queue a block -- marking early
+      // incorrectly skipped completed siblings/children when a parent block was rejected.
       const childLines = taskBlock.slice(1)
       if (blockHasActiveTasks(childLines)) {
         logDebug('moveCompletedToDone', `Skipping block starting at line ${idx} because it has active tasks in its children.`)
@@ -774,6 +757,11 @@ export function moveCompletedItemsToDoneSection(
       // Capture the parent heading now (while line indexes are valid) for use when recreating
       // structure under Done and for cleaning up emptied section headings afterwards.
       const parentHeading = getCurrentHeading(note, p)
+      taskBlock.forEach((bp) => {
+        if (typeof bp.lineIndex === 'number') {
+          processedLineIndexes.add(bp.lineIndex)
+        }
+      })
       blocksToMove.push({ block: taskBlock, parentHeading })
     }
     logTimer('moveCompletedToDone', startTime, `End of Pass 1 over ${paras.length} paragraphs.`)
@@ -789,9 +777,17 @@ export function moveCompletedItemsToDoneSection(
     // when inserting and removing are interleaved (NotePlan does not live-update paragraph line indexes).
     // The detached paragraph objects keep their rawContent/type/indents, which is all the insert
     // helpers need.
+    // Deduplicate by lineIndex in case overlapping blocks ever share a paragraph
+    const seenRemoveIndexes = new Set<number>()
     const allParasToRemove: Array<TParagraph> = []
     blocksToMove.forEach(({ block }) => {
-      block.forEach((bp) => allParasToRemove.push(bp))
+      block.forEach((bp) => {
+        if (typeof bp.lineIndex === 'number') {
+          if (seenRemoveIndexes.has(bp.lineIndex)) return
+          seenRemoveIndexes.add(bp.lineIndex)
+        }
+        allParasToRemove.push(bp)
+      })
     })
     note.removeParagraphs(allParasToRemove)
     logTimer('moveCompletedToDone', startTime, `- removed ${allParasToRemove.length} original paragraphs.`)

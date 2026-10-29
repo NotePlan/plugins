@@ -167,6 +167,17 @@ function loadRawAllProjectsListSnapshot(): Array<any> {
 }
 
 /**
+ * Load allProjectsList.json for a single-note mutation without age/perspective regenerate.
+ * Finish-review and similar paths only need to replace one row; calling {@link getAllProjectsFromList}
+ * would otherwise start a full vault scan when the list is stale or the perspective stamp differs.
+ * @returns {Array<Project>}
+ */
+function loadAllProjectsListForMutation(): Array<Project> {
+  const rows = loadRawAllProjectsListSnapshot()
+  return rows.map((project) => calcReviewFieldsForProject(project))
+}
+
+/**
  * Verb for CommandBar progress while rebuilding the project list.
  * 'Refreshing' when a non-empty list already exists; 'Generating' on first build.
  * @param {Array<any>} [snapshotRows] - optional pre-loaded snapshot (avoids a second disk read)
@@ -1252,7 +1263,8 @@ export async function addNewProjectToAllProjectsListIfInScope(
       return false
     }
 
-    let allProjects = await getAllProjectsFromList()
+    // Do not use getAllProjectsFromList -- that can full-regenerate for age/perspective.
+    let allProjects = loadAllProjectsListForMutation()
     const cacheKey = makeProjectListCacheKey(note.filename ?? '', projectTypeTag)
     allProjects = allProjects.filter((project) => makeProjectListCacheKey(project.filename ?? '', getLeadingProjectTag(project)) !== cacheKey)
 
@@ -1267,7 +1279,8 @@ export async function addNewProjectToAllProjectsListIfInScope(
     )
     allProjects.push(newProject)
     logInfo('addNewProjectToAllProjectsListIfInScope', `- Added Project '${newProject.title ?? note.filename ?? '?'}' (${projectTypeTag}) to allProjects list`)
-    await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true, config, options?.skipRichProjectListIfOpen === true)
+    // null configForMetadata: keep perspective/folder stamps from the last full/incremental generate
+    await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true, null, options?.skipRichProjectListIfOpen === true)
     logAllProjectsListDuration('addNewProjectToAllProjectsListIfInScope', startTime, 'updated', `(added '${newProject.title ?? note.filename ?? '?'}' with ${projectTypeTag}; list now ${String(allProjects.length)})`)
     return true
   } catch (error) {
@@ -2307,7 +2320,11 @@ export async function filterAndSortProjectsList(
 /**
  * Update the allProjects list after completing a review or completing/cancelling a whole project.
  * Persists via {@link writeAllProjectsList}, which normally notifies Dashboard. Will notify Dashboard to update itself unless skipped (see below).
- * Note: Called by nextReview, skipReview, skipReviewForNote, completeProject, cancelProject, pauseProject, plus Dashboard when completing/cancelling items in project next-action items.
+ * Note: Called by nextReview, skipReview, skipReviewForNote, completeProject, cancelProject, pauseProject, finishReview, plus Dashboard when completing/cancelling items in project next-action items.
+ *
+ * Loads the on-disk list directly (no age/perspective regenerate). A stale list or a Home→Review
+ * perspective stamp must not turn finish-review into a full vault scan; only the changed row is rebuilt.
+ * Full regenerate remains the fallback when the note is in scope but cannot be added incrementally.
  *
  * **`options.skipUpdateDashboardIfOpen`:** When the Dashboard HTML bridge calls this after `REMOVE_LINE_FROM_JSON`, pass `{ skipUpdateDashboardIfOpen: true }` so `writeAllProjectsList` does not call `updateDashboardIfOpen`.
  * The bridge then calls `refreshSectionsByCode` in-process so PROJ* merges complete before `processActionOnReturn` re-fetches shared data and sends `UPDATE_DATA` (avoids same-plugin invoke ordering; see `writeAllProjectsList` JSDoc).
@@ -2333,8 +2350,8 @@ export async function updateAllProjectsListAfterChange(
     }
     logInfo('updateAllProjectsListAfterChange', `--------- ${simplyDelete ? 'simplyDelete' : 'update'} for '${filename}'`)
 
-    // Get contents of full-review-list
-    let allProjects = await getAllProjectsFromList()
+    // Snapshot only -- getAllProjectsFromList would regenerate when age > 23h or perspective stamp differs.
+    let allProjects = loadAllProjectsListForMutation()
 
     // Find right project to update
     const reviewedProject = allProjects.find((project) => project.filename === filename)
@@ -2440,8 +2457,9 @@ export async function updateAllProjectsListAfterChange(
       allProjects.push(updatedProject)
       logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
     }
-    // re-form the file
-    await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true, config, options?.skipRichProjectListIfOpen === true)
+    // re-form the file. null configForMetadata: do not stamp active perspective onto a list that may
+    // still be from another scope (avoids hiding a needed full regenerate on the next list open).
+    await writeAllProjectsList(allProjects, scrollPosForRichList, options?.skipUpdateDashboardIfOpen === true, null, options?.skipRichProjectListIfOpen === true)
     // logInfo('updateAllProjectsListAfterChange', `- done writing ${allProjects.length} items to updated list 🔸`)
     logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(${simplyDelete ? 'deleted' : 'replaced'} '${filename}'; list now ${String(allProjects.length)})`)
   }

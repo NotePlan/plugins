@@ -23,6 +23,7 @@ const pluginID = 'np.Tidy'
  * @params {string?} params
  */
 export async function listMissingDailyNotes(params: string = ''): Promise<void> {
+  let runSilently: boolean = false
   try {
     // Get plugin settings (config)
     let config: TidyConfig = await getSettings()
@@ -30,7 +31,7 @@ export async function listMissingDailyNotes(params: string = ''): Promise<void> 
     const outputFilename = config.missingDailyNotesNoteFilename ?? 'Missing Daily Notes.md'
 
     // Decide whether to run silently
-    const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
+    runSilently = await getTagParamsFromString(params ?? '', 'runSilently', false)
     logDebug(pluginJson, `listMissingDailyNotes() starting, with runSilently = ${String(runSilently)}`)
 
     // Compute date range: from 365 days ago up to today (inclusive)
@@ -38,31 +39,35 @@ export async function listMissingDailyNotes(params: string = ''): Promise<void> 
     const start = new Date(today)
     start.setHours(0,0,0,0)
     start.setDate(start.getDate() - 365)
+    const totalDays = Math.round((today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1
 
     // Helper: format Date -> 'YYYY-MM-DD'
     const pad = (n: number) => (n < 10 ? '0' + n : '' + n)
     const toISO = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
     const startTime = new Date()
 
-    CommandBar.showLoading(true, `Finding missing daily notes`)
+    if (!runSilently) {
+      CommandBar.showLoading(true, `Finding missing daily notes`)
+    }
     // Side-channel: do not return the result array from runOnAsyncThread.
     let missingHolder: ?Array<string> = null
     let notesCheckedHolder: ?number = null
     /**
-     * Synchronous missing-daily scan. Safe for runOnAsyncThread (read-only).
+     * Synchronous missing-daily scan. Safe for runOnAsyncThread (read-only; showLoading allowed).
      * @returns {true}
      */
     const syncFindMissingDailyNotes = (): true => {
       const missing: Array<string> = []
       let notesChecked = 0
       for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
+        if (!runSilently && notesChecked % 30 === 0) {
+          CommandBar.showLoading(true, `Finding missing daily notes (${String(notesChecked)} of ${String(totalDays)})...`, notesChecked / totalDays)
+        }
         const ds = toISO(d)
         const note = DataStore.calendarNoteByDateString(ds) // returns TNote or undefined if not created
         if (!note || !note.content || note.content == '') {
           logInfo(`Missing: ${ds}`)
           missing.push(ds)
-        } else {
-          // logDebug(`Found: ${ds}`)
         }
         notesChecked++
       }
@@ -77,7 +82,9 @@ export async function listMissingDailyNotes(params: string = ''): Promise<void> 
     }
     const missing = missingHolder ?? []
     const notesChecked = notesCheckedHolder ?? 0
-    CommandBar.showLoading(false)
+    if (!runSilently) {
+      CommandBar.showLoading(false)
+    }
 
     // Only continue if there are missing Notes
     const missingCount = missing.length
@@ -124,8 +131,15 @@ export async function listMissingDailyNotes(params: string = ''): Promise<void> 
       { key: 'icon', value: 'calendar-xmark' },
       { key: 'icon-color', value: 'red-500' }
     ]
-    noteToUse.updateFrontmatterAttributes(noteFMAttributes) 
+    noteToUse.updateFrontmatterAttributes(noteFMAttributes)
   } catch (err) {
+    if (!runSilently) {
+      try {
+        CommandBar.showLoading(false)
+      } catch (_) {
+        // ignore cleanup failures
+      }
+    }
     logError('listMissingDailyNotes', JSP(err))
     return // for completeness
   }

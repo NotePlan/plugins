@@ -6,12 +6,28 @@
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 
 /**
+ * Strip a trailing folded-heading ellipsis ("…" or "...") from heading text,
+ * tolerating whitespace before the ellipsis. Leaves other text unchanged.
+ * @author Cursor, guided by @jgclark
+ * @param {string} text
+ * @returns {string}
+ */
+export function stripFoldedHeadingEllipsis(text: string): string {
+  const trimmed = text.trim()
+  const foldedHeadingMatch = trimmed.match(/^(.*?)(…|\.\.\.)$/)
+  if (foldedHeadingMatch) {
+    return foldedHeadingMatch[1].trimEnd()
+  }
+  return trimmed
+}
+
+/**
  * Check whether a heading paragraph matches the given text at the specified level,
- * allowing an optional trailing ellipsis ("…" or "..."), which simply indicates that a heading has been folded.
+ * allowing an optional trailing ellipsis ("…" or "...") on either side, which indicates that a heading has been folded.
  * It tolerates extra whitespace between the base text and the ellipsis.
  * @author Cursor, guided by @jgclark
  * @param {TParagraph} para
- * @param {string} headingName - base heading text to match (e.g. 'Done')
+ * @param {string} headingName - base heading text to match (e.g. 'Done'); may itself include a fold ellipsis
  * @param {number} headingLevel - required heading level (e.g. 2 for H2)
  * @returns {boolean} true if the heading matches the given text at the specified level, false otherwise
  */
@@ -24,24 +40,9 @@ export function isParaAMatchForHeading(para: TParagraph, headingName: string, he
     return false
   }
 
-  const base = headingName.trim()
-  const content = para.content.trim()
-
-  if (content === base) {
-    return true
-  }
-
-  // Allow a folded-heading ellipsis at the end (unicode '…' or ASCII '...'),
-  // tolerating extra whitespace between the base text and the ellipsis.
-  const foldedHeadingMatch = content.match(/^(.*?)(…|\.\.\.)$/)
-  if (foldedHeadingMatch) {
-    const beforeEllipsis = foldedHeadingMatch[1].trimEnd()
-    if (beforeEllipsis === base) {
-      return true
-    }
-  }
-
-  return false
+  const base = stripFoldedHeadingEllipsis(headingName)
+  const content = stripFoldedHeadingEllipsis(para.content)
+  return content === base
 }
 
 /**

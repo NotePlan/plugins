@@ -29,44 +29,60 @@ import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInp
 export async function tidyUpAll(): Promise<void> {
   try {
     const config: TidyConfig = await getSettings()
-    logDebug(pluginJson, `tidyUpAll: Starting, with runSilently=${String(config.runSilently)}`)
+    const runSilently = Boolean(config.runSilently)
+    logDebug(pluginJson, `tidyUpAll: Starting, with runSilently=${String(runSilently)}`)
 
     // Each step owns its own thread and returns to the main thread before any prompt.
-    CommandBar.showLoading(true, `Tidying up ...`, 0)
+    // When runSilently (e.g. Shutdown script), do not show the overall progress dialog.
+    if (!runSilently) {
+      CommandBar.showLoading(true, `Tidying up ...`, 0)
+    }
 
     if (config.runRemoveBlankNotes) {
-      CommandBar.showLoading(true, `Tidying up blank notes ...`, 0.1)
+      if (!runSilently) {
+        CommandBar.showLoading(true, `Tidying up blank notes ...`, 0.1)
+      }
       logDebug('tidyUpAll', `Starting removeBlankNotes...`)
-      await removeBlankNotes(config.runSilently)
+      await removeBlankNotes(runSilently)
     }
 
     if (config.removeTodayTagsFromCompletedTodos) {
-      CommandBar.showLoading(true, `Tidying up completed >today items...`, 0.3)
+      if (!runSilently) {
+        CommandBar.showLoading(true, `Tidying up completed >today items...`, 0.3)
+      }
       logDebug('tidyUpAll', `Starting Tidying up completed >today items...`)
-      await removeTodayTagsFromCompletedTodos(config.runSilently)
+      await removeTodayTagsFromCompletedTodos(runSilently)
     }
 
     // Following functions take params; so send runSilently as a param
-    const param = config.runSilently ? '{"runSilently": true}' : ''
+    const param = runSilently ? '{"runSilently": true}' : ''
 
     if (config.runRemoveOrphansCommand) {
-      CommandBar.showLoading(true, `Tidying up orphaned blockIDs ...`, 0.2)
+      if (!runSilently) {
+        CommandBar.showLoading(true, `Tidying up orphaned blockIDs ...`, 0.2)
+      }
       logDebug('tidyUpAll', `Starting removeOrphanedBlockIDs...`)
       await removeOrphanedBlockIDs(param)
     }
 
     if (config.runRemoveDoneMarkersCommand) {
-      CommandBar.showLoading(true, `Tidying up @done markers...`, 0.4)
+      if (!runSilently) {
+        CommandBar.showLoading(true, `Tidying up @done markers...`, 0.4)
+      }
       logDebug('tidyUpAll', `Starting removeDoneMarkers...`)
       await removeDoneMarkers(param)
     }
     if (config.runRemoveDoneTimePartsCommand) {
-      CommandBar.showLoading(true, `Tidying up @done time parts...`, 0.5)
+      if (!runSilently) {
+        CommandBar.showLoading(true, `Tidying up @done time parts...`, 0.5)
+      }
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeDoneTimeParts(param)
     }
     if (config.runRemoveEmptyElementsFromRecentNotesCommand) {
-      CommandBar.showLoading(true, `Tidying up empty elements...`, 0.55)
+      if (!runSilently) {
+        CommandBar.showLoading(true, `Tidying up empty elements...`, 0.55)
+      }
       logDebug('tidyUpAll', `Starting removeEmptyElementsFromRecentNotes...`)
       await removeEmptyElementsFromRecentNotes(param)
     }
@@ -84,42 +100,59 @@ export async function tidyUpAll(): Promise<void> {
     // }
 
     if (config.runConflictFinderCommand) {
-      CommandBar.showLoading(true, `Making list of Conflicted notes ...`, 0.6)
+      if (!runSilently) {
+        CommandBar.showLoading(true, `Making list of Conflicted notes ...`, 0.6)
+      }
       logDebug('tidyUpAll', `Starting listConflicts ...`)
       await listConflicts(param)
     }
 
     if (config.runDuplicateFinderCommand) {
-      CommandBar.showLoading(true, `Making list of Duplicate notes  ...`, 0.7)
+      if (!runSilently) {
+        CommandBar.showLoading(true, `Making list of Duplicate notes  ...`, 0.7)
+      }
       logDebug('tidyUpAll', `Starting listDuplicates ...`)
       await listDuplicates(param)
     }
 
     if (config.runTitleProblemsCommand) {
-      CommandBar.showLoading(true, `Making list of title problems ...`, 0.75)
+      if (!runSilently) {
+        CommandBar.showLoading(true, `Making list of title problems ...`, 0.75)
+      }
       logDebug('tidyUpAll', `Starting listTitleProblems ...`)
       await listTitleProblems(param)
     }
 
     if (config.removeTriggersFromRecentCalendarNotes) {
-      CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.8)
+      if (!runSilently) {
+        CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.8)
+      }
       logDebug('tidyUpAll', `Starting removeTriggersFromRecentCalendarNotes...`)
       await removeTriggersFromRecentCalendarNotes(param)
     }
 
     if (config.moveTopLevelTasksInEditor) {
       const heading = config.moveTopLevelTasksHeading.length ? config.moveTopLevelTasksHeading : null
-      await moveTopLevelTasksInNote(Editor, heading, config.runSilently)
+      await moveTopLevelTasksInNote(Editor, heading, runSilently)
     }
 
     if (config.runGenerateRepeatsCommand) {
-      CommandBar.showLoading(true, `Generating any needed new @repeats ...`, 0.9)
+      if (!runSilently) {
+        CommandBar.showLoading(true, `Generating any needed new @repeats ...`, 0.9)
+      }
       logDebug('tidyUpAll', `Starting generateRepeatsFromRecentNotes...`)
       await generateRepeatsFromRecentNotes(param)
     }
 
-    CommandBar.showLoading(false)
+    if (!runSilently) {
+      CommandBar.showLoading(false)
+    }
   } catch (error) {
+    try {
+      CommandBar.showLoading(false)
+    } catch (_) {
+      // ignore cleanup failures
+    }
     logError('tidyUpAll', JSP(error))
   }
 }
@@ -548,7 +581,9 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     logDebug(pluginJson, `removeBlankNotes() with runSilently? '${String(runSilently)}'`)
 
     // Find all notes with 2 or fewer bytes' length.
-    CommandBar.showLoading(true, `Finding blank notes ...`)
+    if (!runSilently) {
+      CommandBar.showLoading(true, `Finding blank notes ...`)
+    }
     const start = new Date()
 
     // Side-channel: do not return large arrays from runOnAsyncThread.
@@ -581,7 +616,9 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     }
     const nonTeamspaceNotes: Array<TNote> = nonTeamspaceNotesHolder ?? []
     const teamspaceNotes: Array<TNote> = teamspaceNotesHolder ?? []
-    CommandBar.showLoading(false)
+    if (!runSilently) {
+      CommandBar.showLoading(false)
+    }
 
     // Now count the notes found
     const numNonTeamspaceNotes = nonTeamspaceNotes.length
@@ -682,6 +719,13 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
       logWarn('removeBlankNotes', `Note: number removed (${String(numRemoved)}) !== number to remove (${String(numToRemove)}).`)
     }
   } catch (err) {
+    if (!runSilently) {
+      try {
+        CommandBar.showLoading(false)
+      } catch (_) {
+        // ignore cleanup failures
+      }
+    }
     logError('removeBlankNotes', JSP(err))
     return // for completeness
   }

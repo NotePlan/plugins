@@ -228,6 +228,61 @@ describe('addNewProjectToAllProjectsListIfInScope', () => {
   })
 })
 
+describe('updateAllProjectsListAfterChange single-note patch', () => {
+  test('patches one row when list is stale and perspective stamp differs (no full regenerate)', async () => {
+    const staleMs = Date.now() - 115 * 60 * 60 * 1000
+    const config = makeConfig({
+      usePerspectives: true,
+      perspectiveName: 'Review',
+      foldersToInclude: ['CCC Areas'],
+      foldersToIgnore: [],
+    })
+    reviewSettingsHolder.config = config
+    global.DataStore.folders = ['/', 'CCC Areas', 'Home']
+    global.DataStore.preference = (key: string): any => {
+      if (key === 'Reviews-lastAllProjectsGenerationTime') return staleMs
+      if (key === 'Reviews-lastAllProjectsFullScanTime') return staleMs
+      if (key === 'Reviews-lastAllProjectsPerspective') return 'Home'
+      if (key === 'Reviews-lastAllProjectsFolderFilters') return folderFilterFingerprint(config)
+      return preferenceValues[key] ?? ''
+    }
+    const filename = 'CCC Areas/Annual Returns.md'
+    global.DataStore.loadData.mockReturnValue(
+      JSON.stringify([
+        {
+          filename,
+          title: 'Annual Returns',
+          allProjectTags: ['#project'],
+          reviewInterval: '1w',
+        },
+        {
+          filename: 'Home/other.md',
+          title: 'Other',
+          allProjectTags: ['#project'],
+          reviewInterval: '1w',
+        },
+      ]),
+    )
+    const note = makeProjectNote(filename)
+    notesByFilename[filename] = note
+
+    await updateAllProjectsListAfterChange(filename, false, config)
+
+    expect(global.DataStore.saveData).toHaveBeenCalledTimes(1)
+    const parsed = JSON.parse(global.DataStore.saveData.mock.calls[0][0])
+    expect(parsed).toHaveLength(2)
+    expect(parsed.some((row) => row.filename === filename)).toBe(true)
+    expect(parsed.some((row) => row.filename === 'Home/other.md')).toBe(true)
+    // Must not stamp the active perspective onto a list that may still be from another scope
+    expect(global.DataStore.setPreference).not.toHaveBeenCalledWith(
+      'Reviews-lastAllProjectsPerspective',
+      'Review',
+    )
+    // Full generate shows CommandBar progress; single-note patch must not
+    expect(global.CommandBar.showLoading).not.toHaveBeenCalled()
+  })
+})
+
 describe('updateAllProjectsListAfterChange simplyDelete miss', () => {
   test('does not regenerate when simplyDelete target is already absent from the list', async () => {
     const config = makeConfig({ foldersToInclude: ['Home'], foldersToIgnore: [] })

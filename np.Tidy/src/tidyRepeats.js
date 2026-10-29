@@ -58,8 +58,11 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
     const jsDateToStartLooking = momentToStartLooking.toDate()
 
     const startTime = new Date() // for timing only
-    CommandBar.showLoading(true, `Finding completed @repeats`)
+    if (!runSilently) {
+      CommandBar.showLoading(true, `Finding completed @repeats`)
+    }
     // Stays on onAsyncThread: generateRepeats is async, which runOnAsyncThread rejects.
+    // showLoading is allowed on the async thread -- do not switch to main for progress updates.
     await CommandBar.onAsyncThread()
 
     // Find past notes changed in the last numDays (or all if numDays === 0)
@@ -70,12 +73,19 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
 
     // Now run generateRepeats() on each and count how many were changed. Tell the underlying functions it can't use Editor.* funcs, to avoid crashes from running on the onAsyncThread.
     let numGenerated = 0
+    let count = 0
     for (const thisNote of recentNotes) {
+      count++
+      if (!runSilently && count % 10 === 0) {
+        CommandBar.showLoading(true, `Generating @repeats in note ${String(count)} of ${String(recentNotes.length)}...`, count / recentNotes.length)
+      }
       const num = await generateRepeats(true, thisNote, false)
       numGenerated += num
     }
     await CommandBar.onMainThread()
-    CommandBar.showLoading(false)
+    if (!runSilently) {
+      CommandBar.showLoading(false)
+    }
 
     logInfo('generateRepeatsFromRecentNotes', `Generated ${String(numGenerated)} new @repeats from ${String(recentNotes.length)} recent notes, in ${timer(startTime)}`)
     if (!runSilently) {
@@ -83,6 +93,12 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
     }
     return
   } catch (error) {
+    try {
+      await CommandBar.onMainThread()
+      CommandBar.showLoading(false)
+    } catch (_) {
+      // ignore cleanup failures
+    }
     logError('generateRepeatsFromRecentNotes', JSP(error))
     return // for completeness
   }

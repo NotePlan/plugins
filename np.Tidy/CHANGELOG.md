@@ -1,6 +1,10 @@
 # Tidy Up Changelog
 See Plugin [README](https://noteplan.co/plugins/np.Tidy) for full details on the available commands and use from callbacks and templates.
 
+## [1.21.1] - 2026-10-25 @jgclark
+- fix: Several list/scan commands could appear hung at a progress update, because each update switched to the main thread and never returned to the background thread.
+- fix: Several list/scan commands ignored `runSilently` for the loading dialog (so a template/x-callback with `runSilently:true` still showed a spinner), and some long scans had no useful progress. Conflict/duplicate/title/stub/doubled scans use a single pass with progress updates where needed.
+
 ## [1.21.0] - 2026-10-17 @jgclark
 - new **/List title problems** command: creates/updates a note listing notes whose title is `` `---` `` (often from invalid frontmatter) and notes whose frontmatter `title:` does not match the H1 on the first line of the body. An H1 that contains a template tag (for example `<%- prompt(...) %>`) is not reported. Notes whose title contains `|` are listed separately, with **Open note** and **Fix** buttons, plus a **Fix all** button under the explanation. Fix replaces each `|` with `-`, including when the first H1 is not the first line of the body. **/Tidy Up** can run it when "Run '/List title problems' command?" is turned on. 
 - change: Longer clean-ups keep the app more responsive on NotePlan 3.21.3+. dev: Heavy scans run on a background thread. Earlier versions keep the previous background behavior.

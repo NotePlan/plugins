@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2026-02-18, for v1.5.1
+// last updated 2026-10-26, for v1.6.2
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -65,29 +65,33 @@ function getParagraphsToMove(
 }
 
 /**
- * Add date backlink to the first paragraph if moving from a calendar note.
- * Uses the source note's calendar date (if available) so that the backlink refers to the origin calendar note, not "today".
- * @param {Array<TParagraph>} parasInBlock - Paragraphs to potentially modify
+ * Date backlink suffix to append on the *destination* copy when moving from a calendar note.
+ * Returns '' when not applicable. Does not mutate source paragraphs -- mutating
+ * TParagraph.content before removeParagraphs causes NotePlan to delete 0 lines.
+ * Uses the source note's calendar date (if available) so the backlink refers to the origin calendar note, not "today".
  * @param {TNote} note - Source note
  * @param {Object} config - Configuration settings
+ * @returns {string} Suffix including leading space (e.g. ' >2026-10-26'), or ''
  */
-function addDateBacklinkIfNeeded(parasInBlock: Array<TParagraph>, note: TNote, config: any): void {
-  if (config.addDateBacklink && note.type === 'Calendar' && parasInBlock.length > 0) {
+function getDateBacklinkSuffix(note: TNote, config: any): string {
+  if (config.addDateBacklink && note.type === 'Calendar') {
     // Prefer the calendar note's own date, but fall back to today if it's missing
     const sourceCalDateStr: string = note.filename != null ? getDateStringFromCalendarFilename(note.filename, true) : todaysDateISOString
     const datePart: string = formatNoteDateFromNPDateStr(sourceCalDateStr, config.dateRefStyle)
-    logInfo('addDateBacklinkIfNeeded', `Will add date backlink: ${datePart} in style: ${config.dateRefStyle}`)
-    parasInBlock[0].content = `${parasInBlock[0].content} ${datePart}`
+    logInfo('getDateBacklinkSuffix', `Will add date backlink: ${datePart} in style: ${config.dateRefStyle}`)
+    return ` ${datePart}`
   }
+  return ''
 }
 
 /**
  * Move paragraphs from source note to destination note.
  * @param {TNote} sourceNote - Note to move paragraphs from
  * @param {TNote} destNote - Note to move paragraphs to
- * @param {Array<TParagraph>} parasInBlock - Paragraphs to move
+ * @param {Array<TParagraph>} parasInBlock - Paragraphs to move (left unmodified so removeParagraphs can match them)
  * @param {string} headingToFind - Heading to add paragraphs under (empty string for calendar notes)
  * @param {Object} config - Configuration settings
+ * @param {string} dateBacklinkSuffix - Optional suffix for first destination line (from getDateBacklinkSuffix)
  * @throws {Error} If paragraphs fail to be added
  */
 function moveParagraphsToNote(
@@ -95,14 +99,15 @@ function moveParagraphsToNote(
   destNote: TNote,
   parasInBlock: Array<TParagraph>,
   headingToFind: string,
-  config: any
+  config: any,
+  dateBacklinkSuffix: string = '',
 ): void {
   const selectedNumLines = parasInBlock.length
   const beforeNumParasInDestNote = destNote.paragraphs.length
   const origNumParas = sourceNote.paragraphs.length
 
-  // Add paragraphs to destination note
-  addParagraphsToNote(destNote, parasInBlock, headingToFind, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
+  // Add paragraphs to destination note (suffix applied to insert text only; source paras stay intact)
+  addParagraphsToNote(destNote, parasInBlock, headingToFind, config.whereToAddInSection, config.allowNotePreambleBeforeHeading, dateBacklinkSuffix)
 
   // Verify that paragraphs were added
   const afterNumParasInDestNote = destNote.paragraphs.length
@@ -177,8 +182,8 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
 
     logDebug('moveParas', `parasInBlock:\n${parasInBlock.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n')}`)
 
-    // Add date backlink if needed
-    addDateBacklinkIfNeeded(parasInBlock, note, config)
+    // Date backlink for destination copy only (do not mutate source paras)
+    const dateBacklinkSuffix = getDateBacklinkSuffix(note, config)
 
     // Decide where to move to
     const destNote = await chooseNoteV2(`Select note to move ${(parasInBlock.length > 1) ? parasInBlock.length + ' lines' : 'current line'} to`, allRegularNotesSortedByChanged(), true, true, false, true)
@@ -222,7 +227,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     }
 
     // Move paragraphs to destination note
-    moveParagraphsToNote(note, destNote, parasInBlock, headingToFind, config)
+    moveParagraphsToNote(note, destNote, parasInBlock, headingToFind, config, dateBacklinkSuffix)
 
     // Unhighlight the previous selection, for safety's sake
     clearHighlighting()
@@ -304,11 +309,11 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
       highlightSelectionInEditor(parasInBlock)
     }
 
-    // Add date backlink if needed
-    addDateBacklinkIfNeeded(parasInBlock, note, config)
+    // Date backlink for destination copy only (do not mutate source paras)
+    const dateBacklinkSuffix = getDateBacklinkSuffix(note, config)
 
     // Move paragraphs to destination note (empty heading for calendar notes)
-    moveParagraphsToNote(note, destNote, parasInBlock, '', config)
+    moveParagraphsToNote(note, destNote, parasInBlock, '', config, dateBacklinkSuffix)
 
     // Clear highlighting
     clearHighlighting()
@@ -391,11 +396,11 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
       highlightSelectionInEditor(parasInBlock)
     }
 
-    // Add date backlink if needed
-    addDateBacklinkIfNeeded(parasInBlock, note, config)
+    // Date backlink for destination copy only (do not mutate source paras)
+    const dateBacklinkSuffix = getDateBacklinkSuffix(note, config)
 
     // Move paragraphs to destination note (empty heading for calendar notes)
-    moveParagraphsToNote(note, destNote, parasInBlock, '', config)
+    moveParagraphsToNote(note, destNote, parasInBlock, '', config, dateBacklinkSuffix)
 
     // Unhighlight the previous selection, for safety's sake
     clearHighlighting()

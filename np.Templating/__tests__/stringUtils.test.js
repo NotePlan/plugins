@@ -29,11 +29,19 @@ describe(`${PLUGIN_NAME}`, () => {
   describe(section('stringUtils'), () => {
     describe(`${block('.dt')}`, () => {
       it('should return a formatted date-time string', () => {
+        const before = new Date()
         const result = dt()
+        const after = new Date()
 
-        // Should match format: YYYY-MM-DD HH:MM:SS AM/PM
-        const dateTimePattern = /^\d{4}-\d{2}-\d{2} \d{1,2}:\d{2}:\d{2} (AM|PM)$/
-        expect(result).toMatch(dateTimePattern)
+        // dt() uses host-locale toLocaleTimeString() (12h AM/PM or 24h). Match any
+        // second in [before, after] so the assertion is locale-stable.
+        const pad = (value: number) => (value < 10 ? '0' + value : String(value))
+        const expected = []
+        for (let t = before.getTime(); t <= after.getTime(); t++) {
+          const d = new Date(t)
+          expected.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${d.toLocaleTimeString()}`)
+        }
+        expect(expected).toContain(result)
       })
 
       it('should return current date and time', () => {

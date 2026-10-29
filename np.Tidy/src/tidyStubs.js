@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // listStubs function for Tidy
 // Jonathan Clark
-// Last updated 2026-10-17 for v1.21.0 by @jgclark
+// Last updated 2026-10-24 for v1.21.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { getSettings, runHeavySyncWork, type TidyConfig } from './tidyHelpers'
@@ -42,43 +42,50 @@ type stubDetails = {
 /**
  * Private function to generate a list of wikilink stubs (i.e. links that don't lead to actual notes).
  * Ignores links to calendar notes.
+ * Synchronous. Safe for runOnAsyncThread (read-only; showLoading allowed).
  * @author @jgclark
  * @param {Array<string>} foldersToExclude
+ * @param {Array<string>} filenamesToExclude
+ * @param {boolean} showProgress - when true, update CommandBar.showLoading during the scan
  * @returns {Array<stubDetails>} array of <stubDetails> objects: note and wikilink (without surrounding brackets)
 */
 function findStubs(
   foldersToExclude: Array<string> = [],
   filenamesToExclude: Array<string> = [],
+  showProgress: boolean = false,
 ): Array<stubDetails> {
   try {
     logDebug(pluginJson, `findStubs() starting`)
     const outputArray: Array<stubDetails> = []
 
     // get folder list, minus any to exclude
-    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, false)
-    logDebug('getDuplicateNotes', `- Found ${relevantFolderList.length} folders to check`)
+    const relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, false)
+    const folderCount = relevantFolderList.length
+    logDebug('findStubs', `- Found ${String(folderCount)} folders to check`)
 
     // Get all notes to check
     let notes: Array<TNote> = []
-    for (const thisFolder of relevantFolderList) {
-      const theseNotes = getProjectNotesInFolder(thisFolder) //.filter((n) => n.title?.startsWith('T')) // used in testing
-      notes = notes.concat(theseNotes)
+    for (let f = 0; f < folderCount; f++) {
+      if (showProgress && f % 5 === 0) {
+        CommandBar.showLoading(true, `Finding wikilink stubs (folder ${String(f + 1)} of ${String(folderCount)})...`, (f / folderCount) * 0.2)
+      }
+      notes = notes.concat(getProjectNotesInFolder(relevantFolderList[f]))
     }
     const numNotes = notes.length
 
-    let stubs = 0
-    let noteCount = 0
-    for (const thisNote of notes) {
-      noteCount++
+    for (let noteCount = 0; noteCount < numNotes; noteCount++) {
+      const thisNote = notes[noteCount]
       // Ignore the output note, if found.
       if (filenamesToExclude.includes(thisNote.filename)) {
         continue
       }
-      if (noteCount % 10 === 0) {
-        CommandBar.showLoading(true, `Checking note ${String(noteCount)}`, noteCount / numNotes)
+      if (showProgress && noteCount % 25 === 0) {
+        CommandBar.showLoading(true, `Checking note ${String(noteCount)} of ${String(numNotes)} for stubs...`, 0.2 + (noteCount / numNotes) * 0.8)
+      }
+      if (noteCount > 0 && noteCount % 250 === 0) {
+        logDebug('findStubs', `- checked ${String(noteCount)}/${String(numNotes)} notes, found ${String(outputArray.length)} stubs so far`)
       }
       const thisContent = thisNote.content ?? ''
-      // logDebug('findStubs', `- checking in note: ${displayTitle(thisNote)}`)
       // Find all wikilinks in this note
       const matches = thisContent.matchAll(/\[\[[^\[]+?\]\]/g) // has to be global
       for (const match of matches) {
@@ -87,21 +94,15 @@ function findStubs(
         let thisLinkTitle = (thisLink.includes('#')) ? thisLink.split('#', 1)[0] : thisLink
         // remove any '^link' part
         thisLinkTitle = (thisLinkTitle.includes('^')) ? thisLinkTitle.split('^', 1)[0] : thisLinkTitle
-        // logDebug('findStubs', `  - checking for thisLinkTitle: ${thisLinkTitle} from '${match[0]}'`)
         // Check to see if each match leads anywhere
         const isCalendarNote = isValidCalendarNoteTitleStr(thisLinkTitle, true) // also allows YYYYMMDD format
         const notesMatchingTitle = DataStore.projectNoteByTitle(thisLinkTitle) ?? []
         if (!isCalendarNote && notesMatchingTitle.length === 0) {
-          // logDebug('findStubs', `- ${thisLink} is a stub`)
-          stubs++
           outputArray.push({ note: thisNote, wikilink: thisLink })
-        } else {
-          // logDebug('findStubs', `- ${thisLink} NOT a stub`)
         }
       }
     }
-    CommandBar.showLoading(false)
-
+    logDebug('findStubs', `- finished: ${String(outputArray.length)} stubs from ${String(numNotes)} notes`)
     return outputArray
   }
   catch (err) {
@@ -116,6 +117,7 @@ function findStubs(
  * @params {string?} params
  */
 export async function listStubs(params: string = ''): Promise<void> {
+  let runSilently: boolean = false
   try {
     // Get plugin settings (config)
     let config: TidyConfig = await getSettings()
@@ -123,10 +125,12 @@ export async function listStubs(params: string = ''): Promise<void> {
     const outputFilename = config.stubsNoteFilename ?? 'stubs.md'
 
     // Decide whether to run silently
-    const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
+    runSilently = await getTagParamsFromString(params ?? '', 'runSilently', false)
     logDebug(pluginJson, `listStubs() starting, with runSilently = ${String(runSilently)}`)
 
-    CommandBar.showLoading(true, `Finding wikilink stubs`)
+    if (!runSilently) {
+      CommandBar.showLoading(true, `Finding wikilink stubs`)
+    }
     const startTime = new Date()
     // Side-channel: do not return large arrays from runOnAsyncThread.
     let stubsHolder: ?Array<stubDetails> = null
@@ -135,7 +139,7 @@ export async function listStubs(params: string = ''): Promise<void> {
      * @returns {true}
      */
     const syncFindStubs = (): true => {
-      stubsHolder = findStubs(config.listFoldersToExclude, [config.stubsNoteFilename])
+      stubsHolder = findStubs(config.listFoldersToExclude, [config.stubsNoteFilename], !runSilently)
       return true
     }
     await runHeavySyncWork('listStubs', syncFindStubs)
@@ -144,7 +148,9 @@ export async function listStubs(params: string = ''): Promise<void> {
       syncFindStubs()
     }
     const stubs: Array<stubDetails> = stubsHolder ?? []
-    CommandBar.showLoading(false)
+    if (!runSilently) {
+      CommandBar.showLoading(false)
+    }
 
     // Only continue if there are stubs found
     if (stubs.length === 0) {
@@ -152,10 +158,10 @@ export async function listStubs(params: string = ''): Promise<void> {
       if (!runSilently) {
         await showMessage(`No wikilink stubs found! 🥳`)
       }
-      // remove old conflicted note list (if it exists)
+      // remove old stubs note list (if it exists)
       const res = DataStore.moveNote(outputFilename, '@Trash')
       if (res) {
-        logDebug('listStubs', `Moved existing duplicate note list '${outputFilename}' to @Trash.`)
+        logDebug('listStubs', `Moved existing stubs note list '${outputFilename}' to @Trash.`)
       }
       return
     } else {
@@ -213,8 +219,15 @@ export async function listStubs(params: string = ''): Promise<void> {
       { key: 'icon', value: 'link-slash' },
       { key: 'icon-color', value: 'red-500' }
     ]
-    noteToUse.updateFrontmatterAttributes(noteFMAttributes) 
+    noteToUse.updateFrontmatterAttributes(noteFMAttributes)
   } catch (err) {
+    if (!runSilently) {
+      try {
+        CommandBar.showLoading(false)
+      } catch (_) {
+        // ignore cleanup failures
+      }
+    }
     logError('listStubs', JSP(err))
     return // for completeness
   }

@@ -855,5 +855,56 @@ describe('jgclark.Filer', () => {
       const parent = note.paragraphs.find((p) => p.rawContent === '* [ ] Parent task')
       expect(parent).toBeDefined()
     })
+
+    test('reuses folded Done subsection (ellipsis) instead of creating a duplicate', () => {
+      const note = new Note({
+        paragraphs: [
+          { type: 'title', content: 'Test Note', lineIndex: 0, rawContent: '# Test Note', indents: 0, headingLevel: 1 },
+          { type: 'title', content: 'Project Beta', lineIndex: 1, rawContent: '## Project Beta', indents: 0, headingLevel: 2 },
+          { type: 'done', content: 'Book venue', lineIndex: 2, rawContent: '* [x] Book venue', indents: 0, headingLevel: 0 },
+          { type: 'title', content: 'Done', lineIndex: 3, rawContent: '## Done', indents: 0, headingLevel: 2 },
+          { type: 'title', content: 'Project Beta …', lineIndex: 4, rawContent: '### Project Beta …', indents: 0, headingLevel: 3 },
+          { type: 'done', content: 'Draft the budget', lineIndex: 5, rawContent: '* [x] Draft the budget', indents: 0, headingLevel: 0 },
+        ],
+      })
+
+      m.moveCompletedItemsToDoneSection(note, true, false, false)
+
+      const projectBetaHeadings = note.paragraphs.filter(
+        (p) => p.type === 'title' && (p.content.trim() === 'Project Beta' || p.content.trim() === 'Project Beta …' || p.content.trim() === 'Project Beta ...'),
+      )
+      expect(projectBetaHeadings.length).toBe(1)
+      expect(projectBetaHeadings[0].headingLevel).toBe(3)
+
+      const bookCount = note.paragraphs.filter((p) => p.content === 'Book venue').length
+      expect(bookCount).toBe(1)
+      const draftCount = note.paragraphs.filter((p) => p.content === 'Draft the budget').length
+      expect(draftCount).toBe(1)
+    })
+
+    test('when source section heading is folded, reuses existing Done subsection without baking ellipsis into a new heading', () => {
+      const note = new Note({
+        paragraphs: [
+          { type: 'title', content: 'Test Note', lineIndex: 0, rawContent: '# Test Note', indents: 0, headingLevel: 1 },
+          { type: 'title', content: 'Project Beta …', lineIndex: 1, rawContent: '## Project Beta …', indents: 0, headingLevel: 2 },
+          { type: 'done', content: 'Book venue', lineIndex: 2, rawContent: '* [x] Book venue', indents: 0, headingLevel: 0 },
+          { type: 'title', content: 'Done', lineIndex: 3, rawContent: '## Done', indents: 0, headingLevel: 2 },
+          { type: 'title', content: 'Project Beta', lineIndex: 4, rawContent: '### Project Beta', indents: 0, headingLevel: 3 },
+          { type: 'done', content: 'Draft the budget', lineIndex: 5, rawContent: '* [x] Draft the budget', indents: 0, headingLevel: 0 },
+        ],
+      })
+
+      m.moveCompletedItemsToDoneSection(note, true, false, false)
+
+      const projectBetaHeadings = note.paragraphs.filter((p) => p.type === 'title' && p.content.includes('Project Beta'))
+      expect(projectBetaHeadings.length).toBe(1)
+      expect(projectBetaHeadings[0].headingLevel).toBe(3)
+      expect(projectBetaHeadings[0].content.trim()).toBe('Project Beta')
+
+      const bookCount = note.paragraphs.filter((p) => p.content === 'Book venue').length
+      expect(bookCount).toBe(1)
+      const draftCount = note.paragraphs.filter((p) => p.content === 'Draft the budget').length
+      expect(draftCount).toBe(1)
+    })
   })
 })

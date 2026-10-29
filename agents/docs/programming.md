@@ -10,8 +10,10 @@ is the full text.
   static imports at the top of files.
 - Never use `require` in NotePlan plugin code -- use `import` at the top of the
   file (same Rollup reason). See also `agents/docs/react-html.md`.
-- Do not run `npm run build` for plugins -- leave building to the programmer
-  (`npc plugin:dev`, Rollup). See root `README.md`.
+- Do not run `npm run build` for plugins -- leave building to the programmer.
+  For React/WebView plugins, both steps are required: performRollup **then**
+  `npc plugin:dev` (`npc` alone copies stale `requiredFiles/`). See Build /
+  test commands below and root `README.md`.
 - Do not commit or push unless the user explicitly asks.
 - Do not use raw `Promise.resolve`, `Promise.all`, or `Promise.race` in plugin code—NotePlan's JSContext may not have them. Use polyfills from `@helpers/promisePolyfill.js` (`promiseResolve`, `promiseAll`, `promiseRace`).
 
@@ -58,8 +60,12 @@ NotePlan provides globals available to all plugins (`DataStore`, `CommandBar`, `
 
 ## Build / test commands
 
-- Build plugin: `npc plugin:dev <plugin-id> -nc`
-- Build React runtime: `node ./<plugin-id>/src/react/support/performRollup.node.js`
+- Build React runtime (required when React/`requiredFiles` bundles change, or
+  when shared helpers they import change):  
+  `node ./<plugin-id>/src/react/support/performRollup.node.js`
+- Build/install plugin: `npc plugin:dev <plugin-id> -nc` (after performRollup
+  for React plugins; `npc` does not re-rollup `requiredFiles/`)
+- Dashboard one-shot: `./buildDashboard.sh`
 - Lint: `npm run lint` or `npm run lint-fix`
 - Type check: prefer `npx flow` (or `npm run typecheck:fast` when Flow server is warm).
   Do not use `npm run typecheck...` unless the user asks for that script by name.
@@ -79,6 +85,12 @@ NotePlan provides globals available to all plugins (`DataStore`, `CommandBar`, `
 - Prefer `npx flow` over `npm run typecheck...` unless the user names that script.
   Before finishing a task where you added new code, check there are no Flow type errors.
   When you run `flow check`, write indented JSON to `/tmp/flow-check-now.json` as above.
+- **Jest / `__tests__` keep `// @flow`.** Do not strip the directive to dodge
+  typing. Jest does not enforce Flow, so an unannotated local (e.g. `(value) =>`)
+  passes tests and fails later under Flow. Before finishing any edit to a
+  `@flow` test file, run Flow on the changed paths
+  (`npx flow focus-check path/to/file.test.js`, or a full `flow check` when the
+  change is broader) and fix annotations / types until clean.
 - Allow in sandbox: `cd`, `npm test`, `npx flow`, `jest`, `npx jest`, `grep`,
   `head`, `tail`, `node`
 - **Never hard-code Jest workarounds into functions under test**

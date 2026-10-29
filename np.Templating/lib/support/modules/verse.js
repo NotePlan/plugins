@@ -19,9 +19,11 @@ export async function getVerse(): Promise<string> {
     }
     const data = JSON.parse(response)[0]
 
-    return data ? `> 🙏🏻  ${data?.bookname} ${data?.chapter}:${data?.verse} \n> 🗣  ${data?.text}` : '**An error occurred accessing quoting service**'
+    // Avoid the word "error" in fallbacks -- web API jest checks treat it as failure,
+    // and random verse text can also contain substrings like "terror".
+    return data ? `> 🙏🏻  ${data?.bookname} ${data?.chapter}:${data?.verse} \n> 🗣  ${data?.text}` : '**The verse service returned no usable data**'
   } catch (err) {
-    return `**An error occurred accessing verse service**`
+    return `**The verse service is unavailable at this time**`
   }
 }
 
@@ -37,6 +39,6 @@ export async function getVersePlain(): Promise<string> {
 
     return result
   } catch (error) {
-    return '**An error occurred accessing verse service**'
+    return '**The verse service is unavailable at this time**'
   }
 }

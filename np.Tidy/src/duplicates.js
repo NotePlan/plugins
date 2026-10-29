@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2026-10-17 for v1.21.0 by @jgclark
+// Last updated 2026-10-24 for v1.21.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,9 +13,7 @@ import { relativeDateFromDate } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import {
   getFolderListMinusExclusions,
-  getFolderFromFilename,
   getProjectNotesInFolder,
-  getJustFilenameFromFullFilename
 } from '@helpers/folders'
 import {
   createOpenOrDeleteNoteCallbackUrl,
@@ -49,36 +47,51 @@ type dupeDetails = {
 /**
  * Private function to generate a list of potentially duplicate notes.
  * Ignores folders in the 'foldersToExclude' setting, plus Trash.
+ * Single pass: group notes by display title, then keep titles with 2+ notes.
+ * Synchronous. Safe for runOnAsyncThread (read-only; showLoading allowed).
  * @author @jgclark
  * @param {Array<string>} foldersToExclude
- * @returns {Array<dupeDetails>} array of strings, one for each output line
+ * @param {boolean} showProgress - when true, update CommandBar.showLoading during the scan
+ * @returns {Array<dupeDetails>} array of duplicate title groups
 */
-function findDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDetails> {
+function findDuplicateNotes(foldersToExclude: Array<string> = [], showProgress: boolean = false): Array<dupeDetails> {
   try {
     logDebug(pluginJson, `findDuplicateNotes() starting`)
 
-    const outputArray: Array<dupeDetails> = []
-    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, false, false)
-    logDebug('findDuplicateNotes', `- Found ${relevantFolderList.length} folders to check`)
-    // Get all the notes in those folders to check
-    let notes: Array<TNote> = []
-    for (const thisFolder of relevantFolderList) {
-      const theseNotes = getProjectNotesInFolder(thisFolder)
-      notes = notes.concat(theseNotes)
-    }
+    const relevantFolderList = getFolderListMinusExclusions(foldersToExclude, false, false)
+    const folderCount = relevantFolderList.length
+    logDebug('findDuplicateNotes', `- Found ${String(folderCount)} folders to check`)
 
-    // Get all dupes, now including Teamspace notes
-    const counter: { [mixed]: number } = {}
-    const dupes = notes.filter(n => (counter[displayTitle(n, false)] = counter[displayTitle(n, false)] + 1 || 1) === 2)
-    const dupeTitles = dupes.map(n => n.title ?? '')
-
-    // Gather details of each dupe into the output array
-    for (const dt of dupeTitles) {
-      const notesForThisTitle = DataStore.projectNoteByTitle(dt)
-      if (notesForThisTitle && notesForThisTitle.length > 0) {
-        outputArray.push({ title: dt, noteArray: notesForThisTitle })
+    // Group notes by display title in one pass (avoids filter + projectNoteByTitle re-lookup).
+    const notesByTitle: Map<string, Array<TNote>> = new Map()
+    let notesChecked = 0
+    for (let f = 0; f < folderCount; f++) {
+      if (showProgress && f % 5 === 0) {
+        CommandBar.showLoading(true, `Looking for duplicated notes (folder ${String(f + 1)} of ${String(folderCount)})...`, f / folderCount)
+      }
+      if (f > 0 && f % 25 === 0) {
+        logDebug('findDuplicateNotes', `- checked ${String(f)}/${String(folderCount)} folders, ${String(notesChecked)} notes so far`)
+      }
+      const theseNotes = getProjectNotesInFolder(relevantFolderList[f])
+      for (const n of theseNotes) {
+        notesChecked++
+        const title = displayTitle(n, false)
+        const existing = notesByTitle.get(title)
+        if (existing) {
+          existing.push(n)
+        } else {
+          notesByTitle.set(title, [n])
+        }
       }
     }
+
+    const outputArray: Array<dupeDetails> = []
+    for (const [title, noteArray] of notesByTitle.entries()) {
+      if (noteArray.length >= 2) {
+        outputArray.push({ title, noteArray })
+      }
+    }
+    logDebug('findDuplicateNotes', `- finished: ${String(outputArray.length)} duplicate titles from ${String(notesChecked)} notes in ${String(folderCount)} folders`)
     return outputArray
   }
   catch (err) {
@@ -93,25 +106,28 @@ function findDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDet
  * @params {string?} params
  */
 export async function listDuplicates(params: string = ''): Promise<void> {
+  // Decide whether to run silently (also gates the loading dialog)
+  let runSilently: boolean = false
   try {
     logDebug(pluginJson, `listDuplicates: Starting with params '${params}'`)
     let config = await getSettings()
     const outputFilename = config.duplicateNoteFilename ?? FALLBACK_OUTPUT_FILENAME
 
-    // Decide whether to run silently
-    const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
+    runSilently = await getTagParamsFromString(params ?? '', 'runSilently', false)
     logDebug('listDuplicates', `runSilently = ${String(runSilently)}`)
 
-    CommandBar.showLoading(true, `Looking for duplicated notes`)
+    if (!runSilently) {
+      CommandBar.showLoading(true, `Looking for duplicated notes`)
+    }
     const startTime = new Date()
     // Side-channel: do not return large arrays from runOnAsyncThread.
     let dupesHolder: ?Array<dupeDetails> = null
     /**
-     * Synchronous duplicate scan. Safe for runOnAsyncThread (read-only).
+     * Synchronous duplicate scan. Safe for runOnAsyncThread (read-only; showLoading allowed).
      * @returns {true}
      */
     const syncFindDuplicates = (): true => {
-      dupesHolder = findDuplicateNotes(config.listFoldersToExclude)
+      dupesHolder = findDuplicateNotes(config.listFoldersToExclude, !runSilently)
       return true
     }
     await runHeavySyncWork('listDuplicates', syncFindDuplicates)
@@ -120,7 +136,9 @@ export async function listDuplicates(params: string = ''): Promise<void> {
       syncFindDuplicates()
     }
     const dupes: Array<dupeDetails> = dupesHolder ?? []
-    CommandBar.showLoading(false)
+    if (!runSilently) {
+      CommandBar.showLoading(false)
+    }
 
     // Only continue if there are dupes found
     if (dupes.length === 0) {
@@ -128,7 +146,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
       if (!runSilently) {
         await showMessage(`No duplicates found! 🥳`)
       }
-      // remove old conflicted note list (if it exists)
+      // remove old duplicate note list (if it exists)
       const res = DataStore.moveNote(outputFilename, '@Trash')
       if (res) {
         logInfo('listDuplicates', `Moved existing duplicate note list '${outputFilename}' to @Trash.`)
@@ -160,8 +178,6 @@ export async function listDuplicates(params: string = ''): Promise<void> {
       for (const n of d.noteArray) {
         i++
         logDebug(pluginJson, `  ${i}. ${n.filename}`)
-        const thisFolder = n.filename.includes('/') ? '**' + getFolderFromFilename(n.filename) + '**' : '**root**'
-        const thisJustFilename = getJustFilenameFromFullFilename(n.filename)
         // Make some button links
         const openMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', false)
         const deleteMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', true)
@@ -204,6 +220,13 @@ export async function listDuplicates(params: string = ''): Promise<void> {
     }
   }
   catch (err) {
+    if (!runSilently) {
+      try {
+        CommandBar.showLoading(false)
+      } catch (_) {
+        // ignore cleanup failures
+      }
+    }
     logError('listDuplicates', JSP(err))
   }
 }

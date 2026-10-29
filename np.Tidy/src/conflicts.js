@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 2026-10-17 for v1.21.0 by @jgclark
+// Last updated 2026-10-24 for v1.21.1 by @jgclark
 // Minimum NP version: 3.9.3
 //-----------------------------------------------------------------------------
 
@@ -58,39 +58,42 @@ type conflictDetails = {
  * Private function to generate list of conflicted notes
  * NB: Only available from NP 3.9.3
  * Synchronous. Call only after the noteVersions availability check.
+ * Single pass over notes (accessing conflictedVersion is expensive -- it can load conflict file content).
  * @author @jgclark
  * @param {Array<string>} foldersToExclude
+ * @param {boolean} showProgress - when true, update CommandBar.showLoading during the scan
  * @returns {Array<conflictDetails>}
  */
-function getConflictedNotes(foldersToExclude: Array<string> = []): Array<conflictDetails> {
+function getConflictedNotes(foldersToExclude: Array<string> = [], showProgress: boolean = false): Array<conflictDetails> {
   try {
     logDebug(pluginJson, `getConflictedNotes() starting`)
 
     const outputArray: Array<conflictDetails> = []
-    let notes = allNotesSortedByTitle(foldersToExclude)
-    logDebug('getConflictedNotes', `- Will check all ${notes.length} notes`)
+    const notes = allNotesSortedByTitle(foldersToExclude)
+    const total = notes.length
+    logDebug('getConflictedNotes', `- Will check all ${String(total)} notes`)
 
-    // Get all conflicts
-    const conflictedNotes = notes.filter(n => (n.conflictedVersion != null))
-
-    // Log details of each dupe
-    for (const cn of conflictedNotes) {
-      // logDebug('getConflictedNotes', `- ${displayTitle(cn)}`)
+    // Single pass: conflictedVersion can load conflict file content from disk, so avoid filter-then-map.
+    for (let i = 0; i < total; i++) {
+      if (showProgress && i % 25 === 0) {
+        CommandBar.showLoading(true, `Looking for notes with conflicts (${String(i)} of ${String(total)})...`, i / total)
+      }
+      if (i > 0 && i % 250 === 0) {
+        logDebug('getConflictedNotes', `- checked ${String(i)}/${String(total)} notes, found ${String(outputArray.length)} conflicts so far`)
+      }
+      const cn = notes[i]
       const cv = cn.conflictedVersion
       if (cv) {
-        // clo(cv, 'conflictedVersion = ')
         outputArray.push({
           note: cn,
           type: cn.type,
           filename: cn.filename, // needs to be main note not .conflict version
-          url: cn.conflictedVersion.url,
-          content: cn.conflictedVersion.content
+          url: cv.url,
+          content: cv.content,
         })
-      } else {
-        logError('getConflictedNotes', `- ${displayTitle(cn)} appears to have no conflictedVersion`)
       }
     }
-    // clo(outputArray, '->')
+    logDebug('getConflictedNotes', `- finished: ${String(outputArray.length)} conflicts in ${String(total)} notes`)
     return outputArray
   }
   catch (err) {
@@ -104,6 +107,8 @@ function getConflictedNotes(foldersToExclude: Array<string> = []): Array<conflic
  * @author @jgclark
  */
 export async function listConflicts(params: string = ''): Promise<void> {
+  // Decide whether to run silently (also gates the loading dialog)
+  let runSilently: boolean = false
   try {
     const machineName = NotePlan.environment.machineName ?? NotePlan.environment.platform
     logDebug(pluginJson, `listConflicts: Starting with params '${params}' on ${machineName}`)
@@ -111,20 +116,21 @@ export async function listConflicts(params: string = ''): Promise<void> {
     const outputFilename = config.conflictedNoteFilename ?? 'Conflicted Notes.md'
     let copiesMade = 0
 
-    // Decide whether to run silently
-    const runSilently: boolean = await getTagParamsFromString(params, 'runSilently', false)
+    runSilently = await getTagParamsFromString(params, 'runSilently', false)
     logDebug('listConflicts', `runSilently = ${String(runSilently)}`)
 
-    CommandBar.showLoading(true, `Looking for notes with conflicts on ${machineName}`)
+    if (!runSilently) {
+      CommandBar.showLoading(true, `Looking for notes with conflicts on ${machineName}`)
+    }
     const startTime = new Date()
     // Side-channel: do not return large arrays from runOnAsyncThread.
     let conflictedNotesHolder: ?Array<conflictDetails> = null
     /**
-     * Synchronous conflict scan. Safe for runOnAsyncThread (read-only).
+     * Synchronous conflict scan. Safe for runOnAsyncThread (read-only; showLoading allowed).
      * @returns {true}
      */
     const syncFindConflicts = (): true => {
-      conflictedNotesHolder = getConflictedNotes(config.listFoldersToExclude)
+      conflictedNotesHolder = getConflictedNotes(config.listFoldersToExclude, !runSilently)
       return true
     }
     await runHeavySyncWork('listConflicts', syncFindConflicts)
@@ -133,7 +139,9 @@ export async function listConflicts(params: string = ''): Promise<void> {
       syncFindConflicts()
     }
     const conflictedNotes: Array<conflictDetails> = conflictedNotesHolder ?? []
-    CommandBar.showLoading(false)
+    if (!runSilently) {
+      CommandBar.showLoading(false)
+    }
 
     // Now also try to remove (Trash) the copies made on any previous run of this command
     // Note: now try by removing the whole '@Conflicted Copies' folder
@@ -149,7 +157,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
       }
       if (!runSilently) {
         await showMessage(`No notes with conflicts found! 🥳\nI have removed any previous Conflict List note, and copies.`)
-      }      
+      }
       return
     } else {
       logInfo('listConflicts', `Found ${conflictedNotes.length} conflictedNotes in ${timer(startTime)}:`)
@@ -244,6 +252,13 @@ export async function listConflicts(params: string = ''): Promise<void> {
     }
   }
   catch (err) {
+    if (!runSilently) {
+      try {
+        CommandBar.showLoading(false)
+      } catch (_) {
+        // ignore cleanup failures
+      }
+    }
     logError('listConflicts', JSP(err))
   }
 }

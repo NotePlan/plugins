@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Functions to file [[note links]] from calendar notes to project notes.
 // Jonathan Clark
-// last updated 29.6.2024, for v1.1.0+
+// last updated 2026-10-26, for v1.6.2
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -15,7 +15,7 @@ import {
 } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getAllNotesOfType, getNotesChangedInInterval } from '@helpers/NPnote'
-import { addParagraphsToNote } from '@helpers/paragraph'
+import { addParagraphsToNote, findHeading } from '@helpers/paragraph'
 import { NP_RE_note_title_link, RE_NOTE_TITLE_CAPTURE } from '@helpers/regex'
 import { showMessage } from '@helpers/userInput'
 
@@ -234,9 +234,11 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
       }
       logDebug('fileNoteLinks', `- found linked note '${noteLinkTitle}' ${noteLinkHeading ? "and heading '" + noteLinkHeading + "'" : "with no heading"} (filename: ${noteToAddTo.filename})`)
 
-      // Remove the [[name]] text by finding first example of the string points
-      const thisParaWithoutNotelink = thisPara.content.replace(noteLinkParts[0], '').replace('  ', ' ')
-      // logDebug('fileNoteLinks', `-> ${thisParaWithoutNotelink}`)
+      // Strip [[note link]] from the *inserted* first line only -- do not mutate source paras
+      // (mutating TParagraph.content before removeParagraphs breaks NotePlan's delete matching).
+      const noteLinkMatchStr = noteLinkParts[0]
+      const firstParaRawRewrite = (rawFirstLine: string): string =>
+        rawFirstLine.replace(noteLinkMatchStr, '').replace('  ', ' ')
 
       let thisParaLineOrBlock: Array<TParagraph> = []
       // If user wants it, get its paragraph block from this point on
@@ -251,26 +253,42 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
       else {
         thisParaLineOrBlock = [thisPara] // as single-item array
       }
-      // either way we need to remove the [[note link]] from the first paragraph in thisParaLineOrBlock
-      thisParaLineOrBlock[0].content = thisParaWithoutNotelink
 
       logDebug('fileNoteLinks', `  - block has ${thisParaLineOrBlock.length} paragraphs:\n\t${thisParaLineOrBlock.map(p => String(p.lineIndex) + ': ' + p.content).join('\n\t')}`)
 
+      // Resolve destination heading fold-aware so '## Heading …' still matches 'Heading' from the link
+      let headingForInsert = noteLinkHeading || ''
+      if (noteLinkHeading) {
+        const foundHeading = findHeading(noteToAddTo, noteLinkHeading, false)
+        if (foundHeading) {
+          headingForInsert = foundHeading.content
+          logDebug(pluginJson, `- Resolved heading '${noteLinkHeading}' to note content '${headingForInsert}'`)
+        }
+      }
+
+      const beforeNumParasInDest = noteToAddTo.paragraphs.length
+
       // Add text to the new location in destination note
       // Note: can't use addParagraphBelowHeadingTitle() here because you can't specify H2-H5, but only H1 of type 'title'.
-      if (noteLinkHeading) {
+      if (headingForInsert) {
         // add after specified heading
-        logDebug(pluginJson, `- Adding ${thisParaLineOrBlock.length} paras after '${noteLinkHeading}'`)
-        addParagraphsToNote(noteToAddTo, thisParaLineOrBlock, noteLinkHeading, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
+        logDebug(pluginJson, `- Adding ${thisParaLineOrBlock.length} paras after '${headingForInsert}'`)
+        addParagraphsToNote(noteToAddTo, thisParaLineOrBlock, headingForInsert, config.whereToAddInSection, config.allowNotePreambleBeforeHeading, '', firstParaRawRewrite)
       } else {
 
         // Note: can't use Note.prependParagraph() API as it doesn't recognise front matter  (as of 3.8.1)
         // work out what indicator to send to addParagraphsToNote(), based on setting 'whereToAddInNote' (start or end)
         const positionInNoteIndicator = (config.whereToAddInNote === 'start') ? '<<top of note>>' : '<<bottom of note>>'
-        addParagraphsToNote(noteToAddTo, thisParaLineOrBlock, positionInNoteIndicator, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
+        addParagraphsToNote(noteToAddTo, thisParaLineOrBlock, positionInNoteIndicator, config.whereToAddInSection, config.allowNotePreambleBeforeHeading, '', firstParaRawRewrite)
       }
 
-      // if we're doing 'move' not 'copy' then delete from existing location
+      const afterNumParasInDest = noteToAddTo.paragraphs.length
+      if (beforeNumParasInDest === afterNumParasInDest) {
+        logWarn(pluginJson, `Failed to add ${thisParaLineOrBlock.length} paras to '${displayTitle(noteToAddTo)}' under '${headingForInsert || '(top/bottom)'}'. Skipping source delete to avoid data loss.`)
+        continue
+      }
+
+      // if we're doing 'move' not 'copy' then delete from existing location (unmodified source paras)
       if (config.copyOrMove === 'move') {
         logDebug(pluginJson, `- Removing ${thisParaLineOrBlock.length} paras from original note`)
         note.removeParagraphs(thisParaLineOrBlock)

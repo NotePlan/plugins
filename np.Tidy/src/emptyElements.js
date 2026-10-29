@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Remove empty blocks functionality for Tidy plugin
-// Last updated 2026-10-17 for v1.21.0, @jgclark & @CursorAI
+// Last updated 2026-10-24 for v1.21.1, @jgclark & @CursorAI
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -393,16 +393,22 @@ export async function removeEmptyElements(
       return
     }
 
-    const config = await getSettings()
-    const stripAllEmptyLines = stripAllEmptyLinesArg !== null ? stripAllEmptyLinesArg : config.stripAllEmptyLines
-    const preserveHeadings = preserveHeadingStructure !== null ? preserveHeadingStructure : false
+    // Avoid reloading settings on every note when the caller already passed stripAllEmptyLines.
+    let stripAllEmptyLines: boolean
+    if (stripAllEmptyLinesArg != null) {
+      stripAllEmptyLines = stripAllEmptyLinesArg
+    } else {
+      const config = await getSettings()
+      stripAllEmptyLines = Boolean(config?.stripAllEmptyLines)
+    }
+    const preserveHeadings = preserveHeadingStructure != null ? preserveHeadingStructure : false
     // logDebug(pluginJson, `stripAllEmptyLinesArg: ${String(stripAllEmptyLinesArg)} typeof=${typeof stripAllEmptyLinesArg} / stripAllEmptyLines: ${String(stripAllEmptyLines)}`)
     // logDebug(pluginJson, `preserveHeadingStructure: ${String(preserveHeadingStructure)} typeof=${typeof preserveHeadingStructure} / preserveHeadings: ${String(preserveHeadings)}`)
 
     // Execute the phases of cleanup
     const changes1 = removeEmptyParagraphs(note, preserveHeadings)
     const changes2 = preserveHeadings ? 0 : removeEmptySections(note) // if preserving headings, don't remove any headings
-    const changes3 = removeConsecutiveEmptyLines(note, Boolean(stripAllEmptyLines), preserveHeadings)
+    const changes3 = removeConsecutiveEmptyLines(note, stripAllEmptyLines, preserveHeadings)
     const changes4 = removeBlankLinesAtStartOfBody(note)
 
     const numChangesMade = changes1 + changes2 + changes3 + changes4
@@ -464,8 +470,12 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
     const noteTypesToProcess: Array<string> = coverRegularNotesAsWell ? ['Notes', 'Calendar'] : ['Calendar']
 
     const startTime = new Date()
-    CommandBar.showLoading(true, `Finding recent notes`)
+    if (!runSilently) {
+      CommandBar.showLoading(true, `Finding recent notes`)
+    }
     // Stays on onAsyncThread: the loop awaits note updates and may prompt, which runOnAsyncThread rejects.
+    // showLoading is allowed on the async thread -- do not switch to main for progress updates, or the
+    // heavy loop blocks the loading window and the UI (appears hung at the last progress text).
     await CommandBar.onAsyncThread()
 
     // Find notes changed in interval (or all when numDays === 0)
@@ -488,7 +498,9 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
     }
 
     if (recentNotes.length === 0) {
+      await CommandBar.onMainThread()
       if (!runSilently) {
+        CommandBar.showLoading(false)
         await showMessage('No recently-changed notes found to process')
       } else {
         logInfo('removeEmptyElementsFromRecentNotes', `No recently-changed notes found to process`)
@@ -501,8 +513,8 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
     let count = 0
     for (const note of recentNotes) {
       count++
-      if (count % 10 === 0) {
-        await CommandBar.onMainThread()
+      if (!runSilently && count % 10 === 0) {
+        // Keep work on the async thread. showLoading is the only UI call allowed here.
         CommandBar.showLoading(true, `Removing empty elements from note ${String(count)} of ${String(recentNotes.length)}...`, count / recentNotes.length)
       }
       const before = note.paragraphs.map((p) => p.rawContent).join('\n')
@@ -517,24 +529,37 @@ export async function removeEmptyElementsFromRecentNotes(params: string = ''): P
           .trim() ?? ''
       if (hasMeaningfulContent && afterContent === '') {
         await CommandBar.onMainThread()
-        CommandBar.showLoading(false)
-        await showMessage(
-          `Note '${displayTitle(note)}' has meaningful content but no content after removal; this is unexpected and may be a bug. Please report it to @jgclark. Stopping.`,
+        if (!runSilently) {
+          CommandBar.showLoading(false)
+          await showMessage(
+            `Note '${displayTitle(note)}' has meaningful content but no content after removal; this is unexpected and may be a bug. Please report it to @jgclark. Stopping.`,
+          )
+        }
+        logError(
+          'removeEmptyElementsFromRecentNotes',
+          `- note '${displayTitle(note)}' has meaningful content but no content after removal! Note before:\n${before}\n===\nafter: (empty)`,
         )
-        logError('removeEmptyElementsFromRecentNotes', `note '${displayTitle(note)}' has meaningful content but no content after removal! Note before:\n${before}\n===\nafter: (empty)`)
         note.content = before // restore the note to its original content
         return
       }
       if (before !== after) numChanged++
     }
     await CommandBar.onMainThread()
-    CommandBar.showLoading(false)
+    if (!runSilently) {
+      CommandBar.showLoading(false)
+    }
 
     logInfo('removeEmptyElementsFromRecentNotes', `Removed empty elements in ${String(numChanged)} of ${String(recentNotes.length)} recent notes, in ${timer(startTime)}`)
     if (!runSilently) {
       await showMessage(`Removed empty elements in ${String(numChanged)} of ${String(recentNotes.length)} recent notes`)
     }
   } catch (error) {
+    try {
+      await CommandBar.onMainThread()
+      CommandBar.showLoading(false)
+    } catch (_) {
+      // ignore cleanup failures
+    }
     logError('removeEmptyElementsFromRecentNotes', JSP(error))
   }
 }

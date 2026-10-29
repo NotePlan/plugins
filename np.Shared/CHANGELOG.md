@@ -1,11 +1,17 @@
 # Changes to 🤝 Shared Resources plugin
 
-See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
+See [Shared Plugin's README](https://noteplan.co/plugins/np.Shared) for details on this plugin.
+
+## [1.3.2] 2026-10-28 (not yet released)
+- Fix: tag/mention cache generate/update now scans notes via `runSyncWorkOnAsyncThread(..., { items, batchSize })` (helpers/NPThreads) -- short async-thread batches with a main-thread breather between them -- instead of one long `runOnAsyncThread` call. Mitigates stuck "Generating tag/mention cache" progress when the async Promise never settles after many `TNote` bridge reads (NotePlan/plugins#793). Progress dialog updates every 20 notes (and after each batch).
+
+## [1.3.1] 2026-10-23
+- Fix: notes-changed-recently `generate` / `update` no longer use `runOnAsyncThread` for entry build/merge. Reading `TNote` fields inside that API hung the Promise live, which left Projects Refresh spinning indefinitely after a stale-cache update.
 
 ## [1.3.0] 2026-09-18
 - New: `apple-switch.css` is the shared style for `input.apple-switch`. HTML windows load it with `../np.Shared/apple-switch.css`.
 - New: Shared **notes-changed-recently cache** (`notesChangedRecentlyCache.js`) -- rolling **7 calendar day** index of which notes changed (`filename`, `noteType`, `changedAt` only). Any plugin can read sync getters or call generate/update. Does **not** replace `getNotesChangedInInterval`; generate/update call the new helper `getNotesChangedInLastCalendarDays(7)` (clearer than interval arg `6`). See README and `PLAN-notes-changed-recently-cache.md`.
-- Missing/corrupt cache: `update` / `updateIfTooOld` **generate immediately** (entry build/prune on async thread when available); vault scan stays on the main thread.
+- Missing/corrupt cache: `update` / `updateIfTooOld` **generate immediately**; vault scan and entry build/prune stay on the main thread.
 - Commands: `/generateNotesChangedRecentlyCache` (`gncrc`), `/updateNotesChangedRecentlyCache` (`uncrc`).
 
 ## [1.2.0] 2026-09-16

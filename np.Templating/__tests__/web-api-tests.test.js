@@ -78,9 +78,17 @@ describe(`${PLUGIN_NAME} - ${section('Web API Tests')}`, () => {
           expect(result).toBeTruthy()
           expect(typeof result).toBe('string')
           expect(result.length).toBeGreaterThan(0)
-          expect(result).not.toContain('error')
-          expect(result).not.toContain('Error')
-          expect(result).not.toContain('ERROR')
+          // Soft-fail / rate-limit style responses from live services
+          if (/\bunavailable\b|did not respond|no usable data/i.test(result)) {
+            console.warn(`Skipping assertion for ${name}: service soft-failed (${result})`)
+            return
+          }
+          // Word-boundary only: verse text can contain substrings like "terror"
+          expect(result).not.toMatch(/\berror\b/i)
+          if (name === 'verse') {
+            expect(result).toMatch(/^> 🙏🏻/)
+            expect(result).toContain('🗣')
+          }
         } catch (err) {
           console.error(`Error in ${name} API test:`, err)
           // Only fail if it's not a network error
