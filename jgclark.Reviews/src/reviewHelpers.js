@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2026-09-13 for v2.2.0, @CursorAI & @jgclark
+// Last updated 2026-10-30 for v2.4.0.b3, @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -37,7 +37,6 @@ import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { getFieldParagraphsFromNote } from '@helpers/paragraph'
 import { escapeRegExp } from '@helpers/regex'
 import { getHashtagsFromString } from '@helpers/stringTransforms'
-import { chooseOption, showMessage } from '@helpers/userInput'
 
 //------------------------------
 // Constants
@@ -983,7 +982,10 @@ export function noteHasCombinedProjectFrontmatterKey(noteLike: CoreNoteFields | 
 
 /**
  * When finishing a review and the note has no combined project-type frontmatter key,
- * explain that, then offer projectTypeTags from settings (plus Cancel).
+ * offer projectTypeTags from settings (plus Cancel) in one dialog.
+ * One dialog, not an info prompt followed by a chooser: a second CommandBar call
+ * (or another plugin command, such as Dashboard's Time Block refresh) was ending the
+ * command before any frontmatter write, so the note stayed unchanged.
  * @param {ReviewConfig} config
  * @param {string} noteTitle
  * @returns {Promise<?string>} selected tag (e.g. '#project'), or null if cancelled / no choices
@@ -996,26 +998,24 @@ export async function promptForMissingProjectTypeTag(config: ReviewConfig, noteT
         ? config.projectTypeTags.map((t) => checkString(t).trim()).filter((t) => t !== '')
         : ['#project']
 
-    await showMessage(
-      `Note '${noteTitle}' has no '${combinedKey}' frontmatter key for its project type tag(s).\n\nPlease choose a project type tag from your settings to add. Cancel leaves the note unchanged (reviewed date will not be updated).`,
-      'OK',
+    const buttons = [...tagChoices, 'Cancel']
+    const cancelIndex = buttons.length - 1
+    logInfo(
+      'promptForMissingProjectTypeTag',
+      `No '${combinedKey}' key on '${noteTitle}'; asking which project type tag to add`,
+    )
+    // CommandBar.prompt returns the clicked button index. Cancel is last.
+    // showOptions aborts the whole command on Escape and never returns; a Cancel button does return.
+    const answer = await CommandBar.prompt(
       'Finish project review',
+      `Note '${noteTitle}' has no '${combinedKey}' frontmatter key for its project type tag.\n\nChoose a tag to add and mark it reviewed. Cancel leaves the note unchanged.`,
+      buttons,
     )
-
-    const options = [
-      ...tagChoices.map((tag) => ({ label: tag, value: tag })),
-      { label: 'Cancel', value: '__CANCEL__' },
-    ]
-    const selection = await chooseOption(
-      `Select a project type tag for '${noteTitle}'`,
-      options,
-      '__CANCEL__',
-    )
-    if (selection == null || selection === '__CANCEL__') {
+    if (typeof answer !== 'number' || !Number.isFinite(answer) || answer < 0 || answer >= cancelIndex) {
       logInfo('promptForMissingProjectTypeTag', `User cancelled project type tag selection for '${noteTitle}'`)
       return null
     }
-    const selectedTag = checkString(selection).trim()
+    const selectedTag = checkString(buttons[answer]).trim()
     if (selectedTag === '') {
       logWarn('promptForMissingProjectTypeTag', `Empty tag selected for '${noteTitle}'`)
       return null

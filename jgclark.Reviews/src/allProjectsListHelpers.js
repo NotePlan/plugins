@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------
 // Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2026-10-16 for v2.3.3 by @jgclark + @CursorAI
+// Last updated 2026-10-30 for v2.4.0.b3 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -2367,45 +2367,51 @@ export async function updateAllProjectsListAfterChange(
         return
       }
 
-      logWarn('updateAllProjectsListAfterChange', `Couldn't find '${filename}' to update in allProjects list; trying incremental add if in scope`)
+      logDebug('updateAllProjectsListAfterChange', `Couldn't find '${filename}' to update in allProjects list; trying incremental add if in scope`)
       // After a move/archive the caller may still pass the old path; resolve under @Archive / by title.
       const noteForAdd = resolveProjectNoteFromListFilename(filename)
-      const projectTypeTags =
-        config.projectTypeTags != null && typeof config.projectTypeTags === 'string'
-          ? [config.projectTypeTags]
-          : (config.projectTypeTags ?? [])
+      const rawProjectTypeTags = config.projectTypeTags
+      const projectTypeTags: Array<string> =
+        rawProjectTypeTags != null && typeof rawProjectTypeTags === 'string'
+          ? [rawProjectTypeTags]
+          : Array.isArray(rawProjectTypeTags)
+            ? rawProjectTypeTags
+            : []
+      // Only tags this note actually has. Trying every configured tag (#goal, #project, #area)
+      // re-scans folders for tags that cannot match, and logged a warning per miss.
+      const tagsOnNote =
+        noteForAdd == null ? [] : getMatchingProjectTypeTagsOnNote(noteForAdd, projectTypeTags)
       const tagsToTry =
         noteForAdd == null
           ? []
-          : projectTypeTags.length > 0
-            ? projectTypeTags
-            : getProjectTypeTagsFromNoteMetadata(noteForAdd)
+          : tagsOnNote.length > 0
+            ? tagsOnNote
+            : projectTypeTags.length > 0
+              ? []
+              : getProjectTypeTagsFromNoteMetadata(noteForAdd)
 
+      // Out of folder/Space/tag selection: regenerating cannot add the note either, so stop.
+      // This is normal when finishing a review on a note outside the active perspective
+      // (for example a teamspace note while Home only includes private "Home").
       if (noteForAdd) {
+        const inScopeTags = tagsToTry.filter((tag) => isNoteInCurrentProjectSelection(noteForAdd, config, tag))
+        if (inScopeTags.length === 0) {
+          logInfo(
+            'updateAllProjectsListAfterChange',
+            `Note '${displayTitle(noteForAdd)}' is outside the current folder/Space/tag selection; project list left unchanged`,
+          )
+          logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(skipped; outside current selection for '${filename}')`)
+          return
+        }
+
         let added = false
-        for (const tag of tagsToTry) {
+        for (const tag of inScopeTags) {
           if (await addNewProjectToAllProjectsListIfInScope(noteForAdd, tag, config, scrollPosForRichList, options)) {
             added = true
           }
         }
         if (added) {
-          // logInfo('updateAllProjectsListAfterChange', `- Incrementally added '${filename}' to allProjects list`)
           logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(incrementally added '${filename}')`)
-          return
-        }
-      }
-
-      // Out of folder/Space/tag selection: regenerating cannot add the note either, so stop.
-      if (noteForAdd) {
-        const inScopeForAnyTag =
-          tagsToTry.length > 0 &&
-          tagsToTry.some((tag) => isNoteInCurrentProjectSelection(noteForAdd, config, tag))
-        if (!inScopeForAnyTag) {
-          logWarn(
-            'updateAllProjectsListAfterChange',
-            `Note '${filename}' is outside current folder/Space/tag selection; skipping list rebuild`,
-          )
-          logAllProjectsListDuration('updateAllProjectsListAfterChange', startTime, 'updated', `(skipped; outside current selection for '${filename}')`)
           return
         }
       }

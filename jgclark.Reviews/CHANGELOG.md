@@ -1,6 +1,8 @@
 # What's changed in Projects + Reviews plugin?
 See [website documentation for more details](https://noteplan.co/plugins/jgclark.Reviews), and how to configure it to suit your workflow.
 ## [2.4.0.b2] - 2026-10-24
+- Fix: **/finish project review** on a note with no `project:` key asked twice (an info dialog, then a tag list). Closing that first dialog, or another plugin command starting while it was open, ended the command before the note was updated. Tag choices are now one dialog, and Cancel leaves the note unchanged.
+- Fix: finishing a review on a note outside the current perspective (for example a teamspace note while Home only includes the private Home folder) no longer logs warnings. The note is still updated; the project list is left unchanged.
 - Fix: **/finish project review** (and other single-note list updates) no longer kick off a full `allProjectsList` regenerate when the list is stale or the last write was under a different Perspective -- they patch that one row instead.
 - dev: Rebuild to pick up fix in shared cache (in np.Shared v1.3.1).
 
