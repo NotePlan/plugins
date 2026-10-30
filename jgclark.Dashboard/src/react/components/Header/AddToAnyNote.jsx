@@ -763,7 +763,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
       <>
         {/* Button to open the dialog */}
         <button ref={buttonRef} accessKey="a" className="buttonsWithoutBordersOrBackground add-to-any-note-button" title="Add task, checklist, or reminder" onClick={handleOpenDialog}>
-          <i className="fa-solid fa-hexagon-plus"></i>
+          <i className="fa-solid fa-circle-plus"></i>
         </button>
 
         {/* Render the Add Task Dialog */}

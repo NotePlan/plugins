@@ -34,7 +34,7 @@
 /* The main grid for a section: sectionInfo then sectionGrid. */
 .section {
 	display: grid;
-	grid-template-columns: [info] 13rem [items] auto;
+	grid-template-columns: [info] 11.5rem [items] auto;
 	grid-template-rows: min-content;
 	/* turn on top border (from theme CSS) */
 	border-left: 1px solid var(--divider-color);
