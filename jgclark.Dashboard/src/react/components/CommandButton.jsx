@@ -10,6 +10,7 @@ import { useAppContext } from './AppContext.jsx'
 import { logDebug, JSP, clo } from '@helpers/dev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import { showDialog } from '@helpers/react/userInput'
+import { requestOpenAddDialog, type TOpenAddDialogOptions } from './Header/openAddDialog'
 
 type ButtonProps = {
   button: TActionButton,
@@ -41,6 +42,15 @@ function CommandButton(inputObj: ButtonProps): React.Node {
   const handleButtonClick = async (event: MouseEvent) => {
     const { modifierName } = extractModifierKeys(event)
     // logDebug('CommandButton', `🔸 handleButtonClick: ${button.tooltip}, modifierName=${modifierName ? modifierName : '-'}`)
+    if (button.openAddDialog) {
+      const openOpts: TOpenAddDialogOptions = { itemKind: button.openAddDialog.itemKind }
+      if (button.openAddDialog.noteFilename) openOpts.noteFilename = button.openAddDialog.noteFilename
+      if (button.openAddDialog.defaultHeading) openOpts.defaultHeading = button.openAddDialog.defaultHeading
+      if (button.postActionRefresh) openOpts.sectionCodes = button.postActionRefresh
+      requestOpenAddDialog(openOpts)
+      onClick(button)
+      return
+    }
     let userInputObj: TAnyObject | null
     if (button.formFields) {
       // show dialog to get user input if formFields are defined

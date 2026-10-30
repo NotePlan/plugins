@@ -8,6 +8,8 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import './AddToAnyNote.css' // Import CSS for dialog positioning
 import { useAppContext } from '../AppContext'
 import { REMINDER_ADD_REFRESH_SECTIONS } from '../../../reminderAddForm'
+import type { TSectionCode } from '../../../types'
+import { registerOpenAddDialog, type TOpenAddDialogOptions } from './openAddDialog'
 import { logDebug, logError } from '@helpers/dev'
 import { pluginEnvelopeFromResponsePayload, unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { getElementCoordinates } from '@helpers/react/reactUtils.js'
@@ -33,7 +35,10 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
     // State
     // ----------------------------------------------------------------------
     const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [dialogSession, setDialogSession] = useState(0) // bumps so a new open remounts the dialog with fresh defaults
     const [itemKind, setItemKind] = useState<'task' | 'checklist' | 'reminder'>('task')
+    const [presetNote, setPresetNote] = useState<string>('') // calendar note filename from a section button; empty means today
+    const [presetHeading, setPresetHeading] = useState<string>('')
     // null = not loaded yet (still show Reminder). false = hide it.
     const [canAddReminder, setCanAddReminder] = useState<?boolean>(null)
     const [reminderListTitles, setReminderListTitles] = useState<Array<string>>([])
@@ -48,6 +53,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
     const pendingRequestsRef = useRef<Map<string, { resolve: (value: any) => void, reject: (error: Error) => void, timeoutId: TimeoutID }>>(new Map())
     const reminderListTitlesRef = useRef<?Array<string>>(null) // null until getReminderAddOptions returns
     const reminderListsPromiseRef = useRef<?Promise<Array<string>>>(null) // shared so Reminder click waits for the open-dialog fetch
+    const sectionCodesRef = useRef<?Array<TSectionCode>>(null) // sections to refresh after a task/checklist save opened from a section button
 
     // ----------------------------------------------------------------------
     // Request/Response handling
@@ -355,27 +361,35 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
     // Dialog handlers
     // ----------------------------------------------------------------------
     /**
-     * Handle opening the add task dialog
+     * Open the dialog for the header button or a section button.
+     * A new session remounts the form so the note, heading, and kind are the ones just requested.
      */
-    const handleOpenDialog = useCallback(
-      (event: ?SyntheticEvent<HTMLButtonElement>) => {
-        if (event && event.currentTarget) {
-          const positionStyle = calculateDialogPosition(event.currentTarget)
-          setDialogStyle(positionStyle)
-        } else {
-          setDialogStyle({})
-        }
-
+    const beginAddDialog = useCallback(
+      (opts: TOpenAddDialogOptions) => {
         currentSpaceRef.current = null
         reminderListTitlesRef.current = null
         reminderListsPromiseRef.current = null
-        setItemKind('task')
+        sectionCodesRef.current = opts.sectionCodes || null
+        setItemKind(opts.itemKind)
+        setPresetNote(opts.noteFilename || '')
+        setPresetHeading(opts.defaultHeading || '')
         setCanAddReminder(null)
         setErrorMessage(null)
+        setDialogSession((session) => session + 1)
+        const button = buttonRef.current
+        setDialogStyle(button ? calculateDialogPosition(button) : {})
         setIsDialogOpen(true)
       },
       [calculateDialogPosition],
     )
+
+    const handleOpenDialog = useCallback(() => {
+      beginAddDialog({ itemKind: 'task' })
+    }, [beginAddDialog])
+
+    useEffect(() => {
+      return registerOpenAddDialog(beginAddDialog)
+    }, [beginAddDialog])
 
     /**
      * Handle closing the add task dialog
@@ -571,6 +585,15 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
               msg: successMsg,
               timeout: 5000,
             })
+            const codesToRefresh = sectionCodesRef.current
+            if (codesToRefresh && codesToRefresh.length > 0) {
+              sendActionToPlugin(
+                'refreshSomeSections',
+                { actionType: 'refreshSomeSections', sectionCodes: codesToRefresh },
+                'Refresh after add',
+                false,
+              )
+            }
           } else {
             dispatch('SHOW_BANNER', {
               type: 'error',
@@ -671,7 +694,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
           includeTemplatesAndForms: false,
           sourceSpaceKey: 'space', // Filter notes by selected space
           onOpen: handleNoteChooserOpen, // Lazy load notes when dropdown opens
-          value: getTodaysDateISO(), // Default to today's date in ISO 8601 format (YYYY-MM-DD)
+          value: presetNote || getTodaysDateISO(), // Section button filename, or today from the header button
           compactDisplay: false,
           noteOutputFormat: 'filename', // Return filename so addTaskToNote receives note path
         },
@@ -681,10 +704,10 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
           label: 'Under Heading',
           placeholder: 'Select heading...',
           sourceNoteKey: 'note', // Get headings from selected note
-          value: '',
+          value: presetHeading,
         },
       ]
-    }, [handleNoteChooserOpen, itemKind, reminderListTitles, textLabel, textPlaceholder])
+    }, [handleNoteChooserOpen, itemKind, presetHeading, presetNote, reminderListTitles, textLabel, textPlaceholder])
 
     // ----------------------------------------------------------------------
     // Render
@@ -746,6 +769,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
         {/* Render the Add Task Dialog */}
         {isDialogOpen && (
           <DynamicDialog
+            key={dialogSession}
             isOpen={isDialogOpen}
             title={dialogTitle}
             items={addTaskFormFields}

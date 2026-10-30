@@ -9,7 +9,7 @@ import { isCurrentRemindersEnabled, isUndatedOverdueRemindersEnabled } from './d
 import { reminderItems } from './demoData'
 import { bucketReminderItems } from './reminderBuckets'
 import { createReminderSectionItem, getReminderListsForConfig } from './reminderMapping'
-import { buildReminderAddFormFields, reminderListTitlesFromSectionItems, REMINDER_ADD_REFRESH_SECTIONS } from './reminderAddForm'
+import { reminderListTitlesFromSectionItems, REMINDER_ADD_REFRESH_SECTIONS } from './reminderAddForm'
 import { placeReminderBuckets, type TReminderPlacement } from './reminderPlacement'
 import type { TActionButton, TDashboardSettings, TSection, TSectionItem } from './types'
 import { logDebug, logError, logTimer, timer } from '@helpers/dev'
@@ -119,9 +119,8 @@ export async function getRemindersGeneratedData(
       sectionDescription += ` [${timer(startTime)}]`
     }
 
-    // Adding Reminders only supported on NotePlan >= 3.21.2 (macOS build 1525)
-    // Form fields for the heading add-Reminder button (CommandButton -> showDialog). Same helper as the topbar.
-    const reminderFormFields = buildReminderAddFormFields(listTitlesForAdd)
+    // Adding Reminders only supported on NotePlan >= 3.21.2 (macOS build 1525).
+    // The heading button opens the shared header dialog on Reminder.
     const actionButtons: Array<TActionButton> =
       usersVersionHas('addRemindersSupport') && listTitlesForAdd.length > 0
         ? [
@@ -129,12 +128,10 @@ export async function getRemindersGeneratedData(
             actionName: 'addReminder',
             actionPluginID: `${pluginJson['plugin.id']}`,
             display: '<i class= "fa-regular fa-fw fa-circle-plus RemindersColor" ></i> ',
-            tooltip: 'Add a new Reminder',
+            tooltip: 'Add a reminder, task, or checklist',
             postActionRefresh: REMINDER_ADD_REFRESH_SECTIONS,
-            formFields: reminderFormFields,
-            submitOnEnter: true,
-            submitButtonText: 'Add & Close',
             actionParam: '',
+            openAddDialog: { itemKind: 'reminder' },
           },
         ]
         : []

@@ -6,11 +6,11 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TDialogSettingItem } from './types'
+import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { getNumCompletedTasksFromCalendarNote } from './countDoneTasks'
 import {
-  buildAddTaskChecklistButtons,
-  buildAddTaskFormFields,
+  buildAddTaskButton,
+  getDefaultHeadingForNewTask,
   createSectionItemObject,
   createSectionItemsFromParas,
   filterDueMarkerSearchHits,
@@ -114,34 +114,32 @@ export async function getThisWeekSectionData(
     const nextPeriodFilename = nextPeriodNote?.filename || ''
     const doneCountData = getNumCompletedTasksFromCalendarNote(thisFilename)
 
-    // Set up formFields for the 'add buttons' (applied in Section.jsx)
+    // Default heading for the header add dialog (applied when the section button opens it)
     const thisWeekHeadings: Array<string> = currentWeeklyNote ? getHeadingsFromNote(currentWeeklyNote, false, true, true, true) : []
     const nextWeekHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
-    const thisWeekFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(thisWeekHeadings, config)
-    const nextWeekFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(nextWeekHeadings, config)
+    const thisWeekDefaultHeading = getDefaultHeadingForNewTask(config, thisWeekHeadings)
+    const nextWeekDefaultHeading = getDefaultHeadingForNewTask(config, nextWeekHeadings)
     let sectionDescription = `{closedOrOpenTaskCount} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) {
       sectionDescription += weekWindowTiming ? ` [${timer(startTime)}, due window ${weekWindowTiming}]` : ` [${timer(startTime)}]`
     }
 
     const actionButtons: Array<TActionButton> = [
-      ...buildAddTaskChecklistButtons({
+      ...buildAddTaskButton({
         filename: thisFilename,
-        formFields: thisWeekFormFields,
+        defaultHeading: thisWeekDefaultHeading,
         colorClass: 'WeeklyColor',
-        taskTooltip: "Add a new task to this week's note",
-        checklistTooltip: "Add a checklist item to this week's note",
+        tooltip: "Add a task, checklist, or reminder to this week's note",
         postActionRefresh: ['W'],
       }),
     ]
     if (nextPeriodFilename) {
       actionButtons.push(
-        ...buildAddTaskChecklistButtons({
+        ...buildAddTaskButton({
           filename: nextPeriodFilename,
-          formFields: nextWeekFormFields,
+          defaultHeading: nextWeekDefaultHeading,
           colorClass: 'WeeklyColor',
-          taskTooltip: "Add a new task to next week's note",
-          checklistTooltip: "Add a checklist item to next week's note",
+          tooltip: "Add a task, checklist, or reminder to next week's note",
           iconVariant: 'arrow-right',
         }),
       )

@@ -110,9 +110,9 @@ Note:
 - for **Active Projects** and **Projects to Review**, `>> N` walks project rows only (not the next-action tasks under them). Active Projects allows skip back; Projects to Review is forward-only. **Start Reviews** is unchanged.
 - there are 3 settings that control aspects of this in the Dashboard Settings dialog.
 
-### Add Task/Checklist items
+### Add items on a calendar section
 <img src="add-buttons-2.2.0.png" border="1px" margin="8px" width="200px" alt="add buttons" align="left"/>
-On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task or checklist directly at the start of that current note. A second pair adds tasks and checklists but to the *next* day/week/month. To add a task, checklist, or reminder anywhere else, use the **Add** button in the header.
+On the Today, Tomorrow, Week, Month, Quarter, and Year sections there is an add icon for that period's note. Where a next period exists, an arrow icon adds to that next note. Each opens the header **Add** dialog on Task, with that note already selected (and the usual default heading). You can switch to Checklist or Reminder in the same dialog.
 
 ### Move 'All -> ...' buttons
 Some sections have "All ->  ..." buttons. They move or schedule all the items in that section to the destination e.g. from Today to Tomorrow's daily note. This includes any hidden as lower-priority items, unless you have the 'Do "Move all items" buttons only move shown items when filtering?' setting turned on.
@@ -207,7 +207,7 @@ On Reminder items, you can take the following actions, all of which are reflecte
 - Click the **circle** icon to complete the reminder;
 - **Ctrl-click** the circle to delete the reminder;
 - Click the reminder **content** to open it in the Apple Reminders app (requires NotePlan v3.21.2 or later).
-- Use the **+** button on the Reminders section heading to add a new reminder: enter the text, choose the list, and optionally a date and time. (Note: requires NP 3.21.2.) The header **Add** button offers the same reminder fields, and you can switch that dialog to Task or Checklist.
+- Use the **+** button on the Reminders section heading to open the header **Add** dialog on Reminder: enter the text, choose the list, and optionally a date and time. You can switch that dialog to Task or Checklist. (Note: requires NP 3.21.2.)
 - Click the **pencil** icon to open the Reminder edit dialog:
 
   <img src="reminders-edit-dialog-2.4.3.png" width="600px" margin="8px" alt="reminder edit dialog" />

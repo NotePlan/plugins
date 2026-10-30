@@ -975,55 +975,43 @@ export function buildAddTaskFormFields(headings: Array<string>, config: TDashboa
 }
 
 /**
- * Build addTask + addChecklist action buttons for a calendar note.
+ * One heading button that opens the header add dialog on Task, with this calendar note selected.
  * @param {{
  *   filename: string,
- *   formFields: Array<TDialogSettingItem>,
+ *   defaultHeading?: string,
  *   colorClass: string,
- *   taskTooltip: string,
- *   checklistTooltip: string,
+ *   tooltip: string,
  *   postActionRefresh?: Array<TSectionCode>,
  *   iconVariant?: 'plus' | 'arrow-right',
  * }} opts
  * @returns {Array<TActionButton>}
  */
-export function buildAddTaskChecklistButtons(opts: {
+export function buildAddTaskButton(opts: {
   filename: string,
-  formFields: Array<TDialogSettingItem>,
+  defaultHeading?: string,
   colorClass: string,
-  taskTooltip: string,
-  checklistTooltip: string,
+  tooltip: string,
   postActionRefresh?: Array<TSectionCode>,
   iconVariant?: 'plus' | 'arrow-right',
 }): Array<TActionButton> {
   const iconVariant = opts.iconVariant || 'plus'
   const taskIcon = iconVariant === 'arrow-right' ? 'fa-circle-arrow-right' : 'fa-circle-plus'
-  const checklistIcon = iconVariant === 'arrow-right' ? 'fa-square-arrow-right' : 'fa-square-plus'
   const taskButton: TActionButton = {
     actionName: 'addTask',
     actionPluginID: pluginID,
-    tooltip: opts.taskTooltip,
+    tooltip: opts.tooltip,
     display: `<i class= "fa-regular fa-fw  ${taskIcon} ${opts.colorClass}" ></i> `,
     actionParam: opts.filename,
-    formFields: opts.formFields,
-    submitOnEnter: true,
-    submitButtonText: 'Add & Close',
-  }
-  const checklistButton: TActionButton = {
-    actionName: 'addChecklist',
-    actionPluginID: pluginID,
-    tooltip: opts.checklistTooltip,
-    display: `<i class= "fa-regular fa-fw  ${checklistIcon} ${opts.colorClass}" ></i> `,
-    actionParam: opts.filename,
-    formFields: opts.formFields,
-    submitOnEnter: true,
-    submitButtonText: 'Add & Close',
+    openAddDialog: {
+      itemKind: 'task',
+      noteFilename: opts.filename,
+      defaultHeading: opts.defaultHeading || '',
+    },
   }
   if (opts.postActionRefresh) {
     taskButton.postActionRefresh = opts.postActionRefresh
-    checklistButton.postActionRefresh = opts.postActionRefresh
   }
-  return [taskButton, checklistButton]
+  return [taskButton]
 }
 
 /**

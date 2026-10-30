@@ -322,6 +322,12 @@ export type TActionButton = {
   formFields?: Array<TDialogSettingItem>,
   submitOnEnter?: boolean,
   submitButtonText?: string,
+  // When set, the WebView opens the header add dialog instead of sending this button to the plugin.
+  openAddDialog?: {|
+    itemKind: 'task' | 'checklist' | 'reminder',
+    noteFilename?: string,
+    defaultHeading?: string,
+  |},
 }
 
 export type TActionType =

@@ -5,6 +5,8 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 
 ## [2.6.0.b5] 2026-10-30
 - The topbar add button now offers Task, Checklist, or Reminder in one dialog. You can switch among them in either direction. Task and Checklist use the note fields. Reminder uses list, date, and time in that same dialog. The topbar no longer falls back to the Quick Capture prompt, and the Dynamic Add To Anywhere flag is gone.
+- Calendar section add icons no longer include a separate checklist button. The remaining add icon (and the next-period arrow) opens that same dialog on Task, with that period's note selected. The Reminders heading **+** opens it on Reminder.
+
 ## [2.6.0.b4] 2026-10-29
 ### New
 - The topbar add button now offers adding Reminders and Checklists, as well as Tasks. (Reminder opens the same dialog as the Reminders section button.)

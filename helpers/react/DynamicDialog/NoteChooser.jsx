@@ -16,6 +16,7 @@ import { unwrapPluginRequestData } from '@helpers/react/pluginRequestEnvelope'
 import { getNoteDecorationForReact, TEAMSPACE_ICON_COLOR } from '@helpers/NPnote.js'
 import { getFolderFromFilename } from '@helpers/folders.js'
 import { makeCalendarFilename, RE_NOTE_FILE_EXTENSION } from '@helpers/NPFileExtensions'
+import { getDateStringFromCalendarFilename, isValidCalendarNoteFilename } from '@helpers/dateTime'
 import { parseTeamspaceFilename, getFilenameWithoutTeamspaceID } from '@helpers/teamspace.js'
 import './NoteChooser.css'
 
@@ -851,10 +852,14 @@ export function NoteChooser({
     shortDescriptionOnLine2,
   }
 
-  // Format value for display if it's a date string (YYYYMMDD or YYYY-MM-DD format)
+  // Format value for display if it's a date string (YYYYMMDD or YYYY-MM-DD) or a calendar filename (20261031.md, 2026-W44.md).
   const displayValue = useMemo(() => {
     if (value && (isDateString(value) || isISODateString(value))) {
       return formatDateStringForDisplay(value)
+    }
+    if (value && isValidCalendarNoteFilename(value)) {
+      const fromFilename = getDateStringFromCalendarFilename(value, true)
+      if (fromFilename && fromFilename !== '(invalid date)') return fromFilename
     }
     return value
   }, [value])

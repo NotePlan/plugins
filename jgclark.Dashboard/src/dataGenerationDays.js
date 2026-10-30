@@ -6,11 +6,11 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TDialogSettingItem } from './types'
+import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { getDoneCountsForToday, getNumCompletedTasksFromCalendarNote } from './countDoneTasks'
 import {
-  buildAddTaskChecklistButtons,
-  buildAddTaskFormFields,
+  buildAddTaskButton,
+  getDefaultHeadingForNewTask,
   createSectionItemObject,
   createSectionItemsFromParas,
   getNotePlanSettings,
@@ -143,11 +143,11 @@ export async function getTodaySectionData(
     const doneCountData = getDoneCountsForToday()
     // clo(doneCountData, 'dataGenerationDays: doneCountData') // x zero here
 
-    // Set up formFields for the 'add buttons' (applied in Section.jsx)
+    // Default heading for the header add dialog (applied when the section button opens it)
     const todayHeadings: Array<string> = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, false) : []
     const tomorrowHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, false) : []
-    const todayFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(todayHeadings, config)
-    const tomorrowFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
+    const todayDefaultHeading = getDefaultHeadingForNewTask(config, todayHeadings)
+    const tomorrowDefaultHeading = getDefaultHeadingForNewTask(config, tomorrowHeadings)
 
     let sectionDescription = `{closedOrOpenTaskCount}` // ` ` from ${todayDateLocale}`
   if (config?.FFlag_ShowSectionTimings) {
@@ -156,23 +156,21 @@ export async function getTodaySectionData(
 
     // Note: TB no longer needs to be in postActionRefresh for DT buttons; it refreshes along with DT when enabled
     const actionButtons: Array<TActionButton> = [
-      ...buildAddTaskChecklistButtons({
+      ...buildAddTaskButton({
         filename: thisFilename,
-        formFields: todayFormFields,
+        defaultHeading: todayDefaultHeading,
         colorClass: 'DailyColor',
-        taskTooltip: "Add a new task to today's note",
-        checklistTooltip: "Add a checklist item to today's note",
+        tooltip: "Add a task, checklist, or reminder to today's note",
         postActionRefresh: ['DT'],
       }),
     ]
     if (nextPeriodFilename) {
       actionButtons.push(
-        ...buildAddTaskChecklistButtons({
+        ...buildAddTaskButton({
           filename: nextPeriodFilename,
-          formFields: tomorrowFormFields,
+          defaultHeading: tomorrowDefaultHeading,
           colorClass: 'DailyColor',
-          taskTooltip: "Add a new task to tomorrow's note",
-          checklistTooltip: "Add a checklist item to tomorrow's note",
+          tooltip: "Add a task, checklist, or reminder to tomorrow's note",
           postActionRefresh: ['DO'],
           iconVariant: 'arrow-right',
         }),
@@ -764,9 +762,9 @@ export function getTomorrowSectionData(
       logDebug('getTomorrowSectionData', `- added ${String(assigned.length)} reminder(s) into combined Tomorrow section`)
     }
 
-    // Set up formFields for the 'add buttons' (applied in Section.jsx)
+    // Default heading for the header add dialog (applied when the section button opens it)
     const tomorrowHeadings: Array<string> = tomorrowsNote ? getHeadingsFromNote(tomorrowsNote, false, true, true, false) : []
-    const tomorrowFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(tomorrowHeadings, config)
+    const tomorrowDefaultHeading = getDefaultHeadingForNewTask(config, tomorrowHeadings)
 
     let sectionDescription = `{count}` // ` ` from ${tomorrowDateLocale}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
@@ -784,12 +782,11 @@ export function getTomorrowSectionData(
       generatedDate: new Date(),
       totalCount: items.length,
       isReferenced: false,
-      actionButtons: buildAddTaskChecklistButtons({
+      actionButtons: buildAddTaskButton({
         filename: thisFilename,
-        formFields: tomorrowFormFields,
+        defaultHeading: tomorrowDefaultHeading,
         colorClass: 'DailyColor',
-        taskTooltip: "Add a new task to tomorrow's note",
-        checklistTooltip: "Add a checklist item to tomorrow's note",
+        tooltip: "Add a task, checklist, or reminder to tomorrow's note",
         postActionRefresh: ['DO'],
         iconVariant: 'arrow-right',
       }),

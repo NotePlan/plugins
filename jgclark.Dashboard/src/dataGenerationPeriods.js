@@ -5,11 +5,11 @@
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TDialogSettingItem } from './types'
+import type { TActionButton, TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem } from './types'
 import { getNumCompletedTasksFromCalendarNote } from './countDoneTasks'
 import {
-  buildAddTaskChecklistButtons,
-  buildAddTaskFormFields,
+  buildAddTaskButton,
+  getDefaultHeadingForNewTask,
   createSectionItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
@@ -71,33 +71,31 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     const nextPeriodFilename = nextPeriodNote?.filename || ''
     const doneCountData = getNumCompletedTasksFromCalendarNote(thisFilename)
 
-    // Set up formFields for the 'add buttons' (applied in Section.jsx)
+    // Default heading for the header add dialog (applied when the section button opens it)
     const thisMonthHeadings: Array<string> = currentMonthlyNote ? getHeadingsFromNote(currentMonthlyNote, false, true, true, true) : []
     const nextMonthHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
-    const thisMonthFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(thisMonthHeadings, config)
-    const nextMonthFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(nextMonthHeadings, config)
+    const thisMonthDefaultHeading = getDefaultHeadingForNewTask(config, thisMonthHeadings)
+    const nextMonthDefaultHeading = getDefaultHeadingForNewTask(config, nextMonthHeadings)
 
     let sectionDescription = `{closedOrOpenTaskCount} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const actionButtons: Array<TActionButton> = [
-      ...buildAddTaskChecklistButtons({
+      ...buildAddTaskButton({
         filename: thisFilename,
-        formFields: thisMonthFormFields,
+        defaultHeading: thisMonthDefaultHeading,
         colorClass: 'MonthlyColor',
-        taskTooltip: "Add a new task to this month's note",
-        checklistTooltip: "Add a checklist item to this month's note",
+        tooltip: "Add a task, checklist, or reminder to this month's note",
         postActionRefresh: ['M'],
       }),
     ]
     if (nextPeriodFilename) {
       actionButtons.push(
-        ...buildAddTaskChecklistButtons({
+        ...buildAddTaskButton({
           filename: nextPeriodFilename,
-          formFields: nextMonthFormFields,
+          defaultHeading: nextMonthDefaultHeading,
           colorClass: 'MonthlyColor',
-          taskTooltip: "Add a new task to next month's note",
-          checklistTooltip: "Add a checklist item to next month's note",
+          tooltip: "Add a task, checklist, or reminder to next month's note",
           iconVariant: 'arrow-right',
         }),
       )
@@ -213,33 +211,31 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     const nextPeriodFilename = nextPeriodNote?.filename || ''
     const doneCountData = getNumCompletedTasksFromCalendarNote(thisFilename)
 
-    // Set up formFields for the 'add buttons' (applied in Section.jsx)
+    // Default heading for the header add dialog (applied when the section button opens it)
     const thisQuarterHeadings: Array<string> = currentQuarterlyNote ? getHeadingsFromNote(currentQuarterlyNote, false, true, true, true) : []
     const nextQuarterHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
-    const thisQuarterFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(thisQuarterHeadings, config)
-    const nextQuarterFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(nextQuarterHeadings, config)
+    const thisQuarterDefaultHeading = getDefaultHeadingForNewTask(config, thisQuarterHeadings)
+    const nextQuarterDefaultHeading = getDefaultHeadingForNewTask(config, nextQuarterHeadings)
 
     let sectionDescription = `{countWithLimit} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const actionButtons: Array<TActionButton> = [
-      ...buildAddTaskChecklistButtons({
+      ...buildAddTaskButton({
         filename: thisFilename,
-        formFields: thisQuarterFormFields,
+        defaultHeading: thisQuarterDefaultHeading,
         colorClass: 'QuarterlyColor',
-        taskTooltip: "Add a new task to this quarter's note",
-        checklistTooltip: "Add a checklist item to this quarter's note",
+        tooltip: "Add a task, checklist, or reminder to this quarter's note",
         postActionRefresh: ['Q'],
       }),
     ]
     if (nextPeriodFilename) {
       actionButtons.push(
-        ...buildAddTaskChecklistButtons({
+        ...buildAddTaskButton({
           filename: nextPeriodFilename,
-          formFields: nextQuarterFormFields,
+          defaultHeading: nextQuarterDefaultHeading,
           colorClass: 'QuarterlyColor',
-          taskTooltip: "Add a new task to next quarter's note",
-          checklistTooltip: "Add a checklist item to next quarter's note",
+          tooltip: "Add a task, checklist, or reminder to next quarter's note",
           iconVariant: 'arrow-right',
         }),
       )
@@ -349,33 +345,31 @@ export function getThisYearSectionData(config: TDashboardSettings, useDemoData: 
     const nextPeriodFilename = nextPeriodNote?.filename || ''
     const doneCountData = getNumCompletedTasksFromCalendarNote(thisFilename)
 
-    // Set up formFields for the 'add buttons' (applied in Section.jsx)
+    // Default heading for the header add dialog (applied when the section button opens it)
     const thisYearHeadings: Array<string> = currentYearlyNote ? getHeadingsFromNote(currentYearlyNote, false, true, true, true) : []
     const nextYearHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
-    const thisYearFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(thisYearHeadings, config)
-    const nextYearFormFields: Array<TDialogSettingItem> = buildAddTaskFormFields(nextYearHeadings, config)
+    const thisYearDefaultHeading = getDefaultHeadingForNewTask(config, thisYearHeadings)
+    const nextYearDefaultHeading = getDefaultHeadingForNewTask(config, nextYearHeadings)
 
     let sectionDescription = `{countWithLimit} from ${dateStr}`
     if (config?.FFlag_ShowSectionTimings) sectionDescription += ` [${timer(startTime)}]`
 
     const actionButtons: Array<TActionButton> = [
-      ...buildAddTaskChecklistButtons({
+      ...buildAddTaskButton({
         filename: thisFilename,
-        formFields: thisYearFormFields,
+        defaultHeading: thisYearDefaultHeading,
         colorClass: 'YearlyColor',
-        taskTooltip: "Add a new task to this year's note",
-        checklistTooltip: "Add a checklist item to this year's note",
+        tooltip: "Add a task, checklist, or reminder to this year's note",
         postActionRefresh: ['Y'],
       }),
     ]
     if (nextPeriodFilename) {
       actionButtons.push(
-        ...buildAddTaskChecklistButtons({
+        ...buildAddTaskButton({
           filename: nextPeriodFilename,
-          formFields: nextYearFormFields,
+          defaultHeading: nextYearDefaultHeading,
           colorClass: 'YearlyColor',
-          taskTooltip: "Add a new task to next year's note",
-          checklistTooltip: "Add a checklist item to next year's note",
+          tooltip: "Add a task, checklist, or reminder to next year's note",
           iconVariant: 'arrow-right',
         }),
       )
