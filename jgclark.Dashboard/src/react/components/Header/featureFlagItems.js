@@ -19,7 +19,6 @@ const featureFlagSettingDefs: $ReadOnlyArray<{|
   { key: 'FFlag_ShowSearchPanel', label: 'Show Search Panel', description: 'Show more advanced search panel with search bar and controls' },
   { key: 'FFlag_UsePriorityCache', label: 'Use Priority Cache', description: 'Use Priority note-index cache to speed up the Priority section (avoids full vault scan)' },
   { key: 'FFlag_ShowSectionTimings', label: 'Show Section Timings', description: 'Show timings for how long it took to generate sections' },
-  { key: 'FFlag_DynamicAddToAnywhere', label: 'Dynamic Add To Anywhere', description: 'Use the Dashboard dialog to add a task, checklist, or reminder instead of QuickCapture' },
 ]
 
 export const createFeatureFlagItems = (dashboardSettings: TDashboardSettings): Array<TSettingItem> => {

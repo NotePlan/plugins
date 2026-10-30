@@ -44,7 +44,6 @@ export type TDashboardSettings = {
   FFlag_HardRefreshButton?: boolean,
   FFlag_ShowSectionTimings?: boolean,
   FFlag_UsePriorityCache?: boolean, // Priority note-index cache; on unless explicitly false
-  FFlag_DynamicAddToAnywhere?: boolean, // Use the Dashboard dialog to add a task, checklist, or reminder instead of QuickCapture,
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN ------------- */
   defaultFileExtension?: string,

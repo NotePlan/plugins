@@ -278,13 +278,6 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React.Nod
     setIsSearchOpen(false)
   }
 
-  /**
-   * Handler for the old "add task anywhere" button that uses QuickCapture plugin
-   */
-  const handleAddTaskAnywhere = useCallback(() => {
-    sendActionToPlugin('addTaskAnywhere', {}, 'Add task to any note', false)
-  }, [sendActionToPlugin])
-
   // ----------------------------------------------------------------------
   // Constants
   // ----------------------------------------------------------------------
@@ -305,7 +298,6 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React.Nod
   const isNarrowWidth = window.innerWidth <= 700
 
   // const isSearchPanelAvailable = dashboardSettings?.FFlag_ShowSearchPanel // Note: not yet used
-  const useDynamicAddToAnywhere = dashboardSettings?.FFlag_DynamicAddToAnywhere ?? false
 
   // Note: this is a hack on iOS and iPadOS in modal mode, to allow the modal close button to be visible
   // FIXME: not working yet on iOS and iPadOS, and not logging either!
@@ -366,13 +358,7 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React.Nod
           {/* )} */}
 
           {/* Add task, checklist, or reminder */}
-          {useDynamicAddToAnywhere ? (
-            <AddToAnyNote sendActionToPlugin={sendActionToPlugin} />
-          ) : (
-            <button accessKey="a" className="buttonsWithoutBordersOrBackground" title="Add new task to any note" onClick={handleAddTaskAnywhere}>
-              <i className="fa-solid fa-hexagon-plus"></i>
-            </button>
-          )}
+          <AddToAnyNote sendActionToPlugin={sendActionToPlugin} />
 
           {/* Feature Flags dropdown */}
           {showFeatureFlagsMenu && (

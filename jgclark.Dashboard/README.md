@@ -1,4 +1,4 @@
-# 🎛 Dashboard plugin
+# Dashboard plugin
 <img alt="Example of Dashboard window" src="dashboard-medium-2.4.0.png" width="700px"/>
 
 This plugin provides a **dashboard window** for your NotePlan data that in one place can show a compact list of any or all of:
@@ -35,7 +35,7 @@ From left to right these are:
 - the **Perspective menu**, showing the currently-active [Perspective](#perspectives) (see below for more details).
 - the **Refresh** button, which re-generates the whole display. If you [configure the setting](#configuration-settings) "Automatic Update interval" to any number > 0 minutes, then this should rarely be needed.
 - a **Search** button that opens up a Search bar. See [Search section](#search-section) below for more details.
-- an **Add new task** button, which then opens the NotePlan command bar to ask for task text to add, and then to which note and section within than note to add it to.  (Shortcut key: <kbd>^⌥a</kbd>)
+- an **Add** button, which opens a dialog where you can add a new **Task**, **Checklist**, or **Reminder** to any relevant date/note/space. (Shortcut key: <kbd>^⌥a</kbd>)
 - a **Filter menu** that allows quick access to what sections are shown, and some other display toggles:
     
     <img width="300px" src="filter-menu-2.1.0.png" border="1pt solid" margin="8px" alt="Filter menu"/>
@@ -112,7 +112,7 @@ Note:
 
 ### Add Task/Checklist items
 <img src="add-buttons-2.2.0.png" border="1px" margin="8px" width="200px" alt="add buttons" align="left"/>
-On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note. A second pair adds tasks and checklists but to the *next* day/week/month. In the 'Today' section only is an extra button to allow you to add a task directly to any existing note.
+On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task or checklist directly at the start of that current note. A second pair adds tasks and checklists but to the *next* day/week/month. To add a task, checklist, or reminder anywhere else, use the **Add** button in the header.
 
 ### Move 'All -> ...' buttons
 Some sections have "All ->  ..." buttons. They move or schedule all the items in that section to the destination e.g. from Today to Tomorrow's daily note. This includes any hidden as lower-priority items, unless you have the 'Do "Move all items" buttons only move shown items when filtering?' setting turned on.
@@ -207,7 +207,7 @@ On Reminder items, you can take the following actions, all of which are reflecte
 - Click the **circle** icon to complete the reminder;
 - **Ctrl-click** the circle to delete the reminder;
 - Click the reminder **content** to open it in the Apple Reminders app (requires NotePlan v3.21.2 or later).
-- Use the **+** button on the Reminders section heading to add a new reminder: enter the text, choose the list, and optionally a date and time. (Note: requires NP 3.21.2.)
+- Use the **+** button on the Reminders section heading to add a new reminder: enter the text, choose the list, and optionally a date and time. (Note: requires NP 3.21.2.) The header **Add** button offers the same reminder fields, and you can switch that dialog to Task or Checklist.
 - Click the **pencil** icon to open the Reminder edit dialog:
 
   <img src="reminders-edit-dialog-2.4.3.png" width="600px" margin="8px" alt="reminder edit dialog" />
