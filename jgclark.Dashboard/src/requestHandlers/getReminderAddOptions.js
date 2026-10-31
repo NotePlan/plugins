@@ -33,6 +33,7 @@ export async function getReminderAddOptions(params: { demoMode?: boolean }, plug
       if (!config) {
         return { success: false, message: 'Failed to load dashboard settings', data: null }
       }
+      // titles are already in includedReminderLists order (or NotePlan's order when that setting is blank)
       listTitles = getReminderListsForConfig(config).titles
     }
 

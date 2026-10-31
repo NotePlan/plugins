@@ -3,6 +3,11 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
+## [2.6.0.b6] 2026-10-31
+- The 'Reminder Lists to Use' setting now sets the order those lists are offered by the add-reminder dialog. (Thanks, @dwertheimer.)
+- Adding a new reminder is now confirmed with a toast message.
+- dev: Updated dependency on np.Shared to v1.3.2.
+
 ## [2.6.0.b5] 2026-10-30
 - The topbar add button now offers Task, Checklist, or Reminder in one dialog. You can switch among them in either direction. Task and Checklist use the note fields. Reminder uses list, date, and time in that same dialog. The topbar no longer falls back to the Quick Capture prompt, and the Dynamic Add To Anywhere flag is gone.
 - Calendar section add icons no longer include a separate checklist button. The remaining add icon (and the next-period arrow) opens that same dialog on Task, with that period's note selected. The Reminders heading **+** opens it on Reminder.

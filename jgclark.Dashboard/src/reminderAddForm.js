@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Shared "add a Reminder" dialog fields for the REM section button and the topbar.
-// Last updated 2026-10-29 by @CursorAI
+// Last updated 2026-10-31 by @CursorAI
 //-----------------------------------------------------------------------------
 
 import type { TDialogSettingItem, TSectionCode } from './types'
@@ -30,6 +30,7 @@ export function reminderListTitlesFromSectionItems(items: $ReadOnlyArray<{ +remi
 
 /**
  * Form fields for the add-Reminder dialog (CommandButton / showDialog).
+ * `listTitles` is display order: the dropdown keeps that order and pre-selects the first title.
  * @param {Array<string>} listTitles
  * @param {string} prefillText - optional title copied from the topbar task field
  * @returns {Array<TDialogSettingItem>}

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2026-10-11 for v2.5.2 by @jgclark + @CursorAI
+// Last updated 2026-10-31 for v2.6.0.b6 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { DEFAULT_SECTION_DISPLAY_ORDER } from './constants.js'
@@ -98,7 +98,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     iconClass: 'fa-regular fa-filter',
     label: 'What to Include and Exclude',
     description:
-      "These settings control what Spaces, folders, Reminder lists and items are included and excluded in Dashboard's many sections. It will first use only the included Spaces. Then, it includes the folders from the next setting, and removes any specified from the following setting. Then calendar note terms (heading prefixes or task text) can focus which calendar items appear. Reminder Lists to Include can override which Apple Reminders lists this Perspective looks in. Finally, individual lines in notes can be ignored by adding terms to the last setting.",
+      "These settings control what Spaces, folders, Reminder lists and items are included and excluded in Dashboard's many sections. It will first use only the included Spaces. Then, it includes the folders from the next setting, and removes any specified from the following setting. Then calendar note terms (heading prefixes or task text) can focus which calendar items appear. Reminder Lists to Use sets which Apple Reminders lists this Perspective looks in, in the order they are offered when adding a reminder. Finally, individual lines in notes can be ignored by adding terms to the last setting.",
   },
   {
     key: 'includedTeamspaces',
@@ -409,6 +409,45 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    iconClass: 'fa-regular fa-bell',
+    label: 'Reminders Section',
+  },
+  {
+    key: 'includedReminderLists',
+    label: 'Reminder Lists to Use',
+    description:
+      "Comma-separated list of Apple Reminders lists to use in this Perspective. Names must match exactly from Reminders app. The add-reminder dialog lists them in this order and selects the first one. Leave blank to use the lists enabled in NotePlan's Preferences > Calendars > Reminders, in NotePlan's order (alphabetical). Lists named here are included even when NotePlan usually excludes them.",
+    type: 'input',
+    default: '',
+    compactDisplay: true,
+  },
+  {
+    key: 'hideTimedRemindersUntilDue',
+    label: 'Hide timed reminders until their due time?',
+    description: 'When on, timed reminders due later today are hidden until that time. When off, they appear in Timed Items immediately.',
+    type: 'switch',
+    default: true,
+    compactDisplay: true,
+  },
+  {
+    key: 'showUndatedOverdueReminders',
+    label: 'Show Undated/Overdue Reminders?',
+    description: 'Show undated reminders in the Reminders section, and past-dated reminders in Overdue (and related fallbacks).',
+    type: 'switch',
+    default: true,
+    compactDisplay: true,
+  },
+  {
+    key: 'showCurrentReminders',
+    label: 'Show Current Reminders',
+    type: 'hidden',
+    default: true,
+  },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
     iconClass: 'fa-regular fa-magnifying-glass',
     label: 'Search settings',
   },
@@ -454,45 +493,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     options: ['priority', 'earliest', 'due date', 'most recent'],
     default: 'priority',
     compactDisplay: true,
-  },
-  {
-    type: 'separator',
-  },
-  {
-    type: 'heading',
-    iconClass: 'fa-regular fa-bell',
-    label: 'Reminders Section',
-  },
-  {
-    key: 'includedReminderLists',
-    label: 'Reminder Lists to Include',
-    description:
-      "Comma-separated list of Apple Reminders list names to look in for this Perspective. Names must match exactly. If left blank, Dashboard uses the reminder lists enabled in NotePlan's Preferences > Calendars > Reminders. (To be clear, this can include lists that are excluded usually in NotePlan.)",
-    type: 'input',
-    default: '',
-    compactDisplay: true,
-  },
-  {
-    key: 'hideTimedRemindersUntilDue',
-    label: 'Hide timed reminders until their due time?',
-    description: 'When on, timed reminders due later today are hidden until that time. When off, they appear in Timed Items immediately.',
-    type: 'switch',
-    default: true,
-    compactDisplay: true,
-  },
-  {
-    key: 'showUndatedOverdueReminders',
-    label: 'Show Undated/Overdue Reminders?',
-    description: 'Show undated reminders in the Reminders section, and past-dated reminders in Overdue (and related fallbacks).',
-    type: 'switch',
-    default: true,
-    compactDisplay: true,
-  },
-  {
-    key: 'showCurrentReminders',
-    label: 'Show Current Reminders',
-    type: 'hidden',
-    default: true,
   },
   {
     type: 'separator',

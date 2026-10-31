@@ -180,7 +180,7 @@ See this [Video Walkthrough of the 'Reminders' integration and section]( https:/
 
 The Filters menu has a single "Show Reminders?" toggle: when off, reminders appear nowhere.  Finer controls live in Dashboard Settings:
 
-- "Reminder Lists to Include" -- comma-separated list of exact Apple Reminders list names for this Perspective. Leave blank to use the lists enabled in NotePlan's Preferences → Calendars → Reminders; you can also name lists that are disabled in NotePlan if this Perspective should include them.
+- "Reminder Lists to Use" -- comma-separated list of Apple Reminders lists to use in this Perspective. Leave blank to use the lists enabled in NotePlan's Preferences > Calendars > Reminders. Lists named here are included even when NotePlan usually excludes them.
 - "Hide timed reminders until their due time?" -- when on (default), timed reminders due later today stay hidden until that time; when off, they appear in Timed Items immediately.
 - "Show Undated/Overdue Reminders?" -- undated reminders in the dedicated Reminders section, and past-dated reminders in Overdue (Overdue section must also be enabled).
 
@@ -352,7 +352,7 @@ _The settings in the 'Moving/Scheduling Items' section are covered above_.
 - Sort order for Overdue tasks: The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.
 
 ### Reminders Section
-- **Reminder Lists to Include**: Comma-separated list of Apple Reminders list names for this Perspective. Names must match exactly (after trimming). If left blank, Dashboard uses the lists enabled in NotePlan's Preferences → Calendars → Reminders. You can name lists that are disabled in NotePlan if this Perspective should include them.
+- **Reminder Lists to Use**: Comma-separated Apple Reminders list names for this Perspective, in the order they are shown in the Dashboard. The add-reminder dialog lists them in that order and selects the first one. Names must match exactly (after trimming). Leave blank to use the lists enabled in NotePlan's Preferences > Calendars > Reminders, in NotePlan's order. You can name lists that are disabled in NotePlan if this Perspective should include them.
 - **Hide timed reminders until their due time?**: When on (default), timed reminders due later today are hidden until that time. When off, they appear in Timed Items immediately.
 - **Show Undated/Overdue Reminders?**: Show undated reminders in the Reminders section, and past-dated reminders in Overdue (and related fallbacks). Requires Filters **Show Reminders** to be on.
 

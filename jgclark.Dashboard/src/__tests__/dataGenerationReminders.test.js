@@ -86,7 +86,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result.titles).toEqual(['Reminders', 'Work'])
       })
 
-      test('parses CSV and matches accessible lists including NotePlan-disabled', () => {
+      test('keeps configured list order for display, including lists NotePlan has disabled', () => {
         const result = getReminderListsForConfig({
           includedReminderLists: 'Home, Work, Home, Shopping',
         })
