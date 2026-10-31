@@ -1,4 +1,7 @@
 /* eslint-disable */
+
+// Last updated by @CursorAI for @jgclark, 2026-10-31.
+
 const { colors, helpers, print, strings, system, prompt, filesystem, path } = require('@codedungeon/gunner')
 const Messenger = require('@codedungeon/messenger')
 const appUtils = require('../utils/app')
@@ -6,6 +9,8 @@ const pluginUtils = require('./support/plugin-utils')
 const pluginRelease = require('./support/plugin-release')
 const releasePrompts = require('./support/plugin-release/release-prompts')
 const github = require('./support/github')
+const releaseManagement = require('./support/release-management')
+const dependsOnReleaseCheck = require('./support/depends-on-release-check')
 
 module.exports = {
   name: 'plugin:release',
@@ -119,6 +124,22 @@ module.exports = {
 
     const pluginVersion = configData['plugin.version']
     const pluginName = configData['plugin.name']
+
+    const unmetDependsOn = await dependsOnReleaseCheck.findDependsOnBelowPublished(configData['plugin.dependsOn'], releaseManagement.getExistingReleases)
+    if (unmetDependsOn.length > 0) {
+      console.log('')
+      unmetDependsOn.forEach((problem) => {
+        print.error(dependsOnReleaseCheck.formatDependsOnReleaseError(problem), 'ERROR')
+      })
+      console.log('')
+      const continuePrompt = await prompt.toggle('Continue releasing anyway?', 0)
+      if (!continuePrompt || !continuePrompt.answer) {
+        console.log('')
+        print.warn('Release Cancelled', 'ABORT')
+        process.exit()
+      }
+      console.log('')
+    }
 
     let nextVersion = configData['plugin.version']
     // if (configData['plugin.releaseStatus'] && configData['plugin.releaseStatus'] !== 'full') {

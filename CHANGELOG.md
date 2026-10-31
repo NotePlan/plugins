@@ -6,6 +6,7 @@
 
 ### Scripts
 
+- `npc plugin:release` (and `npm run release`) checks `plugin.dependsOn` minVersion against published releases. If that version or newer is not published, it shows an error and asks whether to continue (default: no).
 - `npc plugin:dev` no longer prints Node's `url.parse()` deprecation warning (DEP0169). The unused `bcrypt` import on `plugin:release` was loading `@mapbox/node-pre-gyp` on every CLI command.
 - `npc plugin:dev --notify` no longer waits after SUCCESS. Desktop notifications are spawned detached so Node does not wait on `terminal-notifier`.
 

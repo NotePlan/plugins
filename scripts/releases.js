@@ -1,6 +1,8 @@
 // NOTE: You cannot use flow on this file. Must be pure JS.
 // Use JSDOC for type annotations.
 
+// Last updated by @CursorAI for @jgclark, 2026-10-31.
+
 /**
  * RELEASE MANAGEMENT HEURISTICS
  *
@@ -29,8 +31,8 @@
  *
  * 8. VOLUME LIMITS: Prune non-recent, non-latest-stable releases when more than 5 total releases
  *
- * The pruning logic is conservative and prioritizes keeping important releases while
- * suggesting cleanup of old, redundant, or excessive pre-release versions.
+ * The pruning logic is conservative and prioritizes keeping important releases,
+ * while suggesting cleanup of old, redundant, or excessive pre-release versions.
  */
 
 const TEST = false // when set to true, doesn't actually create or delete anything. Just a dry run
@@ -45,6 +47,7 @@ const inquirer = require('inquirer')
 // Import shared release management utilities
 const { program } = require('commander')
 const releaseManagement = require('../src/commands/support/release-management')
+const dependsOnReleaseCheck = require('../src/commands/support/depends-on-release-check')
 
 const { getFolderFromCommandLine, runShellCommand, getPluginFileContents, fileExists, getCopyTargetPath } = require('./shared')
 
@@ -530,6 +533,27 @@ async function main() {
     const pluginDevDirFullPath = path.join(rootFolderPath, pluginName)
     const existingReleases = await getExistingReleases(pluginName)
     const pluginData = await getPluginFileContents(path.join(pluginDevDirFullPath, 'plugin.json'))
+    const unmetDependsOn = await dependsOnReleaseCheck.findDependsOnBelowPublished(pluginData['plugin.dependsOn'], releaseManagement.getExistingReleases)
+    if (unmetDependsOn.length > 0) {
+      console.log('')
+      unmetDependsOn.forEach((problem) => {
+        Messenger.error(`==> ${COMMAND}: ${dependsOnReleaseCheck.formatDependsOnReleaseError(problem)}`, 'ERROR')
+      })
+      console.log('')
+      const { confirm } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'confirm',
+          message: 'Continue releasing anyway?',
+          default: false,
+        },
+      ])
+      if (!confirm) {
+        Messenger.warn('Release cancelled by user', 'ABORT')
+        process.exit(0)
+      }
+      console.log('')
+    }
     const versionNumber = getPluginDataField(pluginData, 'plugin.version')
     const releaseStatus = pluginData['plugin.releaseStatus']
     const copyTargetPath = await getCopyTargetPath(rootFolderDirs)
