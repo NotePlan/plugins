@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Dashboard-specific reminder list config and section-item helpers
 // Shared Calendar/priority/date logic lives in @helpers/NPReminders
-// Last updated 2026-08-18 for v2.4.0.b65, @jgclark + @CursorAI
+// Last updated 2026-10-31, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import type { TDashboardSettings, TReminderForDashboard, TSectionItem } from './types'
@@ -18,9 +18,11 @@ import {
 export type { TReminderListsResult }
 
 /**
- * Resolve which reminder lists to use for this Dashboard config / Perspective.
- * Blank `includedReminderLists` inherits NotePlan-enabled lists; a non-empty CSV selects
- * those accessible list names (including lists disabled in NotePlan) by exact title match.
+ * Resolve which reminder lists to use for this Dashboard config / Perspective, in display order.
+ * Blank `includedReminderLists` inherits NotePlan-enabled lists in NotePlan's order.
+ * A non-empty CSV is the order lists are offered in the Dashboard (the add-reminder dialog
+ * shows that order and pre-selects the first). Names match accessible lists exactly,
+ * including lists disabled in NotePlan.
  * @param {TDashboardSettings} config
  * @returns {TReminderListsResult}
  */

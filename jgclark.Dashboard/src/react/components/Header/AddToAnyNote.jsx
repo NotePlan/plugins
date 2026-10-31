@@ -493,6 +493,17 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
             setErrorMessage('❌ Reminder list is required')
             return
           }
+          const rawReminderDate = formValues.date
+          let reminderDateLabel = ''
+          if (rawReminderDate instanceof Date && !isNaN(rawReminderDate.getTime())) {
+            reminderDateLabel = dateToCalendarFilename(rawReminderDate)
+          } else if (typeof rawReminderDate === 'string' && rawReminderDate.trim() !== '') {
+            reminderDateLabel = rawReminderDate.trim()
+          }
+          const reminderTimeLabel = typeof formValues.time === 'string' ? formValues.time.trim() : ''
+          let reminderToast = `Reminder added to "${listName}"`
+          if (reminderDateLabel) reminderToast += ` on ${reminderDateLabel}`
+          if (reminderTimeLabel) reminderToast += ` at ${reminderTimeLabel}`
           setIsDialogOpen(false)
           sendActionToPlugin(
             'addReminder',
@@ -509,6 +520,11 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
             'Add reminder',
             false,
           )
+          dispatch('SHOW_TOAST', {
+            type: 'success',
+            msg: reminderToast,
+            timeout: 5000,
+          })
           return
         }
 
@@ -664,6 +680,7 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
             type: 'dropdown-select',
             label: 'Reminder List',
             key: 'list',
+            // Order matches Reminder Lists to Use (NotePlan's order when that setting is blank). First list is selected.
             options: (reminderListTitles: any),
             noWrapOptions: true,
             value: reminderListTitles[0] || '',

@@ -87,7 +87,7 @@ export type TDashboardSettings = {
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use
   includedCalendarSections: string, // Calendar note terms: heading prefixes and/or content substrings. Note: Run through stringListOrArrayToArray() before use
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
-  includedReminderLists: string, // Note: Run through stringListOrArrayToArray() before use. Blank = NotePlan-enabled lists
+  includedReminderLists: string, // CSV display order for this Perspective. Blank = NotePlan-enabled lists (their usual order). Run through stringListOrArrayToArray() before use.
   includedTeamspaces: Array<string>, // Array of teamspace IDs to include ('private' for Private space)
   showFolderName: boolean,
   showScheduledDates: boolean,
