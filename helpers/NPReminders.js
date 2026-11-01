@@ -613,14 +613,50 @@ export function sortRemindersByTimePriorityDate(reminders: Array<TReminder>): Ar
 // Create / update / delete
 
 /**
+ * Copy Calendar.add result to a plain object so callers that `await addAppleReminder()` do not
+ * re-enter a thenable `.then` (some NotePlan builds return a CalendarItem that is also thenable
+ * and never settles -- toast showed, but Dashboard never reached REFRESH_SECTION_IN_JSON).
+ * @param {any} item
+ * @returns {TCalendarItem}
+ */
+function plainCalendarItemFromAddResult(item: any): TCalendarItem {
+  const plain: { [string]: mixed } = {
+    id: item.id,
+    title: item.title != null ? item.title : '',
+    type: item.type != null ? item.type : 'reminder',
+    isAllDay: Boolean(item.isAllDay),
+    calendar: item.calendar != null ? item.calendar : '',
+    isCompleted: Boolean(item.isCompleted),
+    notes: item.notes != null ? item.notes : '',
+    url: item.url != null ? item.url : '',
+  }
+  if (item.date !== undefined) plain.date = item.date
+  if (item.endDate !== undefined) plain.endDate = item.endDate
+  if (typeof item.priority === 'number') plain.priority = item.priority
+  if (item.occurences !== undefined) plain.occurences = item.occurences
+  return (plain: any)
+}
+
+/**
  * Resolve Calendar.add return value (sync CalendarItem, or Promise in newer NotePlan builds).
+ * Prefer a sync object that already has `id` -- some NotePlan builds return a CalendarItem that is
+ * also thenable, and awaiting `.then` can hang forever even though the reminder was created.
  * @param {mixed} addResult
  * @returns {Promise<?TCalendarItem>}
  */
 export async function resolveCalendarAddResult(addResult: mixed): Promise<?TCalendarItem> {
   if (addResult == null) return null
+  // Sync item with id wins over thenable await (hanging Promise wrappers after EventKit create)
+  if (typeof addResult === 'object' && (addResult: any).id) {
+    return plainCalendarItemFromAddResult(addResult)
+  }
   if (typeof addResult === 'object' && typeof (addResult: any).then === 'function') {
-    return await ((addResult: any): Promise<?TCalendarItem>)
+    const resolved = await ((addResult: any): Promise<?TCalendarItem>)
+    if (resolved == null) return null
+    if (typeof resolved === 'object' && (resolved: any).id) {
+      return plainCalendarItemFromAddResult(resolved)
+    }
+    return resolved
   }
   return ((addResult: any): TCalendarItem)
 }
@@ -722,8 +758,13 @@ export async function addAppleReminder(params: TAddAppleReminderParams): Promise
     if (!created || !created.id) {
       throw new Error('addAppleReminder: Calendar.add failed for undated reminder (returned undefined / no id)')
     }
-    // Always re-fetch and clear via update -- add(date:null) alone may still leave epoch in EventKit
-    await clearReminderDueDateAfterCreate(created.id, listTrimmed)
+    // Re-fetch and clear via update -- add(date:null) alone may still leave epoch in EventKit.
+    // Do not await: Calendar.update / reminderByID after add has hung on some NotePlan builds, which
+    // blocked Dashboard's REFRESH_SECTION_IN_JSON (toast showed, REM never updated).
+    clearReminderDueDateAfterCreate(created.id, listTrimmed).then(
+      () => {},
+      (err) => logWarn('addAppleReminder', `clearReminderDueDateAfterCreate failed: ${err && err.message ? err.message : String(err)}`),
+    )
     return created
   }
 

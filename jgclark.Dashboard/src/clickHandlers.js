@@ -43,6 +43,7 @@ import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { smartOpenNoteInEditorFromFilename, smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename } from '@helpers/NPParagraph'
+import { sectionCodesForNewReminder } from './reminderAddForm'
 import { addAppleReminder, buildOpenTaskContentFromReminder, completeReminderById, deleteReminderById, mapCalendarItemToReminder, mapNotePlanPriorityToAppleReminder, parseLeadingPriorityFromReminderText, updateReminderById, type TUpdateAppleReminderParams } from '@helpers/NPReminders'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
@@ -177,12 +178,12 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
  *
  * Calendar create/clear-date lives in addAppleReminder() (@helpers/NPReminders).
  *
- * @param {MessageDataObject} data - actionType addReminder, userInputObj { text, list, date?, time? }, sectionCodes
+ * @param {MessageDataObject} data - actionType addReminder, userInputObj { text, list, date?, time? }
  * @returns {Promise<TBridgeClickHandlerResult>}
  */
 export async function doAddReminder(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-    const { userInputObj, sectionCodes } = data
+    const { userInputObj } = data
     const text: string = (userInputObj && userInputObj.text) || ''
     const listName: string = (userInputObj && userInputObj.list) || ''
     const rawDate = userInputObj ? userInputObj.date : null
@@ -230,7 +231,14 @@ export async function doAddReminder(data: MessageDataObject): Promise<TBridgeCli
       `- created reminder id=${String(created.id || '')} date=${String(created.date || '')} isAllDay=${String(created.isAllDay)} occurences=${String((created.occurences && created.occurences.length) || 0)} priority=${String(created.priority ?? '')}`,
     )
 
-    const codesToRefresh = sectionCodes && sectionCodes.length > 0 ? sectionCodes : ['REM', 'DT', 'TB', 'DO']
+    // Refresh only where this reminder will appear (sectionCodesForNewReminder).
+    // Undated -> REM only. Including OVERDUE forced DataStore.listOverdueTasks() and made add feel slow.
+    // Dates after tomorrow are not shown anywhere: success with no section refresh.
+    const codesToRefresh = sectionCodesForNewReminder(trimmedDate, trimmedTime)
+    logDebug('doAddReminder', `- sectionCodes to refresh: [${String(codesToRefresh)}] (from date=${trimmedDate || '(undated)'} time=${trimmedTime || '(none)'})`)
+    if (codesToRefresh.length === 0) {
+      return handlerResult(true, [], { sectionCodes: [] })
+    }
     return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: codesToRefresh })
   } catch (err) {
     logError('doAddReminder', err.message)

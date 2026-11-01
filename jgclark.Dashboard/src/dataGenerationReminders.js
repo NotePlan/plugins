@@ -9,7 +9,7 @@ import { isCurrentRemindersEnabled, isUndatedOverdueRemindersEnabled } from './d
 import { reminderItems } from './demoData'
 import { bucketReminderItems } from './reminderBuckets'
 import { createReminderSectionItem, getReminderListsForConfig } from './reminderMapping'
-import { reminderListTitlesFromSectionItems, REMINDER_ADD_REFRESH_SECTIONS } from './reminderAddForm'
+import { reminderListTitlesFromSectionItems } from './reminderAddForm'
 import { placeReminderBuckets, type TReminderPlacement } from './reminderPlacement'
 import type { TActionButton, TDashboardSettings, TSection, TSectionItem } from './types'
 import { logDebug, logError, logTimer, timer } from '@helpers/dev'
@@ -129,7 +129,8 @@ export async function getRemindersGeneratedData(
             actionPluginID: `${pluginJson['plugin.id']}`,
             display: '<i class= "fa-regular fa-fw fa-circle-plus RemindersColor" ></i> ',
             tooltip: 'Add a reminder, task, or checklist',
-            postActionRefresh: REMINDER_ADD_REFRESH_SECTIONS,
+            // Reminder save uses sectionCodesForNewReminder(); ['REM'] is only a dialog default.
+            postActionRefresh: ['REM'],
             actionParam: '',
             openAddDialog: { itemKind: 'reminder' },
           },

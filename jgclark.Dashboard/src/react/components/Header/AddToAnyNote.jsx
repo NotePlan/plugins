@@ -1,13 +1,12 @@
 // @flow
 // --------------------------------------------------------------------------
 // AddToAnyNote Component - One dialog to add a task, checklist, or reminder
-// Last updated: 2026-10-30 by @CursorAI
+// Last updated: 2026-11-01 for 2.6.0.b by @CursorAI
 // --------------------------------------------------------------------------
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import './AddToAnyNote.css' // Import CSS for dialog positioning
 import { useAppContext } from '../AppContext'
-import { REMINDER_ADD_REFRESH_SECTIONS } from '../../../reminderAddForm'
 import type { TSectionCode } from '../../../types'
 import { registerOpenAddDialog, type TOpenAddDialogOptions } from './openAddDialog'
 import { logDebug, logError } from '@helpers/dev'
@@ -504,27 +503,52 @@ const AddToAnyNoteComponent = ({ sendActionToPlugin }: Props): React.Node => {
           let reminderToast = `Reminder added to "${listName}"`
           if (reminderDateLabel) reminderToast += ` on ${reminderDateLabel}`
           if (reminderTimeLabel) reminderToast += ` at ${reminderTimeLabel}`
+
+          // Same pattern as add task: wait for REQUEST result, toast on success, then refresh sections.
+          // Fire-and-forget sendActionToPlugin + optimistic toast left REM stale when addAppleReminder hung
+          // after Calendar.add (processActionOnReturn / REFRESH_SECTION_IN_JSON never ran).
           setIsDialogOpen(false)
-          sendActionToPlugin(
-            'addReminder',
-            {
-              actionType: 'addReminder',
-              userInputObj: {
+          try {
+            const envelope = await requestFromPlugin(
+              'addReminder',
+              {
                 text: task.trim(),
                 list: listName,
                 date: formValues.date || '',
                 time: formValues.time || '',
               },
-              sectionCodes: REMINDER_ADD_REFRESH_SECTIONS,
-            },
-            'Add reminder',
-            false,
-          )
-          dispatch('SHOW_TOAST', {
-            type: 'success',
-            msg: reminderToast,
-            timeout: 5000,
-          })
+              15000,
+            )
+            logDebug('AddToAnyNote', `Add reminder envelope: ${JSON.stringify(envelope)}`)
+            if (envelope.success) {
+              dispatch('SHOW_TOAST', {
+                type: 'success',
+                msg: envelope.message || reminderToast,
+                timeout: 5000,
+              })
+              const codesToRefresh =
+                envelope.data && Array.isArray(envelope.data.sectionCodes) ? envelope.data.sectionCodes : []
+              if (codesToRefresh.length > 0) {
+                sendActionToPlugin(
+                  'refreshSomeSections',
+                  { actionType: 'refreshSomeSections', sectionCodes: codesToRefresh },
+                  'Refresh after add reminder',
+                  false,
+                )
+              }
+            } else {
+              dispatch('SHOW_BANNER', {
+                type: 'error',
+                msg: envelope.message || 'Failed to add reminder',
+              })
+            }
+          } catch (error) {
+            logError('AddToAnyNote', `Failed to add reminder: ${error.message}`)
+            dispatch('SHOW_BANNER', {
+              type: 'error',
+              msg: `❌ Failed to add reminder: ${error.message}`,
+            })
+          }
           return
         }
 

@@ -353,8 +353,13 @@ describe(`${PLUGIN_NAME}`, () => {
       test('resolveCalendarAddResult handles null, sync item, and thenable', async () => {
         expect(await resolveCalendarAddResult(null)).toBeNull()
         const item = { id: 'sync', title: 'S' }
-        expect(await resolveCalendarAddResult(item)).toEqual(item)
-        expect(await resolveCalendarAddResult(Promise.resolve({ id: 'async' }))).toEqual({ id: 'async' })
+        // Returns a plain (non-thenable) copy so awaiters do not hang on bridge thenables
+        expect(await resolveCalendarAddResult(item)).toEqual(
+          expect.objectContaining({ id: 'sync', title: 'S', type: 'reminder' }),
+        )
+        expect(await resolveCalendarAddResult(Promise.resolve({ id: 'async', title: 'A' }))).toEqual(
+          expect.objectContaining({ id: 'async', title: 'A' }),
+        )
       })
 
       test('completeReminderById returns null when missing, else marks completed', async () => {
@@ -468,10 +473,34 @@ describe(`${PLUGIN_NAME}`, () => {
             calendar: 'Home',
           }),
         )
+        // clearReminderDueDateAfterCreate is fire-and-forget so add returns before update
+        await Promise.resolve()
+        await Promise.resolve()
         expect(global.Calendar.update).toHaveBeenCalled()
         const updateArg = global.Calendar.update.mock.calls[0][0]
         expect(updateArg.date).toBeNull()
         expect(updateArg.id).toBe('undated-1')
+      })
+
+      test('returns immediately when Calendar.add yields a thenable that already has id (does not hang on .then)', async () => {
+        const stored = {
+          id: 'thenable-1',
+          title: 'Thenable',
+          calendar: 'Home',
+          date: null,
+          isCompleted: false,
+          notes: '',
+          url: '',
+        }
+        // Never-resolving thenable that still exposes the created id (observed hang pattern)
+        const hanging = {
+          ...stored,
+          then: () => new Promise(() => {}),
+        }
+        global.Calendar.add.mockReturnValue(hanging)
+        global.Calendar.reminderByID.mockResolvedValue({ ...stored })
+        const created = await addAppleReminder({ title: 'Thenable', list: 'Home' })
+        expect(created.id).toBe('thenable-1')
       })
     })
   })

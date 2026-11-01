@@ -1,13 +1,46 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Shared "add a Reminder" dialog fields for the REM section button and the topbar.
-// Last updated 2026-10-31 by @CursorAI
+// Last updated 2026-11-01 by @CursorAI
 //-----------------------------------------------------------------------------
 
+import moment from 'moment/min/moment-with-locales'
 import type { TDialogSettingItem, TSectionCode } from './types'
+import { getTodaysDateHyphenated } from '@helpers/dateTime'
 
-/** Sections the REM heading button refreshes after a new Reminder is created. */
-export const REMINDER_ADD_REFRESH_SECTIONS: Array<TSectionCode> = ['REM', 'DT', 'TB', 'DO', 'DY', 'OVERDUE']
+/**
+ * Narrow section refresh after creating a Reminder, from the date/time the user chose.
+ * Avoids regenerating OVERDUE (full overdue-task scan) when the new item can only land in REM/DT/TB/DO.
+ * Yesterday refreshes DY and OVERDUE (yesterday reminders spill to OVERDUE when Yesterday is hidden).
+ * Dates after tomorrow are not shown anywhere -- returns [].
+ * @param {string} dateISO - YYYY-MM-DD or '' for undated
+ * @param {string} timeHHMM - HH:MM or '' for untimed
+ * @returns {Array<TSectionCode>}
+ */
+export function sectionCodesForNewReminder(dateISO: string, timeHHMM: string = ''): Array<TSectionCode> {
+  const trimmedDate = typeof dateISO === 'string' ? dateISO.trim() : ''
+  const trimmedTime = typeof timeHHMM === 'string' ? timeHHMM.trim() : ''
+  if (trimmedDate === '') {
+    return ['REM']
+  }
+  const todayISO = getTodaysDateHyphenated()
+  const yesterdayISO = moment().subtract(1, 'days').format('YYYY-MM-DD')
+  const tomorrowISO = moment().add(1, 'days').format('YYYY-MM-DD')
+  if (trimmedDate === todayISO) {
+    return trimmedTime !== '' ? ['TB'] : ['DT']
+  }
+  if (trimmedDate === yesterdayISO) {
+    return ['DY', 'OVERDUE']
+  }
+  if (trimmedDate === tomorrowISO) {
+    return ['DO']
+  }
+  if (trimmedDate > tomorrowISO) {
+    return []
+  }
+  // Past before yesterday -> overdue reminders bucket
+  return ['OVERDUE']
+}
 
 /**
  * Unique Reminder list titles, first-seen order.

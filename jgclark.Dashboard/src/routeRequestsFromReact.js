@@ -7,6 +7,7 @@
 
 import pluginJson from '../plugin.json'
 import { WEBVIEW_WINDOW_ID } from './constants'
+import { addReminder } from './requestHandlers/addReminder'
 import { addTaskToNote } from './requestHandlers/addTaskToNote'
 import { getReminderAddOptions } from './requestHandlers/getReminderAddOptions'
 import { doWindowResized } from './clickHandlers'
@@ -37,6 +38,9 @@ async function routeRequest(actionType: string, data: any): Promise<RequestRespo
     switch (actionType) {
       case 'addTaskToNote': {
         return await addTaskToNote(data, pluginJson)
+      }
+      case 'addReminder': {
+        return await addReminder(data, pluginJson)
       }
       case 'getReminderAddOptions': {
         return await getReminderAddOptions(data, pluginJson)

@@ -3,11 +3,14 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
-## [2.6.0.b6] 2026-11-01
-- The 'Reminder Lists to Use' setting now sets the order those lists are offered by the add-reminder dialog. (Thanks, @dwertheimer.)
-- Adding a new reminder is now confirmed with a toast message.
+## [2.6.0.b7] 2026-11-01
+- Change: After adding a Reminder, only regenerate the section(s) that should show it (undated -> REM only). dev: The previous blanket refresh always rebuilt OVERDUE too, which rescans overdue tasks and felt slow. Removed the unused `REMINDER_ADD_REFRESH_SECTIONS` constant.
 - Fix: After cancelling or completing the last shown high-priority items, "Hide lower-priority items" now recalculates the highest remaining priority and reveals the next tier, instead of leaving every section stuck on "There are also N lower-priority items currently hidden".
-- Fix: Completing/deleting a Reminder now fades the whole row like Tasks (circle stays visible during the fade, so the icon does not vanish before the title). Status icon only changes when the plugin accepts the click. Complete/delete clicks are queued (FIFO) while a refresh is in flight instead of being dropped (which left the title on screen and the Reminder incomplete). Completing a Reminder also verifies Calendar.update stuck, with a CalendarItem mutation fallback.
+- Fix: UX for completing/deleting a Reminder now behaves the same as for Tasks/Checklists. dev: Completing a Reminder also verifies Calendar.update stuck, with a CalendarItem mutation fallback.
+
+## [2.6.0.b6] 2026-10-30
+- Change: The 'Reminder Lists to Use' setting now sets the order those lists are offered by the add-reminder dialog. (Thanks, @dwertheimer.)
+- Adding a new reminder is now confirmed with a toast message.
 - dev: Updated dependency on np.Shared to v1.3.2.
 
 ## [2.6.0.b5] 2026-10-30
