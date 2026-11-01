@@ -518,10 +518,10 @@ export async function doCompleteReminder(data: MessageDataObject): Promise<TBrid
     }
     const calendarItem = await completeReminderById(reminderId)
     if (!calendarItem) {
-      logWarn('doCompleteReminder', `-> reminderByID returned nothing for id=${reminderId}`)
+      logWarn('doCompleteReminder', `-> completeReminderById failed for id=${reminderId}`)
       return handlerResult(false, ['REFRESH_SECTION_IN_JSON'], {
         sectionCodes: [sectionCode],
-        errorMsg: `Couldn't find reminder to complete. I will refresh this Section in case it has changed since the last refresh.`,
+        errorMsg: `Couldn't complete that reminder. I will refresh this Section; please then try again.`,
         errorMessageLevel: 'INFO',
       })
     }

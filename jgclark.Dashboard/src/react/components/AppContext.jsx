@@ -26,7 +26,7 @@ import { compareObjects } from '@helpers/dev'
  ****************************************************************************************************************************/
 
 export type AppContextType = {
-  sendActionToPlugin: (command: string, dataToSend: any, details?: string, updateGlobalData?: boolean) => void,
+  sendActionToPlugin: (command: string, dataToSend: any, details?: string, updateGlobalData?: boolean) => boolean,
   sendToPlugin: ([string, any, string]) => void,
   dispatch: (command: string, dataToSend: any, message?: string) => void,
   pluginData: TPluginData,
@@ -60,7 +60,7 @@ type Props = {
 // filled in because a bare `{}` is checked against every required property of TPluginData /
 // TDashboardSettings, one error each (136 from these two lines).
 const defaultContextValue: AppContextType = {
-  sendActionToPlugin: () => {},
+  sendActionToPlugin: () => true,
   sendToPlugin: () => {},
   dispatch: () => {},
   pluginData: ({}: any), // TEST: removal of settings in here

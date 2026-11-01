@@ -12,7 +12,7 @@
 // Last updated 2026-08-21 for v2.4.1 by @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 // @flow
-import React, { type Node, useCallback } from 'react'
+import React, { type Node, useCallback, useState } from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import StatusIcon from './StatusIcon.jsx'
@@ -36,9 +36,21 @@ type Props = {
  */
 function ReminderItem({ item, thisSection }: Props): Node {
   const { dashboardSettings, pluginData, sendActionToPlugin, setReactSettings } = useAppContext()
+  const [visible, setVisible] = useState(true)
   const reminder = item.reminder
   const canOpenInReminders = Boolean(pluginData?.appleAppCallbacksAvailable && reminder?.id)
   const effectiveSectionCode = item.sectionCode ?? thisSection.sectionCode
+
+  // Match TaskItem: fade the whole row on complete/delete so StatusIcon's empty-icon flash is not visible
+  // as a left-shifted title while waiting for REMOVE_LINE_FROM_JSON.
+  const handleIconClick = useCallback((_clickedItem: TSectionItem, actionType: string) => {
+    if (actionType !== 'completeReminder' && actionType !== 'deleteReminder') return
+    const fadeElement = document.getElementById(item.ID)
+    if (fadeElement) fadeElement.classList.add('fadeOutAndHide')
+    setTimeout(() => {
+      setVisible(false)
+    }, 500)
+  }, [item.ID])
 
   const handleContentClick = useCallback(() => {
     if (!reminder?.id || !pluginData?.appleAppCallbacksAvailable) {
@@ -167,9 +179,16 @@ function ReminderItem({ item, thisSection }: Props): Node {
       <span className={contentClassName}>{contentParts}</span>
   )
 
+  if (!visible) return null
+
   return (
     <div className="sectionItemRow reminderItemRow" id={item.ID}>
-      <StatusIcon item={item} respondToClicks={true} iconColor="rgba(from var(--fg-RemindersColor) r g b / 0.6)" />
+      <StatusIcon
+        item={item}
+        respondToClicks={true}
+        onIconClick={handleIconClick}
+        iconColor="rgba(from var(--fg-RemindersColor) r g b / 0.6)"
+      />
       <div className="sectionItemContent reminderItemContent">
         <span className="taskItemMainText">
           {contentEl}

@@ -125,8 +125,12 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // hang on getGlobalSharedData. Keep one plugin command in flight from this window.
   const pluginCommandInFlightRef = useRef(false)
   const pluginCommandSawBusyRef = useRef(false)
-  const pendingPluginCommandRef = useRef<?{ command: string, dataToSend: any, additionalInfo: string, updateGlobalData: boolean }>(null)
+  // FIFO queue: mutations must not overwrite each other while a refresh holds the lock.
+  const pendingPluginCommandsRef = useRef<Array<{ command: string, dataToSend: any, additionalInfo: string, updateGlobalData: boolean }>>([])
   const pluginCommandWatchdogRef = useRef<?TimeoutID>(null)
+  // Mutations (complete/delete) never set refreshing; release the lock when sections change from REMOVE_LINE.
+  const mutationCommandInFlightRef = useRef(false)
+  const sectionsAtMutationSendRef = useRef<?Array<any>>(null)
 
   useEffect(() => {
     const openGate = setTimeout(() => {
@@ -194,6 +198,19 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const isPerspectiveSwitchCommand = (command: string): boolean =>
     command === 'switchToPerspective' || command === 'savePerspectiveAndSwitch'
 
+  // Row mutations must not be silently dropped while a refresh holds the lock -- that left
+  // reminders with an emptied StatusIcon and the title still on screen (never completed).
+  const isQueueableUserMutationCommand = (command: string): boolean =>
+    command === 'completeTask' ||
+    command === 'completeTaskThen' ||
+    command === 'completeChecklist' ||
+    command === 'cancelTask' ||
+    command === 'cancelChecklist' ||
+    command === 'deleteItem' ||
+    command === 'completeReminder' ||
+    command === 'deleteReminder' ||
+    command === 'convertReminderToTask'
+
   const isPluginBusyFromData = (pluginDataIn: any): boolean =>
     Boolean(
       pluginDataIn?.firstRun ||
@@ -210,37 +227,44 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @param {any} dataToSend
    * @oaram {any} additionalInfo
    * @param {boolean} updateGlobalData - if false, don't save any passthrough data (eg scroll position, to try to limit redraws)
+   * @returns {boolean} true if the command was sent or queued; false if gated/dropped
    */
-  const sendActionToPlugin = (command: string, dataToSend: any, additionalInfo: string = '', updateGlobalData: boolean = true) => {
+  const sendActionToPlugin = (command: string, dataToSend: any, additionalInfo: string = '', updateGlobalData: boolean = true): boolean => {
     if (suppressPluginCommandsRef.current) {
       logDebug('WebView', `Startup gate: not sending "${command}" (${additionalInfo})`)
-      return
+      return false
     }
     // Lookups (getNotes, getHeadings, getReminderAddOptions, ...) must not take or wait on the
     // refresh lock. That lock stays up for 30s after a request that never sets `refreshing`,
     // and anything sent meanwhile was dropped, so the caller timed out.
     const isPluginRequest = Boolean(dataToSend && dataToSend.__requestType === 'REQUEST')
     if (!isPluginRequest && pluginCommandInFlightRef.current) {
-      if (isPerspectiveSwitchCommand(command)) {
-        pendingPluginCommandRef.current = { command, dataToSend, additionalInfo, updateGlobalData }
-        logDebug('WebView', `Queued "${command}" until the in-flight plugin command finishes (${additionalInfo})`)
-        return
+      if (isPerspectiveSwitchCommand(command) || isQueueableUserMutationCommand(command)) {
+        pendingPluginCommandsRef.current.push({ command, dataToSend, additionalInfo, updateGlobalData })
+        logDebug('WebView', `Queued "${command}" (${String(pendingPluginCommandsRef.current.length)} pending) until the in-flight plugin command finishes (${additionalInfo})`)
+        return true
       }
       logDebug('WebView', `Not sending "${command}" while another plugin command is in flight (${additionalInfo})`)
-      return
+      return false
     }
     if (!isPluginRequest) {
       pluginCommandInFlightRef.current = true
       pluginCommandSawBusyRef.current = false
+      mutationCommandInFlightRef.current = isQueueableUserMutationCommand(command)
+      sectionsAtMutationSendRef.current = mutationCommandInFlightRef.current ? pluginData.sections : null
       if (pluginCommandWatchdogRef.current) clearTimeout(pluginCommandWatchdogRef.current)
-      // Commands that never set refreshing/firstRun still need the lock released.
+      // Commands that never set refreshing/firstRun still need the lock released (30s watchdog).
+      // Mutations are queued (not dropped) while this lock is held; refresh/perspective set
+      // refreshing and release earlier via the busy->idle effect below. Mutations also release when
+      // pluginData.sections changes after REMOVE_LINE (see effect on pluginData.sections).
       pluginCommandWatchdogRef.current = setTimeout(() => {
         if (!pluginCommandInFlightRef.current) return
         logDebug('WebView', `Plugin command watchdog releasing in-flight lock`)
         pluginCommandInFlightRef.current = false
         pluginCommandSawBusyRef.current = false
-        const pending = pendingPluginCommandRef.current
-        pendingPluginCommandRef.current = null
+        mutationCommandInFlightRef.current = false
+        sectionsAtMutationSendRef.current = null
+        const pending = pendingPluginCommandsRef.current.shift()
         if (pending) {
           sendActionToPlugin(pending.command, pending.dataToSend, pending.additionalInfo, pending.updateGlobalData)
         }
@@ -252,6 +276,28 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       dispatch('UPDATE_DATA', newData, additionalInfo) // save the data at the Root React Component level, which will give the plugin access to this data also
     }
     sendToPlugin([command, dataToSend, additionalInfo]) // send action to plugin
+    return true
+  }
+
+  const releasePluginCommandLockAndFlush = (reason: string) => {
+    if (!pluginCommandInFlightRef.current) return
+    logDebug('WebView', `Releasing in-flight lock (${reason})`)
+    pluginCommandInFlightRef.current = false
+    pluginCommandSawBusyRef.current = false
+    mutationCommandInFlightRef.current = false
+    sectionsAtMutationSendRef.current = null
+    if (pluginCommandWatchdogRef.current) {
+      clearTimeout(pluginCommandWatchdogRef.current)
+      pluginCommandWatchdogRef.current = null
+    }
+    const pending = pendingPluginCommandsRef.current.shift()
+    if (pending) {
+      logDebug(
+        'WebView',
+        `Flushing queued "${pending.command}" after ${reason} (${String(pendingPluginCommandsRef.current.length)} still pending)`,
+      )
+      sendActionToPlugin(pending.command, pending.dataToSend, pending.additionalInfo, pending.updateGlobalData)
+    }
   }
 
   // Release the in-flight lock once the plugin has started and then finished a generation/switch.
@@ -262,19 +308,16 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       return
     }
     if (!pluginCommandInFlightRef.current || !pluginCommandSawBusyRef.current) return
-    pluginCommandInFlightRef.current = false
-    pluginCommandSawBusyRef.current = false
-    if (pluginCommandWatchdogRef.current) {
-      clearTimeout(pluginCommandWatchdogRef.current)
-      pluginCommandWatchdogRef.current = null
-    }
-    const pending = pendingPluginCommandRef.current
-    pendingPluginCommandRef.current = null
-    if (pending) {
-      logDebug('WebView', `Flushing queued "${pending.command}" after plugin became idle`)
-      sendActionToPlugin(pending.command, pending.dataToSend, pending.additionalInfo, pending.updateGlobalData)
-    }
+    releasePluginCommandLockAndFlush('plugin became idle')
   }, [pluginData.firstRun, pluginData.perspectiveChanging, pluginData.refreshing])
+
+  // completeTask / completeReminder only splice sections (no refreshing). Passthrough UPDATE_DATA keeps
+  // the same sections ref; REMOVE_LINE sends a new sections array -- use that to release + flush queue.
+  useEffect(() => {
+    if (!mutationCommandInFlightRef.current || !pluginCommandInFlightRef.current) return
+    if (pluginData.sections === sectionsAtMutationSendRef.current) return
+    releasePluginCommandLockAndFlush('mutation sections updated')
+  }, [pluginData.sections])
 
   /**
    * Send data back to the plugin to update the data in the plugin

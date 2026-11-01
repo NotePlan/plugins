@@ -19,7 +19,7 @@ import DropdownSelect, { type Option } from '@helpers/react/DynamicDialog/Dropdo
 import type { NoteOption } from '@helpers/react/DynamicDialog/NoteChooser'
 
 type Props = {
-  sendActionToPlugin: (actionType: string, dataToSend?: any, message?: string, isUrgent?: boolean) => void,
+  sendActionToPlugin: (actionType: string, dataToSend?: any, message?: string, isUrgent?: boolean) => boolean,
 }
 
 /**

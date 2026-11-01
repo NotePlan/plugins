@@ -359,11 +359,36 @@ describe(`${PLUGIN_NAME}`, () => {
 
       test('completeReminderById returns null when missing, else marks completed', async () => {
         expect(await completeReminderById('missing')).toBeNull()
-        const item = { id: 'r1', title: 'Do it', isCompleted: false }
-        global.Calendar.reminderByID.mockResolvedValue(item)
+        const item = { id: 'r1', title: 'Do it', isCompleted: false, calendar: 'Work', isAllDay: true, notes: '', url: '' }
+        const completed = { ...item, isCompleted: true }
+        global.Calendar.reminderByID.mockResolvedValueOnce(item).mockResolvedValueOnce(completed)
         const result = await completeReminderById('r1')
         expect(result && result.isCompleted).toBe(true)
-        expect(global.Calendar.update).toHaveBeenCalledWith(item)
+        expect(global.Calendar.update).toHaveBeenCalled()
+        const updateArg = global.Calendar.update.mock.calls[0][0]
+        expect(updateArg.isCompleted).toBe(true)
+        expect(updateArg.id).toBe('r1')
+      })
+
+      test('completeReminderById retries via CalendarItem mutation when plain-object update does not stick', async () => {
+        const item = { id: 'r1b', title: 'Sticky', isCompleted: false, calendar: 'Work', isAllDay: true, notes: '', url: '' }
+        global.Calendar.reminderByID
+          .mockResolvedValueOnce(item)
+          .mockResolvedValueOnce({ ...item, isCompleted: false })
+          .mockResolvedValueOnce({ ...item, isCompleted: true })
+        const result = await completeReminderById('r1b')
+        expect(result && result.isCompleted).toBe(true)
+        expect(global.Calendar.update).toHaveBeenCalledTimes(2)
+      })
+
+      test('completeReminderById returns null when both update paths leave it incomplete', async () => {
+        const item = { id: 'r1c', title: 'Stuck', isCompleted: false, calendar: 'Work', isAllDay: true, notes: '', url: '' }
+        global.Calendar.reminderByID
+          .mockResolvedValueOnce(item)
+          .mockResolvedValueOnce({ ...item, isCompleted: false })
+          .mockResolvedValueOnce({ ...item, isCompleted: false })
+        expect(await completeReminderById('r1c')).toBeNull()
+        expect(global.Calendar.update).toHaveBeenCalledTimes(2)
       })
 
       test('deleteReminderById returns null when missing, else removes', async () => {

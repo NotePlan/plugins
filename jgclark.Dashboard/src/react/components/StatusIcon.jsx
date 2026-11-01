@@ -69,53 +69,71 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, iconColor }:
 
   /**
    * Handle internal click events, determine the action, and notify the parent component (which does visual changes).
+   * Optimistic icon / row fade only run when the plugin command was actually accepted (sent or queued).
    */
   function handleIconClick(event: MouseEvent) {
     if (!respondToClicks) return
 
     const { metaKey, ctrlKey } = extractModifierKeys(event)
-    const actionType: ?TActionType = determineActionType(metaKey, ctrlKey)
-    if (actionType) {
-      const contentLabel = item.para?.content ?? item.reminder?.title ?? '-'
-      logDebug('StatusIcon/handleIconClick', `-> actionType:${actionType} for content = ${contentLabel}`)
-      const messageObject: MessageDataObject = {
-        actionType,
-        item,
-      }
-
-      // Execute the internal logic before notifying the parent
-      sendActionToPlugin(actionType, messageObject, `${item.ID} Row icon clicked`, true)
-
-      // Call the external handler, if provided
-      if (onIconClick) {
-        onIconClick(item, actionType)
-      }
-    } else {
+    const decided = determineActionType(metaKey, ctrlKey)
+    if (!decided) {
       logDebug('StatusIcon/handleIconClick', `-> no actionType returned, so won't take any action.`)
+      return
+    }
+    const { actionType, optimisticIconType } = decided
+    const contentLabel = item.para?.content ?? item.reminder?.title ?? '-'
+    logDebug('StatusIcon/handleIconClick', `-> actionType:${actionType} for content = ${contentLabel}`)
+    const messageObject: MessageDataObject = {
+      actionType,
+      item,
+    }
+
+    // Only update UI when the bridge accepted the command (sent or queued).
+    // A dropped in-flight click used to leave reminders with an empty icon and the title still visible.
+    const accepted = sendActionToPlugin(actionType, messageObject, `${item.ID} Row icon clicked`, true)
+    if (!accepted) {
+      logWarn('StatusIcon/handleIconClick', `-> plugin did not accept "${actionType}" (in flight or gated); leaving icon unchanged`)
+      return
+    }
+
+    // Parent row fade (TaskItem / ReminderItem): keep the circle/square visible so the whole line
+    // fades together. Swapping to emptyIcon first made the glyph vanish while the title was still opaque.
+    if (onIconClick) {
+      onIconClick(item, actionType)
+      return
+    }
+    if (optimisticIconType) {
+      setIconClassName(getClassNameFromType(optimisticIconType))
     }
   }
 
   /**
    * Determine the action type based on the metaKey and item type.
-   * Also updates the icon shape based on what action was taken
+   * Icon class is applied only after sendActionToPlugin accepts the command.
    */
-  function determineActionType(metaKey: boolean, ctrlKey: boolean): ?TActionType {
+  function determineActionType(metaKey: boolean, ctrlKey: boolean): ?{ actionType: TActionType, optimisticIconType: ?string } {
     switch (item.itemType) {
       case 'open': {
-        setIconClassName(getClassNameFromType(metaKey ? 'cancelled' : ctrlKey ? 'deleted' : 'done'))
-        return metaKey ? 'cancelTask' : ctrlKey ? 'deleteItem' : 'completeTask'
+        return {
+          actionType: metaKey ? 'cancelTask' : ctrlKey ? 'deleteItem' : 'completeTask',
+          optimisticIconType: metaKey ? 'cancelled' : ctrlKey ? 'deleted' : 'done',
+        }
       }
       case 'checklist': {
-        setIconClassName(getClassNameFromType(metaKey ? 'checklistCancelled' : ctrlKey ? 'deleted' : 'checklistDone'))
-        return metaKey ? 'cancelChecklist' : ctrlKey ? 'deleteItem' : 'completeChecklist'
+        return {
+          actionType: metaKey ? 'cancelChecklist' : ctrlKey ? 'deleteItem' : 'completeChecklist',
+          optimisticIconType: metaKey ? 'checklistCancelled' : ctrlKey ? 'deleted' : 'checklistDone',
+        }
       }
       case 'reminder': {
         // ⌘ or ctrl deletes; plain click completes (no cancel for reminders)
-        setIconClassName(getClassNameFromType(metaKey || ctrlKey ? 'deleted' : 'done'))
-        return metaKey || ctrlKey ? 'deleteReminder' : 'completeReminder'
+        return {
+          actionType: metaKey || ctrlKey ? 'deleteReminder' : 'completeReminder',
+          optimisticIconType: metaKey || ctrlKey ? 'deleted' : 'done',
+        }
       }
       case 'project': {
-        return 'showNoteInEditorFromFilename'
+        return { actionType: 'showNoteInEditorFromFilename', optimisticIconType: null }
       }
       case 'timeblock': {
         logInfo(`StatusIcon`, `Clicked on timeblock → no action`)
@@ -123,7 +141,7 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, iconColor }:
       }
       default:
         logWarn(`StatusIcon`, `No action defined for itemType: ${item.itemType}`)
-        return 'unknown'
+        return { actionType: 'unknown', optimisticIconType: null }
     }
   }
 

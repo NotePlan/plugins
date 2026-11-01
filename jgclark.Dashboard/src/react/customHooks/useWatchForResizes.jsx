@@ -20,7 +20,7 @@ const RESIZE_DEBOUNCE_MS = 1000
  * @usage useWatchForResizes(sendActionToPlugin)
  */
 export default function useWatchForResizes(
-  sendActionToPlugin: (actionType: string, dataToSend: MessageDataObject, additionalInfo?: string, updateGlobalData?: boolean) => void,
+  sendActionToPlugin: (actionType: string, dataToSend: MessageDataObject, additionalInfo?: string, updateGlobalData?: boolean) => boolean,
 ): void {
   useEffect(() => {
     let debounceTimeout: TimeoutID

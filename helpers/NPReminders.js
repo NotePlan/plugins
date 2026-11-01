@@ -767,8 +767,10 @@ export async function addAppleReminder(params: TAddAppleReminderParams): Promise
 
 /**
  * Complete an Apple Reminder via Calendar.update (isCompleted = true).
+ * Prefer plain-object Calendar.update (same as clearReminderDueDateAfterCreate) and re-fetch to verify;
+ * mutating CalendarItem then update has been unreliable for other reminder fields.
  * @param {string} reminderId
- * @returns {Promise<?TCalendarItem>} the updated CalendarItem, or null if not found
+ * @returns {Promise<?TCalendarItem>} the updated CalendarItem, or null if not found / not completed
  */
 export async function completeReminderById(reminderId: string): Promise<?TCalendarItem> {
   const calendarItem = await Calendar.reminderByID(reminderId)
@@ -776,10 +778,42 @@ export async function completeReminderById(reminderId: string): Promise<?TCalend
     logWarn('completeReminderById', `reminderByID returned nothing for id=${reminderId}`)
     return null
   }
+  // Cast: Calendar.update() is declared to take a full TCalendarItem; plain-object form matches other reminder update paths.
+  await Calendar.update(({
+    id: calendarItem.id,
+    title: calendarItem.title || '',
+    date: calendarItem.date != null ? calendarItem.date : null,
+    endDate: calendarItem.endDate != null ? calendarItem.endDate : undefined,
+    type: 'reminder',
+    isAllDay: Boolean(calendarItem.isAllDay),
+    calendar: calendarItem.calendar || '',
+    isCompleted: true,
+    notes: calendarItem.notes || '',
+    url: calendarItem.url || '',
+    ...(typeof calendarItem.priority === 'number' ? { priority: calendarItem.priority } : {}),
+  }: any))
+  let verified = await Calendar.reminderByID(reminderId)
+  if (verified && verified.isCompleted) {
+    logDebug('completeReminderById', `done for id=${reminderId} ("${verified.title || ''}")`)
+    return verified
+  }
+  // Fallback: mutate CalendarItem then update (same pattern as clearReminderDueDateAfterCreate when plain-object fails).
+  logWarn(
+    'completeReminderById',
+    `plain-object update did not leave reminder completed for id=${reminderId}; verified.isCompleted=${String(verified?.isCompleted)}; retrying via CalendarItem mutation`,
+  )
   calendarItem.isCompleted = true
   await Calendar.update(calendarItem)
-  logDebug('completeReminderById', `done for id=${reminderId} ("${calendarItem.title || ''}")`)
-  return calendarItem
+  verified = await Calendar.reminderByID(reminderId)
+  if (!verified || !verified.isCompleted) {
+    logWarn(
+      'completeReminderById',
+      `mutation retry still incomplete for id=${reminderId}; verified.isCompleted=${String(verified?.isCompleted)}`,
+    )
+    return null
+  }
+  logDebug('completeReminderById', `done via mutation retry for id=${reminderId} ("${verified.title || ''}")`)
+  return verified
 }
 
 /**

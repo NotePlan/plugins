@@ -13,7 +13,7 @@ type DispatchAction = {
   reason?: string,
 }
 
-type SendActionToPlugin = (actionType: string, data: any, methodName: string, showNotification?: boolean) => void
+type SendActionToPlugin = (actionType: string, data: any, methodName: string, showNotification?: boolean) => boolean
 
 type CompareFn = (a: any, b: any) => any
 

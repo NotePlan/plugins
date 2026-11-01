@@ -7,6 +7,7 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 - The 'Reminder Lists to Use' setting now sets the order those lists are offered by the add-reminder dialog. (Thanks, @dwertheimer.)
 - Adding a new reminder is now confirmed with a toast message.
 - Fix: After cancelling or completing the last shown high-priority items, "Hide lower-priority items" now recalculates the highest remaining priority and reveals the next tier, instead of leaving every section stuck on "There are also N lower-priority items currently hidden".
+- Fix: Completing/deleting a Reminder now fades the whole row like Tasks (circle stays visible during the fade, so the icon does not vanish before the title). Status icon only changes when the plugin accepts the click. Complete/delete clicks are queued (FIFO) while a refresh is in flight instead of being dropped (which left the title on screen and the Reminder incomplete). Completing a Reminder also verifies Calendar.update stuck, with a CalendarItem mutation fallback.
 - dev: Updated dependency on np.Shared to v1.3.2.
 
 ## [2.6.0.b5] 2026-10-30
