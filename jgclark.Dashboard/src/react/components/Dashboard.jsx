@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for 2026-09-14 for v2.5.0.b4, @jgclark + @CursorAI
+// Last updated for 2026-11-01 for v2.6.0.b, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -333,7 +333,8 @@ const Dashboard = ({ pluginData }: Props): React.Node => {
     }
   }, [pluginData.startDelayedRefreshTimer])
 
-  // Recalculate maximum priority when sections or dashboard settings change (e.g. filters) so global priority threshold stays correct without a full refresh.
+  // Recalculate maximum priority when sections or dashboard settings change (e.g. filters, cancel/complete REMOVE_LINE) so the global threshold can raise and lower without a full refresh.
+  // Depend on pluginSectionsShapeKey too: plugin splices often keep the same sections array reference.
   useEffect(() => {
     const newMaxPriority = calculateMaxPriorityAcrossAllSections(sections, {
       treatTopPriorityAsWins: dashboardSettings?.treatTopPriorityAsWins === true,
@@ -343,7 +344,7 @@ const Dashboard = ({ pluginData }: Props): React.Node => {
       logDebug('Dashboard', `New max priority after sections/dashboardSettings change: ${newMaxPriority}`)
       updatePluginData({ ...pluginData, currentMaxPriorityFromAllVisibleSections: newMaxPriority }, `Recalculated max priority: ${newMaxPriority}`)
     }
-  }, [sections, dashboardSettings, pluginData.currentMaxPriorityFromAllVisibleSections])
+  }, [sections, pluginSectionsShapeKey, dashboardSettings, pluginData.currentMaxPriorityFromAllVisibleSections])
 
   // Hidden demo/screenshot helpers (`openDemo*Dialog`): open edit dialog for pluginData.openDialogForItemID, then clear it.
   useEffect(() => {

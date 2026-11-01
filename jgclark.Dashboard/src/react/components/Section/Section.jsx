@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2026-08-21 for v2.5.0, @jgclark + @CursorAI
+// Last updated 2026-11-01 for v2.6.0.b, @jgclark + @CursorAI
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -38,7 +38,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, reactSettings, setReactSettings, pluginData, sendActionToPlugin, updatePluginData } = useAppContext()
+  const { dashboardSettings, reactSettings, setReactSettings, pluginData, sendActionToPlugin } = useAppContext()
 
   // TEST: Track what's changing to debug re-renders
   // const prevPluginDataRef = useRef(pluginData)
@@ -122,8 +122,6 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   //----------------------------------------------------------------------
   // Refs
   //----------------------------------------------------------------------
-  // Track the last max priority value we updated to prevent duplicate updates
-  const lastMaxPriorityUpdateRef = useRef<number>(-1)
   // hideEmptySections: distinguish local last-item completion (keep congrats) from refresh/initial empty (hide).
   // generatedDate is set by dataGeneration* and left unchanged by REMOVE_LINE_FROM_JSON splices.
   const prevGeneratedDateKeyRef = useRef<?string>(null)
@@ -336,43 +334,15 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   //----------------------------------------------------------------------
 
   // Note: this is where the display filtering/sorting/limiting happens.
+  // Global max priority is owned by Dashboard (calculateMaxPriorityAcrossAllSections) so it can both raise and lower after REMOVE_LINE / cancel.
   const {
     filteredItems: _filteredItems,
     itemsToShow,
     allSortedItems,
     numFilteredOutThisSection: _numFilteredOutThisSection,
     limitApplied,
-    maxPrioritySeenInThisSection,
     toggleShowAllTasks,
   } = useSectionSortAndFilter(section, items, dashboardSettings, currentMaxPriorityFromAllVisibleSections)
-
-  // Debug: log the values from useSectionSortAndFilter
-  // logDebug('Section', `- ${section.sectionCode} ${section.name} after useSectionSortAndFilter: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}, itemsToShow=${itemsToShow.length}, numFilteredOutThisSection=${String(numFilteredOutThisSection)}, limitApplied=${String(limitApplied)}`)
-
-  // Update global max priority when this section finds a higher priority
-  // Use a ref to prevent duplicate updates to the same value
-  useEffect(() => {
-    // logDebug(
-    //   'Section',
-    //   `Section ${section.sectionCode}${
-    //     section.sectionCode === 'TAG' ? ` (${section.name})` : ''
-    //   } useEffect running: maxPrioritySeenInThisSection=${maxPrioritySeenInThisSection}, currentMaxPriorityFromAllVisibleSections=${currentMaxPriorityFromAllVisibleSections}`,
-    // )
-
-    // Only update if we found a higher priority AND we haven't already updated to this value
-    if (maxPrioritySeenInThisSection > currentMaxPriorityFromAllVisibleSections && lastMaxPriorityUpdateRef.current !== maxPrioritySeenInThisSection) {
-      logDebug(
-        'Section',
-        `Section ${section.sectionCode} found higher priority: ${maxPrioritySeenInThisSection} > ${currentMaxPriorityFromAllVisibleSections}, updating pluginData`,
-      )
-      lastMaxPriorityUpdateRef.current = maxPrioritySeenInThisSection
-      updatePluginData(
-        { ...pluginData, currentMaxPriorityFromAllVisibleSections: maxPrioritySeenInThisSection },
-        `Section ${section.sectionCode} found higher priority: ${maxPrioritySeenInThisSection}`,
-      )
-      logDebug('Section', `Section ${section.sectionCode} ${section.name} set currentMaxPriorityFromAllVisibleSections to ${maxPrioritySeenInThisSection}`)
-    }
-  }, [maxPrioritySeenInThisSection, currentMaxPriorityFromAllVisibleSections, section.sectionCode])
 
   //----------------------------------------------------------------------
   // Handlers

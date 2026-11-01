@@ -8,7 +8,7 @@
 //   (priority / earliest / due date / most recent) -- do not re-sort by priority here.
 // - Limit = only show the first N of M items
 //
-// Last updated 2026-09-30 for v2.5.0.b6, @jgclark + @CursorAI
+// Last updated 2026-11-01 for v2.6.0.b, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect, useMemo } from 'react'
@@ -307,9 +307,7 @@ const useSectionSortAndFilter = (
         const thisSectionCalculatedMaxPriority = getMaxPriorityInItems(typeWantedItems, memoizedDashboardSettings)
         // logDebug('useSectionSortAndFilter', `Section ${section.sectionCode} calculated max priority: ${thisSectionCalculatedMaxPriority}`)
         setCalculatedMaxPriority(thisSectionCalculatedMaxPriority)
-
-        // TODO: but how do we downgrade this after it has been raised?
-        // Hopefully by re-setting at start of render calls
+        // Global raise/lower is owned by Dashboard.calculateMaxPriorityAcrossAllSections (not per-Section updates).
 
         // Clear items if priority filtering is enabled AND we're waiting for global priority calculation.
         // (This prevents showing items prematurely during initial load when global priority hasn't been calculated yet.)

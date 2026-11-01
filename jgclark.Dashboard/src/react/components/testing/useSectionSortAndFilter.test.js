@@ -146,6 +146,55 @@ describe('useSectionSortAndFilter', () => {
       ]
       expect(sh.calculateMaxPriorityAcrossAllSections(sections, { treatTopPriorityAsWins: true })).toBe(1)
     })
+
+    test('lowers the global max when the last highest-priority items are removed (cancel/complete)', () => {
+      const before = [
+        {
+          sectionCode: 'DT',
+          sectionItems: [
+            { itemType: 'open', para: { priority: 2 } },
+            { itemType: 'open', para: { priority: 1 } },
+            { itemType: 'open', para: { priority: 0 } },
+          ],
+        },
+        {
+          sectionCode: 'DY',
+          sectionItems: [
+            { itemType: 'open', para: { priority: 2 } },
+            { itemType: 'open', para: { priority: 1 } },
+          ],
+        },
+      ]
+      expect(sh.calculateMaxPriorityAcrossAllSections(before)).toBe(2)
+
+      const afterCancellingAllPriority2 = [
+        {
+          sectionCode: 'DT',
+          sectionItems: [
+            { itemType: 'open', para: { priority: 1 } },
+            { itemType: 'open', para: { priority: 0 } },
+          ],
+        },
+        {
+          sectionCode: 'DY',
+          sectionItems: [{ itemType: 'open', para: { priority: 1 } }],
+        },
+      ]
+      expect(sh.calculateMaxPriorityAcrossAllSections(afterCancellingAllPriority2)).toBe(1)
+    })
+
+    test('returns 0 when only unprioritised items remain after cancelling all flagged items', () => {
+      const after = [
+        {
+          sectionCode: 'DT',
+          sectionItems: [
+            { itemType: 'open', para: { priority: 0 } },
+            { itemType: 'open', para: { content: 'plain' } },
+          ],
+        },
+      ]
+      expect(sh.calculateMaxPriorityAcrossAllSections(after)).toBe(0)
+    })
   })
 
   describe('buildPriorityFilterFooterItem', () => {
