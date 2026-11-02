@@ -82,5 +82,12 @@
     "author": "EduardMe",
     "description": "Import Apple Reminders into the current note as linked tasks with reminder pills that sync two-way (requires NotePlan 3.21.2+)",
     "repo": "EduardMe/noteplan-reminder-import-plugin"
+  },
+  {
+    "id": "lifeplayer67.CanvasView",
+    "name": "Canvas View",
+    "author": "lifeplayer67",
+    "description": "Edit Obsidian Canvas (.canvas / JSON Canvas) files inside NotePlan: cards, edges, groups, inline note editing, undo/redo — fully compatible with Obsidian",
+    "repo": "lifeplayer67/noteplan-canvas-view"
   }
 ]
