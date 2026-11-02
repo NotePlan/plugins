@@ -1,5 +1,8 @@
-# What's changed in 📦 Filer plugin?
-Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
+# What's changed in Filer plugin?
+Please see the [Readme for this plugin](https://noteplan.co/plugins/jgclark.Filer) for more details, including the available settings.
+
+## [1.6.3] - 2026-11-02
+- now **/move paragraph...** and **/move block** commands move any embedded image/media files as well.  dev: an embedded image or file (`![image](...)` / `![file](...)`) is copied into the destination note's attachment folder and the link is updated. Previously the file stayed next to the source note, so the image broke after the move. If the source note is a regular note and nothing left in it still links the file, the original is moved to the trash. (Thanks, @Valnar.)
 
 ## [1.6.2] - 2026-10-26
 - fix **/move paragraph...** (and calendar move variants): when "Add date reference?" is on, the source line is deleted again. Previously mutating the paragraph before `removeParagraphs` caused NotePlan to remove 0 lines, leaving a duplicate in the calendar note.
@@ -148,7 +151,7 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 - existing command **/move paragraphs** renamed to **/move paragraph or selection**. This moves this paragraph (or selected paragraphs) to a different note
 - added command **/move paragraph block** moves all paragraphs in the current block to a different note. Use the settings to determine how far before and after the current paragraph the block will extend.
 - retired the command alias **/file paragraphs**, as **/move paragraphs** is clearer
-
+<!--
 ## [0.9.2] - 2022-08-16
 ### Fixed
 - was failing to offer the last heading in a note to move/copy lines to
@@ -189,7 +192,6 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 
 ### Changed
 - switch to newer logging system under-the-hood
-<!-- - refactored code to allow re-use of my paragraph block finding code. -->
 
 ## [0.6.0] - 2022-02-12
 ### Added
@@ -233,3 +235,4 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 - add ability to move paragraphs to top or bottom of note. (Top of note comes after title if there is one.)
 - now works when moving to notes with _no title or headings at all_ [Issue 10 by @dwertheimer ]
 - first release
+-->

@@ -1,4 +1,4 @@
-# 📦 Filer plugin
+# Filer plugin
 This plugin provides extra commands to help move, copy or sync things in NotePlan. It handles individual lines, or the currently selected text, or a 'block' of text (any indented text, including sub-tasks). Most allow you to do the filing/moving _without having to lose your flow by switching to the other note_.
 
 It has some settings, which you review and change by clicking on the '⚙️ Settings' button on the card for the plugin in the Plugin Preferences panel.
@@ -18,7 +18,7 @@ The **/move paragraph** command (aliased to **/mp** and **/fp**) quickly **files
 
 It pops up the command bar to choose the note you want to move it to, followed by the heading within that note to move it after. Where possible it will visually highlight the lines it will be moving (on NotePlan v3.6.2+). You can press Escape (on Mac) at any time to cancel.  The move happens in the background, leaving you in the current note.
 
-It will move either the currently selected region (you don't need to select the whole of the first or last lines; the plugin will grab the whole lines), or just the current line the cursor is in, plus any indented ('children') lines that follow it.
+It will move either the currently selected region (you don't need to select the whole of the first or last lines; the plugin will grab the whole lines), or just the current line the cursor is in, plus any indented ('children') lines that follow it.  Any embedded media files are also moved.
 
 NB: due to limitations in the API it's not yet possible to move items to a Calendar note that doesn't already exist. I intend to improve this when the API supports it.
 
