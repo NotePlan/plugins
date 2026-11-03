@@ -100,6 +100,19 @@ function parseMediaInner(inner: string): ?{| rawTarget: string, decodedPath: str
     pathPart = pathPart.split(/\s+/)[0]
   }
   if (!pathPart || RE_HAS_SCHEME.test(pathPart)) return null
+  const decoded = decodeAttachmentPath(pathPart)
+  if (!decoded || decoded.startsWith('/') || decoded.split('/').includes('..')) return null
+  return { rawTarget: pathPart, decodedPath: decoded }
+}
+
+/**
+ * Decode a NotePlan attachment link to the path on disk.
+ * `decodeURI` turns `%20` into a space but leaves `%28` and `%29` in place.
+ * Some links store parentheses twice (`%2528` / `%2529`), which `decodeURI` only half-decodes, so a folder named `(1) ...` was sought as `%281%29 ...`.
+ * @param {string} pathPart
+ * @returns {string}
+ */
+function decodeAttachmentPath(pathPart: string): string {
   let decoded = pathPart
   try {
     decoded = decodeURI(pathPart)
@@ -107,8 +120,12 @@ function parseMediaInner(inner: string): ?{| rawTarget: string, decodedPath: str
     logDebug('NPEmbeddedMedia', `Could not decode attachment path '${pathPart}': ${String(e)}`)
     decoded = pathPart
   }
-  if (!decoded || decoded.startsWith('/') || decoded.split('/').includes('..')) return null
-  return { rawTarget: pathPart, decodedPath: decoded }
+  if (!/%(?:28|29|5B|5D)/i.test(decoded)) return decoded
+  try {
+    return decodeURIComponent(decoded)
+  } catch (e) {
+    return decoded
+  }
 }
 
 /**
@@ -269,6 +286,50 @@ function copyOneEmbeddedFile(
 }
 
 /**
+ * Sibling `{note}_attachments` folder name, with no parent folder.
+ * @param {string} filename
+ * @returns {string}
+ */
+export function attachmentFolderRelative(filename: string): string {
+  return `${noteBaseName(filename)}_attachments`
+}
+
+/**
+ * `{note}_attachments` path relative to the Notes or Calendar root, for trash or move.
+ * @param {string} filename
+ * @returns {string}
+ */
+export function attachmentFolderTrashPath(filename: string): string {
+  const folder = getFolderFromFilename(filename)
+  const rel = attachmentFolderRelative(filename)
+  if (!folder || folder === '/' || folder === '(error)') return rel
+  return `${folder}/${rel}`
+}
+
+/**
+ * Where a local media link points, relative to the note's directory, when that file exists.
+ * Tries the link path, then `{note}_attachments/{filename}` for a bare filename.
+ * @param {string} noteType
+ * @param {string} filename
+ * @param {string} decodedPath
+ * @param {(path: string) => boolean} fileExists plugin-relative path, as in `pluginDataPathForNote`
+ * @returns {?string}
+ */
+export function resolveLocalMediaPath(
+  noteType: string,
+  filename: string,
+  decodedPath: string,
+  fileExists: (path: string) => boolean,
+): ?string {
+  if (fileExists(pluginDataPathForNote(noteType, filename, decodedPath))) return decodedPath
+  if (!decodedPath.includes('/')) {
+    const inFolder = `${attachmentFolderRelative(filename)}/${decodedPath}`
+    if (fileExists(pluginDataPathForNote(noteType, filename, inFolder))) return inFolder
+  }
+  return null
+}
+
+/**
  * Where the file actually is, relative to the source note's directory.
  * Tries the link path, then `{note}_attachments/{filename}` for a bare filename.
  * @param {MediaNote} sourceNote
@@ -276,12 +337,186 @@ function copyOneEmbeddedFile(
  * @returns {?string}
  */
 function resolveSourceRelative(sourceNote: MediaNote, decodedPath: string): ?string {
-  if (DataStore.fileExists(pluginDataPathForNote(sourceNote.type, sourceNote.filename, decodedPath))) return decodedPath
-  if (!decodedPath.includes('/')) {
-    const inFolder = `${noteBaseName(sourceNote.filename)}_attachments/${decodedPath}`
-    if (DataStore.fileExists(pluginDataPathForNote(sourceNote.type, sourceNote.filename, inFolder))) return inFolder
+  return resolveLocalMediaPath(sourceNote.type, sourceNote.filename, decodedPath, (path) => DataStore.fileExists(path))
+}
+
+/**
+ * Remove one local `![image](...)` / `![file](...)` target, including the angle-bracket form.
+ * Other text on the line is left as it is.
+ * @param {string} text
+ * @param {string} rawTarget text inside the parentheses, without a wrapping `<>`
+ * @returns {string}
+ */
+export function stripLocalMediaLink(text: string, rawTarget: string): string {
+  if (!text || !rawTarget) return text || ''
+  const forms = [
+    `![image](${rawTarget})`,
+    `![file](${rawTarget})`,
+    `![image](<${rawTarget}>)`,
+    `![file](<${rawTarget}>)`,
+  ]
+  let out = text
+  for (const form of forms) out = out.split(form).join('')
+  return out
+}
+
+export type MediaScanNote = {|
+  filename: string,
+  type: string,
+  content: string,
+|}
+
+export type BrokenMediaLink = {|
+  filename: string,
+  noteType: string,
+  rawTarget: string,
+  decodedPath: string,
+  folderExists: boolean,
+|}
+
+export type UnusedAttachmentFolder = {|
+  filename: string,
+  noteType: string,
+  folderPath: string,
+|}
+
+/**
+ * Key for one note's own `{name}_attachments` folder, so a link from another note in the same directory can keep it.
+ * @param {string} noteType
+ * @param {string} filename
+ * @param {string} folderName
+ * @returns {string}
+ */
+function attachmentFolderKey(noteType: string, filename: string, folderName: string): string {
+  return `${noteType}\n${getFolderFromFilename(filename)}\n${folderName}`
+}
+
+/**
+ * Broken local media links, and `{note}_attachments` folders that exist but have no resolved link from any note in that directory.
+ * `fileExists` cannot see the names of files inside a folder, so an empty folder and a folder of unlinked files are the same result.
+ * @param {Array<MediaScanNote>} notes
+ * @param {(path: string) => boolean} fileExists
+ * @returns {{| brokenLinks: Array<BrokenMediaLink>, unusedFolders: Array<UnusedAttachmentFolder> |}}
+ */
+export function classifyEmbeddedMedia(
+  notes: $ReadOnlyArray<MediaScanNote>,
+  fileExists: (path: string) => boolean,
+): {| brokenLinks: Array<BrokenMediaLink>, unusedFolders: Array<UnusedAttachmentFolder> |} {
+  const brokenLinks: Array<BrokenMediaLink> = []
+  const used = new Set<string>()
+  for (const note of notes) {
+    if (!note || !note.filename) continue
+    const targets = findLocalMediaTargets(note.content || '')
+    const seen: { [string]: boolean } = {}
+    for (const target of targets) {
+      if (seen[target.rawTarget]) continue
+      seen[target.rawTarget] = true
+      const resolved = resolveLocalMediaPath(note.type, note.filename, target.decodedPath, fileExists)
+      if (!resolved) continue
+      const slash = resolved.indexOf('/')
+      if (slash > 0) used.add(attachmentFolderKey(note.type, note.filename, resolved.slice(0, slash)))
+    }
+  }
+  const unusedFolders: Array<UnusedAttachmentFolder> = []
+  for (const note of notes) {
+    if (!note || !note.filename) continue
+    const targets = findLocalMediaTargets(note.content || '')
+    const seen: { [string]: boolean } = {}
+    const folderRel = attachmentFolderRelative(note.filename)
+    const folderExists = fileExists(pluginDataPathForNote(note.type, note.filename, folderRel))
+    for (const target of targets) {
+      if (seen[target.rawTarget]) continue
+      seen[target.rawTarget] = true
+      const resolved = resolveLocalMediaPath(note.type, note.filename, target.decodedPath, fileExists)
+      if (resolved) continue
+      brokenLinks.push({
+        filename: note.filename,
+        noteType: note.type,
+        rawTarget: target.rawTarget,
+        decodedPath: target.decodedPath,
+        folderExists,
+      })
+    }
+    if (folderExists && !used.has(attachmentFolderKey(note.type, note.filename, folderRel))) {
+      unusedFolders.push({
+        filename: note.filename,
+        noteType: note.type,
+        folderPath: attachmentFolderTrashPath(note.filename),
+      })
+    }
+  }
+  brokenLinks.sort((a, b) => a.filename.localeCompare(b.filename) || a.decodedPath.localeCompare(b.decodedPath))
+  unusedFolders.sort((a, b) => a.folderPath.localeCompare(b.folderPath))
+  return { brokenLinks, unusedFolders }
+}
+
+/**
+ * Storage root (the folder that contains `Notes` and `Calendar`) from note text whose media links have been rewritten to absolute paths.
+ * @param {string} text `contentWithAbsoluteAttachmentPaths`
+ * @returns {?string}
+ */
+export function storageRootFromAbsoluteMedia(text: string): ?string {
+  if (!text) return null
+  const re = /!\[(?:image|file)\]\((?:<([^>]+)>|([^)\s]+))\)/g
+  let match = re.exec(text)
+  while (match) {
+    let path = (match[1] || match[2] || '').trim()
+    if (path.toLowerCase().startsWith('file://')) path = path.slice('file://'.length)
+    // NotePlan often stores the absolute path with `%20` already, and without a file:// prefix.
+    // Decode once here so a later file URL does not turn that into `%2520`.
+    try {
+      path = decodeURI(path)
+    } catch (e) {
+      logDebug('NPEmbeddedMedia', `Could not decode absolute attachment path '${path}': ${String(e)}`)
+    }
+    if (path.startsWith('/')) {
+      const notesAt = path.indexOf('/Notes/')
+      const calAt = path.indexOf('/Calendar/')
+      let cut = -1
+      if (notesAt >= 0 && (calAt < 0 || notesAt <= calAt)) cut = notesAt
+      else if (calAt >= 0) cut = calAt
+      if (cut >= 0) return path.slice(0, cut)
+    }
+    match = re.exec(text)
   }
   return null
+}
+
+/**
+ * Absolute path of a note's `{name}_attachments` folder, given the storage root from `storageRootFromAbsoluteMedia`.
+ * @param {string} storageRoot
+ * @param {string} noteType
+ * @param {string} filename
+ * @returns {string}
+ */
+export function absoluteAttachmentFolder(storageRoot: string, noteType: string, filename: string): string {
+  const top = noteType === 'Calendar' ? 'Calendar' : 'Notes'
+  const folder = getFolderFromFilename(filename)
+  const parts = [storageRoot.replace(/\/$/, ''), top]
+  if (folder && folder !== '/' && folder !== '(error)') parts.push(folder)
+  parts.push(attachmentFolderRelative(filename))
+  return parts.join('/')
+}
+
+/**
+ * `file:///` URL for an absolute folder path. Each segment is encoded (including `()` and `[]`, which `encodeURIComponent` leaves raw for parentheses), slashes stay, and a trailing slash marks it as a folder.
+ * A note can link this directly. NotePlan.openURL refuses the `file` scheme, so a plugin command cannot open it.
+ * @param {string} absPath
+ * @returns {string}
+ */
+export function fileUrlForAbsoluteFolder(absPath: string): string {
+  const parts = absPath.split('/').map((part) => {
+    let decoded = part
+    try {
+      decoded = decodeURIComponent(part)
+    } catch (e) {
+      decoded = part
+    }
+    // encodeURIComponent leaves () raw, and a ) closes [text](url). [] are encoded here too so a [[wikilink]] in a folder name cannot start inside the URL.
+    return encodeURIComponent(decoded).replace(/\(/g, '%28').replace(/\)/g, '%29').replace(/\[/g, '%5B').replace(/\]/g, '%5D')
+  })
+  const url = `file://${parts.join('/')}`
+  return url.endsWith('/') ? url : `${url}/`
 }
 
 /**

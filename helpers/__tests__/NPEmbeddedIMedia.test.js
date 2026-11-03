@@ -32,6 +32,15 @@ describe('NPEmbeddedMedia', () => {
     expect(found[1].kind).toBe('file')
   })
 
+  test('decodes parentheses NotePlan stored as %2528 so the folder matches the note name', () => {
+    const raw = '%25281%2529%20Myths,%20Heroes%20and%20Hubris%20-%20by%20Graham%20Tomlin_attachments/pic.png'
+    const found = m.findLocalMediaTargets(`![image](${raw})`)
+    const decoded = '(1) Myths, Heroes and Hubris - by Graham Tomlin_attachments/pic.png'
+    expect(found[0].decodedPath).toBe(decoded)
+    const exists = (path: string) => path === `../../../Notes/${decoded}`
+    expect(m.resolveLocalMediaPath('Notes', '(1) Myths.md', found[0].decodedPath, exists)).toBe(decoded)
+  })
+
   test('encodeAttachmentPath percent-encodes spaces but keeps the slash', () => {
     expect(m.encodeAttachmentPath('Dest Note_attachments/Shot 2.png')).toBe('Dest%20Note_attachments/Shot%202.png')
   })
@@ -161,5 +170,62 @@ describe('NPEmbeddedMedia', () => {
       expect(trashed).toEqual([])
       expect(files['../../../Calendar/20261102_attachments/pic.png']).toBe('IMGDATA')
     })
+  })
+
+  test('resolveLocalMediaPath finds a bare filename in the attachment folder', () => {
+    const exists = (path: string) => path === '../../../Notes/Projects/Source_attachments/bare.png'
+    expect(m.resolveLocalMediaPath('Notes', 'Projects/Source.md', 'bare.png', exists)).toBe('Source_attachments/bare.png')
+    expect(m.resolveLocalMediaPath('Notes', 'Projects/Source.md', 'missing.png', exists)).toBeNull()
+  })
+
+  test('stripLocalMediaLink removes image and file forms and leaves the rest of the line', () => {
+    const input = 'keep ![image](Note_attachments/a.png) and ![file](<Note_attachments/a.pdf>) tail'
+    expect(m.stripLocalMediaLink(input, 'Note_attachments/a.png')).toBe('keep  and ![file](<Note_attachments/a.pdf>) tail')
+    expect(m.stripLocalMediaLink(input, 'Note_attachments/a.pdf')).toBe('keep ![image](Note_attachments/a.png) and  tail')
+  })
+
+  test('classifyEmbeddedMedia reports missing links and folders with no resolved link', () => {
+    const paths: { [string]: boolean } = {
+      '../../../Notes/Projects/A_attachments': true,
+      '../../../Notes/Projects/A_attachments/pic.png': true,
+      '../../../Notes/Projects/C_attachments': true,
+      '../../../Calendar/20261102_attachments': true,
+    }
+    const exists = (path: string) => paths[path] === true
+    const notes = [
+      { filename: 'Projects/A.md', type: 'Notes', content: 'no links' },
+      { filename: 'Projects/B.md', type: 'Notes', content: '![image](A_attachments/pic.png)' },
+      { filename: 'Projects/C.md', type: 'Notes', content: '![image](https://example.com/a.png)\n![file](C_attachments/gone.pdf)' },
+      { filename: 'Projects/D.md', type: 'Notes', content: '![image](D_attachments/gone.png)' },
+      { filename: '20261102.md', type: 'Calendar', content: '' },
+    ]
+    const result = m.classifyEmbeddedMedia(notes, exists)
+    expect(result.brokenLinks.map((row) => `${row.filename} ${row.decodedPath}`)).toEqual([
+      'Projects/C.md C_attachments/gone.pdf',
+      'Projects/D.md D_attachments/gone.png',
+    ])
+    expect(result.brokenLinks[0].folderExists).toBe(true)
+    expect(result.brokenLinks[1].folderExists).toBe(false)
+    expect(result.unusedFolders.map((row) => `${row.noteType} ${row.folderPath}`)).toEqual([
+      'Calendar 20261102_attachments',
+      'Notes Projects/C_attachments',
+    ])
+  })
+
+  test('storageRootFromAbsoluteMedia and absoluteAttachmentFolder rebuild the folder path', () => {
+    const text = '![image](file:///Users/me/NotePlan/Notes/Projects/A_attachments/pic.png)'
+    expect(m.storageRootFromAbsoluteMedia(text)).toBe('/Users/me/NotePlan')
+    expect(m.absoluteAttachmentFolder('/Users/me/NotePlan', 'Notes', 'Projects/A.md')).toBe('/Users/me/NotePlan/Notes/Projects/A_attachments')
+    expect(m.absoluteAttachmentFolder('/Users/me/NotePlan', 'Calendar', '20261102.md')).toBe('/Users/me/NotePlan/Calendar/20261102_attachments')
+    expect(m.fileUrlForAbsoluteFolder('/Users/me/Note Plan/Notes/A_attachments')).toBe('file:///Users/me/Note%20Plan/Notes/A_attachments/')
+    const encoded = '![image](/Users/me/Library/Application%20Support/NotePlan/Notes/A_attachments/pic.png)'
+    expect(m.storageRootFromAbsoluteMedia(encoded)).toBe('/Users/me/Library/Application Support/NotePlan')
+    expect(m.fileUrlForAbsoluteFolder('/Users/me/Library/Application%20Support/NotePlan/Notes/A_attachments')).toBe(
+      'file:///Users/me/Library/Application%20Support/NotePlan/Notes/A_attachments/',
+    )
+    expect(m.fileUrlForAbsoluteFolder('/Users/me/Notes/(1) Myths [draft]_attachments')).toBe(
+      'file:///Users/me/Notes/%281%29%20Myths%20%5Bdraft%5D_attachments/',
+    )
+    expect(m.fileUrlForAbsoluteFolder('/Users/me/Notes/%281%29%20Myths_attachments')).toBe('file:///Users/me/Notes/%281%29%20Myths_attachments/')
   })
 })

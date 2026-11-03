@@ -9,9 +9,9 @@
   "plugin.iconStyle": "solid",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "1.21.1",
+  "plugin.version": "1.22.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "v1.21.1: Fix hang in '/Remove empty elements from recent notes'; list/scan commands and '/Tidy Up' now honor runSilently for loading UI, with progress on long scans.\nv1.21.0: New '/List title problems' command to find notes whose title is `---` (often invalid frontmatter), notes whose frontmatter title does not match the H1 on the first line of the body, and notes whose title contains `|` (which can cause confusion in note links).\nLonger commands run on a background thread on NotePlan 3.21.3+ to keep it more responsive.\nv1.20.4: various bug fixes.\nv1.20.3: '/Remove empty elements from recent notes' now processes recently changed regular notes, plus calendar notes only when the whole period is already in the past (today, this week, and the current month, quarter, and year are skipped).\nv1.20.2: '/Remove empty elements from recent notes' now only processes current and past calendar notes, never future-dated ones.\nv1.20.1: fix to '/Remove orphaned blockIDs' not honouring 'run silently?' setting.\nv1.20.0: new '/Cancel incomplete tasks in a folder' command for import cleanup (#746).",
+  "plugin.lastUpdateInfo": "v1.22.0: New '/List embedded media problems' command for missing embedded media links and attachment folders that have no working link, with remove buttons and a macOS Show in Finder button.\nv1.21.1: Fix hang in '/Remove empty elements from recent notes'; list/scan commands and '/Tidy Up' now honor runSilently for loading UI, with progress on long scans.\nv1.21.0: New '/List title problems' command to find notes whose title is `---` (often invalid frontmatter), notes whose frontmatter title does not match the H1 on the first line of the body, and notes whose title contains `|` (which can cause confusion in note links).\nLonger commands run on a background thread on NotePlan 3.21.3+ to keep it more responsive.\nv1.20.4: various bug fixes.\nv1.20.3: '/Remove empty elements from recent notes' now processes recently changed regular notes, plus calendar notes only when the whole period is already in the past (today, this week, and the current month, quarter, and year are skipped).\nv1.20.2: '/Remove empty elements from recent notes' now only processes current and past calendar notes, never future-dated ones.\nv1.20.1: fix to '/Remove orphaned blockIDs' not honouring 'run silently?' setting.\nv1.20.0: new '/Cancel incomplete tasks in a folder' command for import cleanup (#746).",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -88,6 +88,42 @@
       "alias": [
         "titles",
         "titleproblems"
+      ]
+    },
+    {
+      "name": "List embedded media problems",
+      "description": "Creates/updates a note that lists local embedded image or file links whose file is missing, and attachment folders that exist but have no working link. The plugin cannot list the files inside a folder.",
+      "jsFunction": "listEmbeddedMediaProblems",
+      "alias": [
+        "media",
+        "embedded"
+      ]
+    },
+    {
+      "hidden": true,
+      "name": "removeBrokenMediaLink",
+      "description": "x-callback entry to remove one broken embedded media link",
+      "jsFunction": "removeBrokenMediaLink",
+      "arguments": [
+        "filename",
+        "note type",
+        "raw link target"
+      ]
+    },
+    {
+      "hidden": true,
+      "name": "removeAllBrokenMediaLinks",
+      "description": "x-callback entry to remove every broken embedded media link from the latest scan",
+      "jsFunction": "removeAllBrokenMediaLinks"
+    },
+    {
+      "hidden": true,
+      "name": "removeUnusedAttachmentFolder",
+      "description": "x-callback entry to move an unused attachment folder to the trash",
+      "jsFunction": "removeUnusedAttachmentFolder",
+      "arguments": [
+        "note type",
+        "folder path"
       ]
     },
     {
@@ -466,6 +502,14 @@
       "required": false
     },
     {
+      "key": "embeddedMediaProblemsNoteFilename",
+      "title": "/List embedded media problems: Filepath for results",
+      "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Embedded Media Problems.md')",
+      "type": "string",
+      "default": "Embedded Media Problems.md",
+      "required": false
+    },
+    {
       "type": "separator"
     },
     {
@@ -592,6 +636,14 @@
     {
       "title": "Run '/List title problems' command?",
       "key": "runTitleProblemsCommand",
+      "description": "",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "title": "Run '/List embedded media problems' command?",
+      "key": "runEmbeddedMediaProblemsCommand",
       "description": "",
       "type": "bool",
       "default": false,

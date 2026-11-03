@@ -10,6 +10,7 @@ import pluginJson from '../plugin.json'
 import { listConflicts } from './conflicts'
 import { listDuplicates } from './duplicates'
 import { listTitleProblems } from './titleProblems'
+import { listEmbeddedMediaProblems } from './embeddedMedia'
 import { removeEmptyElementsFromRecentNotes } from './emptyElements'
 import { generateRepeatsFromRecentNotes } from './tidyRepeats'
 import { moveTopLevelTasksInNote } from './topLevelTasks'
@@ -121,6 +122,14 @@ export async function tidyUpAll(): Promise<void> {
       }
       logDebug('tidyUpAll', `Starting listTitleProblems ...`)
       await listTitleProblems(param)
+    }
+
+    if (config.runEmbeddedMediaProblemsCommand) {
+      if (!runSilently) {
+        CommandBar.showLoading(true, `Making list of embedded media problems ...`, 0.78)
+      }
+      logDebug('tidyUpAll', `Starting listEmbeddedMediaProblems ...`)
+      await listEmbeddedMediaProblems(param)
     }
 
     if (config.removeTriggersFromRecentCalendarNotes) {
