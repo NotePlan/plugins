@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2026-10-10 for v2.5.2 by @jgclark + @CursorAI
+// Last updated 2026-11-03 for v2.6.0.b8 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // Types for Settings
@@ -231,6 +231,7 @@ export type TSection = {
   totalCount?: number, // for when not all possible items are passed in pluginData
   doneCounts?: TDoneCount, // number of tasks completed in the relevant calendar note (and potentially at a given priority)
   showColoredBackground?: boolean, // whether to show a colored background for the section
+  searchTerms?: string, // SEARCH only: original query string so getSomeSectionsData can re-run this ad-hoc search on refresh.
 }
 
 export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'winsCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'offerToFilter' | 'timeblock' | 'noSearchResults' | 'info' | 'preLimitOverdues' | 'error' | 'reminder'

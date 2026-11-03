@@ -1150,6 +1150,22 @@ export async function sendBannerMessage(windowId: string, message: string, type:
 }
 
 /**
+ * Send a toast notification to the HTML window (top-right, auto-dismisses when timeout > 0).
+ * Root derives color/border/icon from `type` when those fields are omitted.
+ * @param {string} windowId - the id of the window to send the message to
+ * @param {string} message - the message to be displayed
+ * @param {string} type - 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS' | 'REMOVE'
+ * @param {number} timeout - milliseconds before auto-dismiss (default 3000; use 0 to keep until closed)
+ */
+export async function sendToastMessage(windowId: string, message: string, type: string = 'INFO', timeout: number = 3000): Promise<any> {
+  logDebug(`sendToastMessage`, `message: ${message}, type: ${type}, timeout: ${timeout}`)
+  if (type === 'REMOVE') {
+    return await sendToHTMLWindow(windowId, 'REMOVE_TOAST', {}, '')
+  }
+  return await sendToHTMLWindow(windowId, 'SHOW_TOAST', { type, msg: message, timeout }, '')
+}
+
+/**
  * add basic ***bolditalic*** styling
  * add basic **bold** or __bold__ styling
  * add basic *italic* or _italic_ styling

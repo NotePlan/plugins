@@ -1,13 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2025-11-28 for v2.3.0.b16
+// Last updated 2026-11-03 for v2.6.0.b8 by @CursorAI for @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { extendedSearch } from '../../jgclark.SearchExtensions/src/externalSearch'
 import { getSearchSettings } from '../../jgclark.SearchExtensions/src/searchHelpers'
-import type { noteAndLine, resultOutputType, TSearchOptions } from '../../jgclark.SearchExtensions/src/searchHelpers'
+import type { noteAndLine, TSearchOptions } from '../../jgclark.SearchExtensions/src/searchHelpers'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { savedSearch1 } from './demoData'
 import type { TDashboardSettings, TSection, TSectionItem } from './types'
@@ -36,6 +36,40 @@ import { getNoteByFilename } from '@helpers/note'
  * @param {string?} fromDateStr start date for calendar notes as ISO string (optional, default is empty)
  * @param {string?} toDateStr end date for calendar notes as ISO string (optional, default is empty)
  */
+/**
+ * Build SearchExtensions options from Dashboard settings (Perspective folders, checklist filter, etc.).
+ * Shared by startSearch and SEARCH section refresh.
+ * @param {TDashboardSettings} config
+ * @param {string} noteTypesToIncludeStr
+ * @param {string} fromDateStr
+ * @param {string} toDateStr
+ * @returns {Promise<TSearchOptions>}
+ */
+export async function buildDashboardSearchOptions(
+  config: TDashboardSettings,
+  noteTypesToIncludeStr: string = 'notes, calendar',
+  fromDateStr: string = '',
+  toDateStr: string = '',
+): Promise<TSearchOptions> {
+  const foldersToExcludePlusArchive = config.applyCurrentFilteringToSearch && config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : []
+  foldersToExcludePlusArchive.push('@Archive')
+  const noteTypesToIncludeArr: Array<string> = noteTypesToIncludeStr === 'both' ? ['notes', 'calendar'] : stringListOrArrayToArray(noteTypesToIncludeStr, ',')
+  const SEConfig = await getSearchSettings()
+  const caseSensitiveSearching = SEConfig?.caseSensitiveSearching ?? false
+  const fullWordSearching = SEConfig?.fullWordSearching ?? false
+  logInfo('buildDashboardSearchOptions', `- from SearchExtensions config: caseSensitiveSearching: ${String(caseSensitiveSearching)}, fullWordSearching: ${String(fullWordSearching)}`)
+  return {
+    noteTypesToInclude: noteTypesToIncludeArr,
+    paraTypesToInclude: config.ignoreChecklistItems ? ['open', 'scheduled'] : ['open', 'scheduled', 'checklist', 'checklistScheduled'],
+    foldersToInclude: config.applyCurrentFilteringToSearch && config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',') : [],
+    foldersToExclude: foldersToExcludePlusArchive,
+    caseSensitiveSearching: caseSensitiveSearching,
+    fullWordSearching: fullWordSearching,
+    fromDateStr: fromDateStr,
+    toDateStr: toDateStr ? toDateStr : config.dontSearchFutureItems ? getTodaysDateHyphenated() : '',
+  }
+}
+
 export async function externallyStartSearch(
   searchTermsArg: string,
   noteTypesToIncludeStr: string = 'notes, calendar',
@@ -46,25 +80,7 @@ export async function externallyStartSearch(
   clo(config, 'externallyStartSearch: config:')
   logInfo('externallyStartSearch', `- starting search with searchTermsArg: "${searchTermsArg}" ${config.applyCurrentFilteringToSearch ? 'WITH' : 'WITHOUT'} Perspective filtering`)
 
-  // Compile the searchOptions object
-  const foldersToExcludePlusArchive = config.applyCurrentFilteringToSearch && config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : []
-  foldersToExcludePlusArchive.push('@Archive')
-  const noteTypesToIncludeArr: Array<string> = noteTypesToIncludeStr === 'both' ? ['notes', 'calendar'] : stringListOrArrayToArray(noteTypesToIncludeStr, ',')
-  // In v2.2 we need to get 2 remaining options from the SearchExtensions plugin (if loaded). If not, then use defaults from how NP operates
-  const SEConfig = await getSearchSettings()
-  const caseSensitiveSearching = SEConfig?.caseSensitiveSearching ?? false
-  const fullWordSearching = SEConfig?.fullWordSearching ?? false
-  logInfo('externallyStartSearch', `- from SearchExtensions config: caseSensitiveSearching: ${String(caseSensitiveSearching)}, fullWordSearching: ${String(fullWordSearching)}`)
-  const searchOptions: TSearchOptions = {
-    noteTypesToInclude: noteTypesToIncludeArr,
-    paraTypesToInclude: config.ignoreChecklistItems ? ['open', 'scheduled'] : ['open', 'scheduled', 'checklist', 'checklistScheduled'],
-    foldersToInclude: config.applyCurrentFilteringToSearch && config.includedFolders ? stringListOrArrayToArray(config.includedFolders, ',') : [],
-    foldersToExclude: foldersToExcludePlusArchive,
-    caseSensitiveSearching: caseSensitiveSearching,
-    fullWordSearching: fullWordSearching,
-    fromDateStr: fromDateStr,
-    toDateStr: toDateStr ? toDateStr : config.dontSearchFutureItems ? getTodaysDateHyphenated() : '',
-  }
+  const searchOptions: TSearchOptions = await buildDashboardSearchOptions(config, noteTypesToIncludeStr, fromDateStr, toDateStr)
 
   // Start a search
   const newSections = await getSearchResults(searchTermsArg, config, searchOptions)
@@ -213,6 +229,7 @@ export async function getSearchResults(searchTermsStr: string, config: TDashboar
       totalCount: itemCount,
       generatedDate: new Date(),
       showColoredBackground: true,
+      searchTerms: searchTermsStr,
       actionButtons: [
         {
           actionName: 'closeSearchSection',
@@ -399,11 +416,16 @@ export async function getSavedSearchResults(
 
 /**
  * Get the para from the noteAndLine object.
+ * Prefer the open Editor when that note is focused -- DataStore note cache / search index can lag
+ * behind an in-progress edit (e.g. user reordered words, then SEARCH refresh ran).
  * Note: this is not an efficient way of working, but it works with the current Search Extensions code.
  * @param {noteAndLine} rnal
  * @returns {TParagraph}
  */
 function getParagraphFromSearchResult(rnal: noteAndLine): TParagraph {
+  if (Editor?.filename === rnal.noteFilename && Array.isArray(Editor.paragraphs) && Editor.paragraphs[rnal.index]) {
+    return Editor.paragraphs[rnal.index]
+  }
   const theNote = getNoteByFilename(rnal.noteFilename) // helper function works for both notes and calendar notes
   if (!theNote) {
     throw new Error(`getParagraphFromSearchResult: note not found: ${rnal.noteFilename}`)

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2026-10-12 for v2.6.0.b1 by @CursorAI + @jgclark
+// Last updated 2026-11-03 for v2.6.0.b8 by @CursorAI for @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -27,7 +27,7 @@ import { getThisMonthSectionData, getThisQuarterSectionData, getThisYearSectionD
 import { getPrioritySectionData } from './dataGenerationPriority'
 import { getProjectReviewSectionData, getProjectActiveSectionData } from './dataGenerationProjects'
 import { getRemindersGeneratedData, type TRemindersGeneratedData } from './dataGenerationReminders'
-import { getSavedSearchResults } from './dataGenerationSearch'
+import { buildDashboardSearchOptions, getSavedSearchResults, getSearchResults } from './dataGenerationSearch'
 import { getTaggedSectionData } from './dataGenerationTags'
 import { getLastWeekSectionData, getThisWeekSectionData, searchBangGtParagraphs } from './dataGenerationWeeks'
 import type { TReminderPlacement } from './reminderPlacement'
@@ -148,6 +148,7 @@ export async function getAllSectionsData(
  * @param {?TDashboardSettings} configOverride - when set (e.g. open WebView live settings), used instead of disk-only `getDashboardSettings()`
  * @param {?Array<string>} tagsToGenerate - when TAG is requested, optional subset of tag/mention names to generate (exact match to tagsToShow entries). Omit or empty = all enabled tags.
  * @param {?TRemindersGeneratedData} cachedRemindersData - when set (e.g. incremental startup prefetch), skips a repeat remindersByLists fetch for this batch
+ * @param {?string} searchTerms - when SEARCH is requested, the ad-hoc query to re-run (from the open SEARCH section's `searchTerms`). Omit/empty = skip SEARCH (no query to run yet).
  * @returns {TSomeSectionsDataResult}
  */
 export async function getSomeSectionsData(
@@ -157,9 +158,10 @@ export async function getSomeSectionsData(
   configOverride?: ?TDashboardSettings,
   tagsToGenerate?: ?Array<string>,
   cachedRemindersData?: ?TRemindersGeneratedData,
+  searchTerms?: ?string,
 ): Promise<TSomeSectionsDataResult> {
   try {
-    logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()}${tagsToGenerate && tagsToGenerate.length > 0 ? ` tagsToGenerate=[${tagsToGenerate.join(',')}]` : ''} ...`)
+    logDebug('getSomeSectionsData', `🔹 Starting with ${sectionCodesToGet.toString()}${tagsToGenerate && tagsToGenerate.length > 0 ? ` tagsToGenerate=[${tagsToGenerate.join(',')}]` : ''}${searchTerms ? ` searchTerms=[${searchTerms}]` : ''} ...`)
     const baseConfig: TDashboardSettings = configOverride ?? (await getDashboardSettings())
     const config: TDashboardSettings = applyDemoModeGenerationOverrides(baseConfig, useDemoData)
 
@@ -274,6 +276,17 @@ export async function getSomeSectionsData(
     }
 
     // The rest can all be slow to generate
+    // Ad-hoc SEARCH needs the query string (from the open section's searchTerms). Unlike SAVEDSEARCH,
+    // there is no settings-backed query -- without terms, skip so full Refresh / startup stay fast.
+    if (sectionCodesToGet.includes('SEARCH')) {
+      if (searchTerms) {
+        logInfo('getSomeSectionsData', `- regenerating SEARCH for terms [${searchTerms}]`)
+        const searchOptions = await buildDashboardSearchOptions(config)
+        sections.push(...(await getSearchResults(searchTerms, config, searchOptions)))
+      } else {
+        logDebug('getSomeSectionsData', `- SEARCH requested but no searchTerms; skipping (ad-hoc search not open, or older section without searchTerms)`)
+      }
+    }
     if (sectionCodesToGet.includes('SAVEDSEARCH')) sections.push(...(await getSavedSearchResults(config, useDemoData)))
 
     if (sectionCodesToGet.includes('TAG') && config.tagsToShow) {

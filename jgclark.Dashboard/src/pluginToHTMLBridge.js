@@ -88,11 +88,15 @@ import type {
   TSectionCode,
 } from './types'
 import { clo, clof, logDebug, logError, logInfo, logWarn, JSP, logTimer } from '@helpers/dev'
-import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, themeHasChanged } from '@helpers/HTMLView'
+import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage, sendToastMessage, themeHasChanged } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
+import { saveEditorIfNecessary } from '@helpers/NPEditorBasics'
 import { isAppleRemindersCallbackURL } from '@helpers/NPReminders'
 import { usersVersionHas } from '@helpers/NPVersions'
 import { formatReactError } from '@helpers/react/reactDev'
+
+/** Auto-dismiss for failure toasts shown before a section refresh (e.g. stale SEARCH click). */
+const FAILURE_REFRESH_TOAST_TIMEOUT_MS = 10000
 
 //-----------------------------------------------------------------
 
@@ -619,8 +623,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 /**
  * One function to handle all actions on return from the various handlers.
  * On success: run all requested `actionsOnSuccess` (line updates, closes, refreshes, etc.).
- * On failure: still run any refresh-only actions (handlers often promise "I will refresh"), then show the banner.
- * Showing the banner first can interrupt the refresh (WebView SHOW_BANNER triggers another onMessageFromHTMLView while JSContext is mid-refresh).
+ * On failure: show an immediate toast (10s), then run refresh-only actions (handlers often promise "I will refresh").
+ * Toast (not banner) so the message appears before a slow SEARCH refresh finishes, and does not scroll the page.
  * Line mutations, done-count, theme, and perspective actions are skipped on failure.
  * For `REMOVE_LINE_FROM_JSON` after PROJ* list sync: do not send `UPDATE_DATA` using the `reactWindowData` captured at the start of that block;
  * always re-fetch via `getGlobalSharedData` after `updateProjectsListIfProjectSection` so the payload includes in-process `refreshSectionsByCode` merges (see `projectsListSync.js` / `writeAllProjectsList` skip flag).
@@ -628,7 +632,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
  * @param {MessageDataObject} data
  */
 async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult, data: MessageDataObject) {
-  let deferredBanner: { msg: string, level: string } | null = null
   try {
     // check to see if the theme has changed and if so, update it
     let config: any = await getDashboardSettings()
@@ -646,16 +649,20 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     if (!success) {
       logDebug('processActionOnReturn', `-> failed (success false) ${errorMsg || ''}`)
       const errorLevel = errorMessageLevel || 'WARN'
-      const bannerMsg = errorMsg || `Sorry; something's gone wrong for "${data.actionType}"`
+      const toastMsg = errorMsg || `Sorry; something's gone wrong for "${data.actionType}"`
       // Handlers often return REFRESH_* with "I will refresh..." -- honour those only; skip line/mutation actions
       const wanted = (handlerResult.actionsOnSuccess ?? []).filter((a) => REFRESH_ACTIONS_ALLOWED_ON_HANDLER_FAILURE.includes(a))
       if (wanted.length === 0) {
-        await sendBannerMessage(WEBVIEW_WINDOW_ID, bannerMsg, errorLevel)
+        await sendBannerMessage(WEBVIEW_WINDOW_ID, toastMsg, errorLevel)
         return
       }
-      logInfo('processActionOnReturn', `-> running refresh action(s) after failure, then banner: [${String(wanted)}] sectionCodes=${String(handlerResult.sectionCodes || [])}`)
+      // Show toast immediately (before a possibly slow SEARCH refresh), then refresh.
+      logInfo(
+        'processActionOnReturn',
+        `-> toast then refresh action(s) after failure: [${String(wanted)}] sectionCodes=${String(handlerResult.sectionCodes || [])}`,
+      )
+      await sendToastMessage(WEBVIEW_WINDOW_ID, toastMsg, errorLevel, FAILURE_REFRESH_TOAST_TIMEOUT_MS)
       handlerResult.actionsOnSuccess = wanted
-      deferredBanner = { msg: bannerMsg, level: errorLevel }
     }
 
     // Handle the different success cases (and failure-path refresh-only actions above)
@@ -664,9 +671,6 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     const hadExplicitRefreshSectionRequestAtStart = actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')
     if (actionsOnSuccess.length === 0) {
       logDebug('processActionOnReturn', `note: no post process actions to perform`)
-      if (deferredBanner) {
-        await sendBannerMessage(WEBVIEW_WINDOW_ID, deferredBanner.msg, deferredBanner.level)
-      }
       return
     }
     const isProject = data.item?.itemType === 'project'
@@ -687,10 +691,16 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       logWarn('processActionOnReturn', `Starting with no filename`)
     }
     if (filename !== '') {
-      // update the cache for the note, as it might have changed
-      const thisNote = getNoteByFilename(filename)
-      if (thisNote) {
-        const res = await DataStore.updateCache(thisNote, false) /* Note: added await in case Eduard makes it an async at some point */
+      // Stale SEARCH/open failures often happen after an in-Editor edit that is not on disk yet.
+      // updateCache re-reads the file -- save first when this note is open in Editor.
+      if (Editor?.filename === filename) {
+        await saveEditorIfNecessary()
+        DataStore.updateCache(Editor, false)
+      } else {
+        const thisNote = getNoteByFilename(filename)
+        if (thisNote) {
+          DataStore.updateCache(thisNote, false)
+        }
       }
     }
 
@@ -1050,16 +1060,9 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
     }
 
-    if (deferredBanner) {
-      await sendBannerMessage(WEBVIEW_WINDOW_ID, deferredBanner.msg, deferredBanner.level)
-    }
-
   } catch (error) {
     logError('processActionOnReturn', `error: ${JSP(error)}: \n${JSP(formatReactError(error))}`)
     clo(data.item, `- data.item at error:`)
-    if (deferredBanner) {
-      await sendBannerMessage(WEBVIEW_WINDOW_ID, deferredBanner.msg, deferredBanner.level)
-    }
   }
 }
 

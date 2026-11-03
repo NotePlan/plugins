@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for refresh-related dashboard clicks that come over the bridge.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-09-16 for v2.5.0.b5 by @jgclark + @CursorAI
+// Last updated 2026-11-03 for v2.6.0.b8 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 import { SYNTHETIC_SECTION_CODES, WEBVIEW_WINDOW_ID } from './constants'
@@ -280,7 +280,16 @@ export async function batchReplaceSections(data: MessageDataObject): Promise<TBr
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     const demoMode = reactWindowData?.pluginData?.demoMode ?? false
     const config = await getDashboardSettingsForOpenWebView(reactWindowData?.pluginData?.dashboardSettings)
-    const { sections: newSections, reminderDisplayById } = await getSomeSectionsData(sectionCodes, demoMode, false, config, data.tagsToGenerate)
+    const searchTermsForReplace: ?string = reactWindowData?.pluginData?.sections?.find((section) => section.sectionCode === 'SEARCH')?.searchTerms
+    const { sections: newSections, reminderDisplayById } = await getSomeSectionsData(
+      sectionCodes,
+      demoMode,
+      false,
+      config,
+      data.tagsToGenerate,
+      null,
+      searchTermsForReplace,
+    )
 
     const pluginDataPatch: TAnyObject = { sections: newSections, refreshing: false, firstRun: false, perspectiveChanging: false }
     if (reminderDisplayById) {
@@ -339,6 +348,9 @@ export async function refreshSomeSections(
   extraPluginDataPatch?: ?TAnyObject,
   carriedReactWindowData?: ?TAnyObject,
 ): Promise<TBridgeClickHandlerResult> {
+  // Track whether *this* call turned on the section spinner, so we always clear it even if the
+  // entry snapshot of pluginData.refreshing would make the old end-check skip clearing.
+  let weSetRefreshing = false
   try {
     const startTime = new Date()
     let sectionCodesToRefresh = data.sectionCodes
@@ -386,6 +398,7 @@ export async function refreshSomeSections(
     // `refreshing` is not always a boolean: it can also be an array of section codes while a refresh is in flight.
     // Only start a new refresh marker when there is no active refresh already underway; otherwise preserve the current state.
     if (pluginData.refreshing !== true && !Array.isArray(pluginData.refreshing)) {
+      weSetRefreshing = true
       reactWindowData = (await setPluginData(
         { refreshing: sectionCodesToRefresh, currentMaxPriorityFromAllVisibleSections: 0 },
         `Starting refresh for sections ${sectionCodesToRefresh.toString()}`,
@@ -408,6 +421,9 @@ export async function refreshSomeSections(
     // Keep TAG rows in sync with current tagsToShow + showTagSection_* toggles, and dedupe by name.
     existingSections = syncTagSectionsWithSettings(existingSections, config)
 
+    // Ad-hoc SEARCH regenerates inside getSomeSectionsData when we pass the open section's searchTerms.
+    const searchTermsForRefresh: ?string = existingSections.find((section) => section.sectionCode === 'SEARCH')?.searchTerms
+
     // Force the wanted sections to refresh
     const { sections: newSections, reminderDisplayById } = await getSomeSectionsData(
       sectionCodesToRefresh,
@@ -416,6 +432,7 @@ export async function refreshSomeSections(
       config,
       data.tagsToGenerate,
       cachedRemindersData,
+      searchTermsForRefresh,
     )
     // logTimer('refreshSomeSections', startTime, `- after getSomeSectionsData(): [${getDisplayListOfSectionCodes(newSections)}]`)
     const mergedSections = mergeSections(existingSections, newSections)
@@ -439,11 +456,11 @@ export async function refreshSomeSections(
 
     // Refreshing flag for this payload:
     // - extraPluginDataPatch: parent incremental pass is finishing; its end flags (refreshing false, firstRun false, optional lastFullRefresh) go out with this section update.
-    // - else this function started the in-flight marker above (pluginData.refreshing was not true and not an array at entry -- that snapshot is still what `pluginData` holds). Clear it here so a standalone refreshSomeSections does not leave the header spinning.
+    // - else weSetRefreshing: this call turned on the spinner -- always clear it (do not rely on the stale entry snapshot of pluginData.refreshing).
     // - else a parent already owns refreshing (true, or an array of codes); leave it alone.
     if (extraPluginDataPatch) {
       Object.assign(updates, extraPluginDataPatch)
-    } else if (pluginData.refreshing !== true && !Array.isArray(pluginData.refreshing)) {
+    } else if (weSetRefreshing) {
       updates.refreshing = false
     }
     reactWindowData = (await setPluginData(

@@ -76,7 +76,24 @@ Perspective switch always wipes to `sections: []` first (`doSwitchToPerspective`
 
 Awaited work on the **plugin** JSContext after posting `UPDATE_DATA` also blocks paint. Perspective switch used to `await` Reviews `generateProjectListsAndRenderIfOpen`. `skipUpdateDashboardIfOpen` only skips a second Dashboard PROJ* refresh; the project-list scan still runs in the foreground on the same context. Dashboard now queues that invoke via x-callback (`NotePlan.openURL`) only when the Rich Project List is open, so the Dashboard command can finish and the WebView can paint. `DataStore.invokePluginCommandByName` is **not** fire-and-forget: even without `await` it runs the other plugin on the same JSContext before returning (measured: ~13s `generateAllProjectsList` before Dashboard could paint). The follow-up must stay a **synchronous** function (no `async`/`await`, no `delayMs` / `new Promise`): NotePlan Beta throws `JSPromiseConstructor is not a constructor`. The x-callback passes `paintFirst` so Reviews can show its updating banner and yield before that scan; otherwise the Projects List banner would also stay invisible until the list refresh. If the Rich list is closed, skip the invoke (PROJ* regeneration in the section refresh already writes `allProjectsList.json` when those sections are enabled).
 
-The WebView also sends **only one plugin command at a time** (see `WebView.jsx`). A Time Block timer refresh racing a perspective switch used to leave both hung on `getGlobalSharedData`.
+#### WebView in-flight plugin command lock (`WebView.jsx`)
+
+The WebView sends **only one non-REQUEST plugin command at a time** (`pluginCommandInFlightRef` in `sendActionToPlugin`). A Time Block timer refresh racing a perspective switch used to leave both hung on `getGlobalSharedData`.
+
+**Acquire:** On each send (except REQUEST lookups like `getNotes` / `getReminderAddOptions`), the WebView sets `pluginCommandInFlightRef = true` and starts a **30s watchdog**. REQUEST traffic never takes or waits on this lock -- otherwise a long refresh would make those callers time out.
+
+**While locked -- queue vs drop:**
+
+- **Queued** (FIFO in `pendingPluginCommandsRef`): complete / cancel / delete / reminder mutations, and perspective switch commands. Dropping those left broken UI (e.g. emptied StatusIcon with the title still visible).
+- **Dropped** (logged as `Not sending "<command>" while another plugin command is in flight`): everything else, including `showLineInEditorFromFilename` / note title clicks. A click during a SEARCH or TB refresh does nothing until the user clicks again after the lock clears.
+
+**Release paths (why "several seconds" is common):**
+
+1. **Busy -> idle** (usual path for refreshes). When `pluginData.refreshing` / `firstRun` / `perspectiveChanging` becomes truthy, React sets `pluginCommandSawBusyRef`. When those flags later become idle, `releasePluginCommandLockAndFlush('plugin became idle')` runs and flushes one queued command. The lock therefore lasts as long as that refresh -- e.g. ~3s for a SEARCH regen, not "until the bridge returns". Release waits for the plugin to post `UPDATE_DATA` with `refreshing: false` (or equivalent), not merely for the plugin function to finish its last line.
+2. **Mutation sections updated.** Queued complete/delete-style commands never set `refreshing`; release when `pluginData.sections` changes after `REMOVE_LINE_FROM_JSON`.
+3. **30s watchdog.** If the in-flight command never flips the busy flags, `pluginCommandSawBusyRef` stays false, the busy->idle effect never fires, and the lock sits until the watchdog. That is the slow worst case for commands that return without a refresh marker.
+
+Startup also has a one-tick `suppressPluginCommandsRef` gate so mount effects do not call the plugin in the same turn as the window opening.
 
 
 ## Dashboard Settings

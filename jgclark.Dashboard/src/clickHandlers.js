@@ -4,7 +4,7 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2026-10-10 for v2.5.2 by @jgclark + @CursorAI
+// Last updated 2026-11-03 for v2.6.0.b8 by @CursorAI for @jgclark
 //-----------------------------------------------------------------------------
 
 import {
@@ -31,10 +31,11 @@ import {
 import { loadDashboardPluginSettings, saveDashboardPluginSettings } from './dashboardPluginSettings'
 import { normaliseDashboardNumberSettings } from './dashboardSettings'
 import { prepareDashboardSettingsForSave } from './dashboardSettingsClean'
+import { calculateNewDateStr } from './moveClickHandlers'
 import { getActivePerspectiveDef } from './perspectiveHelpers'
 import { resolvePerspectivesWhenDashboardSettingsWithoutPerspectivePayload } from './perspectiveSettingsOnDashboardSave'
 import { resolveEditorOpenTypeForDashboardClick } from './preferredWindowType'
-import { calculateNewDateStr } from './moveClickHandlers'
+import { sectionCodesForNewReminder } from './reminderAddForm'
 import { dashboardFolderFilterSettingsChanged } from './reviewsListSync'
 import type { MessageDataObject, TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TReminderForDashboard, TSectionCode } from './types'
 import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE } from '@helpers/dateTime'
@@ -43,7 +44,6 @@ import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import { smartOpenNoteInEditorFromFilename, smartShowLineInEditorFromFilename } from '@helpers/NPEditor'
 import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename } from '@helpers/NPParagraph'
-import { sectionCodesForNewReminder } from './reminderAddForm'
 import { addAppleReminder, buildOpenTaskContentFromReminder, completeReminderById, deleteReminderById, mapCalendarItemToReminder, mapNotePlanPriorityToAppleReminder, parseLeadingPriorityFromReminderText, updateReminderById, type TUpdateAppleReminderParams } from '@helpers/NPReminders'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
@@ -1064,13 +1064,38 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
     return handlerResult(true)
   } else {
     const originatingSectionCode = item?.sectionCode || sectionCode
-    const sectionCodes = originatingSectionCode ? [originatingSectionCode] : []
-    logWarn('doShowLineInEditorFromFilename', `-> could not open/highlight line in '${filename}'; will refresh sectionCodes=[${String(sectionCodes)}]`)
-    return handlerResult(false, sectionCodes.length > 0 ? ['REFRESH_SECTION_IN_JSON'] : [], {
-      sectionCodes,
-      errorMsg: `Could not open or highlight that line in '${filename}'. I will refresh that section.`,
+    const recovery = actionsAfterFailedShowLineInEditor(originatingSectionCode)
+    logWarn(
+      'doShowLineInEditorFromFilename',
+      `-> could not open/highlight line in '${filename}'; recovery actions=[${String(recovery.actions)}] sectionCodes=[${String(recovery.sectionCodes)}]`,
+    )
+    return handlerResult(false, recovery.actions, {
+      sectionCodes: recovery.sectionCodes,
+      errorMsg: `Could not open or highlight that line in '${filename}'.${recovery.errorMsgSuffix}`,
       errorMessageLevel: 'INFO',
     })
+  }
+}
+
+/**
+ * Recovery actions after show-line open/highlight fails (line gone / already completed elsewhere).
+ * Refresh the originating section so stale rows drop out (SEARCH re-runs via getSomeSectionsData
+ * when the open section has `searchTerms`).
+ * @param {?TSectionCode} sectionCode
+ * @returns {{ actions: Array<TActionOnReturn>, sectionCodes: Array<TSectionCode>, errorMsgSuffix: string }}
+ */
+export function actionsAfterFailedShowLineInEditor(sectionCode: ?TSectionCode): {
+  actions: Array<TActionOnReturn>,
+  sectionCodes: Array<TSectionCode>,
+  errorMsgSuffix: string,
+} {
+  if (!sectionCode) {
+    return { actions: [], sectionCodes: [], errorMsgSuffix: '' }
+  }
+  return {
+    actions: ['REFRESH_SECTION_IN_JSON'],
+    sectionCodes: [sectionCode],
+    errorMsgSuffix: ' I will refresh that section.',
   }
 }
 
