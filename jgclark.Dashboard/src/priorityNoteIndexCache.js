@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Priority note-index cache for Dashboard PRIORITY section
-// Last updated 2026-08-27 for v2.5.0.b2 by @CursorAI
+// Last updated 2026-11-04 for v2.6.0.b7 by @CursorAI
 //-----------------------------------------------------------------------------
 // Cache structure (JSON file):
 // {
@@ -22,7 +22,7 @@ import { WEBVIEW_WINDOW_ID } from './constants'
 import { JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import { sendBannerMessage } from '@helpers/HTMLView'
-import { getNotesChangedInInterval } from '@helpers/NPnote'
+import { getNotesChangedInInterval, numDaysBackCoveringSince } from '@helpers/NPnote'
 import { getNoteByFilename, pastCalendarNotes } from '@helpers/note'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { isOpenNotScheduled } from '@helpers/utils'
@@ -440,7 +440,7 @@ export async function updatePriorityNoteIndexCache(): Promise<void> {
     }
 
     const jsdateToStartLooking = momPrevious.toDate()
-    const numDaysBack = momPrevious.diff(momNow, 'days', true)
+    const numDaysBack = numDaysBackCoveringSince(momPrevious, momNow)
     const recentlychangedNotes = getNotesChangedInInterval(numDaysBack).filter((n) => n.changedDate >= jsdateToStartLooking)
     logTimer('updatePriorityNoteIndexCache', startTime, `Found ${recentlychangedNotes.length} changed notes in that time`)
 

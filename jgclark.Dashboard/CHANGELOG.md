@@ -2,6 +2,8 @@
 For more details see the [plugin's documentation](https://noteplan.co/plugins/jgclark.Dashboard/).
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
+## [2.6.0.b7] 2026-11-04
+- Fix: to Tag/Mention and Priority sections could miss some note changes. dev: the tagMention Cache and Priority Note index both could ignore notes changed since the previous run could be skipped until a full rebuild. (Thanks, @dwertheimer.)
 
 ## [2.6.0.b6] 2026-10-31
 - The 'Reminder Lists to Use' setting now sets the order those lists are offered by the add-reminder dialog. (Thanks, @dwertheimer.)
