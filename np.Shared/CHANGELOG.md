@@ -1,8 +1,11 @@
-# Changes to 🤝 Shared Resources plugin
+# Changes to Shared Resources plugin
 
 See [Shared Plugin's README](https://noteplan.co/plugins/np.Shared) for details on this plugin.
 
-## [1.3.2] 2026-10-28 (not yet released)
+## [1.3.3] 2026-11-04
+- Fix: incremental tag/mention cache update counted days with `previous.diff(now)`, which is negative. `getNotesChangedInInterval` then started after the current time, found no changed notes, and still moved `lastUpdated` forward, so later edits never entered the cache until a full rebuild.
+
+## [1.3.2] 2026-10-28
 - Fix: tag/mention cache generate/update now scans notes via `runSyncWorkOnAsyncThread(..., { items, batchSize })` (helpers/NPThreads) -- short async-thread batches with a main-thread breather between them -- instead of one long `runOnAsyncThread` call. Mitigates stuck "Generating tag/mention cache" progress when the async Promise never settles after many `TNote` bridge reads (NotePlan/plugins#793). Progress dialog updates every 20 notes (and after each batch).
 
 ## [1.3.1] 2026-10-23

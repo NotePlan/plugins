@@ -1015,10 +1015,25 @@ export function getNotesChangedInLastCalendarDays(
 }
 
 /**
+ * Days back from the start of today for `getNotesChangedInInterval`, wide enough to include notes changed at `since`.
+ * Same-day `since` returns 0 (today only). An older `since` rounds up to a whole day so the scan starts at or before `since`.
+ * Do not pass `since.diff(now)`: that value is negative, and `subtract` of a negative number looks forward from midnight.
+ * @param {moment$Moment} since - last successful run (or other inclusive lower bound)
+ * @param {moment$Moment} now
+ * @returns {number}
+ */
+export function numDaysBackCoveringSince(since: moment$Moment, now: moment$Moment): number {
+  const days = now.clone().startOf('day').diff(since, 'days', true);
+  if (!(days > 0)) return 0;
+  return Math.ceil(days);
+}
+
+/**
  * Return list of all notes changed in the last 'numDays' (plus the current day).
  * Set 'noteTypesToInclude' to just ['Notes'] or ['Calendar'] to include just those note types.
  * Note: if numDays === 0 then it will only return notes changed in the current day, not the last 24 hours.
  * Note: `numDays` is days **back from start of today**, not calendar-day count. For calendar-day count use `getNotesChangedInLastCalendarDays`.
+ * `numDays` must be >= 0. A negative value is subtracted from start-of-today, which moves the window later than midnight.
  * @author @jgclark
  * @param {number} numDays: how many days back from start of today
  * @param {Array<string>} noteTypesToInclude

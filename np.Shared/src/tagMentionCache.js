@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Shared tag/mention cache for any plugin (owned by np.Shared)
 // Written originally by @jgclark for Dashboard plugin.
-// last updated 2026-10-28 for v1.3.2 by @jgclark + @CursorAI
+// last updated 2026-10-28 for v1.3.3 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 // Cache body (`tagMentionCache.json`):
 // {
@@ -24,7 +24,7 @@ import moment from 'moment/min/moment-with-locales'
 import { JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { CaseInsensitiveSet } from '@helpers/general'
 import { noteHasFrontMatter } from '@helpers/NPFrontMatter'
-import { getNotesChangedInInterval } from '@helpers/NPnote'
+import { getNotesChangedInInterval, numDaysBackCoveringSince } from '@helpers/NPnote'
 import { DEFAULT_ASYNC_THREAD_DIALOG_UPDATE_INTERVAL, runSyncWorkOnAsyncThread } from '@helpers/NPThreads'
 import { RE_NP_HASHTAG_G, RE_NP_MENTION_G } from '@helpers/regex'
 import { caseInsensitiveArrayIncludes, caseInsensitiveMatch, caseInsensitiveSubstringMatch, getCorrectedHashtagsFromNote, getCorrectedMentionsFromNote } from '@helpers/search'
@@ -1095,8 +1095,10 @@ export async function updateTagMentionCache(): Promise<void> {
     }
 
     // Find changed notes on main thread (DataStore scan + timers); reindex on async when available.
+    // numDaysBack must be >= 0 and reach lastRun. A signed previous-vs-now diff is negative, so
+    // getNotesChangedInInterval looks forward from midnight, finds nothing, then lastUpdated still advances.
     const jsdateToStartLooking = momPrevious.toDate()
-    const numDaysBack = momPrevious.diff(momNow, 'days', true) // don't round to nearest integer
+    const numDaysBack = numDaysBackCoveringSince(momPrevious, momNow)
     // Note: This operations takes >500ms for JGC.
     // TODO(later): we have asked @EduardMe for a special API to get notes changed in a given time period, but it's not available yet.
     const recentlychangedNotes = getNotesChangedInInterval(numDaysBack).filter((n) => n.changedDate >= jsdateToStartLooking)
