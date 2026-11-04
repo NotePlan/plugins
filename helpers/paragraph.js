@@ -1071,6 +1071,7 @@ export function getIndentLevelFromRawContent(rawContentIn: string): number {
  * @param {boolean} allowNotePreambleBeforeHeading?
  * @param {string?} firstParaSuffix optional text appended to the first inserted line only (e.g. a date backlink). Does not mutate `paragraphs`.
  * @param {((rawFirstLine: string) => string)?} firstParaRawRewrite optional rewrite of the first inserted raw line only (e.g. strip a [[note link]]). Does not mutate `paragraphs`.
+ * @param {((text: string) => string)?} insertedTextRewrite optional rewrite of the full inserted text (e.g. retarget embedded images). Does not mutate `paragraphs`.
  */
 export function addParagraphsToNote(
   destinationNote: TNote,
@@ -1080,6 +1081,7 @@ export function addParagraphsToNote(
   allowNotePreambleBeforeHeading: boolean,
   firstParaSuffix: string = '',
   firstParaRawRewrite: ?((rawFirstLine: string) => string) = null,
+  insertedTextRewrite: ?((text: string) => string) = null,
 ): void {
   try {
     if (paragraphs.length === 0) {
@@ -1099,6 +1101,9 @@ export function addParagraphsToNote(
         lines[0] = `${lines[0]}${firstParaSuffix}`
       }
       selectedParasAsText = lines.join('\n')
+    }
+    if (insertedTextRewrite != null && selectedParasAsText !== '') {
+      selectedParasAsText = insertedTextRewrite(selectedParasAsText)
     }
 
     const destinationNoteParas = destinationNote.paragraphs

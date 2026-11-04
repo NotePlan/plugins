@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 2026-10-17 for v1.21.0, @jgclark + @CursorAI
+// Last updated 2026-11-03 for v1.22.0, @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -34,6 +34,12 @@ export { listConflicts, openConflictSideBySide, resolveConflictWithCurrentVersio
 export { listPotentialDoubles } from './doubledNotes'
 export { listDuplicates } from './duplicates'
 export { fixAllTitlePipes, fixTitlePipes, listTitleProblems, useFrontmatterTitle, useH1Title } from './titleProblems'
+export {
+  listEmbeddedMediaProblems,
+  removeAllBrokenMediaLinks,
+  removeBrokenMediaLink,
+  removeUnusedAttachmentFolder,
+} from './embeddedMedia'
 export {
   removeEmptyElements,
   removeEmptyElementsFromRecentNotes,

@@ -1,5 +1,6 @@
 /* global jest, describe, test, expect, beforeAll, beforeEach */
 import { format } from 'date-fns'
+import moment from 'moment/min/moment-with-locales'
 import * as NPNote from '../NPnote'
 import { DataStore, Paragraph, Note, Editor, Calendar } from '@mocks/index'
 import { YYYYMMDDDateStringFromDate } from '@helpers/dateTime'
@@ -581,6 +582,55 @@ describe(`${PLUGIN_NAME}`, () => {
 
     test('combined substitutions', () => {
       expect(NPNote.cleanFilenameBasename("Church&#039;s &amp; Co?s Notes.md")).toEqual('Church\'s & Co\'s Notes.md')
+    })
+  })
+
+  /**
+   * Start time `getNotesChangedInInterval` would use for this day count.
+   * @param {moment} now
+   * @param {number} numDays
+   * @returns {moment}
+   */
+  function intervalStart(now, numDays) {
+    return now.clone().startOf('day').subtract(numDays, 'days')
+  }
+
+  describe('numDaysBackCoveringSince()', () => {
+    test('same calendar day returns 0 and the scan still starts at or before since', () => {
+      const now = moment('2026-11-04 14:30')
+      const since = moment('2026-11-04 10:00')
+      const numDays = NPNote.numDaysBackCoveringSince(since, now)
+      expect(numDays).toBe(0)
+      expect(intervalStart(now, numDays).valueOf()).toBeLessThanOrEqual(since.valueOf())
+    })
+
+    test('last run yesterday evening is included; a signed previous-vs-now diff starts after now', () => {
+      const now = moment('2026-11-04 14:30')
+      const since = moment('2026-11-03 23:00')
+      const numDays = NPNote.numDaysBackCoveringSince(since, now)
+      expect(numDays).toBe(1)
+      expect(intervalStart(now, numDays).valueOf()).toBeLessThanOrEqual(since.valueOf())
+      const signedDays = since.diff(now, 'days', true)
+      expect(intervalStart(now, signedDays).valueOf()).toBeGreaterThan(now.valueOf())
+    })
+
+    test('covers a last run 43 hours ago', () => {
+      const now = moment('2026-11-04 14:01')
+      const since = now.clone().subtract(43, 'hours')
+      const numDays = NPNote.numDaysBackCoveringSince(since, now)
+      expect(numDays).toBeGreaterThan(0)
+      expect(intervalStart(now, numDays).valueOf()).toBeLessThanOrEqual(since.valueOf())
+    })
+
+    test('spring-forward and fall-back nights still start at or before since', () => {
+      const cases = [
+        [moment('2026-03-08 15:00'), moment('2026-03-07 01:30')],
+        [moment('2026-11-01 14:30'), moment('2026-10-31 23:00')],
+      ]
+      for (const [now, since] of cases) {
+        const numDays = NPNote.numDaysBackCoveringSince(since, now)
+        expect(intervalStart(now, numDays).valueOf()).toBeLessThanOrEqual(since.valueOf())
+      }
     })
   })
 })

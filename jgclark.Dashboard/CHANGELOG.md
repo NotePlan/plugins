@@ -2,6 +2,8 @@
 For more details see the [plugin's documentation](https://noteplan.co/plugins/jgclark.Dashboard/).
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
+## [2.6.0.b7] 2026-11-04
+- Fix: to Tag/Mention and Priority sections could miss some note changes. dev: the tagMention Cache and Priority Note index both could ignore notes changed since the previous run could be skipped until a full rebuild. (Thanks, @dwertheimer.)
 
 ## [2.6.0.b8] 2026-11-03
 - Fix: After a failed open/highlight (e.g. task edited in Editor), SEARCH refresh now picks up the live Editor text -- save dirty Editor + updateCache before refresh, and resolve search hit paragraphs from Editor when that note is open. The notice is an immediate 10s toast (not a banner deferred until search finishes).

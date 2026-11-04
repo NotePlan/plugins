@@ -15,6 +15,7 @@ This plugin provides commands to help tidy up your notes:
     ![](duplicate-note-display@2x.png)
 - **/List missing daily notes**: create a note that lists any missing or empty daily notes in the last year.
 - **/List stubs**: creates a note that lists all your notes that contain "stubs" -- i.e. that caontain `[[note links]]` (aka "wikilinks") that don't lead to other notes in NotePlan.
+- **/List embedded media problems** (alias "media"): creates/updates a note that lists local `![image]` / `![file]` links whose file is missing, and `{note}_attachments` folders that exist but have no working link. The plugin cannot list files inside a folder, so an empty folder and a folder of unlinked files are one row. Buttons are provided to "Remove link", "Remove all links",  "Remove folder", "Show in Finder" where appropriate.
 - **/List title problems** (alias "titles"): creates/updates a note that lists notes with one or more of the following problems:
   1. Title is `` `---` `` (this can happen when frontmatter is invalid).
   2. Frontmatter `title:` field does not match the H1 on the first line of the body, when that H1 is present. An H1 that contains a template tag (for example `<%- prompt('Where are we going?') %>`) is skipped. Each mismatch is two bullets, with a "Use title" or "Use H1" button that copies that value onto the other field. 

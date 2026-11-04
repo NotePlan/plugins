@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2026-10-26, for v1.6.2
+// last updated 2026-11-02, for v1.6.3
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -12,12 +12,12 @@ import { getParagraphBlock } from '@helpers/blocks'
 import { formatNoteDateFromNPDateStr, getDateStringFromCalendarFilename, todaysDateISOString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
-import { clearHighlighting, getSelectedParagraphsToUse } from '@helpers/NPEditor'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { addParagraphsToNote, findHeading } from '@helpers/paragraph'
+import { clearHighlighting, getSelectedParagraphsToUse, highlightSelectionInEditor } from '@helpers/NPEditor'
+import { prepareEmbeddedMediaMove, removeSourceEmbeddedMediaIfUnused } from '@helpers/NPEmbeddedMedia'
 import { chooseNoteV2 } from '@helpers/NPnote'
-import { highlightSelectionInEditor } from '@helpers/NPEditor'
 import { chooseHeadingV2, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -106,8 +106,21 @@ function moveParagraphsToNote(
   const beforeNumParasInDestNote = destNote.paragraphs.length
   const origNumParas = sourceNote.paragraphs.length
 
+  // Copy embedded images/files into the destination note's attachment folder and
+  // rewrite those links in the inserted text only (source paras stay intact).
+  const embeddedMove = prepareEmbeddedMediaMove(sourceNote, destNote, parasInBlock)
+
   // Add paragraphs to destination note (suffix applied to insert text only; source paras stay intact)
-  addParagraphsToNote(destNote, parasInBlock, headingToFind, config.whereToAddInSection, config.allowNotePreambleBeforeHeading, dateBacklinkSuffix)
+  addParagraphsToNote(
+    destNote,
+    parasInBlock,
+    headingToFind,
+    config.whereToAddInSection,
+    config.allowNotePreambleBeforeHeading,
+    dateBacklinkSuffix,
+    null,
+    embeddedMove ? embeddedMove.rewrite : null,
+  )
 
   // Verify that paragraphs were added
   const afterNumParasInDestNote = destNote.paragraphs.length
@@ -119,6 +132,7 @@ function moveParagraphsToNote(
   // Remove paragraphs from source note
   logDebug('moveParagraphsToNote', `Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
   sourceNote.removeParagraphs(parasInBlock)
+  if (embeddedMove) removeSourceEmbeddedMediaIfUnused(sourceNote, embeddedMove.copied)
 
   // Verify that paragraphs were removed
   if (sourceNote.paragraphs.length !== (origNumParas - parasInBlock.length)) {
