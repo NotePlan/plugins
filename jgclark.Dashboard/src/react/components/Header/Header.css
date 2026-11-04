@@ -1,5 +1,5 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated 2026-09-16 for v2.5.0.b6 by @jgclark */
+/* Last updated 2026-11-04 for v2.6.0 by @jgclark + @CursorAI */
 
 /* TODO: SearchPanel transition is not working well yet. Not sure if that's because of this file or SearchPanel.css */
 
@@ -44,10 +44,6 @@
 .density-compact .header button,
 .density-compact .header input {
 	font-size: 0.855rem;
-}
-
-.density-compact .HAButton {
-	font-size: 0.81rem;
 }
 
 /* :focus {
@@ -209,48 +205,5 @@
 }
 
 /* -------------------------------------------------------- */
-
-/* For text buttons in header area */
-/* TODO: Ideally rationalise this with the addButton icon-buttons in the sectionInfo area */
-.HAButton {
-	font-size: 0.9rem;
-	font-weight: 500;
-	border-style: solid;
-	border-width: 1px;
-	border-radius: 4px;
-	/* a little internal padding to right */
-	padding: 1px 3px 0px 3px;
-	/* a little external margin */
-	margin: 0px;
-	white-space: nowrap;
-	cursor: pointer;
-	/* Center the button vertically if it's not aligning properly */
-	align-self: center;
-
-	/* color FA icons in these Buttons */
-	i {
-		color: var(--tint-color);
-	}
-}
-
-/* On hover, make the button a little larger and darker */
-.HAButton:hover {
-	/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this when it is supported */
-	filter: brightness(110%);
-}
-
-/* Set this button text to clip if screen is narrow */
-/* .hardRefreshButton {
-	overflow-x: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-} */
-
-/* Style for the search panel button */
-/* #searchPanelButton {
-  cursor: pointer;
-} */
-
-/* #searchPanelButton i {
-  font-size: 1.1rem;
-} */
+/* .HAButton base styles live in Dashboard.css with .addButton / .PCButton.
+   Header-only layout overrides remain above (.header .HAButton height/padding). */

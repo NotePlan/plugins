@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2026-09-16 for v2.5.0.b6 by @jgclark */
+/* Last updated 2026-11-04 for v2.6.0 by @jgclark + @CursorAI */
 
 /* ------------------------------------------------------------------ */
 html {
@@ -185,6 +185,10 @@ dialog::backdrop {
 		transform-origin: center top;
 	}
 
+	.HAButton {
+		font-size: 0.81rem;
+	}
+
 	.addButton {
 		font-size: 0.855rem;
 	}
@@ -265,54 +269,63 @@ dialog::backdrop {
 	font-size: 1.0rem !important;
 }
 
-/* For action buttons in section title areas */
-.addButton {
-	font-size: 0.95rem;
-	/* line-height: 1.2rem; */
+/* Shared chrome for Dashboard action buttons:
+   - .HAButton: bordered text buttons (header Refresh, Perspectives table, SearchPanel)
+   - .addButton: borderless icon buttons in sectionInfo (buttonsWithoutBordersOrBackground)
+   - .PCButton: bordered process buttons in sectionInfo / dialogs
+   cursor:pointer comes from the global `button` rule below. */
+.HAButton,
+.addButton,
+.PCButton {
 	font-weight: 500;
-	border-style: none;
-	box-shadow: none;
-	/* a little margin to right */
-	margin: 1px 0px 0px 0px;
-	padding: 0px;
 	white-space: nowrap;
-	cursor: pointer;
-	/* Center the button vertically if it's not aligning properly */
 	align-self: center;
 }
+
+/* Bordered text/process buttons share the same chrome + hover */
+.HAButton,
+.PCButton {
+	border-style: solid;
+	border-width: 1px;
+	border-radius: 4px;
+
+	i {
+		color: var(--tint-color);
+	}
+
+	&:hover {
+		/* TODO(later): revert to hsl(from ...) when relative colour on currentcolor is supported */
+		filter: brightness(110%);
+	}
+}
+
+.HAButton {
+	font-size: 0.9rem;
+	padding: 1px 3px 0px 3px;
+	margin: 0px;
+}
+
+/* Borderless icon actions in section title areas */
+.addButton {
+	font-size: 0.95rem;
+	border-style: none;
+	box-shadow: none;
+	margin: 1px 0px 0px 0px;
+	padding: 0px;
+}
+
 .addButton:hover {
 	/* TODO(later): this 'currentcolor' is not yet working as advertised, so using a fallback for now */
 	/* color: hsl(from currentcolor h s calc(l*0.4)); */
 	filter: saturate(140%);
 }
 
-/* For processing buttons in section info areas */
+/* Process buttons in section info areas / dialogs */
 .PCButton {
-	font-weight: 500;
-	border-style: solid;
-	border-width: 1px;
-	border-radius: 4px;
+	font-size: 0.85rem;
 	padding: 1px 2px 0px 3px;
 	margin: 2px 4px 2px 0px;
-	white-space: nowrap;
-	cursor: pointer;
-	font-size: 0.85rem;
-	/* Center the button vertically if it's not aligning properly */
-	align-self: center;
-	/* max-height: 1.3rem; */
 	line-height: 1.2rem;
-
-	/* color FA icons in these Buttons */
-	i {
-		color: var(--tint-color);
-	}
-
-	/* set backgrounds a little lighter on hover */
-	&:hover {
-		/* TODO(later): revert to this when it is supported */
-		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); */
-		filter: brightness(110%);
-	}
 }
 
 /* Show click pointer over buttons and equivalent */
