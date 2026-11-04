@@ -205,5 +205,5 @@
 }
 
 /* -------------------------------------------------------- */
-/* .HAButton base styles live in Dashboard.css with .addButton / .PCButton.
+/* .HAButton base styles live in Dashboard.css with .BorderlessButton / .PCButton.
    Header-only layout overrides remain above (.header .HAButton height/padding). */

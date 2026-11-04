@@ -189,7 +189,7 @@ dialog::backdrop {
 		font-size: 0.81rem;
 	}
 
-	.addButton {
+	.BorderlessButton {
 		font-size: 0.855rem;
 	}
 
@@ -198,8 +198,8 @@ dialog::backdrop {
 		line-height: 1.1rem;
 	}
 
-	.iOS .buttonsWithoutBordersOrBackground,
-	.iPadOS .buttonsWithoutBordersOrBackground {
+	.iOS .BorderlessButton,
+	.iPadOS .BorderlessButton {
 		font-size: 0.9rem !important;
 	}
 
@@ -233,29 +233,28 @@ dialog::backdrop {
 	}
 
 
-	/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
-	.buttonsWithoutBordersOrBackground,
-	.buttonsWithoutBordersOrBackground * {
+	/* Layout wrapper for one or more .BorderlessButton in section title areas */
+	.BorderlessButtons {
 		display: inline-flex;
 		gap: 0.4rem;
 		justify-self: end;
-		/* align-self: flex-start; /* Doesn't seem to be needed */
+	}
+
+	/* Borderless icon/action buttons (section add/close, header search/settings/add) */
+	.BorderlessButton {
+		display: inline-flex;
+		gap: 0.4rem;
 		border: 0px none;
 		box-shadow: none;
-		/* padding-top: 1px; */
 		padding-left: unset;
 		padding-right: unset;
 		background-color: unset;
 		color: var(--tint-color);
 		cursor: pointer;
 
-		/* &:focus {
-			outline: none;
-		} */
-		/* Add a more specific 'underline' to indicate focus for these buttons to aid keyboard navigation */
+		/* Underline focus indicator for keyboard navigation */
 		&:focus-visible {
 			filter: brightness(112%);
-			/* Remove the default focus ring */
 			outline: none;
 			border-radius: 0px;
 			border-bottom: 1px solid rgba(from var(--tint-color) r g b / 0.5);
@@ -263,19 +262,23 @@ dialog::backdrop {
 	}
 }
 
-/* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
-.iOS .buttonsWithoutBordersOrBackground, .iPadOS .buttonsWithoutBordersOrBackground {
+/* Widen gaps between section borderless buttons on touchscreen; leave room for close button */
+.iOS .BorderlessButtons, .iPadOS .BorderlessButtons {
 	gap: 0.9rem !important; /* haven't tested whether !important is needed here */
+}
+
+.iOS .BorderlessButton, .iPadOS .BorderlessButton {
 	font-size: 1.0rem !important;
 }
 
 /* Shared chrome for Dashboard action buttons:
    - .HAButton: bordered text buttons (header Refresh, Perspectives table, SearchPanel)
-   - .addButton: borderless icon buttons in sectionInfo (buttonsWithoutBordersOrBackground)
+   - .BorderlessButton: borderless icon buttons (section title, header search/settings/add)
    - .PCButton: bordered process buttons in sectionInfo / dialogs
+   Header dropdown-select controls stay separate (not buttons).
    cursor:pointer comes from the global `button` rule below. */
 .HAButton,
-.addButton,
+.BorderlessButton,
 .PCButton {
 	font-weight: 500;
 	white-space: nowrap;
@@ -305,8 +308,8 @@ dialog::backdrop {
 	margin: 0px;
 }
 
-/* Borderless icon actions in section title areas */
-.addButton {
+/* Borderless icon actions (section title + header icon buttons) */
+.BorderlessButton {
 	font-size: 0.95rem;
 	border-style: none;
 	box-shadow: none;
@@ -314,7 +317,7 @@ dialog::backdrop {
 	padding: 0px;
 }
 
-.addButton:hover {
+.BorderlessButton:hover {
 	/* TODO(later): this 'currentcolor' is not yet working as advertised, so using a fallback for now */
 	/* color: hsl(from currentcolor h s calc(l*0.4)); */
 	filter: saturate(140%);

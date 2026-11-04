@@ -2,12 +2,12 @@
 For more details see the [plugin's documentation](https://noteplan.co/plugins/jgclark.Dashboard/).
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
-## [2.6.0.b7] 2026-11-04
-- Fix: to Tag/Mention and Priority sections could miss some note changes. dev: the tagMention Cache and Priority Note index both could ignore notes changed since the previous run could be skipped until a full rebuild. (Thanks, @dwertheimer.)
 
-## [2.6.0.b8] 2026-11-03
+## [2.6.0.b8] 2026-11-04
+- Change: small UI changes to refresh button and spinner. dev: Also, consolidating the CSS and renaming to BorderlessButton(s).
 - Fix: After a failed open/highlight (e.g. task edited in Editor), SEARCH refresh now picks up the live Editor text -- save dirty Editor + updateCache before refresh, and resolve search hit paragraphs from Editor when that note is open. The notice is an immediate 10s toast (not a banner deferred until search finishes).
 - Fix: Clicking a SEARCH row that was already completed elsewhere no longer leaves the Search section spinner spinning forever. dev: `getSomeSectionsData` now re-runs ad-hoc SEARCH when given the open section's `searchTerms` (previously SEARCH was only started via `startSearch`, so a SEARCH-only refresh set the spinner and merged nothing). `refreshSomeSections` also always clears a spinner it turned on.
+- Fix: to Tag/Mention and Priority sections could miss some note changes. dev: the tagMention Cache and Priority Note index both could ignore notes changed since the previous run could be skipped until a full rebuild. (Thanks, @dwertheimer.)
 
 ## [2.6.0.b7] 2026-11-01
 - Change: After adding a Reminder, only regenerate the section(s) that should show it (undated -> REM only). dev: The previous blanket refresh always rebuilt OVERDUE too, which rescans overdue tasks and felt slow. Removed the unused `REMINDER_ADD_REFRESH_SECTIONS` constant.

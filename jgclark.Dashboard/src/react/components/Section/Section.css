@@ -72,15 +72,14 @@
 	padding-inline-start: 1.6rem;
 }
 
-/* First part of sectionInfo. Grid to contain sectionIcon, sectionName, .buttonsWithoutBordersOrBackground */
+/* First part of sectionInfo. Grid to contain sectionIcon, sectionName, .BorderlessButtons */
 .sectionInfoFirstLine {
 	display: grid;
 	grid-template-columns: auto auto;
 	gap: 4px;
 	/* background-color: blue; */
 
-	/* Remove other background-color for buttons here */
-	/* TODO: Ideally change buttons in Dashboard.css so this isn't needed. */
+	/* Let section title color cascade; BorderlessButton clears its own chrome */
 	button {
 		background-color: unset;
 		color: unset;
@@ -208,8 +207,8 @@
 		padding-right: 0.5rem;
 	}
 
-	/* Override justification of these buttons in section title area */
-	.buttonsWithoutBordersOrBackground {
+	/* Override justification of borderless buttons in section title area */
+	.BorderlessButtons {
 		justify-self: start;
 	}
 }

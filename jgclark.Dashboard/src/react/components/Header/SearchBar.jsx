@@ -85,7 +85,7 @@ const SearchBar = ({ onSearch }: Props): React.Node => {
         style={{ width: isActive ? '15ch' : '0', opacity: isActive ? '1' : '0' }}
         ref={inputRef}
       />
-      <button className="buttonsWithoutBordersOrBackground" onClick={handleIconClick} title="Search">
+      <button className="BorderlessButton" onClick={handleIconClick} title="Search">
         <i className="fa-solid fa-search"></i>
       </button>
     </search>

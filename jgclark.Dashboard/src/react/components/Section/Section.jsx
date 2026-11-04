@@ -425,7 +425,7 @@ const Section = ({ section, onButtonClick, isViewVisible = true }: SectionProps)
   //   titleStyle.color = 'var(--fg-main-color)'
   // }
 
-  const buttonsWithoutBordersOrBackground = section.actionButtons?.filter((b) => b.actionName.startsWith('add') || b.actionName.startsWith('close'))
+  const borderlessButtons = section.actionButtons?.filter((b) => b.actionName.startsWith('add') || b.actionName.startsWith('close'))
   let processActionButtons = section.actionButtons?.filter((b) => !b.actionName.startsWith('add') && !b.actionName.startsWith('close'))
 
   if (processActionButtons) {
@@ -613,7 +613,7 @@ const ipItemCount = countInteractiveProcessingItems(ipSourceItems, section.secti
 
   /**
    * Layout of sectionInfo = 4 divs:
-   * - sectionInfoFirstLine = grid of sectionName div and buttonsWithoutBordersOrBackground div
+   * - sectionInfoFirstLine = grid of sectionName div and BorderlessButtons div
    * - sectionDescription
    * - sectionProcessButtons = 0 or more processActionButtons
    * On normal width screen these are a row-based grid (1x3).
@@ -637,8 +637,8 @@ return hideSection ? null : (
             </div>
           </TooltipOnKeyPress>
           {/* {' '} */}
-          <div className={`buttonsWithoutBordersOrBackground ${section.sectionTitleColorPart ?? ''}`}>
-            {buttonsWithoutBordersOrBackground?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="addButton" />) ?? []}
+          <div className={`BorderlessButtons ${section.sectionTitleColorPart ?? ''}`}>
+            {borderlessButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="BorderlessButton" />) ?? []}
           </div>
         </div>
 

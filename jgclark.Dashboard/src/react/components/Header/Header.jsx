@@ -389,7 +389,7 @@ const Header = ({ lastFullRefresh, onDropdownMenuOpenChange }: Props): React.Nod
             labelPosition="left"
           />
           {/* Cog Icon for opening the settings dialog */}
-          <button accessKey="," className="dropdown buttonsWithoutBordersOrBackground" onClick={() => openDialog()} title="Open Dashboard Settings dialog">
+          <button accessKey="," className="dropdown BorderlessButton" onClick={() => openDialog()} title="Open Dashboard Settings dialog">
             <i className="fa-solid fa-gear"></i>
           </button>
 

@@ -502,9 +502,9 @@ dialog:modal {
 	line-height: 1.2rem;
 }
 
-.density-compact .itemControlDialog .addButton,
-.density-compact .projectControlDialog .addButton,
-.density-compact .add-to-any-note-dialog .addButton {
+.density-compact .itemControlDialog .BorderlessButton,
+.density-compact .projectControlDialog .BorderlessButton,
+.density-compact .add-to-any-note-dialog .BorderlessButton {
 	font-size: 0.95rem;
 }
 
