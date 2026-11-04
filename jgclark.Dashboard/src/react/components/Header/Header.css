@@ -61,25 +61,27 @@
 	min-width: auto;
 }
 
-/* Match perspective dropdown shadow to HAButton / Refresh etc. (Dashboard.css @layer A button shadow) */
-/* TODO: this isn't yet working as expected */
-.perspective-selector .dropdown-select-input-container > input[type="text"] {
+/* Match perspective dropdown shadow to HAButton / Refresh (Dashboard.css @layer A).
+   WebKit ignores box-shadow on text inputs until native appearance is cleared using "-webkit-appearance: none". */
+.header .perspective-selector .dropdown-select-input-container > input[type="text"] {
+	-webkit-appearance: none;
+	appearance: none;
 	box-shadow: 1px 1px 0px 0px rgba(from var(--fg-main-color) r g b / 0.2);
 }
 
 /* Refresh / Hard Refresh / Perspective field: same height; text+icons 1px optically higher */
-.header .refreshButtons .HAButton,
+.header .HAButton,
 .header .perspective-selector .dropdown-select-input-container > input[type="text"] {
 	box-sizing: border-box;
 	height: 1.4rem;
 	line-height: 1.15;
 }
 
-.header .refreshButtons .HAButton {
+.header .HAButton {
 	display: inline-flex;
 	align-items: center;
 	/* was 1px 3px 0px 3px - same total vertical padding, content 1px higher */
-	padding: 0px 3px 1px 3px;
+	padding: 1px 3px;
 }
 
 .header .perspective-selector.dropdown-select-container-compact {

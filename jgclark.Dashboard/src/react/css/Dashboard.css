@@ -396,6 +396,11 @@ button,
 	cursor: pointer;
 }
 
+.margin-left{
+	/* add space before something (normally an icon) */
+	margin-left: 0.3rem;
+}
+
 .pad-left {
 	/* add space before something (normally an icon) */
 	padding-left: 0.3rem !important;

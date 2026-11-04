@@ -620,9 +620,7 @@ const ipItemCount = countInteractiveProcessingItems(ipSourceItems, section.secti
    * On narrow window, these are a column-based grid (3x1).
    * Then <SectionGrid> which contains the actual data items.
    */
-  return hideSection ? null : (
-    // <section className={`section`}>
-    // TODO: get this working. See post in KP Discord about it on 26.5.2025
+return hideSection ? null : (
     <section className={`section ${isReferencedSection ? 'referencedSectionInfo' : 'nonReferencedSectionInfo'}`}>
       <div className="sectionInfo">
         <div className={`sectionInfoFirstLine ${section.sectionTitleColorPart ? section.sectionTitleColorPart : 'DefaultSectionColor'}`}>
@@ -635,7 +633,7 @@ const ipItemCount = countInteractiveProcessingItems(ipSourceItems, section.secti
             <div className={`sectionName`} onClick={handleSectionClick} style={titleStyle}>
               <i className={`sectionIcon fa-fw ${section.FAIconClass || ''}`}></i>
               {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
-              {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin pad-left"></i> : null}
+            {sectionIsRefreshing ? <i className="fa fa-light fa-spinner fa-spin margin-left"></i> : null}
             </div>
           </TooltipOnKeyPress>
           {/* {' '} */}
