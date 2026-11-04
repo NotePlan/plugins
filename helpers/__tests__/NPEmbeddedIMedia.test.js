@@ -182,6 +182,8 @@ describe('NPEmbeddedMedia', () => {
     const input = 'keep ![image](Note_attachments/a.png) and ![file](<Note_attachments/a.pdf>) tail'
     expect(m.stripLocalMediaLink(input, 'Note_attachments/a.png')).toBe('keep  and ![file](<Note_attachments/a.pdf>) tail')
     expect(m.stripLocalMediaLink(input, 'Note_attachments/a.pdf')).toBe('keep ![image](Note_attachments/a.png) and  tail')
+    const absolute = 'fave ![file](/Users/me/Calendar/20231215_attachments/ab67616d0000b273cb9af4fe64f348adeea69183) tail'
+    expect(m.stripLocalMediaLink(absolute, '20231215_attachments/ab67616d0000b273cb9af4fe64f348adeea69183')).toBe('fave  tail')
   })
 
   test('classifyEmbeddedMedia reports missing links and folders with no resolved link', () => {

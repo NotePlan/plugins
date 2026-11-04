@@ -18,7 +18,7 @@ import {
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { noteOpenInEditor } from '@helpers/NPEditor'
 import { isTeamspaceNoteFromFilename } from '@helpers/teamspace'
-import { showMessage } from '@helpers/userInput'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
 import {
   absoluteAttachmentFolder,
   classifyEmbeddedMedia,
@@ -41,6 +41,7 @@ const MISSING_HEADING = 'Links whose media is missing'
 const FOLDER_HEADING = 'Attachment folders with no working link'
 
 const SHARED_INTRO = [
+  'Please take a backup of your notes before removing links or folders, just in case.',
   'Please be aware of the limits of the API available to this command:',
   '- Folders left behind after their note was deleted can\'t be found or listed.',
   '- Orphaned media files can\'t be found or listed.',
@@ -67,6 +68,28 @@ type ScanResult = {|
  */
 function noteKey(noteType: string, filename: string): string {
   return `${noteType}\n${filename}`
+}
+
+/**
+ * Remove one local media link and log the exact text taken out of the note.
+ * @param {TNote} note
+ * @param {string} rawTarget
+ */
+function removeLoggedMediaLink(note: TNote, rawTarget: string): void {
+  const host: CoreNoteFields = Editor?.note && Editor.note.filename === note.filename && Editor.type === note.type ? Editor : note
+  const paragraphs = host.paragraphs || []
+  for (let i = 0; i < paragraphs.length; i++) {
+    const para = paragraphs[i]
+    const original = para.content || ''
+    const next = stripLocalMediaLink(original, rawTarget)
+    if (next === original) continue
+    const links = original.match(/!\[(?:image|file)\]\((?:<)?[^)\n]+(?:>)?\)/g) || []
+    for (const form of links) {
+      if (stripLocalMediaLink(form, rawTarget) === '') logDebug(pluginJson, `Removing "${form}" from '${note.filename}'`)
+    }
+    para.content = next
+    host.updateParagraph(para)
+  }
 }
 
 /**
@@ -216,7 +239,7 @@ function brokenLinkLines(found: ScanResult): Array<string> {
     const showFinder = finderButton(found.storageRoot, link.noteType, link.filename, link.folderExists)
     const remove = createPrettyRunPluginLink('Remove link', 'np.Tidy', 'removeBrokenMediaLink', [link.filename, link.noteType, link.rawTarget])
     const buttons = [openButton, showFinder, remove].filter((part) => part !== '').join(' ')
-    lines.push(`${String(index + 1)}. ${where}.  ${buttons}`)
+    lines.push(`${String(index + 1)}. ${where}  ${buttons}`)
     lines.push(`    \`${link.decodedPath}\``)
   })
   lines.push('')
@@ -242,7 +265,7 @@ function unusedFolderLines(found: ScanResult): Array<string> {
     const showFinder = finderButton(found.storageRoot, row.noteType, row.filename, true)
     const remove = createPrettyRunPluginLink('Remove folder', 'np.Tidy', 'removeUnusedAttachmentFolder', [row.noteType, row.folderPath])
     const buttons = [openButton, showFinder, remove].filter((part) => part !== '').join(' ')
-    lines.push(`${String(index + 1)}. ${where}.  ${buttons}`)
+    lines.push(`${String(index + 1)}. ${where}  ${buttons}`)
     lines.push(`    \`${row.folderPath}\``)
   })
   lines.push('')
@@ -345,7 +368,7 @@ export async function listEmbeddedMediaProblems(params: string = ''): Promise<vo
 }
 
 /**
- * x-callback: delete one broken media link from a note, then refresh the list.
+ * x-callback: delete one broken media link from a note. Does not rebuild the results list.
  * @param {string} filename
  * @param {string} noteType
  * @param {string} rawTarget
@@ -356,19 +379,16 @@ export async function removeBrokenMediaLink(filename: string = '', noteType: str
     const note = noteByFilenameAndType(filename, noteType)
     if (!note) {
       CommandBar.showLoading(false)
-      await showMessage(`Couldn't find note '${filename}'. I will re-run the command.`)
-      await listEmbeddedMediaProblems('{"runSilently":true}')
+      await showMessage(`Couldn't find note '${filename}'.`)
       return
     }
     if (!rawTarget) {
       CommandBar.showLoading(false)
-      await showMessage('No media link was given. I will re-run the command.')
-      await listEmbeddedMediaProblems('{"runSilently":true}')
+      await showMessage('No media link was given.')
       return
     }
-    note.content = stripLocalMediaLink(note.content || '', rawTarget)
+    removeLoggedMediaLink(note, rawTarget)
     CommandBar.showLoading(false)
-    await listEmbeddedMediaProblems('{"runSilently":true}')
   } catch (err) {
     CommandBar.showLoading(false)
     logError('removeBrokenMediaLink', JSP(err))
@@ -380,9 +400,9 @@ export async function removeBrokenMediaLink(filename: string = '', noteType: str
  */
 export async function removeAllBrokenMediaLinks(): Promise<void> {
   try {
-    CommandBar.showLoading(true, 'Removing broken media links')
     const config = await getSettings()
     const outputFilename = config.embeddedMediaProblemsNoteFilename || FALLBACK_OUTPUT_FILENAME
+    CommandBar.showLoading(true, 'Counting broken media links')
     let found: ?ScanResult = null
     /**
      * @returns {true}
@@ -393,7 +413,16 @@ export async function removeAllBrokenMediaLinks(): Promise<void> {
     }
     await runHeavySyncWork('removeAllBrokenMediaLinks', syncFind)
     if (found == null) syncFind()
+    CommandBar.showLoading(false)
     const broken = found ? found.brokenLinks : []
+    if (broken.length === 0) {
+      await showMessage('No broken media links to remove.')
+      return
+    }
+    const countLabel = broken.length === 1 ? '1 broken media link' : `${String(broken.length)} broken media links`
+    const answer = await showMessageYesNo(`Remove ${countLabel} from your notes? Take a backup first if you have not already.`, ['Yes', 'No'], 'Remove all links')
+    if (answer !== 'Yes') return
+    CommandBar.showLoading(true, 'Removing broken media links')
     const byNote: { [string]: Array<string> } = {}
     for (const link of broken) {
       const key = noteKey(link.noteType, link.filename)
@@ -404,9 +433,7 @@ export async function removeAllBrokenMediaLinks(): Promise<void> {
       const parts = key.split('\n')
       const note = noteByFilenameAndType(parts.slice(1).join('\n'), parts[0])
       if (!note) continue
-      let content = note.content || ''
-      for (const rawTarget of byNote[key]) content = stripLocalMediaLink(content, rawTarget)
-      note.content = content
+      for (const rawTarget of byNote[key]) removeLoggedMediaLink(note, rawTarget)
     }
     CommandBar.showLoading(false)
     await listEmbeddedMediaProblems('{"runSilently":true}')
@@ -417,7 +444,7 @@ export async function removeAllBrokenMediaLinks(): Promise<void> {
 }
 
 /**
- * x-callback: move an unused attachment folder to the trash, then refresh the list.
+ * x-callback: move an unused attachment folder to the trash. Does not rebuild the results list.
  * Calendar folders need the note type passed to `moveNote`. Checked live: `moveNote('20210107_attachments', '@Trash', 'Calendar')` moved that empty folder to `Notes/@Trash`.
  * @param {string} noteType
  * @param {string} folderPath path relative to the Notes or Calendar root, such as `Projects/Note_attachments` or `20210107_attachments`
@@ -425,8 +452,7 @@ export async function removeAllBrokenMediaLinks(): Promise<void> {
 export async function removeUnusedAttachmentFolder(noteType: string = 'Notes', folderPath: string = ''): Promise<void> {
   try {
     if (!folderPath) {
-      await showMessage('No attachment folder was given. I will re-run the command.')
-      await listEmbeddedMediaProblems('{"runSilently":true}')
+      await showMessage('No attachment folder was given.')
       return
     }
     CommandBar.showLoading(true, 'Moving attachment folder to the trash')
@@ -434,9 +460,8 @@ export async function removeUnusedAttachmentFolder(noteType: string = 'Notes', f
     const moved = noteType === 'Calendar' ? DataStore.moveNote(folderPath, '@Trash', 'Calendar') : DataStore.moveNote(folderPath, '@Trash')
     CommandBar.showLoading(false)
     if (!moved) {
-      await showMessage(`Couldn't move '${folderPath}' to the trash. I will re-run the command.`)
+      await showMessage(`Couldn't move '${folderPath}' to the trash.`)
     }
-    await listEmbeddedMediaProblems('{"runSilently":true}')
   } catch (err) {
     CommandBar.showLoading(false)
     logError('removeUnusedAttachmentFolder', JSP(err))

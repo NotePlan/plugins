@@ -1,7 +1,7 @@
 # Tidy Up Changelog
 See Plugin [README](https://noteplan.co/plugins/np.Tidy) for full details on the available commands and use from callbacks and templates.
 
-## [1.22.0] - 2026-11-03 @jgclark
+## [1.22.0] - 2026-11-04 @jgclark
 - new **/List embedded media problems** command: lists local embedded image or file links whose file is missing, and `{note}_attachments` folders that exist but have no working link. The results note explains what the plugin API cannot see (it cannot list files inside a folder, so an empty folder and a folder of unlinked files are the same row; deleted notes' leftover folders and Teamspace notes are skipped). Each row has **Open note**. Missing links have **Remove link**, and the section has **Remove all links**. **Remove folder** moves the whole folder to the trash, including a Calendar attachment folder (`moveNote` with type `Calendar`). On macOS, rows whose folder exists also have **Show in Finder**, when the scan can learn the storage path from an absolute attachment link.
 
 ## [1.21.1] - 2026-10-25 @jgclark

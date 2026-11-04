@@ -357,7 +357,26 @@ export function stripLocalMediaLink(text: string, rawTarget: string): string {
   ]
   let out = text
   for (const form of forms) out = out.split(form).join('')
+  // note.content often stores a relative path, while the paragraph stores the same file as an absolute path.
+  // Replacing note.content then leaves the paragraph to write the absolute link back.
+  out = out.replace(/!\[(?:image|file)\]\((<)?([^)\n]+)(>)?\)/g, (whole, _open, path) => (mediaPathMatchesTarget(path, rawTarget) ? '' : whole))
   return out
+}
+
+/**
+ * @param {string} path path inside a media link, possibly absolute and percent-encoded
+ * @param {string} rawTarget relative target from the link as stored in note.content
+ * @returns {boolean}
+ */
+function mediaPathMatchesTarget(path: string, rawTarget: string): boolean {
+  if (path === rawTarget) return true
+  let decoded = path
+  try {
+    decoded = decodeURI(path)
+  } catch (e) {
+    decoded = path
+  }
+  return decoded === rawTarget || decoded.endsWith(`/${rawTarget}`) || path.endsWith(`/${rawTarget}`)
 }
 
 export type MediaScanNote = {|
