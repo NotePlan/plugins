@@ -5,6 +5,7 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 
 ## [2.6.0.b10] 2026-11-05
 - Fix: Clicking a task row (or its note title) while a search or refresh is still running now opens the note when that work finishes. The click used to be dropped, so nothing opened.
+- Fix: Rebuild against tagMentionCache from np.Shared v1.3.3 which fixes a full regeneration happening far too infrequently.
 
 ## [2.6.0.b9] 2026-11-04
 - Fix: "Explain selected item filters" no longer implies a generated item will be visible when `filterPriorityItems` is on. Summary now says GENERATE vs DISPLAY, and warns that React may hide lower-priority rows behind "lower-priority items currently hidden".

@@ -14,7 +14,7 @@
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/plugins/np.Shared",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Shared/CHANGELOG.md",
-  "plugin.lastUpdateInfo": "1.3.3: Fix: Incremental update now looks back far enough to include notes changed since the last run.\n1.3.2: Fix: tag/mention cache rebuild uses short runOnAsyncThread batches (to avoid stuck 'Generating tag/mention cache progress' messages from API weakness).",
+  "plugin.lastUpdateInfo": "1.3.3: Fix: Incremental update now looks back far enough to include notes changed since the last run. Full tag/mention cache rebuild is scheduled after 5 days, not 120.\n1.3.2: Fix: tag/mention cache rebuild uses short runOnAsyncThread batches (to avoid stuck 'Generating tag/mention cache progress' messages from API weakness).",
   "plugin.requiredFiles": [
     "apple-switch.css",
     "css.w3.css",

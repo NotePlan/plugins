@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Shared tag/mention cache for any plugin (owned by np.Shared)
 // Written originally by @jgclark for Dashboard plugin.
-// last updated 2026-10-28 for v1.3.3 by @jgclark + @CursorAI
+// last updated 2026-11-05 for v1.3.3 by @jgclark + @CursorAI
 //-----------------------------------------------------------------------------
 // Cache body (`tagMentionCache.json`):
 // {
@@ -539,14 +539,14 @@ export function isTagMentionCacheGenerationScheduled(): boolean {
 }
 
 /**
- * Schedule a regeneration of the tag mention cache if it's too old (>24 hours). Note: assumes that the cache is available.
+ * Schedule a regeneration of the tag mention cache if it's too old (>= TAG_CACHE_GENERATE_INTERVAL_HOURS, 5 days). Note: assumes that the cache is available.
  * @param {string} generatedAtStr The date and time the cache was generated.
  */
 export function scheduleTagMentionCacheGenerationIfTooOld(generatedAtStr: string): void {
   const nowMom = moment()
   const generatedAtMom = moment(generatedAtStr)
   const diffHours = nowMom.diff(generatedAtMom, 'hours', true).toFixed(3) // 3 significant figures
-  if (diffHours >= (TAG_CACHE_GENERATE_INTERVAL_HOURS * 24)) {
+  if (diffHours >= TAG_CACHE_GENERATE_INTERVAL_HOURS) {
     logInfo('scheduleTagMentionCacheGenerationIfTooOld', `Tag mention cache is too old (${diffHours}hours), so scheduling a regeneration.`)
     scheduleTagMentionCacheGeneration()
   } else {
@@ -1160,7 +1160,7 @@ export function getTagMentionCacheDiagnosticsLines(): Array<string> {
   lines.push('### Settings')
   lines.push(`- TAG_CACHE_ONLY_FOR_OPEN_ITEMS (code): ${String(TAG_CACHE_ONLY_FOR_OPEN_ITEMS)}`)
   lines.push(`- Update interval: ${String(TAG_CACHE_UPDATE_INTERVAL_HOURS)} hour(s)`)
-  lines.push(`- Full regenerate interval: ${String(TAG_CACHE_GENERATE_INTERVAL_HOURS)} day(s)`)
+  lines.push(`- Full regenerate interval: ${String(TAG_CACHE_GENERATE_INTERVAL_HOURS)} hour(s)`)
   lines.push(`- Regeneration scheduled (pref): ${String(generationScheduled)}`)
   lines.push(`- Last run: ${lastRunPref != null ? String(lastRunPref) : '(not set)'} (from pref)`)
   lines.push(`- Cache files: ${tagMentionCacheFile}`)
