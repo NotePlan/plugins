@@ -3,6 +3,9 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
+## [2.6.0.b9] 2026-11-04
+- Fix: "Explain selected item filters" no longer implies a generated item will be visible when `filterPriorityItems` is on. Summary now says GENERATE vs DISPLAY, and warns that React may hide lower-priority rows behind "lower-priority items currently hidden".
+
 ## [2.6.0.b8] 2026-11-04
 - Change: small UI changes to refresh button and spinner. dev: Also, consolidating the CSS and renaming to BorderlessButton(s).
 - Fix: After a failed open/highlight (e.g. task edited in Editor), SEARCH refresh now picks up the live Editor text -- save dirty Editor + updateCache before refresh, and resolve search hit paragraphs from Editor when that note is open. The notice is an immediate 10s toast (not a banner deferred until search finishes).

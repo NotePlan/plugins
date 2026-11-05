@@ -714,12 +714,19 @@ async function resolveParagraphToExplain(filenameArg?: string, lineIndexArg?: st
 /**
  * Log React-side settings that can still hide an item after plugin generation.
  * @param {TDashboardSettings} settings
+ * @param {number} itemPriority
  * @returns {void}
  */
-function logReactSideCaveats(settings: TDashboardSettings): void {
+function logReactSideCaveats(settings: TDashboardSettings, itemPriority: number): void {
   logInfo(LOG, '--- React-side caveats (can still hide after generation) ---')
   logInfo(LOG, `  ignoreChecklistItems=${String(settings.ignoreChecklistItems)}`)
-  logInfo(LOG, `  filterPriorityItems=${String(settings.filterPriorityItems)}`)
+  logInfo(LOG, `  filterPriorityItems=${String(settings.filterPriorityItems)} (itemPriority=${String(itemPriority)})`)
+  if (settings.filterPriorityItems) {
+    logInfo(
+      LOG,
+      `  NOTE: filterPriorityItems uses the GLOBAL max priority across all visible sections. If any section has a higher-priority open item than ${String(itemPriority)}, this line stays in section data but is hidden until you click "show lower priorities".`,
+    )
+  }
   logInfo(LOG, `  maxItemsToShowInSection=${String(settings.maxItemsToShowInSection)}`)
   logInfo(LOG, `  hideDuplicates=${String(settings.hideDuplicates)}`)
   logInfo(LOG, `  showWinsSection=${String(settings.showWinsSection)} treatTopPriorityAsWins=${String(settings.treatTopPriorityAsWins)} winsPriorityMarker=${String(settings.winsPriorityMarker)}`)
@@ -761,7 +768,8 @@ export async function explainSelectedItemFilters(filenameArg?: string, lineIndex
     logInfo(LOG, `Enabled sections: ${enabledSections.join(', ')}`)
     logInfo(LOG, `Item: ${para.filename || note?.filename || '?'} #${String(para.lineIndex)} type=${para.type} folder='${folder}'`)
     logInfo(LOG, `Content: ${para.content}`)
-    logInfo(LOG, `Schedules: ${JSON.stringify(scheduledDates)}; priority=${String(getNumericPriorityFromPara(para))}`)
+    const itemPriority = getNumericPriorityFromPara(para)
+    logInfo(LOG, `Schedules: ${JSON.stringify(scheduledDates)}; priority=${String(itemPriority)}`)
     logInfo(LOG, `Folders: included='${settings.includedFolders || ''}' excluded='${settings.excludedFolders || ''}'`)
     logInfo(LOG, `ignoreItemsWithTerms='${settings.ignoreItemsWithTerms || ''}' includedCalendarSections='${settings.includedCalendarSections || ''}'`)
     clo(
@@ -788,14 +796,21 @@ export async function explainSelectedItemFilters(filenameArg?: string, lineIndex
       results.push(result)
     }
 
-    logReactSideCaveats(settings)
+    logReactSideCaveats(settings, itemPriority)
 
     const includeList = results.filter((r) => r.verdict === 'INCLUDE').map((r) => r.sectionCode)
     const excludeList = results.filter((r) => r.verdict === 'EXCLUDE').map((r) => `${r.sectionCode}(${r.reason})`)
     const naList = results.filter((r) => r.verdict === 'N/A').map((r) => `${r.sectionCode}(${r.reason})`)
+    const mayHideByPriority = Boolean(settings.filterPriorityItems)
 
     logInfo(LOG, '========== SUMMARY ==========')
-    logInfo(LOG, `Would INCLUDE in: ${includeList.length ? includeList.join(', ') : 'none'}`)
+    logInfo(LOG, `Would GENERATE into: ${includeList.length ? includeList.join(', ') : 'none'}`)
+    if (mayHideByPriority && includeList.length > 0) {
+      logInfo(
+        LOG,
+        `DISPLAY caveat: filterPriorityItems=true and itemPriority=${String(itemPriority)} -- React may hide this after generation if any visible section has a higher max priority (look for "lower-priority items currently hidden")`,
+      )
+    }
     logInfo(LOG, `EXCLUDE: ${excludeList.length ? excludeList.join(', ') : 'none'}`)
     logInfo(LOG, `N/A: ${naList.length ? naList.join(', ') : 'none'}`)
     logInfo(LOG, '===============================================')
@@ -803,10 +818,13 @@ export async function explainSelectedItemFilters(filenameArg?: string, lineIndex
     const summaryLines = [
       `Perspective: ${activePerspectiveName}`,
       `Line #${String(para.lineIndex)}: ${para.content.slice(0, 80)}`,
-      `INCLUDE: ${includeList.length ? includeList.join(', ') : 'none'}`,
+      `GENERATE: ${includeList.length ? includeList.join(', ') : 'none'}`,
+      mayHideByPriority && includeList.length > 0
+        ? `DISPLAY?: maybe hidden by filterPriorityItems (priority=${String(itemPriority)})`
+        : null,
       `EXCLUDE: ${excludeList.length ? excludeList.join(', ') : 'none'}`,
       '(Full step log in Plugin Console)',
-    ]
+    ].filter(Boolean)
     const summary = summaryLines.join('\n')
     // Interactive (Editor selection): modal. x-callback with filename args: banner only so automation is not blocked.
     if (filenameArg && filenameArg !== '') {
