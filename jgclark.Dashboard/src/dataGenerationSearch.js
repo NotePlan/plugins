@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Generate search results for the Dashboard
-// Last updated 2026-11-03 for v2.6.0.b8 by @CursorAI for @jgclark
+// Last updated 2026-11-05 for v2.6.0.b10 by @CursorAI for @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -80,18 +80,26 @@ export async function externallyStartSearch(
   clo(config, 'externallyStartSearch: config:')
   logInfo('externallyStartSearch', `- starting search with searchTermsArg: "${searchTermsArg}" ${config.applyCurrentFilteringToSearch ? 'WITH' : 'WITHOUT'} Perspective filtering`)
 
-  const searchOptions: TSearchOptions = await buildDashboardSearchOptions(config, noteTypesToIncludeStr, fromDateStr, toDateStr)
+  // Mark busy before the slow search so task clicks stay queued until results land.
+  // Without this, the WebView lock expired after 30s and the click was sent into a still-running search and lost.
+  await setPluginData({ refreshing: ['SEARCH'] }, `Starting search for [${String(searchTermsArg)}]`)
+  try {
+    const searchOptions: TSearchOptions = await buildDashboardSearchOptions(config, noteTypesToIncludeStr, fromDateStr, toDateStr)
 
-  // Start a search
-  const newSections = await getSearchResults(searchTermsArg, config, searchOptions)
+    // Start a search
+    const newSections = await getSearchResults(searchTermsArg, config, searchOptions)
 
-  // Add the new section(s) to the existing sections
-  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  const pluginData = reactWindowData.pluginData
-  const existingSections = pluginData.sections
-  const mergedSections = mergeSections(existingSections, newSections)
-  const updates: TAnyObject = { sections: mergedSections }
-  await setPluginData(updates, `Finished getSearchResults for [${String(searchTermsArg)}]`)
+    // Add the new section(s) to the existing sections
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    const pluginData = reactWindowData.pluginData
+    const existingSections = pluginData.sections
+    const mergedSections = mergeSections(existingSections, newSections)
+    const updates: TAnyObject = { sections: mergedSections, refreshing: false }
+    await setPluginData(updates, `Finished getSearchResults for [${String(searchTermsArg)}]`)
+  } catch (error) {
+    logError('externallyStartSearch', error.message)
+    await setPluginData({ refreshing: false }, 'Search failed; clearing spinner')
+  }
 }
 
 /**
