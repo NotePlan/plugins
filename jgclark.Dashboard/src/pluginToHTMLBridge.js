@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin -- both ways!
-// Last updated 2026-10-10 for v2.5.2 by @CursorAI & @jgclark
+// Last updated 2026-11-05 for v2.6.0.b10 by @CursorAI & @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -693,13 +693,18 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
     if (filename !== '') {
       // Stale SEARCH/open failures often happen after an in-Editor edit that is not on disk yet.
       // updateCache re-reads the file -- save first when this note is open in Editor.
-      if (Editor?.filename === filename) {
+      // Pass Editor.note (or a filename lookup). NotePlan rejects updateCache(Editor)
+      // with "Argument does not match Objective-C Class", which used to skip the refresh below.
+      const editorHasThisNote = Editor?.filename === filename
+      if (editorHasThisNote) {
         await saveEditorIfNecessary()
-        DataStore.updateCache(Editor, false)
-      } else {
-        const thisNote = getNoteByFilename(filename)
-        if (thisNote) {
-          DataStore.updateCache(thisNote, false)
+      }
+      const noteForCache = editorHasThisNote && Editor?.note ? Editor.note : getNoteByFilename(filename)
+      if (noteForCache) {
+        try {
+          DataStore.updateCache(noteForCache, false)
+        } catch (cacheErr) {
+          logWarn('processActionOnReturn', `updateCache failed for '${filename}': ${cacheErr.message}`)
         }
       }
     }

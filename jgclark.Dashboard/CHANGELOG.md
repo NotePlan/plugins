@@ -3,9 +3,37 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 
 <!-- "Not calling init(): Automatic plugin updates are disabled in preferences." -->
 
+## [2.6.0] 2026-11-???
+### New: Due dates
+- Tasks can carry a **due date / deadline** as `!>YYYY-MM-DD` or `!YYYY-MM-DD` (and week forms `!>YYYY-Wnn` / `!YYYY-Wnn`), as well as or instead of a scheduled date (`>YYYY-MM-DD` / `>YYYY-Wnn`), which acts as a **start date** when both are present.
+- Open tasks appear in Today (or This Week) from start through due. While the due date is still ahead they stay out of Overdue; after that they are overdue.
+- Tasks due within a set number of days show a flag chip (red when due today or overdue). New Display setting: "When to start showing due dates?" (default 5). Week due chips count days when within 6 days, otherwise whole weeks.
+
+### New: Add Task / Checklist / Reminder
+- The topbar add button opens one dialog for Task, Checklist, or Reminder (switchable either way). Calendar section add icons use the same dialog on Task for that period; the Reminders heading **+** opens it on Reminder. The old Quick Capture fallback and Dynamic Add To Anywhere flag are gone.
+
+### Changes
+- 'Reminder Lists to Use' also sets the order those lists appear in the add-reminder dialog. Adding a reminder shows a toast.
+- After adding a Reminder, only the section(s) that should show it regenerate (undated -> REM only), instead of a blanket refresh that also rebuilt Overdue.
+- Small UI tweaks to the refresh button and spinner.
+
+### Fixes
+- Perspective switch and Dashboard open no longer hang or leave the Refresh / "Generating" spinner stuck.
+- Do not generate TAG sections when every one of its Show Section toggles is off (perspectives can keep a tag in `tagsToShow` while hiding it).
+- Tag/Mention and Priority sections no longer miss some note changes between full cache rebuilds (np.Shared tagMentionCache update).
+- "Hide lower-priority items" recalculates after the last shown high-priority items are cancelled as well as completed.
+- Completing or deleting a Reminder now matches Task/Checklist UX.
+- Clicking a task (or note title) while a search or refresh is still running opens the note when that work finishes (clicks were previously dropped).
+- Moving or rescheduling a task in the note open in the Editor no longer skips the Dashboard refresh.
+- SEARCH: after a failed open/highlight, refresh picks up live Editor text and shows an immediate message; completing a SEARCH row elsewhere no longer leaves that section's spinner spinning forever.
+- "Explain selected item filters" command distinguishes GENERATE vs DISPLAY when `filterPriorityItems` is on, and warns that React may hide lower-priority rows.
+- Calendar note terms no longer match inside the URL of a labeled markdown link, or inside `[[note links]]` (the link label is still matched).
+
+<!--
 ## [2.6.0.b10] 2026-11-05
 - Fix: Clicking a task row (or its note title) while a search or refresh is still running now opens the note when that work finishes. The click used to be dropped, so nothing opened.
 - Fix: Rebuild against tagMentionCache from np.Shared v1.3.3 which fixes a full regeneration happening far too infrequently.
+- Fix: Moving or rescheduling a task in the note open in the Editor no longer skips the dashboard refresh. dev: `updateCache` is given `Editor.note` (or the note looked up by filename), and a failure there is logged and ignored.
 
 ## [2.6.0.b9] 2026-11-04
 - Fix: "Explain selected item filters" no longer implies a generated item will be visible when `filterPriorityItems` is on. Summary now says GENERATE vs DISPLAY, and warns that React may hide lower-priority rows behind "lower-priority items currently hidden".
@@ -56,6 +84,7 @@ For more details see the [plugin's documentation](https://noteplan.co/plugins/jg
 - dev: The plan file is overdue_bang_dates_b09303f1.plan.md, at /Users/jonathan/.cursor/plans/overdue_bang_dates_b09303f1.plan.md.
 ### Changes
 - Fix: Calendar note terms no longer match inside the URL of a labeled markdown link, or inside `[[note links]]`. The link label is still matched.
+-->
 
 ## [2.5.2] 2026-10-15
 - New: Added Interactive Processing (`>> N` button) for the Timed Reminders / Timed Items / Time Blocks Section, to enable walking through reminder rows and open task or checklist timeblocks. (For @dwertheimer.)
