@@ -141,58 +141,55 @@ const expensesTracking = async (): Promise<boolean> => {
  *
  * @returns {Promise<boolean>}
  */
-const expensesAggregate = async (): Promise<boolean> => {
-  let config = await provideConfig()
-  config = validateConfig(config, new Date())
+const expensesAggregate = async () => {
+	  let config = await provideConfig();
+	  config = validateConfig(config, new Date());
 
-  if (!config.folderPath) {
-    return false
-  }
+	  if (!config.folderPath) {
+	    return false;
+	  }
+	  
+	  const year = Number(await CommandBar.showInput('Please type in the year to aggregate', 'Start aggregate'));
+	 
+	  const noteTitleTracking = `${year} Expenses Tracking`;
+	  if (!(await provideAndCheckNote(noteTitleTracking, config.folderPath, false, year))) {
+	    return false;
+	  }
+	  const trackingNote = DataStore.projectNoteByTitle(noteTitleTracking)?.[0];
+	 
+	  if (trackingNote) {
+		const trackedData = trackingNote.paragraphs.filter(para => para.rawContent && !para.rawContent.startsWith('#')).map(para => extractExpenseRowFromCsvRow(para.rawContent, config));
+	
+		if (!checkDataQualityBeforeAggregate(trackedData, year, config)) {
+			return false;
+		}
 
-  const year = Number(await CommandBar.showInput('Please type in the year to aggregate', 'Start aggregate'))
-
-  const noteTitleTracking = `${year} Expenses Tracking`
-  if (!(await provideAndCheckNote(noteTitleTracking, config.folderPath, false, year))) {
-    return false
-  }
-
-  const trackingNote = DataStore.projectNoteByTitle(noteTitleTracking)?.[0]
-
-  if (trackingNote) {
-    const trackedData = trackingNote.paragraphs.filter((para) => !para.rawContent.startsWith('#')).map((para) => extractExpenseRowFromCsvRow(para.rawContent, config))
-
-    if (!checkDataQualityBeforeAggregate(trackedData, year, config)) {
-      return false
-    }
-
-    const aggregatedData = aggregateByCategoriesAndMonth(trackedData, config.delimiter)
-
-    const noteTitleAggregate = `${year} Expenses Aggregate`
-    if (!(await provideAndCheckNote(noteTitleAggregate, config.folderPath, true))) {
-      return false
-    }
-
-    const lines: Array<string> = []
-
-    if (aggregatedData.length > 0) {
-      await Editor.openNoteByTitle(noteTitleAggregate)
-      const note = Editor.note
-      if (note) {
-        note.removeParagraphs(note.paragraphs.filter((para) => !para.rawContent.startsWith('#')))
-        // add results
-        aggregatedData.forEach((aggregated) => {
-          if (aggregated.year) {
-            lines.push(createAggregationExpenseRowWithDelimiter(aggregated, config))
-          }
-        })
-        note.appendParagraph(lines.join('\n'), 'text')
-        return true
-      }
-    }
-  }
-
-  return false
-}
+		const aggregatedData = aggregateByCategoriesAndMonth(trackedData, config.delimiter);
+		
+		const noteTitleAggregate = `${year} Expenses Aggregate`;
+		if (!(await provideAndCheckNote(noteTitleAggregate, config.folderPath, true))) {
+			return false;
+		}
+		
+		const lines = [];
+		if (aggregatedData.length > 0) {
+			await Editor.openNoteByTitle(noteTitleAggregate);
+			const note = Editor.note;
+			if (note) {
+				note.removeParagraphs(note.paragraphs.filter(para => !para.rawContent.startsWith('#')));
+				// add results
+				aggregatedData.forEach(aggregated => {
+					if (aggregated.year) {
+						lines.push(createAggregationExpenseRowWithDelimiter(aggregated, config));
+					}
+				});
+				note.appendParagraph(lines.join('\n'), 'text');
+				return true;
+			}
+		}
+	}
+	  return false;
+	};
 
 /**
  * tracking of individual expenses
