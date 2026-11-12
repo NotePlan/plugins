@@ -13,6 +13,7 @@ import {
   overrideSettingsWithEncodedTypedArgs,
 } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
+import { getNoteFromEditorWindow } from '@helpers/NPEditor'
 import { getAllNotesOfType, getNotesChangedInInterval } from '@helpers/NPnote'
 import { addParagraphsToNote, findHeading, isBlankParagraph } from '@helpers/paragraph'
 import { escapeRegExp } from '@helpers/regexEscape'
@@ -31,8 +32,8 @@ export type FileNoteLinksResult = { filed: number, skipped: number }
 export async function copyNoteLinks(): Promise<number> {
   const settings: FilerConfig = await getFilerSettings()
   settings.copyOrMove = "copy"
-  // get current note
-  const { note } = Editor
+  // get current note (Editor itself when a calendar note has no .note)
+  const note = getNoteFromEditorWindow(Editor)
   if (!note) {
     logWarn(pluginID, `No note selected, so stopping.`)
     await showMessage("No note selected, so cannot run.")
@@ -74,8 +75,8 @@ export async function copyRecentNoteLinks(params: string = ''): Promise<number> 
 export async function moveNoteLinks(): Promise<number> {
   const settings: FilerConfig = await getFilerSettings()
   settings.copyOrMove = "move"
-  // get current note
-  const { note } = Editor
+  // get current note (Editor itself when a calendar note has no .note)
+  const note = getNoteFromEditorWindow(Editor)
   if (!note) {
     logWarn(pluginID, `No note selected, so stopping.`)
     await showMessage("No note selected, so cannot run.")

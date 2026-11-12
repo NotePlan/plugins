@@ -2,13 +2,14 @@
 // ----------------------------------------------------------------------------
 // Smarter archiving commands, part of Filer plugin
 // Jonathan Clark
-// last updated 2026-05-01 for v1.6.0, by @Cursor & @jgclark
+// last updated 2026-11-12 for v1.6.4, by @CursorAI
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { clo, JSP, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { archiveNoteUsingFolder } from '@helpers/NPnote'
+import { getNoteFromEditorWindow } from '@helpers/NPEditor'
+import { archiveNoteUsingFolder, isNoteAlreadyUnderArchiveRoot } from '@helpers/NPnote'
 import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -22,17 +23,23 @@ import { showMessage } from '@helpers/userInput'
  */
 export async function archiveNote(noteIn?: TNote, archiveRootFolder?: string): Promise<?string> {
   try {
-    let note: TNote | null
+    let note: CoreNoteFields | null
     if (noteIn && (typeof noteIn === "object")) {
       // A note was passed in, so use it
       note = noteIn
       logDebug('archiveNote', `Note passed in: ${note.filename}`)
     } else {
       logDebug(pluginJson, `archiveNote(): starting for note open in Editor`)
-      note = Editor.note ?? null
+      note = getNoteFromEditorWindow(Editor) ?? null
     }
     if (!note) {
       throw new Error("Couldn't get note, so stopping.")
+    }
+    if (isNoteAlreadyUnderArchiveRoot(note.filename, archiveRootFolder)) {
+      const root = (archiveRootFolder ?? '').trim()
+      const where = root.length === 0 || root === '@Archive' ? 'the Archive' : `'${root}'`
+      await showMessage(`'${displayTitle(note)}' is already in ${where}, so cannot archive it.`, 'OK, thanks', 'Archive Note')
+      return null
     }
     const newFilename = archiveNoteUsingFolder(note, archiveRootFolder)
     if (newFilename) {
@@ -58,14 +65,14 @@ export async function archiveNote(noteIn?: TNote, archiveRootFolder?: string): P
  */
 export async function unarchiveNote(noteIn?: TNote): Promise<?string> {
   try {
-    let note: TNote | null
+    let note: CoreNoteFields | null
     if (noteIn && (typeof noteIn === 'object')) {
       // A note was passed in, so use it
       note = noteIn
       logDebug('unarchiveNote', `Note passed in: ${note.filename}`)
     } else {
       logDebug(pluginJson, `unarchiveNote(): starting for note open in Editor`)
-      note = Editor.note ?? null
+      note = getNoteFromEditorWindow(Editor) ?? null
     }
     if (!note) {
       throw new Error("Couldn't get note, so stopping.")
@@ -88,6 +95,7 @@ export async function unarchiveNote(noteIn?: TNote): Promise<?string> {
       logDebug('unarchiveNote', `- Note -> ${newFilename}`)
       return newFilename
     } else {
+      await showMessage(`Failed to move '${displayTitle(note)}' out of the Archive. Please see log for details.`, 'OK, thanks', 'Unarchive Note')
       throw new Error(`unarchiveNote(): Failed when unarchiving '${displayTitle(note)}' from @Archive`)
     }
   }

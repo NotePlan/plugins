@@ -1789,15 +1789,30 @@ export function getNoteTypeByFilename(filename: string): ?NoteType {
 }
 
 /**
+ * True when `filename` is the archive root itself, or already inside that folder.
+ * The default root is `@Archive`. Pass `archiveRootFolder` when archiving under another folder.
+ * @param {string} filename
+ * @param {string?} archiveRootFolder
+ * @returns {boolean}
+ */
+export function isNoteAlreadyUnderArchiveRoot(filename: string, archiveRootFolder?: string): boolean {
+  if (!filename) return false
+  const trimmedRoot = (archiveRootFolder ?? '').trim().replace(/\/+$/, '')
+  const root = trimmedRoot.length > 0 ? trimmedRoot : '@Archive'
+  return filename === root || filename.startsWith(`${root}/`)
+}
+
+/**
  * Archive a note using its current folder, replicating the folder structure if needed.
  * If 'archiveRootFolder' is supplied, archive under that folder, otherwise default to the built-in @Archive folder.
+ * A note already inside that archive root is left where it is, so the folder is not nested again.
  * @author @jgclark
  *
- * @param {TNote} noteIn
+ * @param {CoreNoteFields} noteIn
  * @param {string?} archiveRootFolder optional; if not given, then use the built-in @Archive folder
  * @returns {string | void} newFilename, if success
  */
-export function archiveNoteUsingFolder(note: TNote, archiveRootFolder?: string): string | void {
+export function archiveNoteUsingFolder(note: CoreNoteFields, archiveRootFolder?: string): string | void {
   try {
     if (!note) {
       throw new Error('No note passed, so stopping.')
@@ -1805,6 +1820,10 @@ export function archiveNoteUsingFolder(note: TNote, archiveRootFolder?: string):
     if (note.type === 'Calendar') {
       // Can't archive a Calendar note
       logWarn(pluginJson, 'archiveNoteUsingFolder(): Cannot archive a Calendar note, so stopping.')
+      return
+    }
+    if (isNoteAlreadyUnderArchiveRoot(note.filename, archiveRootFolder)) {
+      logWarn(pluginJson, `archiveNoteUsingFolder(): '${note.filename}' is already in the archive folder, so stopping.`)
       return
     }
     logDebug('archiveNoteUsingFolder', `Will archive Note '${displayTitle(note)} created at ${String(note.createdDate)}`)

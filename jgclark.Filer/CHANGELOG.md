@@ -8,6 +8,9 @@ Please see the [Readme for this plugin](https://noteplan.co/plugins/jgclark.File
   - the recently-changed commands report how many note links were filed, not how many calendar notes were visited.
   - "only completed task/checklist items" no longer files headings. Cancelled tasks and checklists still count as completed.
   - the `ignore tag` is matched as the tag you typed, not as a regular expression.
+- **/archive note keeping folder structure** leaves a note that is already in the archive where it is, instead of nesting `@Archive` inside itself. 
+- A failed **/unarchive note keeping folder structure** tells you the move did not happen.
+- dev: **/move paragraph**, the quick-move commands, **/move note links**, **/copy note links**, and **/move completed items to done section** use the open calendar note when `Editor.note` is unset.
 
 ## [1.6.3] - 2026-11-02
 - now **/move paragraph...** and **/move block** commands move any embedded image/media files as well.  dev: an embedded image or file (`![image](...)` / `![file](...)`) is copied into the destination note's attachment folder and the link is updated. Previously the file stayed next to the source note, so the image broke after the move. If the source note is a regular note and nothing left in it still links the file, the original is moved to the trash. (Thanks, @Valnar.)

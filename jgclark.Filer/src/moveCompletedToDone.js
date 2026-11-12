@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Move completed / cancelled tasks and checklists in a note to a '## Done' section
 // Jonathan Clark, aided by Cursor AI
-// Last updated 2026-10-26 for v1.6.2 by @jgclark
+// Last updated 2026-11-12 for v1.6.4 by @jgclark
 // ----------------------------------------------------------------------------
 /**
  * Original prompt for AI:
@@ -29,6 +29,7 @@ import { getFilerSettings } from './filerHelpers'
 import { blockHasActiveTasks, getParagraphBlock } from '@helpers/blocks'
 import { clo, JSP, logDebug, logInfo, logError, logTimer, logWarn, timer } from '@helpers/dev'
 import { getCurrentHeading, isParaAMatchForHeading, stripFoldedHeadingEllipsis } from '@helpers/headings'
+import { getNoteFromEditorWindow } from '@helpers/NPEditor'
 import { insertParas } from '@helpers/paragraph'
 import { isClosed } from '@helpers/utils'
 import { showMessage, showMessageYesNoCancel } from '@helpers/userInput'
@@ -846,11 +847,13 @@ export function moveCompletedItemsToDoneSection(
  */
 export async function moveCompletedItemsToDoneSectionCommand(): Promise<void> {
   try {
-    const note = Editor.note
-    if (!note) {
+    const openNote = getNoteFromEditorWindow(Editor)
+    if (!openNote) {
       logWarn(PLUGIN_ID, 'moveCompletedItemsToDoneSection: No note open, so stopping.')
       return
     }
+    // Editor itself is the note when a calendar note has no Editor.note.
+    const note: TNote = (openNote: any)
 
     const startTime = new Date()
     const config: FilerConfig = await getFilerSettings()

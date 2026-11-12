@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2026-11-02, for v1.6.3
+// last updated 2026-11-12, for v1.6.4 by @CursorAI
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -15,7 +15,7 @@ import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { addParagraphsToNote, findHeading } from '@helpers/paragraph'
-import { clearHighlighting, getSelectedParagraphsToUse, highlightSelectionInEditor } from '@helpers/NPEditor'
+import { clearHighlighting, getNoteFromEditorWindow, getSelectedParagraphsToUse, highlightSelectionInEditor } from '@helpers/NPEditor'
 import { prepareEmbeddedMediaMove, removeSourceEmbeddedMediaIfUnused } from '@helpers/NPEmbeddedMedia'
 import { chooseNoteV2 } from '@helpers/NPnote'
 import { chooseHeadingV2, showMessage } from '@helpers/userInput'
@@ -25,14 +25,14 @@ import { chooseHeadingV2, showMessage } from '@helpers/userInput'
 
 /**
  * Get the paragraphs to move based on selection and context.
- * @param {TNote} note - The note containing the paragraphs
+ * @param {CoreNoteFields} note - The note containing the paragraphs
  * @param {Array<TParagraph>} selectedParagraphsToUse - The selected paragraphs
  * @param {boolean} withBlockContext - Whether to include surrounding block
  * @param {Object} config - Configuration settings
  * @returns {Array<TParagraph>} Paragraphs to move
  */
 function getParagraphsToMove(
-  note: TNote,
+  note: CoreNoteFields,
   selectedParagraphsToUse: Array<TParagraph>,
   withBlockContext: boolean,
   config: any
@@ -69,11 +69,11 @@ function getParagraphsToMove(
  * Returns '' when not applicable. Does not mutate source paragraphs -- mutating
  * TParagraph.content before removeParagraphs causes NotePlan to delete 0 lines.
  * Uses the source note's calendar date (if available) so the backlink refers to the origin calendar note, not "today".
- * @param {TNote} note - Source note
+ * @param {CoreNoteFields} note - Source note
  * @param {Object} config - Configuration settings
  * @returns {string} Suffix including leading space (e.g. ' >2026-10-26'), or ''
  */
-function getDateBacklinkSuffix(note: TNote, config: any): string {
+function getDateBacklinkSuffix(note: CoreNoteFields, config: any): string {
   if (config.addDateBacklink && note.type === 'Calendar') {
     // Prefer the calendar note's own date, but fall back to today if it's missing
     const sourceCalDateStr: string = note.filename != null ? getDateStringFromCalendarFilename(note.filename, true) : todaysDateISOString
@@ -86,7 +86,7 @@ function getDateBacklinkSuffix(note: TNote, config: any): string {
 
 /**
  * Move paragraphs from source note to destination note.
- * @param {TNote} sourceNote - Note to move paragraphs from
+ * @param {CoreNoteFields} sourceNote - Note to move paragraphs from
  * @param {TNote} destNote - Note to move paragraphs to
  * @param {Array<TParagraph>} parasInBlock - Paragraphs to move (left unmodified so removeParagraphs can match them)
  * @param {string} headingToFind - Heading to add paragraphs under (empty string for calendar notes)
@@ -95,7 +95,7 @@ function getDateBacklinkSuffix(note: TNote, config: any): string {
  * @throws {Error} If paragraphs fail to be added
  */
 function moveParagraphsToNote(
-  sourceNote: TNote,
+  sourceNote: CoreNoteFields,
   destNote: TNote,
   parasInBlock: Array<TParagraph>,
   headingToFind: string,
@@ -162,7 +162,8 @@ export async function moveParaBlock(): Promise<void> {
  */
 export async function moveParas(withBlockContext: boolean = false): Promise<void> {
   try {
-    const { note, content, selectedParagraphs } = Editor
+    const { content, selectedParagraphs } = Editor
+    const note = getNoteFromEditorWindow(Editor)
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
       logWarn(pluginJson, 'moveParas: No note open, so stopping.')
@@ -280,7 +281,8 @@ export async function moveParasToNextWeekly(): Promise<void> {
  */
 export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext: boolean = false): Promise<void> {
   try {
-    const { content, selectedParagraphs, note } = Editor
+    const { content, selectedParagraphs } = Editor
+    const note = getNoteFromEditorWindow(Editor)
 
     // Pre-flight checks
     if (content == null || selectedParagraphs == null || note == null) {
@@ -368,7 +370,8 @@ export async function moveParasToTomorrow(): Promise<void> {
  */
 export async function moveParasToCalendarDate(destDate: Date, withBlockContext: boolean = false): Promise<void> {
   try {
-    const { content, selectedParagraphs, note } = Editor
+    const { content, selectedParagraphs } = Editor
+    const note = getNoteFromEditorWindow(Editor)
 
     // Pre-flight checks
     if (content == null || selectedParagraphs == null || note == null) {
