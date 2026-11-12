@@ -19,6 +19,14 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Fo
 - `helpers/react/DynamicDialog/SearchableChooser.jsx`, `SearchableChooser.css`.
 - `helpers/react/DynamicDialog/ContainedMultiSelectChooser.jsx`, `ContainedMultiSelectChooser.css`, `MultiSelectChooser.jsx`, `MultiSelectChooser.css`.
 -->
+## [1.1.10] 2026-11-12
+
+### Fixed
+- **Sidebar Forms Chooser**: `sidebarView.windowID` was `dwertheimer.forms_forms-chooser-window_main` while the window opens as `forms-chooser-window main`. NotePlan keys sidebar entries by that ID, so the pinned placeholder and the loaded view showed up as two Template Forms entries. The plugin.json ID now matches the window. If the old entry stays after updating, right-click it and remove it.
+
+### Edited in this release
+- `dwertheimer.Forms/plugin.json`, `CHANGELOG.md`.
+
 ## [1.1.9] 2026-04-17
 
 ### Fixed
