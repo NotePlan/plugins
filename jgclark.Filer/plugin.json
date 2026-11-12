@@ -10,7 +10,7 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
   "plugin.version": "1.6.4",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "1.6.4: fixes to various commands; for details see the CHANGELOG.\n1.6.3: /move paragraph and /move block now also moe any embedded images and files.\n1.6.2: Bug fixes to 'move paragraph', 'move note links' and 'move copmleted items' commands.\n1.6.1: Improvements and fixes to '/move completed items to done section' command.\n1.6.0: New '/unarchive note keeping folder structure' command to move a note from @Archive back to its original folder path.\n1.5.3: Improvements to the 'move completed items to done section' command.\n1.5.2: Allow customising the name of the 'Done' section heading used by the 'move completed items to done section' command. Improvements to the 'move completed items to done section' command.\n1.5.1: Fix 'Add date reference?' option so that when moving from calendar note the added date now correctly points to the source note's date, not always to today.\n1.5.0: New '/move completed items to done section' command that is more powerful than NP's built-in 'Move Completed to Bottom' menu action. It has two settings, which reveal its additional powers: Recreate existing section structure in Done section? (default: true). Only move completed items when whole section is complete? (default: false).",
+  "plugin.lastUpdateInfo": "1.6.4: fixes to various commands; for details see the CHANGELOG.\n1.6.3: /move paragraph and /move block now also move any embedded images and files.\n1.6.2: Bug fixes to 'move paragraph', 'move note links' and 'move completed items' commands.\n1.6.1: Improvements and fixes to '/move completed items to done section' command.\n1.6.0: New '/unarchive note keeping folder structure' command to move a note from @Archive back to its original folder path.\n1.5.3: Improvements to the 'move completed items to done section' command.\n1.5.2: Allow customising the name of the 'Done' section heading used by the 'move completed items to done section' command. Improvements to the 'move completed items to done section' command.\n1.5.1: Fix 'Add date reference?' option so that when moving from calendar note the added date now correctly points to the source note's date, not always to today.\n1.5.0: New '/move completed items to done section' command that is more powerful than NP's built-in 'Move Completed to Bottom' menu action. Settings include recreating the section structure under Done, and 'When to move completed items to Done' (ask each time, when the whole section is complete, or when any item is complete).",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -46,10 +46,7 @@
     {
       "name": "copy note links",
       "alias": [
-        "cnl",
-        "link",
-        "wikilink",
-        "file"
+        "cnl"
       ],
       "description": "copies [[note link]] lines or blocks from the open calendar note to their respective project notes",
       "jsFunction": "copyNoteLinks"
@@ -57,10 +54,7 @@
     {
       "name": "copy note links (recently changed)",
       "alias": [
-        "cnlrc",
-        "link",
-        "wikilink",
-        "file"
+        "cnlrc"
       ],
       "description": "copies [[note link]] lines or blocks from recently-changed calendar notes to their respective project notes",
       "jsFunction": "copyRecentNoteLinks",
@@ -81,10 +75,7 @@
     {
       "name": "move note links",
       "alias": [
-        "mnl",
-        "link",
-        "wikilink",
-        "file"
+        "mnl"
       ],
       "description": "moves [[note link]] lines or blocks from the open calendar note to their respective project notes",
       "jsFunction": "moveNoteLinks"
@@ -92,10 +83,7 @@
     {
       "name": "move note links (recently changed)",
       "alias": [
-        "mnlrc",
-        "link",
-        "wikilink",
-        "file"
+        "mnlrc"
       ],
       "description": "moves [[note link]] lines or blocks from recently-changed calendar notes to their respective project notes",
       "jsFunction": "moveRecentNoteLinks",
@@ -107,6 +95,7 @@
       "name": "move paragraph or selection",
       "alias": [
         "mp",
+        "fp",
         "file"
       ],
       "description": "moves this line (or selected lines) to a different note",
@@ -134,9 +123,7 @@
     {
       "name": "quick move to Tomorrow's note",
       "alias": [
-        "qmtm",
-        "day",
-        "daily"
+        "qmtm"
       ],
       "description": "quick move a block of lines to Tomorrow's daily note",
       "jsFunction": "moveParasToTomorrow"
@@ -145,6 +132,7 @@
       "name": "quick move to Weekly note",
       "alias": [
         "qmtw",
+        "qmw",
         "week"
       ],
       "description": "quick move a block of lines to the current Weekly note",
@@ -153,16 +141,10 @@
     {
       "name": "quick move to Next Weekly note",
       "alias": [
-        "qmnw",
-        "week"
+        "qmnw"
       ],
       "description": "quick move a block of lines to Next Week's note",
       "jsFunction": "moveParasToNextWeekly"
-    },
-    {
-      "name": "Filer: update plugin settings",
-      "description": "Settings interface (even for iOS)",
-      "jsFunction": "updateSettings"
     }
   ],
   "plugin.settings": [
@@ -185,7 +167,7 @@
     {
       "key": "addDateBacklink",
       "title": "Add date reference?",
-      "description": "If true, adds date reference on the moved paragraph(s) when moved from a daily note.",
+      "description": "If true, adds a date reference to the first moved line when it is moved from a calendar note (daily, weekly, monthly, and so on).",
       "type": "bool",
       "default": false,
       "required": true
@@ -193,7 +175,7 @@
     {
       "key": "dateRefStyle",
       "title": "Date reference style",
-      "description": "The style of added date reference on a moved note: add either 'link' (`[[date]]`), 'scheduled' (`>date`), 'at' (`@date`) or 'date' (a formatted date string).",
+      "description": "The style of the date reference added to the first moved line: 'link' (`[[date]]`), 'scheduled' (`>date`), 'at' (`@date`) or 'date' (a formatted date string).",
       "type": "string",
       "choices": [
         "at",

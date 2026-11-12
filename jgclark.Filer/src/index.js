@@ -3,12 +3,11 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 2026-05-01, for v1.6.0, by @Cursor
+// Last updated 2026-11-12, for v1.6.4, by @jgclark
 // -----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json' // allow changes in plugin.json to trigger recompilation
 import { JSP, logDebug, logInfo, logError, logWarn, timer } from "@helpers/dev"
-import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 export { archiveNote, unarchiveNote } from './archive'
@@ -54,19 +53,5 @@ export async function onUpdateOrInstall(_testUpdate: boolean = false): Promise<v
     }
   } catch (error) {
     logError(pluginID, error.message)
-  }
-}
-
-/**
- * Update Settings/Preferences (for iOS etc)
- * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
- * @author @dwertheimer
- */
-export async function updateSettings() {
-  try {
-    logDebug(pluginJson, `updateSettings running`)
-    await editSettings(pluginJson)
-  } catch (error) {
-    logError(pluginJson, JSP(error))
   }
 }

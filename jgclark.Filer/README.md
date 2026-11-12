@@ -18,22 +18,22 @@ The **/move paragraph** command (aliased to **/mp** and **/fp**) quickly **files
 
 It pops up the command bar to choose the note you want to move it to, followed by the heading within that note to move it after. Where possible it will visually highlight the lines it will be moving (on NotePlan v3.6.2+). You can press Escape (on Mac) at any time to cancel.  The move happens in the background, leaving you in the current note.
 
-It will move either the currently selected region (you don't need to select the whole of the first or last lines; the plugin will grab the whole lines), or just the current line the cursor is in, plus any indented ('children') lines that follow it.  Any embedded media files are also moved.
+It will move either the currently selected region (you don't need to select the whole of the first or last lines; the plugin will grab the whole lines), or just the current line the cursor is in. Indented children are included by **/move paragraph block**. Any embedded media files are also moved.
 
-NB: due to limitations in the API it's not yet possible to move items to a Calendar note that doesn't already exist. I intend to improve this when the API supports it.
+Note: due to limitations in the API it's not yet possible to move items to a Calendar note that doesn't already exist. I intend to improve this when the API supports it.
 
-If the "Add date reference?" setting is turned on, then when you move from a calendar (daily/weekly/etc.) note the plugin will add a date reference for the _source_ calendar note (the note you are moving from), so the backlink accurately reflects where the item came from. The "Date reference style" setting lets you choose the style of the added date: 'link' (`[[date]]`), 'scheduled' (`>date`) or 'at' (`@date`) or 'date' (a formatted date string).
+If the "Add date reference?" setting is turned on, then when you move from a calendar (daily/weekly/etc.) note the plugin will add a date reference for the _source_ calendar note (the note you are moving from), so the backlink accurately reflects where the item came from. The reference is added to the first moved line. The "Date reference style" setting lets you choose the style of the added date: 'link' (`[[date]]`), 'scheduled' (`>date`) or 'at' (`@date`) or 'date' (a formatted date string).
 
 ## /move paragraph block
-This extends the first command, by also moving commands in the current paragraph 'block'. If the 'Include lines from start of Section in the Block?' setting is true, it takes the most recent heading and its following section, up to the next heading of the same level or higher, or the next horizontal line, or the start of the `## Done` or `## Cancelled` section. This means you don't have to move the cursor to the start of the section before you run it.
+This extends the first command, by also moving the contents of the current paragraph 'block'. If the 'Include lines from start of Section in the Block?' setting is true, it takes the most recent heading and its following section, up to the next heading of the same level or higher, or the next horizontal line, or the start of the `## Done` or `## Cancelled` section. This means you don't have to move the cursor to the start of the section before you run it.
 
 You can turn on 'Use a tighter definition of when a Block finishes?' in the settings, which will stop the section at the next blank line, as well as next heading of the same level or higher, or the next horizontal line, or the start of the note's `## Done` or `## Cancelled` section (if present).
 
-##  /move completed items to done section
+## /move completed items to done section
 This is a more powerful version of NotePlan's built-in 'Move Completed to Bottom' menu action.  It has the following settings, which reveal its additional powers:
 - Heading name for Done section: Defaults to NotePlan's standard 'Done', but can be set to something else (for example `Completed`, `Hecho`, `Abgemacht` etc.)
 - Recreate existing section structure in Done section? (default: true)
-- Only move completed items when whole section is complete? (default: false)
+- When to move completed items to Done: ask each time (default), only when the whole section is complete, or whenever any completed item is found.
 - Skip done subtasks indented under open tasks?: If set, completed subtasks that are indented under an open parent task will NOT be moved to the Done section until their parent task is also completed. This keeps the visual progress of the parent task together.
 
 When a section heading is recreated or moved into the Done section, it is nested **one level deeper** than the original, so that it sits *inside* the `## Done` section rather than as a sibling of it. For example, an active `## Project Alpha` section becomes a `### Project Alpha` sub-heading under the `## Done` heading. (Items are also merged into a matching existing sub-heading in the Done section when one is already present.)
@@ -53,7 +53,7 @@ This command (alias **/asc**) adds a sync'd copy of the current line or selected
 
 ![add sync demo](add-link-line-demo-T2.gif)
 
-If multiple lines are selected, then line is sync'd separately, but always to successive new lines in the chosen note's section.
+If multiple lines are selected, each line is sync'd separately, but always to successive new lines in the chosen note's section.
 
 ## various /... note link ... commands
 There are 4 related commands that move or copy lines in calendar notes that include a `[[note link]]` to regular notes with that title:
@@ -73,7 +73,7 @@ In practice running /copy note links command on a daily note can implement:
 ### Settings for Note Link commands
 There are a number of settings to make it useful for a variety of ways of organising your notes:
 
-- Types of lines to file: for the these commands to choose what sorts of lines to move/copy:
+- Types of lines to file: for these commands to choose what sorts of lines to move/copy:
   - all lines
   - all but incomplete task/checklist items
   - only completed task/checklist items (cancelled tasks and checklists count as completed; headings do not)
@@ -85,7 +85,7 @@ There are a number of settings to make it useful for a variety of ways of organi
 
 In the demo above, the daily note includes the date ("Tues 21/3") as part of the (sub)heading. As this is copied into the project log, it serves as an automatic index in that note. To add today's date in whatever style you wish is relatively simple using the [date commands in the Templating plugin](https://noteplan.co/templates/docsdocs/templating-examples/date-time).
 
-The **/... (recently changed)** versions of these commands operate on recently-changed calendar notes, not just the currently open one. To contol this there's an additional setting:
+The **/... (recently changed)** versions of these commands operate on recently-changed calendar notes, not just the currently open one. To control this there's an additional setting:
 - How many days to include in 'recent' changes to calendar notes? This sets how many days' worth of changes to calendar notes to include? To include all days, set to 0.
 
 For example, this can be used to copy at the end of each day from the daily note a section with any completed tasks, and any notes that it contains, to a 'progress log' note. This can be run on demand, or could be automated through the following method ...
@@ -108,9 +108,6 @@ You can also run from an x-callback call. At simplest this is:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=move%20note%20links%20%28recently%20changed%29&arg0=
 ```
-
-## /filer:update plugin settings
-This command allows settings to be changed on iOS/iPadOS.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).

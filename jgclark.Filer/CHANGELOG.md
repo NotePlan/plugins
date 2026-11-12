@@ -11,6 +11,9 @@ Please see the [Readme for this plugin](https://noteplan.co/plugins/jgclark.File
 - **/archive note keeping folder structure** leaves a note that is already in the archive where it is, instead of nesting `@Archive` inside itself. 
 - A failed **/unarchive note keeping folder structure** tells you the move did not happen.
 - dev: **/move paragraph**, the quick-move commands, **/move note links**, **/copy note links**, and **/move completed items to done section** use the open calendar note when `Editor.note` is unset.
+- update some out-of-date documentation
+- consolidate overlapping command aliases. dev: Aliases: **/move paragraph or selection** is **/mp**, **/fp**, and **/file**. The note-link commands keep **cnl**, **cnlrc**, **mnl**, and **mnlrc**. **/day** and **/daily** belong to today's quick move. **/week** and **/qmw** belong to the current weekly quick move (**/qmtw** still works).
+- Remove the now-obsolete **/Filer: update plugin settings** command.
 
 ## [1.6.3] - 2026-11-02
 - now **/move paragraph...** and **/move block** commands move any embedded image/media files as well.  dev: an embedded image or file (`![image](...)` / `![file](...)`) is copied into the destination note's attachment folder and the link is updated. Previously the file stayed next to the source note, so the image broke after the move. If the source note is a regular note and nothing left in it still links the file, the original is moved to the trash. (Thanks, @Valnar.)
@@ -87,8 +90,8 @@ Please see the [Readme for this plugin](https://noteplan.co/plugins/jgclark.File
 <!-- - add sync was unreliable -->
 
 ## [1.2.0] - 2025-01-07
-- the **/add sync'd copy to note** command will now work on multiple lines -- and there's a new setting that allows you to set a default heading to sync all lines under. (for @chrismetcalf, closes #610).  And fixed regression with it.
-- New **/quick move ...** commands for monthly and quarterly notes, not just daily and weekly notes.
+- the **/add sync'd copy to note** command will now work on multiple lines. (for @chrismetcalf, closes #610). And fixed a regression with it. You still choose the destination heading each time. A default heading setting was described here, but it was not added.
+- New **/quick move ...** commands for today's note, tomorrow's note, and the current and next weekly notes. Monthly and quarterly quick-move commands were described here, but they were not added.
 
 ## [1.1.6] - 2024-12-31
 - the **new note from clipboard** and **new note from selection** commands have moved to the NoteHelpers plugin.
