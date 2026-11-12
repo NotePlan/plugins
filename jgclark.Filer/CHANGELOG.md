@@ -1,6 +1,14 @@
 # What's changed in Filer plugin?
 Please see the [Readme for this plugin](https://noteplan.co/plugins/jgclark.Filer) for more details, including the available settings.
 
+## [1.6.4] - 2026-11-12
+- fixes to **/move note links** and **/copy note links** (and the recently-changed variants):
+  - a block is the link line plus more-indented lines under it, or, when the link line is a heading, the following lines until a blank line, a separator, or a heading of the same level or higher. A later link inside that block is filed with the block, not again on its own.
+  - a missing destination note is skipped, and the rest of the note is still filed. The result dialog says how many were skipped.
+  - the recently-changed commands report how many note links were filed, not how many calendar notes were visited.
+  - "only completed task/checklist items" no longer files headings. Cancelled tasks and checklists still count as completed.
+  - the `ignore tag` is matched as the tag you typed, not as a regular expression.
+
 ## [1.6.3] - 2026-11-02
 - now **/move paragraph...** and **/move block** commands move any embedded image/media files as well.  dev: an embedded image or file (`![image](...)` / `![file](...)`) is copied into the destination note's attachment folder and the link is updated. Previously the file stayed next to the source note, so the image broke after the move. If the source note is a regular note and nothing left in it still links the file, the original is moved to the trash. (Thanks, @Valnar.)
 

@@ -76,9 +76,9 @@ There are a number of settings to make it useful for a variety of ways of organi
 - Types of lines to file: for the these commands to choose what sorts of lines to move/copy:
   - all lines
   - all but incomplete task/checklist items
-  - only completed task/checklist items
+  - only completed task/checklist items (cancelled tasks and checklists count as completed; headings do not)
   - only non-task/checklist items
-- File the wider block the note link is in? If set, this command will include the rest of the following block this line is in: any indented lines, or (if this line is a heading) all lines following until a blank line, or heading of the same level or higher. Default is not to use blocks, which only files this line.
+- File the wider block the note link is in? If set, this command will include the rest of the following block this line is in: any more-indented lines, or (if this line is a heading) all lines following until a blank line, a separator, or a heading of the same level or higher. Default is not to use blocks, which only files this line.
 - Where to add in the note: If the [[note link]] doesn't include a heading, then this controls whether filed lines get inserted at the start or end of the note.
 - Allow preamble before first heading? If set, some 'preamble' lines are allowed directly after the title. When filing/moving/inserting items with these commands, this preamble will be left in place, up to and including the first blank line, heading or separator. Otherwise the first heading will be directly after the note's title line (or frontmatter if used).
 - Tag that indicates a [[note link]] should be ignored: If this tag (e.g. "#ignore") is included in a line with a [[note link]] then it (and where relevant the rest of its block) will not be moved or copied.

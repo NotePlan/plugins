@@ -629,6 +629,18 @@ export function insertParas(note: TNote, insertionIndex: number, paraTextArr: Ar
 }
 
 /**
+ * True for an empty line (type 'empty', or whitespace-only content).
+ * Separators are not blank; callers stop on those separately.
+ * @param {TParagraph} para
+ * @returns {boolean}
+ */
+export function isBlankParagraph(para: TParagraph): boolean {
+  if (para.type === 'empty') return true
+  const text = para.rawContent ?? para.content ?? ''
+  return text.trim() === ''
+}
+
+/**
  * Works out where the first 'active' line of the note is, following the first paragraph of type 'title', or frontmatter (if present).
  * Note: given this is a precursor to writing to a note, it first checks if the note is completely empty (0 lines). If so, a first 'empty' line is added, to avoid edge cases in calling code.
  * Note: now also copes with a frontmatter section but with a `# title` line that comes after it.

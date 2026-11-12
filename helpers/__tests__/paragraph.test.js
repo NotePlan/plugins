@@ -905,4 +905,16 @@ describe('paragraph.js', () => {
       expect(result).toEqual(3)
     })
   })
+
+  describe('isBlankParagraph()', () => {
+    test('is true for an empty paragraph and for whitespace-only content', () => {
+      expect(p.isBlankParagraph({ type: 'empty', content: '', rawContent: '' })).toBe(true)
+      expect(p.isBlankParagraph({ type: 'text', content: '   ', rawContent: '   ' })).toBe(true)
+    })
+
+    test('is false for a separator and for a line with text', () => {
+      expect(p.isBlankParagraph({ type: 'separator', content: '---', rawContent: '---' })).toBe(false)
+      expect(p.isBlankParagraph({ type: 'text', content: 'note', rawContent: 'note' })).toBe(false)
+    })
+  })
 })
