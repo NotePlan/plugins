@@ -337,11 +337,13 @@ async function createNoteAndLinkEvent(selectedEvent: ?TCalendarItem, renderedCon
     noteTitle = (await appendPrependNewNote(noteTitle, location, folder, renderedContent)) ?? '<error>'
   } else {
     noteTitle = getNoteTitle(noteTitle, renderedContent, attrs)
-    if (selectedEvent && noteTitle) {
+    if (noteTitle) {
       noteTitle = await handleExistingNotes(noteTitle, renderedContent, folder, forceNewNote)
     } else {
-      logDebug(pluginJson, `Could not ${selectedEvent ? 'find selected event' : 'determine note title'}`)
-      return
+      // A missing title used to abort here. Templates with no newNoteTitle and no heading should still create a note.
+      // selectedEvent only controls the calendar link below, so a missing event must not block creation either.
+      logDebug(pluginJson, `Could not determine note title from the template or rendered content. Creating a new note anyway`)
+      noteTitle = (await newNoteWithFolder(renderedContent, folder)) ?? '<error>'
     }
   }
   selectedEvent ? writeNoteLinkIntoEvent(selectedEvent, noteTitle) : null
