@@ -2,11 +2,12 @@
 /* eslint-disable no-unused-vars */
 /* global jest, describe, test, expect, beforeAll */
 import { CustomConsole } from '@jest/console'
-import { DataStore, Editor, Note, simpleFormatter } from '@mocks/index'
+import { CommandBar, DataStore, Editor, Note, simpleFormatter } from '@mocks/index'
 import { type FilerConfig } from '../src/filerHelpers'
-import { fileNoteLinks, getNoteLinkBlock, lineContainsIgnoreTag, paragraphTypesForFiling } from '../src/noteLinks'
+import { copyRecentNoteLinks, fileNoteLinks, getNoteLinkBlock, lineContainsIgnoreTag, paragraphTypesForFiling } from '../src/noteLinks'
 
 beforeAll(() => {
+  global.CommandBar = CommandBar
   global.DataStore = DataStore
   global.Editor = Editor
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter)
@@ -270,6 +271,26 @@ describe('jgclark.Filer note links', () => {
       expect(result).toEqual({ filed: 1, skipped: 0 })
       expect(contents(first)).toEqual(['Alpha', 'item'])
       expect(contents(second)).toEqual(['Alpha'])
+    })
+  })
+
+  describe('copyRecentNoteLinks()', () => {
+    test('an empty x-callback arg0 does not prompt', async () => {
+      const prompt = jest.fn<$ReadOnlyArray<any>, Promise<string>>(async () => 'OK')
+      ;(CommandBar: any).prompt = prompt
+      ;(DataStore: any).loadJSON = jest.fn<$ReadOnlyArray<any>, any>(async () => ({
+        recentDays: 0,
+        typesToFile: 'all lines',
+        useBlocks: false,
+        whereToAddInSection: 'end',
+        allowNotePreambleBeforeHeading: true,
+        whereToAddInNote: 'end',
+        ignoreNoteLinkFilerTag: '',
+      }))
+      ;(DataStore: any).calendarNotes = []
+
+      expect(await copyRecentNoteLinks('')).toBe(0)
+      expect(prompt).not.toHaveBeenCalled()
     })
   })
 })

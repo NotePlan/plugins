@@ -100,4 +100,10 @@ describe('jgclark.Filer monthly and quarterly quick move', () => {
     expect(asked.getFullYear()).toBe(expected.getFullYear())
     expect(asked.getMonth()).toBe(expected.getMonth())
   })
+
+  test('an x-callback does not prompt when the monthly note is missing', async () => {
+    await moveParasToThisMonthly('')
+    expect(DataStore.calendarNoteByDate).toHaveBeenCalled()
+    expect(CommandBar.prompt).not.toHaveBeenCalled()
+  })
 })

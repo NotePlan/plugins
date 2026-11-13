@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Move completed / cancelled tasks and checklists in a note to a '## Done' section
 // Jonathan Clark, aided by Cursor AI
-// Last updated 2026-11-12 for v1.6.4 by @jgclark
+// Last updated 2026-11-13 for v1.7.0 by @CursorAI
 // ----------------------------------------------------------------------------
 /**
  * Original prompt for AI:
@@ -25,14 +25,14 @@ Later for 1.6.1 I asked it to update it:
  */
 
 import type { FilerConfig } from './filerHelpers'
-import { getFilerSettings } from './filerHelpers'
+import { applyFilerJsonSettings, getFilerSettings, reportFiler, resolveNoteArgument } from './filerHelpers'
 import { blockHasActiveTasks, getParagraphBlock } from '@helpers/blocks'
 import { clo, JSP, logDebug, logInfo, logError, logTimer, logWarn, timer } from '@helpers/dev'
 import { getCurrentHeading, isParaAMatchForHeading, stripFoldedHeadingEllipsis } from '@helpers/headings'
 import { getNoteFromEditorWindow } from '@helpers/NPEditor'
 import { insertParas } from '@helpers/paragraph'
 import { isClosed } from '@helpers/utils'
-import { showMessage, showMessageYesNoCancel } from '@helpers/userInput'
+import { showMessageYesNoCancel } from '@helpers/userInput'
 
 //----------------------------------------------------------------------------
 // Constants
@@ -842,21 +842,43 @@ export function moveCompletedItemsToDoneSection(
 }
 
 /**
- * Plugin command: move completed / cancelled tasks in the current note to its '## Done' section.
+ * Plugin command: move completed / cancelled tasks in a note to its '## Done' section.
  * Uses Filer plugin settings to control behaviour.
+ * arg0 is the note (empty uses the open editor note). arg1 is optional JSON settings.
+ * A string arg0 is an x-callback: no dialog. If the resolved setting is still "ask each time", the x-callback stops.
+ * @param {string?} noteArg
+ * @param {string?} params
  */
-export async function moveCompletedItemsToDoneSectionCommand(): Promise<void> {
+export async function moveCompletedItemsToDoneSectionCommand(noteArg?: string, params?: string): Promise<void> {
+  const fromXCallback = typeof noteArg === 'string'
   try {
-    const openNote = getNoteFromEditorWindow(Editor)
-    if (!openNote) {
-      logWarn(PLUGIN_ID, 'moveCompletedItemsToDoneSection: No note open, so stopping.')
-      return
+    let note: TNote
+    if (typeof noteArg === 'string') {
+      logInfo(PLUGIN_ID, `moveCompletedItemsToDoneSection: x-callback note '${noteArg}'`)
+      const resolved = resolveNoteArgument(noteArg)
+      if (!resolved) {
+        logError(PLUGIN_ID, noteArg.trim() === '' ? 'No note open, so stopping.' : `Could not find note '${noteArg}', so stopping.`)
+        return
+      }
+      note = (resolved: any)
+    } else {
+      const openNote = getNoteFromEditorWindow(Editor)
+      if (!openNote) {
+        logWarn(PLUGIN_ID, 'moveCompletedItemsToDoneSection: No note open, so stopping.')
+        return
+      }
+      // Editor itself is the note when a calendar note has no Editor.note.
+      note = (openNote: any)
     }
-    // Editor itself is the note when a calendar note has no Editor.note.
-    const note: TNote = (openNote: any)
 
     const startTime = new Date()
-    const config: FilerConfig = await getFilerSettings()
+    let config: FilerConfig = await getFilerSettings(!fromXCallback)
+    if (!config) return
+    if (typeof params === 'string' && params.trim() !== '') {
+      const next = applyFilerJsonSettings(config, params)
+      if (!next) return
+      config = next
+    }
     const recreateDoneSectionStructure = Boolean(config.recreateDoneSectionStructure)
     const skipDoneSubtasksUnderOpenTasks = Boolean(config.skipDoneSubtasksUnderOpenTasks)
     const rawDoneHeadingName = config.doneSectionHeadingName
@@ -883,6 +905,10 @@ export async function moveCompletedItemsToDoneSectionCommand(): Promise<void> {
     let onlyMoveCompletedWhenWholeSectionComplete = whenToMoveCompletedToDone === WHEN_TO_MOVE_SECTION_COMPLETE
 
     if (whenToMoveCompletedToDone === WHEN_TO_MOVE_ASK_EACH_TIME) {
+      if (fromXCallback) {
+        logInfo('moveCompletedToDone', 'whenToMoveCompletedToDone is "ask each time", so stopping. Pass that setting in arg1 to run from an x-callback.')
+        return
+      }
       const choice = await showMessageYesNoCancel(
         'How should completed items be moved to the Done section this time?',
         ['Move when whole section complete', 'Move when any are complete', 'Cancel'],
@@ -909,9 +935,9 @@ export async function moveCompletedItemsToDoneSectionCommand(): Promise<void> {
          }, and ${
          skipDoneSubtasksUnderOpenTasks ? 'skipping done subtasks under open tasks' : 'including done subtasks under open tasks'
          }.`
-      await showMessage(
+      await reportFiler(
+        !fromXCallback,
         `No completed or cancelled items to move to the '${doneSectionHeadingName}' section.\n\nMy current settings are: ${currentSettingsStr}`,
-        'OK',
         'Filer: Move completed to Done',
       )
     }

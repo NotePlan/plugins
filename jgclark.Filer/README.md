@@ -165,18 +165,46 @@ noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=add%20sync%27
 
 `<<bottom of note>>` works the same way as `<<top of note>>` for the move and sync commands.
 
+Some commands take the note they act on as `arg0`, and any setting changes as JSON in `arg1`. Leave `arg1` out to keep the plugin settings. `{}` does the same. Copy completed note links from the open note:
+
+```
+<% await DataStore.invokePluginCommandByName("copy note links","jgclark.Filer",['', '{"typesToFile":"only completed task/checklist items"}']) %>
+```
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=copy%20note%20links&arg0=&arg1=%7B%22typesToFile%22%3A%22only%20completed%20task%2Fchecklist%20items%22%7D
+```
+
+Move completed items in the open note. If the "when to move" setting is still "ask each time", pass that choice in the JSON or the command stops instead of asking:
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=move%20completed%20items%20to%20done%20section&arg0=&arg1=%7B%22whenToMoveCompletedToDone%22%3A%22move%20when%20any%20are%20complete%22%7D
+```
+
+The recently-changed note-link commands and the quick-move commands have no single note to name. Their JSON is `arg0`. An empty `arg0` uses plugin settings and does not show a dialog. Quick move the current line to today's note:
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=quick%20move%20to%20Today%27s%20note&arg0=
+```
+
+Limit a recent move to three days, and file blocks:
+
+```
+<% await DataStore.invokePluginCommandByName("move note links (recently changed)","jgclark.Filer",['{"recentDays":3,"useBlocks":true}']) %>
+```
+
+The setting names are the keys in this plugin's `plugin.json`. For the quick moves, `withBlockContext` is also accepted (it is not a stored setting). `true` moves the surrounding block instead of only the current line.
+
 | Command | arg0 | arg1 |
 | --- | --- | --- |
 | add sync'd copy to note | Destination note: filename, title, or date phrase | Heading, `<<top of note>>`, or `<<bottom of note>>` |
 | move paragraph or selection; move paragraph block | Destination note: filename, title, or date phrase | Heading, `<<top of note>>`, or `<<bottom of note>>` |
 | archive note keeping folder structure | Note to archive. Empty uses the open note. | Archive root folder. Empty uses `@Archive`. |
 | unarchive note keeping folder structure | Note to unarchive. Empty uses the open note. | Ignored |
-| copy note links; move note links | Ignored | Ignored |
-| copy note links (recently changed); move note links (recently changed) | JSON object of settings to override. Empty uses plugin settings. | Ignored |
-| move completed items to done section | Ignored | Ignored |
-| quick move to Today's, Tomorrow's, Weekly, Next Weekly, Monthly, Next Monthly, Quarterly, or Next Quarterly note | Ignored | Ignored |
-
-The recently-changed note-link commands already accept that JSON `arg0`. Details and template examples are in the note-link section above. The other commands marked "Ignored" do not read arguments yet.
+| copy note links; move note links | Note to file from. Empty uses the open note. | Optional JSON settings override |
+| copy note links (recently changed); move note links (recently changed) | JSON settings override. Empty uses plugin settings. | Ignored |
+| move completed items to done section | Note. Empty uses the open note. | Optional JSON settings override. Stops if "when to move" is still "ask each time". |
+| quick move to Today's, Tomorrow's, Weekly, Next Weekly, Monthly, Next Monthly, Quarterly, or Next Quarterly note | JSON settings override. Empty uses plugin settings. | Ignored |
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).

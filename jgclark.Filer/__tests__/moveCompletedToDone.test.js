@@ -907,4 +907,29 @@ describe('jgclark.Filer', () => {
       expect(draftCount).toBe(1)
     })
   })
+
+  describe('moveCompletedItemsToDoneSectionCommand()', () => {
+    test('an x-callback does not ask when the setting is ask each time', async () => {
+      const prompt = jest.fn(async () => 'Cancel')
+      CommandBar.prompt = prompt
+      DataStore.loadJSON = jest.fn(async () => ({
+        whenToMoveCompletedToDone: 'ask each time',
+        recreateDoneSectionStructure: false,
+        skipDoneSubtasksUnderOpenTasks: false,
+        doneSectionHeadingName: 'Done',
+      }))
+      Editor.note = new Note({
+        filename: 'Projects/Plan.md',
+        type: 'Notes',
+        title: 'Plan',
+        content: '# Plan',
+        paragraphs: [
+          { lineIndex: 0, type: 'title', content: 'Plan', rawContent: '# Plan', indents: 0, headingLevel: 1 },
+        ],
+      })
+
+      await m.moveCompletedItemsToDoneSectionCommand('')
+      expect(prompt).not.toHaveBeenCalled()
+    })
+  })
 })

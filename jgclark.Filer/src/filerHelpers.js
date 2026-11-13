@@ -6,7 +6,7 @@
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import { getNoteFromEditorWindow } from '@helpers/NPEditor'
 import { getNoteFromIdentifier } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
@@ -94,6 +94,25 @@ export function resolveNoteArgument(noteArg: string): CoreNoteFields | null {
  * @param {string} title - dialog title
  * @param {string} confirmButton
  */
+/**
+ * Merge a JSON settings string into `config`. An empty string leaves `config` unchanged.
+ * Invalid JSON is logged and returns null so the caller can stop.
+ * `{}` means the stored settings, with no overrides.
+ * @param {any} config
+ * @param {string} argsAsEncodedJSON - plain or URL-encoded JSON
+ * @returns {any} updated config, or null when the JSON cannot be parsed
+ */
+export function applyFilerJsonSettings(config: any, argsAsEncodedJSON: string): any {
+  const trimmed = (argsAsEncodedJSON || '').trim()
+  if (trimmed === '') return config
+  const next = overrideSettingsWithEncodedTypedArgs(config, trimmed)
+  if (next == null) {
+    logError(pluginJson, `Invalid JSON settings '${trimmed}', so stopping.`)
+    return null
+  }
+  return next
+}
+
 export async function reportFiler(interactive: boolean, message: string, title: string = '', confirmButton: string = 'OK'): Promise<void> {
   logInfo(pluginID, `${title ? `${title}: ` : ''}${message}`)
   if (interactive) {

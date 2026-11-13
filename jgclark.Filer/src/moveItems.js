@@ -7,7 +7,7 @@
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { getFilerSettings, reportFiler, resolveNoteArgument } from './filerHelpers'
+import { applyFilerJsonSettings, getFilerSettings, reportFiler, resolveNoteArgument } from './filerHelpers'
 import { getParagraphBlock } from '@helpers/blocks'
 import { formatNoteDateFromNPDateStr, getDateStringFromCalendarFilename, todaysDateISOString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
@@ -18,7 +18,7 @@ import { addParagraphsToNote, findHeading } from '@helpers/paragraph'
 import { clearHighlighting, getNoteFromEditorWindow, getSelectedParagraphsToUse, highlightSelectionInEditor } from '@helpers/NPEditor'
 import { prepareEmbeddedMediaMove, removeSourceEmbeddedMediaIfUnused } from '@helpers/NPEmbeddedMedia'
 import { chooseNoteV2 } from '@helpers/NPnote'
-import { chooseHeadingV2, showMessage } from '@helpers/userInput'
+import { chooseHeadingV2 } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 // Private helper functions
@@ -305,8 +305,8 @@ async function moveParasToNoteCommand(withBlockContext: boolean, destNoteArg: ?s
  * Uses the same selection strategy as moveParas() above
  * @author @jgclark
  */
-export async function moveParasToThisWeekly(): Promise<void> {
-  await moveParasToCalendarWeekly(new Date())
+export async function moveParasToThisWeekly(params?: string): Promise<void> {
+  await runQuickMove(params, new Date(), 'week', 'Weekly', 'moveParasToThisWeekly')
 }
 
 /**
@@ -314,8 +314,8 @@ export async function moveParasToThisWeekly(): Promise<void> {
  * Uses the same selection strategy as moveParas() above
  * @author @jgclark
  */
-export async function moveParasToNextWeekly(): Promise<void> {
-  await moveParasToCalendarWeekly(Calendar.addUnitToDate(new Date(), 'day', 7)) // + 1 week
+export async function moveParasToNextWeekly(params?: string): Promise<void> {
+  await runQuickMove(params, Calendar.addUnitToDate(new Date(), 'day', 7), 'week', 'Weekly', 'moveParasToNextWeekly') // + 1 week
 }
 
 /**
@@ -335,8 +335,8 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
  * Uses the same selection strategy as moveParas() above
  * @author @jgclark
  */
-export async function moveParasToThisMonthly(): Promise<void> {
-  await moveParasToCalendarPeriod(new Date(), 'month', 'Monthly', 'moveParasToThisMonthly')
+export async function moveParasToThisMonthly(params?: string): Promise<void> {
+  await runQuickMove(params, new Date(), 'month', 'Monthly', 'moveParasToThisMonthly')
 }
 
 /**
@@ -344,8 +344,8 @@ export async function moveParasToThisMonthly(): Promise<void> {
  * Uses the same selection strategy as moveParas() above
  * @author @jgclark
  */
-export async function moveParasToNextMonthly(): Promise<void> {
-  await moveParasToCalendarPeriod(Calendar.addUnitToDate(new Date(), 'month', 1), 'month', 'Monthly', 'moveParasToNextMonthly')
+export async function moveParasToNextMonthly(params?: string): Promise<void> {
+  await runQuickMove(params, Calendar.addUnitToDate(new Date(), 'month', 1), 'month', 'Monthly', 'moveParasToNextMonthly')
 }
 
 /**
@@ -353,8 +353,8 @@ export async function moveParasToNextMonthly(): Promise<void> {
  * Uses the same selection strategy as moveParas() above
  * @author @jgclark
  */
-export async function moveParasToThisQuarterly(): Promise<void> {
-  await moveParasToCalendarPeriod(new Date(), 'quarter', 'Quarterly', 'moveParasToThisQuarterly')
+export async function moveParasToThisQuarterly(params?: string): Promise<void> {
+  await runQuickMove(params, new Date(), 'quarter', 'Quarterly', 'moveParasToThisQuarterly')
 }
 
 /**
@@ -362,8 +362,8 @@ export async function moveParasToThisQuarterly(): Promise<void> {
  * Uses the same selection strategy as moveParas() above
  * @author @jgclark
  */
-export async function moveParasToNextQuarterly(): Promise<void> {
-  await moveParasToCalendarPeriod(Calendar.addUnitToDate(new Date(), 'month', 3), 'quarter', 'Quarterly', 'moveParasToNextQuarterly')
+export async function moveParasToNextQuarterly(params?: string): Promise<void> {
+  await runQuickMove(params, Calendar.addUnitToDate(new Date(), 'month', 3), 'quarter', 'Quarterly', 'moveParasToNextQuarterly')
 }
 
 /**
@@ -375,6 +375,8 @@ export async function moveParasToNextQuarterly(): Promise<void> {
  * @param {string} periodLabel - used in the message when the note cannot be opened
  * @param {string} logName
  * @param {boolean} withBlockContext
+ * @param {?any} configIn - already loaded settings; loaded here when omitted
+ * @param {boolean} interactive - when false, log instead of showing a dialog
  */
 async function moveParasToCalendarPeriod(
   destDate: Date,
@@ -382,6 +384,8 @@ async function moveParasToCalendarPeriod(
   periodLabel: string,
   logName: string,
   withBlockContext: boolean = false,
+  configIn: ?any = null,
+  interactive: boolean = true,
 ): Promise<void> {
   try {
     const { content, selectedParagraphs } = Editor
@@ -391,12 +395,14 @@ async function moveParasToCalendarPeriod(
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (empty note?), so don't do anything.
       logWarn(pluginJson, `${logName}(): No note open, so stopping.`)
+      if (!interactive) logInfo(pluginJson, `${logName}(): no note open, so stopping.`)
       return
     }
     logDebug(pluginJson, `${logName}(): Starting`)
 
     // Get config settings
-    const config = await getFilerSettings()
+    const config = configIn ?? await getFilerSettings(interactive)
+    if (!config) return
     const selectedParagraphsToUse = getSelectedParagraphsToUse()
 
     if (selectedParagraphsToUse.length === 0) {
@@ -407,7 +413,8 @@ async function moveParasToCalendarPeriod(
     // Find the calendar note to move to
     const destNote = DataStore.calendarNoteByDate(destDate, period)
     if (destNote == null) {
-      await showMessage(`Sorry: I can't find the ${periodLabel} note for ${toNPLocaleDateString(destDate)}.`)
+      const missingMsg = `Sorry: I can't find the ${periodLabel} note for ${toNPLocaleDateString(destDate)}.`
+      await reportFiler(interactive, missingMsg)
       logError(logName, `Failed to open the ${periodLabel} note for ${toNPLocaleDateString(destDate)}. Stopping.`)
       return
     }
@@ -433,14 +440,41 @@ async function moveParasToCalendarPeriod(
 
     // Move paragraphs to destination note (empty heading for calendar notes)
     moveParagraphsToNote(note, destNote, parasInBlock, '', config, dateBacklinkSuffix)
+    logInfo(pluginJson, `${logName}(): moved ${String(parasInBlock.length)} lines to the ${periodLabel} note for ${toNPLocaleDateString(destDate)}`)
 
     // Clear highlighting
     clearHighlighting()
   }
   catch (error) {
     logError(`Filer/${logName}`, error.message)
-    await showMessage(error.message, 'OK', 'Filer: Error moving lines to calendar date')
+    await reportFiler(interactive, error.message, 'Filer: Error moving lines to calendar date')
   }
+}
+
+/**
+ * Load settings, apply optional JSON from an x-callback, then move to a calendar note.
+ * A string `params` (including '') means no dialog. The command bar passes no arguments.
+ * @param {?string} params
+ * @param {Date} destDate
+ * @param {string} period
+ * @param {string} periodLabel
+ * @param {string} logName
+ */
+async function runQuickMove(params: ?string, destDate: Date, period: string, periodLabel: string, logName: string): Promise<void> {
+  const fromXCallback = typeof params === 'string'
+  let config = await getFilerSettings(!fromXCallback)
+  if (!config) return
+  if (typeof params === 'string' && params.trim() !== '') {
+    logInfo(pluginJson, `${logName}(): x-callback settings '${params}'`)
+    const next = applyFilerJsonSettings(config, params)
+    if (!next) return
+    config = next
+  } else if (fromXCallback) {
+    logInfo(pluginJson, `${logName}(): x-callback with plugin settings`)
+  }
+  // withBlockContext is not a stored setting. JSON may set it. Otherwise a quick move stays a single line or the selection.
+  const withBlockContext = Boolean(config.withBlockContext)
+  await moveParasToCalendarPeriod(destDate, period, periodLabel, logName, withBlockContext, config, !fromXCallback)
 }
 
 // -----------------------------------------------------------------
@@ -450,8 +484,8 @@ async function moveParasToCalendarPeriod(
  * Uses the same selection strategy as moveParas() above
  * @author @jgclark
  */
-export async function moveParasToToday(): Promise<void> {
-  await moveParasToCalendarDate(new Date()) // today
+export async function moveParasToToday(params?: string): Promise<void> {
+  await runQuickMove(params, new Date(), 'day', 'Daily', 'moveParasToToday') // today
 }
 
 /**
@@ -459,8 +493,8 @@ export async function moveParasToToday(): Promise<void> {
  * Uses the same selection strategy as moveParas() above
  * @author @jgclark
  */
-export async function moveParasToTomorrow(): Promise<void> {
-  await moveParasToCalendarDate(Calendar.addUnitToDate(new Date(), 'day', 1)) // tomorrow
+export async function moveParasToTomorrow(params?: string): Promise<void> {
+  await runQuickMove(params, Calendar.addUnitToDate(new Date(), 'day', 1), 'day', 'Daily', 'moveParasToTomorrow') // tomorrow
 }
 
 /**

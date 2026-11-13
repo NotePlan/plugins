@@ -1,16 +1,16 @@
 /* eslint-disable prefer-template */
+/* eslint-disable require-await */
 // @flow
 // ----------------------------------------------------------------------------
 // Functions to file [[note links]] from calendar notes to project notes.
 // Jonathan Clark
-// last updated 2026-11-12, for v1.6.4 by @CursorAI
+// last updated 2026-11-13, for v1.7.0 by @CursorAI
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { getFilerSettings, type FilerConfig } from './filerHelpers'
+import { applyFilerJsonSettings, getFilerSettings, reportFiler, resolveNoteArgument, type FilerConfig } from './filerHelpers'
 import {
   clo, logDebug, logError, logInfo, logWarn,
-  overrideSettingsWithEncodedTypedArgs,
 } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getNoteFromEditorWindow } from '@helpers/NPEditor'
@@ -29,91 +29,112 @@ export type FileNoteLinksResult = { filed: number, skipped: number }
 //-----------------------------------------------------------------------------
 // Wrappers that are called
 
-export async function copyNoteLinks(): Promise<number> {
-  const settings: FilerConfig = await getFilerSettings()
-  settings.copyOrMove = "copy"
-  // get current note (Editor itself when a calendar note has no .note)
-  const note = getNoteFromEditorWindow(Editor)
+/**
+ * Copy [[note link]] lines from one note.
+ * arg0 is the note to file from (empty uses the open editor note). arg1 is optional JSON settings.
+ * A string arg0 is an x-callback: no dialog. No arguments still uses the open note and shows the result.
+ * @param {string?} noteArg
+ * @param {string?} params
+ * @returns {number} number of note links copied
+ */
+export async function copyNoteLinks(noteArg?: string, params?: string): Promise<number> {
+  return fileOneNoteLinks('copy', 'Copy note links', noteArg, params)
+}
+
+/**
+ * Copy [[note link]] lines from recently changed calendar notes.
+ * arg0 is optional JSON settings. Empty arg0 uses plugin settings and does not show a dialog.
+ * @param {string?} params
+ * @returns {number} number of note links copied
+ */
+export async function copyRecentNoteLinks(params?: string): Promise<number> {
+  return fileRecentCommand('copy', 'Copy recent note links', params)
+}
+
+/**
+ * Move [[note link]] lines from one note.
+ * arg0 is the note to file from (empty uses the open editor note). arg1 is optional JSON settings.
+ * @param {string?} noteArg
+ * @param {string?} params
+ * @returns {number} number of note links moved
+ */
+export async function moveNoteLinks(noteArg?: string, params?: string): Promise<number> {
+  return fileOneNoteLinks('move', 'Move note links', noteArg, params)
+}
+
+/**
+ * Move [[note link]] lines from recently changed calendar notes.
+ * arg0 is optional JSON settings. Empty arg0 uses plugin settings and does not show a dialog.
+ * @param {string?} params
+ * @returns {number} number of note links moved
+ */
+export async function moveRecentNoteLinks(params?: string): Promise<number> {
+  return fileRecentCommand('move', 'Move recent note links', params)
+}
+
+/**
+ * File note links from one note. Sets copyOrMove before applying JSON, so the JSON can override it.
+ * @param {string} copyOrMove - 'copy' or 'move'
+ * @param {string} title - dialog title
+ * @param {?string} noteArg
+ * @param {?string} params
+ * @returns {number}
+ */
+async function fileOneNoteLinks(copyOrMove: string, title: string, noteArg: ?string, params: ?string): Promise<number> {
+  const fromXCallback = typeof noteArg === 'string'
+  let settings: FilerConfig = await getFilerSettings(!fromXCallback)
+  if (!settings) return NaN
+  settings.copyOrMove = copyOrMove
+  if (typeof params === 'string' && params.trim() !== '') {
+    const next = applyFilerJsonSettings(settings, params)
+    if (!next) return NaN
+    settings = next
+    clo(settings, `- config after overriding with params '${params}'`)
+  }
+
+  let note: CoreNoteFields | null
+  if (typeof noteArg === 'string') {
+    logInfo(pluginJson, `${title}: x-callback note '${noteArg}'`)
+    note = resolveNoteArgument(noteArg)
+  } else {
+    // get current note (Editor itself when a calendar note has no .note)
+    note = getNoteFromEditorWindow(Editor) ?? null
+  }
   if (!note) {
     logWarn(pluginID, `No note selected, so stopping.`)
-    await showMessage("No note selected, so cannot run.")
+    await reportFiler(!fromXCallback, 'No note selected, so cannot run.', title)
     return NaN
   }
-  // main call
   const result = await fileNoteLinks(note, settings, false)
-  await showMessage(noteLinkResultMessage('copied', result, displayTitle(note)), 'OK', 'Copy note links')
+  const action = settings.copyOrMove === 'copy' ? 'copied' : 'moved'
+  await reportFiler(!fromXCallback, noteLinkResultMessage(action, result, displayTitle(note)), title)
   return result.filed
 }
 
 /**
- * Entry point for copyRecentNoteLinks, but will process any passed JSON parameters to override the settings object.
- * @param {string?} params - can pass JSON parameter string e.g. '{"period": "mtd", "progressHeading": "Progress"}'
- * @returns {number} number of note links copied
+ * File note links from recent calendar notes. JSON in arg0 overrides settings after copyOrMove is set.
+ * @param {string} copyOrMove - 'copy' or 'move'
+ * @param {string} title - dialog title
+ * @param {?string} params
+ * @returns {number}
  */
-export async function copyRecentNoteLinks(params: string = ''): Promise<number> {
-  logDebug(pluginJson, `copyRecentNoteLinks: Starting with params '${params}'`)
-  let settings: FilerConfig = await getFilerSettings()
-  settings.copyOrMove = "copy"
-
-  // If there are params passed, then we've been called by a template command (and so use those).
-  if (params) {
-    settings = overrideSettingsWithEncodedTypedArgs(settings, params)
+async function fileRecentCommand(copyOrMove: string, title: string, params: ?string): Promise<number> {
+  const fromXCallback = typeof params === 'string'
+  logDebug(pluginJson, `${title}: starting${fromXCallback ? ` with params '${params ?? ''}'` : ''}`)
+  let settings: FilerConfig = await getFilerSettings(!fromXCallback)
+  if (!settings) return NaN
+  settings.copyOrMove = copyOrMove
+  if (typeof params === 'string' && params.trim() !== '') {
+    const next = applyFilerJsonSettings(settings, params)
+    if (!next) return NaN
+    settings = next
     clo(settings, `- config after overriding with params '${params}'`)
   } else {
-    // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
     clo(settings, '- settings without params')
   }
 
-  // main call
   const result = await fileRecentNoteLinks(settings, false)
-  if (!params) {
-    await showMessage(noteLinkResultMessage('copied', result), 'OK', 'Copy recent note links')
-  }
-  return result.filed
-}
-
-export async function moveNoteLinks(): Promise<number> {
-  const settings: FilerConfig = await getFilerSettings()
-  settings.copyOrMove = "move"
-  // get current note (Editor itself when a calendar note has no .note)
-  const note = getNoteFromEditorWindow(Editor)
-  if (!note) {
-    logWarn(pluginID, `No note selected, so stopping.`)
-    await showMessage("No note selected, so cannot run.")
-    return NaN
-  }
-  // main call
-  const result = await fileNoteLinks(note, settings, false)
-  await showMessage(noteLinkResultMessage('moved', result, displayTitle(note)), 'OK', 'Move note links')
-  return result.filed
-}
-
-/**
- * Entry point for moveRecentNoteLinks, but will process any passed JSON parameters to override the settings object.
- * Move of the work is done by calling fileRecentNoteLinks().
- * @param {?string} params - can pass JSON parameter string e.g. '{"period": "mtd", "progressHeading": "Progress"}'
- * @returns {number} number of note links moved
- */
-export async function moveRecentNoteLinks(params: string = ''): Promise<number> {
-  logDebug(pluginJson, `moveRecentNoteLinks(): Starting`)
-  let settings: FilerConfig = await getFilerSettings()
-  // Override the copyOrMove setting
-  settings.copyOrMove = "move"
-
-  // If there are params passed, then we've been called by a template command (and so use those).
-  if (params) {
-    settings = overrideSettingsWithEncodedTypedArgs(settings, params)
-    // clo(settings, `- config after overriding with params '${params}'`)
-  } else {
-    // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-    // clo(settings, '- settings without params')
-  }
-
-  // main call
-  const result = await fileRecentNoteLinks(settings, false)
-  if (!params) {
-    await showMessage(noteLinkResultMessage('moved', result), 'OK', 'Move recent note links')
-  }
+  await reportFiler(!fromXCallback, noteLinkResultMessage(settings.copyOrMove === 'copy' ? 'copied' : 'moved', result), title)
   return result.filed
 }
 

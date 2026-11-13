@@ -10,7 +10,7 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
   "plugin.version": "1.7.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "1.7.0: x-callback can pass a note and heading (or archive folder) to /move paragraph, /move block, /add sync'd copy, /archive, and /unarchive, with no dialogs.\nNew '/quick move ...' commands for this and next month, and this and next quarter.\n1.6.4: fixes to various commands; for details see the CHANGELOG.\n1.6.3: /move paragraph and /move block now also move any embedded images and files.\n1.6.2: Bug fixes to 'move paragraph', 'move note links' and 'move completed items' commands.\n1.6.1: Improvements and fixes to '/move completed items to done section' command.\n1.6.0: New '/unarchive note keeping folder structure' command to move a note from @Archive back to its original folder path.\n1.5.3: Improvements to the 'move completed items to done section' command.",
+  "plugin.lastUpdateInfo": "1.7.0: x-callback can pass a note plus JSON settings for /copy note links, /move note links, and /move completed, and JSON settings for the recent note-link and quick-move commands.\n1.7.0: x-callback can pass a note and heading (or archive folder) to /move paragraph, /move block, /add sync'd copy, /archive, and /unarchive, with no dialogs.\nNew '/quick move ...' commands for this and next month, and this and next quarter.\n1.6.4: fixes to various commands; for details see the CHANGELOG.\n1.6.3: /move paragraph and /move block now also move any embedded images and files.\n1.6.2: Bug fixes to 'move paragraph', 'move note links' and 'move completed items' commands.\n1.6.1: Improvements and fixes to '/move completed items to done section' command.\n1.6.0: New '/unarchive note keeping folder structure' command to move a note from @Archive back to its original folder path.\n1.5.3: Improvements to the 'move completed items to done section' command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -60,7 +60,11 @@
         "cnl"
       ],
       "description": "copies [[note link]] lines or blocks from the open calendar note to their respective project notes",
-      "jsFunction": "copyNoteLinks"
+      "jsFunction": "copyNoteLinks",
+      "arguments": [
+        "Note to file from (filename, title, or date). Empty uses the open note.",
+        "JSON settings override. Optional."
+      ]
     },
     {
       "name": "copy note links (recently changed)",
@@ -70,7 +74,7 @@
       "description": "copies [[note link]] lines or blocks from recently-changed calendar notes to their respective project notes",
       "jsFunction": "copyRecentNoteLinks",
       "arguments": [
-        "JSON-formatted parameter list"
+        "JSON settings override. Empty uses plugin settings."
       ]
     },
     {
@@ -81,7 +85,11 @@
         "completed"
       ],
       "description": "moves completed items to the '## Done' section of the current note",
-      "jsFunction": "moveCompletedItemsToDoneSectionCommand"
+      "jsFunction": "moveCompletedItemsToDoneSectionCommand",
+      "arguments": [
+        "Note (filename, title, or date). Empty uses the open note.",
+        "JSON settings override. Optional. If when-to-move is still ask each time, the command stops."
+      ]
     },
     {
       "name": "move note links",
@@ -89,7 +97,11 @@
         "mnl"
       ],
       "description": "moves [[note link]] lines or blocks from the open calendar note to their respective project notes",
-      "jsFunction": "moveNoteLinks"
+      "jsFunction": "moveNoteLinks",
+      "arguments": [
+        "Note to file from (filename, title, or date). Empty uses the open note.",
+        "JSON settings override. Optional."
+      ]
     },
     {
       "name": "move note links (recently changed)",
@@ -99,7 +111,7 @@
       "description": "moves [[note link]] lines or blocks from recently-changed calendar notes to their respective project notes",
       "jsFunction": "moveRecentNoteLinks",
       "arguments": [
-        "JSON-formatted parameter list"
+        "JSON settings override. Empty uses plugin settings."
       ]
     },
     {
@@ -137,7 +149,10 @@
         "daily"
       ],
       "description": "quick move a block of lines to Today's note",
-      "jsFunction": "moveParasToToday"
+      "jsFunction": "moveParasToToday",
+      "arguments": [
+        "JSON settings override. Empty uses plugin settings."
+      ]
     },
     {
       "name": "quick move to Tomorrow's note",
@@ -145,7 +160,10 @@
         "qmtm"
       ],
       "description": "quick move a block of lines to Tomorrow's daily note",
-      "jsFunction": "moveParasToTomorrow"
+      "jsFunction": "moveParasToTomorrow",
+      "arguments": [
+        "JSON settings override. Empty uses plugin settings."
+      ]
     },
     {
       "name": "quick move to Weekly note",
@@ -155,7 +173,10 @@
         "week"
       ],
       "description": "quick move a block of lines to the current Weekly note",
-      "jsFunction": "moveParasToThisWeekly"
+      "jsFunction": "moveParasToThisWeekly",
+      "arguments": [
+        "JSON settings override. Empty uses plugin settings."
+      ]
     },
     {
       "name": "quick move to Next Weekly note",
@@ -163,7 +184,10 @@
         "qmnw"
       ],
       "description": "quick move a block of lines to Next Week's note",
-      "jsFunction": "moveParasToNextWeekly"
+      "jsFunction": "moveParasToNextWeekly",
+      "arguments": [
+        "JSON settings override. Empty uses plugin settings."
+      ]
     },
     {
       "name": "quick move to Monthly note",
@@ -172,7 +196,10 @@
         "month"
       ],
       "description": "quick move a block of lines to the current Monthly note",
-      "jsFunction": "moveParasToThisMonthly"
+      "jsFunction": "moveParasToThisMonthly",
+      "arguments": [
+        "JSON settings override. Empty uses plugin settings."
+      ]
     },
     {
       "name": "quick move to Next Monthly note",
@@ -180,7 +207,10 @@
         "qmnm"
       ],
       "description": "quick move a block of lines to next month's note",
-      "jsFunction": "moveParasToNextMonthly"
+      "jsFunction": "moveParasToNextMonthly",
+      "arguments": [
+        "JSON settings override. Empty uses plugin settings."
+      ]
     },
     {
       "name": "quick move to Quarterly note",
@@ -189,7 +219,10 @@
         "quarter"
       ],
       "description": "quick move a block of lines to the current Quarterly note",
-      "jsFunction": "moveParasToThisQuarterly"
+      "jsFunction": "moveParasToThisQuarterly",
+      "arguments": [
+        "JSON settings override. Empty uses plugin settings."
+      ]
     },
     {
       "name": "quick move to Next Quarterly note",
@@ -197,7 +230,10 @@
         "qmnq"
       ],
       "description": "quick move a block of lines to next quarter's note",
-      "jsFunction": "moveParasToNextQuarterly"
+      "jsFunction": "moveParasToNextQuarterly",
+      "arguments": [
+        "JSON settings override. Empty uses plugin settings."
+      ]
     }
   ],
   "plugin.settings": [
