@@ -29,6 +29,8 @@ This extends the first command, by also moving the contents of the current parag
 
 You can turn on 'Use a tighter definition of when a Block finishes?' in the settings, which will stop the section at the next blank line, as well as next heading of the same level or higher, or the next horizontal line, or the start of the note's `## Done` or `## Cancelled` section (if present).
 
+If the cursor is on the note's title line, the command asks before moving. With the usual block definition it warns that the move will empty the note. With the tighter definition it warns that the move runs until the next blank line or H1 and will change the note title as well. Choose No to leave the note as it is.
+
 ## /move completed items to done section
 This is a more powerful version of NotePlan's built-in 'Move Completed to Bottom' menu action.  It has the following settings, which reveal its additional powers:
 - Heading name for Done section: Defaults to NotePlan's standard 'Done', but can be set to something else (for example `Completed`, `Hecho`, `Abgemacht` etc.)

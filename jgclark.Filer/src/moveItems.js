@@ -14,11 +14,15 @@ import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
+import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import { addParagraphsToNote, findHeading } from '@helpers/paragraph'
 import { clearHighlighting, getNoteFromEditorWindow, getSelectedParagraphsToUse, highlightSelectionInEditor } from '@helpers/NPEditor'
 import { prepareEmbeddedMediaMove, removeSourceEmbeddedMediaIfUnused } from '@helpers/NPEmbeddedMedia'
 import { chooseNoteV2 } from '@helpers/NPnote'
-import { chooseHeadingV2 } from '@helpers/userInput'
+import { chooseHeadingV2, showMessageYesNo } from '@helpers/userInput'
+
+const TITLE_MOVE_LOOSE_MESSAGE = 'Moving the block that starts with the title line will empty the whole note. Do you wish to continue?'
+const TITLE_MOVE_TIGHT_MESSAGE = 'Moving the block (starting with the title line until the next blank line or H1 heading) will change the title of the note as well. Do you wish to continue?'
 
 //-----------------------------------------------------------------------------
 // Private helper functions
@@ -82,6 +86,43 @@ function getDateBacklinkSuffix(note: CoreNoteFields, config: any): string {
     return ` ${datePart}`
   }
   return ''
+}
+
+/**
+ * Line index of the note's H1 title, after any frontmatter. -1 when the note has no title line.
+ * @param {CoreNoteFields} note
+ * @returns {number}
+ */
+function noteTitleLineIndex(note: CoreNoteFields): number {
+  const paras = note.paragraphs
+  if (paras.length === 0) return -1
+  const endOfFMIndex = endOfFrontmatterLineIndex(note) || 0
+  const titleIndex = endOfFMIndex === 0 ? 0 : endOfFMIndex + 1
+  if (titleIndex >= paras.length) return -1
+  const titlePara = paras[titleIndex]
+  if (titlePara.type === 'title' && (titlePara.headingLevel ?? 1) === 1) return titleIndex
+  return -1
+}
+
+/**
+ * Ask before a block move that includes the note title. Yes means continue.
+ * The question depends on whether a block stops at the next blank line.
+ * @param {CoreNoteFields} note
+ * @param {Array<TParagraph>} parasInBlock
+ * @param {boolean} useTightBlockDefinition
+ * @param {string} logName
+ * @returns {Promise<boolean>}
+ */
+async function confirmTitleLineMove(note: CoreNoteFields, parasInBlock: Array<TParagraph>, useTightBlockDefinition: boolean, logName: string): Promise<boolean> {
+  const titleIndex = noteTitleLineIndex(note)
+  if (titleIndex < 0 || !parasInBlock.some((p) => p.lineIndex === titleIndex)) return true
+  const message = useTightBlockDefinition ? TITLE_MOVE_TIGHT_MESSAGE : TITLE_MOVE_LOOSE_MESSAGE
+  const choice = await showMessageYesNo(message, ['Yes', 'No'], 'Filer: Move block')
+  if (choice !== 'Yes') {
+    logInfo(pluginJson, `${logName}: user declined to move the note title.`)
+    return false
+  }
+  return true
 }
 
 /**
@@ -214,6 +255,8 @@ async function moveParasToNoteCommand(withBlockContext: boolean, destNoteArg: ?s
       if (fromXCallback) logInfo(pluginJson, `${logName}(): no paragraphs to move, so stopping.`)
       return
     }
+
+    if (withBlockContext && !(await confirmTitleLineMove(note, parasInBlock, config.useTightBlockDefinition, logName))) return
 
     logDebug(logName, `- firstSelLine: {${selectedParagraphsToUse[0].content}}`)
     // Attempt to highlight them to help user check all is well
@@ -429,6 +472,8 @@ async function moveParasToCalendarPeriod(
       logWarn(pluginJson, `${logName}: No paragraphs to move.`)
       return
     }
+
+    if (withBlockContext && !(await confirmTitleLineMove(note, parasInBlock, config.useTightBlockDefinition, logName))) return
 
     // Highlight if we expanded to a block (not a user selection)
     if (lastSelLineIndex === firstSelLineIndex) {
