@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [2.1.3] - 2026-11-12 @dwertheimer
+
+- Create the meeting note when the template has no title, instead of stopping. A missing calendar event still skips the link back into the event, and a known title still checks for an existing note.
+
 ## [2.1.2] - 2026-05-10 @dwertheimer
 
 - Bump version after recent np.Templating changes
