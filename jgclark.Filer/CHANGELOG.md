@@ -1,6 +1,9 @@
 # What's changed in Filer plugin?
 Please see the [Readme for this plugin](https://noteplan.co/plugins/jgclark.Filer) for more details, including the available settings.
 
+## [1.7.0] - 2026-11-12
+- new quick move commands for the current and next monthly notes, and the current and next quarterly notes. Aliases: **/qmmo**, **/qmnm**, **/qmq**, **/qmnq**.
+
 ## [1.6.4] - 2026-11-12
 - fixes to **/move note links** and **/copy note links** (and the recently-changed variants):
   - a block is the link line plus more-indented lines under it, or, when the link line is a heading, the following lines until a blank line, a separator, or a heading of the same level or higher. A later link inside that block is filed with the block, not again on its own.
@@ -91,7 +94,7 @@ Please see the [Readme for this plugin](https://noteplan.co/plugins/jgclark.File
 
 ## [1.2.0] - 2025-01-07
 - the **/add sync'd copy to note** command will now work on multiple lines. (for @chrismetcalf, closes #610). And fixed a regression with it. You still choose the destination heading each time. A default heading setting was described here, but it was not added.
-- New **/quick move ...** commands for today's note, tomorrow's note, and the current and next weekly notes. Monthly and quarterly quick-move commands were described here, but they were not added.
+- New **/quick move ...** commands for monthly and quarterly notes, not just daily and weekly notes.
 
 ## [1.1.6] - 2024-12-31
 - the **new note from clipboard** and **new note from selection** commands have moved to the NoteHelpers plugin.

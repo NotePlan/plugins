@@ -39,12 +39,16 @@ This is a more powerful version of NotePlan's built-in 'Move Completed to Bottom
 When a section heading is recreated or moved into the Done section, it is nested **one level deeper** than the original, so that it sits *inside* the `## Done` section rather than as a sibling of it. For example, an active `## Project Alpha` section becomes a `### Project Alpha` sub-heading under the `## Done` heading. (Items are also merged into a matching existing sub-heading in the Done section when one is already present.)
 
 ## /quick move to <...> note
-These 4 commands each moves lines to the current weekly note, using the same selection strategy as /mp (see above). The move happens in the background, leaving you in the flow in your current note. (Available with weekly notes from NotePlan v3.6.)
+These commands move lines using the same selection strategy as /mp (see above). The move happens in the background, leaving you in the flow in your current note. (Weekly notes from NotePlan v3.6. Monthly and quarterly notes from later NotePlan versions.)
 
 - **/quick move to Today's note** (alias **/qmtd**) -- Note: this is different from the existing 'Move Task To Today ⌘0' shortcut, which actually _schedules_ not moves.
 - **/quick move to Tomorrow's note** (alias **/qmtm**) -- Note: this is different from the existing 'Move Task To Tomorrow ⌘1' shortcut, which actually _schedules_ not moves.
 - **/quick move to Weekly note** (alias **/qmw**)
 - **/quick move to Next Weekly note** (alias **/qmnw**)
+- **/quick move to Monthly note** (alias **/qmmo**)
+- **/quick move to Next Monthly note** (alias **/qmnm**)
+- **/quick move to Quarterly note** (alias **/qmq**)
+- **/quick move to Next Quarterly note** (alias **/qmnq**)
 
 They could be mapped to shortcut keys to make using them even faster.
 

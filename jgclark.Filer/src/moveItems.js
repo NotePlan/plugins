@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2026-11-12, for v1.6.4 by @CursorAI
+// last updated 2026-11-12, for v1.7.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -280,6 +280,62 @@ export async function moveParasToNextWeekly(): Promise<void> {
  * @param {boolean?} withBlockContext?
  */
 export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext: boolean = false): Promise<void> {
+  await moveParasToCalendarPeriod(destDate, 'week', 'Weekly', 'moveParasToCalendarWeekly', withBlockContext)
+}
+
+/**
+ * Move text to the current Monthly note.
+ * Uses the same selection strategy as moveParas() above
+ * @author @jgclark
+ */
+export async function moveParasToThisMonthly(): Promise<void> {
+  await moveParasToCalendarPeriod(new Date(), 'month', 'Monthly', 'moveParasToThisMonthly')
+}
+
+/**
+ * Move text to next month's Monthly note.
+ * Uses the same selection strategy as moveParas() above
+ * @author @jgclark
+ */
+export async function moveParasToNextMonthly(): Promise<void> {
+  await moveParasToCalendarPeriod(Calendar.addUnitToDate(new Date(), 'month', 1), 'month', 'Monthly', 'moveParasToNextMonthly')
+}
+
+/**
+ * Move text to the current Quarterly note.
+ * Uses the same selection strategy as moveParas() above
+ * @author @jgclark
+ */
+export async function moveParasToThisQuarterly(): Promise<void> {
+  await moveParasToCalendarPeriod(new Date(), 'quarter', 'Quarterly', 'moveParasToThisQuarterly')
+}
+
+/**
+ * Move text to next quarter's Quarterly note.
+ * Uses the same selection strategy as moveParas() above
+ * @author @jgclark
+ */
+export async function moveParasToNextQuarterly(): Promise<void> {
+  await moveParasToCalendarPeriod(Calendar.addUnitToDate(new Date(), 'month', 3), 'quarter', 'Quarterly', 'moveParasToNextQuarterly')
+}
+
+/**
+ * Move text to a calendar note for a date and period.
+ * (Not called directly by users.)
+ * Uses the same selection strategy as moveParas() above.
+ * @param {Date} destDate
+ * @param {string} period - 'day', 'week', 'month', or 'quarter'
+ * @param {string} periodLabel - used in the message when the note cannot be opened
+ * @param {string} logName
+ * @param {boolean} withBlockContext
+ */
+async function moveParasToCalendarPeriod(
+  destDate: Date,
+  period: string,
+  periodLabel: string,
+  logName: string,
+  withBlockContext: boolean = false,
+): Promise<void> {
   try {
     const { content, selectedParagraphs } = Editor
     const note = getNoteFromEditorWindow(Editor)
@@ -287,25 +343,25 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     // Pre-flight checks
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (empty note?), so don't do anything.
-      logWarn(pluginJson, 'moveParasToCalendarWeekly(): No note open, so stopping.')
+      logWarn(pluginJson, `${logName}(): No note open, so stopping.`)
       return
     }
-    logDebug(pluginJson, 'moveParasToCalendarWeekly(): Starting')
+    logDebug(pluginJson, `${logName}(): Starting`)
 
     // Get config settings
     const config = await getFilerSettings()
     const selectedParagraphsToUse = getSelectedParagraphsToUse()
 
     if (selectedParagraphsToUse.length === 0) {
-      logWarn(pluginJson, 'moveParasToCalendarWeekly: No selected paragraphs found.')
+      logWarn(pluginJson, `${logName}: No selected paragraphs found.`)
       return
     }
 
-    // Find the Weekly note to move to
-    const destNote = DataStore.calendarNoteByDate(destDate, 'week')
+    // Find the calendar note to move to
+    const destNote = DataStore.calendarNoteByDate(destDate, period)
     if (destNote == null) {
-      await showMessage(`Sorry: I can't find the Weekly note for ${toNPLocaleDateString(destDate)}.`)
-      logError('moveParasToCalendarWeekly', `Failed to open the Weekly note for ${toNPLocaleDateString(destDate)}. Stopping.`)
+      await showMessage(`Sorry: I can't find the ${periodLabel} note for ${toNPLocaleDateString(destDate)}.`)
+      logError(logName, `Failed to open the ${periodLabel} note for ${toNPLocaleDateString(destDate)}. Stopping.`)
       return
     }
 
@@ -316,7 +372,7 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     const parasInBlock = getParagraphsToMove(note, selectedParagraphsToUse, withBlockContext, config)
 
     if (parasInBlock.length === 0) {
-      logWarn(pluginJson, 'moveParasToCalendarWeekly: No paragraphs to move.')
+      logWarn(pluginJson, `${logName}: No paragraphs to move.`)
       return
     }
 
@@ -335,7 +391,7 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     clearHighlighting()
   }
   catch (error) {
-    logError('Filer/moveParasToCalendarWeekly', error.message)
+    logError(`Filer/${logName}`, error.message)
     await showMessage(error.message, 'OK', 'Filer: Error moving lines to calendar date')
   }
 }
@@ -369,61 +425,5 @@ export async function moveParasToTomorrow(): Promise<void> {
  * @param {boolean?} withBlockContext?
  */
 export async function moveParasToCalendarDate(destDate: Date, withBlockContext: boolean = false): Promise<void> {
-  try {
-    const { content, selectedParagraphs } = Editor
-    const note = getNoteFromEditorWindow(Editor)
-
-    // Pre-flight checks
-    if (content == null || selectedParagraphs == null || note == null) {
-      // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
-      logWarn(pluginJson, 'moveParasToCalendarDate(): No note open, so stopping.')
-      return
-    }
-
-    // Get config settings
-    const config = await getFilerSettings()
-    const selectedParagraphsToUse = getSelectedParagraphsToUse()
-
-    if (selectedParagraphsToUse.length === 0) {
-      logWarn(pluginJson, 'moveParasToCalendarDate: No selected paragraphs found.')
-      return
-    }
-
-    // Find the Daily note to move to
-    const destNote = DataStore.calendarNoteByDate(destDate, 'day')
-    if (destNote == null) {
-      await showMessage(`Sorry: I can't find the Daily note for ${toNPLocaleDateString(destDate)}.`)
-      logError('moveParasToCalendarDate', `Failed to open the Daily note for ${toNPLocaleDateString(destDate)}. Stopping.`)
-      return
-    }
-
-    const firstSelLineIndex = selectedParagraphsToUse[0].lineIndex
-    const lastSelLineIndex = selectedParagraphsToUse[selectedParagraphsToUse.length - 1].lineIndex
-
-    // Get paragraphs for the selection or block
-    const parasInBlock = getParagraphsToMove(note, selectedParagraphsToUse, withBlockContext, config)
-
-    if (parasInBlock.length === 0) {
-      logWarn(pluginJson, 'moveParasToCalendarDate: No paragraphs to move.')
-      return
-    }
-
-    // Highlight if we expanded to a block (not a user selection)
-    if (lastSelLineIndex === firstSelLineIndex) {
-      highlightSelectionInEditor(parasInBlock)
-    }
-
-    // Date backlink for destination copy only (do not mutate source paras)
-    const dateBacklinkSuffix = getDateBacklinkSuffix(note, config)
-
-    // Move paragraphs to destination note (empty heading for calendar notes)
-    moveParagraphsToNote(note, destNote, parasInBlock, '', config, dateBacklinkSuffix)
-
-    // Unhighlight the previous selection, for safety's sake
-    clearHighlighting()
-  }
-  catch (error) {
-    logError('Filer/moveParasToCalendarDate', error.message)
-    await showMessage(error.message, 'OK', 'Filer: Error moving lines to calendar date')
-  }
+  await moveParasToCalendarPeriod(destDate, 'day', 'Daily', 'moveParasToCalendarDate', withBlockContext)
 }
