@@ -3,15 +3,15 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 2026-11-12, for v1.7.0
+// last updated 2026-11-13, for v1.7.0 by @CursorAI
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { getFilerSettings } from './filerHelpers'
+import { getFilerSettings, reportFiler, resolveNoteArgument } from './filerHelpers'
 import { getParagraphBlock } from '@helpers/blocks'
 import { formatNoteDateFromNPDateStr, getDateStringFromCalendarFilename, todaysDateISOString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
-import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { addParagraphsToNote, findHeading } from '@helpers/paragraph'
@@ -143,10 +143,13 @@ function moveParagraphsToNote(
 /**
  * Move text to a different note, forcing treating this as a block.
  * See moveParas() for definition of selection logic.
+ * From an x-callback, arg0 is the destination note and arg1 is the heading. No dialogs in that case.
+ * @param {string?} destNoteArg - filename, title, or date phrase
+ * @param {string?} headingArg - heading, `<<top of note>>`, or `<<bottom of note>>`
  * @author @jgclark
  */
-export async function moveParaBlock(): Promise<void> {
-  await moveParas(true)
+export async function moveParaBlock(destNoteArg?: string, headingArg?: string): Promise<void> {
+  await moveParasToNoteCommand(true, destNoteArg, headingArg, arguments.length)
 }
 
 /**
@@ -157,61 +160,104 @@ export async function moveParaBlock(): Promise<void> {
  * - current line
  * - current line plus any paragraphs directly following, if 'withBlockContext' true).
  * NB: the Setting 'includeFromStartOfSection' decides whether these directly following paragraphs have to be indented (false) or can take all following lines at same level until next empty line as well.
- * @param {boolean?} withBlockContext?
+ * From an x-callback, arg0 is the destination note and arg1 is the heading. With no arguments, the command bar asks for both.
+ * @param {string?} destNoteArg - filename, title, or date phrase
+ * @param {string?} headingArg - heading, `<<top of note>>`, or `<<bottom of note>>`
  * @author @jgclark
  */
-export async function moveParas(withBlockContext: boolean = false): Promise<void> {
+export async function moveParas(destNoteArg?: string, headingArg?: string): Promise<void> {
+  await moveParasToNoteCommand(false, destNoteArg, headingArg, arguments.length)
+}
+
+/**
+ * Shared mover for /move paragraph and /move paragraph block.
+ * A string destNoteArg means the call came from an x-callback or template, so do not prompt.
+ * @param {boolean} withBlockContext
+ * @param {?string} destNoteArg
+ * @param {?string} headingArg
+ * @param {number} argCount - arguments.length from the command entry point
+ */
+async function moveParasToNoteCommand(withBlockContext: boolean, destNoteArg: ?string, headingArg: ?string, argCount: number): Promise<void> {
+  const logName = withBlockContext ? 'Filer/moveParaBlock' : 'Filer/moveParas'
+  // A string first argument (including '') is an x-callback. The command bar passes no arguments.
+  const fromXCallback = typeof destNoteArg === 'string'
   try {
     const { content, selectedParagraphs } = Editor
     const note = getNoteFromEditorWindow(Editor)
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
-      logWarn(pluginJson, 'moveParas: No note open, so stopping.')
+      logWarn(pluginJson, `${logName}: No note open, so stopping.`)
+      if (fromXCallback) logInfo(pluginJson, `${logName}(): no note open, so stopping.`)
       return
     }
 
-    const config = await getFilerSettings()
+    const config = await getFilerSettings(!fromXCallback)
+    if (!config) return
     const selectedParagraphsToUse = getSelectedParagraphsToUse()
 
     if (selectedParagraphsToUse.length === 0) {
-      logWarn(pluginJson, 'moveParas: No selected paragraphs found.')
+      logWarn(pluginJson, `${logName}: No selected paragraphs found.`)
+      if (fromXCallback) logInfo(pluginJson, `${logName}(): no selected paragraphs, so stopping.`)
       return
     }
 
-    logDebug('moveParas', `selectedParagraphsToUse:\n${selectedParagraphsToUse.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n')}`)
+    logDebug(logName, `selectedParagraphsToUse:\n${selectedParagraphsToUse.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n')}`)
     const firstSelLineIndex = selectedParagraphsToUse[0].lineIndex
     const lastSelLineIndex = selectedParagraphsToUse[selectedParagraphsToUse.length - 1].lineIndex
-    logDebug(pluginJson, `moveParas(): Starting with selected lineIndexes ${firstSelLineIndex}-${lastSelLineIndex}`)
+    logDebug(pluginJson, `${logName}(): Starting with selected lineIndexes ${firstSelLineIndex}-${lastSelLineIndex}`)
 
     // Get paragraphs for the selection or block
     const parasInBlock = getParagraphsToMove(note, selectedParagraphsToUse, withBlockContext, config)
 
     if (parasInBlock.length === 0) {
-      logWarn(pluginJson, 'moveParas: No paragraphs to move.')
+      logWarn(pluginJson, `${logName}: No paragraphs to move.`)
+      if (fromXCallback) logInfo(pluginJson, `${logName}(): no paragraphs to move, so stopping.`)
       return
     }
 
-    logDebug('moveParas', `- firstSelLine: {${selectedParagraphsToUse[0].content}}`)
+    logDebug(logName, `- firstSelLine: {${selectedParagraphsToUse[0].content}}`)
     // Attempt to highlight them to help user check all is well
     highlightSelectionInEditor(parasInBlock)
 
-    logDebug('moveParas', `parasInBlock:\n${parasInBlock.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n')}`)
+    logDebug(logName, `parasInBlock:\n${parasInBlock.map((p) => `- ${p.lineIndex}: ${p.content}`).join('\n')}`)
 
     // Date backlink for destination copy only (do not mutate source paras)
     const dateBacklinkSuffix = getDateBacklinkSuffix(note, config)
 
-    // Decide where to move to
-    const destNote = await chooseNoteV2(`Select note to move ${(parasInBlock.length > 1) ? parasInBlock.length + ' lines' : 'current line'} to`, allRegularNotesSortedByChanged(), true, true, false, true)
-    if (!destNote) {
-      logWarn('moveParas', 'No note chosen. Stopping.')
-      return
+    // Decide where to move to. x-callback supplies the note and heading; the command bar asks.
+    let destNote: TNote
+    let headingToFind = ''
+    if (fromXCallback) {
+      const destName = (destNoteArg || '').trim()
+      logInfo(pluginJson, `${logName}(): x-callback dest '${destName}' heading '${headingArg ?? ''}'`)
+      if (destName === '') {
+        logError(logName, 'No destination note given, so stopping.')
+        return
+      }
+      if (argCount < 2 || headingArg == null || headingArg.trim() === '') {
+        logError(logName, 'No heading given, so stopping. Use a heading name, <<top of note>>, or <<bottom of note>>.')
+        return
+      }
+      const resolved = resolveNoteArgument(destName)
+      if (!resolved) {
+        logError(logName, `Could not find note '${destName}', so stopping.`)
+        return
+      }
+      destNote = (resolved: any)
+      headingToFind = headingArg.trim()
+    } else {
+      const chosen = await chooseNoteV2(`Select note to move ${(parasInBlock.length > 1) ? parasInBlock.length + ' lines' : 'current line'} to`, allRegularNotesSortedByChanged(), true, true, false, true)
+      if (!chosen) {
+        logWarn(logName, 'No note chosen. Stopping.')
+        return
+      }
+      destNote = chosen
+      // Ask to which heading to add the selectedParas
+      headingToFind = await chooseHeadingV2(destNote, true, true, false)
     }
-
-    // Ask to which heading to add the selectedParas
-    let headingToFind = await chooseHeadingV2(destNote, true, true, false)
-    logDebug('moveParas', `Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
+    logDebug(logName, `Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
     if (headingToFind === '') {
-      logWarn('moveParas', 'No heading chosen. Stopping.')
+      logWarn(logName, 'No heading chosen. Stopping.')
       return
     }
 
@@ -225,31 +271,32 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
         const actualHeadingContent = headingPara.content.trim()
         // If the actual heading has trailing whitespace, fix it in the note
         if (headingPara.content !== actualHeadingContent) {
-          logWarn('moveParas', `Heading in note ('${headingPara.content}') has trailing whitespace. Removing it.`)
+          logWarn(logName, `Heading in note ('${headingPara.content}') has trailing whitespace. Removing it.`)
           headingPara.content = actualHeadingContent
           destNote.updateParagraph(headingPara)
         }
         // Use the normalized heading content
         headingToFind = actualHeadingContent
-        logDebug('moveParas', `Normalized heading to: '${headingToFind}'`)
+        logDebug(logName, `Normalized heading to: '${headingToFind}'`)
       } else {
         // Heading not found - warn user before proceeding
         const errorMsg = `Cannot find heading '${headingToFind}' in note '${displayTitle(destNote)}'. The move operation will be cancelled to prevent data loss.`
-        logError('moveParas', errorMsg)
-        await showMessage(errorMsg, 'OK', 'Filer: Heading Not Found')
+        logError(logName, errorMsg)
+        await reportFiler(!fromXCallback, errorMsg, 'Filer: Heading Not Found')
         return
       }
     }
 
     // Move paragraphs to destination note
     moveParagraphsToNote(note, destNote, parasInBlock, headingToFind, config, dateBacklinkSuffix)
+    logInfo(logName, `Moved ${String(parasInBlock.length)} lines to '${displayTitle(destNote)}' under '${headingToFind}'`)
 
     // Unhighlight the previous selection, for safety's sake
     clearHighlighting()
   }
   catch (error) {
-    logError('Filer/moveParas', error.message)
-    await showMessage(error.message, 'OK', 'Filer: Error moving lines')
+    logError(logName, error.message)
+    await reportFiler(!fromXCallback, error.message, 'Error moving lines')
   }
 }
 

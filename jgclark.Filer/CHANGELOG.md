@@ -3,6 +3,9 @@ Please see the [Readme for this plugin](https://noteplan.co/plugins/jgclark.File
 
 ## [1.7.0] - 2026-11-12
 - new quick move commands for the current and next monthly notes, and the current and next quarterly notes. Aliases: **/qmmo**, **/qmnm**, **/qmq**, **/qmnq**.
+- x-callback or a template can pass a destination note and heading to **/move paragraph or selection**, **/move paragraph block**, and **/add sync'd copy to note**. 
+- x-callback or template calls to **/archive note keeping folder structure** takes the note and an archive folder; **/unarchive note keeping folder structure** takes the note. 
+- x-callback calls now skip the usual dialogs and writes the result to the plugin log. Running the command from the command bar, with no arguments, still asks as before.
 
 ## [1.6.4] - 2026-11-12
 - fixes to **/move note links** and **/copy note links** (and the recently-changed variants):

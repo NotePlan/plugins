@@ -10,7 +10,7 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
   "plugin.version": "1.7.0",
   "plugin.releaseStatus": "full",
-  "plugin.lastUpdateInfo": "1.7.0: New quick move commands for this and next month, and this and next quarter.\n1.6.4: fixes to various commands; for details see the CHANGELOG.\n1.6.3: /move paragraph and /move block now also move any embedded images and files.\n1.6.2: Bug fixes to 'move paragraph', 'move note links' and 'move completed items' commands.\n1.6.1: Improvements and fixes to '/move completed items to done section' command.\n1.6.0: New '/unarchive note keeping folder structure' command to move a note from @Archive back to its original folder path.\n1.5.3: Improvements to the 'move completed items to done section' command.\n1.5.2: Allow customising the name of the 'Done' section heading used by the 'move completed items to done section' command. Improvements to the 'move completed items to done section' command.\n1.5.1: Fix 'Add date reference?' option so that when moving from calendar note the added date now correctly points to the source note's date, not always to today.\n1.5.0: New '/move completed items to done section' command that is more powerful than NP's built-in 'Move Completed to Bottom' menu action. Settings include recreating the section structure under Done, and 'When to move completed items to Done' (ask each time, when the whole section is complete, or when any item is complete).",
+  "plugin.lastUpdateInfo": "1.7.0: x-callback can pass a note and heading (or archive folder) to /move paragraph, /move block, /add sync'd copy, /archive, and /unarchive, with no dialogs.\nNew '/quick move ...' commands for this and next month, and this and next quarter.\n1.6.4: fixes to various commands; for details see the CHANGELOG.\n1.6.3: /move paragraph and /move block now also move any embedded images and files.\n1.6.2: Bug fixes to 'move paragraph', 'move note links' and 'move completed items' commands.\n1.6.1: Improvements and fixes to '/move completed items to done section' command.\n1.6.0: New '/unarchive note keeping folder structure' command to move a note from @Archive back to its original folder path.\n1.5.3: Improvements to the 'move completed items to done section' command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -23,7 +23,11 @@
         "lines"
       ],
       "description": "Add a sync'd copy of the current line to a section in another note",
-      "jsFunction": "addIDAndAddToOtherNote"
+      "jsFunction": "addIDAndAddToOtherNote",
+      "arguments": [
+        "Destination note (filename, title, or date). Required for x-callback.",
+        "Heading, or <<top of note>> or <<bottom of note>>"
+      ]
     },
     {
       "name": "archive note keeping folder structure",
@@ -32,7 +36,11 @@
         "archive"
       ],
       "description": "Move the current note to NotePlan's Archive, but keep the same folder structure for it inside the special @Archive folder",
-      "jsFunction": "archiveNote"
+      "jsFunction": "archiveNote",
+      "arguments": [
+        "Note to archive (filename, title, or date). Empty uses the open note.",
+        "Archive folder. Empty uses @Archive."
+      ]
     },
     {
       "name": "unarchive note keeping folder structure",
@@ -41,7 +49,10 @@
         "unarchive"
       ],
       "description": "Move the current note from NotePlan's Archive back to its original folder structure",
-      "jsFunction": "unarchiveNote"
+      "jsFunction": "unarchiveNote",
+      "arguments": [
+        "Note to unarchive (filename, title, or date). Empty uses the open note."
+      ]
     },
     {
       "name": "copy note links",
@@ -99,7 +110,11 @@
         "file"
       ],
       "description": "moves this line (or selected lines) to a different note",
-      "jsFunction": "moveParas"
+      "jsFunction": "moveParas",
+      "arguments": [
+        "Destination note (filename, title, or date)",
+        "Heading, or <<top of note>> or <<bottom of note>>"
+      ]
     },
     {
       "name": "move paragraph block",
@@ -108,7 +123,11 @@
         "block"
       ],
       "description": "moves all lines in the current block to a different note",
-      "jsFunction": "moveParaBlock"
+      "jsFunction": "moveParaBlock",
+      "arguments": [
+        "Destination note (filename, title, or date)",
+        "Heading, or <<top of note>> or <<bottom of note>>"
+      ]
     },
     {
       "name": "quick move to Today's note",

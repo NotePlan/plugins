@@ -2,11 +2,13 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Filer plugin.
 // Jonathan Clark
-// last updated 2026-06-25, for v1.6.1, by @jgclark
+// last updated 2026-11-13, for v1.7.0, by @CursorAI
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { clo, JSP, logDebug, logError } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { getNoteFromEditorWindow } from '@helpers/NPEditor'
+import { getNoteFromIdentifier } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
 
@@ -36,7 +38,12 @@ export type FilerConfig = {
   _logTimer: boolean,
 }
 
-export async function getFilerSettings(): Promise<any> {
+/**
+ * Load Filer settings. When `interactive` is false (an x-callback or template call), a missing settings file is only logged.
+ * @param {boolean} interactive - when true, tell the user if settings cannot be loaded
+ * @returns {Promise<any>} settings object, or undefined when they cannot be loaded
+ */
+export async function getFilerSettings(interactive: boolean = true): Promise<any> {
   try {
     // // TODO: add to np.Shared
     // // - doneSectionHeadingName
@@ -49,7 +56,9 @@ export async function getFilerSettings(): Promise<any> {
 
     if (config == null || Object.keys(config).length === 0) {
       logError(pluginJson, `getFilerSettings() cannot find '${pluginID}' plugin settings. Stopping.`)
-      await showMessage(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+      if (interactive) {
+        await showMessage(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+      }
       return
     } else {
       // clo(config, `${pluginID} settings:`)
@@ -57,6 +66,37 @@ export async function getFilerSettings(): Promise<any> {
     }
   } catch (err) {
     logError(pluginJson, `GetFilerSettings(): ${err.name}: ${err.message}`)
-    await showMessage(`Error: ${err.message}`)
+    if (interactive) {
+      await showMessage(`Error: ${err.message}`)
+    }
+  }
+}
+
+/**
+ * Resolve a note argument from an x-callback or template call.
+ * An empty string means the note open in the editor.
+ * Anything else is a filename (with extension), a note title, or a date phrase such as `today` (see getNoteFromIdentifier).
+ * @param {string} noteArg
+ * @returns {CoreNoteFields | null}
+ */
+export function resolveNoteArgument(noteArg: string): CoreNoteFields | null {
+  const trimmed = (noteArg || '').trim()
+  if (trimmed === '') {
+    return getNoteFromEditorWindow(Editor) ?? null
+  }
+  return getNoteFromIdentifier(trimmed)
+}
+
+/**
+ * Log a user-facing outcome. Show the same text in a dialog only when the command was started from the command bar.
+ * @param {boolean} interactive
+ * @param {string} message
+ * @param {string} title - dialog title
+ * @param {string} confirmButton
+ */
+export async function reportFiler(interactive: boolean, message: string, title: string = '', confirmButton: string = 'OK'): Promise<void> {
+  logInfo(pluginID, `${title ? `${title}: ` : ''}${message}`)
+  if (interactive) {
+    await showMessage(message, confirmButton, title)
   }
 }

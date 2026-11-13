@@ -108,10 +108,75 @@ You can then have this run as part of your Daily Template processing. I suggest 
 
 You can override your usual settings by passing extra parameters in the `[...]` above. Please see this plugin's `plugin.json` file to know what the settings are called.
 
-You can also run from an x-callback call. At simplest this is:
+X-callback calls for every command are listed under [Automating commands](#automating-commands).
+
+## Automating commands
+Any Filer command can be started with an x-callback URL. NotePlan passes `arg0` and `arg1` into the command. Encode spaces and punctuation (`%20` for a space, `%2F` for `/`, `%3C` and `%3E` for `<` and `>`).
+
 ```
-noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=move%20note%20links%20%28recently%20changed%29&arg0=
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=COMMAND&arg0=ARG0&arg1=ARG1
 ```
+
+The same arguments work from a template:
+
+```
+<% await DataStore.invokePluginCommandByName("COMMAND","jgclark.Filer",['arg0','arg1']) %>
+```
+
+For the commands that accept a note and a heading or folder, passing `arg0` (even when it is empty) means "this is an x-callback": the command does not open a dialog. It writes what it did to the Plugin Console. Running that command from the command bar, with no arguments, still asks you to pick the note and heading.
+
+A note argument is a filename with its extension (`Projects/Plan.md`), a project-note title (`Plan`), or a date phrase such as `today`. If more than one note has that title, the first match is used. An empty note argument means the note open in the editor. The move and sync commands still take the lines from the open editor, so a note has to be open.
+
+Archive the open note into `@Archive`:
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=archive%20note%20keeping%20folder%20structure&arg0=&arg1=
+```
+
+Archive `Projects/Plan.md` under a folder named `Completed` (the path inside that folder is kept, same as `@Archive`):
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=archive%20note%20keeping%20folder%20structure&arg0=Projects%2FPlan.md&arg1=Completed
+```
+
+Unarchive the open note:
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=unarchive%20note%20keeping%20folder%20structure&arg0=
+```
+
+Move the current line or selection under the `Tasks` heading of `Projects/Plan.md`:
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=move%20paragraph%20or%20selection&arg0=Projects%2FPlan.md&arg1=Tasks
+```
+
+Move the current block to the top of the note titled `Plan`:
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=move%20paragraph%20block&arg0=Plan&arg1=%3C%3Ctop%20of%20note%3E%3E
+```
+
+Sync the current line or selection to the `Log` heading of `Plan`:
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=add%20sync%27d%20copy%20to%20note&arg0=Plan&arg1=Log
+```
+
+`<<bottom of note>>` works the same way as `<<top of note>>` for the move and sync commands.
+
+| Command | arg0 | arg1 |
+| --- | --- | --- |
+| add sync'd copy to note | Destination note: filename, title, or date phrase | Heading, `<<top of note>>`, or `<<bottom of note>>` |
+| move paragraph or selection; move paragraph block | Destination note: filename, title, or date phrase | Heading, `<<top of note>>`, or `<<bottom of note>>` |
+| archive note keeping folder structure | Note to archive. Empty uses the open note. | Archive root folder. Empty uses `@Archive`. |
+| unarchive note keeping folder structure | Note to unarchive. Empty uses the open note. | Ignored |
+| copy note links; move note links | Ignored | Ignored |
+| copy note links (recently changed); move note links (recently changed) | JSON object of settings to override. Empty uses plugin settings. | Ignored |
+| move completed items to done section | Ignored | Ignored |
+| quick move to Today's, Tomorrow's, Weekly, Next Weekly, Monthly, Next Monthly, Quarterly, or Next Quarterly note | Ignored | Ignored |
+
+The recently-changed note-link commands already accept that JSON `arg0`. Details and template examples are in the note-link section above. The other commands marked "Ignored" do not read arguments yet.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue' in GitHub](https://github.com/NotePlan/plugins/issues).

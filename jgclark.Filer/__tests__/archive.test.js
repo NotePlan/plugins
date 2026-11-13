@@ -72,5 +72,53 @@ describe('jgclark.Filer archive', () => {
       expect(await unarchiveNote(note)).toBeNull()
       expect(prompt).toHaveBeenCalledWith('Unarchive Note', expect.stringContaining('Failed to move'), ['OK, thanks'])
     })
+
+    test('x-callback archive of the open note does not prompt', async () => {
+      const moveNote = jest.fn<$ReadOnlyArray<any>, any>(() => '@Archive/Projects/Plan.md')
+      const prompt = jest.fn<$ReadOnlyArray<any>, Promise<string>>(async () => 'OK')
+      ;(DataStore: any).moveNote = moveNote
+      ;(CommandBar: any).prompt = prompt
+      const note = projectNote('Projects/Plan.md', 'Plan')
+      Editor.note = note
+
+      expect(await archiveNote('', '')).toBe('@Archive/Projects/Plan.md')
+      expect(moveNote).toHaveBeenCalledWith('Projects/Plan.md', '@Archive/Projects')
+      expect(prompt).not.toHaveBeenCalled()
+    })
+
+    test('x-callback archive by filename uses the archive folder and does not prompt', async () => {
+      const note = projectNote('Projects/Plan.md', 'Plan')
+      const moveNote = jest.fn<$ReadOnlyArray<any>, any>(() => 'Completed/Projects/Plan.md')
+      const prompt = jest.fn<$ReadOnlyArray<any>, Promise<string>>(async () => 'OK')
+      ;(DataStore: any).moveNote = moveNote
+      ;(DataStore: any).noteByFilename = jest.fn<$ReadOnlyArray<any>, any>(() => note)
+      ;(CommandBar: any).prompt = prompt
+
+      expect(await archiveNote('Projects/Plan.md', 'Completed')).toBe('Completed/Projects/Plan.md')
+      expect(moveNote).toHaveBeenCalledWith('Projects/Plan.md', 'Completed/Projects')
+      expect(prompt).not.toHaveBeenCalled()
+    })
+
+    test('x-callback archive does not prompt when the note is already archived', async () => {
+      const moveNote = jest.fn<$ReadOnlyArray<any>, any>()
+      const prompt = jest.fn<$ReadOnlyArray<any>, Promise<string>>(async () => 'OK')
+      ;(DataStore: any).moveNote = moveNote
+      ;(CommandBar: any).prompt = prompt
+      Editor.note = projectNote('@Archive/Projects/Plan.md', 'Plan')
+
+      expect(await archiveNote('', '@Archive')).toBeNull()
+      expect(moveNote).not.toHaveBeenCalled()
+      expect(prompt).not.toHaveBeenCalled()
+    })
+
+    test('x-callback unarchive does not prompt when the move fails', async () => {
+      const prompt = jest.fn<$ReadOnlyArray<any>, Promise<string>>(async () => 'OK')
+      ;(DataStore: any).moveNote = jest.fn<$ReadOnlyArray<any>, any>(() => null)
+      ;(CommandBar: any).prompt = prompt
+      Editor.note = projectNote('@Archive/Projects/Plan.md', 'Plan')
+
+      expect(await unarchiveNote('')).toBeNull()
+      expect(prompt).not.toHaveBeenCalled()
+    })
   })
 })

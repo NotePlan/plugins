@@ -2,17 +2,16 @@
 // ----------------------------------------------------------------------------
 // Plugin to help link lines between notes with Line IDs
 // Jonathan Clark
-// last updated 2025-11-24 for v1.3.4
+// last updated 2026-11-13 for v1.7.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { getFilerSettings } from './filerHelpers'
-import { clo, logDebug, logError, logWarn } from '@helpers/dev'
-import { getSelectedParagraphsToUse } from '@helpers/NPEditor'
+import { getFilerSettings, resolveNoteArgument } from './filerHelpers'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allRegularNotesSortedByChanged } from '@helpers/note'
 import { chooseNoteV2 } from '@helpers/NPnote'
-import { highlightSelectionInEditor } from '@helpers/NPEditor'
+import { getSelectedParagraphsToUse, highlightSelectionInEditor } from '@helpers/NPEditor'
 import { addParagraphsToNote, parasToText, smartAppendPara, smartPrependPara } from '@helpers/paragraph'
 import { chooseHeadingV2 } from '@helpers/userInput'
 
@@ -21,13 +20,18 @@ import { chooseHeadingV2 } from '@helpers/userInput'
 /**
  * Add a 'blockId' to current line, and ask which note's heading (section)
  * to also add it to.
+ * From an x-callback, arg0 is the destination note and arg1 is the heading. No dialogs in that case.
+ * @param {string?} destNoteArg - filename, title, or date phrase
+ * @param {string?} headingArg - heading, `<<top of note>>`, or `<<bottom of note>>`
  */
-export async function addIDAndAddToOtherNote(): Promise<void> {
+export async function addIDAndAddToOtherNote(destNoteArg?: string, headingArg?: string): Promise<void> {
+  // A string first argument (including '') is an x-callback. The command bar passes no arguments.
+  const fromXCallback = typeof destNoteArg === 'string'
   try {
     const { note, content, selectedParagraphs, selection } = Editor
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
-      logWarn(pluginJson, 'No note open, so stopping.')
+      logWarn(pluginJson, 'addIDAndAddToOtherNote(): No note open, so stopping.')
       return
     }
     // Get current selection, and its range
@@ -36,7 +40,8 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
       logError(pluginJson, 'moveParas: No selection found, so stopping.')
       return
     }
-    const config = await getFilerSettings()
+    const config = await getFilerSettings(!fromXCallback)
+    if (!config) return
     logDebug(pluginJson, `Filer/addIDAndAddToOtherNote() starting for note '${displayTitle(note)}'`)
 
     // Work out which paragraph to add the line ID to
@@ -49,16 +54,39 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     // Attempt to highlight them to help user check all is well
     highlightSelectionInEditor(selectedParagraphsToUse)
 
-    // Decide where to copy the para(s) to
+    // Decide where to copy the para(s) to. x-callback supplies the note and heading; the command bar asks.
     const lineCountStr = (numSelectedParas > 1) ? `${numSelectedParas} lines` : 'current line'
-    const destNote = await chooseNoteV2(`Select note to sync the ${lineCountStr} to`, allRegularNotesSortedByChanged(), true, true, false, true)
-    if (!destNote) {
-      logWarn('addIDAndAddToOtherNote', `- No note chosen. Stopping.`)
-      return
+    let destNote: TNote
+    let headingToFind = ''
+    if (fromXCallback) {
+      const destName = (destNoteArg || '').trim()
+      logInfo(pluginJson, `addIDAndAddToOtherNote(): x-callback dest '${destName}' heading '${headingArg ?? ''}'`)
+      if (destName === '') {
+        logError('addIDAndAddToOtherNote', 'No destination note given, so stopping.')
+        return
+      }
+      if (arguments.length < 2 || headingArg == null || headingArg.trim() === '') {
+        logError('addIDAndAddToOtherNote', 'No heading given, so stopping. Use a heading name, <<top of note>>, or <<bottom of note>>.')
+        return
+      }
+      const resolved = resolveNoteArgument(destName)
+      if (!resolved) {
+        logError('addIDAndAddToOtherNote', `Could not find note '${destName}', so stopping.`)
+        return
+      }
+      destNote = (resolved: any)
+      headingToFind = headingArg.trim()
+    } else {
+      const chosen = await chooseNoteV2(`Select note to sync the ${lineCountStr} to`, allRegularNotesSortedByChanged(), true, true, false, true)
+      if (!chosen) {
+        logWarn('addIDAndAddToOtherNote', `- No note chosen. Stopping.`)
+        return
+      }
+      destNote = chosen
+      // Ask to which heading to add the selectedParas
+      headingToFind = await chooseHeadingV2(destNote, true, true, false)
     }
-
-    // Ask to which heading to add the selectedParas
-    const headingToFind = await chooseHeadingV2(destNote, true, true, false)
+    logInfo(pluginJson, `addIDAndAddToOtherNote(): syncing ${lineCountStr} from '${displayTitle(note)}' to '${displayTitle(destNote)}' under '${headingToFind}'`)
     logDebug('addIDAndAddToOtherNote', `- Will add to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
     // Add Line ID for each paragraph (known as 'blockID' by API), using the same destination note and heading
@@ -87,6 +115,8 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     } else {
       addParagraphsToNote(destNote, selectedParagraphsToUse, headingToFind, config.whereToAddInSection, true) // true = allow preamble before heading
     }
+
+    logInfo(pluginJson, `addIDAndAddToOtherNote(): synced ${lineCountStr} to '${displayTitle(destNote)}' under '${headingToFind}'`)
 
     // unhighlight the previous selection, for safety's sake
     const emptyRange: TRange = Range.create(0, 0)
